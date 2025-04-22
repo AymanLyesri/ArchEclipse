@@ -42,7 +42,7 @@ style = "bg:#1d2230"
 format = '[[ 󱑍 $time ](bg:#1C3A5E fg:#8DFBD2)]($style)'
 
 [cmd_duration]
-format = 'last command: [$duration](bold yellow) '
+format = '[$duration](bold yellow) '
 
 [os]
 format = '[ ](bold white) '
