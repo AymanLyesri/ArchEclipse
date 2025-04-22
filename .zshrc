@@ -90,7 +90,7 @@ alias defaults="/home/ayman/.config/hypr/maintenance/DEFAULTS.sh"
 alias waifu='source $HOME/linux-chat-bot/main.sh "$(pwd)"'
 
 # Custom Zsh config
-[[ -f "$HOME/custom.zshrc" ]] && source "$HOME/custom.zshrc"
+[[ -f "$HOME/.custom.zshrc" ]] && source "$HOME/.custom.zshrc"
 
 ###REACT NATIVE SETUP (android studio) comment if u don't use react native
 export ANDROID_HOME=$HOME/Android/Sdk
