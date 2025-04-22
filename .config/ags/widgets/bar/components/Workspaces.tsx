@@ -42,6 +42,7 @@ function Workspaces() {
     // Determine button classes based on state
     const buttonClass = [
       isFocused ? (previousWorkspace !== id ? "focused" : "same-focused") : "",
+      previousWorkspace === id ? "unfocused" : "",
       isActive ? "" : "inactive",
     ]
       .filter(Boolean) // Remove empty strings
@@ -74,9 +75,6 @@ function Workspaces() {
         { length: totalWorkspaces },
         (_, i) => i + 1
       );
-
-      // Update previous workspace tracker
-      previousWorkspace = currentWorkspace;
 
       // Array to hold the final grouped workspace elements
       const groupElements: any[] = [];
@@ -118,7 +116,19 @@ function Workspaces() {
         const isFocused = currentWorkspace === id; // Is this the current workspace?
 
         // Handle inactive workspaces (no windows)
-        if (!isActive) {
+        if (isActive) {
+          // If we get here, workspace is active
+          currentGroupIsActive = true;
+          // Add button to current group
+          currentGroup.push(
+            createWorkspaceButton(id, isActive, isFocused, icon)
+          );
+
+          // Finalize group if we've reached the end or next workspace is inactive
+          if (id === allWorkspaces.length || !workspaceIds.includes(id + 1)) {
+            finalizeCurrentGroup();
+          }
+        } else {
           // Finalize any active group we were building
           finalizeCurrentGroup();
           // Add inactive workspace as single-element group
@@ -128,19 +138,9 @@ function Workspaces() {
               child={createWorkspaceButton(id, isActive, isFocused, icon)}
             />
           );
-          return;
-        }
-
-        // If we get here, workspace is active
-        currentGroupIsActive = true;
-        // Add button to current group
-        currentGroup.push(createWorkspaceButton(id, isActive, isFocused, icon));
-
-        // Finalize group if we've reached the end or next workspace is inactive
-        if (id === allWorkspaces.length || !workspaceIds.includes(id + 1)) {
-          finalizeCurrentGroup();
         }
       });
+      previousWorkspace = currentWorkspace; // Update previous workspace for next render
 
       return groupElements;
     }

@@ -81,18 +81,6 @@ const CopyImage = (image: Waifu) =>
 const OpenImage = (image: Waifu) => previewFloatImage(image.url_path!);
 
 function Actions() {
-  // const top = (
-  //   <box
-  //     className="top"
-  //     child={
-  //       <button
-  //         label=""
-  //         className="pin"
-  //         onClicked={() => PinImageToTerminal(waifuCurrent.get())}
-  //       />
-  //     }></box>
-  // );
-
   const Entry = (
     <entry
       className="input"

@@ -4,7 +4,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#define CHECK_INTERVAL 3600 // 1 hour in seconds
+// 5 hour in seconds
+#define CHECK_INTERVAL (5 * 60 * 60)
 #define MAX_UPDATES 1000
 
 void send_notification(const char *title, const char *message, const char *action)

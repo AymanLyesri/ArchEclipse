@@ -32,7 +32,6 @@ $custom-background: linear-gradient(
       }
     }
     button {
-      padding: 0px 5px;
       ////////////////////////////
       &.focused {
         background-image: $custom-background;
@@ -42,7 +41,6 @@ $custom-background: linear-gradient(
         background-image: $custom-background;
       }
       &.unfocused {
-        background-image: $custom-background;
         animation: workspace-unfocus 1s;
       }
       &.new-app {
