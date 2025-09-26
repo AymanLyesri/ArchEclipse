@@ -14,8 +14,8 @@ else
 fi
 
 git checkout $BRANCH
-git fetch upstream $BRANCH
-git reset --hard upstream/$BRANCH
+git fetch origin $BRANCH
+git reset --hard origin/$BRANCH
 
 # Kill any hanging pacman processes and clean lock file
 echo "Cleaning up any hanging pacman processes..."
