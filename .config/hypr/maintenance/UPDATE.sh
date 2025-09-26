@@ -17,18 +17,24 @@ git checkout $BRANCH
 git fetch origin $BRANCH
 git reset --hard origin/$BRANCH
 
-# Kill any hanging pacman processes and clean lock file
-echo "Cleaning up any hanging pacman processes..."
-sudo pkill -f pacman 2>/dev/null || true
-sudo pkill -f yay 2>/dev/null || true
-sudo pkill -f paru 2>/dev/null || true
+# Kill any hanging pacman/AUR helper processes and clean lock file
+echo "Cleaning up any hanging package manager processes..."
+
+# List of possible package managers
+procs=("pacman" "yay" "paru")
+
+for proc in "${procs[@]}"; do
+    if pgrep -x "$proc" >/dev/null; then
+        echo "Killing $proc..."
+        sudo killall -9 "$proc" 2>/dev/null || true
+    fi
+done
 
 # Remove pacman lock file if it exists
 if [ -f /var/lib/pacman/db.lck ]; then
     echo "Removing pacman lock file..."
     sudo rm -f /var/lib/pacman/db.lck
 fi
-
 aur_helpers=("yay" "paru")
 
 for helper in "${aur_helpers[@]}"; do
