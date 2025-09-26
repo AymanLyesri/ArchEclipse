@@ -11,7 +11,7 @@ const hyprland = Hyprland.get_default();
 
 import { WidgetSelector } from "./interfaces/widgetSelector.interface";
 import { refreshCss } from "./utils/scss";
-import { bind, Binding, GLib, Variable } from "astal";
+import { bind, Binding, GLib, timeout, Variable } from "astal";
 import { writeJSONFile } from "./utils/json";
 import { AGSSetting, Settings } from "./interfaces/settings.interface";
 import { Api } from "./interfaces/api.interface";
@@ -172,3 +172,12 @@ export const booruLimit = Variable<number>(getSetting("booru.limit"));
 booruLimit.subscribe((value) => setSetting("booru.limit", value));
 export const booruPage = Variable<number>(getSetting("booru.page"));
 booruPage.subscribe((value) => setSetting("booru.page", value));
+
+export const screenShotVisibility = Variable<boolean>(false);
+screenShotVisibility.subscribe((value) => {
+  if (value) {
+    timeout(5000, () => {
+      screenShotVisibility.set(false);
+    });
+  }
+});

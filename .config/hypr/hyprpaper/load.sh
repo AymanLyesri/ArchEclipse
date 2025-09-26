@@ -18,6 +18,19 @@ all_wallpapers=$HOME/.config/wallpapers/all          # all wallpapers directory
 
 #################################################
 
+hyprpaper &
+
+# wait until hyprpaper's IPC socket exists
+while [ ! -S "$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.hyprpaper.sock" ]; do
+    echo "Waiting for hyprpaper to start..."
+    sleep 0.2
+done
+
+# give it a short extra delay to make sure wallpapers are applied
+sleep 1
+
+#################################################
+
 monitors=$(hyprctl monitors | awk '/Monitor/ {print $2}')
 
 for monitor in $monitors; do

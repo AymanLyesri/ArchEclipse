@@ -18,6 +18,7 @@ import LeftPanel from "./widgets/leftPanel/LeftPanel";
 import LeftPanelHover from "./widgets/leftPanel/LeftPanelHover";
 import { compileBinaries } from "./utils/gcc";
 import "./services/autoSwitchWorkspace";
+import ScreenShot from "./widgets/ScreenShot";
 
 const perMonitorDisplay = () =>
   App.get_monitors().map((monitor) => {
@@ -39,6 +40,7 @@ const perMonitorDisplay = () =>
       { name: "MediaPopups", fn: () => MediaPopups(monitor) },
       { name: "SettingsWidget", fn: () => SettingsWidget(monitor) },
       { name: "OSD", fn: () => OSD(monitor) },
+      { name: "ScreenShot", fn: () => ScreenShot(monitor) },
     ];
 
     // Launch each widget independently without waiting
