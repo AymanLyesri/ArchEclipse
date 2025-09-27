@@ -57,11 +57,14 @@ const QuickApps = () => {
                       <label className="icon" label={app.icon} />
                       <label label={app.name} />
                     </box>
-                  }></button>
+                  }
+                ></button>
               ))}
             </box>
-          }></scrollable>
-      }></revealer>
+          }
+        ></scrollable>
+      }
+    ></revealer>
   );
 
   return <box className="quick-launcher" spacing={5} child={apps}></box>;
@@ -211,9 +214,8 @@ const organizeResults = (results: LauncherApp[]) => {
   const buttonContent = (element: LauncherApp) => (
     <box
       spacing={10}
-      halign={
-        element.app_type === "emoji" ? Gtk.Align.CENTER : Gtk.Align.START
-      }>
+      halign={element.app_type === "emoji" ? Gtk.Align.CENTER : Gtk.Align.START}
+    >
       {element.app_type === "app" ? <icon icon={element.app_icon} /> : <box />}
       <label label={element.app_name} />
       <label className="argument" label={element.app_arg || ""} />
@@ -288,14 +290,12 @@ export default (monitor: Gdk.Monitor) => (
     child={
       <eventbox>
         <box vertical={true} className="app-launcher">
-          <box spacing={5}>
-            <icon className="icon" icon="preferences-system-search-symbolic" />
-            {Entry}
-          </box>
+          {Entry}
 
           {ResultsDisplay}
           {QuickApps()}
         </box>
       </eventbox>
-    }></window>
+    }
+  ></window>
 );

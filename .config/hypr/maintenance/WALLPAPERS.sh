@@ -47,6 +47,7 @@ urls=(
     "https://cdn.donmai.us/original/bf/38/__cartethyia_fleurdelys_and_imperator_wuthering_waves_drawn_by_jvn__bf389e2eae6ebea429cac939cf935430.jpg"
     "https://cdn.donmai.us/original/6b/b0/__lovely_labrynth_of_the_silver_castle_yu_gi_oh_drawn_by_ribao__6bb069c9a7f4b8a39e0b54a7901b2a81.jpg"
     "https://cdn.donmai.us/original/8b/16/__iuno_wuthering_waves_drawn_by_kryp132__8b16f466b4f3a18d119dd792121388e4.jpg"
+    "https://cdn.donmai.us/original/7b/57/__warship_girls_r_drawn_by_tuweibu__7b5700be93c2158e2e3c35e7846d4a43.jpg"
 )
 
 wallpapers_total_size() {

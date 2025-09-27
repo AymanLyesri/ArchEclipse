@@ -23,7 +23,7 @@ hyprpaper &
 # wait until hyprpaper's IPC socket exists
 while [ ! -S "$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.hyprpaper.sock" ]; do
     echo "Waiting for hyprpaper to start..."
-    sleep 0.2
+    sleep 1
 done
 
 # give it a short extra delay to make sure wallpapers are applied

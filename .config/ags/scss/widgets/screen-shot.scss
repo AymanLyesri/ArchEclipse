@@ -1,0 +1,10 @@
+.screenshot-eventbox:hover {
+  background-color: $background-secondary;
+  border-radius: 1rem;
+}
+
+.screenshot-widget {
+  @extend .module;
+  background-color: $background-transparent;
+  padding: 1rem;
+}

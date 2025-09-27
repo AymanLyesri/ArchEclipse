@@ -27,7 +27,7 @@ print("screenshot updated: " + screenShot.get());
 //screen shoter widget
 const actions = (monitorName: String) => {
   return (
-    <box className="actions" spacing={5} vertical={true}>
+    <box className="actions" spacing={10} vertical={true}>
       <box
         className="image"
         css={bind(screenShot).as(
@@ -37,8 +37,8 @@ const actions = (monitorName: String) => {
         background-repeat: no-repeat;
         background-position: center;
         border-radius: 10px;
-        min-width: 200px;
-        min-height: ${getImageRatio(screenShot.get()) * 200}px;`
+        min-width: 100px;
+        min-height: ${getImageRatio(screenShot.get()) * 100}px;`
         )}
       />
       <button
@@ -81,9 +81,20 @@ export default (monitor: Gdk.Monitor) => {
       margin={globalMargin}
       visible={bind(screenShotVisibility)}
       child={
-        <eventbox
-          onHoverLost={() => screenShotVisibility.set(false)}
-          child={actions(monitorName)}
+        <box
+          className="screenshot-popup"
+          child={
+            <eventbox
+              className={"screenshot-eventbox"}
+              onHoverLost={() => screenShotVisibility.set(false)}
+              child={
+                <box
+                  className="screenshot-widget"
+                  child={actions(monitorName)}
+                />
+              }
+            />
+          }
         />
       }
     />
