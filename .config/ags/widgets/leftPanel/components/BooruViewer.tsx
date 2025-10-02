@@ -63,10 +63,11 @@ const cleanUp = () => {
 const fetchImages = async () => {
   try {
     openProgress();
+    const escapedTags = booruTags.get().map(tag => tag.replace(/'/g, "'\\''"));
     const res = await execAsync(
       `python ./scripts/search-booru.py 
       --api ${booruApi.get().value} 
-      --tags '${booruTags.get().join(",")}' 
+      --tags '${escapedTags.join(",")}' 
       --limit ${booruLimit.get()} 
       --page ${booruPage.get()}`
     );
@@ -132,10 +133,11 @@ const Apis = () => (
 );
 
 const fetchTags = async (tag: string) => {
+  const escapedTag = tag.replace(/'/g, "'\\''");
   const res = await execAsync(
     `python ./scripts/search-booru.py 
     --api ${booruApi.get().value} 
-    --tag '${tag}'`
+    --tag '${escapedTag}'`
   );
   fetchedTags.set(readJson(res));
 };
