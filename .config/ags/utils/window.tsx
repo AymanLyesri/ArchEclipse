@@ -29,7 +29,8 @@ export function WindowActions({
       vexpand={true}
       halign={Gtk.Align.END}
       valign={Gtk.Align.END}
-      vertical={true}>
+      vertical={true}
+    >
       <button
         label={""}
         className={"expand-window"}

@@ -29,7 +29,8 @@ const UserPanel = (monitorName: string) => {
       <box
         halign={Gtk.Align.CENTER}
         className="up-time"
-        child={<label className="uptime" label={bind(uptime)} />}></box>
+        child={<label className="uptime" label={bind(uptime)} />}
+      ></box>
     );
 
     const ProfilePicture = (
@@ -60,7 +61,8 @@ const UserPanel = (monitorName: string) => {
                 .catch((err) => notify(err));
             }}
           />
-        }></box>
+        }
+      ></box>
     );
 
     return (
@@ -137,7 +139,8 @@ const UserPanel = (monitorName: string) => {
       halign={Gtk.Align.CENTER}
       className="bottom"
       vertical={true}
-      spacing={10}>
+      spacing={10}
+    >
       {Profile()}
       {Actions()}
     </box>
@@ -152,7 +155,8 @@ const UserPanel = (monitorName: string) => {
           hexpand={true}
           label={bind(date_less)}
         />
-      }></box>
+      }
+    ></box>
   );
 
   const middle = (
@@ -161,7 +165,8 @@ const UserPanel = (monitorName: string) => {
       vertical={true}
       hexpand={true}
       vexpand={true}
-      spacing={10}>
+      spacing={10}
+    >
       {/* {Resources()} */}
       {NotificationHistory()}
       {Date}
@@ -191,7 +196,8 @@ const WindowActions = (monitorName: string) => {
             hideWindow(`user-panel-${monitorName}`);
           }}
         />
-      }></box>
+      }
+    ></box>
   );
 };
 
@@ -206,6 +212,13 @@ export default (monitor: Gdk.Monitor) => {
       className="user-panel"
       layer={Astal.Layer.OVERLAY}
       visible={false}
+      keymode={Astal.Keymode.ON_DEMAND}
+      onKeyPressEvent={(self, event) => {
+        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+          hideWindow(`user-panel-${monitorName}`);
+          return true;
+        }
+      }}
       child={
         <box className="display" vertical={true} spacing={10}>
           {WindowActions(monitorName)}

@@ -11,7 +11,7 @@ import {
   leftPanelWidth,
 } from "../../variables";
 
-import { WindowActions } from "../../utils/window";
+import { hideWindow, WindowActions } from "../../utils/window";
 import ToggleButton from "../toggleButton";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 
@@ -51,12 +51,14 @@ function Panel() {
             leftPanelWidgetSelectors
               .find((ws) => ws.name === widget.name)
               ?.widget() || <box />
-        )}></box>
+        )}
+      ></box>
       <eventbox
         onHoverLost={() => {
           if (!leftPanelLock.get()) leftPanelVisibility.set(false);
         }}
-        child={<box css={"min-width:5px"} />}></eventbox>
+        child={<box css={"min-width:5px"} />}
+      ></eventbox>
     </box>
   );
 }
@@ -87,6 +89,15 @@ export default (monitor: Gdk.Monitor) => {
       )}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={bind(leftPanelVisibility)}
+      onKeyPressEvent={(self, event) => {
+        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+          leftPanelVisibility.set(false);
+          hideWindow(
+            `left-panel-${getMonitorName(monitor.get_display(), monitor)}`
+          );
+          return true;
+        }
+      }}
       child={<Panel />}
     />
   );

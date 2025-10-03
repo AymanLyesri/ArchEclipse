@@ -2,6 +2,12 @@ import { Api } from "../interfaces/api.interface";
 
 export const chatBotApis: Api[] = [
   {
+    name: "Phind",
+    value: "phind",
+    icon: "Ph",
+    description: "Uses Phind Model. Great for developers",
+  },
+  {
     name: "Pollinations",
     value: "pollinations",
     icon: "Po",
@@ -9,10 +15,23 @@ export const chatBotApis: Api[] = [
     imageGenerationSupport: true,
   },
   {
-    name: "Phind",
-    value: "phind",
-    icon: "Ph",
-    description: "Uses Phind Model. Great for developers",
+    name: "Isou",
+    value: "isou",
+    icon: "Is",
+    description: "Free provider with web search capabilities",
+  },
+  {
+    name: "KoboldAI",
+    value: "koboldai",
+    icon: "Ko",
+    description: "Creative writing focused, answers from novels",
+  },
+  {
+    name: "Arta",
+    value: "arta",
+    icon: "Ar",
+    description: "AI image generation with various artistic styles",
+    imageGenerationSupport: true,
   },
 ];
 
@@ -27,5 +46,4 @@ export const booruApis: Api[] = [
     value: "gelbooru",
     idSearchUrl: "https://gelbooru.com/index.php?page=post&s=view&id=",
   },
-]
-
+];

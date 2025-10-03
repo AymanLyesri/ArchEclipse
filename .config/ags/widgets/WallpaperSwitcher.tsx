@@ -1,6 +1,6 @@
 import hyprland from "gi://AstalHyprland";
 import { bind, exec, execAsync, monitorFile, Variable } from "astal";
-import { App, Gdk, Gtk } from "astal/gtk3";
+import { App, Astal, Gdk, Gtk } from "astal/gtk3";
 import { notify } from "../utils/notification";
 import { focusedWorkspace, globalTransition } from "../variables";
 import ToggleButton from "./toggleButton";
@@ -404,6 +404,13 @@ export default (monitor: Gdk.Monitor) => {
       name={`wallpaper-switcher-${monitorName}`}
       application={App}
       visible={false}
+      keymode={Astal.Keymode.ON_DEMAND}
+      onKeyPressEvent={(self, event) => {
+        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+          hideWindow(`wallpaper-switcher-${monitorName}`);
+          return true;
+        }
+      }}
       child={Wallpapers(monitorName)}
     />
   );

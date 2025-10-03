@@ -280,8 +280,10 @@ export default (monitor: Gdk.Monitor) => (
     visible={false}
     onKeyPressEvent={(self, event) => {
       if (event.get_keyval()[1] === Gdk.KEY_Escape) {
-        Entry.set_text("");
-        Entry.grab_focus();
+        hideWindow(
+          `app-launcher-${getMonitorName(monitor.get_display(), monitor)}`
+        );
+        return true;
       }
     }}
     setup={(self) => {

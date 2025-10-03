@@ -12,7 +12,7 @@ import {
 import { bind } from "astal";
 import ToggleButton from "../toggleButton";
 import { getMonitorName } from "../../utils/monitor";
-import { WindowActions } from "../../utils/window";
+import { hideWindow, WindowActions } from "../../utils/window";
 import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => {
@@ -21,7 +21,8 @@ const WidgetActions = () => {
       vertical={true}
       vexpand={true}
       className={"widget-actions"}
-      spacing={5}>
+      spacing={5}
+    >
       {rightPanelWidgetSelectors.map((selector) => {
         const isActive = rightPanelWidgets
           .get()
@@ -68,12 +69,14 @@ function Panel() {
         onHoverLost={() => {
           if (!rightPanelLock.get()) rightPanelVisibility.set(false);
         }}
-        child={<box css={"min-width:5px"} />}></eventbox>
+        child={<box css={"min-width:5px"} />}
+      ></eventbox>
       <box
         className={"main-content"}
         vertical={true}
         spacing={10}
-        widthRequest={bind(rightPanelWidth)}>
+        widthRequest={bind(rightPanelWidth)}
+      >
         {bind(rightPanelWidgets).as((widgets) => {
           return widgets
             .map((widget) =>
@@ -120,6 +123,15 @@ export default (monitor: Gdk.Monitor) => {
       )}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={bind(rightPanelVisibility)}
+      onKeyPressEvent={(self, event) => {
+        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+          rightPanelVisibility.set(false);
+          hideWindow(
+            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+          );
+          return true;
+        }
+      }}
       child={<Panel />}
     />
   );

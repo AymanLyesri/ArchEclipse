@@ -63,7 +63,9 @@ const cleanUp = () => {
 const fetchImages = async () => {
   try {
     openProgress();
-    const escapedTags = booruTags.get().map(tag => tag.replace(/'/g, "'\\''"));
+    const escapedTags = booruTags
+      .get()
+      .map((tag) => tag.replace(/'/g, "'\\''"));
     const res = await execAsync(
       `python ./scripts/search-booru.py 
       --api ${booruApi.get().value} 

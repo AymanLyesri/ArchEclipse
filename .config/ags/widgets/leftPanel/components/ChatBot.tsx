@@ -85,17 +85,21 @@ const sendMessage = async (message: Message) => {
       message.id
     }.jpg`;
 
-    const response = await execAsync(
+    // Escape single quotes in message content
+    const escapedContent = message.content.replace(/'/g, "'\\''");
+
+    const prompt =
       `tgpt --quiet ` +
-        `${chatBotImageGeneration.get() ? "--img" : ""} ` +
-        `--out ${imagePath} ` +
-        `--provider ${chatBotApi.get().value} ` +
-        `--preprompt 'short and straight forward response, 
+      `${chatBotImageGeneration.get() ? "--img" : ""} ` +
+      `${chatBotImageGeneration.get() ? `--out ${imagePath}` : ""} ` +
+      `--provider ${chatBotApi.get().value} ` +
+      `--preprompt 'short and straight forward response, 
         ${JSON.stringify(chatHistory.get())
           .replace(/'/g, `'"'"'`)
-          .replace(/`/g, "\\`")}' ` +
-        `'${message.content}'`
-    );
+          .replace(/`/g, "\\`")}'` +
+      ` '${escapedContent}'`;
+
+    const response = await execAsync(prompt);
     const endTime = Date.now();
 
     notify({ summary: chatBotApi.get().name, body: response });

@@ -385,6 +385,13 @@ export default (monitor: Gdk.Monitor) => {
       anchor={Astal.WindowAnchor.BOTTOM | Astal.WindowAnchor.LEFT}
       visible={false}
       margin={globalMargin}
+      keymode={Astal.Keymode.ON_DEMAND}
+      onKeyPressEvent={(self, event) => {
+        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+          hideWindow(`settings-${monitorName}`);
+          return true;
+        }
+      }}
       child={
         <box vertical={true} className="settings-widget">
           <WindowActions monitor={monitorName} />
