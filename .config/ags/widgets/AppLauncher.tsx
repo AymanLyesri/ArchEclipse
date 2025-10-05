@@ -70,6 +70,37 @@ const QuickApps = () => {
   return <box className="quick-launcher" spacing={5} child={apps}></box>;
 };
 
+const helpCommands = {
+  "Press <Escape>": "to reset input",
+  "... ...": "open with argument",
+  "translate .. > ..": "translate .. > (en,fr,es,de,pt,ru,ar...)",
+  "... .com OR https://...": "open link",
+  "..*/+-..": "arithmetics",
+  "emoji ...": "search emojis",
+};
+
+const Help = (
+  <box className="help" spacing={5} vertical>
+    {Object.entries(helpCommands).map(([command, explanation]) => (
+      <box hexpand homogeneous>
+        <label
+          className="command"
+          label={command}
+          halign={Gtk.Align.END}
+          hexpand
+        />
+        <label className="separator" label="=>>" halign={Gtk.Align.CENTER} />
+        <label
+          className="explanation"
+          label={explanation}
+          halign={Gtk.Align.START}
+          hexpand
+        />
+      </box>
+    ))}
+  </box>
+);
+
 let debounceTimer: any;
 let args: string[];
 
@@ -291,11 +322,11 @@ export default (monitor: Gdk.Monitor) => (
     }}
     child={
       <eventbox>
-        <box vertical={true} className="app-launcher">
+        <box vertical={true} className="app-launcher" spacing={5}>
           {Entry}
-
           {ResultsDisplay}
           {QuickApps()}
+          {Help}
         </box>
       </eventbox>
     }

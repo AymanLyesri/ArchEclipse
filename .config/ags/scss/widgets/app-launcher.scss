@@ -4,8 +4,10 @@
   border-radius: 10px;
   min-width: 500px;
 
-  entry {
-    margin-bottom: 10px;
+  .help > * {
+    @extend .button;
+    font-size: 0.69em;
+    color: $secondary;
   }
 
   .quick-apps {

@@ -81,6 +81,10 @@ filechooserbutton * {
   }
 }
 
+.secondary {
+  color: $secondary;
+}
+
 entry {
   padding: $SCALE / 2;
   border-radius: 10px;

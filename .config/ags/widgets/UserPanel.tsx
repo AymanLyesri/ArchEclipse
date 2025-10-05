@@ -14,14 +14,21 @@ const Hyprland = hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
 const username = exec(`whoami`);
-const uptime = Variable("-").poll(600000, "uptime -p");
+const desktopEnv = exec(`bash -c "echo $XDG_CURRENT_DESKTOP"`);
+const uptime = Variable("-").poll(600000, "uptime -p"); // every 10 minutes
 
 const UserPanel = (monitorName: string) => {
   const Profile = () => {
     const UserName = (
       <box halign={Gtk.Align.CENTER} className="user-name">
         <label label="I'm " />
-        <label className="name" label={username} />
+        <label className="secondary" label={username} />
+      </box>
+    );
+    const DesktopEnv = (
+      <box className="desktop-env" halign={Gtk.Align.CENTER}>
+        <label label="On " />
+        <label className="secondary" label={desktopEnv} />
       </box>
     );
 
@@ -66,9 +73,10 @@ const UserPanel = (monitorName: string) => {
     );
 
     return (
-      <box className="profile" vertical={true}>
+      <box className="profile" vertical={true} spacing={5}>
         {ProfilePicture}
         {UserName}
+        {DesktopEnv}
         {Uptime}
       </box>
     );
@@ -174,7 +182,7 @@ const UserPanel = (monitorName: string) => {
   );
 
   return (
-    <box className="user-panel" spacing={10}>
+    <box className="main" spacing={10}>
       {MediaWidget()}
       {middle}
       {right}
