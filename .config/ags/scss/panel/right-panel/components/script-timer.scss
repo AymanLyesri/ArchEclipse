@@ -1,0 +1,103 @@
+.script-timer {
+  // Uses lib.scss module base styles via .module class
+  @extend .module;
+  padding: 0.5em;
+
+  .header {
+    .title {
+      font-weight: bold;
+      font-size: 14px;
+    }
+  }
+
+  .form-container {
+    @extend .module;
+    background: $background-semi-transparent;
+    padding: 0.5em;
+
+    .form-label {
+      font-size: 12px;
+      font-weight: bold;
+      color: $foreground-secondary;
+      margin-bottom: 2px;
+    }
+
+    .suggestions {
+      background: $background-semi-transparent;
+      border-radius: 8px;
+      margin-top: 4px;
+
+      .suggestion {
+      }
+    }
+
+    .form-actions {
+      margin-top: 8px;
+    }
+  }
+
+  .task-eventbox:hover .task-header {
+    background-color: $background-secondary;
+  }
+
+  .task {
+    @extend .module;
+    background: $background-transparent;
+
+    border-radius: 4px;
+    border-left: 3px solid $tertiary;
+    padding: 0.5em;
+
+    &.active {
+      border-left: 3px solid $green;
+    }
+    &.inactive {
+      border-left: 3px solid $red;
+    }
+
+    .task-header {
+      padding-left: 5px;
+      border-radius: 5px;
+      background: $background-transparent;
+    }
+
+    .task-info {
+      .task-name {
+        font-weight: bold;
+        color: $foreground;
+      }
+      .task-schedule {
+        font-size: 0.69em;
+        font-style: italic;
+      }
+      .task-type {
+        font-size: 10px;
+        color: $secondary;
+        font-weight: bold;
+        background: rgba($secondary, 0.2);
+        padding: 0px 5px;
+        border-radius: 4px;
+      }
+    }
+
+    .task-command {
+      color: $foreground-secondary;
+    }
+
+    .task-actions {
+      button {
+        border-radius: 0px;
+        padding: 0px 5px;
+      }
+      button:first-child {
+        border-radius: 5px 0px 0px 5px;
+      }
+      button:last-child {
+        border-radius: 0px 5px 5px 0px;
+      }
+      button:only-child {
+        border-radius: 5px;
+      }
+    }
+  }
+}

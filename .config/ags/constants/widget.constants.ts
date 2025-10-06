@@ -10,73 +10,77 @@ import NotificationHistory from "../widgets/rightPanel/NotificationHistory";
 import Workspaces from "../widgets/bar/components/Workspaces";
 import Information from "../widgets/bar/components/Information";
 import Utilities from "../widgets/bar/components/Utilities";
-
+import ScriptTimer from "../widgets/rightPanel/components/ScriptTimer";
+import { Gtk } from "astal/gtk3";
 
 export const barWidgetSelectors: WidgetSelector[] = [
-    {
-        name: "workspaces",
-        icon: "󰒘",
-        widget: (monitorName: string) => Workspaces({ monitorName }),
-    },
-    {
-        name: "information",
-        icon: "󰒘",
-        widget: (monitorName: string) => Information({ monitorName }),
-    },
-    {
-        name: "utilities",
-        icon: "󰒘",
-        widget: (monitorName: string) => Utilities({ monitorName }),
-    },
-]
+  {
+    name: "workspaces",
+    icon: "󰒘",
+    widget: (monitorName: string, halign: Gtk.Align) =>
+      Workspaces({ monitorName, halign }),
+  },
+  {
+    name: "information",
+    icon: "󰒘",
+    widget: (monitorName: string, halign: Gtk.Align) =>
+      Information({ monitorName, halign }),
+  },
+  {
+    name: "utilities",
+    icon: "󰒘",
+    widget: (monitorName: string, halign: Gtk.Align) =>
+      Utilities({ monitorName, halign }),
+  },
+];
 
 export const rightPanelWidgetSelectors: WidgetSelector[] = [
-    {
-        name: "Waifu",
-        icon: "",
-        widget: () => Waifu(),
-    },
-    {
-        name: "Media",
-        icon: "",
-        widget: () => MediaWidget(),
-    },
-    {
-        name: "NotificationHistory",
-        icon: "",
-        widget: () => NotificationHistory(),
-    },
-    {
-        name: "Calendar",
-        icon: "",
-        widget: () => Calendar(),
-    },
-    // {
-    //   name: "Resources",
-    //   icon: "",
-    //   widget: () => Resources(),
-    // },
-    // {
-    //   name: "Update",
-    //   icon: "󰚰",
-    //   widget: () => Update(),
-    // },
+  {
+    name: "Waifu",
+    icon: "",
+    widget: () => Waifu(),
+  },
+  {
+    name: "Media",
+    icon: "",
+    widget: () => MediaWidget(),
+  },
+  {
+    name: "NotificationHistory",
+    icon: "",
+    widget: () => NotificationHistory(),
+  },
+  {
+    name: "Calendar",
+    icon: "",
+    widget: () => Calendar(),
+  },
+  {
+    name: "ScriptTimer",
+    icon: "󰀠",
+    widget: () => ScriptTimer(),
+  },
+  // {
+  //   name: "Resources",
+  //   icon: "",
+  //   widget: () => Resources(),
+  // },
 ];
 
 export const leftPanelWidgetSelectors: WidgetSelector[] = [
-    {
-        name: "ChatBot",
-        icon: "",
-        widget: () => ChatBot(),
-    },
-    {
-        name: "BooruViewer",
-        icon: "",
-        widget: () => BooruViewer(),
-    },
-    {
-        name: "CustomScripts",
-        icon: "",
-        widget: () => CustomScripts(),
-    }
+  {
+    name: "ChatBot",
+    icon: "",
+    widget: () => ChatBot(),
+  },
+  {
+    name: "BooruViewer",
+    icon: "",
+    widget: () => BooruViewer(),
+  },
+  {
+    name: "CustomScripts",
+    icon: "",
+    widget: () => CustomScripts(),
+  },
 ];

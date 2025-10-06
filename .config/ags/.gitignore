@@ -27,4 +27,7 @@ assets/chatbot/*
 !assets/booru/
 assets/booru/*
 
+assets/script-timer/*
+!assets/script-timer/
+
 logs
