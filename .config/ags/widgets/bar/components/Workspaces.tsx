@@ -179,6 +179,22 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
   );
 }
 
+// wallpaper switcher
+
+function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
+  return (
+    <ToggleButton
+      className="wallpaper-switcher-trigger"
+      label="󰸉"
+      onToggled={(self, on) => {
+        on
+          ? showWindow(`wallpaper-switcher-${monitorName}`)
+          : hideWindow(`wallpaper-switcher-${monitorName}`);
+      }}
+    />
+  );
+}
+
 function Settings({ monitorName }: { monitorName: string }) {
   return (
     <ToggleButton
@@ -212,7 +228,7 @@ const Actions = ({ monitorName }: { monitorName: string }) => {
     <box className="actions">
       <UserPanel monitorName={monitorName} />
       <Settings monitorName={monitorName} />
-      <AppLauncher monitorName={monitorName} />
+      <WallpaperSwitcher monitorName={monitorName} />
     </box>
   );
 };

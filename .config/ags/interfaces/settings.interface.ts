@@ -78,12 +78,4 @@ export interface Settings {
     lock: boolean;
     widget: WidgetSelector;
   };
-  quickLauncher: {
-    apps: {
-      name: string;
-      app_name: string;
-      exec: string;
-      icon: string;
-    }[];
-  };
 }

@@ -263,7 +263,7 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
     const isToday = date.toDateString() === now.toDateString();
 
     if (isToday) {
-      return `Today at ${date.toLocaleTimeString("en-US", {
+      return `Today, ${date.toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
@@ -320,7 +320,10 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
 
               <box spacing={5}>
                 <label className="task-schedule" label={formatNextRun()} />
-                <label className="task-type" label={task.type ? " " : "󰬺"} />
+                <label
+                  className="task-type icon"
+                  label={task.type ? "" : "1"}
+                />
               </box>
             </box>
 

@@ -102,20 +102,6 @@ export const defaultSettings: Settings = {
     limit: 20,
     page: 1,
   },
-  quickLauncher: {
-    apps: [
-      {
-        name: "Browser",
-        app_name: "browser",
-        exec: "xdg-open https://google.com",
-        icon: "",
-      },
-      { name: "Terminal", app_name: "kitty", exec: "kitty", icon: "" },
-      { name: "Files", app_name: "thunar", exec: "thunar", icon: "" },
-      { name: "Calculator", app_name: "kitty", exec: "kitty bc", icon: "" },
-      { name: "Text Editor", app_name: "code", exec: "code", icon: "" },
-    ],
-  },
 };
 
 function deepMergePreserveStructure(target: any, source: any): any {

@@ -36,7 +36,10 @@ const osdSlider = (
   let sliderLock = Variable<boolean>(false);
 
   const indicator = (
-    <label label={bind(connectable, signal).as((v) => getIcon(v, icons))} />
+    <label
+      className={"icon"}
+      label={bind(connectable, signal).as((v) => getIcon(v, icons))}
+    />
   );
 
   const slider = (

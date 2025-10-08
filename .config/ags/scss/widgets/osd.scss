@@ -7,7 +7,8 @@
 
   .container {
     background-color: $background-transparent;
-    padding: 15px 10px 10px 10px;
+    padding: 5px;
+    margin-left: 10px;
     border-radius: 50px;
   }
 
@@ -15,13 +16,12 @@
     min-height: 500px;
 
     trough {
-      border-radius: 50px 50px 15px 15px;
-
+      border-radius: 50px;
       slider {
-        min-width: 30px;
+        min-width: 10px;
       }
       highlight {
-        border-radius: 50px 50px 15px 15px;
+        border-radius: 50px;
       }
     }
   }

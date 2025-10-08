@@ -24,6 +24,7 @@ import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
 import { LauncherApp } from "../interfaces/app.interface";
 import { customApps } from "../constants/app.constants";
+import { quickApps } from "../constants/app.constants";
 const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
@@ -31,7 +32,6 @@ const MAX_ITEMS = 10;
 const monitorName = Variable<string>("");
 
 const Results = Variable<LauncherApp[]>([]);
-const quickApps = globalSettings.get().quickLauncher.apps;
 const QuickApps = () => {
   const apps = (
     <revealer
@@ -48,14 +48,13 @@ const QuickApps = () => {
                   hexpand
                   className="quick-app"
                   onClicked={() => {
-                    hyprland.message_async(`dispatch exec ${app.exec}`, () => {
-                      hideWindow(`app-launcher-${monitorName.get()}`);
-                    });
+                    app.app_launch();
+                    hideWindow(`app-launcher-${monitorName.get()}`);
                   }}
                   child={
                     <box spacing={5}>
-                      <label className="icon" label={app.icon} />
-                      <label label={app.name} />
+                      <label className="icon" label={app.app_icon} />
+                      <label label={app.app_name} />
                     </box>
                   }
                 ></button>
@@ -305,7 +304,7 @@ export default (monitor: Gdk.Monitor) => (
       empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
     )}
     exclusivity={Astal.Exclusivity.EXCLUSIVE}
-    keymode={Astal.Keymode.ON_DEMAND}
+    keymode={Astal.Keymode.EXCLUSIVE}
     layer={Astal.Layer.TOP}
     margin={globalMargin} // top right bottom left
     visible={false}
