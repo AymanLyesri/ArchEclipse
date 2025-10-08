@@ -187,7 +187,7 @@ export class ImageDialog {
 
       button.connect("clicked", () => {
         this.handleResponse(btn.response, img);
-        this.dialog.destroy();
+        // this.dialog.destroy();
       });
 
       buttonBox.add(button);
