@@ -1,7 +1,7 @@
 $background: $background; // Example background color
 $foreground: $foreground; // Example foreground color
-$secondary: $color5; // Example selected background color
-$tertiary: $color2; // Example selected foreground color
+$secondary: $color2; // Example selected background color
+$tertiary: $color3; // Example selected foreground color
 $grey: grey; // Example selected foreground color
 
 $red: rgb(169, 69, 69); /* Muted red-orange, with less opacity */
@@ -9,23 +9,23 @@ $green: rgb(153, 255, 153); /* Softer pastel green */
 $blue: rgb(102, 153, 255); /* Lighter desaturated blue */
 $orange: rgb(255, 139, 23); /* Muted peachy orange */
 
-$spotify: mix($background, rgb(30, 215, 95), 69%);
-$spotify-background: rgba($spotify, 0.69);
-$spotify-foreground: mix($foreground, $spotify, 50%);
+$spotify: mix($background, rgb(30, 215, 95), $phi-percentage);
+$spotify-background: rgba($spotify, $phi-percentage);
+$spotify-foreground: mix($foreground, $spotify, $phi-percentage);
 
-$blue: mix($background, $blue, 69%);
-$blue-background: rgba($blue, 0.69);
-$orange: mix($background, $orange, 69%);
-$orange-background: rgba($orange, 0.69);
-$red: mix($background, $red, 50%);
-$green: mix($background, $green, 69%);
+$blue: mix($background, $blue, $phi-percentage);
+$blue-background: rgba($blue, $phi-percentage);
+$orange: mix($background, $orange, $phi-percentage);
+$orange-background: rgba($orange, $phi-percentage);
+$red: mix($background, $red, $phi-percentage);
+$green: mix($background, $green, $phi-percentage);
 
-$secondary: mix($secondary, $foreground, 50%);
+$secondary: mix($secondary, $foreground, $phi-percentage);
 
-$background-mix: mix($background, $color1, 50%);
+$background-mix: mix($background, $color1, $phi-percentage);
 $background-transparent: rgba($background-mix, $OPACITY);
 
-$background-secondary: mix($background, $secondary, 85%);
-$foreground-secondary: mix($foreground, $secondary, 85%);
+$background-secondary: mix($background, $secondary, $phi-percentage);
+$foreground-secondary: mix($foreground, $secondary, $phi-percentage);
 
 $background-semi-transparent: rgba($background, $OPACITY + 0.2);

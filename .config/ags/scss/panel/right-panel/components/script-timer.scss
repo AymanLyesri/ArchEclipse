@@ -67,7 +67,7 @@
         color: $foreground;
       }
       .task-schedule {
-        font-size: 0.69em;
+        font-size: $phi-min + em;
         font-style: italic;
       }
       .task-type {

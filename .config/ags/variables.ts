@@ -17,8 +17,9 @@ import { AGSSetting, Settings } from "./interfaces/settings.interface";
 import { Api } from "./interfaces/api.interface";
 import { Waifu } from "./interfaces/waifu.interface";
 import { getGlobalTheme } from "./utils/theme";
+import { phi, phi_min } from "./constants/phi.constants";
 
-export const NOTIFICATION_DELAY = 5000;
+export const NOTIFICATION_DELAY = phi * 3000;
 
 // Settings are stored in a json file, containing all the settings, check if it exists, if not, create it
 export const globalSettings = Variable<Settings>(defaultSettings);
@@ -61,16 +62,16 @@ autoWorkspaceSwitching.subscribe((value) => {
 export const globalTheme = Variable<boolean>(false);
 getGlobalTheme();
 
-export const globalMargin = 14;
-export const globalTransition = 500;
+export const globalMargin = phi * 10;
+export const globalTransition = phi * 300;
 
 export const dateFormat = Variable<string>(getSetting("dateFormat"));
 export const date_less = Variable("").poll(
-  1000,
+  phi * 1000,
   () => GLib.DateTime.new_now_local().format(dateFormat.get())!
 );
 export const date_more = Variable("").poll(
-  1000,
+  phi * 1000,
   () => GLib.DateTime.new_now_local().format(":%S %b %e, %A.")!
 );
 dateFormat.subscribe((value) => {
@@ -127,7 +128,7 @@ rightPanelLock.subscribe((value) => setSetting("rightPanel.lock", value));
 export const DND = Variable<boolean>(getSetting("notifications.dnd"));
 DND.subscribe((value) => setSetting("notifications.dnd", value));
 
-export const widgetLimit = 5;
+export const widgetLimit = 6;
 export const rightPanelWidgets = Variable<WidgetSelector[]>(
   getSetting("rightPanel.widgets")
 );
@@ -176,7 +177,7 @@ booruPage.subscribe((value) => setSetting("booru.page", value));
 export const screenShotVisibility = Variable<boolean>(false);
 screenShotVisibility.subscribe((value) => {
   if (value) {
-    timeout(5000, () => {
+    timeout(5000 * phi, () => {
       screenShotVisibility.set(false);
     });
   }

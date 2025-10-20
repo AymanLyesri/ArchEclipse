@@ -6,7 +6,7 @@
 
   .help > * {
     @extend .button;
-    font-size: 0.69em;
+    font-size: $phi-min + em;
     color: $secondary;
   }
 

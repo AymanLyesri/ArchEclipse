@@ -235,9 +235,15 @@ const Entry = (
   />
 );
 
+const EmptyEntry = () => {
+  Entry.set_text("");
+  Results.set([]);
+};
+
 const launchApp = (app: LauncherApp) => {
   app.app_launch();
   hideWindow(`app-launcher-${monitorName.get()}`);
+  EmptyEntry();
 };
 
 const organizeResults = (results: LauncherApp[]) => {

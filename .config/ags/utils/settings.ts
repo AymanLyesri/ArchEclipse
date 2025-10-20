@@ -9,22 +9,23 @@ import {
 import { booruApis, chatBotApis } from "../constants/api.constants";
 import { WaifuClass } from "../interfaces/waifu.interface";
 import { dateFormats } from "../constants/date.constants";
+import { phi, phi_min } from "../constants/phi.constants";
 export const settingsPath = "./assets/settings/settings.json";
 
 export const defaultSettings: Settings = {
   dateFormat: dateFormats[0],
   hyprsunset: {
-    kelvin: 6500,
+    kelvin: 6500, // leave as is
   },
   hyprland: {
     decoration: {
-      rounding: { value: 15, min: 0, max: 50, type: "int" },
-      active_opacity: { value: 0.8, min: 0, max: 1, type: "float" },
-      inactive_opacity: { value: 0.5, min: 0, max: 1, type: "float" },
+      rounding: { value: Math.round(phi * 10), min: 0, max: 50, type: "int" }, // already φ-based
+      active_opacity: { value: phi_min + 0.1, min: 0, max: 1, type: "float" }, // φ_min + small tweak
+      inactive_opacity: { value: phi_min - 0.1, min: 0, max: 1, type: "float" }, // φ_min - small tweak
       blur: {
         enabled: { value: true, type: "bool", min: 0, max: 1 },
-        size: { value: 3, type: "int", min: 0, max: 10 },
-        passes: { value: 3, type: "int", min: 0, max: 10 },
+        size: { value: Math.round(phi * 2), type: "int", min: 0, max: 10 }, // 3 → φ*2 ≈ 3
+        passes: { value: Math.round(phi * 2), type: "int", min: 0, max: 10 },
       },
     },
   },
@@ -33,28 +34,28 @@ export const defaultSettings: Settings = {
   },
   globalOpacity: {
     name: "Global Opacity",
-    value: 0.5,
+    value: phi_min, // 0.618 instead of 0.5
     type: "float",
     min: 0,
     max: 1,
   },
   globalIconSize: {
     name: "Global Icon Size",
-    value: 10,
+    value: Math.round(phi * 6), // 10 → φ*6 ≈ 9.7 → 10
     type: "int",
     min: 5,
     max: 20,
   },
   globalScale: {
     name: "Global Scale",
-    value: 10,
+    value: Math.round(phi * 6), // 10 → φ*6 ≈ 9.7 → 10
     type: "int",
     min: 10,
     max: 30,
   },
   globalFontSize: {
     name: "Global Font Size",
-    value: 12,
+    value: Math.round(phi * 7), // 12 → φ*7 ≈ 11.3 → 12
     type: "int",
     min: 12,
     max: 30,
@@ -81,14 +82,14 @@ export const defaultSettings: Settings = {
   rightPanel: {
     exclusivity: true,
     lock: true,
-    width: 300,
+    width: Math.round(300 * phi_min), // 300 → 300*0.618 ≈ 185
     visibility: false,
     widgets: [],
   },
   leftPanel: {
     exclusivity: true,
     lock: true,
-    width: 400,
+    width: Math.round(400 * phi), // 400 → 400*1.618 ≈ 647
     visibility: false,
     widget: leftPanelWidgetSelectors[0],
   },
@@ -99,7 +100,7 @@ export const defaultSettings: Settings = {
   booru: {
     api: booruApis[0],
     tags: [],
-    limit: 20,
+    limit: Math.round(20 * phi_min), // 20 → 20*0.618 ≈ 12
     page: 1,
   },
 };

@@ -1,7 +1,7 @@
 // Define the theme variables
 
 * {
-  transition: all 0.5s;
+  transition: all $phi + s;
   font-weight: 500;
 }
 
@@ -14,7 +14,7 @@
   border-radius: 10px;
   font-size: $FONT-SIZE;
   text-shadow: none;
-  padding: $SCALE - 10;
+  padding: $SCALE / $phi;
   margin: 0;
 }
 
@@ -30,7 +30,7 @@ button,
 button,
 .button {
   @extend .module;
-  padding: $SCALE / 2 $SCALE;
+  padding: $SCALE / $phi $SCALE;
 
   min-width: 20px;
   min-height: 20px;
@@ -77,7 +77,10 @@ filechooserbutton * {
   color: $foreground;
   &:hover,
   &:checked {
-    background: rgba($green, 0.8); // Pre-calculated hover and checked state
+    background: rgba(
+      $green,
+      $phi-min
+    ); // Pre-calculated hover and checked state
   }
 }
 
@@ -86,7 +89,7 @@ filechooserbutton * {
 }
 
 entry {
-  padding: $SCALE / 2;
+  padding: $SCALE / $phi;
   border-radius: 10px;
   color: $foreground;
   background: $background-semi-transparent;
@@ -164,7 +167,7 @@ scrolledwindow {
     border-radius: 10px;
     font-size: 0.9em;
     margin: 5px;
-    background: mix($foreground, $secondary, 50%);
+    background: mix($foreground, $secondary, $phi-min);
   }
 }
 
