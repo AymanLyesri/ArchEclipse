@@ -20,8 +20,8 @@ export const defaultSettings: Settings = {
   hyprland: {
     decoration: {
       rounding: { value: Math.round(phi * 10), min: 0, max: 50, type: "int" }, // already φ-based
-      active_opacity: { value: phi_min + 0.1, min: 0, max: 1, type: "float" }, // φ_min + small tweak
-      inactive_opacity: { value: phi_min - 0.1, min: 0, max: 1, type: "float" }, // φ_min - small tweak
+      active_opacity: { value: phi_min + 0.2, min: 0, max: 1, type: "float" }, // φ_min + small tweak
+      inactive_opacity: { value: phi_min, min: 0, max: 1, type: "float" }, // φ_min - small tweak
       blur: {
         enabled: { value: true, type: "bool", min: 0, max: 1 },
         size: { value: Math.round(phi * 2), type: "int", min: 0, max: 10 }, // 3 → φ*2 ≈ 3

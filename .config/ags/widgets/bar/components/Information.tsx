@@ -2,8 +2,8 @@ import Hyprland from "gi://AstalHyprland";
 const hyprland = Hyprland.get_default();
 import Mpris from "gi://AstalMpris";
 const mpris = Mpris.get_default();
-import Cava from "gi://AstalCava";
-const cava = Cava.get_default()!;
+// import Cava from "gi://AstalCava";
+// const cava = Cava.get_default()!;
 
 import { playerToColor } from "../../../utils/color";
 import { lookupIcon, playerToIcon } from "../../../utils/icon";
@@ -29,24 +29,6 @@ import { dateFormats } from "../../../constants/date.constants";
 // --- Tunable constants (change to lower CPU usage) ---
 const CAVA_UPDATE_MS = 60; // coalesced update interval for audio visualizer (larger => less CPU)
 const BANDWIDTH_POLL_MS = 2000; // bandwidth poll period (increase to reduce CPU)
-// -----------------------------------------------------
-
-cava?.set_bars(12);
-const bars = Variable("");
-
-const BLOCKS = [
-  "\u2581",
-  "\u2582",
-  "\u2583",
-  "\u2584",
-  "\u2585",
-  "\u2586",
-  "\u2587",
-  "\u2588",
-];
-const BLOCKS_LENGTH = BLOCKS.length;
-const BAR_COUNT = 12;
-const EMPTY_BARS = "".padEnd(BAR_COUNT, "\u2581");
 
 // Small lightweight throttle/coalesce helper
 function scheduleCoalesced(fn: () => void, delayMs: number) {
@@ -71,6 +53,22 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
 }
 
 function AudioVisualizer() {
+  // cava?.set_bars(12);
+  const bars = Variable("");
+
+  const BLOCKS = [
+    "\u2581",
+    "\u2582",
+    "\u2583",
+    "\u2584",
+    "\u2585",
+    "\u2586",
+    "\u2587",
+    "\u2588",
+  ];
+  const BLOCKS_LENGTH = BLOCKS.length;
+  const BAR_COUNT = 12;
+  const EMPTY_BARS = "".padEnd(BAR_COUNT, "\u2581");
   // Reuse buffer to avoid allocations on every update
   let barArray: string[] = new Array(BAR_COUNT);
   let lastBarString = "";
@@ -493,7 +491,7 @@ export default ({
 }) => {
   return (
     <box className="bar-middle" spacing={5} halign={halign} hexpand>
-      <AudioVisualizer />
+      {/* <AudioVisualizer /> */}
       <Media monitorName={monitorName} />
       <Clock />
       <Weather />
