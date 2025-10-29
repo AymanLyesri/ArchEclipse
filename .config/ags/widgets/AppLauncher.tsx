@@ -29,10 +29,24 @@ const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
 
-const monitorName = Variable<string>("");
+// Store per-monitor state
+const monitorStates = new Map<string, {
+  Results: Variable<LauncherApp[]>;
+  debounceTimer: any;
+  args: string[];
+}>();
 
-const Results = Variable<LauncherApp[]>([]);
-const QuickApps = () => {
+const getMonitorState = (monitorName: string) => {
+  if (!monitorStates.has(monitorName)) {
+    monitorStates.set(monitorName, {
+      Results: Variable<LauncherApp[]>([]),
+      debounceTimer: null,
+      args: [],
+    });
+  }
+  return monitorStates.get(monitorName)!;
+};
+const QuickApps = (monitorName: string, Results: Variable<LauncherApp[]>) => {
   const apps = (
     <revealer
       transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
@@ -49,7 +63,7 @@ const QuickApps = () => {
                   className="quick-app"
                   onClicked={() => {
                     app.app_launch();
-                    hideWindow(`app-launcher-${monitorName.get()}`);
+                    hideWindow(`app-launcher-${monitorName}`);
                   }}
                   child={
                     <box spacing={5}>
@@ -100,34 +114,31 @@ const Help = (
   </box>
 );
 
-let debounceTimer: any;
-let args: string[];
-
-const Entry = (
+const createEntry = (monitorName: string, Results: Variable<LauncherApp[]>, state: { debounceTimer: any; args: string[] }, launchApp: (app: LauncherApp) => void) => (
   <entry
     hexpand={true}
     placeholder_text="Search for an app, emoji, translate, url, or do some math..."
     onChanged={async ({ text }) => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
+      if (state.debounceTimer) {
+        clearTimeout(state.debounceTimer);
       }
 
-      debounceTimer = setTimeout(async () => {
+      state.debounceTimer = setTimeout(async () => {
         try {
           if (!text || text.trim() === "") {
             Results.set([]);
             return;
           }
-          args = text.split(" ");
+          state.args = text.split(" ");
 
-          if (args[0].includes(">")) {
+          if (state.args[0].includes(">")) {
             const filteredCommands = customApps.filter((app) =>
               app.app_name
                 .toLowerCase()
                 .includes(text.replace(">", "").trim().toLowerCase())
             );
             Results.set(filteredCommands);
-          } else if (args[0].includes("translate")) {
+          } else if (state.args[0].includes("translate")) {
             const language = text.includes(">")
               ? text.split(">")[1].trim()
               : "en";
@@ -144,7 +155,7 @@ const Entry = (
               },
             ]);
           } // Handle emojis
-          else if (args[0].includes("emoji")) {
+          else if (state.args[0].includes("emoji")) {
             const emojis: [] = readJSONFile("./assets/emojis/emojis.json");
             const filteredEmojis = emojis.filter(
               (emoji: { app_tags: string; app_name: string }) =>
@@ -162,7 +173,7 @@ const Entry = (
             );
           }
           // handle URL
-          else if (containsProtocolOrTLD(args[0])) {
+          else if (containsProtocolOrTLD(state.args[0])) {
             Results.set([
               {
                 app_name: getDomainFromURL(text),
@@ -180,7 +191,7 @@ const Entry = (
             ]);
           }
           // handle arithmetic
-          else if (containsOperator(args[0])) {
+          else if (containsOperator(state.args[0])) {
             Results.set([
               {
                 app_name: arithmetic(text),
@@ -192,18 +203,18 @@ const Entry = (
           else {
             Results.set(
               apps
-                .fuzzy_query(args.shift()!)
+                .fuzzy_query(state.args.shift()!)
                 .slice(0, MAX_ITEMS)
                 .map((app) => ({
                   app_name: app.name,
                   app_icon: app.iconName,
                   app_type: "app",
-                  app_arg: args.join(" "),
+                  app_arg: state.args.join(" "),
                   app_launch: () =>
-                    !args.join("")
+                    !state.args.join("")
                       ? app.launch()
                       : hyprland.message_async(
-                          `dispatch exec ${app.executable} ${args.join(" ")}`,
+                          `dispatch exec ${app.executable} ${state.args.join(" ")}`,
                           () => {}
                         ),
                 }))
@@ -235,18 +246,18 @@ const Entry = (
   />
 );
 
-const EmptyEntry = () => {
-  Entry.set_text("");
+const createEmptyEntry = (entry: any, Results: Variable<LauncherApp[]>) => () => {
+  entry.set_text("");
   Results.set([]);
 };
 
-const launchApp = (app: LauncherApp) => {
+const createLaunchApp = (monitorName: string, emptyEntry: () => void) => (app: LauncherApp) => {
   app.app_launch();
-  hideWindow(`app-launcher-${monitorName.get()}`);
-  EmptyEntry();
+  hideWindow(`app-launcher-${monitorName}`);
+  emptyEntry();
 };
 
-const organizeResults = (results: LauncherApp[]) => {
+const createOrganizeResults = (launchApp: (app: LauncherApp) => void, Results: Variable<LauncherApp[]>) => (results: LauncherApp[]) => {
   const buttonContent = (element: LauncherApp) => (
     <box
       spacing={10}
@@ -298,42 +309,189 @@ const organizeResults = (results: LauncherApp[]) => {
   );
 };
 
-const ResultsDisplay = <box child={bind(Results).as(organizeResults)} />;
-
-export default (monitor: Gdk.Monitor) => (
-  <window
-    gdkmonitor={monitor}
-    name={`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`}
-    namespace="app-launcher"
-    application={App}
-    anchor={emptyWorkspace.as((empty) =>
-      empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
-    )}
-    exclusivity={Astal.Exclusivity.EXCLUSIVE}
-    keymode={Astal.Keymode.EXCLUSIVE}
-    layer={Astal.Layer.TOP}
-    margin={globalMargin} // top right bottom left
-    visible={false}
-    onKeyPressEvent={(self, event) => {
-      if (event.get_keyval()[1] === Gdk.KEY_Escape) {
-        hideWindow(
-          `app-launcher-${getMonitorName(monitor.get_display(), monitor)}`
-        );
-        return true;
-      }
-    }}
-    setup={(self) => {
-      monitorName.set(getMonitorName(monitor.get_display(), monitor)!);
-    }}
-    child={
-      <eventbox>
-        <box vertical={true} className="app-launcher" spacing={5}>
-          {Entry}
-          {ResultsDisplay}
-          {QuickApps()}
-          {Help}
-        </box>
-      </eventbox>
+export default (monitor: Gdk.Monitor) => {
+  const monitorName = getMonitorName(monitor.get_display(), monitor)!;
+  const state = getMonitorState(monitorName);
+  const { Results } = state;
+  
+  // Create scoped functions for this monitor
+  // We need to create a recursive reference, so we use a wrapper
+  let launchAppRef: (app: LauncherApp) => void;
+  let entryRef: any;
+  
+  const emptyEntry = () => {
+    if (entryRef) {
+      entryRef.set_text("");
+      Results.set([]);
     }
-  ></window>
-);
+  };
+  
+  launchAppRef = (app: LauncherApp) => {
+    app.app_launch();
+    hideWindow(`app-launcher-${monitorName}`);
+    emptyEntry();
+  };
+  
+  const organizeResults = createOrganizeResults(launchAppRef, Results);
+  const ResultsDisplay = <box child={bind(Results).as(organizeResults)} />;
+  
+  // Create Entry inline to ensure unique instance per monitor
+  const Entry = (
+    <entry
+      hexpand={true}
+      placeholder_text="Search for an app, emoji, translate, url, or do some math..."
+      setup={(self) => { entryRef = self; }}
+      onChanged={async ({ text }) => {
+        if (state.debounceTimer) {
+          clearTimeout(state.debounceTimer);
+        }
+
+        state.debounceTimer = setTimeout(async () => {
+          try {
+            if (!text || text.trim() === "") {
+              Results.set([]);
+              return;
+            }
+            state.args = text.split(" ");
+
+            if (state.args[0].includes(">")) {
+              const filteredCommands = customApps.filter((app) =>
+                app.app_name
+                  .toLowerCase()
+                  .includes(text.replace(">", "").trim().toLowerCase())
+              );
+              Results.set(filteredCommands);
+            } else if (state.args[0].includes("translate")) {
+              const language = text.includes(">")
+                ? text.split(">")[1].trim()
+                : "en";
+              const translation = await execAsync(
+                `bash ./scripts/translate.sh '${text
+                  .split(">")[0]
+                  .replace("translate", "")
+                  .trim()}' '${language}'`
+              );
+              Results.set([
+                {
+                  app_name: translation,
+                  app_launch: () => execAsync(`wl-copy ${translation}`),
+                },
+              ]);
+            } else if (state.args[0].includes("emoji")) {
+              const emojis: [] = readJSONFile("./assets/emojis/emojis.json");
+              const filteredEmojis = emojis.filter(
+                (emoji: { app_tags: string; app_name: string }) =>
+                  emoji.app_tags
+                    .toLowerCase()
+                    .includes(text.replace("emoji", "").trim())
+              );
+              Results.set(
+                filteredEmojis.map((emoji: { app_name: string }) => ({
+                  app_name: emoji.app_name,
+                  app_icon: emoji.app_name,
+                  app_type: "emoji",
+                  app_launch: () => execAsync(`wl-copy ${emoji.app_name}`),
+                }))
+              );
+            } else if (containsProtocolOrTLD(state.args[0])) {
+              Results.set([
+                {
+                  app_name: getDomainFromURL(text),
+                  app_launch: () =>
+                    execAsync(`xdg-open ${formatToURL(text)}`).then(() => {
+                      const browser = execAsync(
+                        `bash -c "xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
+                      );
+                      notify({
+                        summary: "URL",
+                        body: `Opening ${text} in ${browser}`,
+                      });
+                    }),
+                },
+              ]);
+            } else if (containsOperator(state.args[0])) {
+              Results.set([
+                {
+                  app_name: arithmetic(text),
+                  app_launch: () => execAsync(`wl-copy ${arithmetic(text)}`),
+                },
+              ]);
+            } else {
+              Results.set(
+                apps
+                  .fuzzy_query(state.args.shift()!)
+                  .slice(0, MAX_ITEMS)
+                  .map((app) => ({
+                    app_name: app.name,
+                    app_icon: app.iconName,
+                    app_type: "app",
+                    app_arg: state.args.join(" "),
+                    app_launch: () =>
+                      !state.args.join("")
+                        ? app.launch()
+                        : hyprland.message_async(
+                            `dispatch exec ${app.executable} ${state.args.join(" ")}`,
+                            () => {}
+                          ),
+                  }))
+              );
+              if (Results.get().length === 0) {
+                Results.set([
+                  {
+                    app_name: `Try ${text}`,
+                    app_icon: "󰋖",
+                    app_launch: () =>
+                      hyprland.message_async(`dispatch exec ${text}`, () => {}),
+                  },
+                ]);
+              }
+            }
+          } catch (err) {
+            notify({
+              summary: "Error",
+              body: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }, 100);
+      }}
+      onActivate={() => {
+        if (Results.get().length > 0) {
+          launchAppRef(Results.get()[0]);
+        }
+      }}
+    />
+  );
+  
+  return (
+    <window
+      gdkmonitor={monitor}
+      name={`app-launcher-${monitorName}`}
+      namespace="app-launcher"
+      application={App}
+      anchor={emptyWorkspace.as((empty) =>
+        empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
+      )}
+      exclusivity={Astal.Exclusivity.EXCLUSIVE}
+      keymode={Astal.Keymode.EXCLUSIVE}
+      layer={Astal.Layer.TOP}
+      margin={globalMargin} // top right bottom left
+      visible={false}
+      onKeyPressEvent={(self, event) => {
+        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+          hideWindow(`app-launcher-${monitorName}`);
+          return true;
+        }
+      }}
+      child={
+        <eventbox>
+          <box vertical={true} className="app-launcher" spacing={5}>
+            {Entry}
+            {ResultsDisplay}
+            {QuickApps(monitorName, Results)}
+            {Help}
+          </box>
+        </eventbox>
+      }
+    ></window>
+  );
+};
