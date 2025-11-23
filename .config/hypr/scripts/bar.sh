@@ -2,4 +2,6 @@
 
 ags quit
 
-ags run &
+killall gjs
+
+ags run --gtk 3 --log-file /tmp/ags.log &
