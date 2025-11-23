@@ -141,7 +141,7 @@ update
 
 | Chat Bot                                                                                  | Booru Viewer                                                                              |
 | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| ![image](https://github.com/user-attachments/assets/7e8a472b-8195-4438-abd4-03e694b54352) | ![image](https://github.com/user-attachments/assets/f5ad3ee1-4c0a-4052-ad92-9b49b0123d11) |
+| <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/aa1a0291-294d-434b-b8b2-1f03ad219936" /> | <img width="1920" height="1080" alt="1763917938_hyprshot" src="https://github.com/user-attachments/assets/80adc9cc-5aa1-40df-bc90-325ddfb6f0d0" /> |
 
 ## Media Player
 
@@ -149,7 +149,7 @@ update
 
 ## Wallpaper Switcher
 
-![image](https://github.com/user-attachments/assets/55aea0b2-dea0-46f2-bb33-84ce66b4cb16)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/84749534-449f-4c65-91ed-29810ca85327" />
 
 ## Theme Switching
 
