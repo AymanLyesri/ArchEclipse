@@ -11,17 +11,14 @@ import {
   date_less,
   date_more,
   dateFormat,
+  setDateFormat,
   emptyWorkspace,
   focusedClient,
   globalTransition,
 } from "../../../variables";
-import {
-  bind,
-  exec,
-  GLib,
-  Variable,
-} from "../../../../../../../usr/share/astal/gjs";
-import { Gtk } from "astal/gtk3";
+import { createBinding, createComputed, createState, createPoll } from "ags";
+import Gtk from "gi://Gtk?version=3.0";
+import GLib from "gi://GLib?version=2.0";
 import CustomRevealer from "../../CustomRevealer";
 import { showWindow } from "../../../utils/window";
 import { dateFormats } from "../../../constants/date.constants";
@@ -45,7 +42,7 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
         fn();
       } catch (e) {
         // swallow errors to avoid crashing the scheduler
-        logError(e as Error);
+        console.error(e);
       }
       return GLib.SOURCE_REMOVE;
     });
@@ -54,7 +51,7 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
 
 function AudioVisualizer() {
   // cava?.set_bars(12);
-  const bars = Variable("");
+  const [getBars, setBars] = createState("");
 
   const BLOCKS = [
     "\u2581",
@@ -80,16 +77,19 @@ function AudioVisualizer() {
   let showTimeoutId: number | null = null;
   let hideTimeoutId: number | null = null;
 
+  let revealerInstance: Gtk.Revealer | null = null;
+
   const revealer = (
     <revealer
       revealChild={false}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+      setup={(self) => (revealerInstance = self)}
       child={
         <label
           className={"cava"}
           onDestroy={() => {
-            bars.drop();
+            // bars.drop(); // No drop in signals
             if (showTimeoutId) {
               try {
                 GLib.source_remove(showTimeoutId);
@@ -103,7 +103,7 @@ function AudioVisualizer() {
               hideTimeoutId = null;
             }
           }}
-          label={bind(bars)}
+          label={getBars}
         />
       }
     />
@@ -137,7 +137,7 @@ function AudioVisualizer() {
     lastBarString = b;
 
     // update bound text (cheap) but control reveal/hide with timers (hysteresis)
-    bars.set(b);
+    setBars(b);
 
     const isEmpty = b === EMPTY_BARS;
 
@@ -157,14 +157,14 @@ function AudioVisualizer() {
           REVEAL_SHOW_DELAY,
           () => {
             visible = true;
-            revealer.reveal_child = true;
+            if (revealerInstance) revealerInstance.reveal_child = true;
             showTimeoutId = null;
             return GLib.SOURCE_REMOVE;
           }
         );
       } else if (visible) {
         // already visible -- ensure revealer stays revealed
-        revealer.reveal_child = true;
+        if (revealerInstance) revealerInstance.reveal_child = true;
       }
     } else {
       // empty -> cancel any pending show and schedule hide if currently visible
@@ -182,14 +182,14 @@ function AudioVisualizer() {
           REVEAL_HIDE_DELAY,
           () => {
             visible = false;
-            revealer.reveal_child = false;
+            if (revealerInstance) revealerInstance.reveal_child = false;
             hideTimeoutId = null;
             return GLib.SOURCE_REMOVE;
           }
         );
       } else if (!visible) {
         // already hidden
-        revealer.reveal_child = false;
+        if (revealerInstance) revealerInstance.reveal_child = false;
       }
     }
   };
@@ -197,50 +197,51 @@ function AudioVisualizer() {
   let lastValuesCache: number[] | null = null;
   const schedule = scheduleCoalesced(doUpdate, CAVA_UPDATE_MS);
 
-  cava?.connect("notify::values", () => {
-    // store latest values, schedule an update if not already scheduled
-    lastValuesCache = cava.get_values() || null;
-    schedule();
-  });
+  // cava?.connect("notify::values", () => {
+  //   // store latest values, schedule an update if not already scheduled
+  //   lastValuesCache = cava.get_values() || null;
+  //   schedule();
+  // });
 
   return revealer;
 }
 
 function Media({ monitorName }: { monitorName: string }) {
+  const mprisPlayers = createBinding(mpris, "players");
   // Derive active player only when players array changes (cheaper than scanning on each render)
-  const activePlayerVar = bind(mpris, "players").as(
-    (players: Mpris.Player[]) => {
-      if (!players || players.length === 0) return null;
-      return (
-        players.find(
-          (p) => p.playbackStatus === Mpris.PlaybackStatus.PLAYING
-        ) || players[0]
-      );
-    }
-  );
+  const activePlayerVar = createComputed(() => {
+    const players = mprisPlayers();
+    if (!players || players.length === 0) return null;
+    return (
+      players.find((p) => p.playbackStatus === Mpris.PlaybackStatus.PLAYING) ||
+      players[0]
+    );
+  });
 
   // Small helper that returns a compact player box. Keep widget tree minimal.
   function Player(player: Mpris.Player | null) {
     if (!player) return <box />;
 
-    const playerIcon = bind(player, "entry").as((e) => playerToIcon(e));
+    const playerEntry = createBinding(player, "entry");
+    const playerCoverArt = createBinding(player, "coverArt");
+    const playerPosition = createBinding(player, "position");
+    const playerLength = createBinding(player, "length");
+    const playerTitle = createBinding(player, "title");
+    const playerArtist = createBinding(player, "artist");
+
+    const playerIcon = createComputed(() => playerToIcon(playerEntry()));
 
     // Only build CSS when coverArt changes (bind will handle it)
-    const coverCss = bind(player, "coverArt").as((c) =>
-      c
+    const coverCss = createComputed(() => {
+      const c = playerCoverArt();
+      return c
         ? `background-image: linear-gradient(to right,#000000, rgba(0,0,0,0.5)), url("${c}");`
-        : `background-color: transparent;`
-    );
+        : `background-color: transparent;`;
+    });
 
     const progressWidget = (
-      <circularprogress
+      <box
         className="progress"
-        rounded={true}
-        inverted={false}
-        borderWidth={1}
-        value={bind(player, "position").as((p) =>
-          player.length && player.length > 0 ? p / player.length : 0
-        )}
         halign={Gtk.Align.CENTER}
         valign={Gtk.Align.CENTER}
         child={<label className={"icon"} label={playerIcon} />}
@@ -250,26 +251,27 @@ function Media({ monitorName }: { monitorName: string }) {
     const title = (
       <label
         className="title"
-        max_width_chars={20}
+        maxWidthChars={20}
         truncate={true}
-        label={bind(player, "title").as((t) => t || "Unknown Track")}
+        label={createComputed(() => playerTitle() || "Unknown Track")}
       />
     );
 
     const artist = (
       <label
         className="artist"
-        max_width_chars={20}
+        maxWidthChars={20}
         truncate={true}
-        label={bind(player, "artist").as((a) =>
-          a ? `[${a}]` : "Unknown Artist"
-        )}
+        label={createComputed(() => {
+          const a = playerArtist();
+          return a ? `[${a}]` : "Unknown Artist";
+        })}
       />
     );
 
     return (
       <box
-        className={bind(player, "entry").as((entry) => `media ${entry}`)}
+        className={createComputed(() => `media ${playerEntry()}`)}
         css={coverCss}
         spacing={10}
       >
@@ -291,13 +293,17 @@ function Media({ monitorName }: { monitorName: string }) {
     });
   };
 
-  const activePlayerBox = bind(activePlayerVar).as((player) =>
-    player ? Player(player) : <box />
-  );
+  const activePlayerBox = createComputed(() => {
+    const player = activePlayerVar();
+    return player ? Player(player) : <box />;
+  });
 
   return (
     <revealer
-      revealChild={bind(mpris, "players").as((arr) => !!(arr && arr.length))}
+      revealChild={createComputed(() => {
+        const arr = mprisPlayers();
+        return !!(arr && arr.length);
+      })}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       child={
@@ -306,7 +312,7 @@ function Media({ monitorName }: { monitorName: string }) {
           onClick={() =>
             hyprland.message_async("dispatch workspace 4", () => {})
           }
-          on_hover={handleHover}
+          onHover={handleHover}
           child={activePlayerBox}
         />
       }
@@ -315,16 +321,16 @@ function Media({ monitorName }: { monitorName: string }) {
 }
 
 function Clock() {
-  const revealer = <label className="revealer" label={bind(date_more)}></label>;
+  const revealer = <label className="revealer" label={date_more}></label>;
 
-  const trigger = <label className="clock" label={bind(date_less)}></label>;
+  const trigger = <label className="clock" label={date_less}></label>;
 
   return (
     <eventbox
       onClick={() => {
-        const currentFormat = dateFormat.get();
+        const currentFormat = dateFormat();
         const currentIndex = dateFormats.indexOf(currentFormat);
-        dateFormat.set(dateFormats[(currentIndex + 1) % dateFormats.length]);
+        setDateFormat(dateFormats[(currentIndex + 1) % dateFormats.length]);
       }}
       child={
         <CustomRevealer
@@ -337,7 +343,7 @@ function Clock() {
   );
 }
 function Bandwidth() {
-  const bandwidth = Variable<number[]>([0, 0, 0, 0]).poll(
+  const bandwidth = createPoll(
     BANDWIDTH_POLL_MS,
     ["./assets/binaries/bandwidth"],
     (out) => {
@@ -361,14 +367,18 @@ function Bandwidth() {
     return `${val.toFixed(1)} ${units[idx]}`;
   }
 
+  let uploadRevealerInstance: Gtk.Revealer | null = null;
+  let downloadRevealerInstance: Gtk.Revealer | null = null;
+
   const uploadRevealer = (
     <revealer
       revealChild={false}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+      setup={(self) => (uploadRevealerInstance = self)}
       child={
         <label
-          label={bind(bandwidth).as((bw) => `[${formatKiloBytes(bw[2])}]`)}
+          label={createComputed(() => `[${formatKiloBytes(bandwidth()[2])}]`)}
         />
       }
     />
@@ -379,9 +389,10 @@ function Bandwidth() {
       revealChild={false}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+      setup={(self) => (downloadRevealerInstance = self)}
       child={
         <label
-          label={bind(bandwidth).as((bw) => `[${formatKiloBytes(bw[3])}]`)}
+          label={createComputed(() => `[${formatKiloBytes(bandwidth()[3])}]`)}
         />
       }
     />
@@ -391,13 +402,13 @@ function Bandwidth() {
     <box className="bandwidth" spacing={3}>
       <label
         className="packet upload"
-        label={bind(bandwidth).as((bw) => ` ${bw[0]}`)}
+        label={createComputed(() => ` ${bandwidth()[0]}`)}
       />
       {uploadRevealer}
       <label className="separator" label={"-"} />
       <label
         className="packet download"
-        label={bind(bandwidth).as((bw) => ` ${bw[1]}`)}
+        label={createComputed(() => ` ${bandwidth()[1]}`)}
       />
       {downloadRevealer}
     </box>
@@ -406,12 +417,14 @@ function Bandwidth() {
   const parent = (
     <eventbox
       onHover={() => {
-        uploadRevealer.reveal_child = true;
-        downloadRevealer.reveal_child = true;
+        if (uploadRevealerInstance) uploadRevealerInstance.reveal_child = true;
+        if (downloadRevealerInstance)
+          downloadRevealerInstance.reveal_child = true;
       }}
       onHoverLost={() => {
-        uploadRevealer.reveal_child = false;
-        downloadRevealer.reveal_child = false;
+        if (uploadRevealerInstance) uploadRevealerInstance.reveal_child = false;
+        if (downloadRevealerInstance)
+          downloadRevealerInstance.reveal_child = false;
       }}
       child={trigger}
     />
@@ -423,27 +436,31 @@ function Bandwidth() {
 function ClientTitle() {
   return (
     <revealer
-      revealChild={emptyWorkspace.as((empty) => !empty)}
+      revealChild={createComputed(() => !emptyWorkspace())}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      child={focusedClient.as((client) =>
-        client ? (
-          <label
-            className="client-title"
-            truncate={true}
-            max_width_chars={24}
-            label={bind(client, "title").as((t) => (t ? String(t) : ""))}
-          />
-        ) : (
-          <box />
-        )
-      )}
+      child={createComputed(() => {
+        const client = focusedClient();
+        if (client) {
+          const title = createBinding(client, "title");
+          return (
+            <label
+              className="client-title"
+              truncate={true}
+              maxWidthChars={24}
+              label={createComputed(() => (title() ? String(title()) : ""))}
+            />
+          );
+        } else {
+          return <box />;
+        }
+      })}
     />
   );
 }
 function Weather() {
   // Poll every 10 minutes (600,000 ms)
-  const weather = Variable<{ temp: number; wind: number } | null>(null).poll(
+  const weather = createPoll(
     600000,
     [
       "curl",
@@ -467,16 +484,19 @@ function Weather() {
     <label
       className="weather"
       truncate={true}
-      onDestroy={() => weather.drop()}
-      label={bind(weather).as((w) =>
-        w ? `  ${w.temp} -   ${w.wind} km/h` : "Weather N/A"
-      )}
+      // onDestroy={() => weather.drop()} // No drop in signals
+      label={createComputed(() => {
+        const w = weather();
+        return w ? `  ${w.temp} -   ${w.wind} km/h` : "Weather N/A";
+      })}
     />
   );
 
   return (
     <eventbox
-      onClick={() => exec("xdg-open 'https://open-meteo.com/'")}
+      onClick={() =>
+        GLib.spawn_command_line_async("xdg-open 'https://open-meteo.com/'")
+      }
       child={label}
     />
   );

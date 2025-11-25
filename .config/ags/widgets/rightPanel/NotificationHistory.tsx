@@ -1,7 +1,7 @@
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
 import Notifd from "gi://AstalNotifd";
 import Notification from "./components/Notification";
-import { bind, Variable } from "astal";
+import { createBinding, createState, createComputed } from "ags";
 import CustomRevealer from "../CustomRevealer";
 
 interface Filter {
@@ -9,7 +9,7 @@ interface Filter {
   class: string;
 }
 
-const notificationFilter = Variable<Filter>({ name: "", class: "" });
+const [getFilter, setFilter] = createState<Filter>({ name: "", class: "" });
 
 export default () => {
   const Filters: Filter[] = [
@@ -25,14 +25,11 @@ export default () => {
           label={filter.name}
           hexpand={true}
           onClicked={() => {
-            notificationFilter.set(
-              notificationFilter.get() === filter
-                ? { name: "", class: "" }
-                : filter
-            );
+            const current = getFilter();
+            setFilter(current === filter ? { name: "", class: "" } : filter);
           }}
-          className={bind(notificationFilter).as((f) =>
-            f.class === filter.class ? "active" : ""
+          className={createComputed(() =>
+            getFilter().class === filter.class ? "active" : ""
           )}
         />
       ))}
@@ -73,19 +70,19 @@ export default () => {
     return keptNotifications;
   }
 
+  const notifd = Notifd.get_default();
+  const notifications = createBinding(notifd, "notifications");
+
   const NotificationHistory = (
     <box vertical={true} spacing={5}>
-      {bind(
-        Variable.derive(
-          [bind(Notifd.get_default(), "notifications"), notificationFilter],
-          (notifications, filter) => {
-            if (!notifications) return [];
-            return FilterNotifications(notifications, filter.name).map(
-              (notification) => <Notification n={notification} />
-            );
-          }
-        )
-      )}
+      {createComputed(() => {
+        const list = notifications();
+        const filter = getFilter();
+        if (!list) return [];
+        return FilterNotifications(list, filter.name).map((notification) => (
+          <Notification n={notification} />
+        ));
+      })}
     </box>
   );
 
@@ -101,8 +98,8 @@ export default () => {
     <button
       className="clear"
       label=""
-      on_clicked={() => {
-        Notifd.get_default().notifications.forEach((notification) => {
+      onClicked={() => {
+        notifd.notifications.forEach((notification) => {
           notification.dismiss();
         });
       }}

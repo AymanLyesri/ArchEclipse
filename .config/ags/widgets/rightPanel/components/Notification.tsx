@@ -1,12 +1,13 @@
-import { execAsync, GLib, timeout, Variable } from "astal";
-import { Gtk, Astal } from "astal/gtk3";
+import { execAsync } from "astal";
+import Gtk from "gi://Gtk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import Notifd from "gi://AstalNotifd";
 import { globalTransition, NOTIFICATION_DELAY } from "../../../variables";
 import ToggleButton from "../../toggleButton";
-import hyprland from "gi://AstalHyprland";
+import Hyprland from "gi://AstalHyprland";
 import { notify } from "../../../utils/notification";
 import { asyncSleep, time } from "../../../utils/time";
-const Hyprland = hyprland.get_default();
+import { createState, createEffect } from "ags";
 
 const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
 
@@ -56,19 +57,22 @@ export default ({
   newNotification?: boolean;
   popup?: boolean;
 }) => {
-  const IsLocked = Variable<boolean>(false);
-  IsLocked.subscribe((value) => {
+  const [getIsLocked, setIsLocked] = createState<boolean>(false);
+  let revealerInstance: Gtk.Revealer | null = null;
+
+  createEffect(() => {
+    const value = getIsLocked();
     if (!value)
-      timeout(NOTIFICATION_DELAY, () => {
-        if (!IsLocked.get() && popup) closeNotification();
-      });
+      setTimeout(() => {
+        if (!getIsLocked() && popup) closeNotification();
+      }, NOTIFICATION_DELAY);
   });
 
   async function closeNotification(dismiss = false) {
-    Revealer.reveal_child = false;
-    timeout(globalTransition, () => {
+    if (revealerInstance) revealerInstance.reveal_child = false;
+    setTimeout(() => {
       if (dismiss) n.dismiss();
-    });
+    }, globalTransition);
   }
 
   const icon = (
@@ -77,7 +81,8 @@ export default ({
       halign={Gtk.Align.CENTER}
       hexpand={false}
       className="icon"
-      child={NotificationIcon(n)}></box>
+      child={NotificationIcon(n)}
+    ></box>
   );
 
   const title = (
@@ -107,28 +112,6 @@ export default ({
     />
   );
 
-  // const actions: string[] = n.actions
-  //   ? JSON.parse(n.actions.toString()[0])
-  //   : [];
-
-  // const Actions = (
-  //   <box className="actions">
-  //     {actions.map((action) => (
-  //       <button
-  //         className={action[0].includes("Delete") ? "delete" : ""}
-  //         onClicked={() => {
-  //           Hyprland.message_async(`dispatch exec ${action[1]}`).catch((err) =>
-  //             notify(err)
-  //           );
-  //         }}
-  //         hexpand={true}
-  //         child={
-  //           <label label={action[0].includes("Delete") ? "󰆴" : action[0]} />
-  //         }></button>
-  //     ))}
-  //   </box>
-  // );
-
   const expandRevealer = (
     <revealer
       reveal_child={false}
@@ -138,7 +121,7 @@ export default ({
         <ToggleButton
           className="expand"
           state={false}
-          onToggled={(self, on) => {
+          onToggled={(self: any, on: boolean) => {
             title.set_property("truncate", !on);
             body.set_property("truncate", !on);
             self.label = on ? "" : "";
@@ -153,8 +136,8 @@ export default ({
     <ToggleButton
       className="lock"
       label=""
-      onToggled={(self, on) => {
-        IsLocked.set(on);
+      onToggled={(self: any, on: boolean) => {
+        setIsLocked(on);
       }}
     />
   );
@@ -189,17 +172,19 @@ export default ({
             closeNotification(true);
           }}
         />
-      }></revealer>
+      }
+    ></revealer>
   );
 
-  const CircularProgress = (
-    <circularprogress
+  const Progress = (
+    <progressbar
       className="circular-progress"
-      rounded={true}
-      value={1}
+      fraction={1}
       setup={async (self) => {
-        while (self.value >= 0) {
-          self.value -= 0.01;
+        let val = 1;
+        while (val >= 0) {
+          val -= 0.01;
+          self.fraction = val;
           await asyncSleep(50);
         }
         self.visible = false;
@@ -213,7 +198,7 @@ export default ({
         <box
           visible={popup}
           className={"circular-progress-box"}
-          child={CircularProgress}
+          child={Progress}
         />
         <label
           wrap={true}
@@ -249,7 +234,8 @@ export default ({
           </box>
           {/* {Actions} */}
         </box>
-      }></box>
+      }
+    ></box>
   );
 
   const Revealer = (
@@ -258,19 +244,21 @@ export default ({
       transitionDuration={TRANSITION}
       reveal_child={!newNotification}
       setup={(self) => {
-        timeout(1, () => {
+        revealerInstance = self;
+        setTimeout(() => {
           self.reveal_child = true;
-        });
+        }, 1);
       }}
-      child={Box}></revealer>
+      child={Box}
+    ></revealer>
   );
   const Parent = (
     <box
       visible={true}
       setup={(self) =>
-        timeout(NOTIFICATION_DELAY, () => {
-          if (!IsLocked.get() && popup) closeNotification();
-        })
+        setTimeout(() => {
+          if (!getIsLocked() && popup) closeNotification();
+        }, NOTIFICATION_DELAY)
       }
       child={
         <eventbox
@@ -282,7 +270,7 @@ export default ({
             expandRevealer.reveal_child = true;
           }}
           onHoverLost={() => {
-            if (!IsLocked.get()) leftRevealer.reveal_child = false;
+            if (!getIsLocked()) leftRevealer.reveal_child = false;
             closeRevealer.reveal_child = false;
             expandRevealer.reveal_child = false;
           }}
@@ -290,8 +278,10 @@ export default ({
             popup ? lockButton.activate() : copyButton.activate()
           }
           // onSecondaryClick={() => closeRevealer.child.activate()}
-          child={Revealer}></eventbox>
-      }></box>
+          child={Revealer}
+        ></eventbox>
+      }
+    ></box>
   );
 
   return Parent;

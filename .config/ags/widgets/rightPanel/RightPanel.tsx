@@ -1,15 +1,23 @@
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import {
   globalMargin,
   globalTransition,
   rightPanelExclusivity,
+  setRightPanelExclusivity,
   rightPanelLock,
+  setRightPanelLock,
   rightPanelVisibility,
+  setRightPanelVisibility,
   rightPanelWidgets,
+  setRightPanelWidgets,
   rightPanelWidth,
+  setRightPanelWidth,
   widgetLimit,
 } from "../../variables";
-import { bind } from "astal";
+import { createBinding, createComputed } from "ags";
 import ToggleButton from "../toggleButton";
 import { getMonitorName } from "../../utils/monitor";
 import { hideWindow, WindowActions } from "../../utils/window";
@@ -24,23 +32,23 @@ const WidgetActions = () => {
       spacing={5}
     >
       {rightPanelWidgetSelectors.map((selector) => {
-        const isActive = rightPanelWidgets
-          .get()
-          .some((w) => w.name === selector.name);
+        const isActive = createComputed(() =>
+          rightPanelWidgets().some((w) => w.name === selector.name)
+        );
         return (
           <ToggleButton
             className={"widget-selector"}
             label={selector.icon}
             state={isActive}
-            onToggled={(self, on) => {
+            onToggled={(self: any, on: boolean) => {
               if (on) {
-                if (rightPanelWidgets.get().length >= widgetLimit) return;
-                rightPanelWidgets.set([...rightPanelWidgets.get(), selector]);
+                if (rightPanelWidgets().length >= widgetLimit) return;
+                setRightPanelWidgets([...rightPanelWidgets(), selector]);
               } else {
-                const newWidgets = rightPanelWidgets
-                  .get()
-                  .filter((w) => w.name !== selector.name);
-                rightPanelWidgets.set(newWidgets);
+                const newWidgets = rightPanelWidgets().filter(
+                  (w) => w.name !== selector.name
+                );
+                setRightPanelWidgets(newWidgets);
               }
             }}
           />
@@ -55,9 +63,13 @@ const Actions = () => (
     <WidgetActions />
     <WindowActions
       windowWidth={rightPanelWidth}
+      setWindowWidth={setRightPanelWidth}
       windowExclusivity={rightPanelExclusivity}
+      setWindowExclusivity={setRightPanelExclusivity}
       windowLock={rightPanelLock}
+      setWindowLock={setRightPanelLock}
       windowVisibility={rightPanelVisibility}
+      setWindowVisibility={setRightPanelVisibility}
     />
   </box>
 );
@@ -67,7 +79,7 @@ function Panel() {
     <box>
       <eventbox
         onHoverLost={() => {
-          if (!rightPanelLock.get()) rightPanelVisibility.set(false);
+          if (!rightPanelLock()) setRightPanelVisibility(false);
         }}
         child={<box css={"min-width:5px"} />}
       ></eventbox>
@@ -75,10 +87,10 @@ function Panel() {
         className={"main-content"}
         vertical={true}
         spacing={10}
-        widthRequest={bind(rightPanelWidth)}
+        widthRequest={rightPanelWidth}
       >
-        {bind(rightPanelWidgets).as((widgets) => {
-          return widgets
+        {createComputed(() => {
+          return rightPanelWidgets()
             .map((widget) =>
               rightPanelWidgetSelectors.find((w) => w.name === widget.name)
             ) // Find and call the widget function
@@ -104,28 +116,30 @@ export default (monitor: Gdk.Monitor) => {
       name={`right-panel-${getMonitorName(monitor.get_display(), monitor)}`}
       namespace={"right-panel"}
       application={App}
-      className={bind(rightPanelExclusivity).as((exclusivity) =>
-        exclusivity ? "right-panel exclusive" : "right-panel normal"
+      className={createComputed(() =>
+        rightPanelExclusivity() ? "right-panel exclusive" : "right-panel normal"
       )}
       anchor={
         Astal.WindowAnchor.RIGHT |
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.BOTTOM
       }
-      exclusivity={bind(rightPanelExclusivity).as((exclusivity) =>
-        exclusivity ? Astal.Exclusivity.EXCLUSIVE : Astal.Exclusivity.NORMAL
+      exclusivity={createComputed(() =>
+        rightPanelExclusivity()
+          ? Astal.Exclusivity.EXCLUSIVE
+          : Astal.Exclusivity.NORMAL
       )}
-      layer={bind(rightPanelExclusivity).as((exclusivity) =>
-        exclusivity ? Astal.Layer.BOTTOM : Astal.Layer.TOP
+      layer={createComputed(() =>
+        rightPanelExclusivity() ? Astal.Layer.BOTTOM : Astal.Layer.TOP
       )}
-      margin={bind(rightPanelExclusivity).as((exclusivity) =>
-        exclusivity ? 0 : globalMargin
+      margin={createComputed(() =>
+        rightPanelExclusivity() ? 0 : globalMargin
       )}
       keymode={Astal.Keymode.ON_DEMAND}
-      visible={bind(rightPanelVisibility)}
+      visible={rightPanelVisibility}
       onKeyPressEvent={(self, event) => {
         if (event.get_keyval()[1] === Gdk.KEY_Escape) {
-          rightPanelVisibility.set(false);
+          setRightPanelVisibility(false);
           hideWindow(
             `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
           );
@@ -140,14 +154,14 @@ export default (monitor: Gdk.Monitor) => {
 export function RightPanelVisibility() {
   return (
     <revealer
-      revealChild={bind(rightPanelLock).as((lock) => lock)}
+      revealChild={rightPanelLock}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       transitionDuration={globalTransition}
       child={
         <ToggleButton
-          state={bind(rightPanelVisibility)}
-          label={bind(rightPanelVisibility).as((v) => (v ? "" : ""))}
-          onToggled={(self, on) => rightPanelVisibility.set(on)}
+          state={rightPanelVisibility}
+          label={createComputed(() => (rightPanelVisibility() ? "" : ""))}
+          onToggled={(self: any, on: boolean) => setRightPanelVisibility(on)}
           className="panel-trigger icon"
         />
       }

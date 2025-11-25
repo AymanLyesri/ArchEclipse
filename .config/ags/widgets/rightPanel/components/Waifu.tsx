@@ -1,20 +1,23 @@
-import { bind, exec, execAsync, Variable } from "astal";
+import { createBinding, execAsync, createState, createComputed } from "ags";
 import {
   waifuApi,
+  setWaifuApi,
   globalSettings,
   globalTransition,
   rightPanelWidth,
   waifuCurrent,
+  setWaifuCurrent,
 } from "../../../variables";
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
+import GLib from "gi://GLib";
 import ToggleButton from "../../toggleButton";
 import { getSetting, setSetting } from "../../../utils/settings";
 import { notify } from "../../../utils/notification";
 
 import { closeProgress, openProgress } from "../../Progress";
 import { Api } from "../../../interfaces/api.interface";
-import hyprland from "gi://AstalHyprland";
-const Hyprland = hyprland.get_default();
+import Hyprland from "gi://AstalHyprland";
+const hyprland = Hyprland.get_default();
 
 import { Waifu } from "../../../interfaces/waifu.interface";
 import { readJson } from "../../../utils/json";
@@ -41,17 +44,17 @@ const GetImageByid = async (id: number) => {
   try {
     const res = await execAsync(
       `python ./scripts/search-booru.py 
-    --api ${waifuApi.get().value} 
+    --api ${waifuApi().value} 
     --id ${id}`
     );
 
     const image: Waifu = readJson(res)[0];
 
     fetchImage(image, waifuDir).then((image: Waifu) => {
-      waifuCurrent.set({
+      setWaifuCurrent({
         ...image,
         url_path: waifuDir + "/waifu.webp",
-        api: waifuApi.get(),
+        api: waifuApi(),
       });
     });
     closeProgress();
@@ -63,7 +66,7 @@ const GetImageByid = async (id: number) => {
 const OpenInBrowser = (image: Waifu) =>
   execAsync(
     `bash -c "xdg-open '${image.api.idSearchUrl}${
-      waifuCurrent.get().id
+      waifuCurrent().id
     }' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
   )
     .then((browser) =>
@@ -106,25 +109,25 @@ function Actions() {
                   label=""
                   className="open"
                   hexpand
-                  onClicked={() => OpenImage(waifuCurrent.get())}
+                  onClicked={() => OpenImage(waifuCurrent())}
                 />
                 <button
                   label=""
                   hexpand
                   className="browser"
-                  onClicked={() => OpenInBrowser(waifuCurrent.get())}
+                  onClicked={() => OpenInBrowser(waifuCurrent())}
                 />
                 <button
                   label=""
                   hexpand
                   className="pin"
-                  onClicked={() => PinImageToTerminal(waifuCurrent.get())}
+                  onClicked={() => PinImageToTerminal(waifuCurrent())}
                 />
                 <button
                   label=""
                   hexpand
                   className="copy"
-                  onClicked={() => CopyImage(waifuCurrent.get())}
+                  onClicked={() => CopyImage(waifuCurrent())}
                 />
               </box>
               <box>
@@ -149,18 +152,25 @@ function Actions() {
                     let response = dialog.run();
                     if (response == Gtk.ResponseType.OK) {
                       let filename = dialog.get_filename();
-                      let [height, width] = exec(
-                        `identify -format "%h %w" ${filename}`
-                      ).split(" ");
-                      execAsync(`cp ${filename} ${waifuCurrent.get().url_path}`)
+                      // Use GLib.spawn_command_line_sync instead of exec
+                      const [res, stdout, stderr, status] =
+                        GLib.spawn_command_line_sync(
+                          `identify -format "%h %w" ${filename}`
+                        );
+                      let [height, width] = new TextDecoder()
+                        .decode(stdout)
+                        .trim()
+                        .split(" ");
+
+                      execAsync(`cp ${filename} ${waifuCurrent().url_path}`)
                         .then(() =>
-                          waifuCurrent.set({
+                          setWaifuCurrent({
                             id: 0,
-                            preview: waifuCurrent.get().url_path,
+                            preview: waifuCurrent().url_path,
                             height: Number(height) ?? 0,
                             width: Number(width) ?? 0,
                             api: {} as Api,
-                            url_path: waifuCurrent.get().url_path,
+                            url_path: waifuCurrent().url_path,
                           })
                         )
                         .finally(() =>
@@ -183,10 +193,8 @@ function Actions() {
                     hexpand
                     className={"api"}
                     label={api.name}
-                    state={bind(waifuApi).as(
-                      (current) => current.value === api.value
-                    )}
-                    onToggled={(self, on) => waifuApi.set(api)}
+                    state={createComputed(() => waifuApi().value === api.value)}
+                    onToggled={(self, on) => setWaifuApi(api)}
                   />
                 ))}
               </box>
@@ -231,17 +239,13 @@ function Image() {
           className="image"
           hexpand={false}
           vexpand={false}
-          heightRequest={bind(
-            Variable.derive(
-              [waifuCurrent, rightPanelWidth],
-              (waifuCurrent, width) =>
-                (Number(waifuCurrent.height) / Number(waifuCurrent.width)) *
-                width
-            )
+          heightRequest={createComputed(
+            () =>
+              (Number(waifuCurrent().height) / Number(waifuCurrent().width)) *
+              rightPanelWidth()
           )}
-          css={bind(waifuCurrent).as(
-            (waifuCurrent) =>
-              `background-image: url("${waifuCurrent.url_path}");`
+          css={createComputed(
+            () => `background-image: url("${waifuCurrent().url_path}");`
           )}
           child={Actions()}
         ></box>
@@ -255,7 +259,7 @@ export default () => {
     <revealer
       transitionDuration={globalTransition}
       transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
-      revealChild={globalSettings.get().waifu.visibility}
+      revealChild={createComputed(() => globalSettings().waifu.visibility)}
       child={<box className="waifu" vertical child={Image()}></box>}
     ></revealer>
   );
@@ -263,7 +267,7 @@ export default () => {
 
 export function WaifuVisibility() {
   return ToggleButton({
-    state: bind(globalSettings).as((s) => s.waifu.visibility),
+    state: createComputed(() => globalSettings().waifu.visibility),
     onToggled: (self, on) => setSetting("waifu.visibility", on),
     label: "󱙣",
     className: "waifu icon",

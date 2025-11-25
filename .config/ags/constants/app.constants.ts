@@ -1,6 +1,6 @@
-import { execAsync } from "astal";
 import { LauncherApp } from "../interfaces/app.interface";
 import { setGlobalTheme } from "../utils/theme";
+import { subprocess, exec, execAsync, createSubprocess } from "ags/process";
 
 export const customApps: LauncherApp[] = [
   {

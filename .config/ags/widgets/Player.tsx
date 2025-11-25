@@ -1,8 +1,8 @@
 import AstalMpris from "gi://AstalMpris?version=0.1";
 import { getDominantColor, getImageRatio } from "../utils/image";
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
 import { rightPanelWidth } from "../variables";
-import { bind } from "astal";
+import { createBinding, createComputed } from "ags";
 
 const FALLBACK_ICON = "audio-x-generic-symbolic";
 const PLAY_ICON = "media-playback-start-symbolic";
@@ -24,9 +24,18 @@ export default ({
   player: AstalMpris.Player;
   playerType: "popup" | "widget";
 }) => {
-  const dominantColor = bind(player, "coverArt").as((path) =>
-    getDominantColor(path)
-  );
+  const coverArt = createBinding(player, "coverArt");
+  const titleBinding = createBinding(player, "title");
+  const artistBinding = createBinding(player, "artist");
+  const lengthBinding = createBinding(player, "length");
+  const positionBinding = createBinding(player, "position");
+  const canPlayBinding = createBinding(player, "canPlay");
+  const playbackStatusBinding = createBinding(player, "playbackStatus");
+  const canGoPreviousBinding = createBinding(player, "canGoPrevious");
+  const canGoNextBinding = createBinding(player, "canGoNext");
+
+  const dominantColor = createComputed(() => getDominantColor(coverArt()));
+
   const img = () => {
     if (playerType == "widget") return <box></box>;
 
@@ -36,9 +45,9 @@ export default ({
         child={
           <box
             className="img"
-            css={bind(player, "coverArt").as(
-              (p) => `
-                    background-image: url('${p}');
+            css={createComputed(
+              () => `
+                    background-image: url('${coverArt()}');
                 `
             )}
           />
@@ -49,31 +58,33 @@ export default ({
   const title = (
     <label
       className="title"
-      max_width_chars={20}
+      maxWidthChars={20}
       halign={Gtk.Align.START}
       truncate={true}
-      label={bind(player, "title").as((t) => t || "Unknown Track")}
+      label={createComputed(() => titleBinding() || "Unknown Track")}
     ></label>
   );
 
   const artist = (
     <label
       className="artist"
-      max_width_chars={20}
+      maxWidthChars={20}
       halign={Gtk.Align.START}
       truncate={true}
-      label={bind(player, "artist").as((a) => a || "Unknown Artist")}
+      label={createComputed(() => artistBinding() || "Unknown Artist")}
     ></label>
   );
 
   const positionSlider = (
-    <slider
+    <scale
       className="slider"
-      css={dominantColor.as((c) => `highlight{background: ${c}00}`)}
-      onDragged={({ value }) => (player.position = value * player.length)}
-      visible={bind(player, "length").as((l) => l > 0)}
-      value={bind(player, "position").as((p) =>
-        player.length > 0 ? p / player.length : 0
+      css={createComputed(() => `highlight{background: ${dominantColor()}00}`)}
+      onValueChanged={(self) =>
+        (player.position = self.get_value() * player.length)
+      }
+      visible={createComputed(() => lengthBinding() > 0)}
+      value={createComputed(() =>
+        lengthBinding() > 0 ? positionBinding() / lengthBinding() : 0
       )}
     />
   );
@@ -82,55 +93,35 @@ export default ({
     <label
       className="position time"
       halign={Gtk.Align.START}
-      label={bind(player, "position").as(lengthStr)}
-      visible={bind(player, "length").as((l) => l > 0)}
+      label={createComputed(() => lengthStr(positionBinding()))}
+      visible={createComputed(() => lengthBinding() > 0)}
     ></label>
   );
   const lengthLabel = (
     <label
       className="length time"
       halign={Gtk.Align.END}
-      visible={bind(player, "length").as((l) => l > 0)}
-      label={bind(player, "length").as(lengthStr)}
+      visible={createComputed(() => lengthBinding() > 0)}
+      label={createComputed(() => lengthStr(lengthBinding()))}
     ></label>
-  );
-
-  // const icon = Widget.icon({
-  //   class_name: "icon",
-  //   hexpand: true,
-  //   hpack: "end",
-  //   vpack: "center",
-  //   tooltip_text: player.identity || "",
-  //   icon: player.bind("entry").transform((entry) => {
-  //     const name = `${entry}-symbolic`;
-  //     return Utils.lookUpicon(name) ? name : FALLBACK_ICON;
-  //   }),
-  // });
-  const icon = (
-    <box halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>
-      {/* <icon
-        className="icon"
-        tooltip_text={bind(player, "identity").as((i) => i || "")}
-        icon={bind(player, "entry").as((entry) => {
-          const name = `${entry}-symbolic`;
-          return Gtk.Utils.lookUpicon(name) ? name : FALLBACK_ICON;
-        })}></icon> */}
-    </box>
   );
 
   const playPause = (
     <button
-      on_clicked={() => player.play_pause()}
+      onClicked={() => player.play_pause()}
       className="play-pause"
-      visible={bind(player, "can_play").as((c) => c)}
+      visible={createComputed(() => canPlayBinding())}
       child={
         <icon
-          icon={bind(player, "playbackStatus").as((s) => {
+          icon={createComputed(() => {
+            const s = playbackStatusBinding();
             switch (s) {
               case AstalMpris.PlaybackStatus.PLAYING:
                 return PAUSE_ICON;
               case AstalMpris.PlaybackStatus.PAUSED:
               case AstalMpris.PlaybackStatus.STOPPED:
+                return PLAY_ICON;
+              default:
                 return PLAY_ICON;
             }
           })}
@@ -141,16 +132,16 @@ export default ({
 
   const prev = (
     <button
-      on_clicked={() => player.previous()}
-      visible={bind(player, "can_go_previous").as((c) => c)}
+      onClicked={() => player.previous()}
+      visible={createComputed(() => canGoPreviousBinding())}
       child={<icon icon={PREV_ICON}></icon>}
     ></button>
   );
 
   const next = (
     <button
-      on_clicked={() => player.next()}
-      visible={bind(player, "can_go_next").as((c) => c)}
+      onClicked={() => player.next()}
+      visible={createComputed(() => canGoNextBinding())}
       child={<icon icon={NEXT_ICON}></icon>}
     ></button>
   );
@@ -159,11 +150,12 @@ export default ({
     <box
       className={`player ${playerType}`}
       vexpand={false}
-      css={bind(player, "coverArt").as((p) => {
-        if (playerType == "popup") return;
+      css={createComputed(() => {
+        if (playerType == "popup") return "";
 
+        const p = coverArt();
         const ratio = getImageRatio(p) || 1; // default to square
-        const width = rightPanelWidth.get();
+        const width = rightPanelWidth();
         const height = width * ratio;
 
         return `

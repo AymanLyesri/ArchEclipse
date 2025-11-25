@@ -1,6 +1,5 @@
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
 import { globalTransition } from "../variables";
-import { Binding } from "astal";
 
 export default ({
   trigger,
@@ -10,10 +9,10 @@ export default ({
   custom_class = "",
   on_primary_click = () => {},
 }: {
-  trigger: Gtk.Widget;
-  child: Gtk.Widget;
+  trigger: any;
+  child: any;
   visible?: boolean;
-  revealChild?: boolean | Binding<boolean>;
+  revealChild?: boolean | (() => boolean);
   custom_class?: string;
   on_primary_click?: () => void;
 }) => {

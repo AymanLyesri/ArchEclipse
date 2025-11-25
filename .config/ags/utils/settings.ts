@@ -1,6 +1,6 @@
-import { execAsync } from "astal";
+import { execAsync } from "ags";
 import { readJSONFile, writeJSONFile } from "./json";
-import { globalSettings } from "../variables";
+import { globalSettings, setGlobalSettings } from "../variables";
 import { Settings } from "../interfaces/settings.interface";
 import {
   barWidgetSelectors,
@@ -158,16 +158,16 @@ function deepMergePreserveStructure(target: any, source: any): any {
 // Settings are stored in a json file, containing all the settings, check if it exists, if not, create it
 export function autoCreateSettings() {
   if (Object.keys(readJSONFile(settingsPath)).length !== 0) {
-    globalSettings.set(
+    setGlobalSettings(
       deepMergePreserveStructure(defaultSettings, readJSONFile(settingsPath))
     );
   } else {
-    writeJSONFile(settingsPath, globalSettings.get());
+    writeJSONFile(settingsPath, globalSettings());
   }
 }
 
 export function setSetting(key: string, value: any): any {
-  let o: any = globalSettings.get();
+  let o: any = globalSettings();
   key
     .split(".")
     .reduce(
@@ -175,12 +175,12 @@ export function setSetting(key: string, value: any): any {
       o
     );
 
-  globalSettings.set({ ...o });
+  setGlobalSettings({ ...o });
 }
 
 export function getSetting(key: string): any {
   // returns the value of the key in the settings
-  return key.split(".").reduce((o: any, k) => o?.[k], globalSettings.get());
+  return key.split(".").reduce((o: any, k) => o?.[k], globalSettings());
 }
 
 export function exportSettings() {

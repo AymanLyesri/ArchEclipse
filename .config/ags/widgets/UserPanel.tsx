@@ -1,21 +1,24 @@
-import { bind, exec, execAsync, Variable } from "astal";
+import { createBinding, exec, execAsync, createState, createPoll } from "ags";
 import MediaWidget from "./MediaWidget";
 
 import NotificationHistory from "./rightPanel/NotificationHistory";
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 
-import hyprland from "gi://AstalHyprland";
+import Hyprland from "gi://AstalHyprland";
 import { date_less } from "../variables";
 import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
 import { notify } from "../utils/notification";
 import { FileChooserButton } from "./FileChooser";
-const Hyprland = hyprland.get_default();
+const hyprland = Hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
 const username = exec(`whoami`);
 const desktopEnv = exec(`bash -c "echo $XDG_CURRENT_DESKTOP"`);
-const uptime = Variable("-").poll(600000, "uptime -p"); // every 10 minutes
+const uptime = createPoll(600000, "uptime -p"); // every 10 minutes
 
 const UserPanel = (monitorName: string) => {
   const Profile = () => {
@@ -36,7 +39,7 @@ const UserPanel = (monitorName: string) => {
       <box
         halign={Gtk.Align.CENTER}
         className="up-time"
-        child={<label className="uptime" label={bind(uptime)} />}
+        child={<label className="uptime" label={uptime} />}
       ></box>
     );
 
@@ -51,7 +54,7 @@ const UserPanel = (monitorName: string) => {
             hexpand
             vexpand
             usePreviewLabel={false}
-            onFileSet={(self) => {
+            onFileSet={(self: any) => {
               let uri = self.get_uri();
               if (!uri) return;
               const cleanUri = uri.replace("file://", ""); // Remove 'file://' from the URI
@@ -89,7 +92,7 @@ const UserPanel = (monitorName: string) => {
         className="logout"
         label="󰍃"
         onClicked={() => {
-          Hyprland.message_async("dispatch exit", () => {});
+          hyprland.message_async("dispatch exit", () => {});
         }}
       />
     );
@@ -158,11 +161,7 @@ const UserPanel = (monitorName: string) => {
     <box
       className="date"
       child={
-        <label
-          halign={Gtk.Align.CENTER}
-          hexpand={true}
-          label={bind(date_less)}
-        />
+        <label halign={Gtk.Align.CENTER} hexpand={true} label={date_less} />
       }
     ></box>
   );

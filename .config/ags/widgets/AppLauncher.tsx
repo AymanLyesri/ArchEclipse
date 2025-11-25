@@ -1,4 +1,4 @@
-import { bind, exec, execAsync, Variable } from "astal";
+import { createBinding, execAsync, createState, createComputed } from "ags";
 import Apps from "gi://AstalApps";
 
 import { readJson, readJSONFile } from "../utils/json";
@@ -8,7 +8,10 @@ import {
   formatToURL,
   getDomainFromURL,
 } from "../utils/url";
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import { notify } from "../utils/notification";
 import {
   emptyWorkspace,
@@ -29,15 +32,15 @@ const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
 
-const monitorName = Variable<string>("");
+const [monitorName, setMonitorName] = createState<string>("");
 
-const Results = Variable<LauncherApp[]>([]);
+const [Results, setResults] = createState<LauncherApp[]>([]);
 const QuickApps = () => {
   const apps = (
     <revealer
       transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
       transition_duration={globalTransition}
-      revealChild={bind(Results).as((results) => results.length === 0)}
+      revealChild={createComputed(() => Results().length === 0)}
       child={
         <scrollable
           heightRequest={quickApps.length * 40}
@@ -49,7 +52,7 @@ const QuickApps = () => {
                   className="quick-app"
                   onClicked={() => {
                     app.app_launch();
-                    hideWindow(`app-launcher-${monitorName.get()}`);
+                    hideWindow(`app-launcher-${monitorName()}`);
                   }}
                   child={
                     <box spacing={5}>
@@ -115,7 +118,7 @@ const Entry = (
       debounceTimer = setTimeout(async () => {
         try {
           if (!text || text.trim() === "") {
-            Results.set([]);
+            setResults([]);
             return;
           }
           args = text.split(" ");
@@ -126,7 +129,7 @@ const Entry = (
                 .toLowerCase()
                 .includes(text.replace(">", "").trim().toLowerCase())
             );
-            Results.set(filteredCommands);
+            setResults(filteredCommands);
           } else if (args[0].includes("translate")) {
             const language = text.includes(">")
               ? text.split(">")[1].trim()
@@ -137,7 +140,7 @@ const Entry = (
                 .replace("translate", "")
                 .trim()}' '${language}'`
             );
-            Results.set([
+            setResults([
               {
                 app_name: translation,
                 app_launch: () => execAsync(`wl-copy ${translation}`),
@@ -152,7 +155,7 @@ const Entry = (
                   .toLowerCase()
                   .includes(text.replace("emoji", "").trim())
             );
-            Results.set(
+            setResults(
               filteredEmojis.map((emoji: { app_name: string }) => ({
                 app_name: emoji.app_name,
                 app_icon: emoji.app_name,
@@ -163,7 +166,7 @@ const Entry = (
           }
           // handle URL
           else if (containsProtocolOrTLD(args[0])) {
-            Results.set([
+            setResults([
               {
                 app_name: getDomainFromURL(text),
                 app_launch: () =>
@@ -181,7 +184,7 @@ const Entry = (
           }
           // handle arithmetic
           else if (containsOperator(args[0])) {
-            Results.set([
+            setResults([
               {
                 app_name: arithmetic(text),
                 app_launch: () => execAsync(`wl-copy ${arithmetic(text)}`),
@@ -190,7 +193,7 @@ const Entry = (
           }
           // Handle apps
           else {
-            Results.set(
+            setResults(
               apps
                 .fuzzy_query(args.shift()!)
                 .slice(0, MAX_ITEMS)
@@ -208,8 +211,8 @@ const Entry = (
                         ),
                 }))
             );
-            if (Results.get().length === 0) {
-              Results.set([
+            if (Results().length === 0) {
+              setResults([
                 {
                   app_name: `Try ${text}`,
                   app_icon: "󰋖",
@@ -228,8 +231,8 @@ const Entry = (
       }, 100); // 100ms delay
     }}
     onActivate={() => {
-      if (Results.get().length > 0) {
-        launchApp(Results.get()[0]);
+      if (Results().length > 0) {
+        launchApp(Results()[0]);
       }
     }}
   />
@@ -237,12 +240,12 @@ const Entry = (
 
 const EmptyEntry = () => {
   Entry.set_text("");
-  Results.set([]);
+  setResults([]);
 };
 
 const launchApp = (app: LauncherApp) => {
   app.app_launch();
-  hideWindow(`app-launcher-${monitorName.get()}`);
+  hideWindow(`app-launcher-${monitorName()}`);
   EmptyEntry();
 };
 
@@ -290,15 +293,17 @@ const organizeResults = (results: LauncherApp[]) => {
   const maxHeight = 500;
   return (
     <scrollable
-      heightRequest={bind(Results).as((results) =>
-        results.length * 45 > maxHeight ? maxHeight : results.length * 45
+      heightRequest={createComputed(() =>
+        Results().length * 45 > maxHeight ? maxHeight : Results().length * 45
       )}
       child={rows}
     />
   );
 };
 
-const ResultsDisplay = <box child={bind(Results).as(organizeResults)} />;
+const ResultsDisplay = (
+  <box child={createComputed(() => organizeResults(Results()))} />
+);
 
 export default (monitor: Gdk.Monitor) => (
   <window
@@ -306,8 +311,10 @@ export default (monitor: Gdk.Monitor) => (
     name={`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`}
     namespace="app-launcher"
     application={App}
-    anchor={emptyWorkspace.as((empty) =>
-      empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
+    anchor={createComputed(() =>
+      emptyWorkspace()
+        ? undefined
+        : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
     )}
     exclusivity={Astal.Exclusivity.EXCLUSIVE}
     keymode={Astal.Keymode.EXCLUSIVE}
@@ -322,8 +329,8 @@ export default (monitor: Gdk.Monitor) => (
         return true;
       }
     }}
-    setup={(self) => {
-      monitorName.set(getMonitorName(monitor.get_display(), monitor)!);
+    $={(self) => {
+      setMonitorName(getMonitorName(monitor.get_display(), monitor)!);
     }}
     child={
       <eventbox>

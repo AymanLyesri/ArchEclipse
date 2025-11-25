@@ -1,20 +1,7 @@
-import { GObject } from "astal";
-import { astalify, ConstructProps, Gtk } from "astal/gtk3";
-
-class Calendar extends astalify(Gtk.Calendar) {
-  static {
-    GObject.registerClass(this);
-  }
-
-  constructor(
-    props: ConstructProps<Gtk.Calendar, Gtk.Calendar.ConstructorProps>
-  ) {
-    super(props as any);
-  }
-}
+import Gtk from "gi://Gtk?version=3.0";
 
 export default () => {
   return (
-    <box className={"calendar"} child={new Calendar({ hexpand: true })}></box>
+    <box className={"calendar"} child={<Gtk.Calendar hexpand={true} />}></box>
   );
 };

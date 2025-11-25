@@ -1,4 +1,4 @@
-import { App } from "astal/gtk3";
+import app from "ags/gtk3/app";
 import Bar from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
 import RightPanel from "./widgets/rightPanel/RightPanel";
@@ -21,7 +21,7 @@ import "./services/autoSwitchWorkspace";
 import ScreenShot from "./widgets/ScreenShot";
 
 const perMonitorDisplay = () =>
-  App.get_monitors().map((monitor) => {
+  app.get_monitors().map((monitor) => {
     print("\t MONITOR: " + getMonitorName(monitor.get_display(), monitor));
 
     // List of widget initializers
@@ -49,7 +49,7 @@ const perMonitorDisplay = () =>
     });
   });
 
-App.start({
+app.start({
   css: getCssPath(),
   main: () => {
     logTime("\t Compiling Binaries", () => compileBinaries());
