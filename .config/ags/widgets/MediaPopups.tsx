@@ -28,7 +28,7 @@ export default (monitor: Gdk.Monitor) => {
       visible={false}
       child={
         <box
-          className="media-popup"
+          class="media-popup"
           child={
             <eventbox
               onHoverLost={() => hideWindow(`media-${monitorName}`)}
@@ -37,7 +37,7 @@ export default (monitor: Gdk.Monitor) => {
                   {createComputed(() =>
                     players().map((player) => (
                       <eventbox
-                        className={"player-eventbox"}
+                        class={"player-eventbox"}
                         child={<Player player={player} playerType="popup" />}
                       />
                     ))

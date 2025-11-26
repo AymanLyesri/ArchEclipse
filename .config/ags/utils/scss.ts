@@ -1,4 +1,5 @@
-import { execAsync, monitorFile } from "ags";
+import { execAsync } from "ags/process";
+import { monitorFile } from "ags/file";
 import App from "ags/gtk3/app";
 import {
   globalFontSize,
@@ -26,14 +27,14 @@ export async function refreshCss() {
 
   try {
     await execAsync(`bash -c "echo '
-        $OPACITY: ${globalOpacity().value};
-        $ICON-SIZE: ${globalIconSize().value}px;
-        $FONT-SIZE: ${globalFontSize().value}px;
-        $SCALE: ${globalScale().value}px;
+        $OPACITY: ${globalOpacity};
+        $ICON-SIZE: ${globalIconSize}px;
+        $FONT-SIZE: ${globalFontSize}px;
+        $SCALE: ${globalScale}px;
         ' | cat - ${defaultColors} ${walColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);
 
-    App.reset_css();
-    App.apply_css(tmpCss);
+    // App.reset_css();
+    // App.apply_css(tmpCss);
   } catch (e) {
     notify({ summary: `Error while generating css`, body: String(e) });
     console.error(e);

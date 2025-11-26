@@ -1,4 +1,4 @@
-import { execAsync } from "ags/file";
+import { execAsync } from "ags/process";
 
 export function notify({
   summary = "",

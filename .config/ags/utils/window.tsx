@@ -1,7 +1,7 @@
 import app from "ags/gtk3/app";
 import Gtk from "gi://Gtk?version=3.0";
 import { createComputed } from "ags";
-import ToggleButton from "../widgets/toggleButton";
+import togglebutton from "../widgets/togglebutton";
 
 export const hideWindow = (name: string) => app.get_window(name)?.hide();
 export const showWindow = (name: string) => app.get_window(name)?.show();
@@ -55,18 +55,18 @@ export function WindowActions({
           );
         }}
       />
-      <ToggleButton
+      <togglebutton
         label=""
         class="exclusivity"
-        state={() => !windowExclusivity()}
+        active={() => !windowExclusivity()}
         onToggled={(self, on) => {
           setWindowExclusivity(!on);
         }}
       />
-      <ToggleButton
+      <togglebutton
         label={createComputed(() => (windowLock() ? "" : ""))}
         class="lock"
-        state={windowLock}
+        active={windowLock}
         onToggled={(self, on) => {
           setWindowLock(on);
         }}

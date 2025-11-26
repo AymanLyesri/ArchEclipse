@@ -19,7 +19,7 @@ export default () => {
   ];
 
   const Filter = (
-    <box className="filter">
+    <box class="filter">
       {Filters.map((filter) => (
         <button
           label={filter.name}
@@ -28,7 +28,7 @@ export default () => {
             const current = getFilter();
             setFilter(current === filter ? { name: "", class: "" } : filter);
           }}
-          className={createComputed(() =>
+          class={createComputed(() =>
             getFilter().class === filter.class ? "active" : ""
           )}
         />
@@ -96,7 +96,7 @@ export default () => {
 
   const ClearNotifications = (
     <button
-      className="clear"
+      class="clear"
       label=""
       onClicked={() => {
         notifd.notifications.forEach((notification) => {
@@ -107,7 +107,7 @@ export default () => {
   );
 
   return (
-    <box className="notification-history" vertical={true} spacing={5}>
+    <box class="notification-history" vertical={true} spacing={5}>
       <CustomRevealer trigger={Filter} child={ClearNotifications} />
       {NotificationsDisplay}
     </box>

@@ -16,7 +16,8 @@ import {
   focusedClient,
   globalTransition,
 } from "../../../variables";
-import { createBinding, createComputed, createState, createPoll } from "ags";
+import { createBinding, createComputed, createState } from "ags";
+import { createPoll } from "ags/time";
 import Gtk from "gi://Gtk?version=3.0";
 import GLib from "gi://GLib?version=2.0";
 import CustomRevealer from "../../CustomRevealer";
@@ -87,7 +88,7 @@ function AudioVisualizer() {
       setup={(self) => (revealerInstance = self)}
       child={
         <label
-          className={"cava"}
+          class={"cava"}
           onDestroy={() => {
             // bars.drop(); // No drop in signals
             if (showTimeoutId) {
@@ -241,16 +242,16 @@ function Media({ monitorName }: { monitorName: string }) {
 
     const progressWidget = (
       <box
-        className="progress"
+        class="progress"
         halign={Gtk.Align.CENTER}
         valign={Gtk.Align.CENTER}
-        child={<label className={"icon"} label={playerIcon} />}
+        child={<label class={"icon"} label={playerIcon} />}
       />
     );
 
     const title = (
       <label
-        className="title"
+        class="title"
         maxWidthChars={20}
         truncate={true}
         label={createComputed(() => playerTitle() || "Unknown Track")}
@@ -259,7 +260,7 @@ function Media({ monitorName }: { monitorName: string }) {
 
     const artist = (
       <label
-        className="artist"
+        class="artist"
         maxWidthChars={20}
         truncate={true}
         label={createComputed(() => {
@@ -271,7 +272,7 @@ function Media({ monitorName }: { monitorName: string }) {
 
     return (
       <box
-        className={createComputed(() => `media ${playerEntry()}`)}
+        class={createComputed(() => `media ${playerEntry()}`)}
         css={coverCss}
         spacing={10}
       >
@@ -308,7 +309,7 @@ function Media({ monitorName }: { monitorName: string }) {
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       child={
         <eventbox
-          className="media-event"
+          class="media-event"
           onClick={() =>
             hyprland.message_async("dispatch workspace 4", () => {})
           }
@@ -321,9 +322,9 @@ function Media({ monitorName }: { monitorName: string }) {
 }
 
 function Clock() {
-  const revealer = <label className="revealer" label={date_more}></label>;
+  const revealer = <label class="revealer" label={date_more}></label>;
 
-  const trigger = <label className="clock" label={date_less}></label>;
+  const trigger = <label class="clock" label={date_less}></label>;
 
   return (
     <eventbox
@@ -399,15 +400,15 @@ function Bandwidth() {
   );
 
   const trigger = (
-    <box className="bandwidth" spacing={3}>
+    <box class="bandwidth" spacing={3}>
       <label
-        className="packet upload"
+        class="packet upload"
         label={createComputed(() => ` ${bandwidth()[0]}`)}
       />
       {uploadRevealer}
-      <label className="separator" label={"-"} />
+      <label class="separator" label={"-"} />
       <label
-        className="packet download"
+        class="packet download"
         label={createComputed(() => ` ${bandwidth()[1]}`)}
       />
       {downloadRevealer}
@@ -445,7 +446,7 @@ function ClientTitle() {
           const title = createBinding(client, "title");
           return (
             <label
-              className="client-title"
+              class="client-title"
               truncate={true}
               maxWidthChars={24}
               label={createComputed(() => (title() ? String(title()) : ""))}
@@ -482,7 +483,7 @@ function Weather() {
 
   const label = (
     <label
-      className="weather"
+      class="weather"
       truncate={true}
       // onDestroy={() => weather.drop()} // No drop in signals
       label={createComputed(() => {
@@ -510,7 +511,7 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box className="bar-middle" spacing={5} halign={halign} hexpand>
+    <box class="bar-middle" spacing={5} halign={halign} hexpand>
       {/* <AudioVisualizer /> */}
       <Media monitorName={monitorName} />
       <Clock />

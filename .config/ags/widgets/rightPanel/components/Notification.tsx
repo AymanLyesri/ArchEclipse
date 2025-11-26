@@ -1,13 +1,12 @@
-import { execAsync } from "astal";
+import { execAsync } from "ags/process";
 import Gtk from "gi://Gtk?version=3.0";
 import Astal from "gi://Astal?version=3.0";
 import Notifd from "gi://AstalNotifd";
 import { globalTransition, NOTIFICATION_DELAY } from "../../../variables";
-import ToggleButton from "../../toggleButton";
 import Hyprland from "gi://AstalHyprland";
 import { notify } from "../../../utils/notification";
 import { asyncSleep, time } from "../../../utils/time";
-import { createState, createEffect } from "ags";
+import { createState } from "ags";
 
 const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
 
@@ -17,11 +16,11 @@ function NotificationIcon(n: Notifd.Notification) {
   const notificationIcon = n.image || n.app_icon || n.desktopEntry;
 
   if (!notificationIcon)
-    return <icon className="icon" icon={"dialog-information-symbolic"} />;
+    return <icon class="icon" icon={"dialog-information-symbolic"} />;
 
   return (
     <box
-      className="image"
+      class="image"
       css={`
         background-image: url("${notificationIcon}");
         background-size: cover;
@@ -60,13 +59,11 @@ export default ({
   const [getIsLocked, setIsLocked] = createState<boolean>(false);
   let revealerInstance: Gtk.Revealer | null = null;
 
-  createEffect(() => {
-    const value = getIsLocked();
-    if (!value)
-      setTimeout(() => {
-        if (!getIsLocked() && popup) closeNotification();
-      }, NOTIFICATION_DELAY);
-  });
+  const value = getIsLocked;
+  if (!value)
+    setTimeout(() => {
+      if (!getIsLocked && popup) closeNotification();
+    }, NOTIFICATION_DELAY);
 
   async function closeNotification(dismiss = false) {
     if (revealerInstance) revealerInstance.reveal_child = false;
@@ -80,14 +77,14 @@ export default ({
       valign={Gtk.Align.START}
       halign={Gtk.Align.CENTER}
       hexpand={false}
-      className="icon"
+      class="icon"
       child={NotificationIcon(n)}
     ></box>
   );
 
   const title = (
     <label
-      className="title"
+      class="title"
       xalign={0}
       justify={Gtk.Justification.LEFT}
       hexpand={true}
@@ -101,7 +98,7 @@ export default ({
 
   const body = (
     <label
-      className="body"
+      class="body"
       hexpand={true}
       truncate={true}
       maxWidthChars={24}
@@ -118,9 +115,9 @@ export default ({
       transition_type={Gtk.RevealerTransitionType.CROSSFADE}
       transitionDuration={globalTransition}
       child={
-        <ToggleButton
-          className="expand"
-          state={false}
+        <togglebutton
+          class="expand"
+          active={false}
           onToggled={(self: any, on: boolean) => {
             title.set_property("truncate", !on);
             body.set_property("truncate", !on);
@@ -133,9 +130,9 @@ export default ({
   );
 
   const lockButton = (
-    <ToggleButton
-      className="lock"
-      label=""
+    <togglebutton
+      class="lock"
+      label=""
       onToggled={(self: any, on: boolean) => {
         setIsLocked(on);
       }}
@@ -144,7 +141,7 @@ export default ({
 
   const copyButton = (
     <button
-      className="copy"
+      class="copy"
       label=""
       onClicked={() => copyNotificationContent(n)}
     />
@@ -166,7 +163,7 @@ export default ({
       transitionDuration={globalTransition}
       child={
         <button
-          className="close"
+          class="close"
           label=""
           onClicked={() => {
             closeNotification(true);
@@ -178,9 +175,9 @@ export default ({
 
   const Progress = (
     <progressbar
-      className="circular-progress"
+      class="circular-progress"
       fraction={1}
-      setup={async (self) => {
+      $={async (self) => {
         let val = 1;
         while (val >= 0) {
           val -= 0.01;
@@ -193,36 +190,32 @@ export default ({
   );
 
   const topBar = (
-    <box className="top-bar" hexpand={true} spacing={5}>
+    <box class="top-bar" hexpand={true} spacing={5}>
       <box spacing={5} hexpand>
-        <box
-          visible={popup}
-          className={"circular-progress-box"}
-          child={Progress}
-        />
+        <box visible={popup} class={"circular-progress-box"} child={Progress} />
         <label
           wrap={true}
           xalign={0}
           truncate={popup}
-          className="app-name"
+          class="app-name"
           label={n.app_name}
         />
         {leftRevealer}
       </box>
-      <box className={"quick-actions"}>
+      <box class={"quick-actions"}>
         {closeRevealer}
         {expandRevealer}
       </box>
 
-      <label xalign={1} className="time" label={time(n.time)} />
+      <label xalign={1} class="time" label={time(n.time)} />
     </box>
   );
 
   const Box = (
     <box
-      className={`notification ${n.urgency} ${n.app_name}`}
+      class={`notification ${n.urgency} ${n.app_name}`}
       child={
-        <box className="main-content" vertical={true} spacing={10}>
+        <box class="main-content" vertical={true} spacing={10}>
           {topBar}
           {/* <separator /> */}
           <box spacing={5}>
@@ -243,7 +236,7 @@ export default ({
       transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
       transitionDuration={TRANSITION}
       reveal_child={!newNotification}
-      setup={(self) => {
+      $={(self) => {
         revealerInstance = self;
         setTimeout(() => {
           self.reveal_child = true;
@@ -255,14 +248,14 @@ export default ({
   const Parent = (
     <box
       visible={true}
-      setup={(self) =>
+      $={(self) =>
         setTimeout(() => {
           if (!getIsLocked() && popup) closeNotification();
         }, NOTIFICATION_DELAY)
       }
       child={
         <eventbox
-          className={"notification-eventbox"}
+          class={"notification-eventbox"}
           visible={true}
           onHover={() => {
             leftRevealer.reveal_child = true;

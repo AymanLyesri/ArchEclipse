@@ -11,13 +11,8 @@ const hyprland = Hyprland.get_default();
 
 import { WidgetSelector } from "./interfaces/widgetSelector.interface";
 import { refreshCss } from "./utils/scss";
-import {
-  createBinding,
-  createState,
-  createEffect,
-  createPoll,
-  createComputed,
-} from "ags";
+import { createBinding, createState, createComputed } from "ags";
+import { createPoll } from "ags/time";
 import GLib from "gi://GLib";
 import { writeJSONFile } from "./utils/json";
 import { AGSSetting, Settings } from "./interfaces/settings.interface";
@@ -28,48 +23,62 @@ import { phi, phi_min } from "./constants/phi.constants";
 
 export const NOTIFICATION_DELAY = phi * 3000;
 
-export const [globalSettings, setGlobalSettings] =
+const [globalSettings, _setGlobalSettings] =
   createState<Settings>(defaultSettings);
 autoCreateSettings();
-createEffect(() => writeJSONFile(settingsPath, globalSettings()));
+function setGlobalSettings(value: Settings) {
+  _setGlobalSettings(value);
+  writeJSONFile(settingsPath, value);
+}
+export { globalSettings, setGlobalSettings };
 
-export const [globalOpacity, setGlobalOpacity] = createState<AGSSetting>(
+const [globalOpacity, _setGlobalOpacity] = createState<AGSSetting>(
   getSetting("globalOpacity")
 );
-createEffect(() => {
-  setSetting("globalOpacity", globalOpacity());
+function setGlobalOpacity(value: AGSSetting) {
+  _setGlobalOpacity(value);
+  setSetting("globalOpacity", value);
   refreshCss();
-});
+}
+export { globalOpacity, setGlobalOpacity };
 
-export const [globalIconSize, setGlobalIconSize] = createState<AGSSetting>(
+const [globalIconSize, _setGlobalIconSize] = createState<AGSSetting>(
   getSetting("globalIconSize")
 );
-createEffect(() => {
-  setSetting("globalIconSize", globalIconSize());
+function setGlobalIconSize(value: AGSSetting) {
+  _setGlobalIconSize(value);
+  setSetting("globalIconSize", value);
   refreshCss();
-});
+}
+export { globalIconSize, setGlobalIconSize };
 
-export const [globalScale, setGlobalScale] = createState<AGSSetting>(
+const [globalScale, _setGlobalScale] = createState<AGSSetting>(
   getSetting("globalScale")
 );
-createEffect(() => {
-  setSetting("globalScale", globalScale());
+function setGlobalScale(value: AGSSetting) {
+  _setGlobalScale(value);
+  setSetting("globalScale", value);
   refreshCss();
-});
+}
+export { globalScale, setGlobalScale };
 
-export const [globalFontSize, setGlobalFontSize] = createState<AGSSetting>(
+const [globalFontSize, _setGlobalFontSize] = createState<AGSSetting>(
   getSetting("globalFontSize")
 );
-createEffect(() => {
-  setSetting("globalFontSize", globalFontSize());
+function setGlobalFontSize(value: AGSSetting) {
+  _setGlobalFontSize(value);
+  setSetting("globalFontSize", value);
   refreshCss();
-});
+}
+export { globalFontSize, setGlobalFontSize };
 
-export const [autoWorkspaceSwitching, setAutoWorkspaceSwitching] =
+const [autoWorkspaceSwitching, _setAutoWorkspaceSwitching] =
   createState<AGSSetting>(getSetting("autoWorkspaceSwitching"));
-createEffect(() => {
-  setSetting("autoWorkspaceSwitching", autoWorkspaceSwitching());
-});
+function setAutoWorkspaceSwitching(value: AGSSetting) {
+  _setAutoWorkspaceSwitching(value);
+  setSetting("autoWorkspaceSwitching", value);
+}
+export { autoWorkspaceSwitching, setAutoWorkspaceSwitching };
 
 export const [globalTheme, setGlobalTheme] = createState<boolean>(false);
 getGlobalTheme();
@@ -77,50 +86,74 @@ getGlobalTheme();
 export const globalMargin = phi * 10;
 export const globalTransition = phi * 300;
 
-export const [dateFormat, setDateFormat] = createState<string>(
+const [dateFormat, _setDateFormat] = createState<string>(
   getSetting("dateFormat")
 );
 export const date_less = createPoll(
+  "",
   phi * 1000,
-  () => GLib.DateTime.new_now_local().format(dateFormat())!
+  () => GLib.DateTime.new_now_local().format(dateFormat)!
 );
 export const date_more = createPoll(
+  "",
   phi * 1000,
   () => GLib.DateTime.new_now_local().format(":%S %b %e, %A.")!
 );
-createEffect(() => {
-  setSetting("date.format", dateFormat());
-});
+function setDateFormat(value: string) {
+  _setDateFormat(value);
+  setSetting("date.format", value);
+}
+export { dateFormat, setDateFormat };
 
-export const [barVisibility, setBarVisibility] = createState<boolean>(
+const [barVisibility, _setBarVisibility] = createState<boolean>(
   getSetting("bar.visibility")
 );
-createEffect(() => setSetting("bar.visibility", barVisibility()));
+function setBarVisibility(value: boolean) {
+  _setBarVisibility(value);
+  setSetting("bar.visibility", value);
+}
+export { barVisibility, setBarVisibility };
 
-export const [barLock, setBarLock] = createState<boolean>(
-  getSetting("bar.lock")
-);
-createEffect(() => setSetting("bar.lock", barLock()));
+const [barLock, _setBarLock] = createState<boolean>(getSetting("bar.lock"));
+function setBarLock(value: boolean) {
+  _setBarLock(value);
+  setSetting("bar.lock", value);
+}
+export { barLock, setBarLock };
 
-export const [barOrientation, setBarOrientation] = createState<boolean>(
+const [barOrientation, _setBarOrientation] = createState<boolean>(
   getSetting("bar.orientation")
 );
-createEffect(() => setSetting("bar.orientation", barOrientation()));
+function setBarOrientation(value: boolean) {
+  _setBarOrientation(value);
+  setSetting("bar.orientation", value);
+}
+export { barOrientation, setBarOrientation };
 
-export const [barLayout, setBarLayout] = createState<WidgetSelector[]>(
+const [barLayout, _setBarLayout] = createState<WidgetSelector[]>(
   getSetting("bar.layout")
 );
-createEffect(() => setSetting("bar.layout", barLayout()));
+function setBarLayout(value: WidgetSelector[]) {
+  _setBarLayout(value);
+  setSetting("bar.layout", value);
+}
+export { barLayout, setBarLayout };
 
-export const [waifuApi, setWaifuApi] = createState<Api>(
-  getSetting("waifu.api")
-);
-createEffect(() => setSetting("waifu.api", waifuApi()));
+const [waifuApi, _setWaifuApi] = createState<Api>(getSetting("waifu.api"));
+function setWaifuApi(value: Api) {
+  _setWaifuApi(value);
+  setSetting("waifu.api", value);
+}
+export { waifuApi, setWaifuApi };
 
-export const [waifuCurrent, setWaifuCurrent] = createState<Waifu>(
+const [waifuCurrent, _setWaifuCurrent] = createState<Waifu>(
   getSetting("waifu.current")
 );
-createEffect(() => setSetting("waifu.current", waifuCurrent()));
+function setWaifuCurrent(value: Waifu) {
+  _setWaifuCurrent(value);
+  setSetting("waifu.current", value);
+}
+export { waifuCurrent, setWaifuCurrent };
 
 export const focusedClient = createBinding(hyprland, "focusedClient");
 export const emptyWorkspace = createComputed(() => !focusedClient());
@@ -128,97 +161,164 @@ export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
 
 export const [newAppWorkspace, setNewAppWorkspace] = createState(0);
 
-export const [rightPanelVisibility, setRightPanelVisibility] =
-  createState<boolean>(getSetting("rightPanel.visibility"));
-createEffect(() => setSetting("rightPanel.visibility", rightPanelVisibility()));
-
-export const [rightPanelExclusivity, setRightPanelExclusivity] =
-  createState<boolean>(getSetting("rightPanel.exclusivity"));
-createEffect(() =>
-  setSetting("rightPanel.exclusivity", rightPanelExclusivity())
+const [rightPanelVisibility, _setRightPanelVisibility] = createState<boolean>(
+  getSetting("rightPanel.visibility")
 );
+function setRightPanelVisibility(value: boolean) {
+  _setRightPanelVisibility(value);
+  setSetting("rightPanel.visibility", value);
+}
+export { rightPanelVisibility, setRightPanelVisibility };
 
-export const [rightPanelWidth, setRightPanelWidth] = createState<number>(
+const [rightPanelExclusivity, _setRightPanelExclusivity] = createState<boolean>(
+  getSetting("rightPanel.exclusivity")
+);
+function setRightPanelExclusivity(value: boolean) {
+  _setRightPanelExclusivity(value);
+  setSetting("rightPanel.exclusivity", value);
+}
+export { rightPanelExclusivity, setRightPanelExclusivity };
+
+const [rightPanelWidth, _setRightPanelWidth] = createState<number>(
   getSetting("rightPanel.width")
 );
-createEffect(() => setSetting("rightPanel.width", rightPanelWidth()));
+function setRightPanelWidth(value: number) {
+  _setRightPanelWidth(value);
+  setSetting("rightPanel.width", value);
+}
+export { rightPanelWidth, setRightPanelWidth };
 
-export const [rightPanelLock, setRightPanelLock] = createState<boolean>(
+const [rightPanelLock, _setRightPanelLock] = createState<boolean>(
   getSetting("rightPanel.lock")
 );
-createEffect(() => setSetting("rightPanel.lock", rightPanelLock()));
+function setRightPanelLock(value: boolean) {
+  _setRightPanelLock(value);
+  setSetting("rightPanel.lock", value);
+}
+export { rightPanelLock, setRightPanelLock };
 
-export const [DND, setDND] = createState<boolean>(
-  getSetting("notifications.dnd")
-);
-createEffect(() => setSetting("notifications.dnd", DND()));
+const [DND, _setDND] = createState<boolean>(getSetting("notifications.dnd"));
+function setDND(value: boolean) {
+  _setDND(value);
+  setSetting("notifications.dnd", value);
+}
+export { DND, setDND };
 
 export const widgetLimit = 6;
-export const [rightPanelWidgets, setRightPanelWidgets] = createState<
+const [rightPanelWidgets, _setRightPanelWidgets] = createState<
   WidgetSelector[]
 >(getSetting("rightPanel.widgets"));
-createEffect(() => setSetting("rightPanel.widgets", rightPanelWidgets()));
+function setRightPanelWidgets(value: WidgetSelector[]) {
+  _setRightPanelWidgets(value);
+  setSetting("rightPanel.widgets", value);
+}
+export { rightPanelWidgets, setRightPanelWidgets };
 
-export const [leftPanelVisibility, setLeftPanelVisibility] =
-  createState<boolean>(getSetting("leftPanel.visibility"));
-createEffect(() => setSetting("leftPanel.visibility", leftPanelVisibility()));
+const [leftPanelVisibility, _setLeftPanelVisibility] = createState<boolean>(
+  getSetting("leftPanel.visibility")
+);
+function setLeftPanelVisibility(value: boolean) {
+  _setLeftPanelVisibility(value);
+  setSetting("leftPanel.visibility", value);
+}
+export { leftPanelVisibility, setLeftPanelVisibility };
 
-export const [leftPanelExclusivity, setLeftPanelExclusivity] =
-  createState<boolean>(getSetting("leftPanel.exclusivity"));
-createEffect(() => setSetting("leftPanel.exclusivity", leftPanelExclusivity()));
+const [leftPanelExclusivity, _setLeftPanelExclusivity] = createState<boolean>(
+  getSetting("leftPanel.exclusivity")
+);
+function setLeftPanelExclusivity(value: boolean) {
+  _setLeftPanelExclusivity(value);
+  setSetting("leftPanel.exclusivity", value);
+}
+export { leftPanelExclusivity, setLeftPanelExclusivity };
 
-export const [leftPanelWidth, setLeftPanelWidth] = createState<number>(
+const [leftPanelWidth, _setLeftPanelWidth] = createState<number>(
   getSetting("leftPanel.width")
 );
-createEffect(() => setSetting("leftPanel.width", leftPanelWidth()));
+function setLeftPanelWidth(value: number) {
+  _setLeftPanelWidth(value);
+  setSetting("leftPanel.width", value);
+}
+export { leftPanelWidth, setLeftPanelWidth };
 
-export const [leftPanelLock, setLeftPanelLock] = createState<boolean>(
+const [leftPanelLock, _setLeftPanelLock] = createState<boolean>(
   getSetting("leftPanel.lock")
 );
-createEffect(() => setSetting("leftPanel.lock", leftPanelLock()));
+function setLeftPanelLock(value: boolean) {
+  _setLeftPanelLock(value);
+  setSetting("leftPanel.lock", value);
+}
+export { leftPanelLock, setLeftPanelLock };
 
-export const [leftPanelWidget, setLeftPanelWidget] =
-  createState<WidgetSelector>(getSetting("leftPanel.widget"));
-createEffect(() => setSetting("leftPanel.widget", leftPanelWidget()));
+const [leftPanelWidget, _setLeftPanelWidget] = createState<WidgetSelector>(
+  getSetting("leftPanel.widget")
+);
+function setLeftPanelWidget(value: WidgetSelector) {
+  _setLeftPanelWidget(value);
+  setSetting("leftPanel.widget", value);
+}
+export { leftPanelWidget, setLeftPanelWidget };
 
-export const [chatBotApi, setChatBotApi] = createState<Api>(
+const [chatBotApi, _setChatBotApi] = createState<Api>(
   getSetting("chatBot.api")
 );
-createEffect(() => setSetting("chatBot.api", chatBotApi()));
+function setChatBotApi(value: Api) {
+  _setChatBotApi(value);
+  setSetting("chatBot.api", value);
+}
+export { chatBotApi, setChatBotApi };
 
-export const [chatBotImageGeneration, setChatBotImageGeneration] =
+const [chatBotImageGeneration, _setChatBotImageGeneration] =
   createState<boolean>(getSetting("chatBot.imageGeneration"));
-createEffect(() =>
-  setSetting("chatBot.imageGeneration", chatBotImageGeneration())
-);
+function setChatBotImageGeneration(value: boolean) {
+  _setChatBotImageGeneration(value);
+  setSetting("chatBot.imageGeneration", value);
+}
+export { chatBotImageGeneration, setChatBotImageGeneration };
 
-export const [booruApi, setBooruApi] = createState<Api>(
-  getSetting("booru.api")
-);
-createEffect(() => setSetting("booru.api", booruApi()));
+const [booruApi, _setBooruApi] = createState<Api>(getSetting("booru.api"));
+function setBooruApi(value: Api) {
+  _setBooruApi(value);
+  setSetting("booru.api", value);
+}
+export { booruApi, setBooruApi };
 
-export const [booruTags, setBooruTags] = createState<string[]>(
+const [booruTags, _setBooruTags] = createState<string[]>(
   getSetting("booru.tags")
 );
-createEffect(() => setSetting("booru.tags", booruTags()));
+function setBooruTags(value: string[]) {
+  _setBooruTags(value);
+  setSetting("booru.tags", value);
+}
+export { booruTags, setBooruTags };
 
-export const [booruLimit, setBooruLimit] = createState<number>(
+const [booruLimit, _setBooruLimit] = createState<number>(
   getSetting("booru.limit")
 );
-createEffect(() => setSetting("booru.limit", booruLimit()));
+function setBooruLimit(value: number) {
+  _setBooruLimit(value);
+  setSetting("booru.limit", value);
+}
+export { booruLimit, setBooruLimit };
 
-export const [booruPage, setBooruPage] = createState<number>(
+const [booruPage, _setBooruPage] = createState<number>(
   getSetting("booru.page")
 );
-createEffect(() => setSetting("booru.page", booruPage()));
+function setBooruPage(value: number) {
+  _setBooruPage(value);
+  setSetting("booru.page", value);
+}
+export { booruPage, setBooruPage };
 
-export const [screenShotVisibility, setScreenShotVisibility] =
+const [screenShotVisibility, _setScreenShotVisibility] =
   createState<boolean>(false);
-createEffect(() => {
-  if (screenShotVisibility()) {
+function setScreenShotVisibility(value: boolean) {
+  _setScreenShotVisibility(value);
+  if (value) {
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 5000 * phi, () => {
-      setScreenShotVisibility(false);
+      _setScreenShotVisibility(false);
       return false;
     });
   }
-});
+}
+export { screenShotVisibility, setScreenShotVisibility };

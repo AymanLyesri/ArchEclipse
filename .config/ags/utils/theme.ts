@@ -1,4 +1,4 @@
-import { execAsync } from "ags";
+import { execAsync } from "ags/process";
 import { globalTheme, setGlobalTheme as setThemeState } from "../variables";
 
 export const getGlobalTheme = async () =>

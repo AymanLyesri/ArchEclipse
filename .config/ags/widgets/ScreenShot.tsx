@@ -9,14 +9,10 @@ import {
   setScreenShotVisibility,
 } from "../variables";
 import { hideWindow } from "../utils/window";
-import {
-  createBinding,
-  exec,
-  execAsync,
-  createState,
-  createComputed,
-  monitorFile,
-} from "ags";
+
+import { createBinding, createComputed, createState } from "ags";
+import { execAsync, exec } from "ags/process";
+import { monitorFile } from "ags/file";
 import GLib from "gi://GLib";
 import { get } from "http";
 import { notify } from "../utils/notification";
@@ -29,40 +25,40 @@ const [screenShot, setScreenShot] = createState<string>(
   "./../../Pictures/Screenshots/" + getLatestScreenshotPath().trim()
 );
 
-print("screenshot updated: " + screenShot());
+print("screenshot updated: " + screenShot);
 
 //screen shoter widget
 const actions = (monitorName: String) => {
   return (
-    <box className="actions" spacing={10} vertical={true}>
+    <box class="actions" spacing={10} vertical={true}>
       <box
-        className="image"
+        class="image"
         css={createComputed(
           () =>
-            `background-image: url("${screenShot()}");
+            `background-image: url("${screenShot}");
               background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
         border-radius: 10px;
         min-width: 100px;
-        min-height: ${getImageRatio(screenShot()) * 100}px;`
+        min-height: ${getImageRatio(screenShot) * 100}px;`
         )}
       />
       <button
-        className="action"
+        class="action"
         child={<label label={"Open"} />}
         onClicked={() => {
-          execAsync(`xdg-open ${screenShot()}`).catch((err) =>
+          execAsync(`xdg-open ${screenShot}`).catch((err) =>
             notify({ summary: "Error", body: String(err) })
           );
           hideWindow("screenshot-" + monitorName);
         }}
       />
       <button
-        className="action"
+        class="action"
         child={<label label={"Edit"} />}
         onClicked={() => {
-          execAsync(`gimp ${screenShot()}`).catch((err) =>
+          execAsync(`gimp ${screenShot}`).catch((err) =>
             notify({
               summary: "Error Or Gimp is not Installed",
               body: String(err),
@@ -86,19 +82,16 @@ export default (monitor: Gdk.Monitor) => {
       anchor={Astal.WindowAnchor.LEFT}
       layer={Astal.Layer.OVERLAY}
       margin={globalMargin}
-      visible={createComputed(() => screenShotVisibility())}
+      visible={createComputed(() => screenShotVisibility)}
       child={
         <box
-          className="screenshot-popup"
+          class="screenshot-popup"
           child={
             <eventbox
-              className={"screenshot-eventbox"}
+              class={"screenshot-eventbox"}
               onHoverLost={() => setScreenShotVisibility(false)}
               child={
-                <box
-                  className="screenshot-widget"
-                  child={actions(monitorName)}
-                />
+                <box class="screenshot-widget" child={actions(monitorName)} />
               }
             />
           }
@@ -111,7 +104,7 @@ export default (monitor: Gdk.Monitor) => {
 monitorFile(`./../../Pictures/Screenshots`, () => {
   GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
     setScreenShot(
-      "./../../Pictures/Screenshots/" + getLatestScreenshotPath().trim()
+      "./../../Pictures/Screenshots/" + getLatestScreenshotPath.trim()
     );
     return false;
   });

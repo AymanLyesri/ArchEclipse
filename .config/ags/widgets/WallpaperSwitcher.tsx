@@ -1,20 +1,14 @@
 import hyprland from "gi://AstalHyprland";
-import {
-  createBinding,
-  createComputed,
-  exec,
-  execAsync,
-  monitorFile,
-  createState,
-  createEffect,
-} from "ags";
+import { createBinding, createComputed, createState } from "ags";
+import { execAsync, exec } from "ags/process";
+import { monitorFile } from "ags/file";
 import App from "ags/gtk3/app";
 import Gtk from "gi://Gtk?version=3.0";
 import Gdk from "gi://Gdk?version=3.0";
 import Astal from "gi://Astal?version=3.0";
 import { notify } from "../utils/notification";
 import { focusedWorkspace, globalTransition } from "../variables";
-import ToggleButton from "./toggleButton";
+import togglebutton from "./togglebutton";
 import { getMonitorName } from "../utils/monitor";
 import { hideWindow } from "../utils/window";
 
@@ -110,19 +104,19 @@ const FetchWallpapers = async () => {
 function Wallpapers(monitor: string) {
   const getAllWallpapers = () => (
     <scrollable
-      className="all-wallpapers-scrollable"
+      class="all-wallpapers-scrollable"
       hscrollbarPolicy={Gtk.PolicyType.ALWAYS}
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       hexpand
       vexpand
       child={
-        <box className="all-wallpapers" spacing={5}>
+        <box class="all-wallpapers" spacing={5}>
           {createComputed(() => {
             const wallpapers = allWallpapers();
             const thumbnails = allThumbnails();
             return wallpapers.map((wallpaper, key) => (
               <eventbox
-                className="wallpaper-event-box"
+                class="wallpaper-event-box"
                 onClick={() => {
                   const target = targetType();
                   const command = {
@@ -147,7 +141,7 @@ function Wallpapers(monitor: string) {
                 }}
                 child={
                   <box
-                    className="wallpaper"
+                    class="wallpaper"
                     vertical
                     css={`
                       background-image: url("${thumbnails[key]}");
@@ -155,7 +149,7 @@ function Wallpapers(monitor: string) {
                     child={
                       <button
                         visible={createComputed(() => wallpaperType())}
-                        className="delete-wallpaper"
+                        class="delete-wallpaper"
                         halign={Gtk.Align.END}
                         valign={Gtk.Align.START}
                         label=""
@@ -203,7 +197,7 @@ function Wallpapers(monitor: string) {
           css={`
             background-image: url("${wallpaper}");
           `}
-          className={createComputed(() => {
+          class={createComputed(() => {
             return activeId() === workspaceId
               ? "workspace-wallpaper focused"
               : "workspace-wallpaper";
@@ -220,19 +214,18 @@ function Wallpapers(monitor: string) {
   };
 
   let currentWorkspaces = getCurrentWorkspaces();
-  createEffect(() => {
-    const workspace = focusedWorkspace();
-    if (workspace) {
-      setSelectedWorkspaceId(workspace.id);
-      const widget = currentWorkspaces[workspace.id - 1];
-      if (widget) setSelectedWorkspaceWidget(widget as unknown as Gtk.Button);
-    }
-  });
+
+  const workspace = focusedWorkspace();
+  if (workspace) {
+    setSelectedWorkspaceId(workspace.id);
+    const widget = currentWorkspaces[workspace.id - 1];
+    if (widget) setSelectedWorkspaceWidget(widget as unknown as Gtk.Button);
+  }
 
   const resetButton = (
     <button
       valign={Gtk.Align.CENTER}
-      className="reload-wallpapers"
+      class="reload-wallpapers"
       label="󰑐"
       onClicked={() => {
         execAsync('bash -c "$HOME/.config/hypr/hyprpaper/reload.sh"')
@@ -245,7 +238,7 @@ function Wallpapers(monitor: string) {
   const randomButton = (
     <button
       valign={Gtk.Align.CENTER}
-      className="random-wallpaper"
+      class="random-wallpaper"
       label=""
       onClicked={() => {
         const randomWallpaper =
@@ -267,9 +260,9 @@ function Wallpapers(monitor: string) {
   );
 
   const customToggle = (
-    <ToggleButton
+    <togglebutton
       valign={Gtk.Align.CENTER}
-      className="custom-wallpaper"
+      class="custom-wallpaper"
       label="all"
       onToggled={(self: any, on: boolean) => {
         setWallpaperType(on);
@@ -279,8 +272,8 @@ function Wallpapers(monitor: string) {
   );
 
   const revealButton = (
-    <ToggleButton
-      className="bottom-revealer-button"
+    <togglebutton
+      class="bottom-revealer-button"
       label=""
       onToggled={(self: any, on: boolean) => {
         bottomRevealer.reveal_child = on;
@@ -290,13 +283,13 @@ function Wallpapers(monitor: string) {
   );
 
   const targetButtons = (
-    <box className="targets" hexpand={true} halign={Gtk.Align.CENTER}>
+    <box class="targets" hexpand={true} halign={Gtk.Align.CENTER}>
       {targetTypes.map((type) => (
-        <ToggleButton
+        <togglebutton
           valign={Gtk.Align.CENTER}
-          className={type}
+          class={type}
           label={type}
-          state={createComputed(() => targetType() === type)}
+          active={createComputed(() => targetType() === type)}
           onToggled={() => setTargetType(type)}
         />
       ))}
@@ -305,7 +298,7 @@ function Wallpapers(monitor: string) {
 
   const selectedWorkspaceLabel = (
     <label
-      className="button selected-workspace"
+      class="button selected-workspace"
       label={createComputed(
         () =>
           `Wallpaper -> ${targetType()} ${
@@ -318,7 +311,7 @@ function Wallpapers(monitor: string) {
   const addWallpaperButton = (
     <button
       label=""
-      className="upload"
+      class="upload"
       onClicked={() => {
         let dialog = new Gtk.FileChooserDialog({
           title: "Open Image",
@@ -346,12 +339,7 @@ function Wallpapers(monitor: string) {
   );
 
   const actions = (
-    <box
-      className="actions"
-      hexpand={true}
-      halign={Gtk.Align.CENTER}
-      spacing={10}
-    >
+    <box class="actions" hexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
       {targetButtons}
       {selectedWorkspaceLabel}
       {revealButton}
@@ -373,13 +361,13 @@ function Wallpapers(monitor: string) {
   );
 
   return (
-    <box className="wallpaper-switcher" vertical={true} spacing={20}>
+    <box class="wallpaper-switcher" vertical={true} spacing={20}>
       <box hexpand={true} vexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
         {currentWorkspaces}
       </box>
       {actions}
       <box
-        className="bottom"
+        class="bottom"
         hexpand={true}
         vexpand={true}
         child={bottomRevealer}
@@ -391,10 +379,10 @@ function Wallpapers(monitor: string) {
 // Initialize
 FetchWallpapers();
 monitorFile("./../wallpapers/custom", FetchWallpapers);
-createEffect(() => {
-  wallpaperType();
-  FetchWallpapers();
-});
+// createEffect(() => {
+//   wallpaperType();
+//   FetchWallpapers();
+// });
 
 export default (monitor: Gdk.Monitor) => {
   const monitorName = getMonitorName(monitor.get_display(), monitor)!;

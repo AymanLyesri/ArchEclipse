@@ -18,28 +18,22 @@ import {
   widgetLimit,
 } from "../../variables";
 import { createBinding, createComputed } from "ags";
-import ToggleButton from "../toggleButton";
 import { getMonitorName } from "../../utils/monitor";
 import { hideWindow, WindowActions } from "../../utils/window";
 import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => {
   return (
-    <box
-      vertical={true}
-      vexpand={true}
-      className={"widget-actions"}
-      spacing={5}
-    >
+    <box vertical={true} vexpand={true} class={"widget-actions"} spacing={5}>
       {rightPanelWidgetSelectors.map((selector) => {
         const isActive = createComputed(() =>
           rightPanelWidgets().some((w) => w.name === selector.name)
         );
         return (
-          <ToggleButton
-            className={"widget-selector"}
+          <togglebutton
+            class={"widget-selector"}
             label={selector.icon}
-            state={isActive}
+            active={isActive}
             onToggled={(self: any, on: boolean) => {
               if (on) {
                 if (rightPanelWidgets().length >= widgetLimit) return;
@@ -59,7 +53,7 @@ const WidgetActions = () => {
 };
 
 const Actions = () => (
-  <box className={"panel-actions"} vertical={true}>
+  <box class={"panel-actions"} vertical={true}>
     <WidgetActions />
     <WindowActions
       windowWidth={rightPanelWidth}
@@ -84,7 +78,7 @@ function Panel() {
         child={<box css={"min-width:5px"} />}
       ></eventbox>
       <box
-        className={"main-content"}
+        class={"main-content"}
         vertical={true}
         spacing={10}
         widthRequest={rightPanelWidth}
@@ -116,7 +110,7 @@ export default (monitor: Gdk.Monitor) => {
       name={`right-panel-${getMonitorName(monitor.get_display(), monitor)}`}
       namespace={"right-panel"}
       application={App}
-      className={createComputed(() =>
+      class={createComputed(() =>
         rightPanelExclusivity() ? "right-panel exclusive" : "right-panel normal"
       )}
       anchor={
@@ -158,11 +152,11 @@ export function RightPanelVisibility() {
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       transitionDuration={globalTransition}
       child={
-        <ToggleButton
-          state={rightPanelVisibility}
+        <togglebutton
+          active={rightPanelVisibility}
           label={createComputed(() => (rightPanelVisibility() ? "" : ""))}
           onToggled={(self: any, on: boolean) => setRightPanelVisibility(on)}
-          className="panel-trigger icon"
+          class="panel-trigger icon"
         />
       }
     />

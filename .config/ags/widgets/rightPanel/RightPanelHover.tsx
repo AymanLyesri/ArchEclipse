@@ -7,7 +7,7 @@ export default (monitor: Gdk.Monitor) => {
   return (
     <window
       gdkmonitor={monitor}
-      className="RightPanel"
+      class="RightPanel"
       application={App}
       exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.TOP}

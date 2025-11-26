@@ -20,14 +20,13 @@ import {
 } from "../../variables";
 
 import { hideWindow, WindowActions } from "../../utils/window";
-import ToggleButton from "../toggleButton";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => (
-  <box className={"widget-actions"} vertical={true} spacing={10}>
+  <box class={"widget-actions"} vertical={true} spacing={10}>
     {leftPanelWidgetSelectors.map((widgetSelector) => (
-      <ToggleButton
-        state={createComputed(
+      <togglebutton
+        active={createComputed(
           () => leftPanelWidget().name === widgetSelector.name
         )}
         label={widgetSelector.icon}
@@ -38,7 +37,7 @@ const WidgetActions = () => (
 );
 
 const Actions = () => (
-  <box className={"panel-actions"} vertical={true}>
+  <box class={"panel-actions"} vertical={true}>
     <WidgetActions />
     <WindowActions
       windowWidth={leftPanelWidth}
@@ -58,18 +57,18 @@ function Panel() {
     <box>
       <Actions />
       <box
-        className={"main-content"}
+        class={"main-content"}
         widthRequest={leftPanelWidth}
         child={createComputed(
           () =>
             leftPanelWidgetSelectors
-              .find((ws) => ws.name === leftPanelWidget().name)
+              .find((ws) => ws.name === leftPanelWidget.name)
               ?.widget() || <box />
         )}
       ></box>
       <eventbox
         onHoverLost={() => {
-          if (!leftPanelLock()) setLeftPanelVisibility(false);
+          if (!leftPanelLock) setLeftPanelVisibility(false);
         }}
         child={<box css={"min-width:5px"} />}
       ></eventbox>
@@ -84,7 +83,7 @@ export default (monitor: Gdk.Monitor) => {
       name={`left-panel-${getMonitorName(monitor.get_display(), monitor)}`}
       namespace={"left-panel"}
       application={App}
-      className={createComputed(() =>
+      class={createComputed(() =>
         leftPanelExclusivity() ? "left-panel exclusive" : "left-panel normal"
       )}
       anchor={
@@ -93,14 +92,14 @@ export default (monitor: Gdk.Monitor) => {
         Astal.WindowAnchor.BOTTOM
       }
       exclusivity={createComputed(() =>
-        leftPanelExclusivity()
+        leftPanelExclusivity
           ? Astal.Exclusivity.EXCLUSIVE
           : Astal.Exclusivity.NORMAL
       )}
       layer={createComputed(() =>
-        leftPanelExclusivity() ? Astal.Layer.BOTTOM : Astal.Layer.TOP
+        leftPanelExclusivity ? Astal.Layer.BOTTOM : Astal.Layer.TOP
       )}
-      margin={createComputed(() => (leftPanelExclusivity() ? 0 : globalMargin))}
+      margin={createComputed(() => (leftPanelExclusivity ? 0 : globalMargin))}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={leftPanelVisibility}
       onKeyPressEvent={(self, event) => {
@@ -124,11 +123,11 @@ export function LeftPanelVisibility() {
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       transitionDuration={globalTransition}
       child={
-        <ToggleButton
-          state={leftPanelVisibility}
-          label={createComputed(() => (leftPanelVisibility() ? "" : ""))}
+        <togglebutton
+          active={leftPanelVisibility || false}
+          label={createComputed(() => (leftPanelVisibility ? "" : ""))}
           onToggled={(self: any, on: boolean) => setLeftPanelVisibility(on)}
-          className="panel-trigger icon"
+          class="panel-trigger icon"
         />
       }
     />

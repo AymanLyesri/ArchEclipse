@@ -40,7 +40,7 @@ const osdSlider = (
 
   const indicator = (
     <label
-      className={"icon"}
+      class={"icon"}
       label={createComputed(() => getIcon(value(), icons))}
     />
   );
@@ -49,7 +49,7 @@ const osdSlider = (
     <scale
       orientation={Gtk.Orientation.VERTICAL}
       inverted={true}
-      className="slider"
+      class="slider"
       drawValue={false}
       heightRequest={100}
       value={createComputed(() => value())}
@@ -72,7 +72,7 @@ const osdSlider = (
         });
       }}
       child={
-        <box className={"container"} vertical={true}>
+        <box class={"container"} vertical={true}>
           {slider}
           {indicator}
         </box>
@@ -132,7 +132,7 @@ export default (monitor: Gdk.Monitor) => (
     gdkmonitor={monitor}
     name="osd"
     namespace="osd"
-    className="osd"
+    class="osd"
     layer={Astal.Layer.OVERLAY}
     margin={globalMargin}
     anchor={Astal.WindowAnchor.RIGHT}

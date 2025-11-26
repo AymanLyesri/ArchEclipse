@@ -1,7 +1,8 @@
 import Brightness from "../../../services/brightness";
 const brightness = Brightness.get_default();
 import CustomRevealer from "../../CustomRevealer";
-import { createBinding, createComputed, execAsync } from "ags";
+import { createBinding, createComputed } from "ags";
+import { execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
 
@@ -9,7 +10,6 @@ import Battery from "gi://AstalBattery";
 const battery = Battery.get_default();
 
 import Tray from "gi://AstalTray";
-import ToggleButton from "../../toggleButton";
 import Gtk from "gi://Gtk?version=3.0";
 import {
   barLock,
@@ -25,10 +25,10 @@ import { switchGlobalTheme } from "../../../utils/theme";
 
 function Theme() {
   return (
-    <ToggleButton
+    <togglebutton
       onToggled={(self: any, on: boolean) => switchGlobalTheme()}
       label={createComputed(() => (globalTheme() ? "" : ""))}
-      className="theme icon"
+      class="theme icon"
     />
   );
 }
@@ -38,7 +38,7 @@ function BrightnessWidget() {
   const slider = (
     <scale
       widthRequest={100}
-      className="slider"
+      class="slider"
       drawValue={false}
       onValueChanged={(self) => (brightness.screen = self.get_value())}
       value={createComputed(() => screen())}
@@ -47,7 +47,7 @@ function BrightnessWidget() {
 
   const label = (
     <label
-      className="trigger"
+      class="trigger"
       label={createComputed(() => {
         const v = screen();
         // `${Math.round(v * 100)}%`; // This line does nothing
@@ -80,13 +80,13 @@ function Volume() {
   const volume = createBinding(speaker, "volume");
 
   const icon = (
-    <icon className="trigger" icon={createComputed(() => volumeIcon())} />
+    <icon class="trigger" icon={createComputed(() => volumeIcon())} />
   );
 
   const slider = (
     <scale
       // step={0.1} // Gtk.Scale doesn't have step prop directly in JSX usually, handled by adjustment or set_increment
-      className="slider"
+      class="slider"
       widthRequest={100}
       onValueChanged={(self) => (speaker.volume = self.get_value())}
       value={createComputed(() => volume())}
@@ -114,7 +114,7 @@ function BatteryWidget() {
 
   const label = (
     <label
-      className={createComputed(() => {
+      class={createComputed(() => {
         const isCharging = charging();
         const value = percentage();
         if (isCharging) {
@@ -157,7 +157,7 @@ function BatteryWidget() {
   );
 
   const box = (
-    <box className={"details"} spacing={5}>
+    <box class={"details"} spacing={5}>
       {info}
       {levelbar}
     </box>
@@ -200,7 +200,7 @@ function SysTray() {
           child={
             <icon
               gicon={createComputed(() => gicon())}
-              className="systemtray-icon"
+              class="systemtray-icon"
             />
           }
         />
@@ -208,32 +208,32 @@ function SysTray() {
     })
   );
 
-  return <box className="system-tray">{items}</box>;
+  return <box class="system-tray">{items}</box>;
 }
 
 function PinBar() {
   return (
-    <ToggleButton
-      state={barLock}
+    <togglebutton
+      active={barLock}
       onToggled={(self: any, on: boolean) => {
         setBarLock(on);
         self.label = on ? "" : "";
       }}
-      className="panel-lock icon"
+      class="panel-lock icon"
       label={createComputed(() => (barLock() ? "" : ""))}
     />
   );
 }
 
 function DndToggle() {
-  return ToggleButton({
+  return togglebutton({
     state: DND,
     onToggled: (self: any, on: boolean) => {
       setDND(on);
-      self.label = DND() ? "" : "";
+      self.label = DND ? "" : "";
     },
     className: "dnd-toggle icon",
-    label: createComputed(() => (DND() ? "" : "")),
+    label: createComputed(() => (DND ? "" : "")),
   });
 }
 
@@ -241,7 +241,7 @@ function BarOrientation() {
   return (
     <button
       onClicked={() => setBarOrientation(!barOrientation())}
-      className="bar-orientation icon"
+      class="bar-orientation icon"
       label={createComputed(() => (barOrientation() ? "" : ""))}
     />
   );
@@ -255,7 +255,7 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box className="bar-right" spacing={5} halign={halign} hexpand>
+    <box class="bar-right" spacing={5} halign={halign} hexpand>
       <BatteryWidget />
       <BrightnessWidget />
       <Volume />

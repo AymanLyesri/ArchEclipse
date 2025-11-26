@@ -44,7 +44,7 @@ export default ({
         valign={Gtk.Align.CENTER}
         child={
           <box
-            className="img"
+            class="img"
             css={createComputed(
               () => `
                     background-image: url('${coverArt()}');
@@ -57,7 +57,7 @@ export default ({
   };
   const title = (
     <label
-      className="title"
+      class="title"
       maxWidthChars={20}
       halign={Gtk.Align.START}
       truncate={true}
@@ -67,7 +67,7 @@ export default ({
 
   const artist = (
     <label
-      className="artist"
+      class="artist"
       maxWidthChars={20}
       halign={Gtk.Align.START}
       truncate={true}
@@ -77,7 +77,7 @@ export default ({
 
   const positionSlider = (
     <scale
-      className="slider"
+      class="slider"
       css={createComputed(() => `highlight{background: ${dominantColor()}00}`)}
       onValueChanged={(self) =>
         (player.position = self.get_value() * player.length)
@@ -91,7 +91,7 @@ export default ({
 
   const positionLabel = (
     <label
-      className="position time"
+      class="position time"
       halign={Gtk.Align.START}
       label={createComputed(() => lengthStr(positionBinding()))}
       visible={createComputed(() => lengthBinding() > 0)}
@@ -99,7 +99,7 @@ export default ({
   );
   const lengthLabel = (
     <label
-      className="length time"
+      class="length time"
       halign={Gtk.Align.END}
       visible={createComputed(() => lengthBinding() > 0)}
       label={createComputed(() => lengthStr(lengthBinding()))}
@@ -109,7 +109,7 @@ export default ({
   const playPause = (
     <button
       onClicked={() => player.play_pause()}
-      className="play-pause"
+      class="play-pause"
       visible={createComputed(() => canPlayBinding())}
       child={
         <icon
@@ -148,7 +148,7 @@ export default ({
 
   return (
     <box
-      className={`player ${playerType}`}
+      class={`player ${playerType}`}
       vexpand={false}
       css={createComputed(() => {
         if (playerType == "popup") return "";
@@ -171,10 +171,10 @@ export default ({
         {/* <box>{icon}</box> */}
         <box vexpand={true}></box>
         <eventbox
-          className={"bottom-eventbox"}
+          class={"bottom-eventbox"}
           child={
-            <box className={"bottom-bar"} spacing={5} vertical>
-              <box className={"info"} vertical>
+            <box class={"bottom-bar"} spacing={5} vertical>
+              <box class={"info"} vertical>
                 {title}
                 {artist}
               </box>

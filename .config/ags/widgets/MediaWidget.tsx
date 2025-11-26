@@ -10,7 +10,7 @@ const noPlayerFound = () => (
     halign={Gtk.Align.CENTER}
     valign={Gtk.Align.CENTER}
     hexpand={true}
-    className="module"
+    class="module"
     child={<label label="No player found" />}
   />
 );

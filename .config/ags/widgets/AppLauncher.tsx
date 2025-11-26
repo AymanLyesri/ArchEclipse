@@ -1,4 +1,5 @@
-import { createBinding, execAsync, createState, createComputed } from "ags";
+import { createBinding, createState, createComputed } from "ags";
+import { execAsync } from "ags/process";
 import Apps from "gi://AstalApps";
 
 import { readJson, readJSONFile } from "../utils/json";
@@ -45,18 +46,18 @@ const QuickApps = () => {
         <scrollable
           heightRequest={quickApps.length * 40}
           child={
-            <box className="quick-apps" spacing={5} vertical>
+            <box class="quick-apps" spacing={5} vertical>
               {quickApps.map((app, index) => (
                 <button
                   hexpand
-                  className="quick-app"
+                  class="quick-app"
                   onClicked={() => {
                     app.app_launch();
                     hideWindow(`app-launcher-${monitorName()}`);
                   }}
                   child={
                     <box spacing={5}>
-                      <label className="icon" label={app.app_icon} />
+                      <label class="icon" label={app.app_icon} />
                       <label label={app.app_name} />
                     </box>
                   }
@@ -69,7 +70,7 @@ const QuickApps = () => {
     ></revealer>
   );
 
-  return <box className="quick-launcher" spacing={5} child={apps}></box>;
+  return <box class="quick-launcher" spacing={5} child={apps}></box>;
 };
 
 const helpCommands = {
@@ -82,18 +83,13 @@ const helpCommands = {
 };
 
 const Help = (
-  <box className="help" spacing={5} vertical>
+  <box class="help" spacing={5} vertical>
     {Object.entries(helpCommands).map(([command, explanation]) => (
       <box hexpand homogeneous>
+        <label class="command" label={command} halign={Gtk.Align.END} hexpand />
+        <label class="separator" label="=>>" halign={Gtk.Align.CENTER} />
         <label
-          className="command"
-          label={command}
-          halign={Gtk.Align.END}
-          hexpand
-        />
-        <label className="separator" label="=>>" halign={Gtk.Align.CENTER} />
-        <label
-          className="explanation"
+          class="explanation"
           label={explanation}
           halign={Gtk.Align.START}
           hexpand
@@ -257,7 +253,7 @@ const organizeResults = (results: LauncherApp[]) => {
     >
       {element.app_type === "app" ? <icon icon={element.app_icon} /> : <box />}
       <label label={element.app_name} />
-      <label className="argument" label={element.app_arg || ""} />
+      <label class="argument" label={element.app_arg || ""} />
     </box>
   );
 
@@ -271,7 +267,7 @@ const organizeResults = (results: LauncherApp[]) => {
     return (
       <button
         hexpand={true}
-        className={className}
+        class={className}
         child={buttonContent(element)}
         onClicked={() => {
           launchApp(element);
@@ -283,9 +279,9 @@ const organizeResults = (results: LauncherApp[]) => {
   if (results.length === 0) return <box />;
 
   const rows = (
-    <box className="results" vertical={true} spacing={5}>
+    <box class="results" vertical={true} spacing={5}>
       {results.map((result, i) => (
-        <AppButton element={result} className={i === 0 ? "checked" : ""} />
+        <AppButton element={result} class={i === 0 ? "checked" : ""} />
       ))}
     </box>
   );
@@ -334,7 +330,7 @@ export default (monitor: Gdk.Monitor) => (
     }}
     child={
       <eventbox>
-        <box vertical={true} className="app-launcher" spacing={5}>
+        <box vertical={true} class="app-launcher" spacing={5}>
           {Entry}
           {ResultsDisplay}
           {QuickApps()}

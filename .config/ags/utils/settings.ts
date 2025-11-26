@@ -1,4 +1,4 @@
-import { execAsync } from "ags";
+import { execAsync } from "ags/process";
 import { readJSONFile, writeJSONFile } from "./json";
 import { globalSettings, setGlobalSettings } from "../variables";
 import { Settings } from "../interfaces/settings.interface";

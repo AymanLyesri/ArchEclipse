@@ -3,7 +3,6 @@ import { focusedWorkspace } from "../../../variables";
 
 import Hyprland from "gi://AstalHyprland";
 import { createBinding, createComputed } from "ags";
-import ToggleButton from "../../toggleButton";
 import { hideWindow, showWindow } from "../../../utils/window";
 const hyprland = Hyprland.get_default();
 
@@ -43,7 +42,7 @@ function Workspaces() {
 
     return (
       <button
-        className={buttonClass}
+        class={buttonClass}
         label={icon}
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
@@ -84,7 +83,7 @@ function Workspaces() {
       if (currentGroup.length > 0) {
         groupElements.push(
           <box
-            className={`workspace-group ${
+            class={`workspace-group ${
               currentGroupIsActive ? "active" : "inactive"
             }`}
           >
@@ -126,7 +125,7 @@ function Workspaces() {
         // Add inactive workspace as single-element group
         groupElements.push(
           <box
-            className="workspace-group inactive"
+            class="workspace-group inactive"
             child={createWorkspaceButton(id, isActive, isFocused, icon)}
           />
         );
@@ -138,11 +137,11 @@ function Workspaces() {
   });
 
   // Render the workspaces container with bound workspace elements
-  return <box className="workspaces">{workspaces}</box>;
+  return <box class="workspaces">{workspaces}</box>;
 }
 const Special = () => (
   <button
-    className="special"
+    class="special"
     label={workspaceToIcon[0]}
     onClicked={() =>
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
@@ -153,7 +152,7 @@ const Special = () => (
 function OverView() {
   return (
     <button
-      className="overview"
+      class="overview"
       label="󱗼"
       onClicked={() =>
         hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
@@ -164,8 +163,8 @@ function OverView() {
 
 function AppLauncher({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="app-search"
+    <togglebutton
+      class="app-search"
       label=""
       onToggled={(self: any, on: boolean) => {
         on
@@ -180,8 +179,8 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
 
 function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="wallpaper-switcher-trigger"
+    <togglebutton
+      class="wallpaper-switcher-trigger"
       label="󰸉"
       onToggled={(self: any, on: boolean) => {
         on
@@ -194,8 +193,8 @@ function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
 
 function Settings({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="settings"
+    <togglebutton
+      class="settings"
       label=""
       onToggled={(self: any, on: boolean) =>
         on
@@ -208,8 +207,8 @@ function Settings({ monitorName }: { monitorName: string }) {
 
 function UserPanel({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="user-panel"
+    <togglebutton
+      class="user-panel"
       label=""
       onToggled={(self: any, on: boolean) => {
         on
@@ -222,7 +221,7 @@ function UserPanel({ monitorName }: { monitorName: string }) {
 
 const Actions = ({ monitorName }: { monitorName: string }) => {
   return (
-    <box className="actions">
+    <box class="actions">
       <UserPanel monitorName={monitorName} />
       <Settings monitorName={monitorName} />
       <WallpaperSwitcher monitorName={monitorName} />
@@ -238,7 +237,7 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box className="bar-left" spacing={5} halign={halign} hexpand>
+    <box class="bar-left" spacing={5} halign={halign} hexpand>
       <Actions monitorName={monitorName} />
       <OverView />
       <Special />

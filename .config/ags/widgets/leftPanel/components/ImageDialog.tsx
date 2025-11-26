@@ -1,13 +1,15 @@
 import { closeProgress, openProgress } from "../../Progress";
-import { bind, execAsync, Variable } from "astal";
+import { createBinding, createState } from "ags";
+import { execAsync } from "ags/process";
+
 import { notify } from "../../../utils/notification";
-import { booruApi, waifuCurrent } from "../../../variables";
+import { booruApi, waifuCurrent, setWaifuCurrent } from "../../../variables";
 import { Waifu } from "../../../interfaces/waifu.interface";
 
 import hyprland from "gi://AstalHyprland";
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
-import { Gdk, Gtk } from "astal/gtk3";
-import { Button } from "astal/gtk3/widget";
+import Gdk from "gi://Gdk?version=3.0";
+import Gtk from "gi://Gtk?version=3.0";
 const Hyprland = hyprland.get_default();
 
 const waifuPath = "./assets/booru/waifu";
@@ -38,16 +40,14 @@ const waifuThisImage = async (image: Waifu) => {
     `bash -c "mkdir -p ${waifuPath} && cp ${image.url_path} ${waifuPath}/waifu.jpg"`
   )
     .then(() =>
-      waifuCurrent.set({ ...image, url_path: waifuPath + "/waifu.jpg" })
+      setWaifuCurrent({ ...image, url_path: waifuPath + "/waifu.jpg" })
     )
     .catch((err) => notify({ summary: "Error", body: String(err) }));
 };
 
 const OpenInBrowser = (image: Waifu) =>
   execAsync(
-    `bash -c "xdg-open '${booruApi.get().idSearchUrl}${
-      image.id
-    }' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
+    `bash -c "xdg-open '${booruApi.idSearchUrl}${image.id}' && xdg-settings get default-web-browser | sed 's/\.desktop$//'" `
   )
     .then((browser) =>
       notify({ summary: "Waifu", body: `opened in ${browser}` })
@@ -76,10 +76,13 @@ const addToWallpapers = (image: Waifu) => {
 
 export class ImageDialog {
   private dialog: Gtk.Dialog;
-  private imageDownloaded = Variable<boolean>(false);
+  private imageDownloaded: () => boolean;
+  private setImageDownloaded: (value: boolean) => void;
 
   constructor(img: Waifu) {
-    fetchImage(img, imageUrlPath).finally(() => this.imageDownloaded.set(true));
+    [this.imageDownloaded, this.setImageDownloaded] =
+      createState<boolean>(false);
+    fetchImage(img, imageUrlPath).finally(() => this.setImageDownloaded(true));
     // Create dialog without default action area
     this.dialog = new Gtk.Dialog({
       title: "booru-image",
@@ -105,8 +108,8 @@ export class ImageDialog {
       halign: Gtk.Align.END,
       spacing: 10,
     });
-    const closeButton = new Button({
-      label: "",
+    const closeButton = new Gtk.Button({
+      label: "",
       halign: Gtk.Align.CENTER,
       valign: Gtk.Align.CENTER,
     });
@@ -174,11 +177,13 @@ export class ImageDialog {
     ];
 
     buttons.forEach((btn) => {
-      const button = new Button({
+      const button = new Gtk.Button({
         label: btn.icon,
         halign: Gtk.Align.CENTER, // Center horizontally
         valign: Gtk.Align.CENTER, // Center vertically
-        sensitive: btn.needImageDownload ? bind(this.imageDownloaded) : true,
+        sensitive: btn.needImageDownload
+          ? createBinding(this, "imageDownloaded")
+          : true,
       });
 
       // Add CSS class for styling

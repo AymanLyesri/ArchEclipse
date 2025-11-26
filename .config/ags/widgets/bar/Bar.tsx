@@ -28,7 +28,7 @@ export default (monitor: Gdk.Monitor) => {
       gdkmonitor={monitor}
       name={`bar-${monitorName}`}
       namespace="bar"
-      className="Bar"
+      class="Bar"
       application={App}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       layer={Astal.Layer.TOP}
@@ -63,7 +63,7 @@ export default (monitor: Gdk.Monitor) => {
           child={
             <box
               spacing={5}
-              className={createComputed(() =>
+              class={createComputed(() =>
                 emptyWorkspace() ? "bar empty" : "bar full"
               )}
             >

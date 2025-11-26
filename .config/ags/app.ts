@@ -50,7 +50,7 @@ const perMonitorDisplay = () =>
   });
 
 app.start({
-  css: getCssPath(),
+  // css: getCssPath(),
   main: () => {
     logTime("\t Compiling Binaries", () => compileBinaries());
     perMonitorDisplay();

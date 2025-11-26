@@ -28,7 +28,7 @@ export default ({
   const eventBox = (
     <eventbox
       visible={visible}
-      className={"custom-revealer " + custom_class}
+      class={"custom-revealer " + custom_class}
       on_hover={(self) => {
         revealer.reveal_child = true;
       }}
@@ -37,7 +37,7 @@ export default ({
       }}
       onClick={on_primary_click}
       child={
-        <box className={"content"}>
+        <box class={"content"}>
           {trigger}
           {revealer}
         </box>

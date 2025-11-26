@@ -1,4 +1,5 @@
-import { createBinding, execAsync, createState, createComputed } from "ags";
+import { createBinding, createState, createComputed } from "ags";
+import { execAsync } from "ags/process";
 import {
   waifuApi,
   setWaifuApi,
@@ -10,7 +11,6 @@ import {
 } from "../../../variables";
 import Gtk from "gi://Gtk?version=3.0";
 import GLib from "gi://GLib";
-import ToggleButton from "../../toggleButton";
 import { getSetting, setSetting } from "../../../utils/settings";
 import { notify } from "../../../utils/notification";
 
@@ -84,7 +84,7 @@ const OpenImage = (image: Waifu) => previewFloatImage(image.url_path!);
 function Actions() {
   const Entry = (
     <entry
-      className="input"
+      class="input"
       placeholderText="enter post ID"
       text={getSetting("waifu.input_history")}
       onActivate={(self) => {
@@ -101,32 +101,32 @@ function Actions() {
       transition_type={Gtk.RevealerTransitionType.SLIDE_UP}
       child={
         <eventbox
-          className="bottom-eventbox"
+          class="bottom-eventbox"
           child={
-            <box className={"bottom-bar"} vertical>
-              <box className={"top"}>
+            <box class={"bottom-bar"} vertical>
+              <box class={"top"}>
                 <button
                   label=""
-                  className="open"
+                  class="open"
                   hexpand
                   onClicked={() => OpenImage(waifuCurrent())}
                 />
                 <button
                   label=""
                   hexpand
-                  className="browser"
+                  class="browser"
                   onClicked={() => OpenInBrowser(waifuCurrent())}
                 />
                 <button
                   label=""
                   hexpand
-                  className="pin"
+                  class="pin"
                   onClicked={() => PinImageToTerminal(waifuCurrent())}
                 />
                 <button
                   label=""
                   hexpand
-                  className="copy"
+                  class="copy"
                   onClicked={() => CopyImage(waifuCurrent())}
                 />
               </box>
@@ -134,14 +134,14 @@ function Actions() {
                 <button
                   hexpand
                   label=""
-                  className="entry-search"
+                  class="entry-search"
                   onClicked={() => Entry.activate()}
                 />
                 {Entry}
                 <button
                   hexpand
                   label={""}
-                  className={"upload"}
+                  class={"upload"}
                   onClicked={() => {
                     let dialog = new Gtk.FileChooserDialog({
                       title: "Open Image",
@@ -187,13 +187,15 @@ function Actions() {
                   }}
                 />
               </box>
-              <box className={"bottom"}>
+              <box class={"bottom"}>
                 {booruApis.map((api) => (
-                  <ToggleButton
+                  <togglebutton
                     hexpand
-                    className={"api"}
+                    class={"api"}
                     label={api.name}
-                    state={createComputed(() => waifuApi().value === api.value)}
+                    active={createComputed(
+                      () => waifuApi().value === api.value
+                    )}
                     onToggled={(self, on) => setWaifuApi(api)}
                   />
                 ))}
@@ -206,11 +208,11 @@ function Actions() {
   );
 
   const bottom = (
-    <box className="bottom" vertical vexpand valign={Gtk.Align.END}>
+    <box class="bottom" vertical vexpand valign={Gtk.Align.END}>
       {
-        <ToggleButton
+        <togglebutton
           label=""
-          className="action-trigger"
+          class="action-trigger"
           halign={Gtk.Align.END}
           onToggled={(self, on) => {
             actions.reveal_child = on;
@@ -224,7 +226,7 @@ function Actions() {
   );
 
   return (
-    <box className="layout" vertical child={bottom}>
+    <box class="layout" vertical child={bottom}>
       {/* {top} */}
     </box>
   );
@@ -236,7 +238,7 @@ function Image() {
       // onClicked={OpenInBrowser}
       child={
         <box
-          className="image"
+          class="image"
           hexpand={false}
           vexpand={false}
           heightRequest={createComputed(
@@ -260,13 +262,13 @@ export default () => {
       transitionDuration={globalTransition}
       transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
       revealChild={createComputed(() => globalSettings().waifu.visibility)}
-      child={<box className="waifu" vertical child={Image()}></box>}
+      child={<box class="waifu" vertical child={Image()}></box>}
     ></revealer>
   );
 };
 
 export function WaifuVisibility() {
-  return ToggleButton({
+  return togglebutton({
     state: createComputed(() => globalSettings().waifu.visibility),
     onToggled: (self, on) => setSetting("waifu.visibility", on),
     label: "󱙣",

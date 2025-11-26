@@ -123,7 +123,7 @@ export default (monitor: Gdk.Monitor) => {
   return (
     <window
       gdkmonitor={monitor}
-      className="NotificationPopups"
+      class="NotificationPopups"
       name="notification-popups"
       namespace="notification-popups"
       application={App}
@@ -134,7 +134,7 @@ export default (monitor: Gdk.Monitor) => {
       widthRequest={400}
       child={
         <box
-          className={"notification-popups"}
+          class={"notification-popups"}
           vertical
           vexpand={true}
           child={createComputed(() => (
@@ -143,35 +143,5 @@ export default (monitor: Gdk.Monitor) => {
         />
       }
     />
-  );
-};
-
-export default (monitor: Gdk.Monitor) => {
-  const { TOP, RIGHT } = Astal.WindowAnchor;
-  const notifications = new NotificationMap();
-
-  return (
-    <window
-      gdkmonitor={monitor}
-      className="NotificationPopups"
-      name="notification-popups"
-      namespace="notification-popups"
-      application={App}
-      exclusivity={Astal.Exclusivity.NORMAL}
-      layer={Astal.Layer.OVERLAY}
-      anchor={TOP | RIGHT}
-      margin={globalMargin}
-      widthRequest={400}
-      child={
-        <box
-          className={"notification-popups"}
-          vertical
-          vexpand={true}
-          noImplicitDestroy
-        >
-          {bind(notifications)}
-        </box>
-      }
-    ></window>
   );
 };

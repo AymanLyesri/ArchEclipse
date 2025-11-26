@@ -12,10 +12,10 @@ const [getProgressValue, setProgressValue] = createState(0);
 
 const levelBar = (
   <levelbar
-    className="progress-bar"
+    class="progress-bar"
     max_value={100}
     widthRequest={333}
-    value={createComputed(() => getProgressValue())}
+    value={createComputed(() => getProgressValue)}
   />
 );
 
@@ -23,8 +23,8 @@ async function RunningProgress() {
   setProgressValue(0);
   setProgressIncrement(INCREMENT);
 
-  while (getProgressValue() <= 100) {
-    setProgressValue(getProgressValue() + getProgressIncrement());
+  while (getProgressValue <= 100) {
+    setProgressValue(getProgressValue + getProgressIncrement);
     await asyncSleep(INTERVAL); // Wait for 2 seconds before continuing
   }
   App.toggle_window("progress");
@@ -49,6 +49,6 @@ export default (monitor: Gdk.Monitor) => (
     anchor={Astal.WindowAnchor.BOTTOM}
     margin={0}
     visible={false}
-    child={<box className="progress-widget" child={levelBar}></box>}></window>
-);
+    child={<box class="progress-widget" child={levelBar}></box>}
+  ></window>
 );

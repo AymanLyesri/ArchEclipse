@@ -1,6 +1,7 @@
 .vscode
 types
 @girs
+node_modules
 
 !assets/
 

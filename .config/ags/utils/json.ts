@@ -1,5 +1,6 @@
-import { exec, readFile, writeFile } from "ags/file";
+import { readFile, writeFile } from "ags/file";
 import { notify } from "./notification";
+import { exec } from "ags/process";
 
 export function readJSONFile(filePath: string): any {
   if (readFile(filePath) == "") return {};
