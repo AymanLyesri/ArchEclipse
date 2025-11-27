@@ -1,80 +1,80 @@
-import { Variable } from "astal";
-import { App, Gtk } from "astal/gtk3";
-import ToggleButton from "../widgets/toggleButton";
+import app from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import { createComputed } from "ags";
 
-export function hideWindow(window_name: string) {
-  App.get_window(window_name)!.hide();
-}
-
-export function showWindow(window_name: string) {
-  App.get_window(window_name)!.show();
-}
+export const hideWindow = (name: string) => app.get_window(name)?.hide();
+export const showWindow = (name: string) => app.get_window(name)?.show();
 
 export function WindowActions({
   windowWidth,
+  setWindowWidth,
   windowExclusivity,
+  setWindowExclusivity,
   windowLock,
+  setWindowLock,
   windowVisibility,
+  setWindowVisibility,
 }: {
-  windowWidth: Variable<number>;
-  windowExclusivity: Variable<boolean>;
-  windowLock: Variable<boolean>;
-  windowVisibility: Variable<boolean>;
+  windowWidth: number;
+  setWindowWidth: (width: number) => void;
+  windowExclusivity: boolean;
+  setWindowExclusivity: (exclusivity: boolean) => void;
+  windowLock: boolean;
+  setWindowLock: (lock: boolean) => void;
+  windowVisibility: boolean;
+  setWindowVisibility: (visibility: boolean) => void;
 }) {
   const maxRightPanelWidth = 600;
   const minRightPanelWidth = 250;
   return (
     <box
-      className={"window-actions"}
+      class="window-actions"
       vexpand={true}
       halign={Gtk.Align.END}
       valign={Gtk.Align.END}
       vertical={true}
     >
       <button
-        label={""}
-        className={"expand-window"}
+        label=""
+        class="expand-window"
         onClicked={() => {
-          windowWidth.set(
-            windowWidth.get() < maxRightPanelWidth
-              ? windowWidth.get() + 50
-              : maxRightPanelWidth
+          const current = windowWidth;
+          setWindowWidth(
+            current < maxRightPanelWidth ? current + 50 : maxRightPanelWidth
           );
         }}
       />
       <button
-        label={""}
-        className={"shrink-window"}
+        label=""
+        class="shrink-window"
         onClicked={() => {
-          windowWidth.set(
-            windowWidth.get() > minRightPanelWidth
-              ? windowWidth.get() - 50
-              : minRightPanelWidth
+          const current = windowWidth;
+          setWindowWidth(
+            current > minRightPanelWidth ? current - 50 : minRightPanelWidth
           );
         }}
       />
-      <ToggleButton
-        label={""}
-        className={"exclusivity"}
-        state={!windowExclusivity.get()}
+      <togglebutton
+        label=""
+        class="exclusivity"
+        active={() => !windowExclusivity}
         onToggled={(self, on) => {
-          windowExclusivity.set(!on);
+          setWindowExclusivity(!on);
         }}
       />
-      <ToggleButton
-        label={windowLock.get() ? "" : ""}
-        className={"lock"}
-        state={windowLock.get()}
+      <togglebutton
+        label={createComputed(() => (windowLock ? "" : ""))}
+        class="lock"
+        active={windowLock}
         onToggled={(self, on) => {
-          windowLock.set(on);
-          self.label = on ? "" : "";
+          setWindowLock(on);
         }}
       />
       <button
-        label={""}
-        className={"close"}
+        label=""
+        class="close"
         onClicked={() => {
-          windowVisibility.set(false);
+          setWindowVisibility(false);
         }}
       />
     </box>

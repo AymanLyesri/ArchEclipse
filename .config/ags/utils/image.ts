@@ -1,4 +1,4 @@
-import { exec, execAsync } from "astal";
+import { exec, execAsync } from "ags/process";
 import { notify } from "./notification";
 import { Waifu } from "../interfaces/waifu.interface";
 

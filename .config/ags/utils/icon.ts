@@ -1,4 +1,4 @@
-import { Astal } from "astal/gtk3"
+import Astal from "gi://Astal?version=3.0"
 
 export function playerToIcon(name: string)
 {

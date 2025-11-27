@@ -1,20 +1,20 @@
-import { execAsync } from "astal";
 import { LauncherApp } from "../interfaces/app.interface";
-import { setGlobalTheme } from "../utils/theme";
+import { subprocess, exec, execAsync, createSubprocess } from "ags/process";
+import { setGlobalTheme } from "../variables";
 
 export const customApps: LauncherApp[] = [
   {
     app_name: "Light Theme",
     app_icon: "",
     app_launch: () => {
-      setGlobalTheme("light");
+      setGlobalTheme(true);
     },
   },
   {
     app_name: "Dark Theme",
     app_icon: "",
     app_launch: () => {
-      setGlobalTheme("dark");
+      setGlobalTheme(false);
     },
   },
   {

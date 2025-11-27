@@ -1,7 +1,7 @@
-import { Gtk } from "astal/gtk3";
-import { bind, execAsync, Variable } from "astal";
+import Gtk from "gi://Gtk?version=3.0";
+import { createBinding, createState, createComputed } from "ags";
+import { execAsync } from "ags/process";
 import { globalTransition } from "../../../variables";
-import ToggleButton from "../../toggleButton";
 import { notify } from "../../../utils/notification";
 import { readJSONFile, writeJSONFile } from "../../../utils/json";
 
@@ -29,9 +29,9 @@ const predefinedCommands = [
 ];
 
 // Variables
-const scriptTasks = Variable<ScriptTask[]>([]);
-const showAddForm = Variable(false);
-const editingTask = Variable<ScriptTask | null>(null);
+const [scriptTasks, setScriptTasks] = createState<ScriptTask[]>([]);
+const [showAddForm, setShowAddForm] = createState(false);
+const [editingTask, setEditingTask] = createState<ScriptTask | null>(null);
 
 // Storage functions
 const saveTasksToFile = async (tasks: ScriptTask[]) => {
@@ -61,8 +61,8 @@ const executeTask = async (task: ScriptTask) => {
 
     if (task.type === false) {
       // Remove one-time tasks after execution
-      const updatedTasks = scriptTasks.get().filter((t) => t.id !== task.id);
-      scriptTasks.set(updatedTasks);
+      const updatedTasks = scriptTasks.filter((t) => t.id !== task.id);
+      setScriptTasks(updatedTasks);
       saveTasksToFile(updatedTasks);
     } else {
       // Schedule next daily execution
@@ -95,13 +95,13 @@ const updateNextRun = (task: ScriptTask) => {
 // Timer check interval
 const checkTasks = () => {
   const now = Date.now();
-  const tasks = scriptTasks.get();
+  const tasks = scriptTasks;
 
-  tasks.forEach((task) => {
-    if (task.active && task.nextRun && task.nextRun <= now) {
-      executeTask(task);
-    }
-  });
+  // tasks.forEach((task) => {
+  //   if (task.active && task.nextRun && task.nextRun <= now) {
+  //     executeTask(task);
+  //   }
+  // });
 };
 
 // Start timer check
@@ -110,7 +110,7 @@ setInterval(checkTasks, 10000); // Check every 10 seconds
 // Initialize tasks on load
 loadTasksFromFile().then((tasks) => {
   const updatedTasks = tasks.map(updateNextRun);
-  scriptTasks.set(updatedTasks);
+  setScriptTasks(updatedTasks);
 });
 
 // Task form component
@@ -121,28 +121,28 @@ const TaskForm = ({
   task?: ScriptTask;
   isEdit?: boolean;
 }) => {
-  const nameEntry = Variable(task?.name || "");
-  const timeEntry = Variable(task?.time || "12:00");
-  const taskType = Variable<boolean>(task?.type || true);
-  const commandEntry = Variable(task?.command || "");
-  const showSuggestions = Variable(false);
+  const [nameEntry, setNameEntry] = createState(task?.name || "");
+  const [timeEntry, setTimeEntry] = createState(task?.time || "12:00");
+  const [taskType, setTaskType] = createState<boolean>(task?.type || true);
+  const [commandEntry, setCommandEntry] = createState(task?.command || "");
+  const [showSuggestions, setShowSuggestions] = createState(false);
 
   const updateSuggestions = (input: string) => {
     const hasMatch = predefinedCommands.some((cmd) =>
       cmd.label.toLowerCase().includes(input.toLowerCase())
     );
-    showSuggestions.set(input.trim().length > 0 && hasMatch);
+    setShowSuggestions(input.trim().length > 0 && hasMatch);
   };
 
   const selectCommand = (command: string) => {
-    commandEntry.set(command);
-    showSuggestions.set(false);
+    setCommandEntry(command);
+    setShowSuggestions(false);
   };
 
   const saveTask = () => {
-    const name = nameEntry.get().trim();
-    const command = commandEntry.get().trim();
-    const time = timeEntry.get();
+    const name = nameEntry.trim();
+    const command = commandEntry.trim();
+    const time = timeEntry;
 
     if (!name || !command || !time.match(/^\d{2}:\d{2}$/)) {
       notify({
@@ -157,66 +157,64 @@ const TaskForm = ({
       name,
       command,
       time,
-      type: taskType.get(),
+      type: taskType,
       active: true,
     };
 
     updateNextRun(newTask);
-    const tasks = scriptTasks.get();
+    const tasks = scriptTasks;
     const updatedTasks = isEdit
       ? tasks.map((t) => (t.id === task!.id ? newTask : t))
       : [...tasks, newTask];
 
-    scriptTasks.set(updatedTasks);
+    setScriptTasks(updatedTasks);
     saveTasksToFile(updatedTasks);
-    showAddForm.set(false);
-    editingTask.set(null);
+    setShowAddForm(false);
+    setEditingTask(null);
   };
 
   const cancelForm = () => {
-    showAddForm.set(false);
-    editingTask.set(null);
+    setShowAddForm(false);
+    setEditingTask(null);
   };
 
   return (
-    <box className="form-container" vertical spacing={8}>
+    <box class="form-container" vertical spacing={8}>
       <entry
-        text={bind(nameEntry)}
-        onChanged={(self) => nameEntry.set(self.text)}
+        text={nameEntry}
+        onChanged={(self) => setNameEntry(self.text)}
         placeholderText="Enter task name"
       />
 
       <entry
-        text={bind(timeEntry)}
-        onChanged={(self) => timeEntry.set(self.text)}
+        text={timeEntry}
+        onChanged={(self) => setTimeEntry(self.text)}
         placeholderText="HH:MM (24-hour format)"
         maxLength={5}
       />
 
       <box vertical>
         <entry
-          text={bind(commandEntry)}
+          text={commandEntry}
           onChanged={(self) => {
-            commandEntry.set(self.text);
+            setCommandEntry(self.text);
             updateSuggestions(self.text);
           }}
           placeholderText="Enter command or select preset"
         />
         <revealer
-          revealChild={bind(showSuggestions)}
+          revealChild={showSuggestions}
           transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
           transitionDuration={globalTransition}
           child={
-            <box className="suggestions" vertical spacing={2}>
+            <box class="suggestions" vertical spacing={2}>
               {predefinedCommands
                 .filter((cmd) =>
-                  cmd.label
-                    .toLowerCase()
-                    .includes(commandEntry.get().toLowerCase())
+                  cmd.label.toLowerCase().includes(commandEntry().toLowerCase())
                 )
                 .map((cmd) => (
                   <button
-                    className="suggestion"
+                    class="suggestion"
                     label={cmd.label}
                     onClicked={() => selectCommand(cmd.command)}
                   />
@@ -226,27 +224,27 @@ const TaskForm = ({
         />
       </box>
 
-      <box className="task-type-selector" spacing={8}>
-        <ToggleButton
+      <box class="task-type-selector" spacing={8}>
+        <togglebutton
           label="Daily"
-          state={bind(taskType).as((type) => type === true)}
-          onToggled={() => taskType.set(true)}
+          active={createComputed(() => taskType() === true)}
+          onToggled={() => setTaskType(true)}
         />
-        <ToggleButton
+        <togglebutton
           label="One-time"
-          state={bind(taskType).as((type) => type === false)}
-          onToggled={() => taskType.set(false)}
+          active={createComputed(() => taskType() === false)}
+          onToggled={() => setTaskType(false)}
         />
       </box>
 
-      <box className="form-actions" spacing={8}>
+      <box class="form-actions" spacing={8}>
         <button
-          className="success"
+          class="success"
           label={isEdit ? "✓ Update" : "+ Add Task"}
           onClicked={saveTask}
           hexpand
         />
-        <button className="danger" label="✕ Cancel" onClicked={cancelForm} />
+        <button class="danger" label="✕ Cancel" onClicked={cancelForm} />
       </box>
     </box>
   );
@@ -254,7 +252,7 @@ const TaskForm = ({
 
 // Task item component
 const TaskItem = ({ task }: { task: ScriptTask }) => {
-  const isHovered = Variable(false);
+  const [isHovered, setIsHovered] = createState(false);
 
   const formatNextRun = () => {
     if (!task.nextRun) return "Not scheduled";
@@ -280,62 +278,59 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
   };
 
   const deleteTask = () => {
-    const updatedTasks = scriptTasks.get().filter((t) => t.id !== task.id);
-    scriptTasks.set(updatedTasks);
+    const updatedTasks = scriptTasks.filter((t) => t.id !== task.id);
+    setScriptTasks(updatedTasks);
     saveTasksToFile(updatedTasks);
   };
 
   const toggleTask = () => {
-    const updatedTasks = scriptTasks
-      .get()
-      .map((t) => (t.id === task.id ? { ...t, active: !t.active } : t));
-    scriptTasks.set(updatedTasks);
+    const updatedTasks = scriptTasks.map((t) =>
+      t.id === task.id ? { ...t, active: !t.active } : t
+    );
+    setScriptTasks(updatedTasks);
     saveTasksToFile(updatedTasks);
   };
 
   const editTask = () => {
-    editingTask.set(task);
-    showAddForm.set(true);
+    setEditingTask(task);
+    setShowAddForm(true);
   };
 
   return (
     <eventbox
-      className={"task-eventbox"}
-      onHover={() => isHovered.set(true)}
-      onHoverLost={() => isHovered.set(false)}
+      class={"task-eventbox"}
+      onHover={() => setIsHovered(true)}
+      onHoverLost={() => setIsHovered(false)}
       child={
         <box
-          className={`task ${task.active ? "active" : "inactive"}`}
+          class={`task ${task.active ? "active" : "inactive"}`}
           vertical
           spacing={6}
         >
-          <box className="task-header">
-            <box className="task-info">
+          <box class="task-header">
+            <box class="task-info">
               <label
-                className="task-name"
+                class="task-name"
                 label={task.name}
                 hexpand
                 halign={Gtk.Align.START}
               />
 
               <box spacing={5}>
-                <label className="task-schedule" label={formatNextRun()} />
-                <label
-                  className="task-type icon"
-                  label={task.type ? "" : "1"}
-                />
+                <label class="task-schedule" label={formatNextRun()} />
+                <label class="task-type icon" label={task.type ? "" : "1"} />
               </box>
             </box>
 
             <revealer
-              revealChild={bind(isHovered)}
+              revealChild={isHovered}
               transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
               transitionDuration={globalTransition}
               child={
-                <box className="task-actions">
-                  <ToggleButton
-                    className={task.active ? "success" : "danger"}
-                    state={task.active}
+                <box class="task-actions">
+                  <togglebutton
+                    class={task.active ? "success" : "danger"}
+                    active={task.active}
                     label={task.active ? "●" : "○"}
                     onToggled={toggleTask}
                   />
@@ -347,7 +342,7 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
           </box>
 
           <label
-            className="task-command"
+            class="task-command"
             label={
               task.command.length > 40
                 ? task.command.substring(0, 40) + "..."
@@ -363,46 +358,48 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
 // Main component
 const ScriptTimer = () => {
   const toggleForm = () => {
-    editingTask.set(null);
-    showAddForm.set(!showAddForm.get());
+    setEditingTask(null);
+    setShowAddForm(!showAddForm());
   };
 
   return (
-    <box className="script-timer module" vertical spacing={5}>
-      <box className="header">
+    <box class="script-timer module" vertical spacing={5}>
+      <box class="header">
         <label
-          className="title"
+          class="title"
           label="Script Timer"
           hexpand
           halign={Gtk.Align.START}
         />
         <button
-          className="add-btn"
-          label={bind(showAddForm).as((show) => (show ? "✕" : "+"))}
+          class="add-btn"
+          label={createComputed(() => (showAddForm ? "✕" : "+"))}
           onClicked={toggleForm}
         />
       </box>
 
       <revealer
-        revealChild={bind(showAddForm)}
+        revealChild={showAddForm}
         transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
         transitionDuration={globalTransition}
-        child={bind(editingTask).as((task) =>
-          task ? TaskForm({ task, isEdit: true }) : TaskForm({})
-        )}
+        child={createComputed(() => {
+          const task = editingTask;
+          return task ? TaskForm({ task, isEdit: true }) : TaskForm({});
+        })}
       />
 
       <scrollable
-        className="task-list"
+        class="task-list"
         vexpand
         hscroll={Gtk.PolicyType.NEVER}
         child={
           <box vertical spacing={5}>
-            {bind(scriptTasks).as((tasks) =>
-              tasks.length === 0
-                ? [<label className="empty-state" label="No scheduled tasks" />]
-                : tasks.map((task) => TaskItem({ task }))
-            )}
+            {createComputed(() => {
+              const tasks = scriptTasks;
+              return tasks.length === 0
+                ? [<label class="empty-state" label="No scheduled tasks" />]
+                : tasks.map((task) => TaskItem({ task }));
+            })}
           </box>
         }
       />

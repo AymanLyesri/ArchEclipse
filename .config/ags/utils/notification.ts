@@ -1,4 +1,4 @@
-import { execAsync } from "astal";
+import { execAsync } from "ags/process";
 
 export function notify({
   summary = "",

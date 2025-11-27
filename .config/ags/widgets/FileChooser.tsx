@@ -1,18 +1,12 @@
-import { GObject } from "astal";
-import { astalify, ConstructProps, Gtk } from "astal/gtk3";
+import GObject from "gi://GObject";
+import Gtk from "gi://Gtk?version=3.0";
 
-export class FileChooserButton extends astalify(Gtk.FileChooserButton) {
+export class FileChooserButton extends Gtk.FileChooserButton {
   static {
     GObject.registerClass(this);
   }
 
-  constructor(
-    props: ConstructProps<
-      Gtk.FileChooserButton,
-      Gtk.FileChooserButton.ConstructorProps,
-      { onFileSet: [] }
-    >
-  ) {
+  constructor(props: any) {
     super(props as any);
   }
 }

@@ -1,29 +1,35 @@
 import hyprland from "gi://AstalHyprland";
-import { bind, exec, execAsync, monitorFile, Variable } from "astal";
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
+import { createBinding, createComputed, createState } from "ags";
+import { execAsync, exec } from "ags/process";
+import { monitorFile } from "ags/file";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import { notify } from "../utils/notification";
 import { focusedWorkspace, globalTransition } from "../variables";
-import ToggleButton from "./toggleButton";
-import { Button } from "astal/gtk3/widget";
+import togglebutton from "./togglebutton";
 import { getMonitorName } from "../utils/monitor";
 import { hideWindow } from "../utils/window";
 
 const Hyprland = hyprland.get_default();
 
 // State management
-const selectedWorkspaceState = {
-  id: Variable<number>(0),
-  widget: Variable<Button>(new Button()),
-};
+const [selectedWorkspaceId, setSelectedWorkspaceId] = createState(0);
+const [selectedWorkspaceWidget, setSelectedWorkspaceWidget] =
+  createState<Gtk.Button | null>(null);
 
-const updateSelectedWorkspaceWidget = (workspaceId: number, widget: Button) => {
-  selectedWorkspaceState.id.set(workspaceId);
-  selectedWorkspaceState.widget.set(widget);
+const updateSelectedWorkspaceWidget = (
+  workspaceId: number,
+  widget: Gtk.Button
+) => {
+  setSelectedWorkspaceId(workspaceId);
+  setSelectedWorkspaceWidget(widget);
 };
 
 const targetTypes = ["workspace", "sddm", "lockscreen"];
-const targetType = Variable<string>("workspace");
-const wallpaperType = Variable<boolean>(false);
+const [targetType, setTargetType] = createState("workspace");
+const [wallpaperType, setWallpaperType] = createState(false);
 
 // Wallpaper data
 const wallpaperData = {
@@ -37,8 +43,8 @@ const wallpaperData = {
   },
 };
 
-const allWallpapers = Variable<string[]>([]);
-const allThumbnails = Variable<string[]>([]);
+const [allWallpapers, setAllWallpapers] = createState<string[]>([]);
+const [allThumbnails, setAllThumbnails] = createState<string[]>([]);
 
 // Utility functions
 const shuffleArraysTogether = (
@@ -73,9 +79,9 @@ const FetchWallpapers = async () => {
     wallpaperData.default.wallpapers = defaultWalls;
     wallpaperData.custom.wallpapers = customWalls;
 
-    if (wallpaperType.get()) {
-      allWallpapers.set(wallpaperData.custom.wallpapers);
-      allThumbnails.set(wallpaperData.custom.thumbnails);
+    if (wallpaperType()) {
+      setAllWallpapers(wallpaperData.custom.wallpapers);
+      setAllThumbnails(wallpaperData.custom.thumbnails);
     } else {
       const [shuffledWallpapers, shuffledThumbnails] = shuffleArraysTogether(
         [
@@ -87,8 +93,8 @@ const FetchWallpapers = async () => {
           ...wallpaperData.custom.thumbnails,
         ]
       );
-      allWallpapers.set(shuffledWallpapers);
-      allThumbnails.set(shuffledThumbnails);
+      setAllWallpapers(shuffledWallpapers);
+      setAllThumbnails(shuffledThumbnails);
     }
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
@@ -98,88 +104,86 @@ const FetchWallpapers = async () => {
 function Wallpapers(monitor: string) {
   const getAllWallpapers = () => (
     <scrollable
-      className="all-wallpapers-scrollable"
+      class="all-wallpapers-scrollable"
       hscrollbarPolicy={Gtk.PolicyType.ALWAYS}
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       hexpand
       vexpand
       child={
-        <box className="all-wallpapers" spacing={5}>
-          {bind(
-            Variable.derive(
-              [bind(allWallpapers), bind(allThumbnails)],
-              (allWallpapers, allThumbnails) =>
-                allWallpapers.map((wallpaper, key) => (
-                  <eventbox
-                    className="wallpaper-event-box"
-                    onClick={() => {
-                      const target = targetType.get();
-                      const command = {
-                        sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
-                        lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
-                        workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceState.id.get()} ${wallpaper} ${monitor}"`,
-                      }[target];
+        <box class="all-wallpapers" spacing={5}>
+          {createComputed(() => {
+            const wallpapers = allWallpapers();
+            const thumbnails = allThumbnails();
+            return wallpapers.map((wallpaper, key) => (
+              <eventbox
+                class="wallpaper-event-box"
+                onClick={() => {
+                  const target = targetType();
+                  const command = {
+                    sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
+                    lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
+                    workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId()} ${wallpaper} ${monitor}"`,
+                  }[target];
 
-                      execAsync(command!)
-                        .then(() => {
-                          if (target === "workspace") {
-                            const widget = selectedWorkspaceState.widget.get();
-                            widget.css = `background-image: url('${wallpaper}');`;
-                            selectedWorkspaceState.widget.set(widget);
-                          }
-                          notify({
-                            summary: target,
-                            body: `${target} wallpaper changed successfully!`,
-                          });
-                        })
-                        .catch(notify);
-                    }}
+                  execAsync(command!)
+                    .then(() => {
+                      if (target === "workspace") {
+                        const widget = selectedWorkspaceWidget();
+                        if (widget)
+                          widget.css = `background-image: url('${wallpaper}');`;
+                      }
+                      notify({
+                        summary: target,
+                        body: `${target} wallpaper changed successfully!`,
+                      });
+                    })
+                    .catch(notify);
+                }}
+                child={
+                  <box
+                    class="wallpaper"
+                    vertical
+                    css={`
+                      background-image: url("${thumbnails[key]}");
+                    `}
                     child={
-                      <box
-                        className="wallpaper"
-                        vertical
-                        css={`
-                          background-image: url("${allThumbnails[key]}");
-                        `}
-                        child={
-                          <button
-                            visible={wallpaperType.get()}
-                            className="delete-wallpaper"
-                            halign={Gtk.Align.END}
-                            valign={Gtk.Align.START}
-                            label=""
-                            onClicked={() => {
-                              execAsync(
-                                `bash -c "rm -f '${allThumbnails[key]}' '${wallpaper}'"`
-                              )
-                                .then(() =>
-                                  notify({
-                                    summary: "Success",
-                                    body: "Wallpaper deleted successfully!",
-                                  })
-                                )
-                                .catch((err) =>
-                                  notify({
-                                    summary: "Error",
-                                    body: String(err),
-                                  })
-                                );
-                            }}
-                          />
-                        }
+                      <button
+                        visible={createComputed(() => wallpaperType())}
+                        class="delete-wallpaper"
+                        halign={Gtk.Align.END}
+                        valign={Gtk.Align.START}
+                        label=""
+                        onClicked={() => {
+                          execAsync(
+                            `bash -c "rm -f '${thumbnails[key]}' '${wallpaper}'"`
+                          )
+                            .then(() =>
+                              notify({
+                                summary: "Success",
+                                body: "Wallpaper deleted successfully!",
+                              })
+                            )
+                            .catch((err) =>
+                              notify({
+                                summary: "Error",
+                                body: String(err),
+                              })
+                            );
+                        }}
                       />
                     }
                   />
-                ))
-            )
-          )}
+                }
+              />
+            ));
+          })}
         </box>
       }
     />
   );
 
   const getCurrentWorkspaces = () => {
-    const activeId = focusedWorkspace.as((workspace) => workspace.id || 1);
+    const activeId = createComputed(() => focusedWorkspace()?.id || 1);
     const wallpapers: string[] = JSON.parse(
       exec(`bash ./scripts/get-wallpapers.sh --current ${monitor}`) || "[]"
     );
@@ -193,23 +197,16 @@ function Wallpapers(monitor: string) {
           css={`
             background-image: url("${wallpaper}");
           `}
-          className={activeId.as((i) => {
-            return i === workspaceId
+          class={createComputed(() => {
+            return activeId() === workspaceId
               ? "workspace-wallpaper focused"
               : "workspace-wallpaper";
           })}
           label={`${workspaceId}`}
           onClicked={(self) => {
-            targetType.set("workspace");
+            setTargetType("workspace");
             bottomRevealer.reveal_child = true;
             updateSelectedWorkspaceWidget(workspaceId, self);
-          }}
-          setup={(self) => {
-            activeId.as((i) => {
-              if (i === workspaceId) {
-                updateSelectedWorkspaceWidget(workspaceId, self);
-              }
-            });
           }}
         />
       );
@@ -217,19 +214,18 @@ function Wallpapers(monitor: string) {
   };
 
   let currentWorkspaces = getCurrentWorkspaces();
-  focusedWorkspace.subscribe((workspace) => {
-    if (workspace) {
-      selectedWorkspaceState.id.set(workspace.id);
-      selectedWorkspaceState.widget.set(
-        currentWorkspaces[workspace.id - 1] as Button
-      );
-    }
-  });
+
+  const workspace = focusedWorkspace();
+  if (workspace) {
+    setSelectedWorkspaceId(workspace.id);
+    const widget = currentWorkspaces[workspace.id - 1];
+    if (widget) setSelectedWorkspaceWidget(widget as unknown as Gtk.Button);
+  }
 
   const resetButton = (
     <button
       valign={Gtk.Align.CENTER}
-      className="reload-wallpapers"
+      class="reload-wallpapers"
       label="󰑐"
       onClicked={() => {
         execAsync('bash -c "$HOME/.config/hypr/hyprpaper/reload.sh"')
@@ -242,23 +238,21 @@ function Wallpapers(monitor: string) {
   const randomButton = (
     <button
       valign={Gtk.Align.CENTER}
-      className="random-wallpaper"
+      class="random-wallpaper"
       label=""
       onClicked={() => {
         const randomWallpaper =
-          allWallpapers.get()[
-            Math.floor(Math.random() * allWallpapers.get().length)
-          ];
+          allWallpapers()[Math.floor(Math.random() * allWallpapers().length)];
         execAsync(
-          `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceState.id.get()} ${randomWallpaper} ${monitor}"`
+          `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId()} ${randomWallpaper} ${monitor}"`
         )
           .finally(() => {
             const newWallpaper = JSON.parse(
               exec(`bash ./scripts/get-wallpapers.sh --current ${monitor}`)
-            )[selectedWorkspaceState.id.get() - 1];
-            const widget = selectedWorkspaceState.widget.get();
-            widget.css = `background-image: url('${newWallpaper}');`;
-            selectedWorkspaceState.widget.set(widget);
+            )[selectedWorkspaceId() - 1];
+            const widget = selectedWorkspaceWidget();
+            if (widget)
+              widget.css = `background-image: url('${newWallpaper}');`;
           })
           .catch(notify);
       }}
@@ -266,22 +260,22 @@ function Wallpapers(monitor: string) {
   );
 
   const customToggle = (
-    <ToggleButton
+    <togglebutton
       valign={Gtk.Align.CENTER}
-      className="custom-wallpaper"
+      class="custom-wallpaper"
       label="all"
-      onToggled={(self, on) => {
-        wallpaperType.set(on);
+      onToggled={({ active }) => {
+        setWallpaperType(on);
         self.label = on ? "custom" : "all";
       }}
     />
   );
 
   const revealButton = (
-    <ToggleButton
-      className="bottom-revealer-button"
+    <togglebutton
+      class="bottom-revealer-button"
       label=""
-      onToggled={(self, on) => {
+      onToggled={({ active }) => {
         bottomRevealer.reveal_child = on;
         self.label = on ? "" : "";
       }}
@@ -289,14 +283,14 @@ function Wallpapers(monitor: string) {
   );
 
   const targetButtons = (
-    <box className="targets" hexpand={true} halign={Gtk.Align.CENTER}>
+    <box class="targets" hexpand={true} halign={Gtk.Align.CENTER}>
       {targetTypes.map((type) => (
-        <ToggleButton
+        <togglebutton
           valign={Gtk.Align.CENTER}
-          className={type}
+          class={type}
           label={type}
-          state={bind(targetType).as((t) => t === type)}
-          onToggled={() => targetType.set(type)}
+          active={createComputed(() => targetType() === type)}
+          onToggled={() => setTargetType(type)}
         />
       ))}
     </box>
@@ -304,15 +298,12 @@ function Wallpapers(monitor: string) {
 
   const selectedWorkspaceLabel = (
     <label
-      className="button selected-workspace"
-      label={bind(
-        Variable.derive(
-          [bind(selectedWorkspaceState.id), bind(targetType)],
-          (workspace, targetType) =>
-            `Wallpaper -> ${targetType} ${
-              targetType === "workspace" ? workspace : ""
-            }`
-        )
+      class="button selected-workspace"
+      label={createComputed(
+        () =>
+          `Wallpaper -> ${targetType()} ${
+            targetType() === "workspace" ? selectedWorkspaceId() : ""
+          }`
       )}
     />
   );
@@ -320,7 +311,7 @@ function Wallpapers(monitor: string) {
   const addWallpaperButton = (
     <button
       label=""
-      className="upload"
+      class="upload"
       onClicked={() => {
         let dialog = new Gtk.FileChooserDialog({
           title: "Open Image",
@@ -348,12 +339,7 @@ function Wallpapers(monitor: string) {
   );
 
   const actions = (
-    <box
-      className="actions"
-      hexpand={true}
-      halign={Gtk.Align.CENTER}
-      spacing={10}
-    >
+    <box class="actions" hexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
       {targetButtons}
       {selectedWorkspaceLabel}
       {revealButton}
@@ -369,19 +355,19 @@ function Wallpapers(monitor: string) {
       visible={true}
       reveal_child={false}
       transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
-      transition_duration={globalTransition}
+      transitionDuration={globalTransition}
       child={<box child={getAllWallpapers()}></box>}
     />
   );
 
   return (
-    <box className="wallpaper-switcher" vertical={true} spacing={20}>
+    <box class="wallpaper-switcher" vertical={true} spacing={20}>
       <box hexpand={true} vexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
         {currentWorkspaces}
       </box>
       {actions}
       <box
-        className="bottom"
+        class="bottom"
         hexpand={true}
         vexpand={true}
         child={bottomRevealer}
@@ -393,7 +379,10 @@ function Wallpapers(monitor: string) {
 // Initialize
 FetchWallpapers();
 monitorFile("./../wallpapers/custom", FetchWallpapers);
-wallpaperType.subscribe(FetchWallpapers);
+// createEffect(() => {
+//   wallpaperType();
+//   FetchWallpapers();
+// });
 
 export default (monitor: Gdk.Monitor) => {
   const monitorName = getMonitorName(monitor.get_display(), monitor)!;

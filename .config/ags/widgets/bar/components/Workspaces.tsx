@@ -1,11 +1,13 @@
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
 import { focusedWorkspace } from "../../../variables";
 
-import hyprland from "gi://AstalHyprland";
-import { bind, Variable } from "astal";
-import ToggleButton from "../../toggleButton";
+import Hyprland from "gi://AstalHyprland";
+import { createBinding, createComputed } from "ags";
 import { hideWindow, showWindow } from "../../../utils/window";
-const Hyprland = hyprland.get_default();
+import { For } from "ags";
+import { Accessor } from "ags";
+
+const hyprland = Hyprland.get_default();
 
 // workspaces icons
 const workspaceToIcon = ["", "", "", "", "", "", "󰙯", "󰓓", "", "", ""];
@@ -43,19 +45,19 @@ function Workspaces() {
 
     return (
       <button
-        className={buttonClass}
+        class={buttonClass}
         label={icon}
         onClicked={() =>
-          Hyprland.message_async(`dispatch workspace ${id}`, () => {})
+          hyprland.message_async(`dispatch workspace ${id}`, () => {})
         }
       />
     );
   };
 
   // Reactive workspace state that updates when workspaces or focus changes
-  const workspaces = Variable.derive(
+  const workspaces: Accessor<any[]> = createComputed(
     [
-      bind(Hyprland, "workspaces"), // Bind to Hyprland workspace list
+      createBinding(hyprland, "workspaces"), // Bind to Hyprland workspace list
       focusedWorkspace.as((w) => w.id), // Bind to currently focused workspace ID
     ],
     (workspaces, currentWorkspace) => {
@@ -84,7 +86,7 @@ function Workspaces() {
         if (currentGroup.length > 0) {
           groupElements.push(
             <box
-              className={`workspace-group ${
+              class={`workspace-group ${
                 currentGroupIsActive ? "active" : "inactive"
               }`}
             >
@@ -128,7 +130,7 @@ function Workspaces() {
           // Add inactive workspace as single-element group
           groupElements.push(
             <box
-              className="workspace-group inactive"
+              class="workspace-group inactive"
               child={createWorkspaceButton(id, isActive, isFocused, icon)}
             />
           );
@@ -141,36 +143,40 @@ function Workspaces() {
   );
 
   // Render the workspaces container with bound workspace elements
-  return <box className="workspaces">{bind(workspaces)}</box>;
+  return (
+    <box class="workspaces">
+      <For each={workspaces}>
+        {(workspace, index: Accessor<number>) => workspace}
+      </For>
+    </box>
+  );
 }
-const Special = () => (
+const Special = (
   <button
-    className="special"
+    class="special"
     label={workspaceToIcon[0]}
     onClicked={() =>
-      Hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
+      hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
     }
   />
 );
 
-function OverView() {
-  return (
-    <button
-      className="overview"
-      label="󱗼"
-      onClicked={() =>
-        Hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
-      }
-    />
-  );
-}
+const OverView = (
+  <button
+    class="overview"
+    label="󱗼"
+    onClicked={() =>
+      hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
+    }
+  />
+);
 
 function AppLauncher({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="app-search"
+    <togglebutton
+      class="app-search"
       label=""
-      onToggled={(self, on) => {
+      onToggled={({ active }) => {
         on
           ? showWindow(`app-launcher-${monitorName}`)
           : hideWindow(`app-launcher-${monitorName}`);
@@ -183,10 +189,10 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
 
 function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="wallpaper-switcher-trigger"
+    <togglebutton
+      class="wallpaper-switcher-trigger"
       label="󰸉"
-      onToggled={(self, on) => {
+      onToggled={({ active }) => {
         on
           ? showWindow(`wallpaper-switcher-${monitorName}`)
           : hideWindow(`wallpaper-switcher-${monitorName}`);
@@ -197,10 +203,10 @@ function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
 
 function Settings({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="settings"
+    <togglebutton
+      class="settings"
       label=""
-      onToggled={(self, on) =>
+      onToggled={({ active }) =>
         on
           ? showWindow(`settings-${monitorName}`)
           : hideWindow(`settings-${monitorName}`)
@@ -211,10 +217,10 @@ function Settings({ monitorName }: { monitorName: string }) {
 
 function UserPanel({ monitorName }: { monitorName: string }) {
   return (
-    <ToggleButton
-      className="user-panel"
+    <togglebutton
+      class="user-panel"
       label=""
-      onToggled={(self, on) => {
+      onToggled={({ active }) => {
         on
           ? showWindow(`user-panel-${monitorName}`)
           : hideWindow(`user-panel-${monitorName}`);
@@ -225,7 +231,7 @@ function UserPanel({ monitorName }: { monitorName: string }) {
 
 const Actions = ({ monitorName }: { monitorName: string }) => {
   return (
-    <box className="actions">
+    <box class="actions">
       <UserPanel monitorName={monitorName} />
       <Settings monitorName={monitorName} />
       <WallpaperSwitcher monitorName={monitorName} />
@@ -241,10 +247,10 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box className="bar-left" spacing={5} halign={halign} hexpand>
+    <box class="bar-left" spacing={5} halign={halign} hexpand>
       <Actions monitorName={monitorName} />
-      <OverView />
-      <Special />
+      {OverView}
+      {Special}
       <Workspaces />
     </box>
   );

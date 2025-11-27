@@ -1,16 +1,19 @@
-import { App, Astal, Gdk } from "astal/gtk3";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import { getMonitorName } from "../utils/monitor";
-import { globalMargin, screenShotVisibility } from "../variables";
-import { hideWindow } from "../utils/window";
 import {
-  bind,
-  exec,
-  execAsync,
-  GLib,
-  monitorFile,
-  timeout,
-  Variable,
-} from "astal";
+  globalMargin,
+  screenShotVisibility,
+  setScreenShotVisibility,
+} from "../variables";
+import { hideWindow } from "../utils/window";
+
+import { createBinding, createComputed, createState } from "ags";
+import { execAsync, exec } from "ags/process";
+import { monitorFile } from "ags/file";
+import GLib from "gi://GLib";
 import { get } from "http";
 import { notify } from "../utils/notification";
 import { getImageRatio } from "../utils/image";
@@ -18,44 +21,44 @@ import { getImageRatio } from "../utils/image";
 const getLatestScreenshotPath = () =>
   exec(`bash -c 'ls -t $HOME/Pictures/Screenshots | head -n 1'`);
 
-const screenShot = Variable<string>(
+const [screenShot, setScreenShot] = createState<string>(
   "./../../Pictures/Screenshots/" + getLatestScreenshotPath().trim()
 );
 
-print("screenshot updated: " + screenShot.get());
+print("screenshot updated: " + screenShot);
 
 //screen shoter widget
 const actions = (monitorName: String) => {
   return (
-    <box className="actions" spacing={10} vertical={true}>
+    <box class="actions" spacing={10} vertical={true}>
       <box
-        className="image"
-        css={bind(screenShot).as(
-          (path) =>
-            `background-image: url("${path}");
+        class="image"
+        css={createComputed(
+          () =>
+            `background-image: url("${screenShot}");
               background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
         border-radius: 10px;
         min-width: 100px;
-        min-height: ${getImageRatio(screenShot.get()) * 100}px;`
+        min-height: ${getImageRatio(screenShot) * 100}px;`
         )}
       />
       <button
-        className="action"
+        class="action"
         child={<label label={"Open"} />}
         onClicked={() => {
-          execAsync(`xdg-open ${screenShot.get()}`).catch((err) =>
+          execAsync(`xdg-open ${screenShot}`).catch((err) =>
             notify({ summary: "Error", body: String(err) })
           );
           hideWindow("screenshot-" + monitorName);
         }}
       />
       <button
-        className="action"
+        class="action"
         child={<label label={"Edit"} />}
         onClicked={() => {
-          execAsync(`gimp ${screenShot.get()}`).catch((err) =>
+          execAsync(`gimp ${screenShot}`).catch((err) =>
             notify({
               summary: "Error Or Gimp is not Installed",
               body: String(err),
@@ -79,19 +82,16 @@ export default (monitor: Gdk.Monitor) => {
       anchor={Astal.WindowAnchor.LEFT}
       layer={Astal.Layer.OVERLAY}
       margin={globalMargin}
-      visible={bind(screenShotVisibility)}
+      visible={createComputed(() => screenShotVisibility)}
       child={
         <box
-          className="screenshot-popup"
+          class="screenshot-popup"
           child={
             <eventbox
-              className={"screenshot-eventbox"}
-              onHoverLost={() => screenShotVisibility.set(false)}
+              class={"screenshot-eventbox"}
+              onHoverLost={() => setScreenShotVisibility(false)}
               child={
-                <box
-                  className="screenshot-widget"
-                  child={actions(monitorName)}
-                />
+                <box class="screenshot-widget" child={actions(monitorName)} />
               }
             />
           }
@@ -102,10 +102,11 @@ export default (monitor: Gdk.Monitor) => {
 };
 
 monitorFile(`./../../Pictures/Screenshots`, () => {
-  timeout(500, () => {
-    screenShot.set(
-      "./../../Pictures/Screenshots/" + getLatestScreenshotPath().trim()
+  GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+    setScreenShot(
+      "./../../Pictures/Screenshots/" + getLatestScreenshotPath.trim()
     );
+    return false;
   });
-  screenShotVisibility.set(true);
+  setScreenShotVisibility(true);
 });

@@ -1,24 +1,34 @@
-import { App, Astal, Gdk, Gtk, Widget } from "astal/gtk3";
-import hyprland from "gi://AstalHyprland";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
+import Hyprland from "gi://AstalHyprland";
 import {
   autoWorkspaceSwitching,
+  setAutoWorkspaceSwitching,
   barLayout,
+  setBarLayout,
   globalFontSize,
+  setGlobalFontSize,
   globalIconSize,
+  setGlobalIconSize,
   globalMargin,
   globalOpacity,
+  setGlobalOpacity,
   globalScale,
+  setGlobalScale,
   globalSettings,
 } from "../variables";
-import { bind, execAsync, Variable } from "astal";
+import { createBinding, createState, createComputed } from "ags";
+import { execAsync } from "ags/process";
 import { getSetting, setSetting } from "../utils/settings";
 import { notify } from "../utils/notification";
 import { AGSSetting, HyprlandSetting } from "../interfaces/settings.interface";
 import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
-import ToggleButton from "./toggleButton";
+import togglebutton from "./togglebutton";
 import { barWidgetSelectors } from "../constants/widget.constants";
-const Hyprland = hyprland.get_default();
+const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom/";
 
@@ -41,34 +51,36 @@ const normalizeValue = (value: any, type: string) => {
   }
 };
 
-const setBarLayout = () => {
+const BarLayoutSetting = () => {
   return (
     <box spacing={5} vertical>
       <label
-        className={"subcategory-label"}
+        class={"subcategory-label"}
         label={"bar Layout"}
         halign={Gtk.Align.START}
       />
-      <box className="setting" spacing={10} hexpand>
+      <box class="setting" spacing={10} hexpand>
         {barWidgetSelectors.map((widget) => {
           return (
-            <ToggleButton
+            <togglebutton
               hexpand
-              state={barLayout.get().some((w) => w.name === widget.name)}
-              className="widget"
+              active={createComputed(() =>
+                barLayout().some((w) => w.name === widget.name)
+              )}
+              class="widget"
               label={widget.name}
-              onToggled={(self, on) => {
+              onToggled={({ active }) => {
                 if (on) {
-                  if (barLayout.get().length >= 3) return;
-                  barLayout.set([...barLayout.get(), widget]);
+                  if (barLayout().length >= 3) return;
+                  setBarLayout([...barLayout(), widget]);
                 } else {
-                  const newWidgets = barLayout
-                    .get()
-                    .filter((w) => w.name !== widget.name);
-                  barLayout.set(newWidgets);
+                  const newWidgets = barLayout().filter(
+                    (w) => w.name !== widget.name
+                  );
+                  setBarLayout(newWidgets);
                 }
               }}
-            ></ToggleButton>
+            ></togglebutton>
           );
         })}
       </box>
@@ -76,19 +88,18 @@ const setBarLayout = () => {
   );
 };
 
-const agsSetting = (setting: Variable<AGSSetting>) => {
-  const title = <label halign={Gtk.Align.START} label={setting.get().name} />;
+const agsSetting = ([get, set]: [any, any]) => {
+  const title = <label halign={Gtk.Align.START} label={get().name} />;
 
   const sliderWidget = () => {
     const infoLabel = (
       <label
         hexpand={true}
         xalign={1}
-        label={bind(setting).as(
-          (setting) =>
+        label={createComputed(
+          () =>
             `${Math.round(
-              ((setting.value - setting.min) / (setting.max - setting.min)) *
-                100
+              ((get().value - get().min) / (get().max - get().min)) * 100
             )}%`
         )}
       />
@@ -97,21 +108,20 @@ const agsSetting = (setting: Variable<AGSSetting>) => {
     const Slider = (
       <slider
         halign={Gtk.Align.END}
-        step={1}
-        width_request={169}
-        className="slider"
-        min={setting.get().min}
-        max={setting.get().max}
-        value={setting.get().value}
-        onValueChanged={({ value }) =>
-          setting.set({
-            name: setting.get().name,
-            value: normalizeValue(value, setting.get().type),
-            type: setting.get().type,
-            min: setting.get().min,
-            max: setting.get().max,
-          })
-        }
+        widthRequest={169}
+        class="slider"
+        drawValue={false}
+        value={createComputed(() => get().value)}
+        onValueChanged={(self) => {
+          const value = self.get_value();
+          set({
+            name: get().name,
+            value: normalizeValue(value, get().type),
+            type: get().type,
+            min: get().min,
+            max: get().max,
+          });
+        }}
       />
     );
 
@@ -128,21 +138,21 @@ const agsSetting = (setting: Variable<AGSSetting>) => {
       <label
         hexpand={true}
         xalign={1}
-        label={bind(setting).as((setting) => (setting.value ? "On" : "Off"))}
+        label={createComputed(() => (get().value ? "On" : "Off"))}
       />
     );
 
     const Switch = (
       <switch
-        active={setting.get().value}
-        onButtonPressEvent={({ active }) => {
-          active = !active;
-          setting.set({
-            name: setting.get().name,
+        active={createComputed(() => get().value)}
+        onNotifyActive={(self) => {
+          const active = self.active;
+          set({
+            name: get().name,
             value: active,
-            type: setting.get().type,
-            min: setting.get().min,
-            max: setting.get().max,
+            type: get().type,
+            min: get().min,
+            max: get().max,
           });
         }}
       />
@@ -157,9 +167,9 @@ const agsSetting = (setting: Variable<AGSSetting>) => {
   };
 
   return (
-    <box className="setting" hexpand={true} spacing={5}>
+    <box class="setting" hexpand={true} spacing={5}>
       {title}
-      {setting.get().type === "bool" ? switchWidget() : sliderWidget()}
+      {get().type === "bool" ? switchWidget() : sliderWidget()}
     </box>
   );
 };
@@ -181,13 +191,17 @@ const hyprlandSetting = (keys: string, setting: HyprlandSetting) => {
       <label
         hexpand={true}
         xalign={1}
-        label={`${Math.round(
-          (setting.value / (setting.max - setting.min)) * 100
-        )}%`}
+        label={createComputed(
+          () =>
+            `${Math.round(
+              (getSetting(keys + ".value") / (setting.max - setting.min)) * 100
+            )}%`
+        )}
       />
     );
 
-    const setValue = ({ value }: { value: number }) => {
+    const setValue = (self: any) => {
+      let value = self.get_value();
       infoLabel.label = `${Math.round(value * 100)}%`;
       switch (setting.type) {
         case "int":
@@ -212,11 +226,11 @@ const hyprlandSetting = (keys: string, setting: HyprlandSetting) => {
     const Slider = (
       <slider
         halign={Gtk.Align.END}
-        step={0.01}
-        width_request={169}
-        className="slider"
-        value={bind(globalSettings).as(
-          (s) => getSetting(keys + ".value") / (setting.max - setting.min)
+        widthRequest={169}
+        class="slider"
+        drawValue={false}
+        value={createComputed(
+          () => getSetting(keys + ".value") / (setting.max - setting.min)
         )}
         onValueChanged={setValue}
       />
@@ -235,7 +249,7 @@ const hyprlandSetting = (keys: string, setting: HyprlandSetting) => {
       <label
         hexpand={true}
         xalign={1}
-        label={bind(globalSettings).as((s) =>
+        label={createComputed(() =>
           getSetting(keys + ".value") ? "On" : "Off"
         )}
       />
@@ -243,9 +257,9 @@ const hyprlandSetting = (keys: string, setting: HyprlandSetting) => {
 
     const Switch = (
       <switch
-        active={getSetting(keys + ".value")}
-        onButtonPressEvent={({ active }) => {
-          active = !active;
+        active={createComputed(() => getSetting(keys + ".value"))}
+        onNotifyActive={(self) => {
+          const active = self.active;
           setSetting(keys + ".value", active);
           const configString = buildConfigString(keyArray.slice(1), active);
           execAsync(
@@ -266,7 +280,7 @@ const hyprlandSetting = (keys: string, setting: HyprlandSetting) => {
   };
 
   return (
-    <box className="setting">
+    <box class="setting">
       {title}
       {setting.type === "bool" ? switchWidget() : sliderWidget()}
     </box>
@@ -281,11 +295,7 @@ const Settings = () => {
   const hyprlandSettings: any = [];
 
   const Category = (title: string) => (
-    <label
-      className={"subcategory-label"}
-      label={title}
-      halign={Gtk.Align.START}
-    />
+    <label class={"subcategory-label"} label={title} halign={Gtk.Align.START} />
   );
 
   const processSetting = (
@@ -323,7 +333,7 @@ const Settings = () => {
     }
   };
 
-  Object.entries(globalSettings.get().hyprland).forEach(([key, value]) => {
+  Object.entries(globalSettings().hyprland).forEach(([key, value]) => {
     processSetting(key, value);
   });
 
@@ -331,22 +341,22 @@ const Settings = () => {
     <scrollable
       heightRequest={500}
       child={
-        <box vertical={true} spacing={10} className="settings">
-          <box className={"category"} vertical={true} spacing={5}>
+        <box vertical={true} spacing={10} class="settings">
+          <box class={"category"} vertical={true} spacing={5}>
             <label label="AGS" halign={Gtk.Align.START} />
-            {setBarLayout()}
-            {agsSetting(globalOpacity)}
-            {agsSetting(globalIconSize)}
-            {agsSetting(globalScale)}
-            {agsSetting(globalFontSize)}
+            {BarLayoutSetting()}
+            {agsSetting([globalOpacity, setGlobalOpacity])}
+            {agsSetting([globalIconSize, setGlobalIconSize])}
+            {agsSetting([globalScale, setGlobalScale])}
+            {agsSetting([globalFontSize, setGlobalFontSize])}
           </box>
-          <box className={"category"} vertical={true} spacing={5}>
+          <box class={"category"} vertical={true} spacing={5}>
             <label label="Hyprland" halign={Gtk.Align.START} />
             {hyprlandSettings}
           </box>
-          <box className={"category"} vertical={true} spacing={5}>
+          <box class={"category"} vertical={true} spacing={5}>
             <label label="Custom" halign={Gtk.Align.START} />
-            {agsSetting(autoWorkspaceSwitching)}
+            {agsSetting([autoWorkspaceSwitching, setAutoWorkspaceSwitching])}
           </box>
         </box>
       }
@@ -355,7 +365,7 @@ const Settings = () => {
 };
 
 const WindowActions = ({ monitor }: { monitor: string }) => (
-  <box hexpand={true} className="window-actions">
+  <box hexpand={true} class="window-actions">
     <box
       hexpand={true}
       halign={Gtk.Align.START}
@@ -381,7 +391,7 @@ export default (monitor: Gdk.Monitor) => {
       name={`settings-${monitorName}`}
       namespace="settings"
       application={App}
-      className=""
+      class=""
       anchor={Astal.WindowAnchor.BOTTOM | Astal.WindowAnchor.LEFT}
       visible={false}
       margin={globalMargin}
@@ -393,7 +403,7 @@ export default (monitor: Gdk.Monitor) => {
         }
       }}
       child={
-        <box vertical={true} className="settings-widget">
+        <box vertical={true} class="settings-widget">
           <WindowActions monitor={monitorName} />
           <Settings />
         </box>

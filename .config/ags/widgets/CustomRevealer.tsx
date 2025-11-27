@@ -1,6 +1,5 @@
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
 import { globalTransition } from "../variables";
-import { Binding } from "astal";
 
 export default ({
   trigger,
@@ -10,14 +9,14 @@ export default ({
   custom_class = "",
   on_primary_click = () => {},
 }: {
-  trigger: Gtk.Widget;
-  child: Gtk.Widget;
+  trigger: any;
+  child: any;
   visible?: boolean;
-  revealChild?: boolean | Binding<boolean>;
+  revealChild?: boolean | (() => boolean);
   custom_class?: string;
   on_primary_click?: () => void;
 }) => {
-  const revealer = (
+  const revealer: Gtk.Revealer = (
     <revealer
       revealChild={revealChild}
       transitionDuration={globalTransition}
@@ -29,16 +28,16 @@ export default ({
   const eventBox = (
     <eventbox
       visible={visible}
-      className={"custom-revealer " + custom_class}
-      on_hover={(self) => {
+      class={"custom-revealer " + custom_class}
+      onHover={(self) => {
         revealer.reveal_child = true;
       }}
-      on_hover_lost={() => {
+      onHoverLost={() => {
         revealer.reveal_child = false;
       }}
       onClick={on_primary_click}
       child={
-        <box className={"content"}>
+        <box class={"content"}>
           {trigger}
           {revealer}
         </box>

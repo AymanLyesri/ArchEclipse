@@ -13,10 +13,10 @@ Hyprland.connect("notify::clients", () => {
     (c) => c.workspace?.id === GAMING_WORKSPACE
   );
 
-  const current = focusedWorkspace.get().id;
+  const current = focusedWorkspace()?.id;
 
   if (
-    autoWorkspaceSwitching.get().value &&
+    autoWorkspaceSwitching().value &&
     hasGamingWindow &&
     !hasSwitchedToGaming && // only if we haven't switched before
     current !== GAMING_WORKSPACE

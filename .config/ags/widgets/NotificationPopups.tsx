@@ -1,8 +1,10 @@
-import { Astal, Gtk, Gdk, App } from "astal/gtk3";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import Notifd from "gi://AstalNotifd";
 import Notification from "./rightPanel/components/Notification";
-import { type Subscribable } from "astal/binding";
-import { Variable, bind, timeout } from "astal";
+import { createState, createComputed } from "ags";
 import { DND, globalMargin } from "../variables";
 
 // see comment below in constructor
@@ -11,20 +13,25 @@ const TIMEOUT_DELAY = 5000;
 // The purpose if this class is to replace Variable<Array<Widget>>
 // with a Map<number, Widget> type in order to track notification widgets
 // by their id, while making it conveniently bindable as an array
-class NotificationMap implements Subscribable {
+class NotificationMap {
   // the underlying notificationMap to keep track of id widget pairs
-  private notificationMap: Map<number, Gtk.Widget> = new Map();
+  private notificationMap: Map<number, any> = new Map();
 
   // it makes sense to use a Variable under the hood and use its
   // reactivity implementation instead of keeping track of subscribers ourselves
-  private notifications: Variable<Array<Gtk.Widget>> = Variable([]);
+  private notifications: any;
+  private setNotifications: any;
 
   // notify subscribers to rerender when state changes
   private notify() {
-    this.notifications.set([...this.notificationMap.values()].reverse());
+    this.setNotifications([...this.notificationMap.values()].reverse());
   }
 
   constructor() {
+    const [notifications, setNotifications] = createState<Array<any>>([]);
+    this.notifications = notifications;
+    this.setNotifications = setNotifications;
+
     const notifd = Notifd.get_default();
 
     /**
@@ -36,7 +43,7 @@ class NotificationMap implements Subscribable {
     // notifd.ignoreTimeout = true
 
     notifd.connect("notified", (_, id) => {
-      if (DND.get()) return;
+      if (DND()) return;
       // this.clearOldNotifications(); // Clear old notifications before adding new one
       this.set(
         id,
@@ -55,7 +62,7 @@ class NotificationMap implements Subscribable {
     });
   }
 
-  private set(key: number, value: Gtk.Widget) {
+  private set(key: number, value: any) {
     // in case of replacecment destroy previous widget
     this.notificationMap.get(key)?.destroy();
     this.notificationMap.set(key, value);
@@ -95,12 +102,17 @@ class NotificationMap implements Subscribable {
 
   // needed by the Subscribable interface
   get() {
-    return this.notifications.get();
+    return this.notifications();
   }
 
   // needed by the Subscribable interface
-  subscribe(callback: (list: Array<Gtk.Widget>) => void) {
-    return this.notifications.subscribe(callback);
+  subscribe(callback: (list: Array<any>) => void) {
+    // In the new system, we might not need subscribe if we use the accessor directly in JSX
+    // But for compatibility if needed:
+    // return this.notifications.subscribe(callback);
+    // Since we are using createComputed or just passing the accessor, we can just return a cleanup function or similar
+    // However, for this specific case, we can just expose the accessor.
+    return () => {};
   }
 }
 
@@ -111,7 +123,7 @@ export default (monitor: Gdk.Monitor) => {
   return (
     <window
       gdkmonitor={monitor}
-      className="NotificationPopups"
+      class="NotificationPopups"
       name="notification-popups"
       namespace="notification-popups"
       application={App}
@@ -122,12 +134,14 @@ export default (monitor: Gdk.Monitor) => {
       widthRequest={400}
       child={
         <box
-          className={"notification-popups"}
+          class={"notification-popups"}
           vertical
           vexpand={true}
-          noImplicitDestroy>
-          {bind(notifications)}
-        </box>
-      }></window>
+          child={createComputed(() => (
+            <box vertical>{notifications.get().map((n: any) => n)}</box>
+          ))}
+        />
+      }
+    />
   );
 };

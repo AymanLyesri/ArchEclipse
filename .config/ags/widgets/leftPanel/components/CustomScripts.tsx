@@ -1,6 +1,6 @@
-import { execAsync } from "astal";
+import { execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
 
 const customScripts = [
   {
@@ -39,23 +39,23 @@ const customScripts = [
 
 export default () => {
   return (
-    <box className="custom-scripts" vertical hexpand spacing={10}>
+    <box class="custom-scripts" vertical hexpand spacing={10}>
       {customScripts.map((script) => (
         <eventbox
-          className={"script-eventbox"}
+          class={"script-eventbox"}
           onClick={() => {
             script.script();
           }}
           child={
-            <box className="script" spacing={10}>
+            <box class="script" spacing={10}>
               <label
-                className="icon"
+                class="icon"
                 halign={Gtk.Align.START}
                 wrap
                 label={`${script.icon}`}
               />
               <label
-                className="name"
+                class="name"
                 halign={Gtk.Align.START}
                 wrap
                 label={script.name}

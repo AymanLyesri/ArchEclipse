@@ -1,12 +1,12 @@
-import { execAsync, GLib, timeout, Variable } from "astal";
-import { Gtk, Astal } from "astal/gtk3";
+import { execAsync } from "ags/process";
+import Gtk from "gi://Gtk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import Notifd from "gi://AstalNotifd";
 import { globalTransition, NOTIFICATION_DELAY } from "../../../variables";
-import ToggleButton from "../../toggleButton";
-import hyprland from "gi://AstalHyprland";
+import Hyprland from "gi://AstalHyprland";
 import { notify } from "../../../utils/notification";
 import { asyncSleep, time } from "../../../utils/time";
-const Hyprland = hyprland.get_default();
+import { createState } from "ags";
 
 const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
 
@@ -16,11 +16,11 @@ function NotificationIcon(n: Notifd.Notification) {
   const notificationIcon = n.image || n.app_icon || n.desktopEntry;
 
   if (!notificationIcon)
-    return <icon className="icon" icon={"dialog-information-symbolic"} />;
+    return <icon class="icon" icon={"dialog-information-symbolic"} />;
 
   return (
     <box
-      className="image"
+      class="image"
       css={`
         background-image: url("${notificationIcon}");
         background-size: cover;
@@ -56,19 +56,20 @@ export default ({
   newNotification?: boolean;
   popup?: boolean;
 }) => {
-  const IsLocked = Variable<boolean>(false);
-  IsLocked.subscribe((value) => {
-    if (!value)
-      timeout(NOTIFICATION_DELAY, () => {
-        if (!IsLocked.get() && popup) closeNotification();
-      });
-  });
+  const [getIsLocked, setIsLocked] = createState<boolean>(false);
+  let revealerInstance: Gtk.Revealer | null = null;
+
+  const value = getIsLocked;
+  if (!value)
+    setTimeout(() => {
+      if (!getIsLocked && popup) closeNotification();
+    }, NOTIFICATION_DELAY);
 
   async function closeNotification(dismiss = false) {
-    Revealer.reveal_child = false;
-    timeout(globalTransition, () => {
+    if (revealerInstance) revealerInstance.reveal_child = false;
+    setTimeout(() => {
       if (dismiss) n.dismiss();
-    });
+    }, globalTransition);
   }
 
   const icon = (
@@ -76,13 +77,14 @@ export default ({
       valign={Gtk.Align.START}
       halign={Gtk.Align.CENTER}
       hexpand={false}
-      className="icon"
-      child={NotificationIcon(n)}></box>
+      class="icon"
+      child={NotificationIcon(n)}
+    ></box>
   );
 
   const title = (
     <label
-      className="title"
+      class="title"
       xalign={0}
       justify={Gtk.Justification.LEFT}
       hexpand={true}
@@ -96,7 +98,7 @@ export default ({
 
   const body = (
     <label
-      className="body"
+      class="body"
       hexpand={true}
       truncate={true}
       maxWidthChars={24}
@@ -107,38 +109,16 @@ export default ({
     />
   );
 
-  // const actions: string[] = n.actions
-  //   ? JSON.parse(n.actions.toString()[0])
-  //   : [];
-
-  // const Actions = (
-  //   <box className="actions">
-  //     {actions.map((action) => (
-  //       <button
-  //         className={action[0].includes("Delete") ? "delete" : ""}
-  //         onClicked={() => {
-  //           Hyprland.message_async(`dispatch exec ${action[1]}`).catch((err) =>
-  //             notify(err)
-  //           );
-  //         }}
-  //         hexpand={true}
-  //         child={
-  //           <label label={action[0].includes("Delete") ? "󰆴" : action[0]} />
-  //         }></button>
-  //     ))}
-  //   </box>
-  // );
-
   const expandRevealer = (
     <revealer
       reveal_child={false}
       transition_type={Gtk.RevealerTransitionType.CROSSFADE}
       transitionDuration={globalTransition}
       child={
-        <ToggleButton
-          className="expand"
-          state={false}
-          onToggled={(self, on) => {
+        <togglebutton
+          class="expand"
+          active={false}
+          onToggled={({ active }) => {
             title.set_property("truncate", !on);
             body.set_property("truncate", !on);
             self.label = on ? "" : "";
@@ -150,18 +130,18 @@ export default ({
   );
 
   const lockButton = (
-    <ToggleButton
-      className="lock"
-      label=""
-      onToggled={(self, on) => {
-        IsLocked.set(on);
+    <togglebutton
+      class="lock"
+      label=""
+      onToggled={({ active }) => {
+        setIsLocked(on);
       }}
     />
   );
 
   const copyButton = (
     <button
-      className="copy"
+      class="copy"
       label=""
       onClicked={() => copyNotificationContent(n)}
     />
@@ -183,23 +163,25 @@ export default ({
       transitionDuration={globalTransition}
       child={
         <button
-          className="close"
+          class="close"
           label=""
           onClicked={() => {
             closeNotification(true);
           }}
         />
-      }></revealer>
+      }
+    ></revealer>
   );
 
-  const CircularProgress = (
-    <circularprogress
-      className="circular-progress"
-      rounded={true}
-      value={1}
-      setup={async (self) => {
-        while (self.value >= 0) {
-          self.value -= 0.01;
+  const Progress = (
+    <progressbar
+      class="circular-progress"
+      fraction={1}
+      $={async (self) => {
+        let val = 1;
+        while (val >= 0) {
+          val -= 0.01;
+          self.fraction = val;
           await asyncSleep(50);
         }
         self.visible = false;
@@ -208,36 +190,32 @@ export default ({
   );
 
   const topBar = (
-    <box className="top-bar" hexpand={true} spacing={5}>
+    <box class="top-bar" hexpand={true} spacing={5}>
       <box spacing={5} hexpand>
-        <box
-          visible={popup}
-          className={"circular-progress-box"}
-          child={CircularProgress}
-        />
+        <box visible={popup} class={"circular-progress-box"} child={Progress} />
         <label
           wrap={true}
           xalign={0}
           truncate={popup}
-          className="app-name"
+          class="app-name"
           label={n.app_name}
         />
         {leftRevealer}
       </box>
-      <box className={"quick-actions"}>
+      <box class={"quick-actions"}>
         {closeRevealer}
         {expandRevealer}
       </box>
 
-      <label xalign={1} className="time" label={time(n.time)} />
+      <label xalign={1} class="time" label={time(n.time)} />
     </box>
   );
 
   const Box = (
     <box
-      className={`notification ${n.urgency} ${n.app_name}`}
+      class={`notification ${n.urgency} ${n.app_name}`}
       child={
-        <box className="main-content" vertical={true} spacing={10}>
+        <box class="main-content" vertical={true} spacing={10}>
           {topBar}
           {/* <separator /> */}
           <box spacing={5}>
@@ -249,7 +227,8 @@ export default ({
           </box>
           {/* {Actions} */}
         </box>
-      }></box>
+      }
+    ></box>
   );
 
   const Revealer = (
@@ -257,24 +236,26 @@ export default ({
       transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
       transitionDuration={TRANSITION}
       reveal_child={!newNotification}
-      setup={(self) => {
-        timeout(1, () => {
+      $={(self) => {
+        revealerInstance = self;
+        setTimeout(() => {
           self.reveal_child = true;
-        });
+        }, 1);
       }}
-      child={Box}></revealer>
+      child={Box}
+    ></revealer>
   );
   const Parent = (
     <box
       visible={true}
-      setup={(self) =>
-        timeout(NOTIFICATION_DELAY, () => {
-          if (!IsLocked.get() && popup) closeNotification();
-        })
+      $={(self) =>
+        setTimeout(() => {
+          if (!getIsLocked() && popup) closeNotification();
+        }, NOTIFICATION_DELAY)
       }
       child={
         <eventbox
-          className={"notification-eventbox"}
+          class={"notification-eventbox"}
           visible={true}
           onHover={() => {
             leftRevealer.reveal_child = true;
@@ -282,7 +263,7 @@ export default ({
             expandRevealer.reveal_child = true;
           }}
           onHoverLost={() => {
-            if (!IsLocked.get()) leftRevealer.reveal_child = false;
+            if (!getIsLocked()) leftRevealer.reveal_child = false;
             closeRevealer.reveal_child = false;
             expandRevealer.reveal_child = false;
           }}
@@ -290,8 +271,10 @@ export default ({
             popup ? lockButton.activate() : copyButton.activate()
           }
           // onSecondaryClick={() => closeRevealer.child.activate()}
-          child={Revealer}></eventbox>
-      }></box>
+          child={Revealer}
+        ></eventbox>
+      }
+    ></box>
   );
 
   return Parent;

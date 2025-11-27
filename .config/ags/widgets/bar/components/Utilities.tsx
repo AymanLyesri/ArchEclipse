@@ -1,11 +1,8 @@
 import Brightness from "../../../services/brightness";
 const brightness = Brightness.get_default();
 import CustomRevealer from "../../CustomRevealer";
-import {
-  bind,
-  execAsync,
-  Variable,
-} from "../../../../../../../usr/share/astal/gjs";
+import { createBinding, createComputed } from "ags";
+import { execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
 
@@ -13,38 +10,47 @@ import Battery from "gi://AstalBattery";
 const battery = Battery.get_default();
 
 import Tray from "gi://AstalTray";
-import ToggleButton from "../../toggleButton";
-import { Gtk } from "astal/gtk3";
-import { barLock, barOrientation, DND, globalTheme } from "../../../variables";
+import Gtk from "gi://Gtk?version=3.0";
+import {
+  barLock,
+  setBarLock,
+  barOrientation,
+  setBarOrientation,
+  DND,
+  setDND,
+  globalTheme,
+  setGlobalTheme,
+} from "../../../variables";
 import { notify } from "../../../utils/notification";
-import { switchGlobalTheme } from "../../../utils/theme";
+import { For } from "ags";
 
 function Theme() {
   return (
-    <ToggleButton
-      onToggled={(self, on) => switchGlobalTheme()}
-      label={bind(globalTheme).as((theme) => (theme ? "" : ""))}
-      className="theme icon"
+    <togglebutton
+      active={globalTheme}
+      onToggled={({ active }) => setGlobalTheme(active)}
+      label={globalTheme((theme) => (theme ? "" : ""))}
+      class="theme icon"
     />
   );
 }
 
 function BrightnessWidget() {
+  const screen = createBinding(brightness, "screen");
   const slider = (
     <slider
       widthRequest={100}
-      className="slider"
+      class="slider"
       drawValue={false}
-      onDragged={(self) => (brightness.screen = self.value)}
-      value={bind(brightness, "screen")}
+      onValueChanged={(self) => (brightness.screen = self.get_value())}
+      value={screen((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
     />
   );
 
   const label = (
     <label
-      className="trigger"
-      label={bind(brightness, "screen").as((v) => {
-        `${Math.round(v * 100)}%`;
+      class="trigger"
+      label={screen((v) => {
         switch (true) {
           case v > 0.75:
             return "󰃠";
@@ -63,22 +69,25 @@ function BrightnessWidget() {
     <CustomRevealer
       trigger={label}
       child={slider}
-      visible={brightness.screen != 0}
+      visible={createComputed(() => brightness.screen != 0)}
     />
   );
 }
 
 function Volume() {
   const speaker = Wp.get_default()?.audio.defaultSpeaker!;
-  const icon = <icon className="trigger" icon={bind(speaker, "volumeIcon")} />;
+  const volumeIcon = createBinding(speaker, "volumeIcon");
+  const volume = createBinding(speaker, "volume");
+
+  const icon = <icon class="trigger" icon={volumeIcon} />;
 
   const slider = (
     <slider
-      step={0.1}
-      className="slider"
+      // step={0.1} // Gtk.Scale doesn't have step prop directly in JSX usually, handled by adjustment or set_increment
+      class="slider"
       widthRequest={100}
-      onDragged={({ value }) => (speaker.volume = value)}
-      value={bind(speaker, "volume")}
+      onValueChanged={(self) => (speaker.volume = self.get_value())}
+      value={volume((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
     />
   );
 
@@ -96,54 +105,60 @@ function Volume() {
 }
 
 function BatteryWidget() {
-  const value = bind(battery, "percentage").as((p) => p);
-  const isCharging = bind(battery, "charging").as((c) => c);
+  const percentage = createBinding(battery, "percentage");
+  const charging = createBinding(battery, "charging");
 
   // if (battery.percentage <= 0) return <box />;
 
   const label = (
     <label
-      className={bind(
-        Variable.derive([isCharging, value], (isCharging, value) => {
-          if (isCharging) {
-            return "trigger charging";
-          } else {
-            return value * 100 <= 15 ? "trigger low" : "trigger";
-          }
-        })
-      )}
-      label={bind(
-        Variable.derive([isCharging, value], (isCharging, p) => {
-          p *= 100;
-          switch (true) {
-            case isCharging:
-              return "⚡";
-            case p > 85:
-              return "";
-            case p > 75:
-              return "";
-            case p > 50:
-              return "";
-            case p > 25:
-              return "";
-            case p > 10:
-              return "";
-            case p > 0:
-              return "";
-            default:
-              return "";
-          }
-        })
-      )}
+      class={createComputed(() => {
+        const isCharging = charging.get();
+        const value = percentage.get();
+        if (isCharging) {
+          return "trigger charging";
+        } else {
+          return value * 100 <= 15 ? "trigger low" : "trigger";
+        }
+      })}
+      label={createComputed(() => {
+        const isCharging = charging.get();
+        const p = percentage.get() * 100;
+        switch (true) {
+          case isCharging:
+            return "⚡";
+          case p > 85:
+            return "";
+          case p > 75:
+            return "";
+          case p > 50:
+            return "";
+          case p > 25:
+            return "";
+          case p > 10:
+            return "";
+          case p > 0:
+            return "";
+          default:
+            return "";
+        }
+      })}
     />
   );
 
-  const info = <label label={value.as((v) => `${Math.round(v * 100)}%`)} />;
+  const info = (
+    <label label={percentage((p: number) => `${Math.round(p * 100)}%`)} />
+  );
 
-  const levelbar = <levelbar widthRequest={100} value={value.as((v) => v)} />;
+  const levelbar = (
+    <levelbar
+      widthRequest={100}
+      value={percentage((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
+    />
+  );
 
   const box = (
-    <box className={"details"} spacing={5}>
+    <box class={"details"} spacing={5}>
       {info}
       {levelbar}
     </box>
@@ -154,68 +169,88 @@ function BatteryWidget() {
       trigger={label}
       child={box}
       custom_class="battery"
-      visible={battery.percentage > 0}
-      revealChild={value.as(
-        (v) => (v < 0.1 && !isCharging.get()) || (v >= 0.95 && isCharging.get())
-      )}
+      visible={createComputed(() => battery.percentage > 0)}
+      revealChild={createComputed(() => {
+        const v = percentage.get();
+        const isCharging = charging.get();
+        return (v < 0.1 && !isCharging) || (v >= 0.95 && isCharging);
+      })}
     />
   );
 }
 
 function SysTray() {
   const tray = Tray.get_default();
+  const itemsBinding: [] = createBinding(tray, "items");
 
-  const items = bind(tray, "items").as((items) =>
-    items.map((item) => (
-      <menubutton
-        margin={0}
-        cursor="pointer"
-        usePopover={false}
-        tooltipMarkup={bind(item, "tooltipMarkup")}
-        actionGroup={bind(item, "actionGroup").as((ag) => ["dbusmenu", ag])}
-        menuModel={bind(item, "menuModel")}
-        child={<icon gicon={bind(item, "gicon")} className="systemtray-icon" />}
-      />
-    ))
+  const items = itemsBinding((items) =>
+    items.map((item) => {
+      const tooltipMarkup = createBinding(item, "tooltipMarkup");
+      const actionGroup = createBinding(item, "actionGroup");
+      const menuModel = createBinding(item, "menuModel");
+      const gicon = createBinding(item, "gicon");
+
+      return (
+        <menubutton
+          margin={0}
+          // cursor="pointer" // Gtk widgets don't have cursor prop
+          usePopover={false}
+          tooltipMarkup={tooltipMarkup}
+          actionGroup={createComputed(() => ["dbusmenu", actionGroup.get()])}
+          menuModel={menuModel}
+          child={<icon gicon={gicon} class="systemtray-icon" />}
+        />
+      );
+    })
   );
 
-  return <box className="system-tray">{items}</box>;
+  return (
+    <box class="system-tray">
+      <For each={items}>{(item) => item}</For>
+    </box>
+  );
 }
 
 function PinBar() {
   return (
-    <ToggleButton
-      state={barLock.get()}
-      onToggled={(self, on) => {
-        barLock.set(on);
-        self.label = on ? "" : "";
+    <togglebutton
+      active={barLock}
+      onToggled={({ active }) => {
+        setBarLock(active);
       }}
-      className="panel-lock icon"
-      label={barLock.get() ? "" : ""}
+      class="panel-lock icon"
+      label={barLock((lock) => (lock ? "" : ""))}
     />
   );
 }
 
 function DndToggle() {
-  return ToggleButton({
-    state: DND.get(),
-    onToggled: (self, on) => {
-      DND.set(on);
-      self.label = DND.get() ? "" : "";
-    },
-    className: "dnd-toggle icon",
-    label: DND.get() ? "" : "",
-  });
+  return (
+    <togglebutton
+      active={DND}
+      onToggled={({ active }) => {
+        setDND(active);
+      }}
+      class="dnd-toggle icon"
+      label={DND((dnd) => (dnd ? "" : ""))}
+    />
+  );
 }
 
 function BarOrientation() {
   return (
-    <button
-      onClicked={() => barOrientation.set(!barOrientation.get())}
-      className="bar-orientation icon"
-      label={bind(barOrientation).as((orientation) =>
-        orientation ? "" : ""
-      )}
+    // <button
+    //   onClicked={() => setBarOrientation(!barOrientation.get())}
+    //   class="bar-orientation icon"
+    //   label={barOrientation((orientation) => (orientation ? "" : ""))}
+    // />
+    <togglebutton
+      active={barOrientation}
+      onToggled={({ active }) => {
+        setBarOrientation(active);
+      }}
+      class="bar-orientation icon"
+      label={barOrientation((orientation) => (orientation ? "" : ""))}
     />
   );
 }
@@ -228,11 +263,11 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box className="bar-right" spacing={5} halign={halign} hexpand>
-      <BatteryWidget />
-      <BrightnessWidget />
+    <box class="bar-right" spacing={5} halign={halign} hexpand>
+      {/* <BatteryWidget /> */}
+      {/* <BrightnessWidget /> */}
       <Volume />
-      <SysTray />
+      {/* <SysTray /> */}
       <Theme />
       <PinBar />
       <DndToggle />

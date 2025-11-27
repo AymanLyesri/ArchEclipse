@@ -1,4 +1,5 @@
-import { bind, exec, execAsync, Variable } from "astal";
+import { createState, createBinding, Accessor } from "ags";
+import { execAsync } from "ags/process";
 import Apps from "gi://AstalApps";
 
 import { readJson, readJSONFile } from "../utils/json";
@@ -8,7 +9,10 @@ import {
   formatToURL,
   getDomainFromURL,
 } from "../utils/url";
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
+import app from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+
+import Astal from "gi://Astal?version=3.0";
 import { notify } from "../utils/notification";
 import {
   emptyWorkspace,
@@ -25,48 +29,48 @@ import { getMonitorName } from "../utils/monitor";
 import { LauncherApp } from "../interfaces/app.interface";
 import { customApps } from "../constants/app.constants";
 import { quickApps } from "../constants/app.constants";
+import { For } from "gnim";
 const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
 
-const monitorName = Variable<string>("");
+const [monitorName, setMonitorName] = createState<string>("");
 
-const Results = Variable<LauncherApp[]>([]);
+const [Results, setResults] = createState<LauncherApp[]>([]);
 const QuickApps = () => {
   const apps = (
-    <revealer
-      transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
-      transition_duration={globalTransition}
-      revealChild={bind(Results).as((results) => results.length === 0)}
-      child={
-        <scrollable
-          heightRequest={quickApps.length * 40}
-          child={
-            <box className="quick-apps" spacing={5} vertical>
-              {quickApps.map((app, index) => (
-                <button
-                  hexpand
-                  className="quick-app"
-                  onClicked={() => {
-                    app.app_launch();
-                    hideWindow(`app-launcher-${monitorName.get()}`);
-                  }}
-                  child={
-                    <box spacing={5}>
-                      <label className="icon" label={app.app_icon} />
-                      <label label={app.app_name} />
-                    </box>
-                  }
-                ></button>
-              ))}
-            </box>
-          }
-        ></scrollable>
-      }
-    ></revealer>
+    <Gtk.Revealer
+      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+      transitionDuration={globalTransition}
+      revealChild={Results((results) => results.length === 0)}
+    >
+      <scrollable heightRequest={quickApps.length * 40}>
+        <box class="quick-apps" spacing={5} vertical>
+          {quickApps.map((app, index) => (
+            <Gtk.Button
+              hexpand
+              class="quick-app"
+              onClicked={() => {
+                app.app_launch();
+                hideWindow(`app-launcher-${monitorName()}`);
+              }}
+            >
+              <box spacing={5}>
+                <label class="icon" label={app.app_icon} />
+                <label label={app.app_name} />
+              </box>
+            </Gtk.Button>
+          ))}
+        </box>
+      </scrollable>
+    </Gtk.Revealer>
   );
 
-  return <box className="quick-launcher" spacing={5} child={apps}></box>;
+  return (
+    <box class="quick-launcher" spacing={5}>
+      {apps}
+    </box>
+  );
 };
 
 const helpCommands = {
@@ -79,18 +83,13 @@ const helpCommands = {
 };
 
 const Help = (
-  <box className="help" spacing={5} vertical>
+  <box class="help" spacing={5} vertical>
     {Object.entries(helpCommands).map(([command, explanation]) => (
       <box hexpand homogeneous>
+        <label class="command" label={command} halign={Gtk.Align.END} hexpand />
+        <label class="separator" label="=>>" halign={Gtk.Align.CENTER} />
         <label
-          className="command"
-          label={command}
-          halign={Gtk.Align.END}
-          hexpand
-        />
-        <label className="separator" label="=>>" halign={Gtk.Align.CENTER} />
-        <label
-          className="explanation"
+          class="explanation"
           label={explanation}
           halign={Gtk.Align.START}
           hexpand
@@ -102,12 +101,15 @@ const Help = (
 
 let debounceTimer: any;
 let args: string[];
+let entryWidget: any;
 
 const Entry = (
-  <entry
+  <Gtk.Entry
     hexpand={true}
-    placeholder_text="Search for an app, emoji, translate, url, or do some math..."
-    onChanged={async ({ text }) => {
+    placeholderText="Search for an app, emoji, translate, url, or do some math..."
+    $={(self) => (entryWidget = self)}
+    onChanged={async (self: any) => {
+      const text = self.get_text();
       if (debounceTimer) {
         clearTimeout(debounceTimer);
       }
@@ -115,7 +117,7 @@ const Entry = (
       debounceTimer = setTimeout(async () => {
         try {
           if (!text || text.trim() === "") {
-            Results.set([]);
+            setResults([]);
             return;
           }
           args = text.split(" ");
@@ -126,7 +128,7 @@ const Entry = (
                 .toLowerCase()
                 .includes(text.replace(">", "").trim().toLowerCase())
             );
-            Results.set(filteredCommands);
+            setResults(filteredCommands);
           } else if (args[0].includes("translate")) {
             const language = text.includes(">")
               ? text.split(">")[1].trim()
@@ -137,7 +139,7 @@ const Entry = (
                 .replace("translate", "")
                 .trim()}' '${language}'`
             );
-            Results.set([
+            setResults([
               {
                 app_name: translation,
                 app_launch: () => execAsync(`wl-copy ${translation}`),
@@ -152,7 +154,7 @@ const Entry = (
                   .toLowerCase()
                   .includes(text.replace("emoji", "").trim())
             );
-            Results.set(
+            setResults(
               filteredEmojis.map((emoji: { app_name: string }) => ({
                 app_name: emoji.app_name,
                 app_icon: emoji.app_name,
@@ -163,7 +165,7 @@ const Entry = (
           }
           // handle URL
           else if (containsProtocolOrTLD(args[0])) {
-            Results.set([
+            setResults([
               {
                 app_name: getDomainFromURL(text),
                 app_launch: () =>
@@ -181,7 +183,7 @@ const Entry = (
           }
           // handle arithmetic
           else if (containsOperator(args[0])) {
-            Results.set([
+            setResults([
               {
                 app_name: arithmetic(text),
                 app_launch: () => execAsync(`wl-copy ${arithmetic(text)}`),
@@ -190,11 +192,11 @@ const Entry = (
           }
           // Handle apps
           else {
-            Results.set(
+            setResults(
               apps
                 .fuzzy_query(args.shift()!)
                 .slice(0, MAX_ITEMS)
-                .map((app) => ({
+                .map((app: any) => ({
                   app_name: app.name,
                   app_icon: app.iconName,
                   app_type: "app",
@@ -209,7 +211,7 @@ const Entry = (
                 }))
             );
             if (Results.get().length === 0) {
-              Results.set([
+              setResults([
                 {
                   app_name: `Try ${text}`,
                   app_icon: "󰋖",
@@ -225,6 +227,7 @@ const Entry = (
             body: err instanceof Error ? err.message : String(err),
           });
         }
+        print("Results:", Results.get().length);
       }, 100); // 100ms delay
     }}
     onActivate={() => {
@@ -236,8 +239,8 @@ const Entry = (
 );
 
 const EmptyEntry = () => {
-  Entry.set_text("");
-  Results.set([]);
+  entryWidget.set_text("");
+  setResults([]);
 };
 
 const launchApp = (app: LauncherApp) => {
@@ -246,15 +249,19 @@ const launchApp = (app: LauncherApp) => {
   EmptyEntry();
 };
 
-const organizeResults = (results: LauncherApp[]) => {
+const ResultsDisplay = () => {
   const buttonContent = (element: LauncherApp) => (
     <box
       spacing={10}
       halign={element.app_type === "emoji" ? Gtk.Align.CENTER : Gtk.Align.START}
     >
-      {element.app_type === "app" ? <icon icon={element.app_icon} /> : <box />}
+      {element.app_type === "app" ? (
+        <Astal.Icon icon={element.app_icon} />
+      ) : (
+        <box />
+      )}
       <label label={element.app_name} />
-      <label className="argument" label={element.app_arg || ""} />
+      <label class="argument" label={element.app_arg || ""} />
     </box>
   );
 
@@ -266,47 +273,63 @@ const organizeResults = (results: LauncherApp[]) => {
     className?: string;
   }) => {
     return (
-      <button
+      <Gtk.Button
         hexpand={true}
-        className={className}
-        child={buttonContent(element)}
+        class={className}
         onClicked={() => {
           launchApp(element);
         }}
-      />
+      >
+        {buttonContent(element)}
+      </Gtk.Button>
     );
   };
 
-  if (results.length === 0) return <box />;
+  // if (Results.length === 0) return <box />;
 
   const rows = (
-    <box className="results" vertical={true} spacing={5}>
-      {results.map((result, i) => (
-        <AppButton element={result} className={i === 0 ? "checked" : ""} />
-      ))}
+    <box
+      visible={Results((results) => results.length > 0)}
+      class="results"
+      vertical={true}
+      spacing={5}
+    >
+      <For each={Results}>
+        {(result, i) => (
+          <AppButton
+            element={result}
+            className={i.get() === 0 ? "checked" : ""}
+          />
+        )}
+      </For>
     </box>
   );
 
   const maxHeight = 500;
   return (
-    <scrollable
-      heightRequest={bind(Results).as((results) =>
-        results.length * 45 > maxHeight ? maxHeight : results.length * 45
-      )}
-      child={rows}
-    />
+    <revealer
+      revealChild={Results((results) => results.length > 0)}
+      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+      transitionDuration={globalTransition}
+    >
+      <scrollable
+        heightRequest={Results((results) =>
+          results.length * 45 > maxHeight ? maxHeight : results.length * 45
+        )}
+      >
+        {rows}
+      </scrollable>
+    </revealer>
   );
 };
 
-const ResultsDisplay = <box child={bind(Results).as(organizeResults)} />;
-
-export default (monitor: Gdk.Monitor) => (
-  <window
+export default (monitor: any) => (
+  <Astal.Window
     gdkmonitor={monitor}
     name={`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`}
     namespace="app-launcher"
-    application={App}
-    anchor={emptyWorkspace.as((empty) =>
+    application={app}
+    anchor={emptyWorkspace((empty) =>
       empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
     )}
     exclusivity={Astal.Exclusivity.EXCLUSIVE}
@@ -314,26 +337,26 @@ export default (monitor: Gdk.Monitor) => (
     layer={Astal.Layer.TOP}
     margin={globalMargin} // top right bottom left
     visible={false}
-    onKeyPressEvent={(self, event) => {
-      if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+    onKeyPressEvent={(self: any, event: any) => {
+      if (event.get_keyval()[1] === 65307) {
         hideWindow(
           `app-launcher-${getMonitorName(monitor.get_display(), monitor)}`
         );
         return true;
       }
     }}
-    setup={(self) => {
-      monitorName.set(getMonitorName(monitor.get_display(), monitor)!);
+    $={(self) => {
+      setMonitorName(getMonitorName(monitor.get_display(), monitor)!);
+      print(`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`);
     }}
-    child={
-      <eventbox>
-        <box vertical={true} className="app-launcher" spacing={5}>
-          {Entry}
-          {ResultsDisplay}
-          {QuickApps()}
-          {Help}
-        </box>
-      </eventbox>
-    }
-  ></window>
+  >
+    <eventbox>
+      <box vertical={true} class="app-launcher" spacing={5}>
+        {Entry}
+        {ResultsDisplay()}
+        {QuickApps()}
+        {Help}
+      </box>
+    </eventbox>
+  </Astal.Window>
 );

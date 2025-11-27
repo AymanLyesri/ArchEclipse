@@ -1,10 +1,12 @@
-import { Astal, Gdk, Gtk } from "astal/gtk3";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import Brightness from "../services/brightness";
 const brightness = Brightness.get_default();
 import Wp from "gi://AstalWp";
 import { globalMargin } from "../variables";
-import { bind, Connectable } from "astal/binding";
-import { Variable } from "astal";
+import { createBinding, createState, createComputed } from "ags";
 
 const audio = Wp.get_default()?.audio!;
 
@@ -28,29 +30,30 @@ const getIcon = (value: number, icons: string[]) => {
 };
 
 const osdSlider = (
-  connectable: Connectable,
+  connectable: any,
   signal: string,
   setValue: (value: number) => void,
   icons: string[]
 ) => {
-  let sliderLock = Variable<boolean>(false);
+  const [sliderLock, setSliderLock] = createState<boolean>(false);
+  const value = createBinding(connectable, signal);
 
   const indicator = (
     <label
-      className={"icon"}
-      label={bind(connectable, signal).as((v) => getIcon(v, icons))}
+      class={"icon"}
+      label={createComputed(() => getIcon(value(), icons))}
     />
   );
 
   const slider = (
     <slider
-      vertical={true}
+      orientation={Gtk.Orientation.VERTICAL}
       inverted={true}
-      className="slider"
-      draw_value={false}
-      height_request={100}
-      value={bind(connectable, signal)}
-      onDragged={({ value }) => setValue(value)}
+      class="slider"
+      drawValue={false}
+      heightRequest={100}
+      value={createComputed(() => value())}
+      onValueChanged={(self) => setValue(self.get_value())}
     />
   );
 
@@ -60,15 +63,16 @@ const osdSlider = (
       revealChild={false}
       setup={(self) => {
         const debouncedHide = debounce(() => {
-          if (!sliderLock.get()) self.reveal_child = false;
+          if (!sliderLock()) self.reveal_child = false;
         }, DELAY);
-        self.hook(connectable, `notify::${signal}`, () => {
+        // Assuming connectable is a GObject, we can use connect
+        connectable.connect(`notify::${signal}`, () => {
           self.reveal_child = true;
           debouncedHide();
         });
       }}
       child={
-        <box className={"container"} vertical={true}>
+        <box class={"container"} vertical={true}>
           {slider}
           {indicator}
         </box>
@@ -78,9 +82,9 @@ const osdSlider = (
 
   const eventbox = (
     <eventbox
-      onHover={() => sliderLock.set(true)}
+      onHover={() => setSliderLock(true)}
       onHoverLost={() => {
-        sliderLock.set(false);
+        setSliderLock(false);
         revealer.reveal_child = false;
       }}
       child={revealer}
@@ -128,7 +132,7 @@ export default (monitor: Gdk.Monitor) => (
     gdkmonitor={monitor}
     name="osd"
     namespace="osd"
-    className="osd"
+    class="osd"
     layer={Astal.Layer.OVERLAY}
     margin={globalMargin}
     anchor={Astal.WindowAnchor.RIGHT}

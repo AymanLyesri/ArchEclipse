@@ -1,6 +1,5 @@
 import {
   autoCreateSettings,
-  defaultSettings,
   getSetting,
   setSetting,
   settingsPath,
@@ -11,174 +10,369 @@ const hyprland = Hyprland.get_default();
 
 import { WidgetSelector } from "./interfaces/widgetSelector.interface";
 import { refreshCss } from "./utils/scss";
-import { bind, Binding, GLib, timeout, Variable } from "astal";
+import { createBinding, createState, createComputed } from "ags";
+import { createPoll } from "ags/time";
+import GLib from "gi://GLib";
 import { writeJSONFile } from "./utils/json";
 import { AGSSetting, Settings } from "./interfaces/settings.interface";
 import { Api } from "./interfaces/api.interface";
 import { Waifu } from "./interfaces/waifu.interface";
-import { getGlobalTheme } from "./utils/theme";
 import { phi, phi_min } from "./constants/phi.constants";
+import { defaultSettings } from "./constants/settings.constants";
+import { exec, execAsync } from "ags/process";
+import { switchGlobalTheme } from "./utils/theme";
 
 export const NOTIFICATION_DELAY = phi * 3000;
 
-// Settings are stored in a json file, containing all the settings, check if it exists, if not, create it
-export const globalSettings = Variable<Settings>(defaultSettings);
-autoCreateSettings();
-globalSettings.subscribe((value) => writeJSONFile(settingsPath, value));
+const [globalSettings, _setGlobalSettings] =
+  createState<Settings>(defaultSettings);
 
-export const globalOpacity = Variable<AGSSetting>(getSetting("globalOpacity"));
-globalOpacity.subscribe((value) => {
-  setSetting("globalOpacity", value);
-  refreshCss();
-});
-export const globalIconSize = Variable<AGSSetting>(
-  getSetting("globalIconSize")
+print("Loading variables...1");
+
+// Initialize settings after creating the state
+autoCreateSettings(globalSettings, setGlobalSettings);
+
+print("Loading variables...2");
+
+function setGlobalSettings(value: Settings) {
+  _setGlobalSettings(value);
+  writeJSONFile(settingsPath, value);
+}
+export { globalSettings, setGlobalSettings };
+
+function printAllSettings(_: any) {
+  console.log("=== Global Settings ===");
+  console.log(JSON.stringify(_.get(), null, 2));
+}
+
+export { printAllSettings };
+
+const [globalOpacity, _setGlobalOpacity] = createState<AGSSetting>(
+  getSetting("globalOpacity", globalSettings.get())
 );
-globalIconSize.subscribe((value) => {
-  setSetting("globalIconSize", value);
-  refreshCss();
-});
-export const globalScale = Variable<AGSSetting>(getSetting("globalScale"));
-globalScale.subscribe((value) => {
-  setSetting("globalScale", value);
-  refreshCss();
-});
 
-export const globalFontSize = Variable<AGSSetting>(
-  getSetting("globalFontSize")
+function setGlobalOpacity(value: AGSSetting) {
+  _setGlobalOpacity(value);
+  setSetting("globalOpacity", value, globalSettings, setGlobalSettings);
+  refreshCss();
+}
+
+export { globalOpacity, setGlobalOpacity };
+
+const [globalIconSize, _setGlobalIconSize] = createState<AGSSetting>(
+  getSetting("globalIconSize", globalSettings.get())
 );
-globalFontSize.subscribe((value) => {
-  setSetting("globalFontSize", value);
+function setGlobalIconSize(value: AGSSetting) {
+  _setGlobalIconSize(value);
+  setSetting("globalIconSize", value, globalSettings, setGlobalSettings);
   refreshCss();
-});
+}
+export { globalIconSize, setGlobalIconSize };
 
-export const autoWorkspaceSwitching = Variable<AGSSetting>(
-  getSetting("autoWorkspaceSwitching")
+const [globalScale, _setGlobalScale] = createState<AGSSetting>(
+  getSetting("globalScale", globalSettings.get())
 );
-autoWorkspaceSwitching.subscribe((value) => {
-  setSetting("autoWorkspaceSwitching", value);
-});
+function setGlobalScale(value: AGSSetting) {
+  _setGlobalScale(value);
+  setSetting("globalScale", value, globalSettings, setGlobalSettings);
+  refreshCss();
+}
+export { globalScale, setGlobalScale };
 
-export const globalTheme = Variable<boolean>(false);
-getGlobalTheme();
+const [globalFontSize, _setGlobalFontSize] = createState<AGSSetting>(
+  getSetting("globalFontSize", globalSettings.get())
+);
+function setGlobalFontSize(value: AGSSetting) {
+  _setGlobalFontSize(value);
+  setSetting("globalFontSize", value, globalSettings, setGlobalSettings);
+  refreshCss();
+}
+export { globalFontSize, setGlobalFontSize };
+
+const [autoWorkspaceSwitching, _setAutoWorkspaceSwitching] =
+  createState<AGSSetting>(
+    getSetting("autoWorkspaceSwitching", globalSettings.get())
+  );
+function setAutoWorkspaceSwitching(value: AGSSetting) {
+  _setAutoWorkspaceSwitching(value);
+  setSetting(
+    "autoWorkspaceSwitching",
+    value,
+    globalSettings,
+    setGlobalSettings
+  );
+}
+export { autoWorkspaceSwitching, setAutoWorkspaceSwitching };
+
+const [globalTheme, _setGlobalTheme] = createState<boolean>(
+  exec([
+    "bash",
+    "-c",
+    "$HOME/.config/hypr/theme/scripts/system-theme.sh get",
+  ]).includes("light")
+);
+function setGlobalTheme(value: boolean) {
+  _setGlobalTheme(value);
+  switchGlobalTheme(value);
+}
+export { globalTheme, setGlobalTheme };
 
 export const globalMargin = phi * 10;
 export const globalTransition = phi * 300;
 
-export const dateFormat = Variable<string>(getSetting("dateFormat"));
-export const date_less = Variable("").poll(
+const [dateFormat, _setDateFormat] = createState<string>(
+  getSetting("dateFormat", globalSettings.get())
+);
+export const date_less = createPoll(
+  "",
   phi * 1000,
   () => GLib.DateTime.new_now_local().format(dateFormat.get())!
 );
-export const date_more = Variable("").poll(
+export const date_more = createPoll(
+  "",
   phi * 1000,
   () => GLib.DateTime.new_now_local().format(":%S %b %e, %A.")!
 );
-dateFormat.subscribe((value) => {
-  setSetting("date.format", value);
-  date_less.set(GLib.DateTime.new_now_local().format(value)!);
-  // date_more.set(GLib.DateTime.new_now_local().format(value)!);
-});
+function setDateFormat(value: string) {
+  _setDateFormat(value);
+  setSetting("date.format", value, globalSettings, setGlobalSettings);
+}
+export { dateFormat, setDateFormat };
 
-export const barVisibility = Variable<boolean>(getSetting("bar.visibility"));
-barVisibility.subscribe((value) => setSetting("bar.visibility", value));
-export const barLock: Variable<boolean> = Variable(getSetting("bar.lock"));
-barLock.subscribe((value) => setSetting("bar.lock", value));
-export const barOrientation = Variable<boolean>(getSetting("bar.orientation"));
-barOrientation.subscribe((value) => setSetting("bar.orientation", value));
-export const barLayout = Variable<WidgetSelector[]>(getSetting("bar.layout"));
-barLayout.subscribe((value) => setSetting("bar.layout", value));
+const [barVisibility, _setBarVisibility] = createState<boolean>(
+  getSetting("bar.visibility", globalSettings.get())
+);
+function setBarVisibility(value: boolean) {
+  _setBarVisibility(value);
+  setSetting("bar.visibility", value, globalSettings, setGlobalSettings);
+}
+export { barVisibility, setBarVisibility };
 
-export const waifuApi = Variable<Api>(getSetting("waifu.api"));
-waifuApi.subscribe((value) => setSetting("waifu.api", value));
-export const waifuCurrent = Variable<Waifu>(getSetting("waifu.current"));
-waifuCurrent.subscribe((value) => setSetting("waifu.current", value));
+const [barLock, _setBarLock] = createState<boolean>(
+  getSetting("bar.lock", globalSettings.get())
+);
+function setBarLock(value: boolean) {
+  _setBarLock(value);
+  setSetting("bar.lock", value, globalSettings, setGlobalSettings);
+}
+export { barLock, setBarLock };
 
-export const focusedClient: Binding<Hyprland.Client> = bind(
-  hyprland,
-  "focusedClient"
+const [barOrientation, _setBarOrientation] = createState<boolean>(
+  getSetting("bar.orientation", globalSettings.get())
 );
-export const emptyWorkspace: Binding<boolean> = focusedClient.as(
-  (client) => !client
-);
-export const focusedWorkspace: Binding<Hyprland.Workspace> = bind(
-  hyprland,
-  "focusedWorkspace"
-);
+function setBarOrientation(value: boolean) {
+  _setBarOrientation(value);
+  setSetting("bar.orientation", value, globalSettings, setGlobalSettings);
+}
+export { barOrientation, setBarOrientation };
 
-export const newAppWorkspace = Variable(0);
+const [barLayout, _setBarLayout] = createState<WidgetSelector[]>(
+  getSetting("bar.layout", globalSettings.get())
+);
+function setBarLayout(value: WidgetSelector[]) {
+  _setBarLayout(value);
+  setSetting("bar.layout", value, globalSettings, setGlobalSettings);
+}
+export { barLayout, setBarLayout };
 
-export const rightPanelVisibility = Variable<boolean>(
-  getSetting("rightPanel.visibility")
+const [waifuApi, _setWaifuApi] = createState<Api>(
+  getSetting("waifu.api", globalSettings.get())
 );
-rightPanelVisibility.subscribe((value) =>
-  setSetting("rightPanel.visibility", value)
-);
-export const rightPanelExclusivity = Variable<boolean>(
-  getSetting("rightPanel.exclusivity")
-);
-rightPanelExclusivity.subscribe((value) =>
-  setSetting("rightPanel.exclusivity", value)
-);
-export const rightPanelWidth = Variable<number>(getSetting("rightPanel.width"));
-rightPanelWidth.subscribe((value) => setSetting("rightPanel.width", value));
-export const rightPanelLock = Variable<boolean>(getSetting("rightPanel.lock"));
-rightPanelLock.subscribe((value) => setSetting("rightPanel.lock", value));
+function setWaifuApi(value: Api) {
+  _setWaifuApi(value);
+  setSetting("waifu.api", value, globalSettings, setGlobalSettings);
+}
+export { waifuApi, setWaifuApi };
 
-export const DND = Variable<boolean>(getSetting("notifications.dnd"));
-DND.subscribe((value) => setSetting("notifications.dnd", value));
+const [waifuCurrent, _setWaifuCurrent] = createState<Waifu>(
+  getSetting("waifu.current", globalSettings.get())
+);
+function setWaifuCurrent(value: Waifu) {
+  _setWaifuCurrent(value);
+  setSetting("waifu.current", value, globalSettings, setGlobalSettings);
+}
+export { waifuCurrent, setWaifuCurrent };
+
+export const focusedClient = createBinding(hyprland, "focusedClient");
+export const emptyWorkspace = createComputed(() => !focusedClient());
+export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
+
+export const [newAppWorkspace, setNewAppWorkspace] = createState(0);
+
+const [rightPanelVisibility, _setRightPanelVisibility] = createState<boolean>(
+  getSetting("rightPanel.visibility", globalSettings.get())
+);
+function setRightPanelVisibility(value: boolean) {
+  _setRightPanelVisibility(value);
+  setSetting("rightPanel.visibility", value, globalSettings, setGlobalSettings);
+}
+export { rightPanelVisibility, setRightPanelVisibility };
+
+const [rightPanelExclusivity, _setRightPanelExclusivity] = createState<boolean>(
+  getSetting("rightPanel.exclusivity", globalSettings.get())
+);
+function setRightPanelExclusivity(value: boolean) {
+  _setRightPanelExclusivity(value);
+  setSetting(
+    "rightPanel.exclusivity",
+    value,
+    globalSettings,
+    setGlobalSettings
+  );
+}
+export { rightPanelExclusivity, setRightPanelExclusivity };
+
+const [rightPanelWidth, _setRightPanelWidth] = createState<number>(
+  getSetting("rightPanel.width", globalSettings.get())
+);
+function setRightPanelWidth(value: number) {
+  _setRightPanelWidth(value);
+  setSetting("rightPanel.width", value, globalSettings, setGlobalSettings);
+}
+export { rightPanelWidth, setRightPanelWidth };
+
+const [rightPanelLock, _setRightPanelLock] = createState<boolean>(
+  getSetting("rightPanel.lock", globalSettings.get())
+);
+function setRightPanelLock(value: boolean) {
+  _setRightPanelLock(value);
+  setSetting("rightPanel.lock", value, globalSettings, setGlobalSettings);
+}
+export { rightPanelLock, setRightPanelLock };
+
+const [DND, _setDND] = createState<boolean>(
+  getSetting("notifications.dnd", globalSettings.get())
+);
+function setDND(value: boolean) {
+  _setDND(value);
+  setSetting("notifications.dnd", value, globalSettings, setGlobalSettings);
+}
+export { DND, setDND };
 
 export const widgetLimit = 6;
-export const rightPanelWidgets = Variable<WidgetSelector[]>(
-  getSetting("rightPanel.widgets")
-);
-rightPanelWidgets.subscribe((value) => setSetting("rightPanel.widgets", value));
+const [rightPanelWidgets, _setRightPanelWidgets] = createState<
+  WidgetSelector[]
+>(getSetting("rightPanel.widgets", globalSettings.get()));
+function setRightPanelWidgets(value: WidgetSelector[]) {
+  _setRightPanelWidgets(value);
+  setSetting("rightPanel.widgets", value, globalSettings, setGlobalSettings);
+}
+export { rightPanelWidgets, setRightPanelWidgets };
 
-export const leftPanelVisibility = Variable<boolean>(
-  getSetting("leftPanel.visibility")
+const [leftPanelVisibility, _setLeftPanelVisibility] = createState<boolean>(
+  getSetting("leftPanel.visibility", globalSettings.get())
 );
-leftPanelVisibility.subscribe((value) =>
-  setSetting("leftPanel.visibility", value)
-);
-export const leftPanelExclusivity = Variable<boolean>(
-  getSetting("leftPanel.exclusivity")
-);
-leftPanelExclusivity.subscribe((value) =>
-  setSetting("leftPanel.exclusivity", value)
-);
-export const leftPanelWidth = Variable<number>(getSetting("leftPanel.width"));
-leftPanelWidth.subscribe((value) => setSetting("leftPanel.width", value));
-export const leftPanelLock = Variable<boolean>(getSetting("leftPanel.lock"));
-leftPanelLock.subscribe((value) => setSetting("leftPanel.lock", value));
+function setLeftPanelVisibility(value: boolean) {
+  _setLeftPanelVisibility(value);
+  setSetting("leftPanel.visibility", value, globalSettings, setGlobalSettings);
+}
+export { leftPanelVisibility, setLeftPanelVisibility };
 
-export const leftPanelWidget = Variable<WidgetSelector>(
-  getSetting("leftPanel.widget")
+const [leftPanelExclusivity, _setLeftPanelExclusivity] = createState<boolean>(
+  getSetting("leftPanel.exclusivity", globalSettings.get())
 );
-leftPanelWidget.subscribe((value) => setSetting("leftPanel.widget", value));
+function setLeftPanelExclusivity(value: boolean) {
+  _setLeftPanelExclusivity(value);
+  setSetting("leftPanel.exclusivity", value, globalSettings, setGlobalSettings);
+}
+export { leftPanelExclusivity, setLeftPanelExclusivity };
 
-export const chatBotApi = Variable<Api>(getSetting("chatBot.api"));
-chatBotApi.subscribe((value) => setSetting("chatBot.api", value));
-export const chatBotImageGeneration = Variable<boolean>(
-  getSetting("chatBot.imageGeneration")
+const [leftPanelWidth, _setLeftPanelWidth] = createState<number>(
+  getSetting("leftPanel.width", globalSettings.get())
 );
-chatBotImageGeneration.subscribe((value) =>
-  setSetting("chatBot.imageGeneration", value)
+function setLeftPanelWidth(value: number) {
+  _setLeftPanelWidth(value);
+  setSetting("leftPanel.width", value, globalSettings, setGlobalSettings);
+}
+export { leftPanelWidth, setLeftPanelWidth };
+
+const [leftPanelLock, _setLeftPanelLock] = createState<boolean>(
+  getSetting("leftPanel.lock", globalSettings.get())
 );
+function setLeftPanelLock(value: boolean) {
+  _setLeftPanelLock(value);
+  setSetting("leftPanel.lock", value, globalSettings, setGlobalSettings);
+}
+export { leftPanelLock, setLeftPanelLock };
 
-export const booruApi = Variable<Api>(getSetting("booru.api"));
-booruApi.subscribe((value) => setSetting("booru.api", value));
-export const booruTags = Variable<string[]>(getSetting("booru.tags"));
-booruTags.subscribe((value) => setSetting("booru.tags", value));
-export const booruLimit = Variable<number>(getSetting("booru.limit"));
-booruLimit.subscribe((value) => setSetting("booru.limit", value));
-export const booruPage = Variable<number>(getSetting("booru.page"));
-booruPage.subscribe((value) => setSetting("booru.page", value));
+const [leftPanelWidget, _setLeftPanelWidget] = createState<WidgetSelector>(
+  getSetting("leftPanel.widget", globalSettings.get())
+);
+function setLeftPanelWidget(value: WidgetSelector) {
+  _setLeftPanelWidget(value);
+  setSetting("leftPanel.widget", value, globalSettings, setGlobalSettings);
+}
+export { leftPanelWidget, setLeftPanelWidget };
 
-export const screenShotVisibility = Variable<boolean>(false);
-screenShotVisibility.subscribe((value) => {
+const [chatBotApi, _setChatBotApi] = createState<Api>(
+  getSetting("chatBot.api", globalSettings.get())
+);
+function setChatBotApi(value: Api) {
+  _setChatBotApi(value);
+  setSetting("chatBot.api", value, globalSettings, setGlobalSettings);
+}
+export { chatBotApi, setChatBotApi };
+
+const [chatBotImageGeneration, _setChatBotImageGeneration] =
+  createState<boolean>(
+    getSetting("chatBot.imageGeneration", globalSettings.get())
+  );
+function setChatBotImageGeneration(value: boolean) {
+  _setChatBotImageGeneration(value);
+  setSetting(
+    "chatBot.imageGeneration",
+    value,
+    globalSettings,
+    setGlobalSettings
+  );
+}
+export { chatBotImageGeneration, setChatBotImageGeneration };
+
+const [booruApi, _setBooruApi] = createState<Api>(
+  getSetting("booru.api", globalSettings.get())
+);
+function setBooruApi(value: Api) {
+  _setBooruApi(value);
+  setSetting("booru.api", value, globalSettings, setGlobalSettings);
+}
+export { booruApi, setBooruApi };
+
+const [booruTags, _setBooruTags] = createState<string[]>(
+  getSetting("booru.tags", globalSettings.get())
+);
+function setBooruTags(value: string[]) {
+  _setBooruTags(value);
+  setSetting("booru.tags", value, globalSettings, setGlobalSettings);
+}
+export { booruTags, setBooruTags };
+
+const [booruLimit, _setBooruLimit] = createState<number>(
+  getSetting("booru.limit", globalSettings.get())
+);
+function setBooruLimit(value: number) {
+  _setBooruLimit(value);
+  setSetting("booru.limit", value, globalSettings, setGlobalSettings);
+}
+export { booruLimit, setBooruLimit };
+
+const [booruPage, _setBooruPage] = createState<number>(
+  getSetting("booru.page", globalSettings.get())
+);
+function setBooruPage(value: number) {
+  _setBooruPage(value);
+  setSetting("booru.page", value, globalSettings, setGlobalSettings);
+}
+export { booruPage, setBooruPage };
+
+const [screenShotVisibility, _setScreenShotVisibility] =
+  createState<boolean>(false);
+function setScreenShotVisibility(value: boolean) {
+  _setScreenShotVisibility(value);
   if (value) {
-    timeout(5000 * phi, () => {
-      screenShotVisibility.set(false);
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 5000 * phi, () => {
+      _setScreenShotVisibility(false);
+      return false;
     });
   }
-});
+}
+export { screenShotVisibility, setScreenShotVisibility };

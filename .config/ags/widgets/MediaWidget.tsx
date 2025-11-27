@@ -1,17 +1,18 @@
-import { Box, Label } from "astal/gtk3/widget";
 import Player from "./Player";
-import { Astal, Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 import Mpris from "gi://AstalMpris";
-import { bind } from "astal";
+import { createBinding, createComputed } from "ags";
 const mpris = Mpris.get_default();
 
 const noPlayerFound = () => (
-  <Box
+  <box
     halign={Gtk.Align.CENTER}
     valign={Gtk.Align.CENTER}
     hexpand={true}
-    className="module"
-    child={<Label label="No player found" />}></Box>
+    class="module"
+    child={<label label="No player found" />}
+  />
 );
 
 const activePlayer = () => {
@@ -26,10 +27,12 @@ const activePlayer = () => {
   return <Player player={player} playerType="widget" />;
 };
 
+const players = createBinding(mpris, "players");
+
 const Media = () => (
-  <Box
-    child={bind(mpris, "players").as((arr) =>
-      arr.length > 0 ? activePlayer() : noPlayerFound()
+  <box
+    child={createComputed(() =>
+      players().length > 0 ? activePlayer() : noPlayerFound()
     )}
   />
 );

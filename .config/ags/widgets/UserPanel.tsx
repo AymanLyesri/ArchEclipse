@@ -1,48 +1,53 @@
-import { bind, exec, execAsync, Variable } from "astal";
+import { createBinding, createState } from "ags";
+import { execAsync, exec } from "ags/process";
+import { createPoll } from "ags/time";
 import MediaWidget from "./MediaWidget";
 
 import NotificationHistory from "./rightPanel/NotificationHistory";
-import { App, Astal, Gdk, Gtk } from "astal/gtk3";
+import App from "ags/gtk3/app";
+import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
+import Astal from "gi://Astal?version=3.0";
 
-import hyprland from "gi://AstalHyprland";
+import Hyprland from "gi://AstalHyprland";
 import { date_less } from "../variables";
 import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
 import { notify } from "../utils/notification";
 import { FileChooserButton } from "./FileChooser";
-const Hyprland = hyprland.get_default();
+const hyprland = Hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
 const username = exec(`whoami`);
 const desktopEnv = exec(`bash -c "echo $XDG_CURRENT_DESKTOP"`);
-const uptime = Variable("-").poll(600000, "uptime -p"); // every 10 minutes
+const uptime = createPoll(600000, "uptime -p"); // every 10 minutes
 
 const UserPanel = (monitorName: string) => {
   const Profile = () => {
     const UserName = (
-      <box halign={Gtk.Align.CENTER} className="user-name">
+      <box halign={Gtk.Align.CENTER} class="user-name">
         <label label="I'm " />
-        <label className="secondary" label={username} />
+        <label class="secondary" label={username} />
       </box>
     );
     const DesktopEnv = (
-      <box className="desktop-env" halign={Gtk.Align.CENTER}>
+      <box class="desktop-env" halign={Gtk.Align.CENTER}>
         <label label="On " />
-        <label className="secondary" label={desktopEnv} />
+        <label class="secondary" label={desktopEnv} />
       </box>
     );
 
     const Uptime = (
       <box
         halign={Gtk.Align.CENTER}
-        className="up-time"
-        child={<label className="uptime" label={bind(uptime)} />}
+        class="up-time"
+        child={<label class="uptime" label={uptime} />}
       ></box>
     );
 
     const ProfilePicture = (
       <box
-        className="profile-picture"
+        class="profile-picture"
         css={`
           background-image: url("${pfpPath}");
         `}
@@ -51,7 +56,7 @@ const UserPanel = (monitorName: string) => {
             hexpand
             vexpand
             usePreviewLabel={false}
-            onFileSet={(self) => {
+            onFileSet={(self: any) => {
               let uri = self.get_uri();
               if (!uri) return;
               const cleanUri = uri.replace("file://", ""); // Remove 'file://' from the URI
@@ -73,7 +78,7 @@ const UserPanel = (monitorName: string) => {
     );
 
     return (
-      <box className="profile" vertical={true} spacing={5}>
+      <box class="profile" vertical={true} spacing={5}>
         {ProfilePicture}
         {UserName}
         {DesktopEnv}
@@ -86,10 +91,10 @@ const UserPanel = (monitorName: string) => {
     const Logout = () => (
       <button
         hexpand={true}
-        className="logout"
+        class="logout"
         label="󰍃"
         onClicked={() => {
-          Hyprland.message_async("dispatch exit", () => {});
+          hyprland.message_async("dispatch exit", () => {});
         }}
       />
     );
@@ -97,7 +102,7 @@ const UserPanel = (monitorName: string) => {
     const Shutdown = () => (
       <button
         hexpand={true}
-        className="shutdown"
+        class="shutdown"
         label=""
         onClicked={() => {
           execAsync(`shutdown now`);
@@ -108,7 +113,7 @@ const UserPanel = (monitorName: string) => {
     const Restart = () => (
       <button
         hexpand={true}
-        className="restart"
+        class="restart"
         label="󰜉"
         onClicked={() => {
           execAsync(`reboot`);
@@ -119,7 +124,7 @@ const UserPanel = (monitorName: string) => {
     const Sleep = () => (
       <button
         hexpand={true}
-        className="sleep"
+        class="sleep"
         label="󰤄"
         onClicked={() => {
           hideWindow(`user-panel-${monitorName}`);
@@ -129,12 +134,12 @@ const UserPanel = (monitorName: string) => {
     );
 
     return (
-      <box className="system-actions" vertical={true} spacing={10}>
-        <box className="action" spacing={10}>
+      <box class="system-actions" vertical={true} spacing={10}>
+        <box class="action" spacing={10}>
           {Shutdown()}
           {Restart()}
         </box>
-        <box className="action" spacing={10}>
+        <box class="action" spacing={10}>
           {Sleep()}
           {Logout()}
         </box>
@@ -143,12 +148,7 @@ const UserPanel = (monitorName: string) => {
   };
 
   const right = (
-    <box
-      halign={Gtk.Align.CENTER}
-      className="bottom"
-      vertical={true}
-      spacing={10}
-    >
+    <box halign={Gtk.Align.CENTER} class="bottom" vertical={true} spacing={10}>
       {Profile()}
       {Actions()}
     </box>
@@ -156,20 +156,16 @@ const UserPanel = (monitorName: string) => {
 
   const Date = (
     <box
-      className="date"
+      class="date"
       child={
-        <label
-          halign={Gtk.Align.CENTER}
-          hexpand={true}
-          label={bind(date_less)}
-        />
+        <label halign={Gtk.Align.CENTER} hexpand={true} label={date_less} />
       }
     ></box>
   );
 
   const middle = (
     <box
-      className="middle"
+      class="middle"
       vertical={true}
       hexpand={true}
       vexpand={true}
@@ -182,7 +178,7 @@ const UserPanel = (monitorName: string) => {
   );
 
   return (
-    <box className="main" spacing={10}>
+    <box class="main" spacing={10}>
       {MediaWidget()}
       {middle}
       {right}
@@ -193,12 +189,12 @@ const UserPanel = (monitorName: string) => {
 const WindowActions = (monitorName: string) => {
   return (
     <box
-      className="window-actions"
+      class="window-actions"
       hexpand={true}
       halign={Gtk.Align.END}
       child={
         <button
-          className="close"
+          class="close"
           label=""
           onClicked={() => {
             hideWindow(`user-panel-${monitorName}`);
@@ -217,7 +213,7 @@ export default (monitor: Gdk.Monitor) => {
       name={`user-panel-${monitorName}`}
       namespace="user-panel"
       application={App}
-      className="user-panel"
+      class="user-panel"
       layer={Astal.Layer.OVERLAY}
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
@@ -228,7 +224,7 @@ export default (monitor: Gdk.Monitor) => {
         }
       }}
       child={
-        <box className="display" vertical={true} spacing={10}>
+        <box class="display" vertical={true} spacing={10}>
           {WindowActions(monitorName)}
           {UserPanel(monitorName)}
         </box>

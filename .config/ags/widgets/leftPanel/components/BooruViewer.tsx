@@ -1,28 +1,32 @@
-import { Gtk } from "astal/gtk3";
+import Gtk from "gi://Gtk?version=3.0";
 import { Waifu } from "../../../interfaces/waifu.interface";
-import { bind, exec, execAsync, Variable } from "astal";
+import { execAsync } from "ags/process";
+import { createState, createBinding, createComputed } from "ags";
 import { Api } from "../../../interfaces/api.interface";
 import { readJson } from "../../../utils/json";
 import {
   booruApi,
+  setBooruApi,
   booruLimit,
+  setBooruLimit,
   booruPage,
+  setBooruPage,
   booruTags,
+  setBooruTags,
   globalTransition,
   leftPanelWidth,
   waifuCurrent,
 } from "../../../variables";
-import ToggleButton from "../../toggleButton";
 import { notify } from "../../../utils/notification";
 import { closeProgress, openProgress } from "../../Progress";
 
 import { booruApis } from "../../../constants/api.constants";
 import { ImageDialog } from "./ImageDialog";
 
-const images = Variable<Waifu[]>([]);
-const cacheSize = Variable<string>("0kb");
+const [images, setImages] = createState<Waifu[]>([]);
+const [cacheSize, setCacheSize] = createState<string>("0kb");
 
-const fetchedTags = Variable<string[]>([]);
+const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 
 const imagePreviewPath = "./assets/booru/previews";
 const imageUrlPath = "./assets/booru/images";
@@ -30,18 +34,18 @@ const imageUrlPath = "./assets/booru/images";
 const calculateCacheSize = async () =>
   execAsync(`bash -c "du -sb ${imagePreviewPath} | cut -f1"`).then((res) => {
     // Convert bytes to megabytes
-    cacheSize.set(`${Math.round(Number(res) / (1024 * 1024))}mb`);
+    setCacheSize(`${Math.round(Number(res) / (1024 * 1024))}mb`);
   });
 
 const ensureRatingTagFirst = () => {
-  let tags: string[] = booruTags.get();
+  let tags: string[] = booruTags();
   // Find existing rating tag
   const ratingTag = tags.find((tag) => tag.match(/[-+]rating:explicit/));
   // Remove any existing rating tag
   tags = tags.filter((tag) => !tag.match(/[-+]rating:explicit/));
   // Add the previous rating tag at the beginning, or default to "-rating:explicit"
   tags.unshift(ratingTag ?? "-rating:explicit");
-  booruTags.set(tags);
+  setBooruTags(tags);
 };
 
 const cleanUp = () => {
@@ -63,15 +67,13 @@ const cleanUp = () => {
 const fetchImages = async () => {
   try {
     openProgress();
-    const escapedTags = booruTags
-      .get()
-      .map((tag) => tag.replace(/'/g, "'\\''"));
+    const escapedTags = booruTags().map((tag) => tag.replace(/'/g, "'\\''"));
     const res = await execAsync(
       `python ./scripts/search-booru.py 
-      --api ${booruApi.get().value} 
+      --api ${booruApi().value} 
       --tags '${escapedTags.join(",")}' 
-      --limit ${booruLimit.get()} 
-      --page ${booruPage.get()}`
+      --limit ${booruLimit()} 
+      --page ${booruPage()}`
     );
 
     // 2. Process metadata without blocking
@@ -81,10 +83,8 @@ const fetchImages = async () => {
       preview: image.preview,
       width: image.width,
       height: image.height,
-      api: booruApi.get(),
-    }));
-
-    // 4. Prepare directory in background
+      api: booruApi(),
+    })); // 4. Prepare directory in background
     execAsync(`bash -c "mkdir -p ${imagePreviewPath}"`).catch((err) =>
       notify({ summary: "Error", body: String(err) })
     );
@@ -110,7 +110,7 @@ const fetchImages = async () => {
       const successfulDownloads = downloadedImages.filter(
         (img) => img !== null
       );
-      images.set(successfulDownloads);
+      setImages(successfulDownloads);
       calculateCacheSize();
       closeProgress();
     });
@@ -121,14 +121,14 @@ const fetchImages = async () => {
   }
 };
 const Apis = () => (
-  <box className="api-list" spacing={5}>
+  <box class="api-list" spacing={5}>
     {booruApis.map((api) => (
-      <ToggleButton
+      <togglebutton
         hexpand
-        state={bind(booruApi).as((a) => a.name === api.name)}
-        className="api"
+        active={createComputed(() => booruApi().name === api.name)}
+        class="api"
         label={api.name}
-        onToggled={() => booruApi.set(api)}
+        onToggled={() => setBooruApi(api)}
       />
     ))}
   </box>
@@ -138,10 +138,10 @@ const fetchTags = async (tag: string) => {
   const escapedTag = tag.replace(/'/g, "'\\''");
   const res = await execAsync(
     `python ./scripts/search-booru.py 
-    --api ${booruApi.get().value} 
+    --api ${booruApi().value} 
     --tag '${escapedTag}'`
   );
-  fetchedTags.set(readJson(res));
+  setFetchedTags(readJson(res));
 };
 
 const Images = () => {
@@ -150,9 +150,9 @@ const Images = () => {
       hexpand
       vexpand
       child={
-        <box className="images" vertical spacing={5}>
-          {bind(images).as((images) =>
-            images
+        <box class="images" vertical spacing={5}>
+          {createComputed(() =>
+            images()
               .reduce((rows: any[][], image, index) => {
                 if (index % 2 === 0) rows.push([]); // Create a new row every 2 items
                 rows[rows.length - 1].push(image); // Add the image to the current row
@@ -167,8 +167,10 @@ const Images = () => {
                           new ImageDialog(image);
                         }}
                         hexpand
-                        heightRequest={bind(leftPanelWidth).as((w) => w / 2)}
-                        className="image"
+                        heightRequest={createComputed(
+                          () => leftPanelWidth() / 2
+                        )}
+                        class="image"
                         css={`
                           background-image: url("${image.preview_path}");
                         `}
@@ -185,17 +187,18 @@ const Images = () => {
 };
 
 const PageDisplay = () => (
-  <box className="pages" spacing={5} halign={Gtk.Align.CENTER}>
-    {bind(booruPage).as((p) => {
+  <box class="pages" spacing={5} halign={Gtk.Align.CENTER}>
+    {createComputed(() => {
+      const p = booruPage();
       const buttons = [];
 
       // Show "1" button if the current page is greater than 3
       if (p > 3) {
         buttons.push(
           <button
-            className={"first"}
+            class={"first"}
             label="1"
-            onClicked={() => booruPage.set(1)}
+            onClicked={() => setBooruPage(1)}
           />,
           <label>...</label>
         );
@@ -208,9 +211,9 @@ const PageDisplay = () => (
       for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
         buttons.push(
           <button
-            label={pageNum !== p ? String(pageNum) : ""}
+            label={pageNum !== p ? String(pageNum) : ""}
             onClicked={() =>
-              pageNum !== p ? booruPage.set(pageNum) : fetchImages()
+              pageNum !== p ? setBooruPage(pageNum) : fetchImages()
             }
           />
         );
@@ -224,11 +227,11 @@ const LimitDisplay = () => {
   let debounceTimer: any;
 
   return (
-    <box className="limits" spacing={5} hexpand>
+    <box class="limits" spacing={5} hexpand>
       <label label={"Limit"}></label>
       <slider
-        value={bind(booruLimit).as((l) => l / 100)}
-        className={"slider"}
+        value={createComputed(() => booruLimit() / 100)}
+        class={"slider"}
         // min={4}
         // max={20}
         step={0.1}
@@ -239,11 +242,11 @@ const LimitDisplay = () => {
 
           // Set a new timeout with the desired delay (e.g., 300ms)
           debounceTimer = setTimeout(() => {
-            booruLimit.set(Math.round(self.value * 100));
+            setBooruLimit(Math.round(self.value * 100));
           }, 300);
         }}
       />
-      <label label={bind(booruLimit).as((l) => String(l))}></label>
+      <label label={createComputed(() => String(booruLimit()))}></label>
     </box>
   );
 };
@@ -253,15 +256,15 @@ const TagDisplay = () => (
     hexpand
     vscroll={Gtk.PolicyType.NEVER}
     child={
-      <box className={"tags"} spacing={10}>
-        <box className="applied-tags" spacing={5}>
-          {bind(booruTags).as((tags) =>
-            tags.map((tag) => {
+      <box class={"tags"} spacing={10}>
+        <box class="applied-tags" spacing={5}>
+          {createComputed(() =>
+            booruTags().map((tag) => {
               // check if tag is rating tag
               if (tag.match(/[-+]rating:explicit/)) {
                 return (
                   <button
-                    className={`rating ${
+                    class={`rating ${
                       tag.startsWith("+") ? "explicit" : "safe"
                     }`}
                     label={tag}
@@ -269,11 +272,11 @@ const TagDisplay = () => (
                       const newRatingTag = tag.startsWith("-")
                         ? "+rating:explicit"
                         : "-rating:explicit";
-                      const newTags = booruTags
-                        .get()
-                        .filter((t) => !t.match(/[-+]rating:explicit/));
+                      const newTags = booruTags().filter(
+                        (t) => !t.match(/[-+]rating:explicit/)
+                      );
                       newTags.unshift(newRatingTag);
-                      booruTags.set(newTags);
+                      setBooruTags(newTags);
                     }}
                   />
                 );
@@ -282,21 +285,21 @@ const TagDisplay = () => (
                 <button
                   label={tag}
                   onClicked={() => {
-                    const newTags = booruTags.get().filter((t) => t !== tag);
-                    booruTags.set(newTags);
+                    const newTags = booruTags().filter((t) => t !== tag);
+                    setBooruTags(newTags);
                   }}
                 />
               );
             })
           )}
         </box>
-        <box className={"fetched-tags"} spacing={5}>
-          {bind(fetchedTags).as((tags) =>
-            tags.map((tag) => (
+        <box class={"fetched-tags"} spacing={5}>
+          {createComputed(() =>
+            fetchedTags().map((tag) => (
               <button
                 label={tag}
                 onClicked={() => {
-                  booruTags.set([...new Set([...booruTags.get(), tag])]);
+                  setBooruTags([...new Set([...booruTags(), tag])]);
                 }}
               />
             ))
@@ -316,7 +319,7 @@ const Entry = () => {
     // Set a new timeout with the desired delay (e.g., 300ms)
     debounceTimer = setTimeout(() => {
       if (!self.text) {
-        fetchedTags.set([]);
+        setFetchedTags([]);
         return;
       }
       fetchTags(self.text);
@@ -324,13 +327,13 @@ const Entry = () => {
   };
 
   const addTags = (self: Gtk.Entry) => {
-    const currentTags = booruTags.get();
+    const currentTags = booruTags();
     const newTags = self.text.split(" ");
 
     // Create a Set to remove duplicates
     const uniqueTags = [...new Set([...currentTags, ...newTags])];
 
-    booruTags.set(uniqueTags);
+    setBooruTags(uniqueTags);
   };
 
   return (
@@ -348,8 +351,8 @@ const ClearCacheButton = () => {
     <button
       halign={Gtk.Align.CENTER}
       valign={Gtk.Align.CENTER}
-      label={bind(cacheSize)}
-      className="clear"
+      label={cacheSize}
+      class="clear"
       onClicked={(self) => {
         cleanUp();
       }}
@@ -359,12 +362,12 @@ const ClearCacheButton = () => {
 
 const BottomBar = () => (
   <eventbox
-    className={"bottom-eventbox"}
+    class={"bottom-eventbox"}
     child={
-      <box className={"bottom"} spacing={5} vertical>
+      <box class={"bottom"} spacing={5} vertical>
         <PageDisplay />
         <LimitDisplay />
-        <box className="bottom-bar" vertical spacing={5}>
+        <box class="bottom-bar" vertical spacing={5}>
           <TagDisplay />
           <box spacing={5}>
             <Entry />
@@ -378,13 +381,10 @@ const BottomBar = () => (
 
 export default () => {
   ensureRatingTagFirst();
-  booruPage.subscribe(() => fetchImages());
-  booruTags.subscribe(() => fetchImages());
-  booruApi.subscribe(() => fetchImages());
-  booruLimit.subscribe(() => fetchImages());
+  // Note: If booruPage, booruTags, booruApi, booruLimit are Accessors, subscriptions are handled automatically
   fetchImages();
   return (
-    <box className="booru" vertical hexpand spacing={10}>
+    <box class="booru" vertical hexpand spacing={10}>
       <Apis />
       <Images />
       <BottomBar />
