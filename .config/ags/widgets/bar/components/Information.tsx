@@ -85,7 +85,7 @@ function AudioVisualizer() {
       revealChild={false}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-      setup={(self) => (revealerInstance = self)}
+      $={(self) => (revealerInstance = self)}
       child={
         <label
           class={"cava"}
@@ -230,11 +230,11 @@ function Media({ monitorName }: { monitorName: string }) {
     const playerTitle = createBinding(player, "title");
     const playerArtist = createBinding(player, "artist");
 
-    const playerIcon = createComputed(() => playerToIcon(playerEntry()));
+    const playerIcon = createComputed(() => playerToIcon(playerEntry.get()));
 
     // Only build CSS when coverArt changes (bind will handle it)
     const coverCss = createComputed(() => {
-      const c = playerCoverArt();
+      const c = playerCoverArt.get();
       return c
         ? `background-image: linear-gradient(to right,#000000, rgba(0,0,0,0.5)), url("${c}");`
         : `background-color: transparent;`;
@@ -254,7 +254,7 @@ function Media({ monitorName }: { monitorName: string }) {
         class="title"
         maxWidthChars={20}
         truncate={true}
-        label={createComputed(() => playerTitle() || "Unknown Track")}
+        label={createComputed(() => playerTitle.get() || "Unknown Track")}
       />
     );
 
@@ -264,7 +264,7 @@ function Media({ monitorName }: { monitorName: string }) {
         maxWidthChars={20}
         truncate={true}
         label={createComputed(() => {
-          const a = playerArtist();
+          const a = playerArtist.get();
           return a ? `[${a}]` : "Unknown Artist";
         })}
       />
@@ -272,7 +272,7 @@ function Media({ monitorName }: { monitorName: string }) {
 
     return (
       <box
-        class={createComputed(() => `media ${playerEntry()}`)}
+        class={createComputed(() => `media ${playerEntry.get()}`)}
         css={coverCss}
         spacing={10}
       >
@@ -295,7 +295,7 @@ function Media({ monitorName }: { monitorName: string }) {
   };
 
   const activePlayerBox = createComputed(() => {
-    const player = activePlayerVar();
+    const player = activePlayerVar.get();
     return player ? Player(player) : <box />;
   });
 
@@ -345,6 +345,7 @@ function Clock() {
 }
 function Bandwidth() {
   const bandwidth = createPoll(
+    [],
     BANDWIDTH_POLL_MS,
     ["./assets/binaries/bandwidth"],
     (out) => {
@@ -358,6 +359,9 @@ function Bandwidth() {
   );
 
   function formatKiloBytes(kb: number): string {
+    if (kb === undefined || kb === null || isNaN(kb)) {
+      return "0.0 KB";
+    }
     const units = ["KB", "MB", "GB", "TB"];
     let idx = 0;
     let val = kb;
@@ -376,12 +380,8 @@ function Bandwidth() {
       revealChild={false}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      setup={(self) => (uploadRevealerInstance = self)}
-      child={
-        <label
-          label={createComputed(() => `[${formatKiloBytes(bandwidth()[2])}]`)}
-        />
-      }
+      $={(self) => (uploadRevealerInstance = self)}
+      child={<label label={bandwidth((b) => `[${formatKiloBytes(b[2])}]`)} />}
     />
   );
 
@@ -390,27 +390,17 @@ function Bandwidth() {
       revealChild={false}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      setup={(self) => (downloadRevealerInstance = self)}
-      child={
-        <label
-          label={createComputed(() => `[${formatKiloBytes(bandwidth()[3])}]`)}
-        />
-      }
+      $={(self) => (downloadRevealerInstance = self)}
+      child={<label label={bandwidth((b) => `[${formatKiloBytes(b[3])}]`)} />}
     />
   );
 
   const trigger = (
     <box class="bandwidth" spacing={3}>
-      <label
-        class="packet upload"
-        label={createComputed(() => ` ${bandwidth()[0]}`)}
-      />
+      <label class="packet upload" label={bandwidth((b) => ` ${b[0]}`)} />
       {uploadRevealer}
       <label class="separator" label={"-"} />
-      <label
-        class="packet download"
-        label={createComputed(() => ` ${bandwidth()[1]}`)}
-      />
+      <label class="packet download" label={bandwidth((b) => ` ${b[1]}`)} />
       {downloadRevealer}
     </box>
   );
@@ -437,11 +427,11 @@ function Bandwidth() {
 function ClientTitle() {
   return (
     <revealer
-      revealChild={createComputed(() => !emptyWorkspace())}
+      revealChild={emptyWorkspace((empty) => !empty)}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
       child={createComputed(() => {
-        const client = focusedClient();
+        const client = focusedClient.get();
         if (client) {
           const title = createBinding(client, "title");
           return (
@@ -449,7 +439,9 @@ function ClientTitle() {
               class="client-title"
               truncate={true}
               maxWidthChars={24}
-              label={createComputed(() => (title() ? String(title()) : ""))}
+              label={createComputed(() =>
+                title.get() ? String(title.get()) : ""
+              )}
             />
           );
         } else {
@@ -462,6 +454,7 @@ function ClientTitle() {
 function Weather() {
   // Poll every 10 minutes (600,000 ms)
   const weather = createPoll(
+    null,
     600000,
     [
       "curl",
@@ -486,10 +479,9 @@ function Weather() {
       class="weather"
       truncate={true}
       // onDestroy={() => weather.drop()} // No drop in signals
-      label={createComputed(() => {
-        const w = weather();
-        return w ? `  ${w.temp} -   ${w.wind} km/h` : "Weather N/A";
-      })}
+      label={weather((w) =>
+        w ? `  ${w.temp} -   ${w.wind} km/h` : "Weather N/A"
+      )}
     />
   );
 

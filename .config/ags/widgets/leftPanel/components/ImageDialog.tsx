@@ -8,7 +8,6 @@ import { Waifu } from "../../../interfaces/waifu.interface";
 
 import hyprland from "gi://AstalHyprland";
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
-import Gdk from "gi://Gdk?version=3.0";
 import Gtk from "gi://Gtk?version=3.0";
 const Hyprland = hyprland.get_default();
 
@@ -76,7 +75,7 @@ const addToWallpapers = (image: Waifu) => {
 
 export class ImageDialog {
   private dialog: Gtk.Dialog;
-  private imageDownloaded: () => boolean;
+  private imageDownloaded: boolean;
   private setImageDownloaded: (value: boolean) => void;
 
   constructor(img: Waifu) {

@@ -27,10 +27,10 @@ export async function refreshCss() {
 
   try {
     await execAsync(`bash -c "echo '
-        $OPACITY: ${globalOpacity};
-        $ICON-SIZE: ${globalIconSize}px;
-        $FONT-SIZE: ${globalFontSize}px;
-        $SCALE: ${globalScale}px;
+        $OPACITY: ${globalOpacity.get().value};
+        $ICON-SIZE: ${globalIconSize.get().value}px;
+        $FONT-SIZE: ${globalFontSize.get().value}px;
+        $SCALE: ${globalScale.get().value}px;
         ' | cat - ${defaultColors} ${walColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);
 
     // App.reset_css();

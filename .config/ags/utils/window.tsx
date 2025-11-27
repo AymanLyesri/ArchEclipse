@@ -1,7 +1,6 @@
 import app from "ags/gtk3/app";
 import Gtk from "gi://Gtk?version=3.0";
 import { createComputed } from "ags";
-import togglebutton from "../widgets/togglebutton";
 
 export const hideWindow = (name: string) => app.get_window(name)?.hide();
 export const showWindow = (name: string) => app.get_window(name)?.show();
@@ -16,13 +15,13 @@ export function WindowActions({
   windowVisibility,
   setWindowVisibility,
 }: {
-  windowWidth: () => number;
+  windowWidth: number;
   setWindowWidth: (width: number) => void;
-  windowExclusivity: () => boolean;
+  windowExclusivity: boolean;
   setWindowExclusivity: (exclusivity: boolean) => void;
-  windowLock: () => boolean;
+  windowLock: boolean;
   setWindowLock: (lock: boolean) => void;
-  windowVisibility: () => boolean;
+  windowVisibility: boolean;
   setWindowVisibility: (visibility: boolean) => void;
 }) {
   const maxRightPanelWidth = 600;
@@ -39,7 +38,7 @@ export function WindowActions({
         label=""
         class="expand-window"
         onClicked={() => {
-          const current = windowWidth();
+          const current = windowWidth;
           setWindowWidth(
             current < maxRightPanelWidth ? current + 50 : maxRightPanelWidth
           );
@@ -49,7 +48,7 @@ export function WindowActions({
         label=""
         class="shrink-window"
         onClicked={() => {
-          const current = windowWidth();
+          const current = windowWidth;
           setWindowWidth(
             current > minRightPanelWidth ? current - 50 : minRightPanelWidth
           );
@@ -58,13 +57,13 @@ export function WindowActions({
       <togglebutton
         label=""
         class="exclusivity"
-        active={() => !windowExclusivity()}
+        active={() => !windowExclusivity}
         onToggled={(self, on) => {
           setWindowExclusivity(!on);
         }}
       />
       <togglebutton
-        label={createComputed(() => (windowLock() ? "" : ""))}
+        label={createComputed(() => (windowLock ? "" : ""))}
         class="lock"
         active={windowLock}
         onToggled={(self, on) => {

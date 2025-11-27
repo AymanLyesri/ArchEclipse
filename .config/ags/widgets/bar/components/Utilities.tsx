@@ -22,12 +22,13 @@ import {
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { switchGlobalTheme } from "../../../utils/theme";
+import { For } from "ags";
 
 function Theme() {
   return (
     <togglebutton
       onToggled={(self: any, on: boolean) => switchGlobalTheme()}
-      label={createComputed(() => (globalTheme() ? "" : ""))}
+      label={globalTheme((theme) => (theme ? "" : ""))}
       class="theme icon"
     />
   );
@@ -36,21 +37,19 @@ function Theme() {
 function BrightnessWidget() {
   const screen = createBinding(brightness, "screen");
   const slider = (
-    <scale
+    <slider
       widthRequest={100}
       class="slider"
       drawValue={false}
       onValueChanged={(self) => (brightness.screen = self.get_value())}
-      value={createComputed(() => screen())}
+      value={screen((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
     />
   );
 
   const label = (
     <label
       class="trigger"
-      label={createComputed(() => {
-        const v = screen();
-        // `${Math.round(v * 100)}%`; // This line does nothing
+      label={screen((v) => {
         switch (true) {
           case v > 0.75:
             return "󰃠";
@@ -79,17 +78,15 @@ function Volume() {
   const volumeIcon = createBinding(speaker, "volumeIcon");
   const volume = createBinding(speaker, "volume");
 
-  const icon = (
-    <icon class="trigger" icon={createComputed(() => volumeIcon())} />
-  );
+  const icon = <icon class="trigger" icon={volumeIcon} />;
 
   const slider = (
-    <scale
+    <slider
       // step={0.1} // Gtk.Scale doesn't have step prop directly in JSX usually, handled by adjustment or set_increment
       class="slider"
       widthRequest={100}
       onValueChanged={(self) => (speaker.volume = self.get_value())}
-      value={createComputed(() => volume())}
+      value={volume((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
     />
   );
 
@@ -115,8 +112,8 @@ function BatteryWidget() {
   const label = (
     <label
       class={createComputed(() => {
-        const isCharging = charging();
-        const value = percentage();
+        const isCharging = charging.get();
+        const value = percentage.get();
         if (isCharging) {
           return "trigger charging";
         } else {
@@ -124,8 +121,8 @@ function BatteryWidget() {
         }
       })}
       label={createComputed(() => {
-        const isCharging = charging();
-        const p = percentage() * 100;
+        const isCharging = charging.get();
+        const p = percentage.get() * 100;
         switch (true) {
           case isCharging:
             return "⚡";
@@ -149,11 +146,14 @@ function BatteryWidget() {
   );
 
   const info = (
-    <label label={createComputed(() => `${Math.round(percentage() * 100)}%`)} />
+    <label label={percentage((p: number) => `${Math.round(p * 100)}%`)} />
   );
 
   const levelbar = (
-    <levelbar widthRequest={100} value={createComputed(() => percentage())} />
+    <levelbar
+      widthRequest={100}
+      value={percentage((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
+    />
   );
 
   const box = (
@@ -170,8 +170,8 @@ function BatteryWidget() {
       custom_class="battery"
       visible={createComputed(() => battery.percentage > 0)}
       revealChild={createComputed(() => {
-        const v = percentage();
-        const isCharging = charging();
+        const v = percentage.get();
+        const isCharging = charging.get();
         return (v < 0.1 && !isCharging) || (v >= 0.95 && isCharging);
       })}
     />
@@ -180,10 +180,10 @@ function BatteryWidget() {
 
 function SysTray() {
   const tray = Tray.get_default();
-  const itemsBinding = createBinding(tray, "items");
+  const itemsBinding: [] = createBinding(tray, "items");
 
-  const items = createComputed(() =>
-    itemsBinding().map((item) => {
+  const items = itemsBinding((items) =>
+    items.map((item) => {
       const tooltipMarkup = createBinding(item, "tooltipMarkup");
       const actionGroup = createBinding(item, "actionGroup");
       const menuModel = createBinding(item, "menuModel");
@@ -194,21 +194,20 @@ function SysTray() {
           margin={0}
           // cursor="pointer" // Gtk widgets don't have cursor prop
           usePopover={false}
-          tooltipMarkup={createComputed(() => tooltipMarkup())}
-          actionGroup={createComputed(() => ["dbusmenu", actionGroup()])}
-          menuModel={createComputed(() => menuModel())}
-          child={
-            <icon
-              gicon={createComputed(() => gicon())}
-              class="systemtray-icon"
-            />
-          }
+          tooltipMarkup={tooltipMarkup}
+          actionGroup={createComputed(() => ["dbusmenu", actionGroup.get()])}
+          menuModel={menuModel}
+          child={<icon gicon={gicon} class="systemtray-icon" />}
         />
       );
     })
   );
 
-  return <box class="system-tray">{items}</box>;
+  return (
+    <box class="system-tray">
+      <For each={items}>{(item) => item}</For>
+    </box>
+  );
 }
 
 function PinBar() {
@@ -220,29 +219,31 @@ function PinBar() {
         self.label = on ? "" : "";
       }}
       class="panel-lock icon"
-      label={createComputed(() => (barLock() ? "" : ""))}
+      label={barLock((lock) => (lock ? "" : ""))}
     />
   );
 }
 
 function DndToggle() {
-  return togglebutton({
-    state: DND,
-    onToggled: (self: any, on: boolean) => {
-      setDND(on);
-      self.label = DND ? "" : "";
-    },
-    className: "dnd-toggle icon",
-    label: createComputed(() => (DND ? "" : "")),
-  });
+  return (
+    <togglebutton
+      active={DND}
+      onToggled={(self: any, on: boolean) => {
+        setDND(on);
+        self.label = on ? "" : "";
+      }}
+      class="dnd-toggle icon"
+      label={DND((dnd) => (dnd ? "" : ""))}
+    />
+  );
 }
 
 function BarOrientation() {
   return (
     <button
-      onClicked={() => setBarOrientation(!barOrientation())}
+      onClicked={() => setBarOrientation(!barOrientation.get())}
       class="bar-orientation icon"
-      label={createComputed(() => (barOrientation() ? "" : ""))}
+      label={barOrientation((orientation) => (orientation ? "" : ""))}
     />
   );
 }
@@ -256,8 +257,8 @@ export default ({
 }) => {
   return (
     <box class="bar-right" spacing={5} halign={halign} hexpand>
-      <BatteryWidget />
-      <BrightnessWidget />
+      {/* <BatteryWidget /> */}
+      {/* <BrightnessWidget /> */}
       <Volume />
       <SysTray />
       <Theme />

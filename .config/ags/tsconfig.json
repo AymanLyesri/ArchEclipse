@@ -3,7 +3,9 @@
     "experimentalDecorators": false,
     "jsx": "react-jsx",
     "jsxImportSource": "ags/gtk3",
-    "lib": ["es2024"],
+    "lib": [
+      "es2024"
+    ],
     "module": "ES2022",
     "moduleResolution": "Bundler",
     "strict": true,

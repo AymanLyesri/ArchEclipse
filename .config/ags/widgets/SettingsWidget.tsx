@@ -106,7 +106,7 @@ const agsSetting = ([get, set]: [any, any]) => {
     );
 
     const Slider = (
-      <scale
+      <slider
         halign={Gtk.Align.END}
         widthRequest={169}
         class="slider"
@@ -224,7 +224,7 @@ const hyprlandSetting = (keys: string, setting: HyprlandSetting) => {
     };
 
     const Slider = (
-      <scale
+      <slider
         halign={Gtk.Align.END}
         widthRequest={169}
         class="slider"

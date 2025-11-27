@@ -1,7 +1,16 @@
 declare module "ags" {
-  export function createComputed<T>(fn: () => T): (<U>(map?: (value: T) => U) => U) & T;
+  export function createComputed<T>(
+    fn: () => T
+  ): (<U>(map?: (value: T) => U) => U) & T;
+  export function createComputed<
+    Deps extends Array<Accessor<any>>,
+    Values extends { [K in keyof Deps]: Accessed<Deps[K]> }
+  >(deps: Deps, transform: (...values: Values) => V): Accessor<V>;
   export function createState<T>(initial: T): [T, (value: T) => void];
-  export function createBinding(obj: object, prop: string): (<U>(map?: (value: any) => U) => U) & any;
+  export function createBinding(
+    obj: object,
+    prop: string
+  ): (<U>(map?: (value: any) => U) => U) & any;
 }
 
 declare module "ags/gtk3/app" {

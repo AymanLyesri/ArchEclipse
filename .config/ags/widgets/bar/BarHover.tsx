@@ -11,8 +11,8 @@ export default (monitor: Gdk.Monitor) => {
       name="bar-hover"
       application={App}
       gdkmonitor={monitor}
-      anchor={createComputed(() =>
-        barOrientation()
+      anchor={barOrientation((orientation) =>
+        orientation
           ? Astal.WindowAnchor.TOP |
             Astal.WindowAnchor.LEFT |
             Astal.WindowAnchor.RIGHT

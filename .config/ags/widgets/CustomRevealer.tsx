@@ -16,7 +16,7 @@ export default ({
   custom_class?: string;
   on_primary_click?: () => void;
 }) => {
-  const revealer = (
+  const revealer: Gtk.Revealer = (
     <revealer
       revealChild={revealChild}
       transitionDuration={globalTransition}
@@ -29,10 +29,10 @@ export default ({
     <eventbox
       visible={visible}
       class={"custom-revealer " + custom_class}
-      on_hover={(self) => {
+      onHover={(self) => {
         revealer.reveal_child = true;
       }}
-      on_hover_lost={() => {
+      onHoverLost={() => {
         revealer.reveal_child = false;
       }}
       onClick={on_primary_click}

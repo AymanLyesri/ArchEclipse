@@ -46,7 +46,7 @@ const osdSlider = (
   );
 
   const slider = (
-    <scale
+    <slider
       orientation={Gtk.Orientation.VERTICAL}
       inverted={true}
       class="slider"

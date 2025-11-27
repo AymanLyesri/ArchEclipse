@@ -76,7 +76,7 @@ export default ({
   );
 
   const positionSlider = (
-    <scale
+    <slider
       class="slider"
       css={createComputed(() => `highlight{background: ${dominantColor()}00}`)}
       onValueChanged={(self) =>

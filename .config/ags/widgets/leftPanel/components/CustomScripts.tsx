@@ -43,7 +43,7 @@ export default () => {
       {customScripts.map((script) => (
         <eventbox
           class={"script-eventbox"}
-          onClicked={() => {
+          onClick={() => {
             script.script();
           }}
           child={

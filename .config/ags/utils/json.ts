@@ -3,12 +3,12 @@ import { notify } from "./notification";
 import { exec } from "ags/process";
 
 export function readJSONFile(filePath: string): any {
-  if (readFile(filePath) == "") return {};
   try {
     const data = readFile(filePath);
-    return data.trim() ? JSON.parse(data) : {};
+    if (data == "" || !data.trim()) return {};
+    return JSON.parse(data);
   } catch (e) {
-    notify({ summary: "Error", body: String(e) });
+    // File doesn't exist or can't be read, return empty object
     return {};
   }
 }
@@ -23,8 +23,8 @@ export function readJson(string: string) {
 }
 
 export function writeJSONFile(filePath: string, data: any) {
-  if (readFile(filePath) == "")
-    exec(`mkdir -p ${filePath.split("/").slice(0, -1).join("/")}`);
+  // Ensure directory exists before writing
+  exec(`mkdir -p ${filePath.split("/").slice(0, -1).join("/")}`);
   try {
     writeFile(filePath, JSON.stringify(data, null, 4));
   } catch (e) {

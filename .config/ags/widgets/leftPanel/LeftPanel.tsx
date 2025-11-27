@@ -27,7 +27,7 @@ const WidgetActions = () => (
     {leftPanelWidgetSelectors.map((widgetSelector) => (
       <togglebutton
         active={createComputed(
-          () => leftPanelWidget().name === widgetSelector.name
+          () => leftPanelWidget.name === widgetSelector.name
         )}
         label={widgetSelector.icon}
         onToggled={() => setLeftPanelWidget(widgetSelector)}
@@ -84,7 +84,7 @@ export default (monitor: Gdk.Monitor) => {
       namespace={"left-panel"}
       application={App}
       class={createComputed(() =>
-        leftPanelExclusivity() ? "left-panel exclusive" : "left-panel normal"
+        leftPanelExclusivity ? "left-panel exclusive" : "left-panel normal"
       )}
       anchor={
         Astal.WindowAnchor.LEFT |
@@ -124,7 +124,7 @@ export function LeftPanelVisibility() {
       transitionDuration={globalTransition}
       child={
         <togglebutton
-          active={leftPanelVisibility || false}
+          active={leftPanelVisibility}
           label={createComputed(() => (leftPanelVisibility ? "" : ""))}
           onToggled={(self: any, on: boolean) => setLeftPanelVisibility(on)}
           class="panel-trigger icon"
