@@ -1,4 +1,4 @@
-import { execAsync } from "ags/process";
+import { exec } from "ags/process";
 import { monitorFile } from "ags/file";
 import App from "ags/gtk3/app";
 import {
@@ -22,11 +22,11 @@ export const getCssPath = () => {
   return tmpCss;
 };
 
-export async function refreshCss() {
+export function refreshCss() {
   const scss = `./scss/style.scss`;
 
   try {
-    await execAsync(`bash -c "echo '
+    exec(`bash -c "echo '
         $OPACITY: ${globalOpacity.get().value};
         $ICON-SIZE: ${globalIconSize.get().value}px;
         $FONT-SIZE: ${globalFontSize.get().value}px;
