@@ -264,7 +264,7 @@ function Wallpapers(monitor: string) {
       valign={Gtk.Align.CENTER}
       class="custom-wallpaper"
       label="all"
-      onToggled={(self: any, on: boolean) => {
+      onToggled={({ active }) => {
         setWallpaperType(on);
         self.label = on ? "custom" : "all";
       }}
@@ -275,7 +275,7 @@ function Wallpapers(monitor: string) {
     <togglebutton
       class="bottom-revealer-button"
       label=""
-      onToggled={(self: any, on: boolean) => {
+      onToggled={({ active }) => {
         bottomRevealer.reveal_child = on;
         self.label = on ? "" : "";
       }}

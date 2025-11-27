@@ -43,19 +43,20 @@ export default (monitor: Gdk.Monitor) => {
             Astal.WindowAnchor.RIGHT
       )}
       margin={emptyWorkspace((empty) => (empty ? globalMargin : 5))}
-      visible={createComputed(() => {
-        const visible = barVisibility.get();
-        const client = focusedClient.get();
-        if (client) {
-          // @ts-ignore
-          const isFullscreen: boolean =
-            client.fullscreen === 2 || client.get_fullscreen?.() === 2;
-          const visibility: boolean = !isFullscreen && visible;
-          return visibility;
-        } else {
-          return visible;
+      visible={createComputed(
+        [barVisibility, focusedClient],
+        (barVisibility, focusedClient) => {
+          if (focusedClient) {
+            const isFullscreen: boolean =
+              focusedClient.fullscreen === 2 ||
+              focusedClient.get_fullscreen?.() === 2;
+            const visibility: boolean = !isFullscreen && barVisibility;
+            return visibility;
+          } else {
+            return barVisibility;
+          }
         }
-      })}
+      )}
       child={
         <eventbox
           onHoverLost={() => {

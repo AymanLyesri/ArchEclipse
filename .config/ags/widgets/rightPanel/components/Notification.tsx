@@ -118,7 +118,7 @@ export default ({
         <togglebutton
           class="expand"
           active={false}
-          onToggled={(self: any, on: boolean) => {
+          onToggled={({ active }) => {
             title.set_property("truncate", !on);
             body.set_property("truncate", !on);
             self.label = on ? "" : "";
@@ -133,7 +133,7 @@ export default ({
     <togglebutton
       class="lock"
       label=""
-      onToggled={(self: any, on: boolean) => {
+      onToggled={({ active }) => {
         setIsLocked(on);
       }}
     />

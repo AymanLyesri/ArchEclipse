@@ -69,7 +69,7 @@ const BarLayoutSetting = () => {
               )}
               class="widget"
               label={widget.name}
-              onToggled={(self: any, on: boolean) => {
+              onToggled={({ active }) => {
                 if (on) {
                   if (barLayout().length >= 3) return;
                   setBarLayout([...barLayout(), widget]);

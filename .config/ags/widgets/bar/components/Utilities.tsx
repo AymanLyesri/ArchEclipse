@@ -19,16 +19,17 @@ import {
   DND,
   setDND,
   globalTheme,
+  setGlobalTheme,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
-import { switchGlobalTheme } from "../../../utils/theme";
 import { For } from "ags";
 
 function Theme() {
   return (
     <togglebutton
-      onToggled={(self: any, on: boolean) => switchGlobalTheme()}
-      label={globalTheme((theme) => (theme ? "" : ""))}
+      active={globalTheme}
+      onToggled={({ active }) => setGlobalTheme(active)}
+      label={globalTheme((theme) => (theme ? "" : ""))}
       class="theme icon"
     />
   );
@@ -214,9 +215,8 @@ function PinBar() {
   return (
     <togglebutton
       active={barLock}
-      onToggled={(self: any, on: boolean) => {
-        setBarLock(on);
-        self.label = on ? "" : "";
+      onToggled={({ active }) => {
+        setBarLock(active);
       }}
       class="panel-lock icon"
       label={barLock((lock) => (lock ? "" : ""))}
@@ -228,9 +228,8 @@ function DndToggle() {
   return (
     <togglebutton
       active={DND}
-      onToggled={(self: any, on: boolean) => {
-        setDND(on);
-        self.label = on ? "" : "";
+      onToggled={({ active }) => {
+        setDND(active);
       }}
       class="dnd-toggle icon"
       label={DND((dnd) => (dnd ? "" : ""))}
@@ -240,10 +239,18 @@ function DndToggle() {
 
 function BarOrientation() {
   return (
-    <button
-      onClicked={() => setBarOrientation(!barOrientation.get())}
+    // <button
+    //   onClicked={() => setBarOrientation(!barOrientation.get())}
+    //   class="bar-orientation icon"
+    //   label={barOrientation((orientation) => (orientation ? "" : ""))}
+    // />
+    <togglebutton
+      active={barOrientation}
+      onToggled={({ active }) => {
+        setBarOrientation(active);
+      }}
       class="bar-orientation icon"
-      label={barOrientation((orientation) => (orientation ? "" : ""))}
+      label={barOrientation((orientation) => (orientation ? "" : ""))}
     />
   );
 }
@@ -260,7 +267,7 @@ export default ({
       {/* <BatteryWidget /> */}
       {/* <BrightnessWidget /> */}
       <Volume />
-      <SysTray />
+      {/* <SysTray /> */}
       <Theme />
       <PinBar />
       <DndToggle />

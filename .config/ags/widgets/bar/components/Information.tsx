@@ -210,8 +210,7 @@ function AudioVisualizer() {
 function Media({ monitorName }: { monitorName: string }) {
   const mprisPlayers = createBinding(mpris, "players");
   // Derive active player only when players array changes (cheaper than scanning on each render)
-  const activePlayerVar = createComputed(() => {
-    const players = mprisPlayers();
+  const activePlayerVar = mprisPlayers((players) => {
     if (!players || players.length === 0) return null;
     return (
       players.find((p) => p.playbackStatus === Mpris.PlaybackStatus.PLAYING) ||
@@ -294,17 +293,13 @@ function Media({ monitorName }: { monitorName: string }) {
     });
   };
 
-  const activePlayerBox = createComputed(() => {
-    const player = activePlayerVar.get();
-    return player ? Player(player) : <box />;
+  const activePlayerBox = activePlayerVar((player) => {
+    player ? Player(player) : <box />;
   });
 
   return (
     <revealer
-      revealChild={createComputed(() => {
-        const arr = mprisPlayers();
-        return !!(arr && arr.length);
-      })}
+      revealChild={true}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       child={
@@ -503,9 +498,9 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box class="bar-middle" spacing={5} halign={halign} hexpand>
+    <box class="bar-middle" spacing={5} halign={halign}>
       {/* <AudioVisualizer /> */}
-      <Media monitorName={monitorName} />
+      {/* <Media monitorName={monitorName} /> */}
       <Clock />
       <Weather />
       <Bandwidth />

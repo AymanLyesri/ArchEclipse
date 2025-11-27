@@ -34,7 +34,7 @@ const WidgetActions = () => {
             class={"widget-selector"}
             label={selector.icon}
             active={isActive}
-            onToggled={(self: any, on: boolean) => {
+            onToggled={({ active }) => {
               if (on) {
                 if (rightPanelWidgets().length >= widgetLimit) return;
                 setRightPanelWidgets([...rightPanelWidgets(), selector]);
@@ -155,7 +155,7 @@ export function RightPanelVisibility() {
         <togglebutton
           active={rightPanelVisibility}
           label={createComputed(() => (rightPanelVisibility() ? "" : ""))}
-          onToggled={(self: any, on: boolean) => setRightPanelVisibility(on)}
+          onToggled={({ active }) => setRightPanelVisibility(on)}
           class="panel-trigger icon"
         />
       }

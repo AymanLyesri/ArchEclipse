@@ -33,8 +33,8 @@ export async function refreshCss() {
         $SCALE: ${globalScale.get().value}px;
         ' | cat - ${defaultColors} ${walColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);
 
-    // App.reset_css();
-    // App.apply_css(tmpCss);
+    App.reset_css();
+    App.apply_css(tmpCss);
   } catch (e) {
     notify({ summary: `Error while generating css`, body: String(e) });
     console.error(e);

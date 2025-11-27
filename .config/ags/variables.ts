@@ -17,9 +17,10 @@ import { writeJSONFile } from "./utils/json";
 import { AGSSetting, Settings } from "./interfaces/settings.interface";
 import { Api } from "./interfaces/api.interface";
 import { Waifu } from "./interfaces/waifu.interface";
-import { getGlobalTheme } from "./utils/theme";
 import { phi, phi_min } from "./constants/phi.constants";
 import { defaultSettings } from "./constants/settings.constants";
+import { exec, execAsync } from "ags/process";
+import { switchGlobalTheme } from "./utils/theme";
 
 export const NOTIFICATION_DELAY = phi * 3000;
 
@@ -103,8 +104,18 @@ function setAutoWorkspaceSwitching(value: AGSSetting) {
 }
 export { autoWorkspaceSwitching, setAutoWorkspaceSwitching };
 
-export const [globalTheme, setGlobalTheme] = createState<boolean>(false);
-getGlobalTheme();
+const [globalTheme, _setGlobalTheme] = createState<boolean>(
+  exec([
+    "bash",
+    "-c",
+    "$HOME/.config/hypr/theme/scripts/system-theme.sh get",
+  ]).includes("light")
+);
+function setGlobalTheme(value: boolean) {
+  _setGlobalTheme(value);
+  switchGlobalTheme(value);
+}
+export { globalTheme, setGlobalTheme };
 
 export const globalMargin = phi * 10;
 export const globalTransition = phi * 300;

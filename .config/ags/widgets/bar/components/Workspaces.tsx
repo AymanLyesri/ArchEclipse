@@ -55,7 +55,7 @@ function Workspaces() {
   };
 
   // Reactive workspace state that updates when workspaces or focus changes
-  const workspaces = createComputed(
+  const workspaces: Accessor<any[]> = createComputed(
     [
       createBinding(hyprland, "workspaces"), // Bind to Hyprland workspace list
       focusedWorkspace.as((w) => w.id), // Bind to currently focused workspace ID
@@ -176,7 +176,7 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
     <togglebutton
       class="app-search"
       label=""
-      onToggled={(self: any, on: boolean) => {
+      onToggled={({ active }) => {
         on
           ? showWindow(`app-launcher-${monitorName}`)
           : hideWindow(`app-launcher-${monitorName}`);
@@ -192,7 +192,7 @@ function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
     <togglebutton
       class="wallpaper-switcher-trigger"
       label="󰸉"
-      onToggled={(self: any, on: boolean) => {
+      onToggled={({ active }) => {
         on
           ? showWindow(`wallpaper-switcher-${monitorName}`)
           : hideWindow(`wallpaper-switcher-${monitorName}`);
@@ -206,7 +206,7 @@ function Settings({ monitorName }: { monitorName: string }) {
     <togglebutton
       class="settings"
       label=""
-      onToggled={(self: any, on: boolean) =>
+      onToggled={({ active }) =>
         on
           ? showWindow(`settings-${monitorName}`)
           : hideWindow(`settings-${monitorName}`)
@@ -220,7 +220,7 @@ function UserPanel({ monitorName }: { monitorName: string }) {
     <togglebutton
       class="user-panel"
       label=""
-      onToggled={(self: any, on: boolean) => {
+      onToggled={({ active }) => {
         on
           ? showWindow(`user-panel-${monitorName}`)
           : hideWindow(`user-panel-${monitorName}`);

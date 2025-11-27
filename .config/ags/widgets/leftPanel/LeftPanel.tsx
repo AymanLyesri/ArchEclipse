@@ -126,7 +126,7 @@ export function LeftPanelVisibility() {
         <togglebutton
           active={leftPanelVisibility}
           label={createComputed(() => (leftPanelVisibility ? "" : ""))}
-          onToggled={(self: any, on: boolean) => setLeftPanelVisibility(on)}
+          onToggled={({ active }) => setLeftPanelVisibility(on)}
           class="panel-trigger icon"
         />
       }
