@@ -2,6 +2,7 @@ import { execAsync } from "ags/process";
 import { readJSONFile, writeJSONFile } from "./json";
 import { Settings } from "../interfaces/settings.interface";
 import { defaultSettings } from "../constants/settings.constants";
+import { Accessor } from "ags";
 
 export const settingsPath = "./assets/settings/settings.json";
 
@@ -83,10 +84,10 @@ export function autoCreateSettings(
 export function setSetting(
   key: string,
   value: any,
-  globalSettings: Settings,
+  globalSettings: Accessor<Settings>,
   setGlobalSettings: (value: Settings) => void
 ): any {
-  let o: any = globalSettings;
+  let o: any = globalSettings.get();
   key
     .split(".")
     .reduce(

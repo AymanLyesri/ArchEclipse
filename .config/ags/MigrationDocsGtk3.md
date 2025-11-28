@@ -34,8 +34,8 @@ If you still prefer to use regular JS functions instead of JSX, you can do
 ```ts
 import { CCProps } from "ags";
 import { Gtk } from "ags/gtk4";
-type BoxProps = Partial<CCProps<Gtk.Box, Gtk.Box.ConstructorProps>>;
-const Box = (props: BoxProps) => jsx(Gtk.Box, props);
+type BoxProps = Partial<CCProps<box, box.ConstructorProps>>;
+const Box = (props: BoxProps) => jsx(box, props);
 
 Box({
   orientation: state,
@@ -185,7 +185,7 @@ function Box() {
   const label = new Gtk.Label({
     label: `clicked ${counter} times`,
   });
-  const box = new Gtk.Box({
+  const box = new box({
     orientation: Gtk.Orientation.VERTICAL,
   });
 
@@ -213,12 +213,12 @@ function Box() {
   }
 
   return (
-    <Gtk.Box orientation={Gtk.Orientation.VERTICAL}>
+    <box orientation={Gtk.Orientation.VERTICAL}>
       <Gtk.Button onClicked={onClicked}>
         <Gtk.Image iconName="system-search-symbolic" />
       </Gtk.Button>
       <Gtk.Label label={label} />
-    </Gtk.Box>
+    </box>
   );
 }
 ```
@@ -257,9 +257,9 @@ When two types have a parent-child relationship, they can be composed naturally
 using JSX syntax. For example, this applies to types like `Gtk.EventController`:
 
 ```tsx
-<Gtk.Box>
+<box>
   <Gtk.GestureClick onPressed={() => print("clicked")} />
-</Gtk.Box>
+</box>
 ```
 
 ## Class components
@@ -284,9 +284,7 @@ instead, you can specify it with `$constructor`.
 > cannot be set.
 
 ```tsx
-<Gtk.DropDown
-  $constructor={() => Gtk.DropDown.new_from_strings(["item1", "item2"])}
-/>
+<dropdown $constructor={() => dropdown.new_from_strings(["item1", "item2"])} />
 ```
 
 ### Type string
@@ -299,9 +297,9 @@ lets you use a type string to specify the type the `child` is meant to be.
 
 ```tsx
 <Gtk.CenterBox>
-  <Gtk.Box $type="start" />
-  <Gtk.Box $type="center" />
-  <Gtk.Box $type="end" />
+  <box $type="start" />
+  <box $type="center" />
+  <box $type="end" />
 </Gtk.CenterBox>
 ```
 
@@ -332,13 +330,13 @@ the function.
 
 ```tsx
 function MyWidget() {
-  let box: Gtk.Box;
+  let box: box;
 
   function someHandler() {
     console.log(box);
   }
 
-  return <Gtk.Box $={(self) => (box = self)} />;
+  return <box $={(self) => (box = self)} />;
 }
 ```
 
@@ -495,7 +493,7 @@ interface MyBoxProps {
 
 function MyBox({ children }: MyBoxProps) {
   return (
-    <Gtk.Box>
+    <box>
       {children.map((item) =>
         item instanceof Gtk.Widget ? (
           item
@@ -503,7 +501,7 @@ function MyBox({ children }: MyBoxProps) {
           <Gtk.Label label={item.toString()} />
         )
       )}
-    </Gtk.Box>
+    </box>
   );
 }
 
@@ -897,9 +895,9 @@ function ConsumerComponent() {
 
 function ProviderComponent() {
   return (
-    <Gtk.Box>
+    <box>
       <MyContext value="my-value">{() => <ConsumerComponent />}</MyContext>
-    </Gtk.Box>
+    </box>
   );
 }
 ```
@@ -979,14 +977,13 @@ elements by default, but they can be set.
 
 # Builtin Intrinsic Elements
 
-These are just Gtk widgets which can be used without explicitly importing. For
-example `<box />` and `<Gtk.Box />` are exactly the same thing.
+These are just Gtk widgets which can be used without explicitly importing.
 
 ## Gtk3
 
 ### box
 
-[Gtk.Box](https://docs.gtk.org/gtk3/class.Box.html)
+[box](https://docs.gtk.org/gtk3/class.Box.html)
 
 ```tsx
 <box orientation={Gtk.Orientation.HORIZONTAL}>
