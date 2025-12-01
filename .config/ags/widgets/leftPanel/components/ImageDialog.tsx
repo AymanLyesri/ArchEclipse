@@ -8,7 +8,7 @@ import { Waifu } from "../../../interfaces/waifu.interface";
 
 import hyprland from "gi://AstalHyprland";
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 const Hyprland = hyprland.get_default();
 
 const waifuPath = "./assets/booru/waifu";

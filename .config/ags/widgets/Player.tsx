@@ -1,6 +1,6 @@
 import AstalMpris from "gi://AstalMpris?version=0.1";
 import { getDominantColor, getImageRatio } from "../utils/image";
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import { rightPanelWidth } from "../variables";
 import { createBinding, createComputed } from "ags";
 
@@ -60,7 +60,7 @@ export default ({
       class="title"
       maxWidthChars={20}
       halign={Gtk.Align.START}
-      truncate={true}
+      ellipsize={Pango.EllipsizeMode.END}
       label={createComputed(() => titleBinding() || "Unknown Track")}
     ></label>
   );
@@ -70,7 +70,7 @@ export default ({
       class="artist"
       maxWidthChars={20}
       halign={Gtk.Align.START}
-      truncate={true}
+      ellipsize={Pango.EllipsizeMode.END}
       label={createComputed(() => artistBinding() || "Unknown Artist")}
     ></label>
   );
@@ -112,7 +112,7 @@ export default ({
       class="play-pause"
       visible={createComputed(() => canPlayBinding())}
       child={
-        <icon
+        <image
           icon={createComputed(() => {
             const s = playbackStatusBinding();
             switch (s) {
@@ -125,7 +125,7 @@ export default ({
                 return PLAY_ICON;
             }
           })}
-        ></icon>
+        ></image>
       }
     ></button>
   );
@@ -134,7 +134,7 @@ export default ({
     <button
       onClicked={() => player.previous()}
       visible={createComputed(() => canGoPreviousBinding())}
-      child={<icon icon={PREV_ICON}></icon>}
+      child={<image icon={PREV_ICON}></image>}
     ></button>
   );
 
@@ -142,7 +142,7 @@ export default ({
     <button
       onClicked={() => player.next()}
       visible={createComputed(() => canGoNextBinding())}
-      child={<icon icon={NEXT_ICON}></icon>}
+      child={<image icon={NEXT_ICON}></image>}
     ></button>
   );
 
@@ -170,8 +170,8 @@ export default ({
       <box vertical={true} hexpand={true}>
         {/* <box>{icon}</box> */}
         <box vexpand={true}></box>
-        <eventbox
-          class={"bottom-eventbox"}
+        <Eventbox
+          class={"bottom-Eventbox"}
           child={
             <box class={"bottom-bar"} spacing={5} vertical>
               <box class={"info"} vertical>

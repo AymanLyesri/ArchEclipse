@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 
 export interface WidgetSelector {
   name: string;

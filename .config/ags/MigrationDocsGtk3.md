@@ -8,11 +8,11 @@ namespace.
 
 ```ts
 // [!code --:2]
-import { App, Gtk } from "astal/gtk3";
+import { App, Gtk } from "astal/gtk4";
 import { bind, Variable } from "astal/state";
 // [!code ++:3]
-import app from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
+import app from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
 import { createBinding, createState } from "ags";
 ```
 
@@ -590,8 +590,8 @@ widget the `Fragment` was assigned to. When implementing custom widgets, you
 need to take into consideration the API being used for child insertion and
 removing.
 
-- Both Gtk3 and Gtk4 uses the `Gtk.Buildable` interface to append children.
-- Gtk3 uses the `Gtk.Container` interface to remove children.
+- Both gtk4 and Gtk4 uses the `Gtk.Buildable` interface to append children.
+- gtk4 uses the `Gtk.Container` interface to remove children.
 - Gtk4 checks for a method called `remove`.
 - Clutter uses `Clutter.Actor.add_child` and `Clutter.Actor.remove_child`.
 
@@ -979,11 +979,11 @@ elements by default, but they can be set.
 
 These are just Gtk widgets which can be used without explicitly importing.
 
-## Gtk3
+## gtk4
 
 ### box
 
-[box](https://docs.gtk.org/gtk3/class.Box.html)
+[box](https://docs.gtk.org/gtk4/class.Box.html)
 
 ```tsx
 <box orientation={Gtk.Orientation.HORIZONTAL}>
@@ -995,7 +995,7 @@ These are just Gtk widgets which can be used without explicitly importing.
 
 ### button
 
-[Gtk.Button](https://docs.gtk.org/gtk3/class.Button.html)
+[Gtk.Button](https://docs.gtk.org/gtk4/class.Button.html)
 
 ```tsx
 <button onClicked={() => print("clicked")}>
@@ -1021,7 +1021,7 @@ These are just Gtk widgets which can be used without explicitly importing.
 
 ```tsx
 <circularprogress value={0.5} startAt={0.75} endAt={0.75}>
-  <icon />
+  <image />
 </circularprogress>
 ```
 
@@ -1037,7 +1037,7 @@ circularprogress {
 
 ### drawingarea
 
-[Gtk.DrawingArea](https://docs.gtk.org/gtk3/class.DrawingArea.html)
+[Gtk.DrawingArea](https://docs.gtk.org/gtk4/class.DrawingArea.html)
 
 ```tsx
 <drawingarea
@@ -1049,7 +1049,7 @@ circularprogress {
 
 ### entry
 
-[Gtk.Entry](https://docs.gtk.org/gtk3/class.Entry.html)
+[Gtk.Entry](https://docs.gtk.org/gtk4/class.Entry.html)
 
 ```tsx
 <entry
@@ -1058,12 +1058,12 @@ circularprogress {
 />
 ```
 
-### eventbox
+### Eventbox
 
-[Astal.EventBox](https://aylur.github.io/libastal/astal3/class.EventBox.html)
+[Astal.Eventbox](https://aylur.github.io/libastal/astal3/class.Eventbox.html)
 
 ```tsx
-<eventbox
+<Eventbox
   onClick={(_, event) => {
     print(event.modifier, event.button);
   }}
@@ -1075,7 +1075,7 @@ circularprogress {
 [Astal.Icon](https://aylur.github.io/libastal/astal3/class.Icon.html)
 
 ```tsx
-<icon
+<image
   // named icon or path to a file
   icon="/path/to/file.png"
   icon="missing-symbolic"
@@ -1117,7 +1117,7 @@ icon {
 
 ### revealer
 
-[Gtk.Revealer](https://docs.gtk.org/gtk3/class.Revealer.html)
+[Gtk.Revealer](https://docs.gtk.org/gtk4/class.Revealer.html)
 
 ```tsx
 <revealer
@@ -1160,7 +1160,7 @@ icon {
 
 ### switch
 
-[Gtk.Switch](https://docs.gtk.org/gtk3/class.Switch.html)
+[Gtk.Switch](https://docs.gtk.org/gtk4/class.Switch.html)
 
 ```tsx
 <switch active={true} onNotifyActive={({ active }) => print(active)} />

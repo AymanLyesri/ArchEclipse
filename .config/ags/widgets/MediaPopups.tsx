@@ -2,10 +2,10 @@ import { createBinding, createComputed } from "ags";
 import Player from "./Player";
 
 import Mpris from "gi://AstalMpris";
-import App from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import { barOrientation, globalMargin } from "../variables";
 import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
@@ -30,21 +30,21 @@ export default (monitor: Gdk.Monitor) => {
         <box
           class="media-popup"
           child={
-            <eventbox
+            <Eventbox
               onHoverLost={() => hideWindow(`media-${monitorName}`)}
               child={
                 <box vertical={true} spacing={10}>
                   {createComputed(() =>
                     players().map((player) => (
-                      <eventbox
-                        class={"player-eventbox"}
+                      <Eventbox
+                        class={"player-Eventbox"}
                         child={<Player player={player} playerType="popup" />}
                       />
                     ))
                   )}
                 </box>
               }
-            ></eventbox>
+            ></Eventbox>
           }
         ></box>
       }

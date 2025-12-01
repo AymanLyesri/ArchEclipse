@@ -1,6 +1,6 @@
 import { exec } from "ags/process";
 import { monitorFile } from "ags/file";
-import App from "ags/gtk3/app";
+import App from "ags/gtk4/app";
 import {
   globalFontSize,
   globalIconSize,

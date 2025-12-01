@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import { Message } from "../../../interfaces/chatbot.interface";
 import { createState, createComputed } from "ags";
 import { execAsync } from "ags/process";
@@ -219,8 +219,8 @@ const MessageItem = ({ message }: { message: Message }) => {
 
   const revealerInstance = Revealer();
   return (
-    <eventbox
-      class={"message-eventbox"}
+    <Eventbox
+      class={"message-Eventbox"}
       onHover={() => (revealerInstance.reveal_child = true)}
       onHoverLost={() => (revealerInstance.reveal_child = false)}
       halign={
@@ -325,8 +325,8 @@ const MessageEntry = () => {
 };
 
 const BottomBar = () => (
-  <eventbox
-    class={"bottom-eventbox"}
+  <Eventbox
+    class={"bottom-Eventbox"}
     child={
       <box class={"bottom-bar"} spacing={10} vertical>
         <box spacing={5}>

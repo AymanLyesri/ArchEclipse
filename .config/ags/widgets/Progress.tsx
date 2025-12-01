@@ -1,7 +1,7 @@
 import { createState, createComputed } from "ags";
-import App from "ags/gtk3/app";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import { asyncSleep } from "../utils/time";
 
 const INTERVAL = 10;

@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import { focusedWorkspace } from "../../../variables";
 
 import Hyprland from "gi://AstalHyprland";
@@ -129,10 +129,9 @@ function Workspaces() {
           finalizeCurrentGroup();
           // Add inactive workspace as single-element group
           groupElements.push(
-            <box
-              class="workspace-group inactive"
-              child={createWorkspaceButton(id, isActive, isFocused, icon)}
-            />
+            <box class="workspace-group inactive">
+              {createWorkspaceButton(id, isActive, isFocused, icon)}
+            </box>
           );
         }
       });
@@ -177,7 +176,7 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
       class="app-search"
       label=""
       onToggled={({ active }) => {
-        on
+        active
           ? showWindow(`app-launcher-${monitorName}`)
           : hideWindow(`app-launcher-${monitorName}`);
       }}
@@ -193,7 +192,7 @@ function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
       class="wallpaper-switcher-trigger"
       label="󰸉"
       onToggled={({ active }) => {
-        on
+        active
           ? showWindow(`wallpaper-switcher-${monitorName}`)
           : hideWindow(`wallpaper-switcher-${monitorName}`);
       }}
@@ -207,7 +206,7 @@ function Settings({ monitorName }: { monitorName: string }) {
       class="settings"
       label=""
       onToggled={({ active }) =>
-        on
+        active
           ? showWindow(`settings-${monitorName}`)
           : hideWindow(`settings-${monitorName}`)
       }
@@ -221,7 +220,7 @@ function UserPanel({ monitorName }: { monitorName: string }) {
       class="user-panel"
       label=""
       onToggled={({ active }) => {
-        on
+        active
           ? showWindow(`user-panel-${monitorName}`)
           : hideWindow(`user-panel-${monitorName}`);
       }}
@@ -244,7 +243,7 @@ export default ({
   halign,
 }: {
   monitorName: string;
-  halign: Gtk.Align;
+  halign: Accessor<Gtk.Align>;
 }) => {
   return (
     <box class="bar-left" spacing={5} halign={halign} hexpand>

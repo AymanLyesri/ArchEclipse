@@ -194,7 +194,7 @@ function setWaifuCurrent(value: Waifu) {
 export { waifuCurrent, setWaifuCurrent };
 
 export const focusedClient = createBinding(hyprland, "focusedClient");
-export const emptyWorkspace = createComputed(() => !focusedClient());
+export const emptyWorkspace = focusedClient((client) => !client);
 export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
 
 export const [newAppWorkspace, setNewAppWorkspace] = createState(0);

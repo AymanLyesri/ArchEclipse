@@ -1,7 +1,7 @@
-import App from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import Notifd from "gi://AstalNotifd";
 import Notification from "./rightPanel/components/Notification";
 import { createState, createComputed } from "ags";

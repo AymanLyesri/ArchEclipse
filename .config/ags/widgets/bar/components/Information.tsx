@@ -1,7 +1,5 @@
 import Hyprland from "gi://AstalHyprland";
 const hyprland = Hyprland.get_default();
-import Mpris from "gi://AstalMpris";
-const mpris = Mpris.get_default();
 // import Cava from "gi://AstalCava";
 // const cava = Cava.get_default()!;
 
@@ -16,13 +14,17 @@ import {
   focusedClient,
   globalTransition,
 } from "../../../variables";
-import { createBinding, createComputed, createState } from "ags";
+import { Accessor, createBinding, createComputed, createState, For } from "ags";
 import { createPoll } from "ags/time";
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib?version=2.0";
 import CustomRevealer from "../../CustomRevealer";
 import { showWindow } from "../../../utils/window";
 import { dateFormats } from "../../../constants/date.constants";
+import AstalMpris from "gi://AstalMpris";
+import AstalApps from "gi://AstalApps";
+import Pango from "gi://Pango";
+import { Eventbox } from "../../Custom/Eventbox";
 
 // --- Tunable constants (change to lower CPU usage) ---
 const CAVA_UPDATE_MS = 60; // coalesced update interval for audio visualizer (larger => less CPU)
@@ -207,112 +209,189 @@ function AudioVisualizer() {
   return revealer;
 }
 
-function Media({ monitorName }: { monitorName: string }) {
-  const mprisPlayers = createBinding(mpris, "players");
-  // Derive active player only when players array changes (cheaper than scanning on each render)
-  const activePlayerVar = mprisPlayers((players) => {
-    if (!players || players.length === 0) return null;
-    return (
-      players.find((p) => p.playbackStatus === Mpris.PlaybackStatus.PLAYING) ||
-      players[0]
-    );
-  });
+// function Media({ monitorName }: { monitorName: string }) {
+//   const mprisPlayers = createBinding(mpris, "players");
+//   // Derive active player only when players array changes (cheaper than scanning on each render)
+//   const activePlayerVar = mprisPlayers((players) => {
+//     if (!players || players.length === 0) return null;
+//     return (
+//       players.find((p) => p.playbackStatus === Mpris.PlaybackStatus.PLAYING) ||
+//       players[0]
+//     );
+//   });
 
-  // Small helper that returns a compact player box. Keep widget tree minimal.
-  function Player(player: Mpris.Player | null) {
-    if (!player) return <box />;
+//   // Small helper that returns a compact player box. Keep widget tree minimal.
+//   function Player(player: Mpris.Player | null) {
+//     if (!player) return <box />;
 
-    const playerEntry = createBinding(player, "entry");
-    const playerCoverArt = createBinding(player, "coverArt");
-    const playerPosition = createBinding(player, "position");
-    const playerLength = createBinding(player, "length");
-    const playerTitle = createBinding(player, "title");
-    const playerArtist = createBinding(player, "artist");
+//     const playerEntry = createBinding(player, "entry");
+//     const playerCoverArt = createBinding(player, "coverArt");
+//     const playerPosition = createBinding(player, "position");
+//     const playerLength = createBinding(player, "length");
+//     const playerTitle = createBinding(player, "title");
+//     const playerArtist = createBinding(player, "artist");
 
-    const playerIcon = createComputed(() => playerToIcon(playerEntry.get()));
+//     const playerIcon = createComputed(() => playerToIcon(playerEntry.get()));
 
-    // Only build CSS when coverArt changes (bind will handle it)
-    const coverCss = createComputed(() => {
-      const c = playerCoverArt.get();
-      return c
-        ? `background-image: linear-gradient(to right,#000000, rgba(0,0,0,0.5)), url("${c}");`
-        : `background-color: transparent;`;
-    });
+//     // Only build CSS when coverArt changes (bind will handle it)
+//     const coverCss = createComputed(() => {
+//       const c = playerCoverArt.get();
+//       return c
+//         ? `background-icon: linear-gradient(to right,#000000, rgba(0,0,0,0.5)), url("${c}");`
+//         : `background-color: transparent;`;
+//     });
 
-    const progressWidget = (
-      <box
-        class="progress"
-        halign={Gtk.Align.CENTER}
-        valign={Gtk.Align.CENTER}
-        child={<label class={"icon"} label={playerIcon} />}
-      />
-    );
+//     const progressWidget = (
+//       <box
+//         class="progress"
+//         halign={Gtk.Align.CENTER}
+//         valign={Gtk.Align.CENTER}
+//         child={<label class={"icon"} label={playerIcon} />}
+//       />
+//     );
 
-    const title = (
-      <label
-        class="title"
-        maxWidthChars={20}
-        truncate={true}
-        label={createComputed(() => playerTitle.get() || "Unknown Track")}
-      />
-    );
+//     const title = (
+//       <label
+//         class="title"
+//         maxWidthChars={20}
+//         ellipsize={Pango.EllipsizeMode.END}
+//         label={createComputed(() => playerTitle.get() || "Unknown Track")}
+//       />
+//     );
 
-    const artist = (
-      <label
-        class="artist"
-        maxWidthChars={20}
-        truncate={true}
-        label={createComputed(() => {
-          const a = playerArtist.get();
-          return a ? `[${a}]` : "Unknown Artist";
-        })}
-      />
-    );
+//     const artist = (
+//       <label
+//         class="artist"
+//         maxWidthChars={20}
+//         ellipsize={Pango.EllipsizeMode.END}
+//         label={createComputed(() => {
+//           const a = playerArtist.get();
+//           return a ? `[${a}]` : "Unknown Artist";
+//         })}
+//       />
+//     );
 
-    return (
-      <box
-        class={createComputed(() => `media ${playerEntry.get()}`)}
-        css={coverCss}
-        spacing={10}
-      >
-        {progressWidget}
-        {title}
-        {artist}
-      </box>
-    );
-  }
+//     return (
+//       <box
+//         class={createComputed(() => `media ${playerEntry.get()}`)}
+//         css={coverCss}
+//         spacing={10}
+//       >
+//         {progressWidget}
+//         {title}
+//         {artist}
+//       </box>
+//     );
+//   }
 
-  // Debounce showWindow to avoid spamming when cursor moves inside
-  let hoverTimeout: number | null = null;
-  const handleHover = () => {
-    if (hoverTimeout) return;
-    hoverTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
-      showWindow(`media-${monitorName}`);
-      hoverTimeout = null;
-      return GLib.SOURCE_REMOVE;
-    });
-  };
+//   // Debounce showWindow to avoid spamming when cursor moves inside
+//   let hoverTimeout: number | null = null;
+//   const handleHover = () => {
+//     if (hoverTimeout) return;
+//     hoverTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+//       showWindow(`media-${monitorName}`);
+//       hoverTimeout = null;
+//       return GLib.SOURCE_REMOVE;
+//     });
+//   };
 
-  const activePlayerBox = activePlayerVar((player) => {
-    player ? Player(player) : <box />;
-  });
+//   const activePlayerBox = activePlayerVar((player) => {
+//     player ? Player(player) : <box />;
+//   });
+
+//   return (
+//     <revealer
+//       revealChild={true}
+//       transitionDuration={globalTransition}
+//       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+//       child={
+//         <Eventbox
+//           class="media-event"
+//           onClick={() =>
+//             hyprland.message_async("dispatch workspace 4", () => {})
+//           }
+//           onHover={handleHover}
+//           child={activePlayerBox}
+//         />
+//       }
+//     />
+//   );
+// }
+
+function Mpris() {
+  const mpris = AstalMpris.get_default();
+  const apps = new AstalApps.Apps();
+  const players = createBinding(mpris, "players");
 
   return (
-    <revealer
-      revealChild={true}
-      transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-      child={
-        <eventbox
-          class="media-event"
-          onClick={() =>
-            hyprland.message_async("dispatch workspace 4", () => {})
-          }
-          onHover={handleHover}
-          child={activePlayerBox}
-        />
-      }
-    />
+    <menubutton>
+      <box>
+        <For each={players}>
+          {(player) => {
+            const [app] = apps.exact_query(player.entry);
+            return <image visible={!!app.iconName} iconName={app?.iconName} />;
+          }}
+        </For>
+      </box>
+      <popover>
+        <box spacing={4} orientation={Gtk.Orientation.VERTICAL}>
+          <For each={players}>
+            {(player) => (
+              <box spacing={4} widthRequest={200}>
+                <box css="border-radius: 8px;">
+                  <image
+                    pixelSize={64}
+                    file={createBinding(player, "coverArt")}
+                  />
+                </box>
+                <box
+                  valign={Gtk.Align.CENTER}
+                  orientation={Gtk.Orientation.VERTICAL}
+                >
+                  <label xalign={0} label={createBinding(player, "title")} />
+                  <label xalign={0} label={createBinding(player, "artist")} />
+                </box>
+                <box hexpand halign={Gtk.Align.END}>
+                  <button
+                    onClicked={() => player.previous()}
+                    visible={createBinding(player, "canGoPrevious")}
+                  >
+                    <image iconName="media-seek-backward-symbolic" />
+                  </button>
+                  <button
+                    onClicked={() => player.play_pause()}
+                    visible={createBinding(player, "canControl")}
+                  >
+                    <box>
+                      <image
+                        iconName="media-playback-start-symbolic"
+                        visible={createBinding(
+                          player,
+                          "playbackStatus"
+                        )((s) => s === AstalMpris.PlaybackStatus.PLAYING)}
+                      />
+                      <image
+                        iconName="media-playback-pause-symbolic"
+                        visible={createBinding(
+                          player,
+                          "playbackStatus"
+                        )((s) => s !== AstalMpris.PlaybackStatus.PLAYING)}
+                      />
+                    </box>
+                  </button>
+                  <button
+                    onClicked={() => player.next()}
+                    visible={createBinding(player, "canGoNext")}
+                  >
+                    <image iconName="media-seek-forward-symbolic" />
+                  </button>
+                </box>
+              </box>
+            )}
+          </For>
+        </box>
+      </popover>
+    </menubutton>
   );
 }
 
@@ -322,20 +401,15 @@ function Clock() {
   const trigger = <label class="clock" label={date_less}></label>;
 
   return (
-    <eventbox
+    <Eventbox
       onClick={() => {
-        const currentFormat = dateFormat();
+        const currentFormat = dateFormat.get();
         const currentIndex = dateFormats.indexOf(currentFormat);
         setDateFormat(dateFormats[(currentIndex + 1) % dateFormats.length]);
       }}
-      child={
-        <CustomRevealer
-          trigger={trigger}
-          child={revealer}
-          custom_class="clock"
-        />
-      }
-    />
+    >
+      <CustomRevealer trigger={trigger} child={revealer} custom_class="clock" />
+    </Eventbox>
   );
 }
 function Bandwidth() {
@@ -401,7 +475,7 @@ function Bandwidth() {
   );
 
   const parent = (
-    <eventbox
+    <Eventbox
       onHover={() => {
         if (uploadRevealerInstance) uploadRevealerInstance.reveal_child = true;
         if (downloadRevealerInstance)
@@ -422,27 +496,20 @@ function Bandwidth() {
 function ClientTitle() {
   return (
     <revealer
-      revealChild={emptyWorkspace((empty) => !empty)}
+      revealChild={focusedClient}
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      child={createComputed(() => {
-        const client = focusedClient.get();
-        if (client) {
-          const title = createBinding(client, "title");
-          return (
-            <label
-              class="client-title"
-              truncate={true}
-              maxWidthChars={24}
-              label={createComputed(() =>
-                title.get() ? String(title.get()) : ""
-              )}
-            />
-          );
-        } else {
-          return <box />;
-        }
-      })}
+      child={
+        <label
+          class="client-title"
+          ellipsize={Pango.EllipsizeMode.END}
+          maxWidthChars={24}
+          label={focusedClient((c) => {
+            if (!c) return "No focused client";
+            return c.title || "No Title";
+          })}
+        />
+      }
     />
   );
 }
@@ -461,7 +528,9 @@ function Weather() {
         const parsed = JSON.parse(out);
         return {
           temp: parsed.current.temperature_2m,
+          temp_unit: parsed.current_units.temperature_2m,
           wind: parsed.current.wind_speed_10m,
+          wind_unit: parsed.current_units.wind_speed_10m,
         };
       } catch (e) {
         return null;
@@ -472,16 +541,18 @@ function Weather() {
   const label = (
     <label
       class="weather"
-      truncate={true}
+      ellipsize={Pango.EllipsizeMode.END}
       // onDestroy={() => weather.drop()} // No drop in signals
       label={weather((w) =>
-        w ? `  ${w.temp} -   ${w.wind} km/h` : "Weather N/A"
+        w
+          ? `  ${w.temp} ${w.temp_unit} - ${w.wind} ${w.wind_unit}`
+          : "Weather N/A"
       )}
     />
   );
 
   return (
-    <eventbox
+    <Eventbox
       onClick={() =>
         GLib.spawn_command_line_async("xdg-open 'https://open-meteo.com/'")
       }
@@ -495,12 +566,13 @@ export default ({
   halign,
 }: {
   monitorName: string;
-  halign: Gtk.Align;
+  halign: Accessor<Gtk.Align>;
 }) => {
   return (
     <box class="bar-middle" spacing={5} halign={halign}>
       {/* <AudioVisualizer /> */}
       {/* <Media monitorName={monitorName} /> */}
+      <Mpris />
       <Clock />
       <Weather />
       <Bandwidth />

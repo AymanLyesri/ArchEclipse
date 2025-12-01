@@ -1,7 +1,7 @@
-import App from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import {
   globalMargin,
   globalTransition,
@@ -71,12 +71,12 @@ const Actions = () => (
 function Panel() {
   return (
     <box>
-      <eventbox
+      <Eventbox
         onHoverLost={() => {
           if (!rightPanelLock()) setRightPanelVisibility(false);
         }}
         child={<box css={"min-width:5px"} />}
-      ></eventbox>
+      ></Eventbox>
       <box
         class={"main-content"}
         vertical={true}

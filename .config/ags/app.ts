@@ -1,4 +1,4 @@
-import app from "ags/gtk3/app";
+import app from "ags/gtk4/app";
 import Bar from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
 import RightPanel from "./widgets/rightPanel/RightPanel";
@@ -27,16 +27,16 @@ const perMonitorDisplay = () =>
     // List of widget initializers
     const widgetInitializers = [
       { name: "Bar", fn: () => Bar(monitor) },
-      { name: "BarHover", fn: () => BarHover(monitor) },
+      // { name: "BarHover", fn: () => BarHover(monitor) },
       // { name: "Progress", fn: () => Progress(monitor) },
       // { name: "RightPanel", fn: () => RightPanel(monitor) },
       // { name: "RightPanelHover", fn: () => RightPanelHover(monitor) },
       // { name: "LeftPanel", fn: () => LeftPanel(monitor) },
       // { name: "LeftPanelHover", fn: () => LeftPanelHover(monitor) },
       // { name: "NotificationPopups", fn: () => NotificationPopups(monitor) },
-      { name: "AppLauncher", fn: () => AppLauncher(monitor) },
+      // { name: "AppLauncher", fn: () => AppLauncher(monitor) },
       // { name: "UserPanel", fn: () => UserPanel(monitor) },
-      { name: "WallpaperSwitcher", fn: () => WallpaperSwitcher(monitor) },
+      // { name: "WallpaperSwitcher", fn: () => WallpaperSwitcher(monitor) },
       // { name: "MediaPopups", fn: () => MediaPopups(monitor) },
       // { name: "SettingsWidget", fn: () => SettingsWidget(monitor) },
       // { name: "OSD", fn: () => OSD(monitor) },

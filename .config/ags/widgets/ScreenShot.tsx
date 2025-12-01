@@ -1,7 +1,7 @@
-import App from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import { getMonitorName } from "../utils/monitor";
 import {
   globalMargin,
@@ -87,8 +87,8 @@ export default (monitor: Gdk.Monitor) => {
         <box
           class="screenshot-popup"
           child={
-            <eventbox
-              class={"screenshot-eventbox"}
+            <Eventbox
+              class={"screenshot-Eventbox"}
               onHoverLost={() => setScreenShotVisibility(false)}
               child={
                 <box class="screenshot-widget" child={actions(monitorName)} />

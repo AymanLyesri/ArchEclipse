@@ -2,10 +2,8 @@
   "compilerOptions": {
     "experimentalDecorators": false,
     "jsx": "react-jsx",
-    "jsxImportSource": "ags/gtk3",
-    "lib": [
-      "es2024"
-    ],
+    "jsxImportSource": "ags/gtk4",
+    "lib": ["es2024"],
     "module": "ES2022",
     "moduleResolution": "Bundler",
     "strict": true,

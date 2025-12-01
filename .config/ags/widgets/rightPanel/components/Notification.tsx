@@ -1,6 +1,6 @@
 import { execAsync } from "ags/process";
-import Gtk from "gi://Gtk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import Notifd from "gi://AstalNotifd";
 import { globalTransition, NOTIFICATION_DELAY } from "../../../variables";
 import Hyprland from "gi://AstalHyprland";
@@ -16,7 +16,7 @@ function NotificationIcon(n: Notifd.Notification) {
   const notificationIcon = n.image || n.app_icon || n.desktopEntry;
 
   if (!notificationIcon)
-    return <icon class="icon" icon={"dialog-information-symbolic"} />;
+    return <image class="icon" icon={"dialog-information-symbolic"} />;
 
   return (
     <box
@@ -89,7 +89,7 @@ export default ({
       justify={Gtk.Justification.LEFT}
       hexpand={true}
       maxWidthChars={24}
-      truncate={true}
+      ellipsize={Pango.EllipsizeMode.END}
       wrap={true}
       label={n.summary}
       useMarkup={true}
@@ -100,7 +100,7 @@ export default ({
     <label
       class="body"
       hexpand={true}
-      truncate={true}
+      ellipsize={Pango.EllipsizeMode.END}
       maxWidthChars={24}
       xalign={0}
       justify={Gtk.Justification.LEFT}
@@ -254,8 +254,8 @@ export default ({
         }, NOTIFICATION_DELAY)
       }
       child={
-        <eventbox
-          class={"notification-eventbox"}
+        <Eventbox
+          class={"notification-Eventbox"}
           visible={true}
           onHover={() => {
             leftRevealer.reveal_child = true;
@@ -272,7 +272,7 @@ export default ({
           }
           // onSecondaryClick={() => closeRevealer.child.activate()}
           child={Revealer}
-        ></eventbox>
+        ></Eventbox>
       }
     ></box>
   );

@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import { Waifu } from "../../../interfaces/waifu.interface";
 import { execAsync } from "ags/process";
 import { createState, createBinding, createComputed } from "ags";
@@ -361,8 +361,8 @@ const ClearCacheButton = () => {
 };
 
 const BottomBar = () => (
-  <eventbox
-    class={"bottom-eventbox"}
+  <Eventbox
+    class={"bottom-Eventbox"}
     child={
       <box class={"bottom"} spacing={5} vertical>
         <PageDisplay />

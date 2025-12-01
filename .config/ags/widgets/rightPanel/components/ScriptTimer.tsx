@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import { createBinding, createState, createComputed } from "ags";
 import { execAsync } from "ags/process";
 import { globalTransition } from "../../../variables";
@@ -297,8 +297,8 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
   };
 
   return (
-    <eventbox
-      class={"task-eventbox"}
+    <Eventbox
+      class={"task-Eventbox"}
       onHover={() => setIsHovered(true)}
       onHoverLost={() => setIsHovered(false)}
       child={

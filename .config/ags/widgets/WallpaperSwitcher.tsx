@@ -2,9 +2,9 @@ import hyprland from "gi://AstalHyprland";
 import { createState, createComputed, For } from "ags";
 import { exec, execAsync } from "ags/process";
 import { monitorFile } from "ags/file";
-import app from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import app from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import { notify } from "../utils/notification";
 import { focusedWorkspace, globalTransition } from "../variables";
 import { getMonitorName } from "../utils/monitor";
@@ -107,7 +107,7 @@ function Display(monitor: string) {
               </box>
             );
             return (
-              <eventbox
+              <Eventbox
                 class="wallpaper-event-box"
                 child={image}
                 onClick={() => {
@@ -133,7 +133,7 @@ function Display(monitor: string) {
                     })
                     .catch(notify);
                 }}
-              ></eventbox>
+              ></Eventbox>
             );
           }}
         </For>
