@@ -24,7 +24,12 @@ import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => {
   return (
-    <box vertical={true} vexpand={true} class={"widget-actions"} spacing={5}>
+    <box
+      orientation={Gtk.Orientation.VERTICAL}
+      vexpand={true}
+      class={"widget-actions"}
+      spacing={5}
+    >
       {rightPanelWidgetSelectors.map((selector) => {
         const isActive = createComputed(() =>
           rightPanelWidgets().some((w) => w.name === selector.name)
@@ -53,7 +58,7 @@ const WidgetActions = () => {
 };
 
 const Actions = () => (
-  <box class={"panel-actions"} vertical={true}>
+  <box class={"panel-actions"} orientation={Gtk.Orientation.VERTICAL}>
     <WidgetActions />
     <WindowActions
       windowWidth={rightPanelWidth}
@@ -79,7 +84,7 @@ function Panel() {
       ></Eventbox>
       <box
         class={"main-content"}
-        vertical={true}
+        orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
         widthRequest={rightPanelWidth}
       >

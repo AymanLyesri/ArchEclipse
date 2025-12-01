@@ -18,8 +18,8 @@ export function playerToIcon(name: string) {
 }
 
 export const lookupIcon = (name: string) => {
-  let result = Astal.Icon.lookup_icon(name)
-    ? Astal.Icon.lookup_icon(name)
+  let result = image.lookup_icon(name)
+    ? image.lookup_icon(name)
     : "audio-x-generic-symbolic";
   return result;
 };

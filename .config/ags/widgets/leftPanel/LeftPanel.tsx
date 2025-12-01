@@ -23,7 +23,11 @@ import { hideWindow, WindowActions } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => (
-  <box class={"widget-actions"} vertical={true} spacing={10}>
+  <box
+    class={"widget-actions"}
+    orientation={Gtk.Orientation.VERTICAL}
+    spacing={10}
+  >
     {leftPanelWidgetSelectors.map((widgetSelector) => (
       <togglebutton
         active={createComputed(
@@ -37,7 +41,7 @@ const WidgetActions = () => (
 );
 
 const Actions = () => (
-  <box class={"panel-actions"} vertical={true}>
+  <box class={"panel-actions"} orientation={Gtk.Orientation.VERTICAL}>
     <WidgetActions />
     <WindowActions
       windowWidth={leftPanelWidth}

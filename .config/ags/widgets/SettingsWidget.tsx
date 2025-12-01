@@ -53,7 +53,7 @@ const normalizeValue = (value: any, type: string) => {
 
 const BarLayoutSetting = () => {
   return (
-    <box spacing={5} vertical>
+    <box spacing={5} orientation={Gtk.Orientation.VERTICAL}>
       <label
         class={"subcategory-label"}
         label={"bar Layout"}
@@ -338,11 +338,19 @@ const Settings = () => {
   });
 
   return (
-    <scrollable
+    <scrolledwindow
       heightRequest={500}
       child={
-        <box vertical={true} spacing={10} class="settings">
-          <box class={"category"} vertical={true} spacing={5}>
+        <box
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={10}
+          class="settings"
+        >
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={5}
+          >
             <label label="AGS" halign={Gtk.Align.START} />
             {BarLayoutSetting()}
             {agsSetting([globalOpacity, setGlobalOpacity])}
@@ -350,11 +358,19 @@ const Settings = () => {
             {agsSetting([globalScale, setGlobalScale])}
             {agsSetting([globalFontSize, setGlobalFontSize])}
           </box>
-          <box class={"category"} vertical={true} spacing={5}>
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={5}
+          >
             <label label="Hyprland" halign={Gtk.Align.START} />
             {hyprlandSettings}
           </box>
-          <box class={"category"} vertical={true} spacing={5}>
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={5}
+          >
             <label label="Custom" halign={Gtk.Align.START} />
             {agsSetting([autoWorkspaceSwitching, setAutoWorkspaceSwitching])}
           </box>
@@ -403,7 +419,7 @@ export default (monitor: Gdk.Monitor) => {
         }
       }}
       child={
-        <box vertical={true} class="settings-widget">
+        <box orientation={Gtk.Orientation.VERTICAL} class="settings-widget">
           <WindowActions monitor={monitorName} />
           <Settings />
         </box>

@@ -74,7 +74,7 @@ export default () => {
   const notifications = createBinding(notifd, "notifications");
 
   const NotificationHistory = (
-    <box vertical={true} spacing={5}>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       {createComputed(() => {
         const list = notifications();
         const filter = getFilter();
@@ -87,11 +87,11 @@ export default () => {
   );
 
   const NotificationsDisplay = (
-    <scrollable
+    <scrolledwindow
       hscroll={Gtk.PolicyType.NEVER}
       vexpand={true}
       child={NotificationHistory}
-    ></scrollable>
+    ></scrolledwindow>
   );
 
   const ClearNotifications = (
@@ -107,7 +107,11 @@ export default () => {
   );
 
   return (
-    <box class="notification-history" vertical={true} spacing={5}>
+    <box
+      class="notification-history"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={5}
+    >
       <CustomRevealer trigger={Filter} child={ClearNotifications} />
       {NotificationsDisplay}
     </box>

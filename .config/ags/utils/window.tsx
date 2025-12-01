@@ -32,7 +32,7 @@ export function WindowActions({
       vexpand={true}
       halign={Gtk.Align.END}
       valign={Gtk.Align.END}
-      vertical={true}
+      orientation={Gtk.Orientation.VERTICAL}
     >
       <button
         label=""

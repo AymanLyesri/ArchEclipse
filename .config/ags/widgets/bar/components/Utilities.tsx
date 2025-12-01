@@ -195,7 +195,7 @@ function Tray() {
       <For each={items}>
         {(item) => (
           <menubutton class="tray-icon" $={(self) => init(self, item)}>
-            <image gicon={createBinding(item, "gicon")} />
+            <image ggicon={createBinding(item, "gicon")} />
           </menubutton>
         )}
       </For>

@@ -8,7 +8,7 @@ import { notify } from "../../../utils/notification";
 import { asyncSleep, time } from "../../../utils/time";
 import { createState } from "ags";
 
-const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
+const isIcon = (icon: string) => !!image.lookup_icon(icon);
 
 const TRANSITION = 200;
 
@@ -16,7 +16,7 @@ function NotificationIcon(n: Notifd.Notification) {
   const notificationIcon = n.image || n.app_icon || n.desktopEntry;
 
   if (!notificationIcon)
-    return <image class="icon" icon={"dialog-information-symbolic"} />;
+    return <image class="icon" gicon={"dialog-information-symbolic"} />;
 
   return (
     <box
@@ -215,12 +215,16 @@ export default ({
     <box
       class={`notification ${n.urgency} ${n.app_name}`}
       child={
-        <box class="main-content" vertical={true} spacing={10}>
+        <box
+          class="main-content"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={10}
+        >
           {topBar}
           {/* <separator /> */}
           <box spacing={5}>
             {icon}
-            <box vertical={true} spacing={5}>
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
               <box hexpand={true} child={title}></box>
               {body}
             </box>

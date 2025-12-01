@@ -74,7 +74,7 @@ const UserPanel = (monitorName: string) => {
     );
 
     return (
-      <box class="profile" vertical={true} spacing={5}>
+      <box class="profile" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
         {ProfilePicture}
         {UserName}
         {DesktopEnv}
@@ -130,7 +130,11 @@ const UserPanel = (monitorName: string) => {
     );
 
     return (
-      <box class="system-actions" vertical={true} spacing={10}>
+      <box
+        class="system-actions"
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+      >
         <box class="action" spacing={10}>
           {Shutdown()}
           {Restart()}
@@ -144,7 +148,12 @@ const UserPanel = (monitorName: string) => {
   };
 
   const right = (
-    <box halign={Gtk.Align.CENTER} class="bottom" vertical={true} spacing={10}>
+    <box
+      halign={Gtk.Align.CENTER}
+      class="bottom"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={10}
+    >
       {Profile()}
       {Actions()}
     </box>
@@ -159,7 +168,7 @@ const UserPanel = (monitorName: string) => {
   const middle = (
     <box
       class="middle"
-      vertical={true}
+      orientation={Gtk.Orientation.VERTICAL}
       hexpand={true}
       vexpand={true}
       spacing={10}
@@ -213,7 +222,7 @@ export default (monitor: Gdk.Monitor) => {
         }
       }}
     >
-      <box class="display" vertical={true} spacing={10}>
+      <box class="display" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         {WindowActions(monitorName)}
         {UserPanel(monitorName)}
       </box>

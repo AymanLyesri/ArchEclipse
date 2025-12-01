@@ -103,7 +103,7 @@ function Actions() {
         <Eventbox
           class="bottom-Eventbox"
           child={
-            <box class={"bottom-bar"} vertical>
+            <box class={"bottom-bar"} orientation={Gtk.Orientation.VERTICAL}>
               <box class={"top"}>
                 <button
                   label=""
@@ -208,7 +208,12 @@ function Actions() {
   );
 
   const bottom = (
-    <box class="bottom" vertical vexpand valign={Gtk.Align.END}>
+    <box
+      class="bottom"
+      orientation={Gtk.Orientation.VERTICAL}
+      vexpand
+      valign={Gtk.Align.END}
+    >
       {
         <togglebutton
           label=""
@@ -226,7 +231,7 @@ function Actions() {
   );
 
   return (
-    <box class="layout" vertical child={bottom}>
+    <box class="layout" orientation={Gtk.Orientation.VERTICAL} child={bottom}>
       {/* {top} */}
     </box>
   );
@@ -262,7 +267,13 @@ export default () => {
       transitionDuration={globalTransition}
       transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
       revealChild={createComputed(() => globalSettings().waifu.visibility)}
-      child={<box class="waifu" vertical child={Image()}></box>}
+      child={
+        <box
+          class="waifu"
+          orientation={Gtk.Orientation.VERTICAL}
+          child={Image()}
+        ></box>
+      }
     ></revealer>
   );
 };

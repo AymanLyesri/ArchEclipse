@@ -33,7 +33,7 @@ export default (monitor: Gdk.Monitor) => {
             <Eventbox
               onHoverLost={() => hideWindow(`media-${monitorName}`)}
               child={
-                <box vertical={true} spacing={10}>
+                <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
                   {createComputed(() =>
                     players().map((player) => (
                       <Eventbox

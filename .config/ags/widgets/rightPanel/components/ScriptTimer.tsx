@@ -179,7 +179,11 @@ const TaskForm = ({
   };
 
   return (
-    <box class="form-container" vertical spacing={8}>
+    <box
+      class="form-container"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={8}
+    >
       <entry
         text={nameEntry}
         onChanged={(self) => setNameEntry(self.text)}
@@ -193,7 +197,7 @@ const TaskForm = ({
         maxLength={5}
       />
 
-      <box vertical>
+      <box orientation={Gtk.Orientation.VERTICAL}>
         <entry
           text={commandEntry}
           onChanged={(self) => {
@@ -207,7 +211,11 @@ const TaskForm = ({
           transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
           transitionDuration={globalTransition}
           child={
-            <box class="suggestions" vertical spacing={2}>
+            <box
+              class="suggestions"
+              orientation={Gtk.Orientation.VERTICAL}
+              spacing={2}
+            >
               {predefinedCommands
                 .filter((cmd) =>
                   cmd.label.toLowerCase().includes(commandEntry().toLowerCase())
@@ -304,7 +312,7 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
       child={
         <box
           class={`task ${task.active ? "active" : "inactive"}`}
-          vertical
+          orientation={Gtk.Orientation.VERTICAL}
           spacing={6}
         >
           <box class="task-header">
@@ -363,7 +371,11 @@ const ScriptTimer = () => {
   };
 
   return (
-    <box class="script-timer module" vertical spacing={5}>
+    <box
+      class="script-timer module"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={5}
+    >
       <box class="header">
         <label
           class="title"
@@ -388,12 +400,12 @@ const ScriptTimer = () => {
         })}
       />
 
-      <scrollable
+      <scrolledwindow
         class="task-list"
         vexpand
         hscroll={Gtk.PolicyType.NEVER}
         child={
-          <box vertical spacing={5}>
+          <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
             {createComputed(() => {
               const tasks = scriptTasks;
               return tasks.length === 0

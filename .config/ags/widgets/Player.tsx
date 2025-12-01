@@ -113,7 +113,7 @@ export default ({
       visible={createComputed(() => canPlayBinding())}
       child={
         <image
-          icon={createComputed(() => {
+          gicon={createComputed(() => {
             const s = playbackStatusBinding();
             switch (s) {
               case AstalMpris.PlaybackStatus.PLAYING:
@@ -134,7 +134,7 @@ export default ({
     <button
       onClicked={() => player.previous()}
       visible={createComputed(() => canGoPreviousBinding())}
-      child={<image icon={PREV_ICON}></image>}
+      child={<image gicon={PREV_ICON}></image>}
     ></button>
   );
 
@@ -142,7 +142,7 @@ export default ({
     <button
       onClicked={() => player.next()}
       visible={createComputed(() => canGoNextBinding())}
-      child={<image icon={NEXT_ICON}></image>}
+      child={<image gicon={NEXT_ICON}></image>}
     ></button>
   );
 
@@ -167,14 +167,18 @@ export default ({
       })}
     >
       {img()}
-      <box vertical={true} hexpand={true}>
+      <box orientation={Gtk.Orientation.VERTICAL} hexpand={true}>
         {/* <box>{icon}</box> */}
         <box vexpand={true}></box>
         <Eventbox
           class={"bottom-Eventbox"}
           child={
-            <box class={"bottom-bar"} spacing={5} vertical>
-              <box class={"info"} vertical>
+            <box
+              class={"bottom-bar"}
+              spacing={5}
+              orientation={Gtk.Orientation.VERTICAL}
+            >
+              <box class={"info"} orientation={Gtk.Orientation.VERTICAL}>
                 {title}
                 {artist}
               </box>

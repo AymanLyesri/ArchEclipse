@@ -135,10 +135,12 @@ export default (monitor: Gdk.Monitor) => {
       child={
         <box
           class={"notification-popups"}
-          vertical
+          orientation={Gtk.Orientation.VERTICAL}
           vexpand={true}
           child={createComputed(() => (
-            <box vertical>{notifications.get().map((n: any) => n)}</box>
+            <box orientation={Gtk.Orientation.VERTICAL}>
+              {notifications.get().map((n: any) => n)}
+            </box>
           ))}
         />
       }

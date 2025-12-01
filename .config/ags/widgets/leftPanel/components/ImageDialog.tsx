@@ -92,7 +92,7 @@ export class ImageDialog {
     // Get content area
     const contentArea = this.dialog.get_content_area();
 
-    // Create main vertical box to hold everything
+    // Create main orientation={Gtk.Orientation.VERTICAL} box to hold everything
     const mainBox = new Gtk.Box({
       orientation: Gtk.Orientation.VERTICAL,
       margin: 5,
@@ -179,7 +179,7 @@ export class ImageDialog {
       const button = new Gtk.Button({
         label: btn.icon,
         halign: Gtk.Align.CENTER, // Center horizontally
-        valign: Gtk.Align.CENTER, // Center vertically
+        valign: Gtk.Align.CENTER, // Center orientation={Gtk.Orientation.VERTICAL}ly
         sensitive: btn.needImageDownload
           ? createBinding(this, "imageDownloaded")
           : true,

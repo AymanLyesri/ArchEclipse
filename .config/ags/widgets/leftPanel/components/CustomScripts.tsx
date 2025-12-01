@@ -39,7 +39,12 @@ const customScripts = [
 
 export default () => {
   return (
-    <box class="custom-scripts" vertical hexpand spacing={10}>
+    <box
+      class="custom-scripts"
+      orientation={Gtk.Orientation.VERTICAL}
+      hexpand
+      spacing={10}
+    >
       {customScripts.map((script) => (
         <Eventbox
           class={"script-Eventbox"}

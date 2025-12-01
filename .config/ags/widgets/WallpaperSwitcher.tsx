@@ -61,7 +61,7 @@ export function toThumbnailPath(file: string) {
 function Display(monitor: string) {
   const getAllWallpapers = () => (
     <Gtk.ScrolledWindow
-      class="all-wallpapers-scrollable"
+      class="all-wallpapers-scrolledwindow"
       hscrollbarPolicy={Gtk.PolicyType.ALWAYS}
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       hexpand
@@ -73,7 +73,7 @@ function Display(monitor: string) {
             const image = (
               <box
                 class="wallpaper"
-                vertical
+                orientation={Gtk.Orientation.VERTICAL}
                 css={`
                   background-image: url("${toThumbnailPath(wallpaper)}");
                 `}
@@ -332,7 +332,11 @@ function Display(monitor: string) {
   );
 
   return (
-    <box class="wallpaper-switcher" vertical={true} spacing={20}>
+    <box
+      class="wallpaper-switcher"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={20}
+    >
       <box hexpand={true} vexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
         {currentWorkspaces}
       </box>

@@ -60,7 +60,12 @@ const formatTextWithCodeBlocks = (text: string) => {
   }
 
   return (
-    <box visible={text !== ""} class="body" vertical spacing={10}>
+    <box
+      visible={text !== ""}
+      class="body"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={10}
+    >
       {elements}
     </box>
   );
@@ -141,7 +146,7 @@ const ApiList = () => (
 
 // Components
 const Info = () => (
-  <box class="info" vertical spacing={5}>
+  <box class="info" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
     {createComputed(() => {
       const { name, description } = chatBotApi();
       return [
@@ -188,7 +193,7 @@ const MessageItem = ({ message }: { message: Message }) => {
       class="actions"
       spacing={5}
       valign={message.sender === "user" ? Gtk.Align.START : Gtk.Align.END}
-      vertical
+      orientation={Gtk.Orientation.VERTICAL}
     >
       {[
         <button
@@ -203,7 +208,7 @@ const MessageItem = ({ message }: { message: Message }) => {
   );
 
   const messageContent = (
-    <box vertical hexpand>
+    <box orientation={Gtk.Orientation.VERTICAL} hexpand>
       {formatTextWithCodeBlocks(message.content)}
       <box
         visible={message.image !== undefined}
@@ -231,7 +236,10 @@ const MessageItem = ({ message }: { message: Message }) => {
           : undefined
       }
       child={
-        <box class={`message ${message.sender}`} vertical>
+        <box
+          class={`message ${message.sender}`}
+          orientation={Gtk.Orientation.VERTICAL}
+        >
           <box class={"main"}>
             {message.sender !== "user"
               ? [<Actions />, messageContent]
@@ -245,28 +253,32 @@ const MessageItem = ({ message }: { message: Message }) => {
 };
 
 const Messages = () => {
-  let scrollable: any;
+  let scrolledwindow: any;
 
   createComputed(() => {
     // Trigger on messages change
     const msgs = messages();
-    if (scrollable) {
+    if (scrolledwindow) {
       setTimeout(() => {
-        scrollable
+        scrolledwindow
           .get_vadjustment()
-          .set_value(scrollable.get_vadjustment().get_upper());
+          .set_value(scrolledwindow.get_vadjustment().get_upper());
       }, 100);
     }
   });
 
   return (
-    <scrollable
+    <scrolledwindow
       vexpand
       $={(self) => {
-        scrollable = self;
+        scrolledwindow = self;
       }}
       child={
-        <box class="messages" vertical spacing={10}>
+        <box
+          class="messages"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={10}
+        >
           {createComputed(() =>
             messages().map((msg) => <MessageItem message={msg} />)
           )}
@@ -328,7 +340,11 @@ const BottomBar = () => (
   <Eventbox
     class={"bottom-Eventbox"}
     child={
-      <box class={"bottom-bar"} spacing={10} vertical>
+      <box
+        class={"bottom-bar"}
+        spacing={10}
+        orientation={Gtk.Orientation.VERTICAL}
+      >
         <box spacing={5}>
           <MessageEntry />
           <ClearButton />
@@ -371,7 +387,12 @@ export default () => {
   fetchMessages();
 
   return (
-    <box class="chat-bot" vertical hexpand spacing={5}>
+    <box
+      class="chat-bot"
+      orientation={Gtk.Orientation.VERTICAL}
+      hexpand
+      spacing={5}
+    >
       <ApiList />
       <Info />
       <Messages />

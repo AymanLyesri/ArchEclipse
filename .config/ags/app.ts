@@ -34,7 +34,7 @@ const perMonitorDisplay = () =>
       // { name: "LeftPanel", fn: () => LeftPanel(monitor) },
       // { name: "LeftPanelHover", fn: () => LeftPanelHover(monitor) },
       // { name: "NotificationPopups", fn: () => NotificationPopups(monitor) },
-      // { name: "AppLauncher", fn: () => AppLauncher(monitor) },
+      { name: "AppLauncher", fn: () => AppLauncher(monitor) },
       // { name: "UserPanel", fn: () => UserPanel(monitor) },
       // { name: "WallpaperSwitcher", fn: () => WallpaperSwitcher(monitor) },
       // { name: "MediaPopups", fn: () => MediaPopups(monitor) },

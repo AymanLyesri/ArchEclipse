@@ -30,7 +30,7 @@ print("screenshot updated: " + screenShot);
 //screen shoter widget
 const actions = (monitorName: String) => {
   return (
-    <box class="actions" spacing={10} vertical={true}>
+    <box class="actions" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
       <box
         class="image"
         css={createComputed(

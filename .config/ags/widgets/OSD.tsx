@@ -72,7 +72,7 @@ const osdSlider = (
         });
       }}
       child={
-        <box class={"container"} vertical={true}>
+        <box class={"container"} orientation={Gtk.Orientation.VERTICAL}>
           {slider}
           {indicator}
         </box>
@@ -93,7 +93,7 @@ const osdSlider = (
   return Eventbox;
 };
 
-function OnScreenProgress(vertical: boolean) {
+function OnScreenProgress(orientation={Gtk.Orientation.VERTICAL}: boolean) {
   const volumeIcons = ["", "", "", ""];
   const brightnessIcons = ["󰃠", "󰃟", "󰃞", "󰃞"];
 
