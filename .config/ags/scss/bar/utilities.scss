@@ -2,17 +2,29 @@
   .system-tray {
     border-radius: 10px;
     padding: 0px;
-    button {
+    button,
+    .systemtray-button {
       border-radius: 0px;
+      padding: 2px 6px;
+      min-width: 24px;
+      min-height: 24px;
     }
-    button:first-child {
+    button:first-child,
+    .systemtray-button:first-child {
       border-radius: 10px 0px 0px 10px;
     }
-    button:last-child {
+    button:last-child,
+    .systemtray-button:last-child {
       border-radius: 0px 10px 10px 0px;
     }
-    button:only-child {
+    button:only-child,
+    .systemtray-button:only-child {
       border-radius: 10px;
+    }
+    .systemtray-icon {
+      font-size: 16px;
+      min-width: 16px;
+      min-height: 16px;
     }
   }
 }

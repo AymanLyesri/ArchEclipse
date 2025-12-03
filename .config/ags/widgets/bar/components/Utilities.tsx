@@ -11,6 +11,7 @@ const battery = Battery.get_default();
 
 import Tray from "gi://AstalTray";
 import Gtk from "gi://Gtk?version=3.0";
+import Gdk from "gi://Gdk?version=3.0";
 import {
   barLock,
   setBarLock,
@@ -179,34 +180,65 @@ function BatteryWidget() {
   );
 }
 
+// TrayItem component for individual tray items
+function TrayItem({ item }: { item: any }) {
+  const gicon = createBinding(item, "gicon");
+  const tooltipMarkup = createBinding(item, "tooltipMarkup");
+
+  // Create and show menu
+  const showMenu = (widget: Gtk.Widget) => {
+    const menuModel = item.menuModel;
+    const actionGroup = item.actionGroup;
+
+    if (menuModel) {
+      const menu = Gtk.Menu.new_from_model(menuModel);
+      if (actionGroup) {
+        menu.insert_action_group("dbusmenu", actionGroup);
+      }
+      menu.attach_to_widget(widget, null);
+      menu.popup_at_widget(widget, Gdk.Gravity.SOUTH, Gdk.Gravity.NORTH, null);
+    }
+  };
+
+  return (
+    <button
+      class="systemtray-button"
+      tooltipMarkup={tooltipMarkup}
+      onClicked={(self) => {
+        // Primary click: activate or show menu
+        if (item.isMenu) {
+          showMenu(self);
+        } else {
+          item.activate(0, 0);
+        }
+      }}
+      onButtonPressEvent={(self, event) => {
+        const [, button] = event.get_button();
+        // Secondary click (right-click): always show menu
+        if (button === 3) {
+          showMenu(self);
+          return true;
+        }
+        // Middle click: secondary activate
+        if (button === 2) {
+          item.secondary_activate(0, 0);
+          return true;
+        }
+        return false;
+      }}
+    >
+      <icon gicon={gicon} class="systemtray-icon" />
+    </button>
+  );
+}
+
 function SysTray() {
   const tray = Tray.get_default();
-  const itemsBinding: [] = createBinding(tray, "items");
-
-  const items = itemsBinding((items) =>
-    items.map((item) => {
-      const tooltipMarkup = createBinding(item, "tooltipMarkup");
-      const actionGroup = createBinding(item, "actionGroup");
-      const menuModel = createBinding(item, "menuModel");
-      const gicon = createBinding(item, "gicon");
-
-      return (
-        <menubutton
-          margin={0}
-          // cursor="pointer" // Gtk widgets don't have cursor prop
-          usePopover={false}
-          tooltipMarkup={tooltipMarkup}
-          actionGroup={createComputed(() => ["dbusmenu", actionGroup.get()])}
-          menuModel={menuModel}
-          child={<icon gicon={gicon} class="systemtray-icon" />}
-        />
-      );
-    })
-  );
+  const items = createBinding(tray, "items");
 
   return (
     <box class="system-tray">
-      <For each={items}>{(item) => item}</For>
+      <For each={items}>{(item) => <TrayItem item={item} />}</For>
     </box>
   );
 }
@@ -264,10 +296,10 @@ export default ({
 }) => {
   return (
     <box class="bar-right" spacing={5} halign={halign} hexpand>
-      {/* <BatteryWidget /> */}
+      <BatteryWidget />
       {/* <BrightnessWidget /> */}
       <Volume />
-      {/* <SysTray /> */}
+      <SysTray />
       <Theme />
       <PinBar />
       <DndToggle />
