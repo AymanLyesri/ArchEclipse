@@ -17,7 +17,7 @@ export const Eventbox = ({
 }) => {
   const box = new Gtk.Box({
     visible,
-    css_classes: className ? [className] : [],
+    css_classes: className ? className.split(" ").filter(Boolean) : [],
   });
 
   // Hover controller

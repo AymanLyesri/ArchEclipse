@@ -79,7 +79,7 @@ function Volume() {
   const volumeIcon = createBinding(speaker, "volumeIcon");
   const volume = createBinding(speaker, "volume");
 
-  const icon = <image class="trigger" />;
+  const icon = <image pixelSize={11} class="trigger" iconName={volumeIcon} />;
 
   const slider = (
     <slider
@@ -191,11 +191,11 @@ function Tray() {
   };
 
   return (
-    <box class={"system-tray"}>
+    <box class="system-tray">
       <For each={items}>
         {(item) => (
           <menubutton class="tray-icon" $={(self) => init(self, item)}>
-            <image ggicon={createBinding(item, "gicon")} />
+            <image pixelSize={11} gicon={createBinding(item, "gicon")} />
           </menubutton>
         )}
       </For>
