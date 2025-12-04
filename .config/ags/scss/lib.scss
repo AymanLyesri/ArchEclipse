@@ -207,3 +207,7 @@ scrolledwindow {
     @extend .button;
   }
 }
+
+popover > * {
+  @extend .module;
+}

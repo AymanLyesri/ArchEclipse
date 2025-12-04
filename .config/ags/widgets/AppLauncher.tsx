@@ -342,14 +342,14 @@ export default (monitor: any) => (
     layer={Astal.Layer.TOP}
     margin={globalMargin} // top right bottom left
     visible={false}
-    onKeyPressEvent={(self: any, event: any) => {
-      if (event.get_keyval()[1] === 65307) {
-        hideWindow(
-          `app-launcher-${getMonitorName(monitor.get_display(), monitor)}`
-        );
-        return true;
-      }
-    }}
+    // onKeyPressEvent={(self: any, event: any) => {
+    //   if (event.get_keyval()[1] === 65307) {
+    //     hideWindow(
+    //       `app-launcher-${getMonitorName(monitor.get_display(), monitor)}`
+    //     );
+    //     return true;
+    //   }
+    // }}
     $={(self) => {
       setMonitorName(getMonitorName(monitor.get_display(), monitor)!);
       print(`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`);
