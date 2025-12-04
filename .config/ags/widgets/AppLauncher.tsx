@@ -9,10 +9,10 @@ import {
   formatToURL,
   getDomainFromURL,
 } from "../utils/url";
-import app from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
+import app from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
 
-import Astal from "gi://Astal?version=3.0";
+import Astal from "gi://Astal?version=4.0";
 import { notify } from "../utils/notification";
 import {
   emptyWorkspace,
@@ -44,15 +44,19 @@ const QuickApps = () => {
       transitionDuration={globalTransition}
       revealChild={Results((results) => results.length === 0)}
     >
-      <scrollable heightRequest={quickApps.length * 40}>
-        <box class="quick-apps" spacing={5} vertical>
+      <scrolledwindow>
+        <box
+          class="quick-apps"
+          spacing={5}
+          orientation={Gtk.Orientation.VERTICAL}
+        >
           {quickApps.map((app, index) => (
             <Gtk.Button
               hexpand
               class="quick-app"
               onClicked={() => {
                 app.app_launch();
-                hideWindow(`app-launcher-${monitorName()}`);
+                hideWindow(`app-launcher-${monitorName.get()}`);
               }}
             >
               <box spacing={5}>
@@ -62,7 +66,7 @@ const QuickApps = () => {
             </Gtk.Button>
           ))}
         </box>
-      </scrollable>
+      </scrolledwindow>
     </Gtk.Revealer>
   );
 
@@ -83,7 +87,7 @@ const helpCommands = {
 };
 
 const Help = (
-  <box class="help" spacing={5} vertical>
+  <box class="help" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
     {Object.entries(helpCommands).map(([command, explanation]) => (
       <box hexpand homogeneous>
         <label class="command" label={command} halign={Gtk.Align.END} hexpand />
@@ -256,7 +260,7 @@ const ResultsDisplay = () => {
       halign={element.app_type === "emoji" ? Gtk.Align.CENTER : Gtk.Align.START}
     >
       {element.app_type === "app" ? (
-        <Astal.Icon icon={element.app_icon} />
+        <image iconName={element.app_icon} />
       ) : (
         <box />
       )}
@@ -291,7 +295,7 @@ const ResultsDisplay = () => {
     <box
       visible={Results((results) => results.length > 0)}
       class="results"
-      vertical={true}
+      orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
     >
       <For each={Results}>
@@ -312,13 +316,14 @@ const ResultsDisplay = () => {
       transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
       transitionDuration={globalTransition}
     >
-      <scrollable
-        heightRequest={Results((results) =>
-          results.length * 45 > maxHeight ? maxHeight : results.length * 45
-        )}
+      <scrolledwindow
+        // heightRequest={Results((results) =>
+        //   results.length * 45 > maxHeight ? maxHeight : results.length * 45
+        // )}
+        heightRequest={250}
       >
         {rows}
-      </scrollable>
+      </scrolledwindow>
     </revealer>
   );
 };
@@ -350,13 +355,15 @@ export default (monitor: any) => (
       print(`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`);
     }}
   >
-    <eventbox>
-      <box vertical={true} class="app-launcher" spacing={5}>
-        {Entry}
-        {ResultsDisplay()}
-        {QuickApps()}
-        {Help}
-      </box>
-    </eventbox>
+    <box
+      orientation={Gtk.Orientation.VERTICAL}
+      class="app-launcher"
+      spacing={5}
+    >
+      {Entry}
+      {ResultsDisplay()}
+      {QuickApps()}
+      {Help}
+    </box>
   </Astal.Window>
 );

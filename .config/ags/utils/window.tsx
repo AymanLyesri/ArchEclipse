@@ -1,5 +1,5 @@
-import app from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
+import app from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
 import { createComputed } from "ags";
 
 export const hideWindow = (name: string) => app.get_window(name)?.hide();
@@ -32,7 +32,7 @@ export function WindowActions({
       vexpand={true}
       halign={Gtk.Align.END}
       valign={Gtk.Align.END}
-      vertical={true}
+      orientation={Gtk.Orientation.VERTICAL}
     >
       <button
         label=""

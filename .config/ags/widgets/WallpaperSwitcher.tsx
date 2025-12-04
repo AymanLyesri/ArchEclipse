@@ -2,9 +2,9 @@ import hyprland from "gi://AstalHyprland";
 import { createState, createComputed, For } from "ags";
 import { exec, execAsync } from "ags/process";
 import { monitorFile } from "ags/file";
-import app from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import app from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import { notify } from "../utils/notification";
 import { focusedWorkspace, globalTransition } from "../variables";
 import { getMonitorName } from "../utils/monitor";
@@ -61,7 +61,7 @@ export function toThumbnailPath(file: string) {
 function Display(monitor: string) {
   const getAllWallpapers = () => (
     <Gtk.ScrolledWindow
-      class="all-wallpapers-scrollable"
+      class="all-wallpapers-scrolledwindow"
       hscrollbarPolicy={Gtk.PolicyType.ALWAYS}
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       hexpand
@@ -73,7 +73,7 @@ function Display(monitor: string) {
             const image = (
               <box
                 class="wallpaper"
-                vertical
+                orientation={Gtk.Orientation.VERTICAL}
                 css={`
                   background-image: url("${toThumbnailPath(wallpaper)}");
                 `}
@@ -107,7 +107,7 @@ function Display(monitor: string) {
               </box>
             );
             return (
-              <eventbox
+              <Eventbox
                 class="wallpaper-event-box"
                 child={image}
                 onClick={() => {
@@ -133,7 +133,7 @@ function Display(monitor: string) {
                     })
                     .catch(notify);
                 }}
-              ></eventbox>
+              ></Eventbox>
             );
           }}
         </For>
@@ -332,7 +332,11 @@ function Display(monitor: string) {
   );
 
   return (
-    <box class="wallpaper-switcher" vertical={true} spacing={20}>
+    <box
+      class="wallpaper-switcher"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={20}
+    >
       <box hexpand={true} vexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
         {currentWorkspaces}
       </box>

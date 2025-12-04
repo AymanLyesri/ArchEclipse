@@ -1,7 +1,7 @@
-import App from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import {
   globalMargin,
   globalTransition,
@@ -24,7 +24,12 @@ import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => {
   return (
-    <box vertical={true} vexpand={true} class={"widget-actions"} spacing={5}>
+    <box
+      orientation={Gtk.Orientation.VERTICAL}
+      vexpand={true}
+      class={"widget-actions"}
+      spacing={5}
+    >
       {rightPanelWidgetSelectors.map((selector) => {
         const isActive = createComputed(() =>
           rightPanelWidgets().some((w) => w.name === selector.name)
@@ -53,7 +58,7 @@ const WidgetActions = () => {
 };
 
 const Actions = () => (
-  <box class={"panel-actions"} vertical={true}>
+  <box class={"panel-actions"} orientation={Gtk.Orientation.VERTICAL}>
     <WidgetActions />
     <WindowActions
       windowWidth={rightPanelWidth}
@@ -71,15 +76,15 @@ const Actions = () => (
 function Panel() {
   return (
     <box>
-      <eventbox
+      <Eventbox
         onHoverLost={() => {
           if (!rightPanelLock()) setRightPanelVisibility(false);
         }}
         child={<box css={"min-width:5px"} />}
-      ></eventbox>
+      ></Eventbox>
       <box
         class={"main-content"}
-        vertical={true}
+        orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
         widthRequest={rightPanelWidth}
       >

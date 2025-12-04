@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import { Waifu } from "../../../interfaces/waifu.interface";
 import { execAsync } from "ags/process";
 import { createState, createBinding, createComputed } from "ags";
@@ -146,11 +146,11 @@ const fetchTags = async (tag: string) => {
 
 const Images = () => {
   return (
-    <scrollable
+    <scrolledwindow
       hexpand
       vexpand
       child={
-        <box class="images" vertical spacing={5}>
+        <box class="images" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
           {createComputed(() =>
             images()
               .reduce((rows: any[][], image, index) => {
@@ -182,7 +182,7 @@ const Images = () => {
           )}
         </box>
       }
-    ></scrollable>
+    ></scrolledwindow>
   );
 };
 
@@ -252,7 +252,7 @@ const LimitDisplay = () => {
 };
 
 const TagDisplay = () => (
-  <scrollable
+  <scrolledwindow
     hexpand
     vscroll={Gtk.PolicyType.NEVER}
     child={
@@ -361,13 +361,17 @@ const ClearCacheButton = () => {
 };
 
 const BottomBar = () => (
-  <eventbox
-    class={"bottom-eventbox"}
+  <Eventbox
+    class={"bottom-Eventbox"}
     child={
-      <box class={"bottom"} spacing={5} vertical>
+      <box class={"bottom"} spacing={5} orientation={Gtk.Orientation.VERTICAL}>
         <PageDisplay />
         <LimitDisplay />
-        <box class="bottom-bar" vertical spacing={5}>
+        <box
+          class="bottom-bar"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={5}
+        >
           <TagDisplay />
           <box spacing={5}>
             <Entry />
@@ -384,7 +388,12 @@ export default () => {
   // Note: If booruPage, booruTags, booruApi, booruLimit are Accessors, subscriptions are handled automatically
   fetchImages();
   return (
-    <box class="booru" vertical hexpand spacing={10}>
+    <box
+      class="booru"
+      orientation={Gtk.Orientation.VERTICAL}
+      hexpand
+      spacing={10}
+    >
       <Apis />
       <Images />
       <BottomBar />

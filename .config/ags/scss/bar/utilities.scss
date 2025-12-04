@@ -2,16 +2,18 @@
   .system-tray {
     border-radius: 10px;
     padding: 0px;
-    button {
+    .tray-icon * {
+      font-size: 1px;
+      max-width: 1px;
       border-radius: 0px;
     }
-    button:first-child {
+    .tray-icon:first-child * {
       border-radius: 10px 0px 0px 10px;
     }
-    button:last-child {
+    .tray-icon:last-child * {
       border-radius: 0px 10px 10px 0px;
     }
-    button:only-child {
+    .tray-icon:only-child * {
       border-radius: 10px;
     }
   }

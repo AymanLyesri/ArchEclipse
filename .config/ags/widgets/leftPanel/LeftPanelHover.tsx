@@ -1,6 +1,6 @@
-import App from "ags/gtk3/app";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import { leftPanelLock, setLeftPanelVisibility } from "../../variables";
 
 export default (monitor: Gdk.Monitor) => {
@@ -17,12 +17,12 @@ export default (monitor: Gdk.Monitor) => {
         Astal.WindowAnchor.BOTTOM
       }
       child={
-        <eventbox
+        <Eventbox
           onHover={() => {
             if (!leftPanelLock()) setLeftPanelVisibility(true);
           }}
           child={<box css="min-width: 1px" />}
-        ></eventbox>
+        ></Eventbox>
       }
     ></window>
   );

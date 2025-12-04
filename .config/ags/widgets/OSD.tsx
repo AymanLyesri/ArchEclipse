@@ -1,7 +1,7 @@
-import App from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import Brightness from "../services/brightness";
 const brightness = Brightness.get_default();
 import Wp from "gi://AstalWp";
@@ -72,7 +72,7 @@ const osdSlider = (
         });
       }}
       child={
-        <box class={"container"} vertical={true}>
+        <box class={"container"} orientation={Gtk.Orientation.VERTICAL}>
           {slider}
           {indicator}
         </box>
@@ -80,8 +80,8 @@ const osdSlider = (
     />
   );
 
-  const eventbox = (
-    <eventbox
+  const Eventbox = (
+    <Eventbox
       onHover={() => setSliderLock(true)}
       onHoverLost={() => {
         setSliderLock(false);
@@ -90,10 +90,10 @@ const osdSlider = (
       child={revealer}
     />
   );
-  return eventbox;
+  return Eventbox;
 };
 
-function OnScreenProgress(vertical: boolean) {
+function OnScreenProgress(orientation={Gtk.Orientation.VERTICAL}: boolean) {
   const volumeIcons = ["", "", "", ""];
   const brightnessIcons = ["󰃠", "󰃟", "󰃞", "󰃞"];
 

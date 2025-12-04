@@ -1,5 +1,6 @@
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import { globalTransition } from "../variables";
+import { Eventbox } from "./Custom/Eventbox";
 
 export default ({
   trigger,
@@ -25,8 +26,8 @@ export default ({
     />
   );
 
-  const eventBox = (
-    <eventbox
+  const _Eventbox = (
+    <Eventbox
       visible={visible}
       class={"custom-revealer " + custom_class}
       onHover={(self) => {
@@ -35,15 +36,14 @@ export default ({
       onHoverLost={() => {
         revealer.reveal_child = false;
       }}
-      onClick={on_primary_click}
-      child={
-        <box class={"content"}>
-          {trigger}
-          {revealer}
-        </box>
-      }
-    />
+      onClick={() => on_primary_click()}
+    >
+      <box class={"content"}>
+        {trigger}
+        {revealer}
+      </box>
+    </Eventbox>
   );
 
-  return eventBox;
+  return _Eventbox;
 };

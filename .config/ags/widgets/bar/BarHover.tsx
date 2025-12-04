@@ -1,7 +1,7 @@
-import App from "ags/gtk3/app";
-import Gtk from "gi://Gtk?version=3.0";
-import Gdk from "gi://Gdk?version=3.0";
-import Astal from "gi://Astal?version=3.0";
+import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Astal from "gi://Astal?version=4.0";
 import {
   barOrientation,
   barVisibility,
@@ -26,13 +26,13 @@ export default (monitor: Gdk.Monitor) => {
       exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.OVERLAY}
       child={
-        <eventbox
+        <Eventbox
           onHover={() => {
             print("visible", barVisibility.get());
             setBarVisibility(true);
           }}
           child={<box css="min-height: 5px;" />}
-        ></eventbox>
+        ></Eventbox>
       }
     ></window>
   );

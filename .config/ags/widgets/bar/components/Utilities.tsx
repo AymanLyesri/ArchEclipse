@@ -1,7 +1,7 @@
 import Brightness from "../../../services/brightness";
 const brightness = Brightness.get_default();
 import CustomRevealer from "../../CustomRevealer";
-import { createBinding, createComputed } from "ags";
+import { Accessor, createBinding, createComputed } from "ags";
 import { execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
@@ -9,8 +9,7 @@ import Wp from "gi://AstalWp";
 import Battery from "gi://AstalBattery";
 const battery = Battery.get_default();
 
-import Tray from "gi://AstalTray";
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import {
   barLock,
   setBarLock,
@@ -23,6 +22,7 @@ import {
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { For } from "ags";
+import AstalTray from "gi://AstalTray";
 
 function Theme() {
   return (
@@ -79,7 +79,7 @@ function Volume() {
   const volumeIcon = createBinding(speaker, "volumeIcon");
   const volume = createBinding(speaker, "volume");
 
-  const icon = <icon class="trigger" icon={volumeIcon} />;
+  const icon = <image pixelSize={11} class="trigger" iconName={volumeIcon} />;
 
   const slider = (
     <slider
@@ -178,35 +178,27 @@ function BatteryWidget() {
     />
   );
 }
+function Tray() {
+  const tray = AstalTray.get_default();
+  const items = createBinding(tray, "items");
 
-function SysTray() {
-  const tray = Tray.get_default();
-  const itemsBinding: [] = createBinding(tray, "items");
-
-  const items = itemsBinding((items) =>
-    items.map((item) => {
-      const tooltipMarkup = createBinding(item, "tooltipMarkup");
-      const actionGroup = createBinding(item, "actionGroup");
-      const menuModel = createBinding(item, "menuModel");
-      const gicon = createBinding(item, "gicon");
-
-      return (
-        <menubutton
-          margin={0}
-          // cursor="pointer" // Gtk widgets don't have cursor prop
-          usePopover={false}
-          tooltipMarkup={tooltipMarkup}
-          actionGroup={createComputed(() => ["dbusmenu", actionGroup.get()])}
-          menuModel={menuModel}
-          child={<icon gicon={gicon} class="systemtray-icon" />}
-        />
-      );
-    })
-  );
+  const init = (btn: Gtk.MenuButton, item: AstalTray.TrayItem) => {
+    btn.menuModel = item.menuModel;
+    btn.insert_action_group("dbusmenu", item.actionGroup);
+    item.connect("notify::action-group", () => {
+      btn.insert_action_group("dbusmenu", item.actionGroup);
+    });
+  };
 
   return (
     <box class="system-tray">
-      <For each={items}>{(item) => item}</For>
+      <For each={items}>
+        {(item) => (
+          <menubutton class="tray-icon" $={(self) => init(self, item)}>
+            <image pixelSize={11} gicon={createBinding(item, "gicon")} />
+          </menubutton>
+        )}
+      </For>
     </box>
   );
 }
@@ -260,14 +252,14 @@ export default ({
   halign,
 }: {
   monitorName: string;
-  halign: Gtk.Align;
+  halign: Accessor<Gtk.Align>;
 }) => {
   return (
     <box class="bar-right" spacing={5} halign={halign} hexpand>
       {/* <BatteryWidget /> */}
       {/* <BrightnessWidget /> */}
       <Volume />
-      {/* <SysTray /> */}
+      <Tray />
       <Theme />
       <PinBar />
       <DndToggle />

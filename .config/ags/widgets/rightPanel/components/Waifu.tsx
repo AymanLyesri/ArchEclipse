@@ -9,7 +9,7 @@ import {
   waifuCurrent,
   setWaifuCurrent,
 } from "../../../variables";
-import Gtk from "gi://Gtk?version=3.0";
+import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib";
 import { getSetting, setSetting } from "../../../utils/settings";
 import { notify } from "../../../utils/notification";
@@ -100,10 +100,10 @@ function Actions() {
       transitionDuration={globalTransition}
       transition_type={Gtk.RevealerTransitionType.SLIDE_UP}
       child={
-        <eventbox
-          class="bottom-eventbox"
+        <Eventbox
+          class="bottom-Eventbox"
           child={
-            <box class={"bottom-bar"} vertical>
+            <box class={"bottom-bar"} orientation={Gtk.Orientation.VERTICAL}>
               <box class={"top"}>
                 <button
                   label=""
@@ -208,7 +208,12 @@ function Actions() {
   );
 
   const bottom = (
-    <box class="bottom" vertical vexpand valign={Gtk.Align.END}>
+    <box
+      class="bottom"
+      orientation={Gtk.Orientation.VERTICAL}
+      vexpand
+      valign={Gtk.Align.END}
+    >
       {
         <togglebutton
           label=""
@@ -226,7 +231,7 @@ function Actions() {
   );
 
   return (
-    <box class="layout" vertical child={bottom}>
+    <box class="layout" orientation={Gtk.Orientation.VERTICAL} child={bottom}>
       {/* {top} */}
     </box>
   );
@@ -234,7 +239,7 @@ function Actions() {
 
 function Image() {
   return (
-    <eventbox
+    <Eventbox
       // onClicked={OpenInBrowser}
       child={
         <box
@@ -252,7 +257,7 @@ function Image() {
           child={Actions()}
         ></box>
       }
-    ></eventbox>
+    ></Eventbox>
   );
 }
 
@@ -262,7 +267,13 @@ export default () => {
       transitionDuration={globalTransition}
       transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
       revealChild={createComputed(() => globalSettings().waifu.visibility)}
-      child={<box class="waifu" vertical child={Image()}></box>}
+      child={
+        <box
+          class="waifu"
+          orientation={Gtk.Orientation.VERTICAL}
+          child={Image()}
+        ></box>
+      }
     ></revealer>
   );
 };
