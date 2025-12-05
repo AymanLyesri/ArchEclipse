@@ -1,14 +1,7 @@
 .player {
   @extend .module;
   padding: 10px;
-
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-
-  &.popup {
-    min-width: 400px;
-  }
+  background-color: $background-secondary;
 
   &.widget {
     .bottom-eventbox:hover {

@@ -14,6 +14,9 @@
     .tray-icon:only-child * {
       border-radius: 10px;
     }
+    popover > * {
+      @extend .module;
+    }
   }
 }
 
