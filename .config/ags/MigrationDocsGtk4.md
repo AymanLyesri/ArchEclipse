@@ -1073,6 +1073,7 @@ circularprogress {
 ### icon
 
 [Astal.Icon](https://aylur.github.io/libastal/astal3/class.Icon.html)
+icon is replaced by image
 
 ```tsx
 <image

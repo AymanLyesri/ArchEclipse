@@ -4,18 +4,22 @@
     padding: 0px;
     .tray-icon * {
       border-radius: 0px;
+      border: unset;
     }
-    .tray-icon:first-child * {
+    .tray-icon:first-child > * {
       border-radius: 10px 0px 0px 10px;
     }
-    .tray-icon:last-child * {
+    .tray-icon:last-child > * {
       border-radius: 0px 10px 10px 0px;
     }
-    .tray-icon:only-child * {
+    .tray-icon:only-child > * {
       border-radius: 10px;
     }
-    popover > * {
+    popover {
       @extend .module;
+      margin-top: 10px;
+      border-radius: 10px;
+      background-color: $background-semi-transparent;
     }
   }
 }

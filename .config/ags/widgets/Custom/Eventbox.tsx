@@ -13,7 +13,7 @@ export const Eventbox = ({
   onClick?: (self: Gtk.Box, n: number, x: number, y: number) => void;
   onHover?: (self: Gtk.Box) => void;
   onHoverLost?: (self: Gtk.Box) => void;
-  children?: Gtk.Widget | Gtk.Widget[];
+  children?: Gtk.Widget | Gtk.Widget[] | Object;
 }) => {
   const box = new Gtk.Box({
     visible,

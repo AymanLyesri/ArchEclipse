@@ -1,6 +1,6 @@
 .player {
   @extend .module;
-  padding: 10px;
+
   background-color: $background-secondary;
 
   &.widget {
@@ -16,12 +16,8 @@
   }
 
   .img {
-    min-width: 100px;
-    min-height: 100px;
-    background-size: cover;
-    background-position: center;
     border-radius: 10px;
-    margin-right: 10px;
+    overflow: hidden; /* must stay here */
   }
 
   .bottom-bar {

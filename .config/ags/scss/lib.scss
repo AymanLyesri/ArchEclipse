@@ -209,5 +209,5 @@ scrolledwindow {
 }
 
 popover > * {
-  @extend .module;
+  all: unset;
 }
