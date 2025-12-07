@@ -50,11 +50,11 @@ export const rightPanelWidgetSelectors: WidgetSelector[] = [
     icon: "",
     widget: () => NotificationHistory(),
   },
-  {
-    name: "Calendar",
-    icon: "",
-    widget: () => Calendar(),
-  },
+  // {
+  //   name: "Calendar",
+  //   icon: "",
+  //   widget: () => Calendar(),
+  // },
   {
     name: "ScriptTimer",
     icon: "󰀠",

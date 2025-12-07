@@ -1,23 +1,24 @@
 import App from "ags/gtk4/app";
-import Gtk from "gi://Gtk?version=4.0";
-import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
+import Gdk from "gi://Gdk?version=4.0";
+import Gtk from "gi://Gtk?version=4.0";
 import {
   globalMargin,
   globalTransition,
   rightPanelExclusivity,
-  setRightPanelExclusivity,
   rightPanelLock,
-  setRightPanelLock,
   rightPanelVisibility,
   setRightPanelVisibility,
   rightPanelWidgets,
   setRightPanelWidgets,
   rightPanelWidth,
-  setRightPanelWidth,
   widgetLimit,
+  setRightPanelWidth,
+  setRightPanelExclusivity,
+  setRightPanelLock,
 } from "../../variables";
-import { createBinding, createComputed } from "ags";
+import { createBinding, For } from "ags";
+import { Eventbox } from "../Custom/Eventbox";
 import { getMonitorName } from "../../utils/monitor";
 import { hideWindow, WindowActions } from "../../utils/window";
 import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
@@ -26,27 +27,25 @@ const WidgetActions = () => {
   return (
     <box
       orientation={Gtk.Orientation.VERTICAL}
-      vexpand={true}
-      class={"widget-actions"}
+      class="widget-actions"
       spacing={5}
     >
       {rightPanelWidgetSelectors.map((selector) => {
-        const isActive = createComputed(() =>
-          rightPanelWidgets().some((w) => w.name === selector.name)
-        );
+        const isActive = rightPanelWidgets
+          .get()
+          .some((w) => w.name === selector.name);
         return (
           <togglebutton
-            class={"widget-selector"}
+            class="widget-selector"
             label={selector.icon}
-            active={isActive}
             onToggled={({ active }) => {
-              if (on) {
-                if (rightPanelWidgets().length >= widgetLimit) return;
-                setRightPanelWidgets([...rightPanelWidgets(), selector]);
+              if (active) {
+                if (rightPanelWidgets.get().length >= widgetLimit) return;
+                setRightPanelWidgets([...rightPanelWidgets.get(), selector]);
               } else {
-                const newWidgets = rightPanelWidgets().filter(
-                  (w) => w.name !== selector.name
-                );
+                const newWidgets = rightPanelWidgets
+                  .get()
+                  .filter((w) => w.name !== selector.name);
                 setRightPanelWidgets(newWidgets);
               }
             }}
@@ -58,7 +57,7 @@ const WidgetActions = () => {
 };
 
 const Actions = () => (
-  <box class={"panel-actions"} orientation={Gtk.Orientation.VERTICAL}>
+  <box class="panel-actions" orientation={Gtk.Orientation.VERTICAL}>
     <WidgetActions />
     <WindowActions
       windowWidth={rightPanelWidth}
@@ -75,34 +74,35 @@ const Actions = () => (
 
 function Panel() {
   return (
-    <box>
-      <Eventbox
+    <box halign={Gtk.Align.END}>
+      {/* <Eventbox
         onHoverLost={() => {
-          if (!rightPanelLock()) setRightPanelVisibility(false);
+          if (!rightPanelLock.get()) setRightPanelVisibility(false);
         }}
-        child={<box css={"min-width:5px"} />}
-      ></Eventbox>
+      >
+        <box css="min-width: 5px;" />
+      </Eventbox> */}
       <box
-        class={"main-content"}
+        class="main-content"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
-        widthRequest={rightPanelWidth}
       >
-        {createComputed(() => {
-          return rightPanelWidgets()
-            .map((widget) =>
-              rightPanelWidgetSelectors.find((w) => w.name === widget.name)
-            ) // Find and call the widget function
-            .filter((widget) => widget && widget.widget) // Filter out invalid widgets
-            .map((widget) => {
+        <For each={rightPanelWidgets}>
+          {(widget) => {
+            const selector = rightPanelWidgetSelectors.find(
+              (w) => w.name === widget.name
+            );
+            if (selector?.widget) {
               try {
-                return widget!.widget();
+                return selector.widget() as JSX.Element;
               } catch (error) {
                 console.error(`Error rendering widget:`, error);
-                return <box />; // Fallback component
+                return (<box />) as JSX.Element;
               }
-            });
-        })}
+            }
+            return (<box />) as JSX.Element;
+          }}
+        </For>
       </box>
       <Actions />
     </box>
@@ -113,40 +113,43 @@ export default (monitor: Gdk.Monitor) => {
     <window
       gdkmonitor={monitor}
       name={`right-panel-${getMonitorName(monitor.get_display(), monitor)}`}
-      namespace={"right-panel"}
+      namespace="right-panel"
       application={App}
-      class={createComputed(() =>
-        rightPanelExclusivity() ? "right-panel exclusive" : "right-panel normal"
+      class={rightPanelExclusivity((exclusivity) =>
+        exclusivity ? "right-panel exclusive" : "right-panel normal"
       )}
       anchor={
         Astal.WindowAnchor.RIGHT |
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.BOTTOM
       }
-      exclusivity={createComputed(() =>
-        rightPanelExclusivity()
-          ? Astal.Exclusivity.EXCLUSIVE
-          : Astal.Exclusivity.NORMAL
+      exclusivity={rightPanelExclusivity((exclusivity) =>
+        exclusivity ? Astal.Exclusivity.EXCLUSIVE : Astal.Exclusivity.NORMAL
       )}
-      layer={createComputed(() =>
-        rightPanelExclusivity() ? Astal.Layer.BOTTOM : Astal.Layer.TOP
+      layer={rightPanelExclusivity((exclusivity) =>
+        exclusivity ? Astal.Layer.BOTTOM : Astal.Layer.TOP
       )}
-      margin={createComputed(() =>
-        rightPanelExclusivity() ? 0 : globalMargin
+      margin={rightPanelExclusivity((exclusivity) =>
+        exclusivity ? 0 : globalMargin
       )}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={rightPanelVisibility}
-      onKeyPressEvent={(self, event) => {
-        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
-          setRightPanelVisibility(false);
-          hideWindow(
-            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
-          );
-          return true;
-        }
-      }}
-      child={<Panel />}
-    />
+      // onKeyPressEvent={(self, event) => {
+      //   if (event.get_keyval()[1] === Gdk.KEY_Escape) {
+      //     setRightPanelVisibility(false);
+      //     hideWindow(
+      //       `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+      //     );
+      //     return true;
+      //   }
+      // }}
+      widthRequest={rightPanelWidth((w) => {
+        print("Right Panel Width:", w);
+        return w;
+      })}
+    >
+      <Panel />
+    </window>
   );
 };
 
@@ -156,14 +159,13 @@ export function RightPanelVisibility() {
       revealChild={rightPanelLock}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       transitionDuration={globalTransition}
-      child={
-        <togglebutton
-          active={rightPanelVisibility}
-          label={createComputed(() => (rightPanelVisibility() ? "" : ""))}
-          onToggled={({ active }) => setRightPanelVisibility(on)}
-          class="panel-trigger icon"
-        />
-      }
-    />
+    >
+      <togglebutton
+        active={rightPanelVisibility}
+        label={rightPanelVisibility((v) => (v ? "" : ""))}
+        onToggled={({ active }) => setRightPanelVisibility(active)}
+        class="panel-trigger icon"
+      />
+    </revealer>
   );
 }

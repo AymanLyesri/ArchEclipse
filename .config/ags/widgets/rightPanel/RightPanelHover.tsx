@@ -1,29 +1,35 @@
 import App from "ags/gtk4/app";
+import Gtk from "gi://Gtk?version=4.0";
 import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
-import { rightPanelLock, setRightPanelVisibility } from "../../variables";
+import {
+  rightPanelLock,
+  rightPanelVisibility,
+  setRightPanelVisibility,
+} from "../../variables";
+import { Eventbox } from "../Custom/Eventbox";
 
 export default (monitor: Gdk.Monitor) => {
   return (
     <window
-      gdkmonitor={monitor}
-      class="RightPanel"
+      name="right-panel-hover"
       application={App}
-      exclusivity={Astal.Exclusivity.IGNORE}
-      layer={Astal.Layer.TOP}
+      gdkmonitor={monitor}
       anchor={
         Astal.WindowAnchor.RIGHT |
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.BOTTOM
       }
-      child={
-        <Eventbox
-          onHover={() => {
-            if (!rightPanelLock()) setRightPanelVisibility(true);
-          }}
-          child={<box css="min-width: 1px" />}
-        ></Eventbox>
-      }
-    ></window>
+      exclusivity={Astal.Exclusivity.IGNORE}
+      layer={Astal.Layer.TOP}
+    >
+      <Eventbox
+        onHover={() => {
+          if (!rightPanelLock.get()) setRightPanelVisibility(true);
+        }}
+      >
+        <box css="min-width: 1px;" />
+      </Eventbox>
+    </window>
   );
 };

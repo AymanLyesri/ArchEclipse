@@ -1,9 +1,10 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { createBinding, createState, createComputed } from "ags";
+import { createState, For, With } from "ags";
 import { execAsync } from "ags/process";
 import { globalTransition } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { readJSONFile, writeJSONFile } from "../../../utils/json";
+import { Eventbox } from "../../Custom/Eventbox";
 
 // Interfaces
 interface ScriptTask {
@@ -61,7 +62,7 @@ const executeTask = async (task: ScriptTask) => {
 
     if (task.type === false) {
       // Remove one-time tasks after execution
-      const updatedTasks = scriptTasks.filter((t) => t.id !== task.id);
+      const updatedTasks = scriptTasks.get().filter((t) => t.id !== task.id);
       setScriptTasks(updatedTasks);
       saveTasksToFile(updatedTasks);
     } else {
@@ -95,13 +96,13 @@ const updateNextRun = (task: ScriptTask) => {
 // Timer check interval
 const checkTasks = () => {
   const now = Date.now();
-  const tasks = scriptTasks;
+  const tasks = scriptTasks.get();
 
-  // tasks.forEach((task) => {
-  //   if (task.active && task.nextRun && task.nextRun <= now) {
-  //     executeTask(task);
-  //   }
-  // });
+  tasks.forEach((task) => {
+    if (task.active && task.nextRun && task.nextRun <= now) {
+      executeTask(task);
+    }
+  });
 };
 
 // Start timer check
@@ -140,9 +141,9 @@ const TaskForm = ({
   };
 
   const saveTask = () => {
-    const name = nameEntry.trim();
-    const command = commandEntry.trim();
-    const time = timeEntry;
+    const name = nameEntry.get().trim();
+    const command = commandEntry.get().trim();
+    const time = timeEntry.get();
 
     if (!name || !command || !time.match(/^\d{2}:\d{2}$/)) {
       notify({
@@ -157,12 +158,12 @@ const TaskForm = ({
       name,
       command,
       time,
-      type: taskType,
+      type: taskType.get(),
       active: true,
     };
 
     updateNextRun(newTask);
-    const tasks = scriptTasks;
+    const tasks = scriptTasks.get();
     const updatedTasks = isEdit
       ? tasks.map((t) => (t.id === task!.id ? newTask : t))
       : [...tasks, newTask];
@@ -210,37 +211,38 @@ const TaskForm = ({
           revealChild={showSuggestions}
           transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
           transitionDuration={globalTransition}
-          child={
-            <box
-              class="suggestions"
-              orientation={Gtk.Orientation.VERTICAL}
-              spacing={2}
-            >
-              {predefinedCommands
-                .filter((cmd) =>
-                  cmd.label.toLowerCase().includes(commandEntry().toLowerCase())
-                )
-                .map((cmd) => (
-                  <button
-                    class="suggestion"
-                    label={cmd.label}
-                    onClicked={() => selectCommand(cmd.command)}
-                  />
-                ))}
-            </box>
-          }
-        />
+        >
+          <box
+            class="suggestions"
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={2}
+          >
+            {predefinedCommands
+              .filter((cmd) =>
+                cmd.label
+                  .toLowerCase()
+                  .includes(commandEntry.get().toLowerCase())
+              )
+              .map((cmd) => (
+                <button
+                  class="suggestion"
+                  label={cmd.label}
+                  onClicked={() => selectCommand(cmd.command)}
+                />
+              ))}
+          </box>
+        </revealer>
       </box>
 
       <box class="task-type-selector" spacing={8}>
         <togglebutton
           label="Daily"
-          active={createComputed(() => taskType() === true)}
+          active={taskType((type) => type === true)}
           onToggled={() => setTaskType(true)}
         />
         <togglebutton
           label="One-time"
-          active={createComputed(() => taskType() === false)}
+          active={taskType((type) => type === false)}
           onToggled={() => setTaskType(false)}
         />
       </box>
@@ -286,15 +288,15 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
   };
 
   const deleteTask = () => {
-    const updatedTasks = scriptTasks.filter((t) => t.id !== task.id);
+    const updatedTasks = scriptTasks.get().filter((t) => t.id !== task.id);
     setScriptTasks(updatedTasks);
     saveTasksToFile(updatedTasks);
   };
 
   const toggleTask = () => {
-    const updatedTasks = scriptTasks.map((t) =>
-      t.id === task.id ? { ...t, active: !t.active } : t
-    );
+    const updatedTasks = scriptTasks
+      .get()
+      .map((t) => (t.id === task.id ? { ...t, active: !t.active } : t));
     setScriptTasks(updatedTasks);
     saveTasksToFile(updatedTasks);
   };
@@ -306,60 +308,58 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
 
   return (
     <Eventbox
-      class={"task-Eventbox"}
+      class="task-eventbox"
       onHover={() => setIsHovered(true)}
       onHoverLost={() => setIsHovered(false)}
-      child={
-        <box
-          class={`task ${task.active ? "active" : "inactive"}`}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={6}
-        >
-          <box class="task-header">
-            <box class="task-info">
-              <label
-                class="task-name"
-                label={task.name}
-                hexpand
-                halign={Gtk.Align.START}
-              />
-
-              <box spacing={5}>
-                <label class="task-schedule" label={formatNextRun()} />
-                <label class="task-type icon" label={task.type ? "" : "1"} />
-              </box>
-            </box>
-
-            <revealer
-              revealChild={isHovered}
-              transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-              transitionDuration={globalTransition}
-              child={
-                <box class="task-actions">
-                  <togglebutton
-                    class={task.active ? "success" : "danger"}
-                    active={task.active}
-                    label={task.active ? "●" : "○"}
-                    onToggled={toggleTask}
-                  />
-                  <button label="✏" onClicked={editTask} />
-                  <button label="✕" onClicked={deleteTask} />
-                </box>
-              }
+    >
+      <box
+        class={`task ${task.active ? "active" : "inactive"}`}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={6}
+      >
+        <box class="task-header">
+          <box class="task-info">
+            <label
+              class="task-name"
+              label={task.name}
+              hexpand
+              halign={Gtk.Align.START}
             />
+
+            <box spacing={5}>
+              <label class="task-schedule" label={formatNextRun()} />
+              <label class="task-type icon" label={task.type ? "" : "1"} />
+            </box>
           </box>
 
-          <label
-            class="task-command"
-            label={
-              task.command.length > 40
-                ? task.command.substring(0, 40) + "..."
-                : task.command
-            }
-          />
+          <revealer
+            revealChild={isHovered}
+            transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+            transitionDuration={globalTransition}
+          >
+            <box class="task-actions">
+              <togglebutton
+                class={task.active ? "success" : "danger"}
+                active={task.active}
+                label={task.active ? "●" : "○"}
+                onToggled={toggleTask}
+              />
+              <button label="✏" onClicked={editTask} />
+              <button label="✕" onClicked={deleteTask} />
+            </box>
+          </revealer>
         </box>
-      }
-    />
+
+        <label
+          class="task-command"
+          label={
+            task.command.length > 40
+              ? task.command.substring(0, 40) + "..."
+              : task.command
+          }
+        />
+      </box>
+    </Eventbox>
   );
 };
 
@@ -367,7 +367,7 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
 const ScriptTimer = () => {
   const toggleForm = () => {
     setEditingTask(null);
-    setShowAddForm(!showAddForm());
+    setShowAddForm(!showAddForm.get());
   };
 
   return (
@@ -385,7 +385,7 @@ const ScriptTimer = () => {
         />
         <button
           class="add-btn"
-          label={createComputed(() => (showAddForm ? "✕" : "+"))}
+          label={showAddForm((show) => (show ? "✕" : "+"))}
           onClicked={toggleForm}
         />
       </box>
@@ -394,27 +394,24 @@ const ScriptTimer = () => {
         revealChild={showAddForm}
         transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
         transitionDuration={globalTransition}
-        child={createComputed(() => {
-          const task = editingTask;
-          return task ? TaskForm({ task, isEdit: true }) : TaskForm({});
-        })}
-      />
+      >
+        <With value={editingTask}>
+          {(task) => (task ? TaskForm({ task, isEdit: true }) : TaskForm({}))}
+        </With>
+      </revealer>
 
-      <scrolledwindow
-        class="task-list"
-        vexpand
-        hscroll={Gtk.PolicyType.NEVER}
-        child={
-          <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-            {createComputed(() => {
-              const tasks = scriptTasks;
-              return tasks.length === 0
+      <scrolledwindow class="task-list" vexpand>
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+          {/* <For each={scriptTasks}>
+            {(task) =>
+              tasks.length === 0
                 ? [<label class="empty-state" label="No scheduled tasks" />]
-                : tasks.map((task) => TaskItem({ task }));
-            })}
-          </box>
-        }
-      />
+                : tasks.map((task) => TaskItem({ task }))
+            }
+          </For> */}
+          <For each={scriptTasks}>{(task) => TaskItem({ task })}</For>
+        </box>
+      </scrolledwindow>
     </box>
   );
 };

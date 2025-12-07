@@ -33,18 +33,12 @@ const FetchWallpapers = async () => {
   try {
     await execAsync("bash ./scripts/wallpaper-to-thumbnail.sh");
 
-    print("Fetching wallpapers...");
-
     const [defaultWalls, customWalls] = await Promise.all([
       execAsync("bash ./scripts/get-wallpapers.sh --defaults").then(JSON.parse),
       execAsync("bash ./scripts/get-wallpapers.sh --custom").then(JSON.parse),
     ]);
 
-    print("Default Wallpapers: " + defaultWalls.length);
-    print("Custom Wallpapers: " + customWalls.length);
-
     if (wallpaperType.get()) {
-      print("Custom Wallpapers Only");
       setAllWallpapers(customWalls);
     } else {
       setAllWallpapers([...defaultWalls, ...customWalls]);
@@ -76,7 +70,6 @@ function Display(monitor: string) {
       <Gtk.Box class="all-wallpapers" spacing={5}>
         <For each={allWallpapers}>
           {(wallpaper, key) => {
-            print("Wallpaper: " + wallpaper);
             const image = (
               <box
                 class="wallpaper"
@@ -157,29 +150,12 @@ function Display(monitor: string) {
       exec(`bash ./scripts/get-wallpapers.sh --current ${monitor}`) || "[]"
     );
 
-    print("Current Workspaces Wallpapers: " + wallpapers.length);
-
     return wallpapers.map((wallpaper, key) => {
       const workspaceId = key + 1;
 
       return (
         <button
           valign={Gtk.Align.CENTER}
-          child={
-            <image
-              class={focusedWorkspace((workspace) => {
-                const i = workspace?.id || 1;
-                return i === workspaceId
-                  ? "workspace-wallpaper focused"
-                  : "workspace-wallpaper";
-              })}
-              pixelSize={focusedWorkspace((workspace) => {
-                const i = workspace?.id || 1;
-                return i === workspaceId ? 256 : 128;
-              })}
-              file={wallpaper}
-            ></image>
-          }
           onClicked={(self) => {
             setTargetType("workspace");
             (bottomRevealer as any).reveal_child = true;
@@ -191,7 +167,21 @@ function Display(monitor: string) {
               updateSelectedWorkspaceWidget(workspaceId, self);
             }
           }}
-        />
+        >
+          <image
+            class={focusedWorkspace((workspace) => {
+              const i = workspace?.id || 1;
+              return i === workspaceId
+                ? "workspace-wallpaper focused"
+                : "workspace-wallpaper";
+            })}
+            pixelSize={focusedWorkspace((workspace) => {
+              const i = workspace?.id || 1;
+              return i === workspaceId ? 256 : 128;
+            })}
+            file={wallpaper}
+          ></image>
+        </button>
       );
     });
   };

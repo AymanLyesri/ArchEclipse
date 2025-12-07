@@ -432,7 +432,6 @@ function Bandwidth() {
     ["./assets/binaries/bandwidth"],
     (out) => {
       try {
-        print(out);
         const parsed = JSON.parse(out);
         return [parsed[0], parsed[1], parsed[2], parsed[3]];
       } catch (e) {

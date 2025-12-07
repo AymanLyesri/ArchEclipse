@@ -1,10 +1,15 @@
-.waifu .image {
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
+.waifu {
   border-radius: 10px;
+  .image {
+    // margin: 5px;
+    // border-radius: 10px;
+  }
 
-  padding: 10px;
+  // .overlay {
+  //   border-radius: 10px;
+  // }
+
+  // padding: 10px;
 
   .bottom {
     border-radius: 10px;
@@ -12,15 +17,14 @@
       padding: 5px;
     }
 
-    .bottom-eventbox:hover .bottom-bar {
+    .bottom-bar:hover {
       background: $background-secondary;
     }
     .bottom-bar {
       background: $background-semi-transparent;
-      margin-top: 10px;
+      margin-top: $phi * 2 + px;
       border-radius: 10px;
       entry {
-        // background: transparent;
         border-radius: 0px;
         padding: 0px;
         margin: 0px;
@@ -28,15 +32,6 @@
 
       button {
         border-radius: 0px;
-      }
-
-      .top button {
-        &:first-child {
-          border-radius: 10px 0px 0px 0px;
-        }
-        &:last-child {
-          border-radius: 0px 10px 0px 0px;
-        }
       }
 
       .bottom button {

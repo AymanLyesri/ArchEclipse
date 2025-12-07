@@ -30,7 +30,7 @@ const [globalSettings, _setGlobalSettings] =
 print("Loading variables...1");
 
 // Initialize settings after creating the state
-autoCreateSettings(globalSettings, setGlobalSettings);
+autoCreateSettings(globalSettings.get(), setGlobalSettings);
 
 print("Loading variables...2");
 

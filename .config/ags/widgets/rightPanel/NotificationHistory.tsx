@@ -1,7 +1,7 @@
 import Gtk from "gi://Gtk?version=4.0";
 import Notifd from "gi://AstalNotifd";
 import Notification from "./components/Notification";
-import { createBinding, createState, createComputed } from "ags";
+import { createState, createComputed, createBinding, For } from "ags";
 import CustomRevealer from "../CustomRevealer";
 
 interface Filter {
@@ -9,9 +9,11 @@ interface Filter {
   class: string;
 }
 
-const [getFilter, setFilter] = createState<Filter>({ name: "", class: "" });
-
 export default () => {
+  const [notificationFilter, setNotificationFilter] = createState<Filter>({
+    name: "",
+    class: "",
+  });
   const Filters: Filter[] = [
     { name: "Spotify", class: "spotify" },
     { name: "Clipboard", class: "clipboard" },
@@ -25,11 +27,12 @@ export default () => {
           label={filter.name}
           hexpand={true}
           onClicked={() => {
-            const current = getFilter();
-            setFilter(current === filter ? { name: "", class: "" } : filter);
+            setNotificationFilter((current) =>
+              current.class === filter.class ? { name: "", class: "" } : filter
+            );
           }}
-          class={createComputed(() =>
-            getFilter().class === filter.class ? "active" : ""
+          class={notificationFilter((f) =>
+            f.class === filter.class ? "active" : ""
           )}
         />
       ))}
@@ -71,27 +74,24 @@ export default () => {
   }
 
   const notifd = Notifd.get_default();
-  const notifications = createBinding(notifd, "notifications");
+
+  const filteredNotifications = createComputed((get) => {
+    const notifications = get(createBinding(notifd, "notifications"));
+    const filter = get(notificationFilter);
+    if (!notifications) return [];
+    return FilterNotifications(notifications, filter.name);
+  });
 
   const NotificationHistory = (
     <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-      {createComputed(() => {
-        const list = notifications();
-        const filter = getFilter();
-        if (!list) return [];
-        return FilterNotifications(list, filter.name).map((notification) => (
-          <Notification n={notification} />
-        ));
-      })}
+      <For each={filteredNotifications}>
+        {(notification) => <Notification n={notification} />}
+      </For>
     </box>
   );
 
   const NotificationsDisplay = (
-    <scrolledwindow
-      hscroll={Gtk.PolicyType.NEVER}
-      vexpand={true}
-      child={NotificationHistory}
-    ></scrolledwindow>
+    <scrolledwindow vexpand={true}>{NotificationHistory}</scrolledwindow>
   );
 
   const ClearNotifications = (
@@ -99,7 +99,7 @@ export default () => {
       class="clear"
       label=""
       onClicked={() => {
-        notifd.notifications.forEach((notification) => {
+        Notifd.get_default().notifications.forEach((notification) => {
           notification.dismiss();
         });
       }}
