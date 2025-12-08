@@ -240,7 +240,7 @@ function Image() {
   //   return (Number(current.height) / Number(current.width)) * width;
   // });
 
-  const imageSize = createComputed(
+  const imageHeight = createComputed(
     [waifuCurrent, rightPanelWidth],
     (current, width) => {
       print("Waifu Image Dimensions:", current.width, "x", current.height);
@@ -253,7 +253,7 @@ function Image() {
       <image
         hexpand
         class="image"
-        pixelSize={imageSize}
+        pixelSize={imageHeight}
         file={waifuCurrent((w) => w.url_path) || ""}
       />
       <Actions $type="overlay" />

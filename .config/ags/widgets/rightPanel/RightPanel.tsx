@@ -20,7 +20,7 @@ import {
 import { createBinding, For } from "ags";
 import { Eventbox } from "../Custom/Eventbox";
 import { getMonitorName } from "../../utils/monitor";
-import { hideWindow, WindowActions } from "../../utils/window";
+import { hideWindow, WindowActions, queueResize } from "../../utils/window";
 import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => {
@@ -41,6 +41,7 @@ const WidgetActions = () => {
             onToggled={({ active }) => {
               if (active) {
                 if (rightPanelWidgets.get().length >= widgetLimit) return;
+                if (isActive) return;
                 setRightPanelWidgets([...rightPanelWidgets.get(), selector]);
               } else {
                 const newWidgets = rightPanelWidgets
@@ -56,10 +57,15 @@ const WidgetActions = () => {
   );
 };
 
-const Actions = () => (
-  <box class="panel-actions" orientation={Gtk.Orientation.VERTICAL}>
+const Actions = ({ monitorName }: { monitorName: string }) => (
+  <box
+    class="panel-actions"
+    halign={Gtk.Align.END}
+    orientation={Gtk.Orientation.VERTICAL}
+  >
     <WidgetActions />
     <WindowActions
+      windowName={monitorName}
       windowWidth={rightPanelWidth}
       setWindowWidth={setRightPanelWidth}
       windowExclusivity={rightPanelExclusivity}
@@ -72,9 +78,9 @@ const Actions = () => (
   </box>
 );
 
-function Panel() {
+function Panel({ monitorName }: { monitorName: string }) {
   return (
-    <box halign={Gtk.Align.END}>
+    <box>
       {/* <Eventbox
         onHoverLost={() => {
           if (!rightPanelLock.get()) setRightPanelVisibility(false);
@@ -83,6 +89,7 @@ function Panel() {
         <box css="min-width: 5px;" />
       </Eventbox> */}
       <box
+        hexpand
         class="main-content"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
@@ -104,23 +111,27 @@ function Panel() {
           }}
         </For>
       </box>
-      <Actions />
+      <Actions monitorName={monitorName} />
     </box>
   );
 }
 export default (monitor: Gdk.Monitor) => {
+  const monitorName = `right-panel-${getMonitorName(
+    monitor.get_display(),
+    monitor
+  )}`;
   return (
     <window
       gdkmonitor={monitor}
-      name={`right-panel-${getMonitorName(monitor.get_display(), monitor)}`}
+      name={monitorName}
       namespace="right-panel"
       application={App}
       class={rightPanelExclusivity((exclusivity) =>
         exclusivity ? "right-panel exclusive" : "right-panel normal"
       )}
       anchor={
-        Astal.WindowAnchor.RIGHT |
         Astal.WindowAnchor.TOP |
+        Astal.WindowAnchor.RIGHT |
         Astal.WindowAnchor.BOTTOM
       }
       exclusivity={rightPanelExclusivity((exclusivity) =>
@@ -132,7 +143,7 @@ export default (monitor: Gdk.Monitor) => {
       margin={rightPanelExclusivity((exclusivity) =>
         exclusivity ? 0 : globalMargin
       )}
-      keymode={Astal.Keymode.ON_DEMAND}
+      // keymode={Astal.Keymode.ON_DEMAND}
       visible={rightPanelVisibility}
       // onKeyPressEvent={(self, event) => {
       //   if (event.get_keyval()[1] === Gdk.KEY_Escape) {
@@ -148,7 +159,7 @@ export default (monitor: Gdk.Monitor) => {
         return w;
       })}
     >
-      <Panel />
+      <Panel monitorName={monitorName} />
     </window>
   );
 };
