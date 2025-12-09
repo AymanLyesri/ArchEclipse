@@ -21,6 +21,8 @@ import { readJson } from "../../../utils/json";
 import { booruApis } from "../../../constants/api.constants";
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
 import { Eventbox } from "../../Custom/Eventbox";
+import Gio from "gi://Gio?version=2.0";
+import Picture from "../../Picture";
 const waifuDir = "./assets/booru/waifu";
 
 const fetchImage = async (image: Waifu, saveDir: string) => {
@@ -233,28 +235,21 @@ function Actions() {
 }
 
 function Image() {
-  // const imageHeight = createComputed((get) => {
-  //   const current = get(waifuCurrent);
-  //   const width = get(rightPanelWidth);
-  //   print("Waifu Image Dimensions:", current.width, "x", current.height);
-  //   return (Number(current.height) / Number(current.width)) * width;
-  // });
-
   const imageHeight = createComputed(
     [waifuCurrent, rightPanelWidth],
     (current, width) => {
       print("Waifu Image Dimensions:", current.width, "x", current.height);
-      return (Number(current.height) / Number(current.width)) * width;
+      return (Number(current.height) / Number(current.width)) * (width - 50);
     }
   );
 
   return (
     <overlay class={"overlay"}>
-      <image
-        hexpand
+      <Picture
         class="image"
-        pixelSize={imageHeight}
-        file={waifuCurrent((w) => w.url_path) || ""}
+        height={imageHeight}
+        file={waifuCurrent((w) => Gio.File.new_for_path(w.url_path || ""))}
+        contentFit={Gtk.ContentFit.COVER}
       />
       <Actions $type="overlay" />
     </overlay>

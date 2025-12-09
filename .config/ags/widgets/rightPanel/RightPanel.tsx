@@ -143,7 +143,7 @@ export default (monitor: Gdk.Monitor) => {
       margin={rightPanelExclusivity((exclusivity) =>
         exclusivity ? 0 : globalMargin
       )}
-      // keymode={Astal.Keymode.ON_DEMAND}
+      keymode={Astal.Keymode.ON_DEMAND}
       visible={rightPanelVisibility}
       // onKeyPressEvent={(self, event) => {
       //   if (event.get_keyval()[1] === Gdk.KEY_Escape) {
