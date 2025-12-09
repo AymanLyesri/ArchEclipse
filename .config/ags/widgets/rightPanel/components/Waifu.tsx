@@ -250,7 +250,7 @@ function Image() {
       <Picture
         class="image"
         height={imageHeight}
-        file={waifuCurrent((w) => Gio.File.new_for_path(w.url_path || ""))}
+        file={waifuCurrent((w) => w.url_path || "")}
         contentFit={Gtk.ContentFit.COVER}
       />
       <Actions $type="overlay" />

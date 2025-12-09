@@ -6,10 +6,9 @@ interface PictureProps {
   class?: Accessor<string> | string;
   height?: Accessor<number> | number;
   width?: Accessor<number> | number;
-  file: Accessor<Gio.File> | Gio.File;
+  file: Accessor<string> | string;
   contentFit?: Gtk.ContentFit;
 }
-
 export default function Picture({
   class: className = "image",
   height,
@@ -17,13 +16,41 @@ export default function Picture({
   file,
   contentFit = Gtk.ContentFit.COVER,
 }: PictureProps) {
+  let pictureRef: Gtk.Picture | undefined;
+
   return (
-    <overlay heightRequest={height} widthRequest={width}>
+    <overlay
+      heightRequest={height}
+      widthRequest={width}
+      $={(self) => {
+        const children = self.observe_children();
+        const count = children.get_n_items();
+
+        for (let i = 0; i < count; i++) {
+          const child = children.get_item(i);
+
+          if (child instanceof Gtk.Picture) {
+            pictureRef = child;
+          }
+        }
+
+        // ⚡ expose helper method
+        (self as any).getPicture = () => pictureRef;
+      }}
+    >
       <Gtk.Picture
-        $type={"overlay"}
+        $type="overlay"
         class={className}
-        file={file}
+        file={
+          typeof file === "string"
+            ? Gio.File.new_for_path(file)
+            : file((f) => Gio.File.new_for_path(f))
+        }
         contentFit={contentFit}
+        $={(self) => {
+          // also capture directly (more reliable)
+          pictureRef = self;
+        }}
       />
     </overlay>
   );

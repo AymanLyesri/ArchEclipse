@@ -6,45 +6,36 @@
   border-radius: 50px;
   border: 1px solid $secondary;
 
-  .workspace-wallpaper {
-    transition: all 0.5s;
-    border: none;
+  .wallpaper {
+    border-radius: 10px;
+  }
 
-    background-size: 400px;
-    background-position: center;
-    background-repeat: no-repeat;
-
+  .wallpaper-button {
+    background: transparent;
+    min-height: 200px;
     min-width: 100px;
-    min-height: 100px;
-    border-radius: 50%;
-
+    border: none;
     padding: 0px;
-    margin: 0px;
-
-    &:hover {
-      min-height: 100px;
-      min-width: 200px;
-      background-position: center;
-      background-repeat: no-repeat;
-      border-radius: 20px;
-    }
-
+    &:hover,
     &.focused {
-      min-height: 150px;
-      min-width: 150px;
-      &:hover {
-        min-height: 150px;
-        min-width: 300px;
-        border-radius: 50px;
-      }
+      min-width: 300px;
+      box-shadow: 0px 0px 20px $background-secondary;
     }
 
-    &:active {
-      box-shadow: 0px 0px 20px 100px $background inset;
-      transition: all 0.2s;
+    &.preview {
+      min-height: 100px;
+      min-width: 50px;
+      &:hover {
+        min-width: 150px;
+      }
     }
   }
 
+  .delete-wallpaper {
+    @extend .danger;
+    margin: 5px;
+    padding: 0px;
+  }
   .actions {
     .selected-workspace {
       color: $secondary;
@@ -75,27 +66,5 @@
   .all-wallpapers {
     padding: 0px;
     margin: 0px;
-    .wallpaper-event-box {
-      &:hover .wallpaper {
-        min-width: 125px;
-        background-position: center;
-        border-radius: 20px;
-      }
-    }
-    .wallpaper {
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-
-      min-width: 75px;
-      min-height: 75px;
-      border-radius: 10px;
-
-      .delete-wallpaper {
-        @extend .danger;
-        margin: 5px;
-        padding: 0px;
-      }
-    }
   }
 }
