@@ -2,7 +2,9 @@ import AstalMpris from "gi://AstalMpris?version=0.1";
 import { getDominantColor, getImageRatio } from "../utils/image";
 import Gtk from "gi://Gtk?version=4.0";
 import { rightPanelWidth } from "../variables";
-import { createBinding, createState, createComputed } from "ags";
+import { createBinding, createState, createComputed, Accessor } from "ags";
+import Picture from "./Picture";
+import Gio from "gi://Gio";
 
 function lengthStr(length: number) {
   const min = Math.floor(length / 60);
@@ -23,25 +25,10 @@ export default ({
     player,
     "coverArt"
   )((path) => getDominantColor(path));
-  const img = () => {
-    if (playerType == "widget") return <box></box>;
-
-    return (
-      <box
-        class="img"
-        valign={Gtk.Align.CENTER}
-        hexpand={false}
-        vexpand={false}
-      >
-        <image
-          pixelSize={69}
-          file={createBinding(player, "coverArt")}
-          hexpand={true}
-          vexpand={true}
-        />
-      </box>
-    );
-  };
+  const img = (
+    height: number | Accessor<number>,
+    width: number | Accessor<number>
+  ) => {};
   const title = (
     <label
       class="title"
@@ -183,57 +170,96 @@ export default ({
     </button>
   );
 
-  return (
+  const content = (
     <box
-      class={`player ${playerType}`}
-      vexpand={false}
-      css={createBinding(
-        player,
-        "coverArt"
-      )((p) => {
-        if (playerType == "popup") return "";
-
-        const ratio = getImageRatio(p || "") || 1; // default to square
-        const width = rightPanelWidth.get();
-        const height = width * ratio;
-
-        return `
-    min-height: ${height}px;
-    background-image: url('${p}');
-    background-size: cover;
-    background-position: center;
-  `;
-      })}
+      class="bottom-bar"
       spacing={5}
+      orientation={Gtk.Orientation.VERTICAL}
+      hexpand
+      valign={Gtk.Align.END}
     >
-      {img()}
-      <box orientation={Gtk.Orientation.VERTICAL} hexpand>
-        <box>{icon}</box>
-        <box vexpand></box>
-        <box class="bottom-eventbox">
-          <box
-            class="bottom-bar"
-            spacing={5}
-            orientation={Gtk.Orientation.VERTICAL}
-          >
-            <box class="info" orientation={Gtk.Orientation.VERTICAL}>
-              {title}
-              {artist}
-            </box>
-
-            <centerbox>
-              <box $type="start">{positionLabel}</box>
-              <box $type="center" spacing={5}>
-                {prev}
-                {playPause}
-                {next}
-              </box>
-              <box $type="end">{lengthLabel}</box>
-            </centerbox>
-            {positionSlider}
-          </box>
-        </box>
+      <box class="info" orientation={Gtk.Orientation.VERTICAL}>
+        {title}
+        {artist}
       </box>
+
+      <centerbox>
+        <box $type="start">{positionLabel}</box>
+        <box $type="center" spacing={5}>
+          {prev}
+          {playPause}
+          {next}
+        </box>
+        <box $type="end">{lengthLabel}</box>
+      </centerbox>
+      {positionSlider}
     </box>
+  );
+
+  return (
+    <overlay
+      class={`player ${playerType}`}
+      hexpand
+      //     css={createBinding(
+      //       player,
+      //       "coverArt"
+      //     )((p) => {
+      //       if (playerType == "popup") return "";
+
+      //       const ratio = getImageRatio(p || "") || 1; // default to square
+      //       const width = rightPanelWidth.get();
+      //       const height = width * ratio;
+
+      //       return `
+      //   min-height: ${height}px;
+      //   background-image: url('${p}');
+      //   background-size: cover;
+      //   background-position: center;
+      // `;
+      //     })}
+      // spacing={5}
+    >
+      <Picture
+        class="img"
+        height={createBinding(
+          player,
+          "coverArt"
+        )((path) => {
+          const ratio = getImageRatio(path) || 1;
+          const width = rightPanelWidth.get();
+          return width * ratio;
+        })}
+        file={createBinding(
+          player,
+          "coverArt"
+        )((art) => Gio.File.new_for_path(art))}
+      />
+      {playerType == "widget" ? (
+        <box
+          $type="overlay"
+          orientation={Gtk.Orientation.VERTICAL}
+          hexpand
+          valign={Gtk.Align.END}
+        >
+          {/* <box>{icon}</box> */}
+          {content}
+        </box>
+      ) : (
+        <box>
+          {
+            <Picture
+              class="img"
+              width={100}
+              height={100}
+              file={createBinding(
+                player,
+                "coverArt"
+              )((art) => Gio.File.new_for_path(art))}
+            />
+          }
+          {content}
+        </box>
+      )}
+    </overlay>
   );
 };

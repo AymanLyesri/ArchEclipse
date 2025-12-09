@@ -1,17 +1,23 @@
 .player {
   @extend .module;
+  padding: 0px;
 
   background-color: $background-secondary;
 
   &.widget {
-    .bottom-eventbox:hover {
-      .bottom-bar {
-        background-color: $background-secondary;
-      }
+    .bottom-bar:hover {
+      background-color: $background-secondary;
     }
+
     .bottom-bar {
       background: $background-semi-transparent;
       padding: 5px;
+    }
+  }
+
+  &.popup {
+    .img {
+      margin: 5px;
     }
   }
 
@@ -21,6 +27,7 @@
 
   .bottom-bar {
     border-radius: 10px;
+    margin: 5px;
 
     .title {
       color: $secondary;
