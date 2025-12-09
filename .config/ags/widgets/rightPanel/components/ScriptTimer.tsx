@@ -209,7 +209,7 @@ const TaskForm = ({
         />
         <revealer
           revealChild={showSuggestions}
-          transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
           transitionDuration={globalTransition}
         >
           <box
@@ -392,7 +392,7 @@ const ScriptTimer = () => {
 
       <revealer
         revealChild={showAddForm}
-        transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+        transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
         transitionDuration={globalTransition}
       >
         <With value={editingTask}>

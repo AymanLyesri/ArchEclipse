@@ -1122,7 +1122,7 @@ icon {
 
 ```tsx
 <revealer
-  transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+  transitionType={Gtk.RevealerTransitionType.SWING_RIGHT}
   revealChild={true}
   onNotifyChildRevealed={() => print("animation finished")}
 >

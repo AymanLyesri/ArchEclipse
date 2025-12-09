@@ -152,9 +152,14 @@ scrollable > * {
   border-width: 0;
 }
 
-scrolledwindow {
-  slider {
-    background: black;
+scrollbar {
+  border-radius: 8px;
+  background: transparent;
+  min-width: 8px; /* vertical */
+  min-height: 8px; /* horizontal */
+
+  trough {
+    color: $foreground;
   }
 }
 

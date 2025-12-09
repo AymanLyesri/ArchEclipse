@@ -162,7 +162,7 @@ const MessageItem = ({ message }: { message: Message }) => {
     <revealer
       revealChild={false}
       transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+      transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
       child={
         <box class={"info"} spacing={10}>
           <label

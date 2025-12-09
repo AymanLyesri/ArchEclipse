@@ -461,7 +461,7 @@ function Bandwidth() {
     <revealer
       revealChild={false}
       transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+      transitionType={Gtk.RevealerTransitionType.SWING_RIGHT}
       $={(self) => (uploadRevealerInstance = self)}
       child={<label label={bandwidth((b) => `[${formatKiloBytes(b[2])}]`)} />}
     />
@@ -471,7 +471,7 @@ function Bandwidth() {
     <revealer
       revealChild={false}
       transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+      transitionType={Gtk.RevealerTransitionType.SWING_RIGHT}
       $={(self) => (downloadRevealerInstance = self)}
       child={<label label={bandwidth((b) => `[${formatKiloBytes(b[3])}]`)} />}
     />
@@ -512,7 +512,7 @@ function ClientTitle() {
     <revealer
       revealChild={focusedClient}
       transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+      transitionType={Gtk.RevealerTransitionType.SWING_RIGHT}
       child={
         <label
           class="client-title"

@@ -253,7 +253,7 @@ export default ({
 
   const Revealer = (
     <revealer
-      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+      transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
       transitionDuration={TRANSITION}
       reveal_child={!newNotification}
       $={(self) => {

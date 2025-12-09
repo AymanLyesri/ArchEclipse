@@ -150,9 +150,9 @@ export default (monitor: Gdk.Monitor) => {
       //     hideWindow(
       //       `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
       //     );
-      //     return true;
       //   }
       // }}
+
       widthRequest={rightPanelWidth}
       $={(self) => {
         const motion = new Gtk.EventControllerMotion();

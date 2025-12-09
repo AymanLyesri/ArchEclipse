@@ -294,7 +294,7 @@ function Display(monitor: string) {
     <revealer
       visible={true}
       revealChild={false}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
+      transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
       transitionDuration={globalTransition}
     >
       <box>{getAllWallpapers()}</box>

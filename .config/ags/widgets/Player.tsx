@@ -229,10 +229,7 @@ export default ({
           const width = rightPanelWidth.get();
           return width * ratio;
         })}
-        file={createBinding(
-          player,
-          "coverArt"
-        )((art) => Gio.File.new_for_path(art))}
+        file={createBinding(player, "coverArt")}
       />
       {playerType == "widget" ? (
         <box
@@ -251,10 +248,7 @@ export default ({
               class="img"
               width={100}
               height={100}
-              file={createBinding(
-                player,
-                "coverArt"
-              )((art) => Gio.File.new_for_path(art))}
+              file={createBinding(player, "coverArt")}
             />
           }
           {content}

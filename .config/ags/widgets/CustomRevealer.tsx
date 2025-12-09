@@ -21,7 +21,7 @@ export default ({
     <revealer
       revealChild={revealChild}
       transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+      transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
       child={child}
     />
   );

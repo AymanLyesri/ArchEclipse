@@ -110,7 +110,7 @@ function Actions() {
     <revealer
       revealChild={false}
       transitionDuration={globalTransition}
-      transition_type={Gtk.RevealerTransitionType.SLIDE_UP}
+      transition_type={Gtk.RevealerTransitionType.SWING_UP}
     >
       <box
         class="bottom-bar"
@@ -262,7 +262,7 @@ export default () => {
   return (
     <revealer
       transitionDuration={globalTransition}
-      transition_type={Gtk.RevealerTransitionType.SLIDE_DOWN}
+      transition_type={Gtk.RevealerTransitionType.SWING_DOWN}
       revealChild={globalSettings((s) => s.waifu.visibility)}
     >
       <box class="waifu" orientation={Gtk.Orientation.VERTICAL}>

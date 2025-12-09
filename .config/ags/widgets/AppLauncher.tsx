@@ -40,7 +40,7 @@ const [Results, setResults] = createState<LauncherApp[]>([]);
 const QuickApps = () => {
   const apps = (
     <Gtk.Revealer
-      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+      transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
       transitionDuration={globalTransition}
       revealChild={Results((results) => results.length === 0)}
     >
@@ -313,7 +313,7 @@ const ResultsDisplay = () => {
   return (
     <revealer
       revealChild={Results((results) => results.length > 0)}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+      transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
       transitionDuration={globalTransition}
     >
       <scrolledwindow
