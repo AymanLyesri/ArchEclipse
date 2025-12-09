@@ -7,12 +7,9 @@
       margin: 5px;
     }
 
-    .bottom-bar:hover {
-      background: $background-secondary;
-    }
     .bottom-bar {
-      background: $background-semi-transparent;
-      margin-top: $phi * 2 + px;
+      // background: $background-semi-transparent;
+      margin: $phi * 2 + px;
       border-radius: 10px;
       entry {
         border-radius: 0px;
@@ -20,16 +17,23 @@
         margin: 0px;
       }
 
+      .section:hover {
+        background: $background-secondary;
+      }
+      .section {
+        border-radius: 10px;
+      }
+
       button {
         border-radius: 0px;
       }
 
-      .bottom button {
+      button {
         &:first-child {
-          border-radius: 0px 0px 0px 10px;
+          border-radius: 10px 0px 0px 10px;
         }
         &:last-child {
-          border-radius: 0px 0px 10px 0px;
+          border-radius: 0px 10px 10px 0px;
         }
       }
     }

@@ -31,22 +31,28 @@ const WidgetActions = () => {
       spacing={5}
     >
       {rightPanelWidgetSelectors.map((selector) => {
-        const isActive = rightPanelWidgets
-          .get()
-          .some((w) => w.name === selector.name);
         return (
           <togglebutton
             class="widget-selector"
             label={selector.icon}
+            active={rightPanelWidgets((widgets) =>
+              widgets.some((w) => w.name === selector.name)
+            )}
             onToggled={({ active }) => {
-              if (active) {
-                if (rightPanelWidgets.get().length >= widgetLimit) return;
-                if (isActive) return;
-                setRightPanelWidgets([...rightPanelWidgets.get(), selector]);
-              } else {
-                const newWidgets = rightPanelWidgets
-                  .get()
-                  .filter((w) => w.name !== selector.name);
+              const currentWidgets = rightPanelWidgets.get();
+              const isCurrentlyActive = currentWidgets.some(
+                (w) => w.name === selector.name
+              );
+
+              if (active && !isCurrentlyActive) {
+                if (currentWidgets.length >= widgetLimit) {
+                  return;
+                }
+                setRightPanelWidgets([...currentWidgets, selector]);
+              } else if (!active && isCurrentlyActive) {
+                const newWidgets = currentWidgets.filter(
+                  (w) => w.name !== selector.name
+                );
                 setRightPanelWidgets(newWidgets);
               }
             }}
@@ -81,13 +87,6 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
 function Panel({ monitorName }: { monitorName: string }) {
   return (
     <box>
-      {/* <Eventbox
-        onHoverLost={() => {
-          if (!rightPanelLock.get()) setRightPanelVisibility(false);
-        }}
-      >
-        <box css="min-width: 5px;" />
-      </Eventbox> */}
       <box
         hexpand
         class="main-content"
@@ -154,10 +153,14 @@ export default (monitor: Gdk.Monitor) => {
       //     return true;
       //   }
       // }}
-      widthRequest={rightPanelWidth((w) => {
-        print("Right Panel Width:", w);
-        return w;
-      })}
+      widthRequest={rightPanelWidth}
+      $={(self) => {
+        const motion = new Gtk.EventControllerMotion();
+        motion.connect("leave", () => {
+          if (!rightPanelLock.get()) setRightPanelVisibility(false);
+        });
+        self.add_controller(motion);
+      }}
     >
       <Panel monitorName={monitorName} />
     </window>

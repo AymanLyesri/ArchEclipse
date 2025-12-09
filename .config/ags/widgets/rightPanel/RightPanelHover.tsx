@@ -7,7 +7,7 @@ import {
   rightPanelVisibility,
   setRightPanelVisibility,
 } from "../../variables";
-import { Eventbox } from "../Custom/Eventbox";
+import { createComputed } from "gnim";
 
 export default (monitor: Gdk.Monitor) => {
   return (
@@ -22,14 +22,19 @@ export default (monitor: Gdk.Monitor) => {
       }
       exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.TOP}
+      visible={createComputed(
+        [rightPanelVisibility, rightPanelLock],
+        (v, l) => !v && !l
+      )}
+      $={(self) => {
+        const motion = new Gtk.EventControllerMotion();
+        motion.connect("enter", () => {
+          setRightPanelVisibility(true);
+        });
+        self.add_controller(motion);
+      }}
     >
-      <Eventbox
-        onHover={() => {
-          if (!rightPanelLock.get()) setRightPanelVisibility(true);
-        }}
-      >
-        <box css="min-width: 1px;" />
-      </Eventbox>
+      <box css="min-width: 5px; background-color: rgba(0,0,0,0.01);" />
     </window>
   );
 };

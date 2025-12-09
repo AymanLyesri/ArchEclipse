@@ -2,8 +2,6 @@
   @extend .module;
   padding: 0px;
 
-  background-color: $background-secondary;
-
   &.widget {
     .bottom-bar:hover {
       background-color: $background-secondary;
@@ -16,6 +14,9 @@
   }
 
   &.popup {
+    &:hover {
+      background-color: $background-secondary;
+    }
     .img {
       margin: 5px;
     }
