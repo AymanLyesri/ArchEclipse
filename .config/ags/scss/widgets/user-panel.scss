@@ -20,22 +20,8 @@
     padding: 33px;
 
     .profile-picture {
-      min-width: 200px;
-      min-height: 200px;
-      background-position: center;
-      background-size: cover;
-      background-repeat: no-repeat;
       border-radius: 50%;
       margin-bottom: 1rem;
-      button {
-        all: unset;
-        font-size: 0px;
-        border-radius: 50%;
-
-        &:hover {
-          background: rgba(0, 0, 0, 0.5);
-        }
-      }
     }
     .user-name,
     .desktop-env {
