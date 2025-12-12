@@ -1,29 +1,17 @@
 .booru {
   .images {
-    .image {
+    .image-button {
       border-radius: 15px;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
+      padding: 0px;
 
-      &:hover {
-        border-radius: 0px;
-      }
-
-      &:active {
-        box-shadow: 0px 0px 20px 100px $background inset;
-        transition: all 0.2s;
-      }
+      // &:hover {
+      //   box-shadow: 0px 0px 20px 10px white inset;
+      //   transition: all 0.2s;
+      // }
     }
   }
 
   .bottom {
-    .pages {
-      button {
-        padding: $SCALE / 2 $SCALE;
-      }
-    }
-
     .bottom-bar {
       background: $background-semi-transparent;
       border-radius: 10px;
@@ -39,22 +27,13 @@
           .explicit {
             background: $red;
           }
-          button {
-            padding: $SCALE / 2 $SCALE;
-
-            &:hover {
-              background: $red;
-            }
+          button:hover {
+            background: $red;
           }
         }
         .fetched-tags {
-          button {
-            padding: $SCALE / 2 $SCALE;
-            background: $background;
-
-            &:hover {
-              background: $green;
-            }
+          button:hover {
+            background: $green;
           }
         }
       }

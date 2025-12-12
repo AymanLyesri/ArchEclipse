@@ -47,8 +47,8 @@ export default () => {
       spacing={10}
     >
       {customScripts.map((script) => (
-        <Eventbox
-          onClick={() => {
+        <button
+          onClicked={() => {
             script.script();
           }}
         >
@@ -66,7 +66,7 @@ export default () => {
               label={script.name}
             />
           </box>
-        </Eventbox>
+        </button>
       ))}
     </box>
   );

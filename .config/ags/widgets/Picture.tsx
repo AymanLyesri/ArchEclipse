@@ -40,7 +40,7 @@ export default function Picture({
     >
       <Gtk.Picture
         $type="overlay"
-        class={className}
+        class={"picture " + className}
         file={
           typeof file === "string"
             ? Gio.File.new_for_path(file)

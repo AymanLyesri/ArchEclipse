@@ -29,10 +29,11 @@ button,
 button,
 .button {
   @extend .module;
+  border: none;
   padding: $SCALE / $phi $SCALE;
-
   min-width: 20px;
   min-height: 20px;
+  outline: none;
 
   background: $background-semi-transparent;
 
@@ -40,18 +41,28 @@ button,
     background: $background;
     text-shadow: $foreground 0 0 1px;
   }
-  &:focus,
-  &:checked {
-    outline: none;
-    // border-color: transparent;
-  }
+  // &:focus,
+  // &:checked {
+
+  //   // border-color: transparent;
+  // }
   &.checked {
     background: $secondary;
     color: $color0;
   }
+
+  & .picture {
+    all: unset;
+  }
 }
 
-dialog {
+.toggle {
+  border: none;
+  padding: 0px;
+  @extend .button;
+}
+
+.dialog {
   @extend .module;
 }
 

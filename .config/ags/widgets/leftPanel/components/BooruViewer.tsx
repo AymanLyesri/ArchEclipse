@@ -22,6 +22,7 @@ import { createState, For, With } from "ags";
 import { booruApis } from "../../../constants/api.constants";
 import { ImageDialog } from "./ImageDialog";
 import { Eventbox } from "../../Custom/Eventbox";
+import Picture from "../../Picture";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -66,7 +67,7 @@ const cleanUp = () => {
 
 const fetchImages = async () => {
   try {
-    openProgress();
+    // openProgress();
     const escapedTags = booruTags
       .get()
       .map((tag) => tag.replace(/'/g, "'\\''"));
@@ -116,12 +117,12 @@ const fetchImages = async () => {
       );
       setImages(successfulDownloads);
       calculateCacheSize();
-      closeProgress();
+      // closeProgress();
     });
   } catch (err) {
     console.error(err);
     notify({ summary: "Error", body: String(err) });
-    closeProgress();
+    // closeProgress();
   }
 };
 const Apis = () => (
@@ -185,19 +186,20 @@ const Images = () => {
         <For each={imageRows}>
           {(row) => (
             <box spacing={5}>
-              {row.map((image: Waifu) => (
-                <button
-                  onClicked={() => {
-                    new ImageDialog(image);
-                  }}
-                  hexpand
-                  heightRequest={leftPanelWidth.get() / 2}
-                  class="image"
-                  css={`
-                    background-image: url("${image.preview_path}");
-                  `}
-                />
-              ))}
+              {row.map((image: Waifu) => {
+                const dialog = new ImageDialog(image);
+                return (
+                  <menubutton
+                    direction={Gtk.ArrowType.RIGHT}
+                    hexpand
+                    heightRequest={leftPanelWidth((w) => w / 2)}
+                    class="image-button"
+                  >
+                    <Picture file={image.preview_path || ""}></Picture>
+                    <popover>{dialog.getBox()}</popover>
+                  </menubutton>
+                );
+              })}
             </box>
           )}
         </For>
@@ -208,37 +210,6 @@ const Images = () => {
 
 const PageDisplay = () => (
   <box class="pages" spacing={5} halign={Gtk.Align.CENTER}>
-    {/* {bind(booruPage).as((p) => {
-      const buttons = [];
-
-      // Show "1" button if the current page is greater than 3
-      if (p > 3) {
-        buttons.push(
-          <button
-            class={"first"}
-            label="1"
-            onClicked={() => booruPage.set(1)}
-          />,
-          <label>...</label>
-        );
-      }
-
-      // Generate 5-page range dynamically without going below 1
-      const startPage = Math.max(1, p - 2);
-      const endPage = Math.max(5, p + 2);
-
-      for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
-        buttons.push(
-          <button
-            label={pageNum !== p ? String(pageNum) : ""}
-            onClicked={() =>
-              pageNum !== p ? booruPage.set(pageNum) : fetchImages()
-            }
-          />
-        );
-      }
-      return buttons;
-    })} */}
     <With value={booruPage}>
       {(p) => {
         const buttons = [];
@@ -258,7 +229,7 @@ const PageDisplay = () => (
         for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
           buttons.push(
             <button
-              label={pageNum !== p ? String(pageNum) : ""}
+              label={pageNum !== p ? String(pageNum) : ""}
               onClicked={() =>
                 pageNum !== p ? setBooruPage(pageNum) : fetchImages()
               }
