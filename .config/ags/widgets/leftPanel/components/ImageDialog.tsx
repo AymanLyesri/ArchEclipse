@@ -1,13 +1,12 @@
 import { closeProgress, openProgress } from "../../Progress";
-import { createBinding, createState } from "ags";
 import { execAsync } from "ags/process";
-
 import { notify } from "../../../utils/notification";
 import { booruApi, waifuCurrent, setWaifuCurrent } from "../../../variables";
 import { Waifu } from "../../../interfaces/waifu.interface";
-
+import { createState } from "ags";
 import hyprland from "gi://AstalHyprland";
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
+import Gdk from "gi://Gdk?version=4.0";
 import Gtk from "gi://Gtk?version=4.0";
 const Hyprland = hyprland.get_default();
 
@@ -46,7 +45,9 @@ const waifuThisImage = async (image: Waifu) => {
 
 const OpenInBrowser = (image: Waifu) =>
   execAsync(
-    `bash -c "xdg-open '${booruApi.idSearchUrl}${image.id}' && xdg-settings get default-web-browser | sed 's/\.desktop$//'" `
+    `bash -c "xdg-open '${booruApi.get().idSearchUrl}${
+      image.id
+    }' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
   )
     .then((browser) =>
       notify({ summary: "Waifu", body: `opened in ${browser}` })
@@ -74,32 +75,29 @@ const addToWallpapers = (image: Waifu) => {
 };
 
 export class ImageDialog {
-  private dialog: Gtk.Dialog;
-  private imageDownloaded: boolean;
-  private setImageDownloaded: (value: boolean) => void;
+  private dialog: Gtk.Window;
+  private imageDownloaded: boolean = false;
 
   constructor(img: Waifu) {
-    [this.imageDownloaded, this.setImageDownloaded] =
-      createState<boolean>(false);
-    fetchImage(img, imageUrlPath).finally(() => this.setImageDownloaded(true));
-    // Create dialog without default action area
-    this.dialog = new Gtk.Dialog({
+    fetchImage(img, imageUrlPath).finally(() => {
+      this.imageDownloaded = true;
+      this.updateButtonStates();
+    });
+    // Create window (GTK 4 doesn't have Dialog with window_position)
+    this.dialog = new Gtk.Window({
       title: "booru-image",
-      window_position: Gtk.WindowPosition.CENTER,
       modal: false,
     });
 
-    // Get content area
-    const contentArea = this.dialog.get_content_area();
-
-    // Create main orientation={Gtk.Orientation.VERTICAL} box to hold everything
+    // Create main vertical box to hold everything
     const mainBox = new Gtk.Box({
       orientation: Gtk.Orientation.VERTICAL,
-      margin: 5,
     });
-    // const ctx = mainBox.get_style_context();
-    // ctx.add_class("module");
-    contentArea.add(mainBox);
+    mainBox.set_margin_start(5);
+    mainBox.set_margin_end(5);
+    mainBox.set_margin_top(5);
+    mainBox.set_margin_bottom(5);
+    this.dialog.set_child(mainBox);
 
     // create button box
     const buttonBoxTop = new Gtk.Box({
@@ -113,19 +111,19 @@ export class ImageDialog {
       valign: Gtk.Align.CENTER,
     });
     closeButton.connect("clicked", () => {
-      this.dialog.destroy();
+      this.dialog.close();
     });
-    buttonBoxTop.add(closeButton);
-    mainBox.add(buttonBoxTop);
+    buttonBoxTop.append(closeButton);
+    mainBox.append(buttonBoxTop);
 
     // Add image
     const image = new Gtk.Image({
       file: img.preview_path,
       hexpand: false,
       vexpand: false,
-      marginTop: 10,
     });
-    mainBox.add(image);
+    image.set_margin_top(10);
+    mainBox.append(image);
 
     // Create centered button box
     const buttonBox = new Gtk.Box({
@@ -175,31 +173,38 @@ export class ImageDialog {
       },
     ];
 
+    const buttonRefs: { button: Gtk.Button; needDownload: boolean }[] = [];
     buttons.forEach((btn) => {
       const button = new Gtk.Button({
         label: btn.icon,
-        halign: Gtk.Align.CENTER, // Center horizontally
-        valign: Gtk.Align.CENTER, // Center orientation={Gtk.Orientation.VERTICAL}ly
-        sensitive: btn.needImageDownload
-          ? createBinding(this, "imageDownloaded")
-          : true,
+        halign: Gtk.Align.CENTER,
+        valign: Gtk.Align.CENTER,
+        sensitive: btn.needImageDownload ? this.imageDownloaded : true,
       });
 
-      // Add CSS class for styling
-      // const ctx = button.get_style_context();
-      // ctx.add_class("image-dialog-button");
+      if (btn.needImageDownload) {
+        buttonRefs.push({ button, needDownload: true });
+      }
 
       button.connect("clicked", () => {
         this.handleResponse(btn.response, img);
-        // this.dialog.destroy();
       });
 
-      buttonBox.add(button);
+      buttonBox.append(button);
     });
+    this.buttons = buttonRefs;
 
-    mainBox.add(buttonBox);
+    mainBox.append(buttonBox);
 
-    this.dialog.show_all();
+    this.dialog.present();
+  }
+
+  private buttons: { button: Gtk.Button; needDownload: boolean }[] = [];
+
+  private updateButtonStates() {
+    this.buttons.forEach(({ button }) => {
+      button.set_sensitive(this.imageDownloaded);
+    });
   }
 
   private handleResponse(responseId: number, img: Waifu) {

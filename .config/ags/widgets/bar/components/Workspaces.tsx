@@ -232,7 +232,7 @@ const Actions = ({ monitorName }: { monitorName: string }) => {
   return (
     <box class="actions">
       <UserPanel monitorName={monitorName} />
-      <Settings monitorName={monitorName} />
+      {/* <Settings monitorName={monitorName} /> */}
       <WallpaperSwitcher monitorName={monitorName} />
     </box>
   );

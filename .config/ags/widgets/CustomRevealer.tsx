@@ -1,6 +1,7 @@
 import Gtk from "gi://Gtk?version=4.0";
 import { globalTransition } from "../variables";
 import { Eventbox } from "./Custom/Eventbox";
+import { Accessor } from "ags";
 
 export default ({
   trigger,
@@ -12,8 +13,8 @@ export default ({
 }: {
   trigger: any;
   child: any;
-  visible?: boolean;
-  revealChild?: boolean | (() => boolean);
+  visible?: boolean | Accessor<boolean>;
+  revealChild?: boolean | Accessor<boolean>;
   custom_class?: string;
   on_primary_click?: () => void;
 }) => {

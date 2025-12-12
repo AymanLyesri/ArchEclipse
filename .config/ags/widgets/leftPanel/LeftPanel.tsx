@@ -1,49 +1,61 @@
 import App from "ags/gtk4/app";
-import Gtk from "gi://Gtk?version=4.0";
-import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
-import { getMonitorName } from "../../utils/monitor";
-import { createBinding, createComputed } from "ags";
+import Gdk from "gi://Gdk?version=4.0";
+import Gtk from "gi://Gtk?version=4.0";
 import {
   globalMargin,
   globalTransition,
   leftPanelExclusivity,
-  setLeftPanelExclusivity,
   leftPanelLock,
-  setLeftPanelLock,
   leftPanelVisibility,
   setLeftPanelVisibility,
   leftPanelWidget,
   setLeftPanelWidget,
   leftPanelWidth,
   setLeftPanelWidth,
+  setLeftPanelExclusivity,
+  setLeftPanelLock,
 } from "../../variables";
-
+import { createBinding, createState, With } from "ags";
+import { Eventbox } from "../Custom/Eventbox";
+import { getMonitorName } from "../../utils/monitor";
 import { hideWindow, WindowActions } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 
-const WidgetActions = () => (
-  <box
-    class={"widget-actions"}
-    orientation={Gtk.Orientation.VERTICAL}
-    spacing={10}
-  >
-    {leftPanelWidgetSelectors.map((widgetSelector) => (
-      <togglebutton
-        active={createComputed(
-          () => leftPanelWidget.name === widgetSelector.name
-        )}
-        label={widgetSelector.icon}
-        onToggled={() => setLeftPanelWidget(widgetSelector)}
-      />
-    ))}
-  </box>
-);
+const WidgetActions = () => {
+  return (
+    <box
+      orientation={Gtk.Orientation.VERTICAL}
+      class="widget-actions"
+      spacing={10}
+    >
+      {leftPanelWidgetSelectors.map((widgetSelector) => {
+        return (
+          <togglebutton
+            class="widget-selector"
+            label={widgetSelector.icon}
+            active={leftPanelWidget((w) => w.name === widgetSelector.name)}
+            onToggled={({ active }) => {
+              if (active) {
+                setLeftPanelWidget(widgetSelector);
+              }
+            }}
+          />
+        );
+      })}
+    </box>
+  );
+};
 
-const Actions = () => (
-  <box class={"panel-actions"} orientation={Gtk.Orientation.VERTICAL}>
+const Actions = ({ monitorName }: { monitorName: string }) => (
+  <box
+    class="panel-actions"
+    halign={Gtk.Align.START}
+    orientation={Gtk.Orientation.VERTICAL}
+  >
     <WidgetActions />
     <WindowActions
+      windowName={monitorName}
       windowWidth={leftPanelWidth}
       setWindowWidth={setLeftPanelWidth}
       windowExclusivity={leftPanelExclusivity}
@@ -56,67 +68,100 @@ const Actions = () => (
   </box>
 );
 
-function Panel() {
+function Panel({ monitorName }: { monitorName: string }) {
   return (
     <box>
-      <Actions />
+      <Actions monitorName={monitorName} />
       <box
-        class={"main-content"}
-        widthRequest={leftPanelWidth}
-        child={createComputed(
-          () =>
-            leftPanelWidgetSelectors
-              .find((ws) => ws.name === leftPanelWidget.name)
-              ?.widget() || <box />
-        )}
-      ></box>
+        hexpand
+        class="main-content"
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+      >
+        {/* {leftPanelWidget((widget) => {
+          const selector = leftPanelWidgetSelectors.find(
+            (ws) => ws.name === widget.name
+          );
+          if (selector?.widget) {
+            try {
+              return selector.widget() as JSX.Element;
+            } catch (error) {
+              console.error(`Error rendering widget:`, error);
+              return (<box />) as JSX.Element;
+            }
+          }
+          return (<box />) as JSX.Element;
+        })} */}
+
+        <With value={leftPanelWidget}>
+          {(widget) => {
+            const selector = leftPanelWidgetSelectors.find(
+              (ws) => ws.name === widget.name
+            );
+            if (selector?.widget) {
+              try {
+                return selector.widget() as JSX.Element;
+              } catch (error) {
+                console.error(`Error rendering widget:`, error);
+                return (<box />) as JSX.Element;
+              }
+            }
+            return (<box />) as JSX.Element;
+          }}
+        </With>
+      </box>
       <Eventbox
         onHoverLost={() => {
-          if (!leftPanelLock) setLeftPanelVisibility(false);
+          if (!leftPanelLock.get()) setLeftPanelVisibility(false);
         }}
-        child={<box css={"min-width:5px"} />}
-      ></Eventbox>
+      >
+        <box css="min-width: 5px" />
+      </Eventbox>
     </box>
   );
 }
 
 export default (monitor: Gdk.Monitor) => {
+  const monitorName = `left-panel-${getMonitorName(
+    monitor.get_display(),
+    monitor
+  )}`;
   return (
     <window
       gdkmonitor={monitor}
-      name={`left-panel-${getMonitorName(monitor.get_display(), monitor)}`}
-      namespace={"left-panel"}
+      name={monitorName}
+      namespace="left-panel"
       application={App}
-      class={createComputed(() =>
-        leftPanelExclusivity ? "left-panel exclusive" : "left-panel normal"
+      class={leftPanelExclusivity((exclusivity) =>
+        exclusivity ? "left-panel exclusive" : "left-panel normal"
       )}
       anchor={
-        Astal.WindowAnchor.LEFT |
         Astal.WindowAnchor.TOP |
+        Astal.WindowAnchor.LEFT |
         Astal.WindowAnchor.BOTTOM
       }
-      exclusivity={createComputed(() =>
-        leftPanelExclusivity
-          ? Astal.Exclusivity.EXCLUSIVE
-          : Astal.Exclusivity.NORMAL
+      exclusivity={leftPanelExclusivity((exclusivity) =>
+        exclusivity ? Astal.Exclusivity.EXCLUSIVE : Astal.Exclusivity.NORMAL
       )}
-      layer={createComputed(() =>
-        leftPanelExclusivity ? Astal.Layer.BOTTOM : Astal.Layer.TOP
+      layer={leftPanelExclusivity((exclusivity) =>
+        exclusivity ? Astal.Layer.BOTTOM : Astal.Layer.TOP
       )}
-      margin={createComputed(() => (leftPanelExclusivity ? 0 : globalMargin))}
+      margin={leftPanelExclusivity((exclusivity) =>
+        exclusivity ? 0 : globalMargin
+      )}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={leftPanelVisibility}
-      onKeyPressEvent={(self, event) => {
-        if (event.get_keyval()[1] === Gdk.KEY_Escape) {
-          setLeftPanelVisibility(false);
-          hideWindow(
-            `left-panel-${getMonitorName(monitor.get_display(), monitor)}`
-          );
-          return true;
-        }
+      widthRequest={leftPanelWidth}
+      $={(self) => {
+        const motion = new Gtk.EventControllerMotion();
+        motion.connect("leave", () => {
+          if (!leftPanelLock.get()) setLeftPanelVisibility(false);
+        });
+        self.add_controller(motion);
       }}
-      child={<Panel />}
-    />
+    >
+      <Panel monitorName={monitorName} />
+    </window>
   );
 };
 
@@ -124,16 +169,15 @@ export function LeftPanelVisibility() {
   return (
     <revealer
       revealChild={leftPanelLock}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+      transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
       transitionDuration={globalTransition}
-      child={
-        <togglebutton
-          active={leftPanelVisibility}
-          label={createComputed(() => (leftPanelVisibility ? "" : ""))}
-          onToggled={({ active }) => setLeftPanelVisibility(on)}
-          class="panel-trigger icon"
-        />
-      }
-    />
+    >
+      <togglebutton
+        active={leftPanelVisibility}
+        label={leftPanelVisibility((v) => (v ? "" : ""))}
+        onToggled={({ active }) => setLeftPanelVisibility(active)}
+        class="panel-trigger icon"
+      />
+    </revealer>
   );
 }

@@ -1,6 +1,7 @@
 import { execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
 import Gtk from "gi://Gtk?version=4.0";
+import { Eventbox } from "../../Custom/Eventbox";
 
 const customScripts = [
   {
@@ -47,27 +48,25 @@ export default () => {
     >
       {customScripts.map((script) => (
         <Eventbox
-          class={"script-Eventbox"}
           onClick={() => {
             script.script();
           }}
-          child={
-            <box class="script" spacing={10}>
-              <label
-                class="icon"
-                halign={Gtk.Align.START}
-                wrap
-                label={`${script.icon}`}
-              />
-              <label
-                class="name"
-                halign={Gtk.Align.START}
-                wrap
-                label={script.name}
-              />
-            </box>
-          }
-        />
+        >
+          <box class="script" spacing={10}>
+            <label
+              class="icon"
+              halign={Gtk.Align.START}
+              wrap
+              label={`${script.icon}`}
+            />
+            <label
+              class="name"
+              halign={Gtk.Align.START}
+              wrap
+              label={script.name}
+            />
+          </box>
+        </Eventbox>
       ))}
     </box>
   );

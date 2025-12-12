@@ -1,27 +1,27 @@
 import Gtk from "gi://Gtk?version=4.0";
 import { Waifu } from "../../../interfaces/waifu.interface";
 import { execAsync } from "ags/process";
-import { createState, createBinding, createComputed } from "ags";
 import { Api } from "../../../interfaces/api.interface";
 import { readJson } from "../../../utils/json";
 import {
   booruApi,
-  setBooruApi,
   booruLimit,
-  setBooruLimit,
   booruPage,
-  setBooruPage,
   booruTags,
-  setBooruTags,
   globalTransition,
   leftPanelWidth,
   waifuCurrent,
+  setBooruApi,
+  setBooruLimit,
+  setBooruPage,
+  setBooruTags,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { closeProgress, openProgress } from "../../Progress";
-
+import { createState, For, With } from "ags";
 import { booruApis } from "../../../constants/api.constants";
 import { ImageDialog } from "./ImageDialog";
+import { Eventbox } from "../../Custom/Eventbox";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -38,7 +38,7 @@ const calculateCacheSize = async () =>
   });
 
 const ensureRatingTagFirst = () => {
-  let tags: string[] = booruTags();
+  let tags: string[] = booruTags.get();
   // Find existing rating tag
   const ratingTag = tags.find((tag) => tag.match(/[-+]rating:explicit/));
   // Remove any existing rating tag
@@ -67,13 +67,15 @@ const cleanUp = () => {
 const fetchImages = async () => {
   try {
     openProgress();
-    const escapedTags = booruTags().map((tag) => tag.replace(/'/g, "'\\''"));
+    const escapedTags = booruTags
+      .get()
+      .map((tag) => tag.replace(/'/g, "'\\''"));
     const res = await execAsync(
       `python ./scripts/search-booru.py 
-      --api ${booruApi().value} 
+      --api ${booruApi.get().value} 
       --tags '${escapedTags.join(",")}' 
-      --limit ${booruLimit()} 
-      --page ${booruPage()}`
+      --limit ${booruLimit.get()} 
+      --page ${booruPage.get()}`
     );
 
     // 2. Process metadata without blocking
@@ -83,8 +85,10 @@ const fetchImages = async () => {
       preview: image.preview,
       width: image.width,
       height: image.height,
-      api: booruApi(),
-    })); // 4. Prepare directory in background
+      api: booruApi.get(),
+    }));
+
+    // 4. Prepare directory in background
     execAsync(`bash -c "mkdir -p ${imagePreviewPath}"`).catch((err) =>
       notify({ summary: "Error", body: String(err) })
     );
@@ -125,71 +129,86 @@ const Apis = () => (
     {booruApis.map((api) => (
       <togglebutton
         hexpand
-        active={createComputed(() => booruApi().name === api.name)}
+        active={booruApi((a) => a.name === api.name)}
         class="api"
         label={api.name}
-        onToggled={() => setBooruApi(api)}
+        onToggled={({ active }) => {
+          if (active) setBooruApi(api);
+        }}
       />
     ))}
   </box>
 );
 
 const fetchTags = async (tag: string) => {
-  const escapedTag = tag.replace(/'/g, "'\\''");
+  const escapedTag = tag.replace(/'/g, "'\\'''");
   const res = await execAsync(
     `python ./scripts/search-booru.py 
-    --api ${booruApi().value} 
+    --api ${booruApi.get().value} 
     --tag '${escapedTag}'`
   );
   setFetchedTags(readJson(res));
 };
 
 const Images = () => {
+  const imageRows = images((imgs) =>
+    imgs.reduce((rows: any[][], image, index) => {
+      if (index % 2 === 0) rows.push([]);
+      rows[rows.length - 1].push(image);
+      return rows;
+    }, [])
+  );
+
   return (
-    <scrolledwindow
-      hexpand
-      vexpand
-      child={
-        <box class="images" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-          {createComputed(() =>
-            images()
-              .reduce((rows: any[][], image, index) => {
-                if (index % 2 === 0) rows.push([]); // Create a new row every 2 items
-                rows[rows.length - 1].push(image); // Add the image to the current row
-                return rows;
-              }, [])
-              .map((row) => (
-                <box spacing={5}>
-                  {row.map((image) => {
-                    return (
-                      <button
-                        onClick={() => {
-                          new ImageDialog(image);
-                        }}
-                        hexpand
-                        heightRequest={createComputed(
-                          () => leftPanelWidth() / 2
-                        )}
-                        class="image"
-                        css={`
-                          background-image: url("${image.preview_path}");
-                        `}
-                      />
-                    );
-                  })}
-                </box>
-              ))
+    <scrolledwindow hexpand vexpand>
+      <box class="images" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+        {/* {imageRows((rows) =>
+          rows.map((row) => (
+            <box spacing={5}>
+              {row.map((image: Waifu) => (
+                <button
+                  onClicked={() => {
+                    new ImageDialog(image);
+                  }}
+                  hexpand
+                  heightRequest={leftPanelWidth.get() / 2}
+                  class="image"
+                  css={`
+                    background-image: url("${image.preview_path}");
+                  `}
+                />
+              ))}
+            </box>
+          ))
+        )} */}
+
+        <For each={imageRows}>
+          {(row) => (
+            <box spacing={5}>
+              {row.map((image: Waifu) => (
+                <button
+                  onClicked={() => {
+                    new ImageDialog(image);
+                  }}
+                  hexpand
+                  heightRequest={leftPanelWidth.get() / 2}
+                  class="image"
+                  css={`
+                    background-image: url("${image.preview_path}");
+                  `}
+                />
+              ))}
+            </box>
           )}
-        </box>
-      }
-    ></scrolledwindow>
+        </For>
+      </box>
+    </scrolledwindow>
   );
 };
 
 const PageDisplay = () => (
   <box class="pages" spacing={5} halign={Gtk.Align.CENTER}>
-    {createComputed(() => {
-      const p = booruPage();
+    {/* {bind(booruPage).as((p) => {
       const buttons = [];
 
       // Show "1" button if the current page is greater than 3
@@ -198,7 +217,7 @@ const PageDisplay = () => (
           <button
             class={"first"}
             label="1"
-            onClicked={() => setBooruPage(1)}
+            onClicked={() => booruPage.set(1)}
           />,
           <label>...</label>
         );
@@ -211,15 +230,44 @@ const PageDisplay = () => (
       for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
         buttons.push(
           <button
-            label={pageNum !== p ? String(pageNum) : ""}
+            label={pageNum !== p ? String(pageNum) : ""}
             onClicked={() =>
-              pageNum !== p ? setBooruPage(pageNum) : fetchImages()
+              pageNum !== p ? booruPage.set(pageNum) : fetchImages()
             }
           />
         );
       }
       return buttons;
-    })}
+    })} */}
+    <With value={booruPage}>
+      {(p) => {
+        const buttons = [];
+
+        // Show "1" button if the current page is greater than 3
+        if (p > 3) {
+          buttons.push(
+            <button class="first" label="1" onClicked={() => setBooruPage(1)} />
+          );
+          buttons.push(<label>...</label>);
+        }
+
+        // Generate 5-page range dynamically without going below 1
+        const startPage = Math.max(1, p - 2);
+        const endPage = Math.max(5, p + 2);
+
+        for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+          buttons.push(
+            <button
+              label={pageNum !== p ? String(pageNum) : ""}
+              onClicked={() =>
+                pageNum !== p ? setBooruPage(pageNum) : fetchImages()
+              }
+            />
+          );
+        }
+        return <box spacing={5}>{buttons}</box>;
+      }}
+    </With>
   </box>
 );
 
@@ -228,86 +276,121 @@ const LimitDisplay = () => {
 
   return (
     <box class="limits" spacing={5} hexpand>
-      <label label={"Limit"}></label>
+      <label label="Limit"></label>
       <slider
-        value={createComputed(() => booruLimit() / 100)}
-        class={"slider"}
-        // min={4}
-        // max={20}
-        step={0.1}
+        value={booruLimit((l) => l / 100)}
+        class="slider"
+        drawValue={false}
         hexpand
-        onValueChanged={(self) => {
-          // Clear the previous timeout if any
-          if (debounceTimer) clearTimeout(debounceTimer);
+        $={(self) => {
+          self.set_range(0, 1);
+          self.set_increments(0.1, 0.1);
+          const adjustment = self.get_adjustment();
+          adjustment.connect("value-changed", () => {
+            // Clear the previous timeout if any
+            if (debounceTimer) clearTimeout(debounceTimer);
 
-          // Set a new timeout with the desired delay (e.g., 300ms)
-          debounceTimer = setTimeout(() => {
-            setBooruLimit(Math.round(self.value * 100));
-          }, 300);
+            // Set a new timeout with the desired delay (e.g., 300ms)
+            debounceTimer = setTimeout(() => {
+              setBooruLimit(Math.round(adjustment.get_value() * 100));
+            }, 300);
+          });
         }}
       />
-      <label label={createComputed(() => String(booruLimit()))}></label>
+      <label label={booruLimit((l) => String(l))}></label>
     </box>
   );
 };
 
 const TagDisplay = () => (
-  <scrolledwindow
-    hexpand
-    vscroll={Gtk.PolicyType.NEVER}
-    child={
-      <box class={"tags"} spacing={10}>
-        <box class="applied-tags" spacing={5}>
-          {createComputed(() =>
-            booruTags().map((tag) => {
-              // check if tag is rating tag
-              if (tag.match(/[-+]rating:explicit/)) {
-                return (
-                  <button
-                    class={`rating ${
-                      tag.startsWith("+") ? "explicit" : "safe"
-                    }`}
-                    label={tag}
-                    onClicked={() => {
-                      const newRatingTag = tag.startsWith("-")
-                        ? "+rating:explicit"
-                        : "-rating:explicit";
-                      const newTags = booruTags().filter(
-                        (t) => !t.match(/[-+]rating:explicit/)
-                      );
-                      newTags.unshift(newRatingTag);
-                      setBooruTags(newTags);
-                    }}
-                  />
-                );
-              }
+  <scrolledwindow hexpand vscrollbarPolicy={Gtk.PolicyType.NEVER}>
+    <box class="tags" spacing={10}>
+      <box class="applied-tags" spacing={5}>
+        {/* {booruTags((tags) =>
+          tags.map((tag) => {
+            // check if tag is rating tag
+            if (tag.match(/[-+]rating:explicit/)) {
               return (
                 <button
+                  class={`rating ${tag.startsWith("+") ? "explicit" : "safe"}`}
                   label={tag}
                   onClicked={() => {
-                    const newTags = booruTags().filter((t) => t !== tag);
+                    const newRatingTag = tag.startsWith("-")
+                      ? "+rating:explicit"
+                      : "-rating:explicit";
+                    const newTags = booruTags
+                      .get()
+                      .filter((t) => !t.match(/[-+]rating:explicit/));
+                    newTags.unshift(newRatingTag);
                     setBooruTags(newTags);
                   }}
                 />
               );
-            })
-          )}
-        </box>
-        <box class={"fetched-tags"} spacing={5}>
-          {createComputed(() =>
-            fetchedTags().map((tag) => (
+            }
+            return (
               <button
                 label={tag}
                 onClicked={() => {
-                  setBooruTags([...new Set([...booruTags(), tag])]);
+                  const newTags = booruTags.get().filter((t) => t !== tag);
+                  setBooruTags(newTags);
                 }}
               />
-            ))
-          )}
-        </box>
+            );
+          })
+        )} */}
+        <For each={booruTags}>
+          {(tag) =>
+            tag.match(/[-+]rating:explicit/) ? (
+              <button
+                class={`rating ${tag.startsWith("+") ? "explicit" : "safe"}`}
+                label={tag}
+                onClicked={() => {
+                  const newRatingTag = tag.startsWith("-")
+                    ? "+rating:explicit"
+                    : "-rating:explicit";
+                  const newTags = booruTags
+                    .get()
+                    .filter((t) => !t.match(/[-+]rating:explicit/));
+                  newTags.unshift(newRatingTag);
+                  setBooruTags(newTags);
+                }}
+              />
+            ) : (
+              <button
+                label={tag}
+                onClicked={() => {
+                  const newTags = booruTags.get().filter((t) => t !== tag);
+                  setBooruTags(newTags);
+                }}
+              />
+            )
+          }
+        </For>
       </box>
-    }
-  />
+      <box class="fetched-tags" spacing={5}>
+        {/* {fetchedTags((tags) =>
+          tags.map((tag) => (
+            <button
+              label={tag}
+              onClicked={() => {
+                setBooruTags([...new Set([...booruTags.get(), tag])]);
+              }}
+            />
+          ))
+        )} */}
+        <For each={fetchedTags}>
+          {(tag) => (
+            <button
+              label={tag}
+              onClicked={() => {
+                setBooruTags([...new Set([...booruTags.get(), tag])]);
+              }}
+            />
+          )}
+        </For>
+      </box>
+    </box>
+  </scrolledwindow>
 );
 
 const Entry = () => {
@@ -318,17 +401,19 @@ const Entry = () => {
 
     // Set a new timeout with the desired delay (e.g., 300ms)
     debounceTimer = setTimeout(() => {
-      if (!self.text) {
+      const text = self.get_text();
+      if (!text) {
         setFetchedTags([]);
         return;
       }
-      fetchTags(self.text);
+      fetchTags(text);
     }, 200);
   };
 
   const addTags = (self: Gtk.Entry) => {
-    const currentTags = booruTags();
-    const newTags = self.text.split(" ");
+    const currentTags = booruTags.get();
+    const text = self.get_text();
+    const newTags = text.split(" ");
 
     // Create a Set to remove duplicates
     const uniqueTags = [...new Set([...currentTags, ...newTags])];
@@ -340,8 +425,10 @@ const Entry = () => {
     <entry
       hexpand
       placeholderText="Add a Tag"
-      onChanged={onChanged}
-      onActivate={addTags}
+      $={(self) => {
+        self.connect("changed", () => onChanged(self));
+        self.connect("activate", () => addTags(self));
+      }}
     />
   );
 };
@@ -353,7 +440,7 @@ const ClearCacheButton = () => {
       valign={Gtk.Align.CENTER}
       label={cacheSize}
       class="clear"
-      onClicked={(self) => {
+      onClicked={() => {
         cleanUp();
       }}
     />
@@ -361,31 +448,31 @@ const ClearCacheButton = () => {
 };
 
 const BottomBar = () => (
-  <Eventbox
-    class={"bottom-Eventbox"}
-    child={
-      <box class={"bottom"} spacing={5} orientation={Gtk.Orientation.VERTICAL}>
-        <PageDisplay />
-        <LimitDisplay />
-        <box
-          class="bottom-bar"
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={5}
-        >
-          <TagDisplay />
-          <box spacing={5}>
-            <Entry />
-            <ClearCacheButton />
-          </box>
+  <Eventbox>
+    <box class="bottom" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
+      <PageDisplay />
+      <LimitDisplay />
+      <box
+        class="bottom-bar"
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={5}
+      >
+        <TagDisplay />
+        <box spacing={5}>
+          <Entry />
+          <ClearCacheButton />
         </box>
       </box>
-    }
-  />
+    </box>
+  </Eventbox>
 );
 
 export default () => {
   ensureRatingTagFirst();
-  // Note: If booruPage, booruTags, booruApi, booruLimit are Accessors, subscriptions are handled automatically
+  booruPage.subscribe(() => fetchImages());
+  booruTags.subscribe(() => fetchImages());
+  booruApi.subscribe(() => fetchImages());
+  booruLimit.subscribe(() => fetchImages());
   fetchImages();
   return (
     <box
