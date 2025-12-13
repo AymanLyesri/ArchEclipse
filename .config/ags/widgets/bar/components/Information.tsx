@@ -26,6 +26,7 @@ import AstalApps from "gi://AstalApps";
 import Pango from "gi://Pango";
 import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
+import Crypto from "../../Crypto";
 
 // --- Tunable constants (change to lower CPU usage) ---
 const CAVA_UPDATE_MS = 60; // coalesced update interval for audio visualizer (larger => less CPU)
@@ -237,9 +238,7 @@ function Mpris() {
         <popover>
           <box spacing={4} orientation={Gtk.Orientation.VERTICAL}>
             <For each={players}>
-              {(player) => (
-                <Player playerType="popup" player={player} />
-              )}
+              {(player) => <Player playerType="popup" player={player} />}
             </For>
           </box>
         </popover>
@@ -431,6 +430,7 @@ export default ({
       <Weather />
       <Bandwidth />
       <ClientTitle />
+      {/* <Crypto /> */}
     </box>
   );
 };

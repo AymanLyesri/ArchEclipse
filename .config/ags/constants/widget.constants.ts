@@ -12,24 +12,26 @@ import Information from "../widgets/bar/components/Information";
 import Utilities from "../widgets/bar/components/Utilities";
 import ScriptTimer from "../widgets/rightPanel/components/ScriptTimer";
 import Gtk from "gi://Gtk?version=4.0";
+import { Accessor } from "ags";
+import CryptoWidget from "../widgets/rightPanel/components/CryptoWidget";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {
     name: "workspaces",
     icon: "󰒘",
-    widget: (monitorName: string, halign: Gtk.Align) =>
+    widget: (monitorName: string, halign: Accessor<Gtk.Align>) =>
       Workspaces({ monitorName, halign }),
   },
   {
     name: "information",
     icon: "󰒘",
-    widget: (monitorName: string, halign: Gtk.Align) =>
+    widget: (monitorName: string, halign: Accessor<Gtk.Align>) =>
       Information({ monitorName, halign }),
   },
   {
     name: "utilities",
     icon: "󰒘",
-    widget: (monitorName: string, halign: Gtk.Align) =>
+    widget: (monitorName: string, halign: Accessor<Gtk.Align>) =>
       Utilities({ monitorName, halign }),
   },
 ];
@@ -65,6 +67,11 @@ export const rightPanelWidgetSelectors: WidgetSelector[] = [
   //   icon: "",
   //   widget: () => Resources(),
   // },
+  {
+    name: "Crypto",
+    icon: "",
+    widget: () => CryptoWidget(),
+  },
 ];
 
 export const leftPanelWidgetSelectors: WidgetSelector[] = [

@@ -1,0 +1,13 @@
+.crypto {
+  @extend .module;
+
+  .crypto-graph {
+    font-family: monospace;
+    &.up {
+      color: $green;
+    }
+    &.down {
+      color: $red;
+    }
+  }
+}

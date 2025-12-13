@@ -1,0 +1,16 @@
+[
+    {
+        "id": "1765652955731",
+        "symbol": "btc",
+        "timeframe": "7d",
+        "showPrice": true,
+        "showGraph": true
+    },
+    {
+        "id": "1765652960771",
+        "symbol": "btc",
+        "timeframe": "1h",
+        "showPrice": true,
+        "showGraph": true
+    }
+]

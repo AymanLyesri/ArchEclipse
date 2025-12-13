@@ -47,7 +47,7 @@ const saveTasksToFile = async (tasks: ScriptTask[]) => {
 const loadTasksFromFile = async (): Promise<ScriptTask[]> => {
   try {
     const result = readJSONFile("./assets/script-timer/tasks.json");
-    return result;
+    return Array.isArray(result) ? result : [];
   } catch (error) {
     console.error("Failed to load tasks:", error);
     return [];
@@ -238,12 +238,20 @@ const TaskForm = ({
         <togglebutton
           label="Daily"
           active={taskType((type) => type === true)}
-          onToggled={() => setTaskType(true)}
+          onToggled={(self) => {
+            if (self.active) {
+              setTaskType(true);
+            }
+          }}
         />
         <togglebutton
           label="One-time"
           active={taskType((type) => type === false)}
-          onToggled={() => setTaskType(false)}
+          onToggled={(self) => {
+            if (self.active) {
+              setTaskType(false);
+            }
+          }}
         />
       </box>
 
@@ -402,13 +410,6 @@ const ScriptTimer = () => {
 
       <scrolledwindow class="task-list" vexpand>
         <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-          {/* <For each={scriptTasks}>
-            {(task) =>
-              tasks.length === 0
-                ? [<label class="empty-state" label="No scheduled tasks" />]
-                : tasks.map((task) => TaskItem({ task }))
-            }
-          </For> */}
           <For each={scriptTasks}>{(task) => TaskItem({ task })}</For>
         </box>
       </scrolledwindow>

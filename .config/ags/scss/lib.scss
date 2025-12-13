@@ -1,7 +1,7 @@
 // Define the theme variables
 
 * {
-  transition: all $phi-min + s;
+  // transition: all 0.2s;
   font-weight: 500;
 }
 
@@ -46,7 +46,7 @@ button,
 
   //   // border-color: transparent;
   // }
-  &.checked {
+  &:checked {
     background: $secondary;
     color: $color0;
   }

@@ -33,7 +33,8 @@
       padding: $SCALE $SCALE - 10;
     }
 
-    .widget-actions {
+    .widget-actions,
+    .window-actions {
       button {
         border-radius: 5px;
       }
@@ -43,20 +44,6 @@
 
       button:last-child {
         border-radius: 5px 5px 10px 10px;
-      }
-    }
-
-    .window-actions {
-      .custom-revealer {
-        border-radius: 10px 10px 0px 0px;
-      }
-
-      button:first-child {
-        border-radius: 10px 10px 0px 0px;
-      }
-
-      button:last-child {
-        border-radius: 0px 0px 10px 10px;
       }
     }
   }

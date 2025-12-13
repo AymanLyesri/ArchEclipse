@@ -31,4 +31,7 @@ assets/booru/*
 assets/script-timer/*
 !assets/script-timer/
 
+assets/crypto/*
+!assets/crypto/
+
 logs

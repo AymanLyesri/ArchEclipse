@@ -1,0 +1,7 @@
+.crypto-widget {
+  @extend .module;
+  .crypto-form {
+    @extend .module;
+    background: $background-semi-transparent;
+  }
+}

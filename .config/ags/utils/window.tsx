@@ -51,6 +51,7 @@ export function WindowActions({
       halign={Gtk.Align.END}
       valign={Gtk.Align.END}
       orientation={Gtk.Orientation.VERTICAL}
+      spacing={5}
     >
       <button
         label=""
