@@ -1,7 +1,7 @@
 import Hyprland from "gi://AstalHyprland";
 const hyprland = Hyprland.get_default();
-// import Cava from "gi://AstalCava";
-// const cava = Cava.get_default()!;
+import Cava from "gi://AstalCava";
+const cava = Cava.get_default()!;
 
 import { playerToColor } from "../../../utils/color";
 import { lookupIcon, playerToIcon } from "../../../utils/icon";
@@ -54,7 +54,7 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
 }
 
 function AudioVisualizer() {
-  // cava?.set_bars(12);
+  cava?.set_bars(12);
   const [getBars, setBars] = createState("");
 
   const BLOCKS = [
@@ -89,28 +89,27 @@ function AudioVisualizer() {
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       $={(self) => (revealerInstance = self)}
-      child={
-        <label
-          class={"cava"}
-          onDestroy={() => {
-            // bars.drop(); // No drop in signals
-            if (showTimeoutId) {
-              try {
-                GLib.source_remove(showTimeoutId);
-              } catch (e) {}
-              showTimeoutId = null;
-            }
-            if (hideTimeoutId) {
-              try {
-                GLib.source_remove(hideTimeoutId);
-              } catch (e) {}
-              hideTimeoutId = null;
-            }
-          }}
-          label={getBars}
-        />
-      }
-    />
+    >
+      <label
+        class={"cava"}
+        onDestroy={() => {
+          // bars.drop(); // No drop in signals
+          if (showTimeoutId) {
+            try {
+              GLib.source_remove(showTimeoutId);
+            } catch (e) {}
+            showTimeoutId = null;
+          }
+          if (hideTimeoutId) {
+            try {
+              GLib.source_remove(hideTimeoutId);
+            } catch (e) {}
+            hideTimeoutId = null;
+          }
+        }}
+        label={getBars}
+      />
+    </revealer>
   );
 
   // Create coalesced updater so frequent "notify::values" calls are batched
@@ -201,123 +200,14 @@ function AudioVisualizer() {
   let lastValuesCache: number[] | null = null;
   const schedule = scheduleCoalesced(doUpdate, CAVA_UPDATE_MS);
 
-  // cava?.connect("notify::values", () => {
-  //   // store latest values, schedule an update if not already scheduled
-  //   lastValuesCache = cava.get_values() || null;
-  //   schedule();
-  // });
+  cava?.connect("notify::values", () => {
+    // store latest values, schedule an update if not already scheduled
+    lastValuesCache = cava.get_values() || null;
+    schedule();
+  });
 
   return revealer;
 }
-
-// function Media({ monitorName }: { monitorName: string }) {
-//   const mprisPlayers = createBinding(mpris, "players");
-//   // Derive active player only when players array changes (cheaper than scanning on each render)
-//   const activePlayerVar = mprisPlayers((players) => {
-//     if (!players || players.length === 0) return null;
-//     return (
-//       players.find((p) => p.playbackStatus === Mpris.PlaybackStatus.PLAYING) ||
-//       players[0]
-//     );
-//   });
-
-//   // Small helper that returns a compact player box. Keep widget tree minimal.
-//   function Player(player: Mpris.Player | null) {
-//     if (!player) return <box />;
-
-//     const playerEntry = createBinding(player, "entry");
-//     const playerCoverArt = createBinding(player, "coverArt");
-//     const playerPosition = createBinding(player, "position");
-//     const playerLength = createBinding(player, "length");
-//     const playerTitle = createBinding(player, "title");
-//     const playerArtist = createBinding(player, "artist");
-
-//     const playerIcon = createComputed(() => playerToIcon(playerEntry.get()));
-
-//     // Only build CSS when coverArt changes (bind will handle it)
-//     const coverCss = createComputed(() => {
-//       const c = playerCoverArt.get();
-//       return c
-//         ? `background-icon: linear-gradient(to right,#000000, rgba(0,0,0,0.5)), url("${c}");`
-//         : `background-color: transparent;`;
-//     });
-
-//     const progressWidget = (
-//       <box
-//         class="progress"
-//         halign={Gtk.Align.CENTER}
-//         valign={Gtk.Align.CENTER}
-//         child={<label class={"icon"} label={playerIcon} />}
-//       />
-//     );
-
-//     const title = (
-//       <label
-//         class="title"
-//         maxWidthChars={20}
-//         ellipsize={Pango.EllipsizeMode.END}
-//         label={createComputed(() => playerTitle.get() || "Unknown Track")}
-//       />
-//     );
-
-//     const artist = (
-//       <label
-//         class="artist"
-//         maxWidthChars={20}
-//         ellipsize={Pango.EllipsizeMode.END}
-//         label={createComputed(() => {
-//           const a = playerArtist.get();
-//           return a ? `[${a}]` : "Unknown Artist";
-//         })}
-//       />
-//     );
-
-//     return (
-//       <box
-//         class={createComputed(() => `media ${playerEntry.get()}`)}
-//         css={coverCss}
-//         spacing={10}
-//       >
-//         {progressWidget}
-//         {title}
-//         {artist}
-//       </box>
-//     );
-//   }
-
-//   // Debounce showWindow to avoid spamming when cursor moves inside
-//   let hoverTimeout: number | null = null;
-//   const handleHover = () => {
-//     if (hoverTimeout) return;
-//     hoverTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
-//       showWindow(`media-${monitorName}`);
-//       hoverTimeout = null;
-//       return GLib.SOURCE_REMOVE;
-//     });
-//   };
-
-//   const activePlayerBox = activePlayerVar((player) => {
-//     player ? Player(player) : <box />;
-//   });
-
-//   return (
-//     <revealer
-//       revealChild={true}
-//       transitionDuration={globalTransition}
-//       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-//       child={
-//         <Eventbox
-//           class="media-event"
-//           onClick={() =>
-//             hyprland.message_async("dispatch workspace 4", () => {})
-//           }
-//           onHover={handleHover}
-//           child={activePlayerBox}
-//         />
-//       }
-//     />
-//   );
-// }
 
 function Mpris() {
   const mpris = AstalMpris.get_default();
@@ -564,14 +454,14 @@ function Weather() {
       )}
     />
   );
-
   return (
     <Eventbox
       onClick={() =>
         GLib.spawn_command_line_async("xdg-open 'https://open-meteo.com/'")
       }
-      child={label}
-    />
+    >
+      {label}
+    </Eventbox>
   );
 }
 
@@ -584,8 +474,7 @@ export default ({
 }) => {
   return (
     <box class="bar-middle" spacing={5} halign={halign}>
-      {/* <AudioVisualizer /> */}
-      {/* <Media monitorName={monitorName} /> */}
+      <AudioVisualizer />
       <Mpris />
       <Clock />
       <Weather />

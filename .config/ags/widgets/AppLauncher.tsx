@@ -334,9 +334,9 @@ export default (monitor: any) => (
     name={`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`}
     namespace="app-launcher"
     application={app}
-    anchor={emptyWorkspace((empty) =>
-      empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
-    )}
+    // anchor={emptyWorkspace((empty) =>
+    //   empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
+    // )}
     exclusivity={Astal.Exclusivity.EXCLUSIVE}
     keymode={Astal.Keymode.EXCLUSIVE}
     layer={Astal.Layer.TOP}
@@ -350,10 +350,10 @@ export default (monitor: any) => (
     //     return true;
     //   }
     // }}
-    $={(self) => {
-      setMonitorName(getMonitorName(monitor.get_display(), monitor)!);
-      print(`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`);
-    }}
+    // $={(self) => {
+    //   setMonitorName(getMonitorName(monitor.get_display(), monitor)!);
+    //   print(`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`);
+    // }}
   >
     <box
       orientation={Gtk.Orientation.VERTICAL}

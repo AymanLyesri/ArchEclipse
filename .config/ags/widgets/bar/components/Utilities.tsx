@@ -79,7 +79,7 @@ function Volume() {
   const volumeIcon = createBinding(speaker, "volumeIcon");
   const volume = createBinding(speaker, "volume");
 
-  const icon = <image pixelSize={11} class="trigger" iconName={volumeIcon} />;
+  const icon = <image pixelSize={11} iconName={volumeIcon} />;
 
   const slider = (
     <slider
@@ -91,9 +91,15 @@ function Volume() {
     />
   );
 
+  const percentage = (
+    <label label={volume((v: number) => `${Math.round(v * 100)}%`)} />
+  );
+
   return (
     <CustomRevealer
-      trigger={icon}
+      trigger={
+        <box class="trigger" spacing={5} children={[icon, percentage]} />
+      }
       child={slider}
       on_primary_click={() => {
         execAsync(`pavucontrol`).catch((err) =>
@@ -231,11 +237,6 @@ function DndToggle() {
 
 function BarOrientation() {
   return (
-    // <button
-    //   onClicked={() => setBarOrientation(!barOrientation.get())}
-    //   class="bar-orientation icon"
-    //   label={barOrientation((orientation) => (orientation ? "" : ""))}
-    // />
     <togglebutton
       active={barOrientation}
       onToggled={({ active }) => {
