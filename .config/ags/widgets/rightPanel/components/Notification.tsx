@@ -134,23 +134,19 @@ export default ({
   //   </box>
   // );
 
-  const expandRevealer = (
-    <revealer
-      reveal_child={false}
-      transition_type={Gtk.RevealerTransitionType.CROSSFADE}
-      transitionDuration={globalTransition}
-    >
-      <togglebutton
-        class="expand"
-        active={false}
-        onToggled={(self) => {
-          title.set_property("truncate", !self.active);
-          body.set_property("truncate", !self.active);
-          self.label = self.active ? "" : "";
-        }}
-        label=""
-      />
-    </revealer>
+  const expand = (
+    <togglebutton
+      class="expand"
+      active={false}
+      onToggled={(self) => {
+        // title.set_property("truncate", !self.active);
+        // body.set_property("truncate", !self.active);
+        // (title as Gtk.Label).set_line_wrap(self.active);
+        // (body as Gtk.Label).set_line_wrap(self.active);
+        // self.label = self.active ? "" : "";
+      }}
+      label=""
+    />
   );
 
   const lockButton = (
@@ -171,30 +167,24 @@ export default ({
     />
   );
 
-  const leftRevealer = (
-    <revealer
-      reveal_child={false}
-      transition_type={Gtk.RevealerTransitionType.CROSSFADE}
-      transitionDuration={globalTransition}
-    >
-      {popup ? lockButton : copyButton}
-    </revealer>
-  );
+  // const leftRevealer = (
+  //   <revealer
+  //     reveal_child={false}
+  //     transition_type={Gtk.RevealerTransitionType.CROSSFADE}
+  //     transitionDuration={globalTransition}
+  //   >
+  //     {popup ? lockButton : copyButton}
+  //   </revealer>
+  // );
 
-  const closeRevealer = (
-    <revealer
-      reveal_child={false}
-      transition_type={Gtk.RevealerTransitionType.CROSSFADE}
-      transitionDuration={globalTransition}
-    >
-      <button
-        class="close"
-        label=""
-        onClicked={() => {
-          closeNotification(true);
-        }}
-      />
-    </revealer>
+  const close = (
+    <button
+      class="close"
+      label=""
+      onClicked={() => {
+        closeNotification(true);
+      }}
+    />
   );
 
   // const CircularProgress = (
@@ -218,15 +208,16 @@ export default ({
         <box visible={popup} class="circular-progress-box">
           {/* {CircularProgress} */}
         </box>
-        <label wrap={true} xalign={0} class="app-name" label={n.app_name} />
-        {leftRevealer}
+        <label wrap={true} class="app-name" label={n.app_name} />
+
+        {copyButton}
       </box>
       <box class="quick-actions">
-        {closeRevealer}
-        {expandRevealer}
+        {close}
+        {expand}
       </box>
 
-      <label xalign={1} class="time" label={time(n.time)} />
+      <label class="time" label={time(n.time)} />
     </box>
   );
 
@@ -238,7 +229,6 @@ export default ({
         spacing={10}
       >
         {topBar}
-        {/* <separator /> */}
         <box spacing={5}>
           {icon}
           <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
@@ -268,6 +258,7 @@ export default ({
   );
   const Parent = (
     <box
+      class="notification"
       visible={true}
       $={(self) =>
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, NOTIFICATION_DELAY, () => {
@@ -276,28 +267,7 @@ export default ({
         })
       }
     >
-      <Eventbox
-        class="notification-eventbox"
-        visible={true}
-        onHover={() => {
-          (leftRevealer as Gtk.Revealer).reveal_child = true;
-          (closeRevealer as Gtk.Revealer).reveal_child = true;
-          (expandRevealer as Gtk.Revealer).reveal_child = true;
-        }}
-        onHoverLost={() => {
-          if (!IsLocked.get())
-            (leftRevealer as Gtk.Revealer).reveal_child = false;
-          (closeRevealer as Gtk.Revealer).reveal_child = false;
-          (expandRevealer as Gtk.Revealer).reveal_child = false;
-        }}
-        onClick={() =>
-          popup
-            ? (lockButton as Gtk.ToggleButton).activate()
-            : (copyButton as Gtk.Button).activate()
-        }
-      >
-        {Revealer}
-      </Eventbox>
+      {Revealer}
     </box>
   );
 

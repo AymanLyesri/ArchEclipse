@@ -1,14 +1,18 @@
-.notification-eventbox {
-  &:hover .top-bar {
-    background-color: $background-secondary;
-  }
-}
-
 .notification {
   @extend .module;
   margin: 0px;
   padding: 0px;
   transition: opacity 0.5s ease-out; /* Adjust timing */
+
+  &:hover .top-bar {
+    background-color: $background-secondary;
+    .copy,
+    .lock,
+    .close,
+    .expand {
+      opacity: 1;
+    }
+  }
 
   .main-content {
     padding: 10px;
@@ -41,6 +45,7 @@
     .close,
     .expand {
       padding: 0px 5px;
+      opacity: 0;
     }
 
     .close {

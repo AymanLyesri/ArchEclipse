@@ -237,13 +237,12 @@ function DndToggle() {
 
 function BarOrientation() {
   return (
-    <togglebutton
-      active={barOrientation}
-      onToggled={({ active }) => {
-        setBarOrientation(active);
+    <button
+      onClicked={() => {
+        setBarOrientation(!barOrientation.get());
       }}
       class="bar-orientation icon"
-      label={barOrientation((orientation) => (orientation ? "" : ""))}
+      label={barOrientation((orientation) => (!orientation ? "" : ""))}
     />
   );
 }
