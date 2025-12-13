@@ -27,7 +27,7 @@ const perMonitorDisplay = () =>
     // List of widget initializers
     const widgetInitializers = [
       { name: "Bar", fn: () => Bar(monitor) },
-      // { name: "BarHover", fn: () => BarHover(monitor) },
+      { name: "BarHover", fn: () => BarHover(monitor) },
       // { name: "Progress", fn: () => Progress(monitor) },
       { name: "RightPanel", fn: () => RightPanel(monitor) },
       { name: "RightPanelHover", fn: () => RightPanelHover(monitor) },

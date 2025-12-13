@@ -85,6 +85,15 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
 );
 
 function Panel({ monitorName }: { monitorName: string }) {
+  const selectedWidgets = rightPanelWidgets((widgets) =>
+    widgets.filter((widget) => {
+      const selector = rightPanelWidgetSelectors.find(
+        (w) => w.name === widget.name
+      );
+      return selector?.widget;
+    })
+  );
+
   return (
     <box>
       <box
@@ -93,20 +102,17 @@ function Panel({ monitorName }: { monitorName: string }) {
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
       >
-        <For each={rightPanelWidgets}>
+        <For each={selectedWidgets}>
           {(widget) => {
             const selector = rightPanelWidgetSelectors.find(
               (w) => w.name === widget.name
             );
-            if (selector?.widget) {
-              try {
-                return selector.widget() as JSX.Element;
-              } catch (error) {
-                console.error(`Error rendering widget:`, error);
-                return (<box />) as JSX.Element;
-              }
+            try {
+              return selector!.widget() as JSX.Element;
+            } catch (error) {
+              console.error(`Error rendering widget:`, error);
+              return (<box />) as JSX.Element;
             }
-            return (<box />) as JSX.Element;
           }}
         </For>
       </box>

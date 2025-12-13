@@ -1,11 +1,3 @@
-$gradient-Colors: $color0, $color1, $color2, $color3, $color4, $color5, $color6;
-
-$custom-background: linear-gradient(
-    rgba($background, 0.33),
-    rgba($background, 0.33)
-  ),
-  linear-gradient(to bottom right, $gradient-Colors);
-
 .bar-left {
   .actions {
     button {
@@ -42,15 +34,17 @@ $custom-background: linear-gradient(
       }
     }
     button {
+      background: $background-transparent;
       ////////////////////////////
       &.focused {
-        background-image: $custom-background;
+        background: $background-semi-transparent;
         animation: workspace-focus 1s;
       }
       &.same-focused {
-        background-image: $custom-background;
+        background: $background-semi-transparent;
       }
       &.unfocused {
+        background: $background-transparent;
         animation: workspace-unfocus 1s;
       }
       &.new-app {
@@ -65,13 +59,13 @@ $custom-background: linear-gradient(
     background: $background-transparent;
   }
   100% {
-    background: $custom-background;
+    background: $background-semi-transparent;
   }
 }
 
 @keyframes workspace-unfocus {
   0% {
-    background: $custom-background;
+    background: $background-semi-transparent;
   }
   100% {
     background: $background-transparent;

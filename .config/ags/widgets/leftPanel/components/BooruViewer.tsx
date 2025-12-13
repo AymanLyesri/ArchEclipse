@@ -163,26 +163,6 @@ const Images = () => {
   return (
     <scrolledwindow hexpand vexpand>
       <box class="images" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-        {/* {imageRows((rows) =>
-          rows.map((row) => (
-            <box spacing={5}>
-              {row.map((image: Waifu) => (
-                <button
-                  onClicked={() => {
-                    new ImageDialog(image);
-                  }}
-                  hexpand
-                  heightRequest={leftPanelWidth.get() / 2}
-                  class="image"
-                  css={`
-                    background-image: url("${image.preview_path}");
-                  `}
-                />
-              ))}
-            </box>
-          ))
-        )} */}
-
         <For each={imageRows}>
           {(row) => (
             <box spacing={5}>
@@ -277,38 +257,6 @@ const TagDisplay = () => (
   <scrolledwindow hexpand vscrollbarPolicy={Gtk.PolicyType.NEVER}>
     <box class="tags" spacing={10}>
       <box class="applied-tags" spacing={5}>
-        {/* {booruTags((tags) =>
-          tags.map((tag) => {
-            // check if tag is rating tag
-            if (tag.match(/[-+]rating:explicit/)) {
-              return (
-                <button
-                  class={`rating ${tag.startsWith("+") ? "explicit" : "safe"}`}
-                  label={tag}
-                  onClicked={() => {
-                    const newRatingTag = tag.startsWith("-")
-                      ? "+rating:explicit"
-                      : "-rating:explicit";
-                    const newTags = booruTags
-                      .get()
-                      .filter((t) => !t.match(/[-+]rating:explicit/));
-                    newTags.unshift(newRatingTag);
-                    setBooruTags(newTags);
-                  }}
-                />
-              );
-            }
-            return (
-              <button
-                label={tag}
-                onClicked={() => {
-                  const newTags = booruTags.get().filter((t) => t !== tag);
-                  setBooruTags(newTags);
-                }}
-              />
-            );
-          })
-        )} */}
         <For each={booruTags}>
           {(tag) =>
             tag.match(/[-+]rating:explicit/) ? (
@@ -339,16 +287,6 @@ const TagDisplay = () => (
         </For>
       </box>
       <box class="fetched-tags" spacing={5}>
-        {/* {fetchedTags((tags) =>
-          tags.map((tag) => (
-            <button
-              label={tag}
-              onClicked={() => {
-                setBooruTags([...new Set([...booruTags.get(), tag])]);
-              }}
-            />
-          ))
-        )} */}
         <For each={fetchedTags}>
           {(tag) => (
             <button

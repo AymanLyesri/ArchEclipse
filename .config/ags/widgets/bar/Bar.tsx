@@ -76,6 +76,13 @@ export default (monitor: Gdk.Monitor) => {
           }
         }
       )}
+      $={(self) => {
+        const motion = new Gtk.EventControllerMotion();
+        motion.connect("leave", () => {
+          if (!barLock.get()) setBarVisibility(false);
+        });
+        self.add_controller(motion);
+      }}
     >
       <box
         spacing={5}
