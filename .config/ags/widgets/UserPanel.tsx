@@ -44,35 +44,7 @@ const UserPanel = (monitorName: string) => {
     );
 
     const ProfilePicture = (
-      // <box
-      //   class="profile-picture"
-      //   css={`
-      //     background-image: url("${pfpPath}");
-      //   `}
-      // >
-      //   <FileChooserButton
-      //     hexpand
-      //     vexpand
-      //     usePreviewLabel={false}
-      //     onFileSet={(self: any) => {
-      //       let uri = self.get_uri();
-      //       if (!uri) return;
-      //       const cleanUri = uri.replace("file://", ""); // Remove 'file://' from the URI
-      //       execAsync(`bash -c "cp '${cleanUri}' ${pfpPath}"`)
-      //         .then(() => {
-      //           ProfilePicture.css = `background-image: url('${pfpPath}');`;
-      //         })
-      //         .finally(() => {
-      //           notify({
-      //             summary: "Profile picture",
-      //             body: `${cleanUri} set to ${pfpPath}`,
-      //           });
-      //         })
-      //         .catch((err) => notify(err));
-      //     }}
-      //   />
-      // </box>
-      // <box class="profile-picture">
+
       <Picture
         class={"profile-picture"}
         file={pfpPath}

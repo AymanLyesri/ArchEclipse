@@ -4,7 +4,7 @@ import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 import Notifd from "gi://AstalNotifd";
 import Notification from "./rightPanel/components/Notification";
-import { createState, createComputed } from "ags";
+import { createState, createComputed, For, Accessor } from "ags";
 import { DND, globalMargin } from "../variables";
 
 // see comment below in constructor
@@ -19,8 +19,8 @@ class NotificationMap {
 
   // it makes sense to use a Variable under the hood and use its
   // reactivity implementation instead of keeping track of subscribers ourselves
-  private notifications: any;
-  private setNotifications: any;
+  private notifications: Accessor<Array<any>>;
+  private setNotifications: (value: Array<any>) => void;
 
   // notify subscribers to rerender when state changes
   private notify() {
@@ -43,7 +43,7 @@ class NotificationMap {
     // notifd.ignoreTimeout = true
 
     notifd.connect("notified", (_, id) => {
-      if (DND()) return;
+      if (DND.get()) return;
       // this.clearOldNotifications(); // Clear old notifications before adding new one
       this.set(
         id,
@@ -53,6 +53,11 @@ class NotificationMap {
           popup: true,
         })
       );
+
+      // Auto-remove notification after delay
+      setTimeout(() => {
+        this.delete(id);
+      }, TIMEOUT_DELAY);
     });
 
     // notifications can be closed by the outside before
@@ -63,46 +68,22 @@ class NotificationMap {
   }
 
   private set(key: number, value: any) {
-    // in case of replacecment destroy previous widget
-    this.notificationMap.get(key)?.destroy();
+    // in case of replacement, remove previous widget
+    if (this.notificationMap.has(key)) {
+      this.notificationMap.delete(key);
+    }
     this.notificationMap.set(key, value);
     this.notify();
   }
 
   private delete(key: number) {
-    this.notificationMap.get(key)?.destroy();
     this.notificationMap.delete(key);
     this.notify();
   }
 
-  // private clearOldNotifications() {
-  //   const now = Date.now();
-
-  //   const notifd = Notifd.get_default();
-
-  //   // Clear notifications that are older than TIMEOUT_DELAY
-  //   for (const [id, widget] of this.notificationMap.entries()) {
-  //     const notification = notifd.get_notification(id);
-  //     if (!notification) {
-  //       // If notification doesn't exist in notifd, remove it
-  //       this.delete(id);
-  //       continue;
-  //     }
-
-  //     // Calculate age of notification in milliseconds
-  //     const age = now - notification.get_time() * 1000;
-
-  //     print(`Notification ${id} age: ${age} milliseconds`);
-
-  //     if (age > TIMEOUT_DELAY) {
-  //       this.delete(id);
-  //     }
-  //   }
-  // }
-
   // needed by the Subscribable interface
   get() {
-    return this.notifications();
+    return this.notifications;
   }
 
   // needed by the Subscribable interface
@@ -118,7 +99,7 @@ class NotificationMap {
 
 export default (monitor: Gdk.Monitor) => {
   const { TOP, RIGHT } = Astal.WindowAnchor;
-  const notifications = new NotificationMap();
+  const notifications = new NotificationMap().get();
 
   return (
     <window
@@ -132,18 +113,16 @@ export default (monitor: Gdk.Monitor) => {
       anchor={TOP | RIGHT}
       margin={globalMargin}
       widthRequest={400}
-      child={
-        <box
-          class={"notification-popups"}
-          orientation={Gtk.Orientation.VERTICAL}
-          vexpand={true}
-          child={createComputed(() => (
-            <box orientation={Gtk.Orientation.VERTICAL}>
-              {notifications.get().map((n: any) => n)}
-            </box>
-          ))}
-        />
-      }
-    />
+      // visible={notifications((n) => {
+      //   print("NOTIFICATION POPUPS LENGTH: " + n.length);
+      //   return n.length > 0;
+      // })}
+      visible={true}
+      resizable={false}
+    >
+      <box class={"notification-popups"} orientation={Gtk.Orientation.VERTICAL}>
+        <For each={notifications}>{(n) => n}</For>
+      </box>
+    </window>
   );
 };

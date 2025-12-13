@@ -50,7 +50,7 @@ export default ({
   const positionSlider = (
     <slider
       class="slider"
-      css={dominantColor((c) => `highlight{background: ${c}00}`)}
+      css={dominantColor((c) => `highlight{background: ${c}00};`)}
       $={(self) => {
         let unsubscribe: (() => void) | null = null;
 
@@ -200,24 +200,6 @@ export default ({
     <overlay
       class={`player ${playerType}`}
       hexpand
-      //     css={createBinding(
-      //       player,
-      //       "coverArt"
-      //     )((p) => {
-      //       if (playerType == "popup") return "";
-
-      //       const ratio = getImageRatio(p || "") || 1; // default to square
-      //       const width = rightPanelWidth.get();
-      //       const height = width * ratio;
-
-      //       return `
-      //   min-height: ${height}px;
-      //   background-image: url('${p}');
-      //   background-size: cover;
-      //   background-position: center;
-      // `;
-      //     })}
-      // spacing={5}
     >
       <Picture
         class="img"

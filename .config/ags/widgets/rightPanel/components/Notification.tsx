@@ -69,7 +69,7 @@ export default ({
   // });
 
   async function closeNotification(dismiss = false) {
-    Revealer.reveal_child = false;
+    (Revealer as Gtk.Revealer).reveal_child = false;
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, globalTransition, () => {
       if (dismiss) n.dismiss();
       return false;
@@ -280,16 +280,21 @@ export default ({
         class="notification-eventbox"
         visible={true}
         onHover={() => {
-          leftRevealer.reveal_child = true;
-          closeRevealer.reveal_child = true;
-          expandRevealer.reveal_child = true;
+          (leftRevealer as Gtk.Revealer).reveal_child = true;
+          (closeRevealer as Gtk.Revealer).reveal_child = true;
+          (expandRevealer as Gtk.Revealer).reveal_child = true;
         }}
         onHoverLost={() => {
-          if (!IsLocked.get()) leftRevealer.reveal_child = false;
-          closeRevealer.reveal_child = false;
-          expandRevealer.reveal_child = false;
+          if (!IsLocked.get())
+            (leftRevealer as Gtk.Revealer).reveal_child = false;
+          (closeRevealer as Gtk.Revealer).reveal_child = false;
+          (expandRevealer as Gtk.Revealer).reveal_child = false;
         }}
-        onClick={() => (popup ? lockButton.activate() : copyButton.activate())}
+        onClick={() =>
+          popup
+            ? (lockButton as Gtk.ToggleButton).activate()
+            : (copyButton as Gtk.Button).activate()
+        }
       >
         {Revealer}
       </Eventbox>

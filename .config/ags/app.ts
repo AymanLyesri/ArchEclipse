@@ -8,7 +8,6 @@ import AppLauncher from "./widgets/AppLauncher";
 import Progress from "./widgets/Progress";
 import UserPanel from "./widgets/UserPanel";
 import WallpaperSwitcher from "./widgets/WallpaperSwitcher";
-import MediaPopups from "./widgets/MediaPopups";
 import SettingsWidget from "./widgets/SettingsWidget";
 import BarHover from "./widgets/bar/BarHover";
 import OSD from "./widgets/OSD";
@@ -33,7 +32,7 @@ const perMonitorDisplay = () =>
       { name: "RightPanelHover", fn: () => RightPanelHover(monitor) },
       { name: "LeftPanel", fn: () => LeftPanel(monitor) },
       { name: "LeftPanelHover", fn: () => LeftPanelHover(monitor) },
-      // { name: "NotificationPopups", fn: () => NotificationPopups(monitor) },
+      { name: "NotificationPopups", fn: () => NotificationPopups(monitor) },
       { name: "AppLauncher", fn: () => AppLauncher(monitor) },
       { name: "UserPanel", fn: () => UserPanel(monitor) },
       { name: "WallpaperSwitcher", fn: () => WallpaperSwitcher(monitor) },

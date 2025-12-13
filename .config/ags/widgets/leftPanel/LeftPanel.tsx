@@ -115,7 +115,7 @@ function Panel({ monitorName }: { monitorName: string }) {
           if (!leftPanelLock.get()) setLeftPanelVisibility(false);
         }}
       >
-        <box css="min-width: 5px" />
+        <box css="min-width: 5px;" />
       </Eventbox>
     </box>
   );

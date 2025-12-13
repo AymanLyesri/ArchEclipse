@@ -29,7 +29,7 @@ New official [Discord](https://discord.gg/fMGt4vH6s5) server.
 - **Dynamic wallpapers** based on workspaces: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper)
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
-- **Ags V2 widgets** ~~(Eww replaced)~~: _these are just some of the features_
+- **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 - Gtk 3 replaced)~~: _these are just some of the features_
   - Color scheme based on current wallpaper
   - Main bar
     - Dark/light modes
@@ -47,6 +47,7 @@ New official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Media Player
     - Notification history - filter
     - Calendar
+    - Script Timer
   - Left Panel
     - Chat Bot -- multiple APIs + image generation
     - Booru Viewer -- using [Danbooru](https://danbooru.donmai.us) and [Gelbooru](https://gelbooru.com) APIs
@@ -69,8 +70,7 @@ New official [Discord](https://discord.gg/fMGt4vH6s5) server.
 # To-Do List
 
 - **Users: Any suggestions or issues?**
-- AGS V2 bundling
-- AGS V2: GTK-3 --> GTK-4
+- AGS V3 bundling
 - Make sure the dot-files work for every machine not just mine **(WIP)**
 - Add tutorials for each part of the dot-files **(WIP)**
 - Continuous improvements and polishing **(INDEFINITELY)**
@@ -139,8 +139,8 @@ update
 
 ## Left Panel
 
-| Chat Bot                                                                                  | Booru Viewer                                                                              |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Chat Bot                                                                                                                             | Booru Viewer                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/aa1a0291-294d-434b-b8b2-1f03ad219936" /> | <img width="1920" height="1080" alt="1763917938_hyprshot" src="https://github.com/user-attachments/assets/80adc9cc-5aa1-40df-bc90-325ddfb6f0d0" /> |
 
 ## Media Player
