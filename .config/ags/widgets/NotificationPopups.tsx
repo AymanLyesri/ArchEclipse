@@ -50,20 +50,29 @@ class NotificationMap {
         Notification({
           n: notifd.get_notification(id)!,
           newNotification: true,
-          popup: true,
+          isPopup: true,
+          onClose: () => {
+            setTimeout(() => {
+              this.delete(id);
+            }, 200); // Wait for animation to complete
+          },
         })
       );
 
       // Auto-remove notification after delay
       setTimeout(() => {
-        this.delete(id);
+        const notification = notifd.get_notification(id);
+        if (notification) {
+          notification.dismiss();
+        }
       }, TIMEOUT_DELAY);
     });
 
     // notifications can be closed by the outside before
     // any user input, which have to be handled too
     notifd.connect("resolved", (_, id) => {
-      this.delete(id);
+      // Don't delete immediately, let the onClose callback handle it
+      // to allow animation to complete
     });
   }
 
@@ -120,7 +129,11 @@ export default (monitor: Gdk.Monitor) => {
       visible={true}
       resizable={false}
     >
-      <box class={"notification-popups"} orientation={Gtk.Orientation.VERTICAL}>
+      <box
+        class={"notification-popups"}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={5}
+      >
         <For each={notifications}>{(n) => n}</For>
       </box>
     </window>

@@ -53,17 +53,19 @@ function copyNotificationContent(n: Notifd.Notification) {
 export default ({
   n,
   newNotification = false,
-  popup = false,
+  isPopup = false,
+  onClose,
 }: {
   n: Notifd.Notification;
   newNotification?: boolean;
-  popup?: boolean;
+  isPopup?: boolean;
+  onClose?: () => void;
 }) => {
   const [IsLocked, setIsLocked] = createState<boolean>(false);
   // IsLocked.subscribe((value) => {
   //   if (!value)
   //     GLib.timeout_add(GLib.PRIORITY_DEFAULT, NOTIFICATION_DELAY, () => {
-  //       if (!IsLocked.get() && popup) closeNotification();
+  //       if (!IsLocked.get() && isPopup) closeNotification();
   //       return false;
   //     });
   // });
@@ -72,6 +74,7 @@ export default ({
     (Revealer as Gtk.Revealer).reveal_child = false;
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, globalTransition, () => {
       if (dismiss) n.dismiss();
+      if (onClose) onClose();
       return false;
     });
   }
@@ -173,7 +176,7 @@ export default ({
   //     transition_type={Gtk.RevealerTransitionType.CROSSFADE}
   //     transitionDuration={globalTransition}
   //   >
-  //     {popup ? lockButton : copyButton}
+  //     {isPopup ? lockButton : copyButton}
   //   </revealer>
   // );
 
@@ -181,6 +184,7 @@ export default ({
     <button
       class="close"
       label=""
+      // sensitive={isPopup}
       onClicked={() => {
         closeNotification(true);
       }}
@@ -205,7 +209,7 @@ export default ({
   const topBar = (
     <box class="top-bar" hexpand={true} spacing={5}>
       <box spacing={5} hexpand>
-        <box visible={popup} class="circular-progress-box">
+        <box visible={isPopup} class="circular-progress-box">
           {/* {CircularProgress} */}
         </box>
         <label wrap={true} class="app-name" label={n.app_name} />
@@ -260,12 +264,14 @@ export default ({
     <box
       class="notification"
       visible={true}
-      $={(self) =>
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, NOTIFICATION_DELAY, () => {
-          if (!IsLocked.get() && popup) closeNotification();
-          return false;
-        })
-      }
+      $={(self) => {
+        const handler = n.connect("resolved", () => {
+          closeNotification(false);
+        });
+        self.connect("destroy", () => {
+          n.disconnect(handler);
+        });
+      }}
     >
       {Revealer}
     </box>
