@@ -14,8 +14,9 @@
     border-radius: 10px;
     .workspace-group {
       border-radius: 10px;
-      // &.active {
-      // }
+      &.active {
+        background-color: $background-transparent;
+      }
       &.inactive button {
         background: transparent;
         padding: 0px;
@@ -34,7 +35,7 @@
       }
     }
     button {
-      background: $background-transparent;
+      background: transparent;
       ////////////////////////////
       &.focused {
         background: $background-semi-transparent;

@@ -150,15 +150,6 @@ export default (monitor: Gdk.Monitor) => {
       )}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={rightPanelVisibility}
-      // onKeyPressEvent={(self, event) => {
-      //   if (event.get_keyval()[1] === Gdk.KEY_Escape) {
-      //     setRightPanelVisibility(false);
-      //     hideWindow(
-      //       `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
-      //     );
-      //   }
-      // }}
-
       widthRequest={rightPanelWidth}
       $={(self) => {
         const motion = new Gtk.EventControllerMotion();
@@ -168,6 +159,15 @@ export default (monitor: Gdk.Monitor) => {
         self.add_controller(motion);
       }}
     >
+      <Gtk.EventControllerKey
+        onKeyPressed={({ widget }, keyval: number) => {
+          if (keyval === Gdk.KEY_Escape) {
+            setRightPanelVisibility(false);
+            widget.hide();
+            return true;
+          }
+        }}
+      />
       <Panel monitorName={monitorName} />
     </window>
   );

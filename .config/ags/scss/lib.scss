@@ -2,7 +2,7 @@
 
 * {
   font-weight: 500;
-  transition: background 0.2s;
+  transition: all 0.5s;
 }
 
 .module {
@@ -220,7 +220,8 @@ scrollbar {
   }
 
   .trigger {
-    @extend .button;
+    // @extend .button;
+    padding: 0px 5px;
   }
 }
 
