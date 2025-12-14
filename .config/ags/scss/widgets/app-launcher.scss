@@ -13,6 +13,9 @@
   .quick-apps {
     button {
       padding: 6px;
+      &:focus {
+        background: $secondary;
+      }
     }
   }
 
@@ -27,14 +30,14 @@
         color: $secondary;
       }
       &:focus {
-        background: $background;
+        background: $secondary;
 
-        &.checked {
-          background: $secondary;
-          .argument {
-            color: white;
-          }
-        }
+        // &.checked {
+        //   background: $secondary;
+        //   .argument {
+        //     color: white;
+        //   }
+        // }
       }
       &.checked {
         .argument {

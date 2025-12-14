@@ -31,13 +31,15 @@ import { customApps } from "../constants/app.constants";
 import { quickApps } from "../constants/app.constants";
 import { For } from "gnim";
 import Gdk from "gi://Gdk?version=4.0";
+import { convert, isConversionQuery } from "../utils/convert";
 const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
 
-const [monitorName, setMonitorName] = createState<string>("");
-
 const [Results, setResults] = createState<LauncherApp[]>([]);
+
+let parentWindowRef: Gtk.Window | null = null;
+
 const QuickApps = () => {
   const apps = (
     <Gtk.Revealer
@@ -45,7 +47,7 @@ const QuickApps = () => {
       transitionDuration={globalTransition}
       revealChild={Results((results) => results.length === 0)}
     >
-      <scrolledwindow>
+      <scrolledwindow heightRequest={quickApps.length * 40}>
         <box
           class="quick-apps"
           spacing={5}
@@ -57,7 +59,9 @@ const QuickApps = () => {
               class="quick-app"
               onClicked={() => {
                 app.app_launch();
-                hideWindow(`app-launcher-${monitorName.get()}`);
+                if (parentWindowRef) {
+                  parentWindowRef.hide();
+                }
               }}
             >
               <box spacing={5}>
@@ -79,7 +83,6 @@ const QuickApps = () => {
 };
 
 const helpCommands = {
-  "Press <Escape>": "to reset input",
   "... ...": "open with argument",
   "translate .. > ..": "translate .. > (en,fr,es,de,pt,ru,ar...)",
   "... .com OR https://...": "open link",
@@ -124,6 +127,20 @@ const Entry = (
           if (!text || text.trim() === "") {
             setResults([]);
             return;
+          }
+
+          // Check for conversion queries FIRST (before other commands)
+          if (isConversionQuery(text)) {
+            const conversions = await convert(text);
+            setResults(
+              conversions.map((conv) => ({
+                app_name: `${conv.formatted}`,
+                app_icon: "󰟛", // Conversion icon
+                app_desc: `Converted from ${conv.original}`,
+                app_launch: () => execAsync(`wl-copy "${conv.formatted}"`),
+              }))
+            );
+            return; // Exit early after conversion
           }
           args = text.split(" ");
 
@@ -250,7 +267,10 @@ const EmptyEntry = () => {
 
 const launchApp = (app: LauncherApp) => {
   app.app_launch();
-  hideWindow(`app-launcher-${monitorName.get()}`);
+  // hideWindow(`app-launcher-${monitorName.get()}`);
+  if (parentWindowRef) {
+    parentWindowRef.hide();
+  }
   EmptyEntry();
 };
 
@@ -318,10 +338,9 @@ const ResultsDisplay = () => {
       transitionDuration={globalTransition}
     >
       <scrolledwindow
-        // heightRequest={Results((results) =>
-        //   results.length * 45 > maxHeight ? maxHeight : results.length * 45
-        // )}
-        heightRequest={250}
+        heightRequest={Results((results) =>
+          results.length * 45 > maxHeight ? maxHeight : results.length * 45
+        )}
       >
         {rows}
       </scrolledwindow>
@@ -335,14 +354,13 @@ export default (monitor: any) => (
     name={`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`}
     namespace="app-launcher"
     application={app}
-    // anchor={emptyWorkspace((empty) =>
-    //   empty ? undefined : Astal.WindowAnchor.TOP | Astal.WindowAnchor.LEFT
-    // )}
     exclusivity={Astal.Exclusivity.EXCLUSIVE}
     keymode={Astal.Keymode.EXCLUSIVE}
     layer={Astal.Layer.TOP}
     margin={globalMargin} // top right bottom left
     visible={false}
+    $={(self) => (parentWindowRef = self)}
+    resizable={false}
   >
     <Gtk.EventControllerKey
       onKeyPressed={({ widget }, keyval: number) => {
