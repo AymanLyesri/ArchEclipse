@@ -18,10 +18,9 @@
       @extend .module;
       margin-top: 10px;
 
-      // &:hover {
-      //   // background: $background;
-      //   padding: 15px;
-      // }
+      &:hover {
+        margin-bottom: 20px;
+      }
 
       .clear {
         @extend .danger;

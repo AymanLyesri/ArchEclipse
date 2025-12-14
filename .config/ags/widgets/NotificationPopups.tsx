@@ -45,6 +45,10 @@ class NotificationMap {
     notifd.connect("notified", (_, id) => {
       if (DND.get()) return;
       // this.clearOldNotifications(); // Clear old notifications before adding new one
+
+      let timeoutId: number | null = null;
+      let hideFunc: (() => void) | null = null;
+
       this.set(
         id,
         Notification({
@@ -52,18 +56,27 @@ class NotificationMap {
           newNotification: true,
           isPopup: true,
           onClose: () => {
+            // Cancel the auto-timeout if manually closed
+            if (timeoutId !== null) {
+              clearTimeout(timeoutId);
+              timeoutId = null;
+            }
             setTimeout(() => {
               this.delete(id);
             }, 200); // Wait for animation to complete
           },
+          onHide: (func) => {
+            hideFunc = func;
+          },
         })
       );
 
-      // Auto-remove notification after delay
-      setTimeout(() => {
-        const notification = notifd.get_notification(id);
-        if (notification) {
-          notification.dismiss();
+      // Auto-remove notification from popup after delay
+      // Don't dismiss from daemon to keep in history
+      timeoutId = setTimeout(() => {
+        if (this.notificationMap.has(id) && hideFunc) {
+          // Trigger close animation via the notification's hide function
+          hideFunc();
         }
       }, TIMEOUT_DELAY);
     });
@@ -71,8 +84,12 @@ class NotificationMap {
     // notifications can be closed by the outside before
     // any user input, which have to be handled too
     notifd.connect("resolved", (_, id) => {
-      // Don't delete immediately, let the onClose callback handle it
-      // to allow animation to complete
+      // Remove from popup when dismissed from history or externally
+      if (this.notificationMap.has(id)) {
+        setTimeout(() => {
+          this.delete(id);
+        }, 200); // Wait for animation to complete
+      }
     });
   }
 

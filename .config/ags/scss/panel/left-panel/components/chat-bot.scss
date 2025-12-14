@@ -51,17 +51,30 @@
   }
 
   .bottom-bar {
+    border-radius: 50px;
     background: $background-semi-transparent;
-    border-radius: 10px;
-    padding: 10px;
+    padding: 5px 15px;
+
+    &:hover {
+      margin-bottom: 20px;
+      min-height: 69px;
+    }
 
     entry {
       border-radius: 50px;
+      background: transparent;
+      border: none;
     }
 
     .clear {
       @extend .danger;
       padding: 5px;
+    }
+
+    .image-generation {
+      @extend .button;
+      padding: 5px 10px;
+      border-radius: 20px;
     }
   }
 }

@@ -1,5 +1,6 @@
 .player {
   @extend .module;
+  padding: 0px;
 
   &.widget {
     .bottom-bar:hover {

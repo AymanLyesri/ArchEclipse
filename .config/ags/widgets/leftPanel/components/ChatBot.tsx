@@ -309,10 +309,10 @@ const ClearButton = () => (
 
 const ImageGenerationSwitch = () => (
   <togglebutton
-    visible={chatBotApi((api) => api.imageGenerationSupport ?? false)}
+    sensitive={chatBotApi((api) => api.imageGenerationSupport ?? false)}
     active={chatBotImageGeneration}
     class="image-generation"
-    label=" Image Generation"
+    label=""
     onToggled={({ active }) => setChatBotImageGeneration(active)}
   />
 );
@@ -338,7 +338,7 @@ const MessageEntry = () => {
   return (
     <entry
       hexpand
-      placeholderText="Type a message"
+      placeholderText="Ask anything..."
       $={(self) => {
         self.connect("activate", () => handleSubmit(self));
       }}
@@ -347,17 +347,11 @@ const MessageEntry = () => {
 };
 
 const BottomBar = () => (
-  <Eventbox>
-    <box class="bottom-bar" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
-      <box spacing={5}>
-        <MessageEntry />
-        <ClearButton />
-      </box>
-      <box>
-        <ImageGenerationSwitch />
-      </box>
-    </box>
-  </Eventbox>
+  <box class="bottom-bar" spacing={10}>
+    <MessageEntry />
+    <ClearButton />
+    <ImageGenerationSwitch />
+  </box>
 );
 
 const EnsurePaths = async () => {

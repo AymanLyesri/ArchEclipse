@@ -55,11 +55,13 @@ export default ({
   newNotification = false,
   isPopup = false,
   onClose,
+  onHide,
 }: {
   n: Notifd.Notification;
   newNotification?: boolean;
   isPopup?: boolean;
   onClose?: () => void;
+  onHide?: (hideFunc: () => void) => void;
 }) => {
   const [IsLocked, setIsLocked] = createState<boolean>(false);
   // IsLocked.subscribe((value) => {
@@ -73,19 +75,19 @@ export default ({
   async function closeNotification(dismiss = false) {
     (Revealer as Gtk.Revealer).reveal_child = false;
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, globalTransition, () => {
-      if (dismiss) n.dismiss();
+      // Only dismiss from daemon when in history (not popup)
+      // This keeps notifications in history even when popup is closed
+      if (dismiss && !isPopup) {
+        n.dismiss();
+      }
+      // Always call onClose to remove from popup map
       if (onClose) onClose();
       return false;
     });
   }
 
   const icon = (
-    <box
-      valign={Gtk.Align.START}
-      halign={Gtk.Align.CENTER}
-      hexpand={false}
-      class="icon"
-    >
+    <box valign={Gtk.Align.START} halign={Gtk.Align.CENTER} class="icon">
       {NotificationIcon(n)}
     </box>
   );
@@ -95,7 +97,6 @@ export default ({
       class="title"
       xalign={0}
       justify={Gtk.Justification.LEFT}
-      hexpand={true}
       maxWidthChars={24}
       wrap={true}
       label={n.summary}
@@ -106,7 +107,6 @@ export default ({
   const body = (
     <label
       class="body"
-      hexpand={true}
       maxWidthChars={24}
       xalign={0}
       justify={Gtk.Justification.LEFT}
@@ -207,8 +207,8 @@ export default ({
   // );
 
   const topBar = (
-    <box class="top-bar" hexpand={true} spacing={5}>
-      <box spacing={5} hexpand>
+    <box class="top-bar" spacing={5}>
+      <box spacing={5}>
         <box visible={isPopup} class="circular-progress-box">
           {/* {CircularProgress} */}
         </box>
@@ -216,32 +216,32 @@ export default ({
 
         {copyButton}
       </box>
+      <box class={"separator"} hexpand />
       <box class="quick-actions">
         {close}
         {expand}
       </box>
 
-      <label class="time" label={time(n.time)} />
+      <label halign={Gtk.Align.END} class="time" label={time(n.time)} />
     </box>
   );
 
   const Box = (
-    <box class={`notification ${n.urgency} ${n.app_name}`}>
-      <box
-        class="main-content"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-      >
-        {topBar}
-        <box spacing={5}>
-          {icon}
-          <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-            <box hexpand={true}>{title}</box>
-            {body}
-          </box>
+    <box
+      class={`notification ${n.urgency} ${n.app_name}`}
+      hexpand
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={10}
+    >
+      {topBar}
+      <box spacing={5}>
+        {icon}
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+          {title}
+          {body}
         </box>
-        {/* {Actions} */}
       </box>
+      {/* {Actions} */}
     </box>
   );
 
@@ -262,15 +262,23 @@ export default ({
   );
   const Parent = (
     <box
-      class="notification"
+      class="notification-parent"
       visible={true}
       $={(self) => {
-        const handler = n.connect("resolved", () => {
-          closeNotification(false);
-        });
-        self.connect("destroy", () => {
-          n.disconnect(handler);
-        });
+        // Only handle resolved signal for popups
+        if (isPopup) {
+          const handler = n.connect("resolved", () => {
+            closeNotification(false);
+          });
+          self.connect("destroy", () => {
+            n.disconnect(handler);
+          });
+        }
+
+        // Expose hide function to parent via callback
+        if (onHide) {
+          onHide(() => closeNotification(false));
+        }
       }}
     >
       {Revealer}

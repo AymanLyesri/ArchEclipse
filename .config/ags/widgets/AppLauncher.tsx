@@ -83,11 +83,13 @@ const QuickApps = () => {
 };
 
 const helpCommands = {
+  "Press <Escape>": "to reset input",
   "... ...": "open with argument",
   "translate .. > ..": "translate .. > (en,fr,es,de,pt,ru,ar...)",
   "... .com OR https://...": "open link",
   "..*/+-..": "arithmetics",
   "emoji ...": "search emojis",
+  "100c to f / 10kg in lb": "unit conversion (temp/weight/length/volume/speed)",
 };
 
 const Help = (

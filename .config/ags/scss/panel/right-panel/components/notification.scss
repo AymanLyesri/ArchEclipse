@@ -3,6 +3,8 @@
   margin: 0px;
   padding: 0px;
   transition: opacity 0.5s ease-out; /* Adjust timing */
+  min-width: 0px;
+  min-height: 0px;
 
   &:hover .top-bar {
     background-color: $background-secondary;
@@ -14,12 +16,9 @@
     }
   }
 
-  .main-content {
-    padding: 10px;
-  }
-
   .top-bar {
     padding: 0px 5px;
+    margin: 5px;
     border-radius: 5px;
     background: $background-transparent;
 
