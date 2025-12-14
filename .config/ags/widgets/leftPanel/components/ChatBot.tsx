@@ -17,6 +17,7 @@ import { Api } from "../../../interfaces/api.interface";
 import { createState, With } from "ags";
 import { Eventbox } from "../../Custom/Eventbox";
 import { Progress } from "../../Progress";
+import Picture from "../../Picture";
 
 // Constants
 const MESSAGE_FILE_PATH = "./assets/chatbot";
@@ -28,6 +29,10 @@ const [chatHistory, setChatHistory] = createState<Message[]>([]);
 // Progress State
 const [isLoading, setIsLoading] = createState<boolean>(false);
 const [loadingText, setLoadingText] = createState<string>("...");
+
+// image generation
+const [chatBotImageGeneration, setChatBotImageGeneration] =
+  createState<boolean>(false);
 
 // Utils
 const getMessageFilePath = () =>
@@ -93,6 +98,22 @@ const saveMessages = () => {
 };
 
 const sendMessage = async (message: Message) => {
+  const imagePath = `./assets/chatbot/${chatBotApi.get().value}/images/${
+    message.id
+  }.jpg`;
+
+  // Escape single quotes in message content
+  const escapedContent = message.content.replace(/'/g, "'\\''");
+  const prompt =
+    `tgpt --quiet ` +
+    `${chatBotImageGeneration.get() ? "--img" : ""} ` +
+    `${chatBotImageGeneration.get() ? `--out ${imagePath}` : ""} ` +
+    `--provider ${chatBotApi.get().value} ` +
+    `--preprompt 'short and straight forward response, 
+        ${JSON.stringify(chatHistory.get())
+          .replace(/'/g, `'"'"'`)
+          .replace(/`/g, "\\`")}'` +
+    ` '${escapedContent}'`;
   try {
     setIsLoading(true);
     setLoadingText(
@@ -100,24 +121,6 @@ const sendMessage = async (message: Message) => {
     );
 
     const beginTime = Date.now();
-
-    const imagePath = `./assets/chatbot/${chatBotApi.get().value}/images/${
-      message.id
-    }.jpg`;
-
-    // Escape single quotes in message content
-    const escapedContent = message.content.replace(/'/g, "'\\''");
-
-    const prompt =
-      `tgpt --quiet ` +
-      `${chatBotImageGeneration.get() ? "--img" : ""} ` +
-      `${chatBotImageGeneration.get() ? `--out ${imagePath}` : ""} ` +
-      `--provider ${chatBotApi.get().value} ` +
-      `--preprompt 'short and straight forward response, 
-        ${JSON.stringify(chatHistory.get())
-          .replace(/'/g, `'"'"'`)
-          .replace(/`/g, "\\`")}'` +
-      ` '${escapedContent}'`;
 
     const response = await execAsync(prompt);
     const endTime = Date.now();
@@ -141,7 +144,7 @@ const sendMessage = async (message: Message) => {
     setIsLoading(false);
     notify({
       summary: "Error",
-      body: error instanceof Error ? error.message : String(error),
+      body: (error instanceof Error ? error.message : String(error)) + prompt,
     });
   }
 };
@@ -233,7 +236,7 @@ const MessageItem = ({ message }: { message: Message }) => {
   const messageContent = (
     <box orientation={Gtk.Orientation.VERTICAL} hexpand>
       {formatTextWithCodeBlocks(message.content)}
-      <box
+      {/* <box
         visible={message.image !== undefined}
         class="image"
         css={`
@@ -241,7 +244,14 @@ const MessageItem = ({ message }: { message: Message }) => {
         `}
         heightRequest={leftPanelWidth}
         hexpand
-      ></box>
+      ></box> */}
+      {message.image && (
+        <Picture
+          contentFit={Gtk.ContentFit.SCALE_DOWN}
+          height={leftPanelWidth}
+          file={message.image}
+        ></Picture>
+      )}
     </box>
   );
 
@@ -313,7 +323,7 @@ const ClearButton = () => (
     onClicked={() => {
       setMessages([]);
       execAsync(
-        `rm ${MESSAGE_FILE_PATH}/${chatBotApi.get().value}/images/*`
+        `rm -rf ${MESSAGE_FILE_PATH}/${chatBotApi.get().value}/images`
       ).catch((err) => notify({ summary: "err", body: err }));
     }}
   />

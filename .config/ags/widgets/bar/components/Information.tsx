@@ -41,7 +41,11 @@ function Mpris() {
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
     >
       <menubutton>
-        <box>
+        <box spacing={5}>
+          <Cava
+            barCount={12}
+            transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
+          />
           <For each={players}>
             {(player) => {
               const [app] = apps.exact_query(player.entry);
@@ -248,10 +252,6 @@ export default ({
 }) => {
   return (
     <box class="bar-middle" spacing={5} halign={halign}>
-      <Cava
-        barCount={12}
-        transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
-      />
       <Mpris />
       <Clock />
       <Weather />

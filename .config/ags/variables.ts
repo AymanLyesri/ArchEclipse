@@ -313,20 +313,18 @@ function setChatBotApi(value: Api) {
 }
 export { chatBotApi, setChatBotApi };
 
-const [chatBotImageGeneration, _setChatBotImageGeneration] =
-  createState<boolean>(
-    getSetting("chatBot.imageGeneration", globalSettings.get())
-  );
-function setChatBotImageGeneration(value: boolean) {
-  _setChatBotImageGeneration(value);
-  setSetting(
-    "chatBot.imageGeneration",
-    value,
-    globalSettings,
-    setGlobalSettings
-  );
-}
-export { chatBotImageGeneration, setChatBotImageGeneration };
+// const [chatBotImageGeneration, setChatBotImageGeneration] =
+//   createState<boolean>(false);
+// function setChatBotImageGeneration(value: boolean) {
+//   _setChatBotImageGeneration(value);
+//   setSetting(
+//     "chatBot.imageGeneration",
+//     value,
+//     globalSettings,
+//     setGlobalSettings
+//   );
+// }
+// export { chatBotImageGeneration, setChatBotImageGeneration };
 
 const [booruApi, _setBooruApi] = createState<Api>(
   getSetting("booru.api", globalSettings.get())
