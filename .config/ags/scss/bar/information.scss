@@ -1,11 +1,4 @@
 .bar-middle {
-  .cava {
-    padding: 0px;
-    margin: 0px;
-    color: $secondary;
-    font-size: $phi_min + em;
-  }
-
   .media {
     @extend .module;
     background-size: cover;

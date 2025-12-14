@@ -2,9 +2,17 @@ import AstalMpris from "gi://AstalMpris?version=0.1";
 import { getDominantColor, getImageRatio } from "../utils/image";
 import Gtk from "gi://Gtk?version=4.0";
 import { rightPanelWidth } from "../variables";
-import { createBinding, createState, createComputed, Accessor } from "ags";
+import {
+  createBinding,
+  createState,
+  createComputed,
+  Accessor,
+  With,
+} from "ags";
 import Picture from "./Picture";
 import Gio from "gi://Gio";
+import Cava from "./Cava";
+import GLib from "gi://GLib?version=2.0";
 
 function lengthStr(length: number) {
   const min = Math.floor(length / 60);
@@ -21,14 +29,21 @@ export default ({
   playerType: "popup" | "widget";
 }) => {
   const [isDragging, setIsDragging] = createState(false);
+  const [parentWidth, setParentWidth] = createState(0);
   const dominantColor = createBinding(
     player,
     "coverArt"
   )((path) => getDominantColor(path));
-  const img = (
-    height: number | Accessor<number>,
-    width: number | Accessor<number>
-  ) => {};
+
+  // Calculate bar count based on parent width
+  const barCount = parentWidth((width) => {
+    // Calculate bar count based on width
+    // You might want to adjust this formula based on your needs
+    // Example: 1 bar per 10 pixels, but ensure minimum of 8 bars
+    const calculated = Math.floor(width / 6.9);
+    return Math.max(8, Math.min(calculated, 50)); // Clamp between 8 and 50 bars
+  });
+
   const title = (
     <label
       class="title"
@@ -118,9 +133,6 @@ export default ({
           "entry"
         )((entry) => {
           const name = `${entry}-symbolic`;
-          // return Gtk.Utils.lookUpicon(name)
-          //   ? `icon:///${name}`
-          //   : "icon:///audio-x-generic-symbolic";
           return `icon:///audio-x-generic-symbolic`;
         })}
       />
@@ -200,17 +212,50 @@ export default ({
     <overlay
       class={`player ${playerType}`}
       hexpand
+      $={(self) => {
+        // Create a controller to monitor size changes
+        const controller = new Gtk.EventControllerMotion();
+
+        controller.connect("enter", () => {
+          // Get the allocation when mouse enters
+          const alloc = self.get_allocation();
+          if (alloc) {
+            setParentWidth(alloc.width);
+          }
+        });
+
+        // Also check on allocation changes using a custom approach
+        const checkWidth = () => {
+          const alloc = self.get_allocation();
+          if (alloc && alloc.width > 0 && alloc.width !== parentWidth.get()) {
+            setParentWidth(alloc.width);
+          }
+          return true; // Continue timeout
+        };
+
+        // Start checking width periodically
+        const timeoutId = GLib.timeout_add(
+          GLib.PRIORITY_DEFAULT,
+          100, // Check every 100ms
+          checkWidth
+        );
+
+        // Clean up on destroy
+        self.connect("destroy", () => {
+          if (timeoutId) {
+            GLib.source_remove(timeoutId);
+          }
+        });
+
+        self.add_controller(controller);
+
+        // Initial width check
+        checkWidth();
+      }}
     >
       <Picture
         class="img"
-        height={createBinding(
-          player,
-          "coverArt"
-        )((path) => {
-          const ratio = getImageRatio(path) || 1;
-          const width = rightPanelWidth.get();
-          return width * ratio;
-        })}
+        height={rightPanelWidth}
         file={createBinding(player, "coverArt")}
       />
       {playerType == "widget" ? (
@@ -219,20 +264,29 @@ export default ({
           orientation={Gtk.Orientation.VERTICAL}
           hexpand
           valign={Gtk.Align.END}
+          spacing={0}
         >
-          {/* <box>{icon}</box> */}
+          <box halign={Gtk.Align.CENTER}>
+            <With value={barCount}>
+              {(count) => (
+                <Cava
+                  barCount={count} // Use computed bar count
+                  transitionType={Gtk.RevealerTransitionType.SWING_UP}
+                />
+              )}
+            </With>
+          </box>
           {content}
         </box>
       ) : (
         <box>
-          {
-            <Picture
-              class="img"
-              width={100}
-              height={100}
-              file={createBinding(player, "coverArt")}
-            />
-          }
+          <Picture
+            class="img"
+            width={100}
+            height={100}
+            file={createBinding(player, "coverArt")}
+          />
+
           {content}
         </box>
       )}
