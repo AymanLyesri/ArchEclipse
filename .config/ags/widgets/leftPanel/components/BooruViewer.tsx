@@ -17,12 +17,11 @@ import {
   setBooruTags,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
-import { closeProgress, openProgress } from "../../Progress";
 import { createState, For, With } from "ags";
 import { booruApis } from "../../../constants/api.constants";
 import { ImageDialog } from "./ImageDialog";
-import { Eventbox } from "../../Custom/Eventbox";
 import Picture from "../../Picture";
+import Gdk from "gi://Gdk?version=4.0";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -356,25 +355,76 @@ const ClearCacheButton = () => {
   );
 };
 
-const BottomBar = () => (
-  <Eventbox>
-    <box class="bottom" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
-      <PageDisplay />
-      <LimitDisplay />
+const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
+
+const BottomBar = () => {
+  const revealer = (
+    <revealer
+      class="bottom-revealer"
+      transitionType={Gtk.RevealerTransitionType.SWING_UP}
+      revealChild={bottomIsRevealed}
+      transitionDuration={globalTransition}
+    >
       <box
         class="bottom-bar"
         orientation={Gtk.Orientation.VERTICAL}
-        spacing={5}
+        spacing={10}
       >
+        <PageDisplay />
+        <LimitDisplay />
         <TagDisplay />
         <box spacing={5}>
           <Entry />
           <ClearCacheButton />
         </box>
       </box>
+    </revealer>
+  );
+
+  // action box (previous, revealer, next)
+  const actions = (
+    <box
+      class="actions"
+      spacing={5}
+      // halign={Gtk.Align.CENTER}
+      // orientation={Gtk.Orientation.VERTICAL}
+    >
+      <button
+        label=""
+        onClicked={() => {
+          const currentPage = booruPage.get();
+          if (currentPage > 1) {
+            setBooruPage(currentPage - 1);
+          }
+        }}
+      />
+      <button
+        hexpand
+        class="reveal-button"
+        label=""
+        onClicked={(self) => {
+          const currentlyRevealed = bottomIsRevealed.get();
+          setBottomIsRevealed(!currentlyRevealed);
+          self.set_label(currentlyRevealed ? "" : "");
+        }}
+      />
+      <button
+        label=""
+        onClicked={() => {
+          const currentPage = booruPage.get();
+          setBooruPage(currentPage + 1);
+        }}
+      />
     </box>
-  </Eventbox>
-);
+  );
+
+  return (
+    <box class={"bottom"} orientation={Gtk.Orientation.VERTICAL}>
+      {actions}
+      {revealer}
+    </box>
+  );
+};
 
 export default () => {
   ensureRatingTagFirst();
@@ -383,12 +433,40 @@ export default () => {
   booruApi.subscribe(() => fetchImages());
   booruLimit.subscribe(() => fetchImages());
   fetchImages();
+
   return (
     <box
       class="booru"
       orientation={Gtk.Orientation.VERTICAL}
       hexpand
       spacing={10}
+      $={(self) => {
+        const keyController = new Gtk.EventControllerKey();
+        keyController.connect("key-pressed", (_, keyval: number) => {
+          if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {
+            setBottomIsRevealed(true);
+            return true;
+          }
+          if (keyval === Gdk.KEY_Down && bottomIsRevealed.get()) {
+            setBottomIsRevealed(false);
+            return true;
+          }
+          if (keyval === Gdk.KEY_Right) {
+            const currentPage = booruPage.get();
+            setBooruPage(currentPage + 1);
+            return true;
+          }
+          if (keyval === Gdk.KEY_Left) {
+            const currentPage = booruPage.get();
+            if (currentPage > 1) {
+              setBooruPage(currentPage - 1);
+            }
+            return true;
+          }
+          return false;
+        });
+        self.add_controller(keyController);
+      }}
     >
       <Apis />
       <Images />

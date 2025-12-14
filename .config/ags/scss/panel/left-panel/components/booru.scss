@@ -14,8 +14,14 @@
   .bottom {
     .bottom-bar {
       background: $background-semi-transparent;
-      border-radius: 10px;
-      padding: 10px;
+
+      @extend .module;
+      margin-top: 10px;
+
+      // &:hover {
+      //   // background: $background;
+      //   padding: 15px;
+      // }
 
       .clear {
         @extend .danger;

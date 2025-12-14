@@ -373,9 +373,14 @@ function Weather() {
     null,
     600000,
     [
-      "curl",
-      "-s",
-      "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m",
+      "bash",
+      "-c",
+      `
+  LOC=$(curl -fsSL https://ipinfo.io/loc) || exit 1
+  LAT=\${LOC%,*}
+  LON=\${LOC#*,}
+  curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m"
+  `,
     ],
     (out) => {
       try {

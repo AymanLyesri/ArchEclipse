@@ -78,21 +78,6 @@ function Panel({ monitorName }: { monitorName: string }) {
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
       >
-        {/* {leftPanelWidget((widget) => {
-          const selector = leftPanelWidgetSelectors.find(
-            (ws) => ws.name === widget.name
-          );
-          if (selector?.widget) {
-            try {
-              return selector.widget() as JSX.Element;
-            } catch (error) {
-              console.error(`Error rendering widget:`, error);
-              return (<box />) as JSX.Element;
-            }
-          }
-          return (<box />) as JSX.Element;
-        })} */}
-
         <With value={leftPanelWidget}>
           {(widget) => {
             const selector = leftPanelWidgetSelectors.find(
@@ -160,6 +145,15 @@ export default (monitor: Gdk.Monitor) => {
         self.add_controller(motion);
       }}
     >
+      <Gtk.EventControllerKey
+        onKeyPressed={({ widget }, keyval: number) => {
+          if (keyval === Gdk.KEY_Escape) {
+            setLeftPanelVisibility(false);
+            widget.hide();
+            return true;
+          }
+        }}
+      />
       <Panel monitorName={monitorName} />
     </window>
   );
