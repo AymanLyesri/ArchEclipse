@@ -9,9 +9,12 @@ import hyprland from "gi://AstalHyprland";
 import { notify } from "../../../utils/notification";
 import { asyncSleep, time } from "../../../utils/time";
 import { Eventbox } from "../../Custom/Eventbox";
+import Pango from "gi://Pango?version=1.0";
 const Hyprland = hyprland.get_default();
 
 // const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
+
+const [wrapText, setWrapText] = createState<boolean>(false);
 
 const TRANSITION = 200;
 
@@ -107,11 +110,11 @@ export default ({
   const body = (
     <label
       class="body"
-      maxWidthChars={24}
-      xalign={0}
-      justify={Gtk.Justification.LEFT}
       label={n.body}
       wrap={true}
+      wrapMode={Pango.WrapMode.WORD_CHAR}
+      lines={2}
+      vexpand={false} // need height constraint to make wrap work
     />
   );
 
@@ -142,13 +145,9 @@ export default ({
       class="expand"
       active={false}
       onToggled={(self) => {
-        // title.set_property("truncate", !self.active);
-        // body.set_property("truncate", !self.active);
-        // (title as Gtk.Label).set_line_wrap(self.active);
-        // (body as Gtk.Label).set_line_wrap(self.active);
-        // self.label = self.active ? "" : "";
+        setWrapText(self.active);
       }}
-      label=""
+      label={wrapText((wrap) => (wrap ? "" : ""))}
     />
   );
 
@@ -219,7 +218,7 @@ export default ({
       <box class={"separator"} hexpand />
       <box class="quick-actions">
         {close}
-        {expand}
+        {/* {expand} */}
       </box>
 
       <label halign={Gtk.Align.END} class="time" label={time(n.time)} />

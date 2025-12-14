@@ -6,9 +6,7 @@ import { notify } from "../../../utils/notification";
 import { readJSONFile, writeJSONFile } from "../../../utils/json";
 import {
   chatBotApi,
-  chatBotImageGeneration,
   setChatBotApi,
-  setChatBotImageGeneration,
   globalTransition,
   leftPanelWidth,
 } from "../../../variables";
@@ -18,6 +16,7 @@ import { createState, With } from "ags";
 import { Eventbox } from "../../Custom/Eventbox";
 import { Progress } from "../../Progress";
 import Picture from "../../Picture";
+import Pango from "gi://Pango?version=1.0";
 
 // Constants
 const MESSAGE_FILE_PATH = "./assets/chatbot";
@@ -49,22 +48,19 @@ const formatTextWithCodeBlocks = (text: string) => {
     if (i % 3 === 2) {
       // Code content
       elements.push(
-        <box class="code-block" spacing={5}>
+        <Eventbox
+          onClick={() => execAsync(`wl-copy "${part}"`).catch(print)}
+          class="code-block"
+        >
           <label
-            class="text"
+            class="code-block-text"
             hexpand
             wrap
+            wrapMode={Pango.WrapMode.WORD_CHAR}
             halign={Gtk.Align.START}
             label={part}
           />
-          <button
-            halign={Gtk.Align.END}
-            valign={Gtk.Align.START}
-            class="copy"
-            label=""
-            onClicked={() => execAsync(`wl-copy "${part}"`).catch(print)}
-          />
-        </box>
+        </Eventbox>
       );
     } else if (i % 3 === 0 && part) {
       // Regular text
@@ -218,7 +214,8 @@ const MessageItem = ({ message }: { message: Message }) => {
     <box
       class="actions"
       spacing={5}
-      valign={message.sender === "user" ? Gtk.Align.START : Gtk.Align.END}
+      valign={Gtk.Align.END}
+      halign={message.sender === "user" ? Gtk.Align.END : Gtk.Align.START}
       orientation={Gtk.Orientation.VERTICAL}
     >
       {[
@@ -234,17 +231,12 @@ const MessageItem = ({ message }: { message: Message }) => {
   );
 
   const messageContent = (
-    <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+    <box
+      orientation={Gtk.Orientation.VERTICAL}
+      hexpand
+      tooltipText={"Click to copy"}
+    >
       {formatTextWithCodeBlocks(message.content)}
-      {/* <box
-        visible={message.image !== undefined}
-        class="image"
-        css={`
-          background-image: url("${message.image}");
-        `}
-        heightRequest={leftPanelWidth}
-        hexpand
-      ></box> */}
       {message.image && (
         <Picture
           contentFit={Gtk.ContentFit.SCALE_DOWN}
@@ -256,29 +248,42 @@ const MessageItem = ({ message }: { message: Message }) => {
   );
 
   return (
-    <Eventbox
-      onHover={() => setRevealerVisible(true)}
-      onHoverLost={() => setRevealerVisible(false)}
+    <box
+      class={`message ${message.sender}`}
+      orientation={Gtk.Orientation.VERTICAL}
+      halign={
+        message.image === undefined
+          ? message.sender === "user"
+            ? Gtk.Align.END
+            : Gtk.Align.START
+          : undefined
+      }
     >
-      <box
-        class={`message ${message.sender}`}
-        orientation={Gtk.Orientation.VERTICAL}
-        halign={
-          message.image === undefined
-            ? message.sender === "user"
-              ? Gtk.Align.END
-              : Gtk.Align.START
-            : undefined
-        }
+      {/* <box class="main">
+        {message.sender !== "user"
+          ? [<Actions />, messageContent]
+          : [messageContent, <Actions />]}
+      </box> */}
+      <Eventbox
+        class="message-eventbox"
+        onClick={(self, n, x, y) => {
+          // Check if click is on a code block button
+          const pick = self.pick(x, y, Gtk.PickFlags.DEFAULT);
+          if (
+            (pick && pick.get_css_classes().includes("code-block")) ||
+            (pick && pick.get_css_classes().includes("code-block-text"))
+          ) {
+            return; // Don't copy message content if code block was clicked
+          }
+          execAsync(`wl-copy "${message.content}"`).catch(print);
+        }}
       >
-        <box class="main">
-          {message.sender !== "user"
-            ? [<Actions />, messageContent]
-            : [messageContent, <Actions />]}
-        </box>
-        {Revealer}
-      </box>
-    </Eventbox>
+        {/* <Actions $type="overlay" /> */}
+        {messageContent}
+      </Eventbox>
+
+      {Revealer}
+    </box>
   );
 };
 

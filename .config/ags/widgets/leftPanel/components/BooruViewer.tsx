@@ -179,6 +179,7 @@ const Images = () => {
                     hexpand
                     heightRequest={leftPanelWidth((w) => w / 2)}
                     class="image-button"
+                    tooltipText={"Click to Open"}
                   >
                     <Picture file={image.preview_path || ""}></Picture>
                     <popover>{dialog.getBox()}</popover>
@@ -474,17 +475,16 @@ export default () => {
     >
       <Apis />
 
-      <Images />
-
       <box orientation={Gtk.Orientation.VERTICAL}>
-        <BottomBar />
+        <Images />
         <Progress
           text={loadingText}
           revealed={isLoading}
-          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+          transitionType={Gtk.RevealerTransitionType.SWING_UP}
           custom_class="booru-progress"
         />
       </box>
+      <BottomBar />
     </box>
   );
 };

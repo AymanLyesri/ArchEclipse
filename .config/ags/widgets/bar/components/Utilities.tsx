@@ -200,7 +200,11 @@ function Tray() {
     <box class="system-tray">
       <For each={items}>
         {(item) => (
-          <menubutton class="tray-icon" $={(self) => init(self, item)}>
+          <menubutton
+            class="tray-icon"
+            $={(self) => init(self, item)}
+            tooltipText={item.tooltip_text}
+          >
             <image pixelSize={11} gicon={createBinding(item, "gicon")} />
           </menubutton>
         )}

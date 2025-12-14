@@ -45,13 +45,18 @@
     .expand {
       padding: 0px 5px;
       opacity: 0;
-    }
+      background-color: transparent;
 
-    .close {
-      @extend .danger;
-      &:not(:hover) {
-        background: transparent;
+      &:hover {
+        background-color: $background-semi-transparent;
       }
+
+      // &.close {
+      //   @extend .danger;
+      //   &:not(:hover) {
+      //     background: transparent;
+      //   }
+      // }
     }
 
     .time {

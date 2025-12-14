@@ -13,6 +13,7 @@ import Picture from "./Picture";
 import Gio from "gi://Gio";
 import Cava from "./Cava";
 import GLib from "gi://GLib?version=2.0";
+import Pango from "gi://Pango?version=1.0";
 
 function lengthStr(length: number) {
   const min = Math.floor(length / 60);
@@ -47,7 +48,7 @@ export default ({
   const title = (
     <label
       class="title"
-      maxWidthChars={20}
+      ellipsize={Pango.EllipsizeMode.END}
       halign={Gtk.Align.START}
       label={createBinding(player, "title")((t) => t || "Unknown Track")}
     ></label>
