@@ -22,9 +22,12 @@ import { booruApis } from "../../../constants/api.constants";
 import { ImageDialog } from "./ImageDialog";
 import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
+import { Progress } from "../../Progress";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
+const [isLoading, setIsLoading] = createState<boolean>(false);
+const [loadingText, setLoadingText] = createState<string>("Loading images...");
 
 const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 
@@ -66,7 +69,8 @@ const cleanUp = () => {
 
 const fetchImages = async () => {
   try {
-    // openProgress();
+    setIsLoading(true);
+    setLoadingText("Fetching images...");
     const escapedTags = booruTags
       .get()
       .map((tag) => tag.replace(/'/g, "'\\''"));
@@ -93,6 +97,8 @@ const fetchImages = async () => {
       notify({ summary: "Error", body: String(err) })
     );
 
+    setLoadingText(`Downloading ${newImages.length} images...`);
+
     // 5. Download images in parallel
     const downloadPromises = newImages.map((image) =>
       execAsync(
@@ -116,12 +122,12 @@ const fetchImages = async () => {
       );
       setImages(successfulDownloads);
       calculateCacheSize();
-      // closeProgress();
+      setIsLoading(false);
     });
   } catch (err) {
     console.error(err);
     notify({ summary: "Error", body: String(err) });
-    // closeProgress();
+    setIsLoading(false);
   }
 };
 const Apis = () => (
@@ -401,11 +407,9 @@ const BottomBar = () => {
       <button
         hexpand
         class="reveal-button"
-        label=""
+        label={bottomIsRevealed((revealed) => (!revealed ? "" : ""))}
         onClicked={(self) => {
-          const currentlyRevealed = bottomIsRevealed.get();
-          setBottomIsRevealed(!currentlyRevealed);
-          self.set_label(currentlyRevealed ? "" : "");
+          setBottomIsRevealed(!bottomIsRevealed.get());
         }}
       />
       <button
@@ -469,8 +473,18 @@ export default () => {
       }}
     >
       <Apis />
+
       <Images />
-      <BottomBar />
+
+      <box orientation={Gtk.Orientation.VERTICAL}>
+        <BottomBar />
+        <Progress
+          text={loadingText}
+          revealed={isLoading}
+          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+          custom_class="booru-progress"
+        />
+      </box>
     </box>
   );
 };

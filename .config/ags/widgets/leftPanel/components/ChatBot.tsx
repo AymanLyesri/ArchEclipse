@@ -16,7 +16,7 @@ import { chatBotApis } from "../../../constants/api.constants";
 import { Api } from "../../../interfaces/api.interface";
 import { createState, With } from "ags";
 import { Eventbox } from "../../Custom/Eventbox";
-import CustomRevealer from "../../CustomRevealer";
+import { Progress } from "../../Progress";
 
 // Constants
 const MESSAGE_FILE_PATH = "./assets/chatbot";
@@ -24,6 +24,10 @@ const MESSAGE_FILE_PATH = "./assets/chatbot";
 // State
 const [messages, setMessages] = createState<Message[]>([]);
 const [chatHistory, setChatHistory] = createState<Message[]>([]);
+
+// Progress State
+const [isLoading, setIsLoading] = createState<boolean>(false);
+const [loadingText, setLoadingText] = createState<string>("...");
 
 // Utils
 const getMessageFilePath = () =>
@@ -90,6 +94,11 @@ const saveMessages = () => {
 
 const sendMessage = async (message: Message) => {
   try {
+    setIsLoading(true);
+    setLoadingText(
+      chatBotImageGeneration.get() ? "Generating image..." : "Thinking..."
+    );
+
     const beginTime = Date.now();
 
     const imagePath = `./assets/chatbot/${chatBotApi.get().value}/images/${
@@ -126,7 +135,10 @@ const sendMessage = async (message: Message) => {
     };
 
     setMessages([...messages.get(), newMessage]);
+    setIsLoading(false);
   } catch (error) {
+    setLoadingText("Error occurred.");
+    setIsLoading(false);
     notify({
       summary: "Error",
       body: error instanceof Error ? error.message : String(error),
@@ -390,7 +402,15 @@ export default () => {
       <ApiList />
       <Info />
       <Messages />
-      <BottomBar />
+      <box orientation={Gtk.Orientation.VERTICAL}>
+        <Progress
+          text={loadingText}
+          revealed={isLoading}
+          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+          custom_class="booru-progress"
+        />
+        <BottomBar />
+      </box>
     </box>
   );
 };
