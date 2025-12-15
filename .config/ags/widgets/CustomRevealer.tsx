@@ -15,10 +15,10 @@ export default ({
   child: any;
   visible?: boolean | Accessor<boolean>;
   revealChild?: boolean | Accessor<boolean>;
-  custom_class?: string;
+  custom_class?: string | Accessor<string>;
   on_primary_click?: () => void;
 }) => {
-  const revealer: Gtk.Revealer = (
+  const revealer = (
     <revealer
       revealChild={revealChild}
       transitionDuration={globalTransition}
@@ -32,10 +32,10 @@ export default ({
       visible={visible}
       class={"custom-revealer " + custom_class}
       onHover={(self) => {
-        revealer.reveal_child = true;
+        (revealer as Gtk.Revealer).reveal_child = true;
       }}
       onHoverLost={() => {
-        revealer.reveal_child = false;
+        (revealer as Gtk.Revealer).reveal_child = false;
       }}
       onClick={() => on_primary_click()}
     >

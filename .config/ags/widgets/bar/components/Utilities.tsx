@@ -1,13 +1,16 @@
 import Brightness from "../../../services/brightness";
 const brightness = Brightness.get_default();
 import CustomRevealer from "../../CustomRevealer";
-import { Accessor, createBinding, createComputed } from "ags";
+import { Accessor, createBinding, createComputed, createState } from "ags";
 import { execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
 
 import Battery from "gi://AstalBattery";
 const battery = Battery.get_default();
+
+import Notifd from "gi://AstalNotifd";
+const notifd = Notifd.get_default();
 
 import Gtk from "gi://Gtk?version=4.0";
 import {
@@ -69,7 +72,7 @@ function BrightnessWidget() {
     <CustomRevealer
       trigger={label}
       child={slider}
-      visible={createComputed(() => brightness.screen != 0)}
+      visible={screen((s) => s != 0)}
     />
   );
 }
@@ -111,25 +114,14 @@ function Volume() {
 }
 
 function BatteryWidget() {
-  const percentage = createBinding(battery, "percentage");
+  const _percentage = createBinding(battery, "percentage");
   const charging = createBinding(battery, "charging");
-
-  // if (battery.percentage <= 0) return <box />;
 
   const label = (
     <label
-      class={createComputed(() => {
-        const isCharging = charging.get();
-        const value = percentage.get();
-        if (isCharging) {
-          return "trigger charging";
-        } else {
-          return value * 100 <= 15 ? "trigger low" : "trigger";
-        }
-      })}
       label={createComputed(() => {
         const isCharging = charging.get();
-        const p = percentage.get() * 100;
+        const p = _percentage.get() * 100;
         switch (true) {
           case isCharging:
             return "⚡";
@@ -152,32 +144,42 @@ function BatteryWidget() {
     />
   );
 
-  const info = (
-    <label label={percentage((p: number) => `${Math.round(p * 100)}%`)} />
+  const percentage = (
+    <label label={_percentage((p: number) => `${Math.round(p * 100)}%`)} />
   );
 
   const levelbar = (
     <levelbar
       widthRequest={100}
-      value={percentage((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
+      value={_percentage((v: number) =>
+        isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v
+      )}
     />
   );
 
   const box = (
     <box class={"details"} spacing={5}>
-      {info}
       {levelbar}
     </box>
   );
 
   return (
     <CustomRevealer
-      trigger={label}
+      trigger={
+        <box class="trigger" spacing={5} children={[label, percentage]} />
+      }
       child={box}
-      custom_class="battery"
+      custom_class={createComputed([charging, _percentage], (c, p) => {
+        const isCharging = c;
+        const value = p * 100;
+        if (isCharging) {
+          return "battery charging";
+        } else {
+          return value <= 15 ? "battery low" : "battery";
+        }
+      })}
       visible={createComputed(() => battery.percentage > 0)}
-      revealChild={createComputed(() => {
-        const v = percentage.get();
+      revealChild={_percentage((v) => {
         const isCharging = charging.get();
         return (v < 0.1 && !isCharging) || (v >= 0.95 && isCharging);
       })}
@@ -227,15 +229,37 @@ function PinBar() {
 }
 
 function DndToggle() {
+  const [hasPing, setHasPing] = createState(false);
+
+  // Listen for new notifications when DND is on
+  notifd.connect("notified", () => {
+    if (DND.get()) {
+      print("New notification while DND is on");
+      setHasPing(true);
+      // Reset ping after animation completes
+      setTimeout(() => setHasPing(false), 600);
+    }
+  });
+
+  // Reset ping when DND is turned off
+  const dndActive = DND((dnd) => {
+    if (!dnd) {
+      setHasPing(false);
+    }
+    return dnd;
+  });
+
   return (
     <togglebutton
-      active={DND}
+      active={dndActive}
       onToggled={({ active }) => {
         setDND(active);
       }}
-      class="dnd-toggle icon"
-      label={DND((dnd) => (dnd ? "" : ""))}
-    />
+      // class="dnd-toggle icon"
+      class={hasPing((ping) => (ping ? "dnd-toggle active" : "dnd-toggle"))}
+    >
+      <label label={DND((dnd) => (dnd ? "" : ""))}></label>
+    </togglebutton>
   );
 }
 
@@ -260,8 +284,8 @@ export default ({
 }) => {
   return (
     <box class="bar-right" spacing={5} halign={halign} hexpand>
-      {/* <BatteryWidget /> */}
-      {/* <BrightnessWidget /> */}
+      <BatteryWidget />
+      <BrightnessWidget />
       <Volume />
       <Tray />
       <Theme />

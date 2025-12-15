@@ -1,3 +1,4 @@
+import { Accessor } from "ags";
 import Gtk from "gi://Gtk?version=4.0";
 
 export const Eventbox = ({
@@ -8,35 +9,63 @@ export const Eventbox = ({
   onHoverLost = () => {},
   children = [],
 }: {
-  visible?: boolean;
-  class?: string;
+  visible?: boolean | Accessor<boolean>;
+  class?: string | Accessor<string>;
   onClick?: (self: Gtk.Box, n: number, x: number, y: number) => void;
   onHover?: (self: Gtk.Box) => void;
   onHoverLost?: (self: Gtk.Box) => void;
   children?: Gtk.Widget | Gtk.Widget[] | Object;
 }) => {
-  const box = new Gtk.Box({
-    visible,
-    css_classes: className ? className.split(" ").filter(Boolean) : [],
-  });
+  // const box = new Gtk.Box({
+  //   visible,
+  //   css_classes: className ? className.split(" ").filter(Boolean) : [],
+  // });
 
-  // Hover controller
-  const motion = new Gtk.EventControllerMotion();
-  motion.connect("enter", () => onHover(box));
-  motion.connect("leave", () => onHoverLost(box));
-  box.add_controller(motion);
+  // // Hover controller
+  // const motion = new Gtk.EventControllerMotion();
+  // motion.connect("enter", () => onHover(box));
+  // motion.connect("leave", () => onHoverLost(box));
+  // box.add_controller(motion);
 
-  // Click controller
-  const click = new Gtk.GestureClick();
-  click.connect("pressed", (_, n, x, y) => onClick(box, n, x, y));
-  box.add_controller(click);
+  // // Click controller
+  // const click = new Gtk.GestureClick();
+  // click.connect("pressed", (_, n, x, y) => onClick(box, n, x, y));
+  // box.add_controller(click);
 
-  // Normalize children (single, array, nested arrays)
-  const childArray = Array.isArray(children) ? children.flat(99) : [children];
+  // // Normalize children (single, array, nested arrays)
+  // const childArray = Array.isArray(children) ? children.flat(99) : [children];
 
-  for (const child of childArray) {
-    if (child) box.append(child);
-  }
+  // for (const child of childArray) {
+  //   if (child) box.append(child);
+  // }
+
+  const box = (
+    <box
+      visible={visible}
+      class={className}
+      $={(self) => {
+        // Hover controller
+        const motion = new Gtk.EventControllerMotion();
+        motion.connect("enter", () => onHover(self));
+        motion.connect("leave", () => onHoverLost(self));
+        self.add_controller(motion);
+
+        // Click controller
+        const click = new Gtk.GestureClick();
+        click.connect("pressed", (_, n, x, y) => onClick(self, n, x, y));
+        self.add_controller(click);
+
+        // Normalize children (single, array, nested arrays)
+        const childArray = Array.isArray(children)
+          ? children.flat(99)
+          : [children];
+
+        for (const child of childArray) {
+          if (child) self.append(child);
+        }
+      }}
+    />
+  );
 
   return box;
 };
