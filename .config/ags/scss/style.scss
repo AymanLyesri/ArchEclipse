@@ -22,21 +22,18 @@
 
 @import "widgets/resources.scss";
 @import "widgets/app-launcher.scss";
-@import "widgets/media-popups.scss";
-@import "widgets/media-widget.scss";
 @import "widgets/player.scss";
 @import "widgets/progress.scss";
 @import "widgets/calendar.scss";
-@import "widgets/update.scss";
 @import "widgets/settings-widget.scss";
 @import "widgets/wallpaper-switcher.scss";
 @import "widgets/user-panel.scss";
 @import "widgets/notification-history.scss";
 @import "widgets/osd.scss";
-@import "widgets/screen-shot.scss";
 @import "widgets/crypto.scss";
 @import "widgets/crypto-widget.scss";
 @import "widgets/cava.scss";
+@import "widgets/weather.scss";
 
 // Use the variables in the styles
 window {

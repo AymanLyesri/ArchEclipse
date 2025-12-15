@@ -26,6 +26,7 @@ import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
 import Cava from "../../Cava";
+import Weather from "../../Weather";
 
 const BANDWIDTH_POLL_MS = 2000; // bandwidth poll period (increase to reduce CPU)
 
@@ -190,58 +191,58 @@ function ClientTitle() {
     </revealer>
   );
 }
-function Weather() {
-  // Poll every 10 minutes (600,000 ms)
-  const weather = createPoll(
-    null,
-    600000,
-    [
-      "bash",
-      "-c",
-      `
-  LOC=$(curl -fsSL https://ipinfo.io/loc) || exit 1
-  LAT=\${LOC%,*}
-  LON=\${LOC#*,}
-  curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m"
-  `,
-    ],
-    (out) => {
-      try {
-        const parsed = JSON.parse(out);
-        return {
-          temp: parsed.current.temperature_2m,
-          temp_unit: parsed.current_units.temperature_2m,
-          wind: parsed.current.wind_speed_10m,
-          wind_unit: parsed.current_units.wind_speed_10m,
-        };
-      } catch (e) {
-        return null;
-      }
-    }
-  );
+// function Weather() {
+//   // Poll every 10 minutes (600,000 ms)
+//   const weather = createPoll(
+//     null,
+//     600000,
+//     [
+//       "bash",
+//       "-c",
+//       `
+//   LOC=$(curl -fsSL https://ipinfo.io/loc) || exit 1
+//   LAT=\${LOC%,*}
+//   LON=\${LOC#*,}
+//   curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m"
+//   `,
+//     ],
+//     (out) => {
+//       try {
+//         const parsed = JSON.parse(out);
+//         return {
+//           temp: parsed.current.temperature_2m,
+//           temp_unit: parsed.current_units.temperature_2m,
+//           wind: parsed.current.wind_speed_10m,
+//           wind_unit: parsed.current_units.wind_speed_10m,
+//         };
+//       } catch (e) {
+//         return null;
+//       }
+//     }
+//   );
 
-  const label = (
-    <label
-      class="weather"
-      ellipsize={Pango.EllipsizeMode.END}
-      // onDestroy={() => weather.drop()} // No drop in signals
-      label={weather((w) =>
-        w
-          ? `  ${w.temp} ${w.temp_unit} - ${w.wind} ${w.wind_unit}`
-          : "Weather N/A"
-      )}
-    />
-  );
-  return (
-    <Eventbox
-      onClick={() =>
-        GLib.spawn_command_line_async("xdg-open 'https://open-meteo.com/'")
-      }
-    >
-      {label}
-    </Eventbox>
-  );
-}
+//   const label = (
+//     <label
+//       class="weather"
+//       ellipsize={Pango.EllipsizeMode.END}
+//       // onDestroy={() => weather.drop()} // No drop in signals
+//       label={weather((w) =>
+//         w
+//           ? `  ${w.temp} ${w.temp_unit} - ${w.wind} ${w.wind_unit}`
+//           : "Weather N/A"
+//       )}
+//     />
+//   );
+//   return (
+//     <Eventbox
+//       onClick={() =>
+//         GLib.spawn_command_line_async("xdg-open 'https://open-meteo.com/'")
+//       }
+//     >
+//       {label}
+//     </Eventbox>
+//   );
+// }
 
 export default ({
   monitorName,
@@ -254,6 +255,7 @@ export default ({
     <box class="bar-middle" spacing={5} halign={halign}>
       <Mpris />
       <Clock />
+      {/* <Weather /> */}
       <Weather />
       <Bandwidth />
       <ClientTitle />
