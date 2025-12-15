@@ -23,6 +23,7 @@ import { ImageDialog } from "./ImageDialog";
 import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
 import { Progress } from "../../Progress";
+import { connectPopoverEvents } from "../../../utils/window";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -180,6 +181,7 @@ const Images = () => {
                     heightRequest={leftPanelWidth((w) => w / 2)}
                     class="image-button"
                     tooltipText={"Click to Open"}
+                    $={(self) => connectPopoverEvents(self)}
                   >
                     <Picture file={image.preview_path || ""}></Picture>
                     <popover>{dialog.getBox()}</popover>

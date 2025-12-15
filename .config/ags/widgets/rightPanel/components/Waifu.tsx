@@ -13,17 +13,15 @@ import {
 import Gtk from "gi://Gtk?version=4.0";
 import { getSetting, setSetting } from "../../../utils/settings";
 import { notify } from "../../../utils/notification";
-import { closeProgress, openProgress } from "../../Progress";
 import { Api } from "../../../interfaces/api.interface";
-import hyprland from "gi://AstalHyprland";
 import { Waifu } from "../../../interfaces/waifu.interface";
 import { readJson } from "../../../utils/json";
 import { booruApis } from "../../../constants/api.constants";
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
-import { Eventbox } from "../../Custom/Eventbox";
-import Gio from "gi://Gio?version=2.0";
 import Picture from "../../Picture";
+import { Progress } from "../../Progress";
 const waifuDir = "./assets/booru/waifu";
+const [waifuLoading, setWaifuLoading] = createState<boolean>(false);
 
 const fetchImage = async (image: Waifu, saveDir: string) => {
   const url = image.url!;
@@ -42,7 +40,7 @@ const fetchImage = async (image: Waifu, saveDir: string) => {
 };
 
 const GetImageByid = async (id: number) => {
-  // openProgress();
+  setWaifuLoading(true);
   try {
     const res = await execAsync(
       `python ./scripts/search-booru.py 
@@ -59,14 +57,16 @@ const GetImageByid = async (id: number) => {
           url_path: waifuDir + "/waifu.webp",
           api: waifuApi.get(),
         });
+        setWaifuLoading(false);
       })
       .catch(() => {
         print("Failed to fetch image");
+        setWaifuLoading(false);
       });
-    // closeProgress();
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
     print("Error fetching waifu by ID:", err);
+    setWaifuLoading(false);
   }
 };
 
@@ -229,6 +229,7 @@ function Actions() {
           }}
         />
       }
+      <Progress text={"Image Loading..."} revealed={waifuLoading} />
       {actions}
     </box>
   );
@@ -245,7 +246,7 @@ function Image() {
     [waifuCurrent, rightPanelWidth],
     (current, width) => {
       print("Waifu Image Dimensions:", current.width, "x", current.height);
-      return (Number(current.height) / Number(current.width)) * (width - 50);
+      return (Number(current.height) / Number(current.width)) * width;
     }
   );
 

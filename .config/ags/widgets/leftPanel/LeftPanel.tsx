@@ -16,10 +16,10 @@ import {
   setLeftPanelExclusivity,
   setLeftPanelLock,
 } from "../../variables";
-import { createBinding, createState, With } from "ags";
+import { createBinding, createState, Node, With } from "ags";
 import { Eventbox } from "../Custom/Eventbox";
 import { getMonitorName } from "../../utils/monitor";
-import { hideWindow, WindowActions } from "../../utils/window";
+import { hideWindow, WindowActions, Window } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 
 const WidgetActions = () => {
@@ -77,6 +77,7 @@ function Panel({ monitorName }: { monitorName: string }) {
         class="main-content"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
+        widthRequest={leftPanelWidth}
       >
         <With value={leftPanelWidget}>
           {(widget) => {
@@ -95,13 +96,6 @@ function Panel({ monitorName }: { monitorName: string }) {
           }}
         </With>
       </box>
-      <Eventbox
-        onHoverLost={() => {
-          if (!leftPanelLock.get()) setLeftPanelVisibility(false);
-        }}
-      >
-        <box css="min-width: 5px;" />
-      </Eventbox>
     </box>
   );
 }
@@ -136,12 +130,31 @@ export default (monitor: Gdk.Monitor) => {
       )}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={leftPanelVisibility}
-      widthRequest={leftPanelWidth}
       $={(self) => {
+        let hideTimeout: NodeJS.Timeout | null = null;
+        const windowInstance = new Window();
+        (self as any).leftPanelWindow = windowInstance;
+
         const motion = new Gtk.EventControllerMotion();
+
         motion.connect("leave", () => {
-          if (!leftPanelLock.get()) setLeftPanelVisibility(false);
+          if (leftPanelLock.get()) return;
+
+          hideTimeout = setTimeout(() => {
+            hideTimeout = null;
+            if (!leftPanelLock.get() && !windowInstance.popupIsOpen()) {
+              setLeftPanelVisibility(false);
+            }
+          }, 500);
         });
+
+        motion.connect("enter", () => {
+          if (hideTimeout !== null) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
+        });
+
         self.add_controller(motion);
       }}
     >

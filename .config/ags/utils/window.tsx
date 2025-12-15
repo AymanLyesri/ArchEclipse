@@ -3,6 +3,22 @@ import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib";
 import { Accessor, createComputed } from "ags";
 
+/**
+ * Window utility class for managing popup state
+ *
+ * Usage:
+ * 1. Create Window instance in your panel component and store it on a parent box:
+ *    $={(self) => { (self as any).windowPropertyName = new Window(); }}
+ *
+ * 2. In widgets with popovers, call connectPopoverEvents in the $ property:
+ *    <menubutton $={(self) => connectPopoverEvents(self, "windowPropertyName")}>>
+ *      <popover>...</popover>
+ *    </menubutton>
+ *
+ * 3. Check popup state before hiding panel on leave event:
+ *    if (!lock.get() && !windowInstance.popupIsOpen()) { hidePanel(); }
+ */
+
 export const hideWindow = (name: string) => app.get_window(name)?.hide();
 export const showWindow = (name: string) => app.get_window(name)?.show();
 export const queueResize = (name: string) => {
@@ -18,6 +34,72 @@ export const queueResize = (name: string) => {
         return GLib.SOURCE_REMOVE;
       });
     }
+  }
+};
+
+class Window {
+  private _popupIsOpen: boolean = false;
+
+  constructor() {}
+
+  public popupIsOpen(): boolean {
+    return this._popupIsOpen;
+  }
+
+  public setPopupIsOpen(value: boolean): void {
+    this._popupIsOpen = value;
+  }
+}
+
+export { Window };
+
+/**
+ * Helper function to connect popover events to window popup state
+ * Call this in the $ property of a menubutton or any widget with a popover
+ */
+export const connectPopoverEvents = (
+  self: Gtk.MenuButton,
+  windowPropertyName: string = "leftPanelWindow"
+) => {
+  // Find the window instance from parent chain
+  const findWindowInstance = () => {
+    let parent = self.get_parent();
+    let windowInstance = null;
+    while (parent && !windowInstance) {
+      windowInstance = (parent as any)[windowPropertyName];
+      parent = parent.get_parent();
+    }
+    return windowInstance;
+  };
+
+  // Try to connect immediately if popover exists
+  const tryConnect = () => {
+    const popover = self.get_popover();
+    if (popover) {
+      const windowInstance = findWindowInstance();
+      if (windowInstance && windowInstance.setPopupIsOpen) {
+        print("Connecting popover events");
+        popover.connect("show", () => {
+          print("Popover shown");
+          windowInstance.setPopupIsOpen(true);
+        });
+        popover.connect("closed", () => {
+          print("Popover closed");
+          windowInstance.setPopupIsOpen(false);
+        });
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Try immediately
+  if (!tryConnect()) {
+    // If popover not ready, use idle_add to try after widget tree is built
+    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+      tryConnect();
+      return GLib.SOURCE_REMOVE;
+    });
   }
 };
 

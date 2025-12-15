@@ -101,6 +101,7 @@ function Panel({ monitorName }: { monitorName: string }) {
         class="main-content"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
+        widthRequest={rightPanelWidth} // ignore action section
       >
         <For each={selectedWidgets}>
           {(widget) => {
@@ -150,12 +151,29 @@ export default (monitor: Gdk.Monitor) => {
       )}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={rightPanelVisibility}
-      widthRequest={rightPanelWidth}
       $={(self) => {
+        let hideTimeout: NodeJS.Timeout | null = null;
+
         const motion = new Gtk.EventControllerMotion();
+
         motion.connect("leave", () => {
-          if (!rightPanelLock.get()) setRightPanelVisibility(false);
+          if (rightPanelLock.get()) return;
+
+          hideTimeout = setTimeout(() => {
+            hideTimeout = null;
+            if (!rightPanelLock.get()) {
+              setRightPanelVisibility(false);
+            }
+          }, 500);
         });
+
+        motion.connect("enter", () => {
+          if (hideTimeout !== null) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
+        });
+
         self.add_controller(motion);
       }}
     >

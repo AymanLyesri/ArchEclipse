@@ -1,7 +1,13 @@
 import Brightness from "../../../services/brightness";
 const brightness = Brightness.get_default();
 import CustomRevealer from "../../CustomRevealer";
-import { Accessor, createBinding, createComputed, createState } from "ags";
+import {
+  Accessor,
+  createBinding,
+  createComputed,
+  createState,
+  With,
+} from "ags";
 import { execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
@@ -189,6 +195,7 @@ function BatteryWidget() {
 function Tray() {
   const tray = AstalTray.get_default();
   const items = createBinding(tray, "items");
+  const MAX_VISIBLE = 3;
 
   const init = (btn: Gtk.MenuButton, item: AstalTray.TrayItem) => {
     btn.menuModel = item.menuModel;
@@ -198,19 +205,64 @@ function Tray() {
     });
   };
 
+  const visibleItems = items((itemList) => itemList.slice(0, MAX_VISIBLE));
+  const hiddenItems = items((itemList) => itemList.slice(MAX_VISIBLE));
+  const hasHidden = items((itemList) => itemList.length > MAX_VISIBLE);
+
   return (
     <box class="system-tray">
-      <For each={items}>
-        {(item) => (
-          <menubutton
-            class="tray-icon"
-            $={(self) => init(self, item)}
-            tooltipText={item.tooltip_text}
-          >
-            <image pixelSize={11} gicon={createBinding(item, "gicon")} />
-          </menubutton>
-        )}
-      </For>
+      <box spacing={2}>
+        <For each={visibleItems}>
+          {(item) => (
+            <menubutton
+              class="tray-icon"
+              $={(self) => init(self, item)}
+              tooltipText={item.tooltip_text}
+            >
+              <image pixelSize={11} gicon={createBinding(item, "gicon")} />
+            </menubutton>
+          )}
+        </For>
+      </box>
+      <box spacing={2}>
+        <With value={hasHidden}>
+          {(hidden) =>
+            hidden && (
+              <menubutton
+                class="tray-icon tray-overflow"
+                tooltipText="More icons"
+              >
+                <image pixelSize={11} iconName="view-more-symbolic" />
+                <popover>
+                  <box
+                    class="tray-popover"
+                    orientation={Gtk.Orientation.VERTICAL}
+                    spacing={5}
+                  >
+                    <For each={hiddenItems}>
+                      {(item) => (
+                        <menubutton
+                          class="tray-icon"
+                          $={(self) => init(self, item)}
+                          tooltipText={item.tooltip_text}
+                        >
+                          <box spacing={8}>
+                            <image
+                              pixelSize={11}
+                              gicon={createBinding(item, "gicon")}
+                            />
+                            <label label={item.tooltip_text} xalign={0} />
+                          </box>
+                        </menubutton>
+                      )}
+                    </For>
+                  </box>
+                </popover>
+              </menubutton>
+            )
+          }
+        </With>
+      </box>
     </box>
   );
 }

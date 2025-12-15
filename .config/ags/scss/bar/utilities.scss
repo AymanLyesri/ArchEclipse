@@ -50,7 +50,7 @@
 
 .dnd-toggle {
   // opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.6s ease;
   animation: ping-background 0.6s ease-in-out;
 
   &.active {
@@ -87,12 +87,12 @@
 }
 
 @keyframes ping-background {
-  0%,
-  100% {
-    background-color: $background-semi-transparent;
+  0% {
   }
   50% {
-    background-color: $red;
+    background-color: $background-transparent;
+  }
+  100% {
   }
 }
 
