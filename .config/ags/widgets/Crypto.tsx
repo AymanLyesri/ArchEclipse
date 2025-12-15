@@ -165,11 +165,11 @@ function Crypto({
                 transitionType={Gtk.RevealerTransitionType.NONE}
               />
             ) : (
-              <box>
+              <box spacing={2}>
                 {showPrice && (
-                  <box>
+                  <box spacing={2}>
                     <label class="crypto-symbol" label={symbol.toUpperCase()} />
-                    <box class="spacer" hexpand />
+
                     <label class="crypto-price" label={formattedPrice} />
                     {/* <label
                     class={colorClass((c) => `crypto-change ${c}`)}
@@ -180,7 +180,6 @@ function Crypto({
 
                 {showGraph && (
                   <label
-                    valign={Gtk.Align.END}
                     class={colorClass((c) => `crypto-graph mono ${c}`)}
                     label={graph}
                     xalign={0}
