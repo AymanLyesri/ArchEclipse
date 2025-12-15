@@ -8,16 +8,16 @@ import {
   date_more,
   dateFormat,
   setDateFormat,
-  emptyWorkspace,
   focusedClient,
   globalTransition,
+  pingedCrypto,
+  setPingedCrypto,
 } from "../../../variables";
-import { Accessor, createBinding, createComputed, createState, For } from "ags";
+import { Accessor, createBinding, For, With } from "ags";
 import { createPoll } from "ags/time";
 import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib?version=2.0";
 import CustomRevealer from "../../CustomRevealer";
-import { showWindow } from "../../../utils/window";
 import { dateFormats } from "../../../constants/date.constants";
 import AstalMpris from "gi://AstalMpris";
 import AstalApps from "gi://AstalApps";
@@ -257,7 +257,26 @@ export default ({
       <Weather />
       <Bandwidth />
       <ClientTitle />
-      {/* <Crypto /> */}
+      <With value={pingedCrypto}>
+        {(crypto) =>
+          crypto.symbol != "" ? (
+            <Eventbox
+              tooltipText={"click to remove"}
+              onClick={() => setPingedCrypto({ symbol: "", timeframe: "" })}
+            >
+              <Crypto
+                symbol={crypto.symbol}
+                timeframe={crypto.timeframe}
+                showPrice={true}
+                showGraph={true}
+                orientation={Gtk.Orientation.HORIZONTAL}
+              />
+            </Eventbox>
+          ) : (
+            <box />
+          )
+        }
+      </With>
     </box>
   );
 };

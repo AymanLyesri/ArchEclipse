@@ -78,4 +78,10 @@ export interface Settings {
     lock: boolean;
     widget: WidgetSelector;
   };
+  crypto: {
+    favorite: {
+      symbol: string;
+      timeframe: string;
+    };
+  };
 }

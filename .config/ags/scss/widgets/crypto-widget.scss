@@ -4,4 +4,20 @@
     @extend .module;
     background: $background-semi-transparent;
   }
+
+  .crypto-entry-actions {
+    button {
+      border-radius: 0px;
+      padding: 0px 5px;
+    }
+    button:first-child {
+      border-radius: 5px 0px 0px 5px;
+    }
+    button:last-child {
+      border-radius: 0px 5px 5px 0px;
+    }
+    button:only-child {
+      border-radius: 5px;
+    }
+  }
 }

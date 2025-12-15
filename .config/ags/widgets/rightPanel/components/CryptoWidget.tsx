@@ -1,11 +1,17 @@
 import Gtk from "gi://Gtk?version=4.0";
 import { createState, For, With } from "ags";
 import { execAsync } from "ags/process";
-import { globalTransition } from "../../../variables";
+import {
+  globalSettings,
+  globalTransition,
+  rightPanelWidth,
+  setPingedCrypto,
+} from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { readJSONFile, writeJSONFile } from "../../../utils/json";
 import { Eventbox } from "../../Custom/Eventbox";
 import Crypto from "../../Crypto";
+import { setSetting } from "../../../utils/settings";
 
 // Interfaces
 interface CryptoEntry {
@@ -133,20 +139,22 @@ const CryptoForm = ({
 
       <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
         <label class="form-label" label="Timeframe" halign={Gtk.Align.START} />
-        <box class="timeframe-selector" spacing={4}>
-          {timeframes.map((tf) => (
-            <togglebutton
-              class="timeframe-btn"
-              label={tf}
-              active={selectedTimeframe((current) => current === tf)}
-              onToggled={(self) => {
-                if (self.active) {
-                  setSelectedTimeframe(tf);
-                }
-              }}
-            />
-          ))}
-        </box>
+        <scrolledwindow>
+          <box class="timeframe-selector" spacing={4} vexpand={false}>
+            {timeframes.map((tf) => (
+              <togglebutton
+                class="timeframe-btn"
+                label={tf}
+                active={selectedTimeframe((current) => current === tf)}
+                onToggled={(self) => {
+                  if (self.active) {
+                    setSelectedTimeframe(tf);
+                  }
+                }}
+              />
+            ))}
+          </box>
+        </scrolledwindow>
       </box>
 
       <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
@@ -207,6 +215,14 @@ const CryptoEntryItem = ({ entry }: { entry: CryptoEntry }) => {
     setShowAddForm(true);
   };
 
+  const pingEntry = () => {
+    setPingedCrypto({ symbol: entry.symbol, timeframe: entry.timeframe });
+    notify({
+      summary: "Crypto Display",
+      body: `${entry.symbol.toUpperCase()} pinned to top bar`,
+    });
+  };
+
   return (
     <Eventbox
       class="crypto-entry-eventbox"
@@ -220,17 +236,20 @@ const CryptoEntryItem = ({ entry }: { entry: CryptoEntry }) => {
       >
         <box class="crypto-entry-header">
           <box class="crypto-entry-info">
-            <label
+            {/* <label
               class="crypto-symbol"
               label={entry.symbol.toUpperCase()}
               hexpand
               halign={Gtk.Align.START}
-            />
+            /> */}
 
-            <box spacing={5}>
-              <label class="crypto-timeframe" label={entry.timeframe} />
-            </box>
+            <label
+              class="crypto-timeframe"
+              label={entry.timeframe + " timeframe"}
+            />
           </box>
+
+          <box hexpand />
 
           <revealer
             revealChild={isHovered}
@@ -238,19 +257,26 @@ const CryptoEntryItem = ({ entry }: { entry: CryptoEntry }) => {
             transitionDuration={globalTransition}
           >
             <box class="crypto-entry-actions">
-              <button label="✏" onClicked={editEntry} />
+              <button label="" onClicked={pingEntry} />
+              <button label="" onClicked={editEntry} />
               <button label="✕" onClicked={deleteEntry} />
             </box>
           </revealer>
         </box>
 
         <box class="crypto-widget-container">
-          <Crypto
-            symbol={entry.symbol}
-            timeframe={entry.timeframe}
-            showPrice={entry.showPrice}
-            showGraph={entry.showGraph}
-          />
+          <With value={rightPanelWidth}>
+            {(width) => (
+              <Crypto
+                symbol={entry.symbol}
+                timeframe={entry.timeframe}
+                showPrice={entry.showPrice}
+                showGraph={entry.showGraph}
+                barNumber={Math.floor(width / 15)}
+                orientation={Gtk.Orientation.VERTICAL}
+              />
+            )}
+          </With>
         </box>
       </box>
     </Eventbox>

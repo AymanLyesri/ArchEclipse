@@ -15,6 +15,7 @@
   }
 
   &.popup {
+    min-width: 250px;
     &:hover {
       background-color: $background-secondary;
     }

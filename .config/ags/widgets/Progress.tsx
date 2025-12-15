@@ -80,11 +80,9 @@ export const Progress = ({
       transitionDuration={globalTransition}
       transitionType={transitionType}
     >
-      <box class="progress" spacing={5}>
+      <box class="progress" spacing={5} hexpand>
         <box class="progress-content">
-          <label class="progress-text" label=">>" />
           <label class="progress-text" label={text} />
-          <label class="progress-text" label="<<" />
         </box>
         <LoadingBarsLabel />
       </box>

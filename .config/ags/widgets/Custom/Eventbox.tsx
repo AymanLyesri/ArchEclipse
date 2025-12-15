@@ -8,6 +8,7 @@ export const Eventbox = ({
   onHover = () => {},
   onHoverLost = () => {},
   children = [],
+  tooltipText = "",
 }: {
   visible?: boolean | Accessor<boolean>;
   class?: string | Accessor<string>;
@@ -15,6 +16,7 @@ export const Eventbox = ({
   onHover?: (self: Gtk.Box) => void;
   onHoverLost?: (self: Gtk.Box) => void;
   children?: Gtk.Widget | Gtk.Widget[] | Object;
+  tooltipText?: string | Accessor<string>;
 }) => {
   // const box = new Gtk.Box({
   //   visible,
@@ -41,6 +43,7 @@ export const Eventbox = ({
 
   const box = (
     <box
+      tooltipText={tooltipText}
       visible={visible}
       class={className}
       $={(self) => {

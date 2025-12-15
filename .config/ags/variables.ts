@@ -374,3 +374,24 @@ function setScreenShotVisibility(value: boolean) {
   }
 }
 export { screenShotVisibility, setScreenShotVisibility };
+
+const [pingedCrypto, _setPingedCrypto] = createState<{
+  symbol: string;
+  timeframe: string;
+}>(getSetting("crypto.favorite", globalSettings.get()));
+function setPingedCrypto({
+  symbol,
+  timeframe,
+}: {
+  symbol: string;
+  timeframe: string;
+}) {
+  _setPingedCrypto({ symbol, timeframe });
+  setSetting(
+    "crypto.favorite",
+    { symbol, timeframe },
+    globalSettings,
+    setGlobalSettings
+  );
+}
+export { pingedCrypto, setPingedCrypto };

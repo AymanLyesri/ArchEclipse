@@ -99,4 +99,10 @@ export const defaultSettings: Settings = {
     limit: Math.round(20 * phi_min), // 20 → 20*0.618 ≈ 12
     page: 1,
   },
+  crypto: {
+    favorite: {
+      symbol: "btc",
+      timeframe: "7d",
+    },
+  },
 };

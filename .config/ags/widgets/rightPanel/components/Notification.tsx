@@ -10,6 +10,7 @@ import { notify } from "../../../utils/notification";
 import { asyncSleep, time } from "../../../utils/time";
 import { Eventbox } from "../../Custom/Eventbox";
 import Pango from "gi://Pango?version=1.0";
+import Picture from "../../Picture";
 const Hyprland = hyprland.get_default();
 
 // const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
@@ -25,16 +26,17 @@ function NotificationIcon(n: Notifd.Notification) {
     return <image class="icon" iconName={"dialog-information-symbolic"} />;
 
   return (
-    <box
-      class="image"
-      css={`
-        background-image: url("${notificationIcon}");
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
-        border-radius: 10px;
-      `}
-    />
+    // <box
+    //   class="image"
+    //   css={`
+    //     background-image: url("${notificationIcon}");
+    //     background-size: cover;
+    //     background-repeat: no-repeat;
+    //     background-position: center;
+    //     border-radius: 10px;
+    //   `}
+    // />
+    <Picture file={notificationIcon} class="icon" />
   );
 }
 
@@ -90,7 +92,7 @@ export default ({
   }
 
   const icon = (
-    <box valign={Gtk.Align.START} halign={Gtk.Align.CENTER} class="icon">
+    <box valign={Gtk.Align.CENTER} halign={Gtk.Align.CENTER} class="icon">
       {NotificationIcon(n)}
     </box>
   );
@@ -230,7 +232,6 @@ export default ({
       class={`notification ${n.urgency} ${n.app_name}`}
       hexpand
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}
     >
       {topBar}
       <box spacing={5}>

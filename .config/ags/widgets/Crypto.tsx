@@ -1,25 +1,25 @@
-import { Accessor, createBinding, createState } from "ags";
+import { Accessor, createBinding, createState, With } from "ags";
 import { createPoll } from "ags/time";
 import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib?version=2.0";
 import { Eventbox } from "./Custom/Eventbox";
+import { Progress } from "./Progress";
 
 // Bar characters for the graph ▁ ▂ ▃ ▄ ▅ ▆ ▇ █
 const BARS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
 
 // Configuration
-const MAX_POINTS = 20; // Number of points to display in the graph
 const POLL_INTERVAL = 60000; // Poll every 60 seconds (adjust as needed)
 
-function updateGraph(prices: number[]): string {
-  if (prices.length === 0) return "▁".repeat(MAX_POINTS);
+function updateGraph(prices: number[], maxPoints: number): string {
+  if (prices.length === 0) return "▁".repeat(maxPoints);
 
-  // Take the last MAX_POINTS prices
-  const recentPrices = prices.slice(-MAX_POINTS);
+  // Take the last maxPoints prices
+  const recentPrices = prices.slice(-maxPoints);
 
   // Pad if needed
   const paddedPrices = [
-    ...Array(MAX_POINTS - recentPrices.length).fill(recentPrices[0] || 0),
+    ...Array(maxPoints - recentPrices.length).fill(recentPrices[0] || 0),
     ...recentPrices,
   ];
 
@@ -49,12 +49,16 @@ function Crypto({
   timeframe = "7d",
   showPrice = true,
   showGraph = true,
+  orientation = Gtk.Orientation.VERTICAL,
+  barNumber = 10,
 }: {
   symbol?: string;
   timeframe?: string;
   showPrice?: boolean;
   showGraph?: boolean;
-} = {}) {
+  orientation?: Gtk.Orientation;
+  barNumber?: number;
+}) {
   // State for prices and current value
   const [getPrices, setPrices] = createState<number[]>([]);
   const [getCurrentPrice, setCurrentPrice] = createState<number>(0);
@@ -65,7 +69,7 @@ function Crypto({
 
   // Create the graph string from prices
   //   const graph = createComputed(() => updateGraph(getPrices.get()));
-  const graph = getPrices((prices) => updateGraph(prices));
+  const graph = getPrices((prices) => updateGraph(prices, barNumber));
 
   // Determine color based on trend
   //   const colorClass = createComputed(() => trendColor(getPrices.get()));
@@ -142,30 +146,51 @@ function Crypto({
         // Optional: Show tooltip or additional info on hover
       }}
     >
-      <box class={colorClass((c) => `crypto ${c}`)} spacing={4}>
+      <box
+        class={colorClass((c) => `crypto ${c}`)}
+        spacing={4}
+        orientation={orientation}
+      >
         {/* Hidden label to ensure cryptoPoll runs */}
+
         <label visible={false} label={cryptoPoll(() => "")} />
 
-        {showPrice && (
-          <box spacing={2}>
-            <label class="crypto-symbol" label={symbol.toUpperCase()} />
-            <label class="crypto-price" label={formattedPrice} />
-            {/* <label
-              class={colorClass((c) => `crypto-change ${c}`)}
-              label={formattedChange}
-            /> */}
-          </box>
-        )}
+        <With value={getCurrentPrice}>
+          {(price) =>
+            price === 0 ? (
+              <Progress
+                text="Loading..."
+                revealed={true}
+                custom_class="crypto-loading"
+                transitionType={Gtk.RevealerTransitionType.NONE}
+              />
+            ) : (
+              <box>
+                {showPrice && (
+                  <box>
+                    <label class="crypto-symbol" label={symbol.toUpperCase()} />
+                    <box class="spacer" hexpand />
+                    <label class="crypto-price" label={formattedPrice} />
+                    {/* <label
+                    class={colorClass((c) => `crypto-change ${c}`)}
+                    label={formattedChange}
+                  /> */}
+                  </box>
+                )}
 
-        {showGraph && (
-          <label
-            valign={Gtk.Align.END}
-            class={colorClass((c) => `crypto-graph mono ${c}`)}
-            label={graph}
-            xalign={0}
-            hexpand={false}
-          />
-        )}
+                {showGraph && (
+                  <label
+                    valign={Gtk.Align.END}
+                    class={colorClass((c) => `crypto-graph mono ${c}`)}
+                    label={graph}
+                    xalign={0}
+                    hexpand={false}
+                  />
+                )}
+              </box>
+            )
+          }
+        </With>
       </box>
     </Eventbox>
   );
