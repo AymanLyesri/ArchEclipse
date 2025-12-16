@@ -1,0 +1,44 @@
+.bandwidth {
+  .bandwidth-popover {
+    min-width: 400px;
+  }
+
+  .bandwidth-heading {
+    @extend .module;
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  .bandwidth-section {
+    color: $foreground;
+    border-radius: 10px;
+    background: $background-transparent;
+    padding: 20px;
+    &:hover {
+      background-color: $background-secondary;
+    }
+  }
+
+  .bandwidth-subheading {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .bandwidth-detail {
+    justify-content: space-around;
+  }
+
+  .bandwidth-item {
+    align-items: center;
+  }
+
+  .bandwidth-label {
+    font-size: 11px;
+  }
+
+  .bandwidth-value {
+    font-size: 13px;
+    font-weight: bold;
+  }
+}

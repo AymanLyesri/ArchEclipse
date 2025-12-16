@@ -53,19 +53,7 @@
     }
   }
 
-  .bandwidth {
-    @extend .module;
-
-    .bandwidth-total {
-      padding: 0px 5px;
-    }
-  }
-
   .client-title {
-    @extend .module;
-  }
-
-  .weather {
     @extend .module;
   }
 }
