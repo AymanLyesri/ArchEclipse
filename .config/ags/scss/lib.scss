@@ -14,7 +14,7 @@
   border-radius: 10px;
   font-size: $FONT-SIZE;
   text-shadow: none;
-  padding: $SCALE / $phi;
+  // padding: ($SCALE - 5) / 5 $SCALE / 1.5;
   margin: 0;
 }
 

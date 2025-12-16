@@ -31,6 +31,7 @@ export default () => {
     hourly: any;
   }
   // Poll every 10 minutes (600,000 ms)
+  print(``);
   const weather = createPoll(
     null,
     600000,
@@ -38,10 +39,14 @@ export default () => {
       "bash",
       "-c",
       `
-  LOC=$(curl -fsSL https://ipinfo.io/loc) || exit 1
+  LOC="$(
+  curl -fsSL https://ipapi.co/latlong ||
+  curl -fsSL https://ifconfig.co/coordinates ||
+  curl -fsSL https://ipinfo.io/loc
+)" || exit 1
   LAT=\${LOC%,*}
   LON=\${LOC#*,}
-  curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2"
+  curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2"
   `,
     ],
     (out) => {
@@ -182,7 +187,7 @@ export default () => {
   });
 
   return (
-    <menubutton>
+    <menubutton class={"weather"}>
       <box class="weather-button" spacing={5} tooltipText={"click to open"}>
         <label label={weatherIcon} />
         <label label={currentWeatherLabel} />
@@ -209,12 +214,8 @@ export default () => {
               const today = w.daily;
 
               return (
-                <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
-                  <box
-                    class="current-weather-main"
-                    spacing={12}
-                    halign={Gtk.Align.CENTER}
-                  >
+                <box orientation={Gtk.Orientation.VERTICAL} spacing={12}>
+                  <box class="weather-section" spacing={12}>
                     <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
                       <label class={"weather-icon-large"} label={weatherIcon} />
                       <label
@@ -264,7 +265,11 @@ export default () => {
                     </box>
                   </box>
 
-                  <box orientation={Gtk.Orientation.VERTICAL} spacing={6}>
+                  <box
+                    class={"weather-section"}
+                    orientation={Gtk.Orientation.VERTICAL}
+                    spacing={12}
+                  >
                     <label
                       class="weather-subheading"
                       label="Today's Forecast"
@@ -319,6 +324,72 @@ export default () => {
                         />
                       </box>
                     </box>
+                  </box>
+
+                  <box
+                    class={"weather-section"}
+                    orientation={Gtk.Orientation.VERTICAL}
+                    spacing={12}
+                  >
+                    <label class="weather-subheading" label="Hourly Forecast" />
+                    <scrolledwindow
+                      hscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
+                      vscrollbarPolicy={Gtk.PolicyType.NEVER}
+                      heightRequest={100}
+                    >
+                      <box class="hourly-forecast" spacing={8}>
+                        {(() => {
+                          const now = new Date();
+                          const currentHour = now.getHours();
+                          const hourlyData = w.hourly;
+
+                          // Show next 12 hours
+                          const hours = [];
+                          for (let i = 0; i < 12; i++) {
+                            const hourIndex = currentHour + i;
+                            if (hourIndex >= hourlyData.time.length) break;
+
+                            const time = new Date(hourlyData.time[hourIndex]);
+                            const temp = hourlyData.temperature_2m?.[hourIndex];
+                            const weatherCode =
+                              hourlyData.weather_code?.[hourIndex];
+                            const precipitation =
+                              hourlyData.precipitation?.[hourIndex] || 0;
+
+                            // Get icon for this hour
+                            let hourIcon = weatherIcon;
+
+                            hours.push(
+                              <box
+                                class="hourly-item"
+                                orientation={Gtk.Orientation.VERTICAL}
+                                spacing={4}
+                              >
+                                <label
+                                  class="hourly-time"
+                                  label={time.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                />
+                                <label class="hourly-icon" label={hourIcon} />
+                                <label
+                                  class="hourly-temp"
+                                  label={temp ? `${Math.round(temp)}°` : "N/A"}
+                                />
+                                {precipitation > 0 && (
+                                  <label
+                                    class="hourly-precipitation"
+                                    label={`${precipitation}mm`}
+                                  />
+                                )}
+                              </box>
+                            );
+                          }
+                          return hours;
+                        })()}
+                      </box>
+                    </scrolledwindow>
                   </box>
 
                   <Eventbox

@@ -1,72 +1,80 @@
-.weather-popover {
-  @extend .module;
-  min-width: 300px;
-  min-height: 300px;
-  padding: 10px;
-  &:hover {
-    background-color: $background-secondary;
+.weather {
+  .weather-popover {
+    min-width: 500px;
   }
-}
 
-.weather-heading {
-  font-weight: bold;
-  font-size: 16px;
-}
+  .weather-heading {
+    @extend .module;
+    font-weight: bold;
+    font-size: 16px;
+  }
 
-.weather-subheading {
-  font-weight: bold;
-  font-size: 14px;
-  margin-top: 8px;
-}
+  .weather-section {
+    // @extend .module;
+    color: $foreground;
+    border-radius: 10px;
+    background: $background-transparent;
+    padding: 20px;
+    &:hover {
+      background-color: $background-secondary;
+    }
+  }
 
-.weather-icon-large {
-  font-size: 48px;
-}
+  .weather-subheading {
+    font-weight: bold;
+    font-size: 14px;
+    margin-top: 8px;
+  }
 
-.weather-temp-large {
-  font-size: 32px;
-  font-weight: bold;
-}
+  .weather-icon-large {
+    font-size: 48px;
+  }
 
-.weather-description {
-  font-size: 14px;
-}
+  .weather-temp-large {
+    font-size: 32px;
+    font-weight: bold;
+  }
 
-.weather-feels-like {
-  font-size: 12px;
-}
+  .weather-description {
+    font-size: 14px;
+  }
 
-.weather-detail {
-  justify-content: space-between;
-}
+  .weather-feels-like {
+    font-size: 12px;
+  }
 
-// .weather-detail label:first-child {
-// }
+  .weather-detail {
+    justify-content: space-between;
+  }
 
-.daily-forecast {
-  justify-content: space-around;
-}
+  // .weather-detail label:first-child {
+  // }
 
-.forecast-item {
-  align-items: center;
-}
+  .daily-forecast {
+    justify-content: space-around;
+  }
 
-.forecast-label {
-  font-size: 11px;
-}
+  .forecast-item {
+    align-items: center;
+  }
 
-.forecast-value {
-  font-size: 13px;
-  font-weight: bold;
-}
+  .forecast-label {
+    font-size: 11px;
+  }
 
-.weather-link {
-  font-size: 12px;
+  .forecast-value {
+    font-size: 13px;
+    font-weight: bold;
+  }
 
-  text-decoration: underline;
-  margin-top: 8px;
-}
+  .weather-link {
+    font-size: 12px;
 
-.weather-link:hover {
-  color: $blue;
+    text-decoration: underline;
+    margin-top: 8px;
+  }
+
+  .weather-link:hover {
+    color: $blue;
+  }
 }
