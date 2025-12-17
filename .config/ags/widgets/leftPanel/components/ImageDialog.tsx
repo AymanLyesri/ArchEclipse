@@ -20,13 +20,17 @@ const fetchImage = async (image: Waifu, savePath: string) => {
   );
 
   await execAsync(
-    `bash -c "[ -e "${savePath}/${image.id}.jpg" ] || curl -o ${savePath}/${image.id}.jpg ${url}"`
+    `bash -c "[ -e "${savePath}/${image.id}.${image.extension}" ] || curl -o ${savePath}/${image.id}.${image.extension} ${url}"`
   ).catch((err) => notify({ summary: "Error", body: String(err) }));
   // closeProgress();
 };
 
 const waifuThisImage = async (image: Waifu) => {
-  print("Set waifu to", image.id, `${booruImagesPath}/${image.id}.jpg`);
+  print(
+    "Set waifu to",
+    image.id,
+    `${booruImagesPath}/${image.id}.${image.extension}`
+  );
   setWaifuCurrent({ ...image });
 };
 
@@ -43,17 +47,17 @@ const OpenInBrowser = (image: Waifu) =>
 
 const CopyImage = (image: Waifu) =>
   execAsync(
-    `bash -c "wl-copy --type image/png < ${booruImagesPath}/${image.id}.jpg"`
+    `bash -c "wl-copy --type image/png < ${booruImagesPath}/${image.id}.${image.extension}"`
   ).catch((err) => notify({ summary: "Error", body: err }));
 
 const OpenImage = (image: Waifu) => {
-  previewFloatImage(`${booruImagesPath}/${image.id}.jpg`);
+  previewFloatImage(`${booruImagesPath}/${image.id}.${image.extension}`);
 };
 
 const addToWallpapers = (image: Waifu) => {
   // copy image to wallpapers folder
   execAsync(
-    `bash -c "cp ${booruImagesPath}/${image.id}.jpg ~/.config/wallpapers/custom/${image.id}.jpg"`
+    `bash -c "cp ${booruImagesPath}/${image.id}.${image.extension} ~/.config/wallpapers/custom/${image.id}.${image.extension}"`
   )
     .then(() =>
       notify({ summary: "Success", body: "Image added to wallpapers" })
@@ -61,10 +65,10 @@ const addToWallpapers = (image: Waifu) => {
     .catch((err) => notify({ summary: "Error", body: String(err) }));
 };
 
-const checkImageDownloaded = async (img: Waifu): Promise<boolean> => {
+const checkImageDownloaded = async (image: Waifu): Promise<boolean> => {
   try {
     const result = await execAsync(
-      `bash -c "[ -e '${booruImagesPath}/${img.id}.jpg' ] && echo 'exists' || echo 'not-exists'"`
+      `bash -c "[ -e '${booruImagesPath}/${image.id}.${image.extension}' ] && echo 'exists' || echo 'not-exists'"`
     );
     return result.trim() === "exists";
   } catch {
@@ -78,11 +82,11 @@ export class ImageDialog {
   private image: Waifu;
   private buttons: { button: Gtk.Revealer; needDownload: boolean }[] = [];
 
-  constructor(img: Waifu) {
-    this.image = img;
+  constructor(image: Waifu) {
+    this.image = image;
 
     // Check if image is already downloaded
-    checkImageDownloaded(img).then((downloaded) => {
+    checkImageDownloaded(image).then((downloaded) => {
       this.imageDownloaded = downloaded;
       this.updateButtonStates();
     });
@@ -124,7 +128,9 @@ export class ImageDialog {
 
     // Add image
     const image = new Gtk.Picture({
-      file: Gio.File.new_for_path(`${booruPreviewPath}/${this.image.id}.webp`),
+      file: Gio.File.new_for_path(
+        `${booruPreviewPath}/${this.image.id}.${this.image.extension}`
+      ),
       cssClasses: ["image"],
       hexpand: false,
       vexpand: false,

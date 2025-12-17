@@ -9,18 +9,18 @@ export interface Waifu {
   width: number;
   height: number;
   api: Api;
+  extension?: string;
 }
 
 export class WaifuClass implements Waifu {
   // Implement the Waifu interface
   id: number;
   url?: string;
-  // url_file_path?: string;
   preview?: string;
-  // preview_file_path?: string;
   width: number;
   height: number;
   api: Api;
+  extension?: string;
 
   constructor(waifu: Waifu = {} as Waifu) {
     this.id = waifu.id;
@@ -31,5 +31,6 @@ export class WaifuClass implements Waifu {
     this.width = waifu.width;
     this.height = waifu.height;
     this.api = waifu.api;
+    this.extension = waifu.extension;
   }
 }

@@ -91,6 +91,7 @@ const fetchImages = async () => {
       preview: image.preview,
       width: image.width,
       height: image.height,
+      extension: image.extension,
       api: booruApi.get(),
     }));
 
@@ -104,7 +105,7 @@ const fetchImages = async () => {
     // 5. Download images in parallel
     const downloadPromises = newImages.map((image) =>
       execAsync(
-        `bash -c "[ -e "${booruPreviewPath}/${image.id}.webp" ] || curl -o "${booruPreviewPath}/${image.id}.webp" "${image.preview}""`
+        `bash -c "[ -e "${booruPreviewPath}/${image.id}.${image.extension}" ] || curl -o "${booruPreviewPath}/${image.id}.${image.extension}" "${image.preview}""`
       )
         .then(() => {
           return image;
@@ -177,7 +178,7 @@ const Images = () => {
                 print(
                   "Rendering image ID:",
                   image.id,
-                  `from path: ${booruPreviewPath}/${image.id}.webp`
+                  `from path: ${booruPreviewPath}/${image.id}.${image.extension}`
                 );
                 return (
                   <menubutton
@@ -189,7 +190,10 @@ const Images = () => {
                     $={(self) => connectPopoverEvents(self)}
                   >
                     <Picture
-                      file={`${booruPreviewPath}/${image.id}.webp` || ""}
+                      file={
+                        `${booruPreviewPath}/${image.id}.${image.extension}` ||
+                        ""
+                      }
                     ></Picture>
                     <popover>{dialog.getBox()}</popover>
                   </menubutton>

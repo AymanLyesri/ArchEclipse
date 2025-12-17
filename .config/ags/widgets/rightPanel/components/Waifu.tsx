@@ -95,10 +95,6 @@ const CopyImage = (image: Waifu) =>
 const OpenImage = (image: Waifu) =>
   previewFloatImage(`${booruImagesPath}/${image.id}.jpg`);
 
-function isAnimated(path: string): boolean {
-  return /\.(gif|mp4|webm|mkv)$/i.test(path);
-}
-
 function Actions() {
   const Entry = (
     <entry
@@ -205,13 +201,6 @@ function Actions() {
                 const [height, width] = exec(
                   `identify -format "%h %w" "${filename}"`
                 ).split(" ");
-                print(
-                  "Selected image dimensions:",
-                  width,
-                  "x",
-                  height,
-                  filename
-                );
 
                 // Copy to waifu path, change the file type based on original
 
@@ -219,21 +208,23 @@ function Actions() {
                 //   `cp "${filename}" "${waifuCurrent.get().url_file_path}"`
                 // );
 
-                const newUrlPath = `${booruImagesPath}/${
-                  waifuCurrent.get().id
-                }${
-                  isAnimated(filename)
-                    ? filename.match(/\.(gif|mp4|webm|mkv)$/i)![0]
-                    : ".webp"
-                }`;
-                await execAsync(`cp "${filename}" "${newUrlPath}"`);
+                await execAsync(
+                  `cp "${filename}" "${booruImagesPath}/-1.${filename
+                    .split(".")
+                    .pop()!}"`
+                ).catch((err) =>
+                  notify({
+                    summary: "Error",
+                    body: String(err),
+                  })
+                );
 
                 setWaifuCurrent({
-                  id: 0,
-                  preview: newUrlPath,
+                  id: -1,
                   height: Number(height) || 0,
                   width: Number(width) || 0,
                   api: {} as Api,
+                  extension: filename.split(".").pop()!,
                 });
 
                 notify({
@@ -318,28 +309,22 @@ function Image() {
     <overlay class="overlay">
       <With value={waifuCurrent}>
         {(w) => {
-          print("Waifu URL Path:", `${booruImagesPath}/${w.id}.jpg`);
-          const mediaFile = Gtk.MediaFile.new_for_filename(
-            "/home/ayman/.config/ags/assets/booru/waifu/waifu.gif"
-          );
-          return isAnimated(`${booruImagesPath}/${w.id}.jpg`) ? (
-            <Gtk.Video
+          print("Waifu URL Path:", `${booruImagesPath}/${w.id}.${w.extension}`);
+          return w.extension === "mp4" ||
+            w.extension === "webm" ||
+            w.extension === "mkv" ||
+            w.extension === "gif" ||
+            w.extension === "zip" ? (
+            <Video
               class="image"
-              // height={imageHeight}
-              heightRequest={200}
-              autoplay
-              loop
-              // file={w.url_file_path!}
-              // file={Gio.file_new_for_path(
-              //   "/home/ayman/.config/ags/assets/booru/waifu/waifu.gif"
-              // )}
-              mediaStream={mediaFile}
+              width={rightPanelWidth}
+              file={`${booruImagesPath}/${w.id}.${w.extension}`}
             />
           ) : (
             <Picture
               class="image"
               height={imageHeight}
-              file={`${booruImagesPath}/${w.id}.jpg`}
+              file={`${booruImagesPath}/${w.id}.${w.extension}`}
               contentFit={Gtk.ContentFit.COVER}
             />
           );
@@ -353,15 +338,9 @@ function Image() {
 
 export default () => {
   return (
-    <revealer
-      transitionDuration={globalTransition}
-      transition_type={Gtk.RevealerTransitionType.SWING_DOWN}
-      revealChild={globalSettings((s) => s.waifu.visibility)}
-    >
-      <box class="waifu" orientation={Gtk.Orientation.VERTICAL}>
-        {Image()}
-      </box>
-    </revealer>
+    <box class="waifu" orientation={Gtk.Orientation.VERTICAL}>
+      {Image()}
+    </box>
   );
 };
 

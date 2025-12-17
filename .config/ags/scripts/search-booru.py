@@ -9,24 +9,26 @@ exclude_tags = ["-animated"]
 import requests
 from requests.auth import HTTPBasicAuth
 
+
 def fetch_danbooru(tags, post_id, page=1, limit=6):
     if post_id == "random":
-        api_url = (f"https://danbooru.donmai.us/posts.json?limit={limit}&page={page}&tags="
-                   f"+{'+'.join(tags)}")
+        api_url = (
+            f"https://danbooru.donmai.us/posts.json?limit={limit}&page={page}&tags="
+            f"+{'+'.join(tags)}"
+        )
     else:
-        api_url = (f"https://danbooru.donmai.us/posts/{post_id}.json?")
-    
+        api_url = f"https://danbooru.donmai.us/posts/{post_id}.json?"
+
     user_name = "publicapi"
     api_key = "Pr5ddYN7P889AnM6nq2nhgw1"  # Replace with your own API key
     response = requests.get(api_url, auth=HTTPBasicAuth(user_name, api_key))
-    
+
     if response.status_code == 200:
         posts = response.json()
-        
+
         # check if posts is an array if not convert it to an array
         if not isinstance(posts, list):
             posts = [posts]
-    
 
         result = []
         for post in posts:
@@ -42,6 +44,7 @@ def fetch_danbooru(tags, post_id, page=1, limit=6):
                 "preview": preview_url,
                 "width": post.get("image_width"),
                 "height": post.get("image_height"),
+                "extension": post.get("file_ext"),
             }
 
             # Filter out posts that have any empty (None or missing) values
@@ -52,12 +55,13 @@ def fetch_danbooru(tags, post_id, page=1, limit=6):
 
     return None
 
+
 def fetch_danbooru_tags(tag: str, limit: int = 10):
     """Fetch the top 10 most popular matching tags from Danbooru."""
     user_id = "publicapi"  # Danbooru's public API user (rate-limited)
     api_key = "Pr5ddYN7P889AnM6nq2nhgw1"  # Replace with your own if needed
     url = "https://danbooru.donmai.us/tags.json"
-    
+
     # Search for tags containing the input string (wildcard search)
     params = {
         "search[name_matches]": f"*{tag}*",
@@ -66,21 +70,24 @@ def fetch_danbooru_tags(tag: str, limit: int = 10):
     }
 
     try:
-        response = requests.get(url, params=params, auth=HTTPBasicAuth(user_id, api_key))
+        response = requests.get(
+            url, params=params, auth=HTTPBasicAuth(user_id, api_key)
+        )
         response.raise_for_status()
-        
+
         tags = response.json()
-        
+
         if not tags:
             return []
-        
+
         # Extract tag names from the top 10 most popular
         top_tags = [tag["name"] for tag in tags[:limit]]
-        
+
         return top_tags
-        
+
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
+
 
 # ---- paste/replace into your script ----
 def fetch_gelbooru(tags, post_id, page=1, limit=6):
@@ -174,7 +181,7 @@ def fetch_gelbooru_tags(tag: str, limit: int = 10):
         # many Gelbooru installs accept 'name_pattern' for wildcard searches; if not supported,
         # you can try 'name' instead.
         "name_pattern": f"%{tag}%",
-        "limit": 1000  # fetch a big chunk and sort locally
+        "limit": 1000,  # fetch a big chunk and sort locally
     }
 
     if user_id:
@@ -192,7 +199,9 @@ def fetch_gelbooru_tags(tag: str, limit: int = 10):
     tags_list = payload.get("tag", []) or []
     # ensure numeric post_count, sort desc
     try:
-        sorted_tags = sorted(tags_list, key=lambda x: int(x.get("post_count", 0)), reverse=True)
+        sorted_tags = sorted(
+            tags_list, key=lambda x: int(x.get("post_count", 0)), reverse=True
+        )
         tag_names = [t.get("name") for t in sorted_tags if t.get("name")]
         return tag_names[:limit]
     except Exception:
@@ -203,7 +212,9 @@ def fetch_gelbooru_tags(tag: str, limit: int = 10):
 def main():
     # Check if the correct number of arguments is passed
     if len(sys.argv) < 2:
-        print("Usage: search-booru.py --api [danbooru/gelbooru] --id [id] --tags [tag,tag...] --page [page] --limit [limit]")
+        print(
+            "Usage: search-booru.py --api [danbooru/gelbooru] --id [id] --tags [tag,tag...] --page [page] --limit [limit]"
+        )
         sys.exit(1)
 
     # Initialize variables
@@ -227,12 +238,10 @@ def main():
         elif sys.argv[i] == "--tag":
             tag = sys.argv[i + 1]
         elif sys.argv[i] == "--tags":
-            tags = sys.argv[i + 1].split(",") 
-            
+            tags = sys.argv[i + 1].split(",")
 
     save_dir = os.path.expanduser("~/.config/ags/assets/waifu")
     os.makedirs(save_dir, exist_ok=True)
-    
 
     if api_source == "danbooru":
         if tag:
@@ -247,11 +256,12 @@ def main():
     else:
         print("Invalid API source. Use 'danbooru' or 'gelbooru'.")
         sys.exit(1)
-    
+
     if data:
         print(json.dumps(data))
     else:
         print("Failed to fetch data from API.")
+
 
 if __name__ == "__main__":
     main()

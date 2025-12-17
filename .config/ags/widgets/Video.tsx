@@ -1,6 +1,8 @@
 import { Accessor } from "ags";
+import Adw from "gi://Adw?version=1";
 import Gio from "gi://Gio?version=2.0";
 import Gtk from "gi://Gtk?version=4.0";
+import { rightPanelWidth } from "../variables";
 
 interface VideoProps {
   class?: Accessor<string> | string;
@@ -16,46 +18,21 @@ export default function Video({
   height,
   width,
   file,
-  autoplay = false,
-  loop = false,
+  autoplay = true,
+  loop = true,
 }: VideoProps) {
-  let videoRef: Gtk.Video | undefined;
-
   return (
-    <overlay
-      heightRequest={height}
-      widthRequest={width}
-      $={(self) => {
-        const children = self.observe_children();
-        const count = children.get_n_items();
-
-        for (let i = 0; i < count; i++) {
-          const child = children.get_item(i);
-
-          if (child instanceof Gtk.Video) {
-            videoRef = child;
-          }
-        }
-
-        // ⚡ expose helper method
-        (self as any).getVideo = () => videoRef;
-      }}
-    >
+    <Adw.Clamp maximumSize={height || width}>
       <Gtk.Video
-        $type="overlay"
-        class={"video " + className}
+        class={"video"}
+        autoplay
+        loop
         file={
           typeof file === "string"
             ? Gio.File.new_for_path(file)
             : file((f) => Gio.File.new_for_path(f))
         }
-        autoplay={autoplay}
-        loop={loop}
-        $={(self) => {
-          // also capture directly (more reliable)
-          videoRef = self;
-        }}
       />
-    </overlay>
+    </Adw.Clamp>
   );
 }
