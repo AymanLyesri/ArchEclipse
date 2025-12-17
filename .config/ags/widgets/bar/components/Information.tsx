@@ -52,7 +52,10 @@ function Mpris() {
               return (
                 <box spacing={5}>
                   <image visible={!!app.iconName} iconName={app?.iconName} />
-                  <label label={createBinding(player, "title")} />
+                  <label
+                    label={createBinding(player, "title")}
+                    ellipsize={Pango.EllipsizeMode.END}
+                  />
                 </box>
               );
             }}

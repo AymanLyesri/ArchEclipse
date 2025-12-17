@@ -112,8 +112,8 @@ export default () => {
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
     >
-      <CustomRevealer trigger={Filter} child={ClearNotifications} />
       {NotificationsDisplay}
+      <CustomRevealer trigger={Filter} child={ClearNotifications} />
     </box>
   );
 };

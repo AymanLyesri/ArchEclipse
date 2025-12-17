@@ -3,6 +3,7 @@ import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib?version=2.0";
 import { With } from "gnim";
 import { Eventbox } from "./Custom/Eventbox";
+import Pango from "gi://Pango?version=1.0";
 
 export default () => {
   interface weatherData {
@@ -190,7 +191,10 @@ export default () => {
     <menubutton class={"weather"}>
       <box class="weather-button" spacing={5} tooltipText={"click to open"}>
         <label label={weatherIcon} />
-        <label label={currentWeatherLabel} />
+        <label
+          label={currentWeatherLabel}
+          ellipsize={Pango.EllipsizeMode.END}
+        />
       </box>
       <popover>
         <box

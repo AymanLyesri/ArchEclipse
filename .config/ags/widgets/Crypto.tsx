@@ -4,6 +4,7 @@ import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib?version=2.0";
 import { Eventbox } from "./Custom/Eventbox";
 import { Progress } from "./Progress";
+import Pango from "gi://Pango";
 
 // Bar characters for the graph ▁ ▂ ▃ ▄ ▅ ▆ ▇ █
 const BARS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
@@ -170,7 +171,11 @@ function Crypto({
                   <box spacing={2}>
                     <label class="crypto-symbol" label={symbol.toUpperCase()} />
 
-                    <label class="crypto-price" label={formattedPrice} />
+                    <label
+                      class="crypto-price"
+                      label={formattedPrice}
+                      ellipsize={Pango.EllipsizeMode.END}
+                    />
                     {/* <label
                     class={colorClass((c) => `crypto-change ${c}`)}
                     label={formattedChange}

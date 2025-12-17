@@ -1,4 +1,3 @@
-import { closeProgress, openProgress } from "../../Progress";
 import { execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
 import { booruApi, waifuCurrent, setWaifuCurrent } from "../../../variables";
@@ -7,44 +6,28 @@ import { Waifu } from "../../../interfaces/waifu.interface";
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
 import Gtk from "gi://Gtk?version=4.0";
 import Gio from "gi://Gio";
-const waifuPath = "./assets/booru/waifu";
-const imageUrlPath = "./assets/booru/images";
+import {
+  booruImagesPath,
+  booruPreviewPath,
+} from "../../../constants/path.constants";
 
-const fetchImage = async (
-  image: Waifu,
-  savePath: string,
-  name: string = ""
-) => {
+const fetchImage = async (image: Waifu, savePath: string) => {
   // openProgress();
   const url = image.url!;
-  name = name || String(image.id);
-  image.url_path = `${savePath}/${name}.jpg`;
 
   await execAsync(`bash -c "mkdir -p ${savePath}"`).catch((err) =>
     notify({ summary: "Error", body: String(err) })
   );
 
   await execAsync(
-    `bash -c "[ -e "${imageUrlPath}/${image.id}.jpg" ] || curl -o ${savePath}/${name}.jpg ${url}"`
+    `bash -c "[ -e "${savePath}/${image.id}.jpg" ] || curl -o ${savePath}/${image.id}.jpg ${url}"`
   ).catch((err) => notify({ summary: "Error", body: String(err) }));
   // closeProgress();
 };
 
 const waifuThisImage = async (image: Waifu) => {
-  execAsync(
-    `bash -c "mkdir -p ${waifuPath} && cp ${image.url_path} ${waifuPath}/waifu.jpg"`
-  )
-    .then(() =>
-      setWaifuCurrent({ ...image, url_path: waifuPath + "/waifu.jpg" })
-    )
-    .catch((err) =>
-      notify({
-        summary: "Error",
-        body:
-          String(err) +
-          `bash -c "mkdir -p ${waifuPath} && cp ${image.url_path} ${waifuPath}/waifu.jpg"`,
-      })
-    );
+  print("Set waifu to", image.id, `${booruImagesPath}/${image.id}.jpg`);
+  setWaifuCurrent({ ...image });
 };
 
 const OpenInBrowser = (image: Waifu) =>
@@ -60,17 +43,17 @@ const OpenInBrowser = (image: Waifu) =>
 
 const CopyImage = (image: Waifu) =>
   execAsync(
-    `bash -c "wl-copy --type image/png < ${imageUrlPath}/${image.id}.jpg"`
+    `bash -c "wl-copy --type image/png < ${booruImagesPath}/${image.id}.jpg"`
   ).catch((err) => notify({ summary: "Error", body: err }));
 
 const OpenImage = (image: Waifu) => {
-  previewFloatImage(`${imageUrlPath}/${image.id}.jpg`);
+  previewFloatImage(`${booruImagesPath}/${image.id}.jpg`);
 };
 
 const addToWallpapers = (image: Waifu) => {
   // copy image to wallpapers folder
   execAsync(
-    `bash -c "cp ${image.url_path} ~/.config/wallpapers/custom/${image.id}.jpg"`
+    `bash -c "cp ${booruImagesPath}/${image.id}.jpg ~/.config/wallpapers/custom/${image.id}.jpg"`
   )
     .then(() =>
       notify({ summary: "Success", body: "Image added to wallpapers" })
@@ -81,7 +64,7 @@ const addToWallpapers = (image: Waifu) => {
 const checkImageDownloaded = async (img: Waifu): Promise<boolean> => {
   try {
     const result = await execAsync(
-      `bash -c "[ -e '${imageUrlPath}/${img.id}.jpg' ] && echo 'exists' || echo 'not-exists'"`
+      `bash -c "[ -e '${booruImagesPath}/${img.id}.jpg' ] && echo 'exists' || echo 'not-exists'"`
     );
     return result.trim() === "exists";
   } catch {
@@ -141,7 +124,7 @@ export class ImageDialog {
 
     // Add image
     const image = new Gtk.Picture({
-      file: Gio.File.new_for_path(this.image.preview_path!),
+      file: Gio.File.new_for_path(`${booruPreviewPath}/${this.image.id}.webp`),
       cssClasses: ["image"],
       hexpand: false,
       vexpand: false,
@@ -265,7 +248,7 @@ export class ImageDialog {
         OpenInBrowser(img);
         break;
       case 2:
-        fetchImage(img, imageUrlPath).finally(() => {
+        fetchImage(img, booruImagesPath).finally(() => {
           print("Image downloaded", img.id);
           this.imageDownloaded = true;
           this.updateButtonStates();

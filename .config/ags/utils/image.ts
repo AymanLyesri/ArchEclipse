@@ -18,7 +18,7 @@ export function previewFloatImage(imagePath: string) {
 
 export const PinImageToTerminal = (image: Waifu) => {
   execAsync(
-    `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${image.url_path} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`
+    `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${image.url_file_path} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`
   )
     .then((output) =>
       notify({

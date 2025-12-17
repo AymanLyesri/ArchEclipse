@@ -24,6 +24,10 @@ import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
 import { Progress } from "../../Progress";
 import { connectPopoverEvents } from "../../../utils/window";
+import {
+  booruImagesPath,
+  booruPreviewPath,
+} from "../../../constants/path.constants";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -32,11 +36,8 @@ const [loadingText, setLoadingText] = createState<string>("Loading images...");
 
 const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 
-const imagePreviewPath = "./assets/booru/previews";
-const imageUrlPath = "./assets/booru/images";
-
 const calculateCacheSize = async () =>
-  execAsync(`bash -c "du -sb ${imagePreviewPath} | cut -f1"`).then((res) => {
+  execAsync(`bash -c "du -sb ${booruPreviewPath} | cut -f1"`).then((res) => {
     // Convert bytes to megabytes
     setCacheSize(`${Math.round(Number(res) / (1024 * 1024))}mb`);
   });
@@ -54,8 +55,8 @@ const ensureRatingTagFirst = () => {
 
 const cleanUp = () => {
   const promises = [
-    execAsync(`bash -c "rm -rf ${imagePreviewPath}/*"`),
-    execAsync(`bash -c "rm -rf ${imageUrlPath}/*"`),
+    execAsync(`bash -c "rm -rf ${booruPreviewPath}/*"`),
+    execAsync(`bash -c "rm -rf ${booruImagesPath}/*"`),
   ];
 
   Promise.all(promises)
@@ -94,7 +95,7 @@ const fetchImages = async () => {
     }));
 
     // 4. Prepare directory in background
-    execAsync(`bash -c "mkdir -p ${imagePreviewPath}"`).catch((err) =>
+    execAsync(`bash -c "mkdir -p ${booruPreviewPath}"`).catch((err) =>
       notify({ summary: "Error", body: String(err) })
     );
 
@@ -103,10 +104,9 @@ const fetchImages = async () => {
     // 5. Download images in parallel
     const downloadPromises = newImages.map((image) =>
       execAsync(
-        `bash -c "[ -e "${imagePreviewPath}/${image.id}.webp" ] || curl -o "${imagePreviewPath}/${image.id}.webp" "${image.preview}""`
+        `bash -c "[ -e "${booruPreviewPath}/${image.id}.webp" ] || curl -o "${booruPreviewPath}/${image.id}.webp" "${image.preview}""`
       )
         .then(() => {
-          image.preview_path = `${imagePreviewPath}/${image.id}.webp`;
           return image;
         })
         .catch((err) => {
@@ -174,6 +174,11 @@ const Images = () => {
             <box spacing={5}>
               {row.map((image: Waifu) => {
                 const dialog = new ImageDialog(image);
+                print(
+                  "Rendering image ID:",
+                  image.id,
+                  `from path: ${booruPreviewPath}/${image.id}.webp`
+                );
                 return (
                   <menubutton
                     direction={Gtk.ArrowType.RIGHT}
@@ -183,7 +188,9 @@ const Images = () => {
                     tooltipText={"Click to Open"}
                     $={(self) => connectPopoverEvents(self)}
                   >
-                    <Picture file={image.preview_path || ""}></Picture>
+                    <Picture
+                      file={`${booruPreviewPath}/${image.id}.webp` || ""}
+                    ></Picture>
                     <popover>{dialog.getBox()}</popover>
                   </menubutton>
                 );

@@ -78,13 +78,10 @@ export const connectPopoverEvents = (
     if (popover) {
       const windowInstance = findWindowInstance();
       if (windowInstance && windowInstance.setPopupIsOpen) {
-        print("Connecting popover events");
         popover.connect("show", () => {
-          print("Popover shown");
           windowInstance.setPopupIsOpen(true);
         });
         popover.connect("closed", () => {
-          print("Popover closed");
           windowInstance.setPopupIsOpen(false);
         });
         return true;
