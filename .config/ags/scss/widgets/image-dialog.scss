@@ -1,0 +1,36 @@
+.image-dialog {
+  @extend .module;
+  //   min-width: 100px;
+
+  padding: 10px;
+
+  &:hover {
+    background-color: $background-secondary;
+  }
+
+  .actions {
+    padding: 10px;
+
+    border-radius: 8px;
+
+    .section {
+      border-radius: 10px;
+      background-color: $background-semi-transparent;
+      &:hover {
+        background-color: $background-secondary;
+      }
+      button {
+        border-radius: 0px;
+      }
+
+      button {
+        &:first-child {
+          border-radius: 10px 0px 0px 10px;
+        }
+        &:last-child {
+          border-radius: 0px 10px 10px 0px;
+        }
+      }
+    }
+  }
+}

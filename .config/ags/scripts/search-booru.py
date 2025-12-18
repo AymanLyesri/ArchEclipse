@@ -156,6 +156,10 @@ def fetch_gelbooru(tags, post_id, page=1, limit=6):
             "preview": post.get("preview_url"),
             "width": post.get("width"),
             "height": post.get("height"),
+            # derive extension from file_url
+            "extension": (
+                post.get("file_url").split(".")[-1] if post.get("file_url") else None  # type: ignore
+            ),
         }
         # keep same filtering behavior as your Danbooru function (only complete posts)
         if all(post_data.values()):

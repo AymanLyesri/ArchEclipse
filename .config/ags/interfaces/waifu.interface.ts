@@ -34,3 +34,5 @@ export class WaifuClass implements Waifu {
     this.extension = waifu.extension;
   }
 }
+
+// export interface bookMarkWaifus= Waifu[];

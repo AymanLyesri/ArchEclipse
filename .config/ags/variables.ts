@@ -313,19 +313,6 @@ function setChatBotApi(value: Api) {
 }
 export { chatBotApi, setChatBotApi };
 
-// const [chatBotImageGeneration, setChatBotImageGeneration] =
-//   createState<boolean>(false);
-// function setChatBotImageGeneration(value: boolean) {
-//   _setChatBotImageGeneration(value);
-//   setSetting(
-//     "chatBot.imageGeneration",
-//     value,
-//     globalSettings,
-//     setGlobalSettings
-//   );
-// }
-// export { chatBotImageGeneration, setChatBotImageGeneration };
-
 const [booruApi, _setBooruApi] = createState<Api>(
   getSetting("booru.api", globalSettings.get())
 );
@@ -361,6 +348,15 @@ function setBooruPage(value: number) {
   setSetting("booru.page", value, globalSettings, setGlobalSettings);
 }
 export { booruPage, setBooruPage };
+
+const [booruBookMarkWaifus, _setBooruBookMarkWaifus] = createState<Waifu[]>(
+  getSetting("booru.bookMarkWaifus", globalSettings.get())
+);
+function setBooruBookMarkWaifus(value: Waifu[]) {
+  _setBooruBookMarkWaifus(value);
+  setSetting("booru.bookMarkWaifus", value, globalSettings, setGlobalSettings);
+}
+export { booruBookMarkWaifus, setBooruBookMarkWaifus };
 
 const [screenShotVisibility, _setScreenShotVisibility] =
   createState<boolean>(false);

@@ -70,6 +70,7 @@ export interface Settings {
     tags: string[];
     limit: number;
     page: number;
+    bookMarkWaifus: Waifu[];
   };
   leftPanel: {
     visibility: boolean;

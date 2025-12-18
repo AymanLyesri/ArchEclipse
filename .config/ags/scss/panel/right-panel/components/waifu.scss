@@ -1,40 +1,32 @@
 .waifu {
   border-radius: 10px;
 
-  .bottom {
+  .actions {
+    margin: $phi * 2 + px;
     border-radius: 10px;
-    .action-trigger {
-      margin: 5px;
+    entry {
+      border-radius: 0px;
+      padding: 0px;
+      margin: 0px;
     }
 
-    .bottom-bar {
-      // background: $background-semi-transparent;
-      margin: $phi * 2 + px;
+    .section:hover {
+      background: $background-secondary;
+    }
+    .section {
       border-radius: 10px;
-      entry {
-        border-radius: 0px;
-        padding: 0px;
-        margin: 0px;
-      }
+    }
 
-      .section:hover {
-        background: $background-secondary;
-      }
-      .section {
-        border-radius: 10px;
-      }
+    button {
+      border-radius: 0px;
+    }
 
-      button {
-        border-radius: 0px;
+    button {
+      &:first-child {
+        border-radius: 10px 0px 0px 10px;
       }
-
-      button {
-        &:first-child {
-          border-radius: 10px 0px 0px 10px;
-        }
-        &:last-child {
-          border-radius: 0px 10px 10px 0px;
-        }
+      &:last-child {
+        border-radius: 0px 10px 10px 0px;
       }
     }
   }

@@ -1,6 +1,12 @@
-import { execAsync } from "ags/process";
+import { exec, execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
-import { booruApi, waifuCurrent, setWaifuCurrent } from "../../../variables";
+import {
+  booruApi,
+  waifuCurrent,
+  setWaifuCurrent,
+  booruBookMarkWaifus,
+  setBooruBookMarkWaifus,
+} from "../../../variables";
 import { Waifu } from "../../../interfaces/waifu.interface";
 
 import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
@@ -10,271 +16,280 @@ import {
   booruImagesPath,
   booruPreviewPath,
 } from "../../../constants/path.constants";
+import Picture from "../../Picture";
+import { Accessor, createState } from "gnim";
+import { Eventbox } from "../../Custom/Eventbox";
 
-const fetchImage = async (image: Waifu, savePath: string) => {
-  // openProgress();
-  const url = image.url!;
-
-  await execAsync(`bash -c "mkdir -p ${savePath}"`).catch((err) =>
-    notify({ summary: "Error", body: String(err) })
-  );
-
-  await execAsync(
-    `bash -c "[ -e "${savePath}/${image.id}.${image.extension}" ] || curl -o ${savePath}/${image.id}.${image.extension} ${url}"`
-  ).catch((err) => notify({ summary: "Error", body: String(err) }));
-  // closeProgress();
-};
-
-const waifuThisImage = async (image: Waifu) => {
-  print(
-    "Set waifu to",
-    image.id,
-    `${booruImagesPath}/${image.id}.${image.extension}`
-  );
-  setWaifuCurrent({ ...image });
-};
-
-const OpenInBrowser = (image: Waifu) =>
-  execAsync(
-    `bash -c "xdg-open '${booruApi.get().idSearchUrl}${
-      image.id
-    }' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
-  )
-    .then((browser) =>
-      notify({ summary: "Waifu", body: `opened in ${browser}` })
-    )
-    .catch((err) => notify({ summary: "Error", body: err }));
-
-const CopyImage = (image: Waifu) =>
-  execAsync(
-    `bash -c "wl-copy --type image/png < ${booruImagesPath}/${image.id}.${image.extension}"`
-  ).catch((err) => notify({ summary: "Error", body: err }));
-
-const OpenImage = (image: Waifu) => {
-  previewFloatImage(`${booruImagesPath}/${image.id}.${image.extension}`);
-};
-
-const addToWallpapers = (image: Waifu) => {
-  // copy image to wallpapers folder
-  execAsync(
-    `bash -c "cp ${booruImagesPath}/${image.id}.${image.extension} ~/.config/wallpapers/custom/${image.id}.${image.extension}"`
-  )
-    .then(() =>
-      notify({ summary: "Success", body: "Image added to wallpapers" })
-    )
-    .catch((err) => notify({ summary: "Error", body: String(err) }));
-};
-
-const checkImageDownloaded = async (image: Waifu): Promise<boolean> => {
-  try {
-    const result = await execAsync(
+export default ({ image }: { image: Waifu }) => {
+  const checkImageDownloaded = (image: Waifu): boolean => {
+    const result = exec(
       `bash -c "[ -e '${booruImagesPath}/${image.id}.${image.extension}' ] && echo 'exists' || echo 'not-exists'"`
     );
     return result.trim() === "exists";
-  } catch {
-    return false;
+  };
+
+  const bookMarkExists = (image: Waifu): boolean => {
+    const currentBookmarks = booruBookMarkWaifus.get();
+    return currentBookmarks.some(
+      (img) => img.id === image.id && img.api.value === image.api.value
+    );
+  };
+
+  const [isDownloaded, setIsDownloaded] = createState<boolean>(
+    checkImageDownloaded(image)
+  );
+  const [isBookmarked, setIsBookmarked] = createState<boolean>(
+    bookMarkExists(image)
+  );
+
+  // Create buttons with icons
+  const buttonsDTO: {
+    icon: string;
+    sensitive: boolean | Accessor<boolean>;
+    tooltip: string;
+    response: (image: Waifu) => void;
+  }[] = [
+    {
+      icon: "",
+      sensitive: true,
+      tooltip: "Open in browser",
+      response: (image: Waifu) => OpenInBrowser(image),
+    },
+    {
+      icon: "",
+      sensitive: true,
+      tooltip: "Download image",
+      response: (image: Waifu) => fetchImage(image, booruImagesPath),
+    },
+    {
+      icon: "",
+      sensitive: isDownloaded,
+      tooltip: "Copy image",
+      response: (image: Waifu) => CopyImage(image),
+    },
+    {
+      icon: "",
+      sensitive: isDownloaded,
+      tooltip: "Waifu this image",
+      response: (image: Waifu) => waifuThisImage(image),
+    },
+    {
+      icon: "",
+      sensitive: isDownloaded,
+      tooltip: "Open image",
+      response: (image: Waifu) => OpenImage(image),
+    },
+    {
+      icon: "",
+      sensitive: isDownloaded,
+      tooltip: "Pin to terminal",
+      response: (image: Waifu) => PinImageToTerminal(image),
+    },
+    {
+      icon: "󰸉",
+      sensitive: isDownloaded,
+      tooltip: "Add to wallpapers",
+      response: (image: Waifu) => addToWallpapers(image),
+    },
+    {
+      icon: "",
+      sensitive: true,
+      tooltip: "Bookmark image",
+      response: (image: Waifu) => bookMarkImage(image),
+    },
+    // remove bookmark button
+    {
+      icon: "󰧌",
+      sensitive: isBookmarked,
+      tooltip: "Remove bookmark",
+      response: (image: Waifu) => removeBookMarkImage(image),
+    },
+  ];
+
+  const fetchImage = async (image: Waifu, savePath: string) => {
+    // openProgress();
+    const url = image.url!;
+
+    await execAsync(`bash -c "mkdir -p ${savePath}"`).catch((err) =>
+      notify({ summary: "Error", body: String(err) })
+    );
+
+    await execAsync(
+      `bash -c "[ -e "${savePath}/${image.id}.${image.extension}" ] || curl -o ${savePath}/${image.id}.${image.extension} ${url}"`
+    )
+      .then(() => setIsDownloaded(true))
+      .catch((err) => notify({ summary: "Error", body: String(err) }));
+  };
+
+  const waifuThisImage = async (image: Waifu) => {
+    print(
+      "Set waifu to",
+      image.id,
+      `${booruImagesPath}/${image.id}.${image.extension}`
+    );
+    setWaifuCurrent({ ...image });
+  };
+
+  const OpenInBrowser = (image: Waifu) =>
+    execAsync(
+      `bash -c "xdg-open '${booruApi.get().idSearchUrl}${
+        image.id
+      }' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
+    )
+      .then((browser) =>
+        notify({ summary: "Waifu", body: `opened in ${browser}` })
+      )
+      .catch((err) => notify({ summary: "Error", body: err }));
+
+  const CopyImage = (image: Waifu) =>
+    execAsync(
+      `bash -c "wl-copy --type image/png < ${booruImagesPath}/${image.id}.${image.extension}"`
+    ).catch((err) => notify({ summary: "Error", body: err }));
+
+  const OpenImage = (image: Waifu) => {
+    previewFloatImage(`${booruImagesPath}/${image.id}.${image.extension}`);
+  };
+
+  const addToWallpapers = (image: Waifu) => {
+    // copy image to wallpapers folder
+    execAsync(
+      `bash -c "cp ${booruImagesPath}/${image.id}.${image.extension} ~/.config/wallpapers/custom/${image.id}.${image.extension}"`
+    )
+      .then(() =>
+        notify({ summary: "Success", body: "Image added to wallpapers" })
+      )
+      .catch((err) => notify({ summary: "Error", body: String(err) }));
+  };
+
+  const bookMarkImage = (image: Waifu) => {
+    const currentBookmarks = booruBookMarkWaifus.get();
+    // check if image is already bookmarked
+    const exists = bookMarkExists(image);
+    if (exists) {
+      notify({ summary: "Info", body: "Image already bookmarked" });
+      return;
+    }
+
+    const updatedBookmarks = [...currentBookmarks, image];
+    setBooruBookMarkWaifus(updatedBookmarks);
+    setIsBookmarked(true);
+    notify({ summary: "Success", body: "Image bookmarked" });
+  };
+
+  const removeBookMarkImage = (image: Waifu) => {
+    const currentBookmarks = booruBookMarkWaifus.get();
+    const updatedBookmarks = currentBookmarks.filter(
+      (img) => !(img.id === image.id && img.api.value === image.api.value)
+    );
+    setBooruBookMarkWaifus(updatedBookmarks);
+    setIsBookmarked(false);
+    notify({ summary: "Success", body: "Bookmark removed" });
+  };
+
+  function Actions() {
+    return (
+      <Eventbox
+        class={"actions"}
+        onHover={(self) => {
+          const revealer = self.get_first_child() as Gtk.Revealer;
+          revealer.reveal_child = true;
+        }}
+        onHoverLost={(self) => {
+          const revealer = self.get_first_child() as Gtk.Revealer;
+          revealer.reveal_child = false;
+        }}
+      >
+        <revealer
+          class={"actions-revealer"}
+          transition-type={Gtk.RevealerTransitionType.SWING_UP}
+        >
+          <box
+            spacing={10}
+            valign={Gtk.Align.END}
+            orientation={Gtk.Orientation.VERTICAL}
+          >
+            <box class={"section"}>
+              <button
+                label=""
+                tooltip-text="Open in browser"
+                sensitive={true}
+                onClicked={() => OpenInBrowser(image)}
+              />
+              <togglebutton
+                class={"button"}
+                label={isBookmarked((bookmarked) => (bookmarked ? "󰧌" : ""))}
+                tooltip-text="Bookmark image"
+                active={isBookmarked}
+                onClicked={(self) => {
+                  if (self.active) bookMarkImage(image);
+                  else removeBookMarkImage(image);
+                }}
+              />
+            </box>
+            <box class={"section"}>
+              <button
+                label=""
+                tooltip-text="Download image"
+                sensitive={isDownloaded((is) => !is)}
+                onClicked={() => fetchImage(image, booruImagesPath)}
+              />
+              <button
+                label=""
+                tooltip-text="Copy image"
+                sensitive={isDownloaded}
+                onClicked={() => CopyImage(image)}
+              />
+              <button
+                label=""
+                tooltip-text="Waifu this image"
+                sensitive={isDownloaded}
+                onClicked={() => waifuThisImage(image)}
+              />
+              <button
+                label=""
+                tooltip-text="Open image"
+                sensitive={isDownloaded}
+                onClicked={() => OpenImage(image)}
+              />
+              <button
+                label=""
+                tooltip-text="Pin to terminal"
+                sensitive={isDownloaded}
+                onClicked={() => PinImageToTerminal(image)}
+              />
+              <button
+                label="󰸉"
+                tooltip-text="Add to wallpapers"
+                sensitive={isDownloaded}
+                onClicked={() => addToWallpapers(image)}
+              />
+            </box>
+          </box>
+        </revealer>
+      </Eventbox>
+    );
   }
+
+  const imageRatio = image.width / image.height;
+  const mainBox = (
+    <box
+      class="image-dialog"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={10}
+      $={async (self) => {
+        setIsDownloaded(await checkImageDownloaded(image));
+      }}
+    >
+      <overlay>
+        <Picture
+          file={`${booruPreviewPath}/${image.id}.${image.extension}`}
+          height={imageRatio >= 1 ? 300 : 300 / imageRatio}
+          width={imageRatio >= 1 ? 300 * imageRatio : 300}
+          class="image"
+        />
+        <Actions $type="overlay" />
+      </overlay>
+    </box>
+  );
+  return mainBox;
 };
-
-export class ImageDialog {
-  private dialog: Gtk.Window | null = null;
-  private imageDownloaded: boolean = false;
-  private image: Waifu;
-  private buttons: { button: Gtk.Revealer; needDownload: boolean }[] = [];
-
-  constructor(image: Waifu) {
-    this.image = image;
-
-    // Check if image is already downloaded
-    checkImageDownloaded(image).then((downloaded) => {
-      this.imageDownloaded = downloaded;
-      this.updateButtonStates();
-    });
-  }
-
-  private createLayout(includeCloseButton: boolean = false): Gtk.Box {
-    const buttonRefs: { button: Gtk.Revealer; needDownload: boolean }[] = [];
-
-    // Create main vertical box to hold everything
-    const mainBox = new Gtk.Box({
-      cssClasses: ["dialog"],
-      orientation: Gtk.Orientation.VERTICAL,
-    });
-    mainBox.set_margin_start(5);
-    mainBox.set_margin_end(5);
-    mainBox.set_margin_top(5);
-    mainBox.set_margin_bottom(5);
-
-    // create button box (only for window mode)
-    if (includeCloseButton) {
-      const buttonBoxTop = new Gtk.Box({
-        orientation: Gtk.Orientation.HORIZONTAL,
-        halign: Gtk.Align.END,
-        spacing: 10,
-      });
-      const closeButton = new Gtk.Button({
-        label: "",
-        halign: Gtk.Align.CENTER,
-        valign: Gtk.Align.CENTER,
-      });
-      closeButton.connect("clicked", () => {
-        if (this.dialog && this.dialog.get_visible()) {
-          this.dialog.close();
-        }
-      });
-      buttonBoxTop.append(closeButton);
-      mainBox.append(buttonBoxTop);
-    }
-
-    // Add image
-    const image = new Gtk.Picture({
-      file: Gio.File.new_for_path(
-        `${booruPreviewPath}/${this.image.id}.${this.image.extension}`
-      ),
-      cssClasses: ["image"],
-      hexpand: false,
-      vexpand: false,
-    });
-    image.set_margin_top(10);
-    mainBox.append(image);
-
-    // Create centered button box
-    const buttonBox = new Gtk.Box({
-      orientation: Gtk.Orientation.HORIZONTAL,
-      halign: Gtk.Align.CENTER,
-      spacing: 10,
-      marginTop: 10,
-    });
-
-    // Create buttons with icons
-    const buttonsDTO = [
-      {
-        icon: "",
-        needImageDownload: false,
-        tooltip: "Open in browser",
-        response: 1,
-      },
-      {
-        icon: "",
-        needImageDownload: false,
-        tooltip: "Download image",
-        response: 2,
-      },
-      {
-        icon: "",
-        needImageDownload: true,
-        tooltip: "Copy image",
-        response: 3,
-      },
-      {
-        icon: "",
-        needImageDownload: true,
-        tooltip: "Waifu this image",
-        response: 4,
-      },
-      {
-        icon: "",
-        needImageDownload: true,
-        tooltip: "Open image",
-        response: 5,
-      },
-      {
-        icon: "",
-        needImageDownload: true,
-        tooltip: "Pin to terminal",
-        response: 6,
-      },
-      {
-        icon: "󰸉",
-        needImageDownload: true,
-        tooltip: "Add to wallpapers",
-        response: 7,
-      },
-    ];
-
-    buttonsDTO.forEach((btnDTO) => {
-      const btn = new Gtk.Button({
-        label: btnDTO.icon,
-        halign: Gtk.Align.CENTER,
-        valign: Gtk.Align.CENTER,
-      });
-
-      const revealer = new Gtk.Revealer({
-        transition_type: Gtk.RevealerTransitionType.SWING_RIGHT,
-        transition_duration: 200,
-        reveal_child: !btnDTO.needImageDownload,
-      });
-
-      btn.set_tooltip_text(btnDTO.tooltip);
-      revealer.set_child(btn);
-
-      if (btnDTO.needImageDownload) {
-        buttonRefs.push({ button: revealer, needDownload: true });
-      }
-
-      btn.connect("clicked", () => {
-        this.handleResponse(btnDTO.response, this.image);
-      });
-
-      buttonBox.append(revealer);
-    });
-    this.buttons = buttonRefs;
-
-    mainBox.append(buttonBox);
-
-    return mainBox;
-  }
-
-  public showAsWindow() {
-    // Create window with close button
-    this.dialog = new Gtk.Window({
-      title: "booru-image",
-      modal: false,
-    });
-
-    const layout = this.createLayout(true);
-    this.dialog.set_child(layout);
-    this.dialog.present();
-  }
-
-  public getBox(): Gtk.Box {
-    // Create layout without close button for popover
-    return this.createLayout(false);
-  }
-
-  private updateButtonStates() {
-    this.buttons.forEach(({ button }) => {
-      button.revealChild = this.imageDownloaded;
-    });
-  }
-
-  private handleResponse(responseId: number, img: Waifu) {
-    switch (responseId) {
-      case 1:
-        OpenInBrowser(img);
-        break;
-      case 2:
-        fetchImage(img, booruImagesPath).finally(() => {
-          print("Image downloaded", img.id);
-          this.imageDownloaded = true;
-          this.updateButtonStates();
-        });
-        break;
-      case 3:
-        CopyImage(img);
-        break;
-      case 4:
-        waifuThisImage(img);
-        break;
-      case 5:
-        OpenImage(img);
-        break;
-      case 6:
-        PinImageToTerminal(img);
-        break;
-      case 7:
-        addToWallpapers(img);
-        break;
-    }
-  }
-}

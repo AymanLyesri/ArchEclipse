@@ -15,11 +15,11 @@ import {
   setBooruLimit,
   setBooruPage,
   setBooruTags,
+  booruBookMarkWaifus,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { createState, For, With } from "ags";
 import { booruApis } from "../../../constants/api.constants";
-import { ImageDialog } from "./ImageDialog";
 import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
 import { Progress } from "../../Progress";
@@ -28,6 +28,7 @@ import {
   booruImagesPath,
   booruPreviewPath,
 } from "../../../constants/path.constants";
+import ImageDialog from "./ImageDialog";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -35,6 +36,8 @@ const [isLoading, setIsLoading] = createState<boolean>(false);
 const [loadingText, setLoadingText] = createState<string>("Loading images...");
 
 const [fetchedTags, setFetchedTags] = createState<string[]>([]);
+
+const [selectedTab, setSelectedTab] = createState<string>(booruApis[0].name);
 
 const calculateCacheSize = async () =>
   execAsync(`bash -c "du -sb ${booruPreviewPath} | cut -f1"`).then((res) => {
@@ -132,19 +135,72 @@ const fetchImages = async () => {
     setIsLoading(false);
   }
 };
-const Apis = () => (
+
+const fetchBookmarkImages = async () => {
+  try {
+    setIsLoading(true);
+    setLoadingText("Fetching bookmarked images...");
+
+    setLoadingText(`Downloading ${booruBookMarkWaifus.get().length} images...`);
+
+    // 5. Download images in parallel
+    const downloadPromises = booruBookMarkWaifus.get().map((image) =>
+      execAsync(
+        `bash -c "[ -e "${booruPreviewPath}/${image.id}.${image.extension}" ] || curl -o "${booruPreviewPath}/${image.id}.${image.extension}" "${image.preview}""`
+      )
+        .then(() => {
+          return image;
+        })
+        .catch((err) => {
+          notify({ summary: "Error", body: String(err) });
+          return null;
+        })
+    );
+
+    // 6. Update UI when all downloads complete
+    Promise.all(downloadPromises).then((downloadedImages) => {
+      // Filter out failed downloads (null values)
+      const successfulDownloads = downloadedImages.filter(
+        (img) => img !== null
+      );
+      setImages(successfulDownloads);
+      calculateCacheSize();
+      setIsLoading(false);
+    });
+  } catch (err) {
+    console.error(err);
+    notify({ summary: "Error", body: String(err) });
+    setIsLoading(false);
+  }
+};
+
+const Tabs = () => (
   <box class="api-list" spacing={5}>
     {booruApis.map((api) => (
       <togglebutton
         hexpand
-        active={booruApi((a) => a.name === api.name)}
+        active={selectedTab((tab) => tab === api.name)}
         class="api"
         label={api.name}
         onToggled={({ active }) => {
-          if (active) setBooruApi(api);
+          if (active) {
+            setBooruApi(api);
+            setSelectedTab(api.name);
+          }
         }}
       />
     ))}
+    <togglebutton
+      class="bookmarks"
+      label=""
+      active={selectedTab((tab) => tab === "Bookmarks")}
+      onToggled={({ active }) => {
+        if (active) {
+          setSelectedTab("Bookmarks");
+          fetchBookmarkImages();
+        }
+      }}
+    />
   </box>
 );
 
@@ -174,11 +230,14 @@ const Images = () => {
           {(row) => (
             <box spacing={5}>
               {row.map((image: Waifu) => {
-                const dialog = new ImageDialog(image);
                 print(
                   "Rendering image ID:",
                   image.id,
-                  `from path: ${booruPreviewPath}/${image.id}.${image.extension}`
+                  `from path: ${booruPreviewPath}/${image.id}.${image.extension}`,
+                  "height:",
+                  image.height,
+                  "width:",
+                  image.width
                 );
                 return (
                   <menubutton
@@ -195,7 +254,9 @@ const Images = () => {
                         ""
                       }
                     ></Picture>
-                    <popover>{dialog.getBox()}</popover>
+                    <popover>
+                      <ImageDialog image={image} />
+                    </popover>
                   </menubutton>
                 );
               })}
@@ -450,6 +511,9 @@ export default () => {
   booruTags.subscribe(() => fetchImages());
   booruApi.subscribe(() => fetchImages());
   booruLimit.subscribe(() => fetchImages());
+  booruBookMarkWaifus.subscribe(() => {
+    if (selectedTab.get() == "bookmarks") fetchBookmarkImages();
+  });
   fetchImages();
 
   return (
@@ -486,7 +550,7 @@ export default () => {
         self.add_controller(keyController);
       }}
     >
-      <Apis />
+      <Tabs />
 
       <box orientation={Gtk.Orientation.VERTICAL}>
         <Images />
