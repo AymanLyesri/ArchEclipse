@@ -31,4 +31,7 @@ assets/script-timer/*
 assets/crypto/*
 !assets/crypto/
 
+assets/manga/*
+!assets/manga/
+
 logs

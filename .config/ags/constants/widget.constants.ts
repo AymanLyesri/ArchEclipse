@@ -14,6 +14,7 @@ import ScriptTimer from "../widgets/rightPanel/components/ScriptTimer";
 import Gtk from "gi://Gtk?version=4.0";
 import { Accessor } from "ags";
 import CryptoWidget from "../widgets/rightPanel/components/CryptoWidget";
+import MangaViewer from "../widgets/leftPanel/components/MangaViewer";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {
@@ -89,5 +90,10 @@ export const leftPanelWidgetSelectors: WidgetSelector[] = [
     name: "CustomScripts",
     icon: "",
     widget: () => CustomScripts(),
+  },
+  {
+    name: "MangaViewer",
+    icon: "󰠶",
+    widget: () => MangaViewer(),
   },
 ];

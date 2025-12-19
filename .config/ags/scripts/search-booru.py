@@ -244,9 +244,6 @@ def main():
         elif sys.argv[i] == "--tags":
             tags = sys.argv[i + 1].split(",")
 
-    save_dir = os.path.expanduser("~/.config/ags/assets/waifu")
-    os.makedirs(save_dir, exist_ok=True)
-
     if api_source == "danbooru":
         if tag:
             data = fetch_danbooru_tags(tag)

@@ -214,6 +214,7 @@ export default ({ image }: { image: Waifu }) => {
                 tooltip-text="Open in browser"
                 sensitive={true}
                 onClicked={() => OpenInBrowser(image)}
+                hexpand
               />
               <togglebutton
                 class={"button"}
@@ -224,6 +225,7 @@ export default ({ image }: { image: Waifu }) => {
                   if (self.active) bookMarkImage(image);
                   else removeBookMarkImage(image);
                 }}
+                hexpand
               />
             </box>
             <box class={"section"}>
@@ -232,36 +234,42 @@ export default ({ image }: { image: Waifu }) => {
                 tooltip-text="Download image"
                 sensitive={isDownloaded((is) => !is)}
                 onClicked={() => fetchImage(image, booruImagesPath)}
+                hexpand
               />
               <button
                 label=""
                 tooltip-text="Copy image"
                 sensitive={isDownloaded}
                 onClicked={() => CopyImage(image)}
+                hexpand
               />
               <button
                 label=""
                 tooltip-text="Waifu this image"
                 sensitive={isDownloaded}
                 onClicked={() => waifuThisImage(image)}
+                hexpand
               />
               <button
                 label=""
                 tooltip-text="Open image"
                 sensitive={isDownloaded}
                 onClicked={() => OpenImage(image)}
+                hexpand
               />
               <button
                 label=""
                 tooltip-text="Pin to terminal"
                 sensitive={isDownloaded}
                 onClicked={() => PinImageToTerminal(image)}
+                hexpand
               />
               <button
                 label="󰸉"
                 tooltip-text="Add to wallpapers"
                 sensitive={isDownloaded}
                 onClicked={() => addToWallpapers(image)}
+                hexpand
               />
             </box>
           </box>
@@ -282,7 +290,11 @@ export default ({ image }: { image: Waifu }) => {
     >
       <overlay>
         <Picture
-          file={`${booruPreviewPath}/${image.id}.${image.extension}`}
+          file={isDownloaded((is) =>
+            is
+              ? `${booruImagesPath}/${image.id}.${image.extension}`
+              : `${booruPreviewPath}/${image.id}.${image.extension}`
+          )}
           height={imageRatio >= 1 ? 300 : 300 / imageRatio}
           width={imageRatio >= 1 ? 300 * imageRatio : 300}
           class="image"
