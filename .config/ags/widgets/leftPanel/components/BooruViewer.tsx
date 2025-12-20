@@ -175,7 +175,7 @@ const fetchBookmarkImages = async () => {
 };
 
 const Tabs = () => (
-  <box class="api-list" spacing={5}>
+  <box class="tab-list" spacing={5}>
     {booruApis.map((api) => (
       <togglebutton
         hexpand
@@ -438,7 +438,7 @@ const ClearCacheButton = () => {
 
 const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
 
-const BottomBar = () => {
+const Bottom = () => {
   const revealer = (
     <revealer
       class="bottom-revealer"
@@ -561,7 +561,7 @@ export default () => {
           custom_class="booru-progress"
         />
       </box>
-      <BottomBar />
+      <Bottom />
     </box>
   );
 };

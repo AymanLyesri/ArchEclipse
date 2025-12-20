@@ -16,6 +16,10 @@
   text-shadow: none;
   // padding: ($SCALE - 5) / 5 $SCALE / 1.5;
   margin: 0;
+
+  .image {
+    border-radius: 10px;
+  }
 }
 
 .icon,
@@ -227,8 +231,4 @@ scrollbar {
 
 popover > * {
   all: unset;
-}
-
-.image {
-  border-radius: 10px;
 }

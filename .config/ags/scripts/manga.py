@@ -36,6 +36,8 @@ class Manga:
     status: Optional[str]
     cover_url: Optional[str] = None
     cover_path: Optional[str] = None  # Add this field for local path
+    cover_height: Optional[int] = None
+    cover_width: Optional[int] = None
 
     def to_json(self):
         return asdict(self)
@@ -128,8 +130,8 @@ class MangaDexProvider(MangaProvider):
     BASE_URL = "https://api.mangadex.org"
 
     # Default cover directory
-    COVERS_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / "covers"
-    PAGES_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / "pages"
+    COVERS_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "covers"
+    PAGES_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "pages"
 
     def __init__(self, covers_dir: Optional[str] = None):
         self.session = requests.Session()
@@ -245,6 +247,18 @@ class MangaDexProvider(MangaProvider):
         if not local_cover_path and cover_url and download_cover:
             local_cover_path = self._download_cover_image(data["id"], cover_url)
 
+        # Get cover dimensions if downloaded
+        cover_height = None
+        cover_width = None
+        if local_cover_path:
+            from PIL import Image
+
+            try:
+                with Image.open(local_cover_path) as img:
+                    cover_width, cover_height = img.size
+            except Exception as e:
+                print(f"Failed to get cover dimensions for {data['id']}: {e}")
+
         return Manga(
             provider=self.name,
             id=data["id"],
@@ -255,6 +269,8 @@ class MangaDexProvider(MangaProvider):
             status=attr.get("status"),
             cover_url=cover_url,
             cover_path=local_cover_path,  # Add local path to Manga object
+            cover_height=cover_height,
+            cover_width=cover_width,
         )
 
     def search(self, query: str, limit: int, offset: int, download_covers: bool = True):
@@ -424,6 +440,242 @@ class MangaDexProvider(MangaProvider):
 
 
 # ==========================================================
+# EHENTAI PROVIDER
+# ==========================================================
+
+import re
+import hashlib
+from bs4 import BeautifulSoup
+
+
+class EHentaiProvider(MangaProvider):
+    """
+    EH / ExHentai provider
+    Uses:
+    - gmetadata API for metadata
+    - HTML scraping for page images
+    """
+
+    name = "ehentai"
+
+    API_URL = "https://api.e-hentai.org/api.php"
+    SITE_URL = "https://e-hentai.org"
+
+    PAGES_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "pages"
+    COVERS_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "covers"
+
+    def __init__(self, cookies: Optional[dict] = None):
+        self.session = requests.Session()
+        self.session.headers.update({"User-Agent": "AGS-MangaCLI/1.0"})
+        if cookies:
+            self.session.cookies.update(cookies)
+
+        self.PAGES_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------
+
+    def _gallery_id_token(self, url: str):
+        """
+        https://e-hentai.org/g/123456/abcdef/
+        """
+        m = re.search(r"/g/(\d+)/([a-zA-Z0-9]+)/", url)
+        if not m:
+            raise ValueError("Invalid gallery URL")
+        return int(m.group(1)), m.group(2)
+
+    def _post(self, payload: dict):
+        r = self.session.post(self.API_URL, json=payload, timeout=15)
+        r.raise_for_status()
+        return r.json()
+
+    # ------------------------------------------------------
+    # Core API
+    # ------------------------------------------------------
+
+    def get_by_id(self, id: str) -> Manga:
+        """
+        id = gallery URL
+        """
+        gid, token = self._gallery_id_token(id)
+
+        data = self._post(
+            {
+                "method": "gmetadata",
+                "gidlist": [[gid, token]],
+                "namespace": 1,
+            }
+        )
+
+        meta = data["gmetadata"][0]
+
+        return Manga(
+            provider=self.name,
+            id=id,
+            title=meta["title"],
+            description="",
+            tags=meta.get("tags", []),
+            year=int(meta["posted"][:4]) if meta.get("posted") else None,
+            status=None,
+            cover_url=meta.get("thumb"),
+        )
+
+    def search(self, query: str, limit: int = 20, offset: int = 0) -> List[Manga]:
+        """
+        Search galleries by keyword using EH HTML search.
+        Safe mode:
+        - single page fetch
+        - offset mapped to page index
+        """
+        page = offset // max(limit, 1)
+
+        params = {
+            "f_search": query,
+            "page": page,
+        }
+
+        html = self.session.get(
+            self.SITE_URL,
+            params=params,
+            timeout=15,
+        ).text
+
+        soup = BeautifulSoup(html, "html.parser")
+
+        results: List[Manga] = []
+        rows = soup.select("table.itg tr")[1:]  # skip header
+
+        for row in rows:
+            link = row.select_one("td.gl3c a")
+            thumb = row.select_one("td.gl2c img")
+            title_cell = row.select_one("td.gl3c")
+
+            if not link or not title_cell:
+                continue
+
+            url = link["href"]
+            title = title_cell.text.strip()
+
+            results.append(
+                Manga(
+                    provider=self.name,
+                    id=str(url),  # gallery URL is the ID
+                    title=title,
+                    description="",
+                    tags=[],
+                    year=None,
+                    status=None,
+                    cover_url=str(thumb["src"]) if thumb else None,
+                )
+            )
+
+            if len(results) >= limit:
+                break
+
+        return results
+
+    def popular(self, limit: int = 10, offset: int = 0) -> List[Manga]:
+        """
+        Fetch current trending galleries from EH front page.
+        Only first page is used (safe, low-risk).
+        """
+        html = self.session.get(self.SITE_URL, timeout=15).text
+        soup = BeautifulSoup(html, "html.parser")
+
+        galleries = []
+        rows = soup.select("table.itg tr")[1:]  # skip header
+
+        for row in rows:
+            link = row.select_one("td.gl3c a")
+            thumb = row.select_one("td.gl2c img")
+            title_cell = row.select_one("td.gl3c")
+
+            if not link or not title_cell:
+                continue
+
+            url = link["href"]
+            title = title_cell.text.strip()
+
+            galleries.append(
+                Manga(
+                    provider=self.name,
+                    id=str(url),  # gallery URL is the ID
+                    title=title,
+                    description="",
+                    tags=[],
+                    year=None,
+                    status=None,
+                    cover_url=str(thumb["src"]) if thumb else None,
+                )
+            )
+
+            if len(galleries) >= limit:
+                break
+
+        return galleries
+
+    # ------------------------------------------------------
+    # Chapters (fake)
+    # ------------------------------------------------------
+
+    def get_chapters(self, manga_id: str) -> List[Chapter]:
+        """
+        EH has no chapters → single virtual chapter
+        """
+        return [
+            Chapter(
+                id=manga_id,
+                title="Gallery",
+                chapter="1",
+            )
+        ]
+
+    # ------------------------------------------------------
+    # Pages
+    # ------------------------------------------------------
+
+    def get_pages(self, chapter_id: str) -> List[Page]:
+        """
+        chapter_id == gallery URL
+        """
+        html = self.session.get(chapter_id, timeout=15).text
+        soup = BeautifulSoup(html, "html.parser")
+
+        pages = []
+        for a in soup.select("#gdt a"):
+            pages.append(Page(url=str(a["href"])))
+
+        return pages
+
+    def get_page(self, page_url: str) -> Page:
+        """
+        Fetch image URL from page, download if missing
+        """
+        html = self.session.get(page_url, timeout=15).text
+        soup = BeautifulSoup(html, "html.parser")
+
+        img = soup.select_one("#img")
+        if not img:
+            raise Exception("Image not found")
+
+        img_url = str(img["src"])
+
+        h = hashlib.md5(img_url.encode()).hexdigest()
+        ext = os.path.splitext(img_url)[1] or ".jpg"
+        path = self.PAGES_DIR / f"{h}{ext}"
+
+        if not path.exists():
+            data = self.session.get(img_url, timeout=15).content
+            path.write_bytes(data)
+
+        return Page(
+            url=img_url,
+            path=str(path),
+        )
+
+
+# ==========================================================
 # CLI
 # ==========================================================
 
@@ -448,6 +700,7 @@ def main():
     args = parse_args()
 
     ProviderRegistry.register(MangaDexProvider())
+    ProviderRegistry.register(EHentaiProvider())
     provider = ProviderRegistry.get(args.provider)
 
     try:

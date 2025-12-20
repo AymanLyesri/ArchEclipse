@@ -7,7 +7,8 @@ import Picture from "../../Picture";
 import { Progress } from "../../Progress";
 import Pango from "gi://Pango?version=1.0";
 import { load } from "mime";
-import { leftPanelWidth } from "../../../variables";
+import Gdk from "gi://Gdk?version=4.0";
+import { leftPanelWidth, globalTransition } from "../../../variables";
 
 const [mangaList, setMangaList] = createState<Manga[]>([]);
 const [selectedManga, setSelectedManga] = createState<Manga | null>(null);
@@ -15,17 +16,20 @@ const [chapters, setChapters] = createState<Chapter[]>([]);
 const [selectedChapter, setSelectedChapter] = createState<Chapter | null>(null);
 const [pages, setPages] = createState<Page[]>([]);
 const [loadedPages, setLoadedPages] = createState<Page[]>([]);
-const [currentTab, setCurrentTab] = createState<string>("Providers");
+const [currentTab, setCurrentTab] = createState<string>("Manga");
 const [isLoading, setIsLoading] = createState<boolean>(false);
 const [searchQuery, setSearchQuery] = createState<string>("");
 const [initialized, setInitialized] = createState(false);
+const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
 
 const scriptPath = "/home/ayman/.config/ags/scripts/manga.py";
 
 const fetchPopular = async () => {
   setIsLoading(true);
   try {
-    const output = await execAsync(`python3 ${scriptPath} --popular --limit 5`);
+    const output = await execAsync(
+      `python3 ${scriptPath} --popular --limit 10`
+    );
     const data = JSON.parse(output);
     setMangaList(data);
   } catch (err) {
@@ -40,7 +44,7 @@ const searchManga = async (query: string) => {
   setIsLoading(true);
   try {
     const output = await execAsync(
-      `python3 ${scriptPath} --search "${query}" --limit 5`
+      `python3 ${scriptPath} --search "${query}" --limit 10`
     );
     const data = JSON.parse(output);
     setMangaList(data);
@@ -128,53 +132,54 @@ const fetchPage = async (pageUrl: string) => {
   }
 };
 
-const ProvidersTab = () => (
-  <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
-    <entry
-      placeholderText="Search manga..."
-      text={searchQuery.get()}
-      onActivate={() => searchManga(searchQuery.get())}
-      $={(self) =>
-        self.connect("changed", () => setSearchQuery(self.get_text()))
-      }
-    />
-    <button label="Search" onClicked={() => searchManga(searchQuery.get())} />
-    <button label="Popular" onClicked={() => fetchPopular()} />
-    <scrolledwindow vexpand>
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-        <For each={mangaList}>
-          {(manga) => (
-            <button
-              class="manga-item"
-              onClicked={() => {
-                setSelectedManga(manga);
-                fetchChapters(manga.id);
-              }}
-            >
-              <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-                <Picture file={manga.cover_path} width={150} height={200} />
+const MangaTab = () => (
+  <scrolledwindow vexpand hexpand>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+      <For each={mangaList}>
+        {(manga) => (
+          <button
+            class="manga-item"
+            onClicked={() => {
+              setSelectedManga(manga);
+              fetchChapters(manga.id);
+            }}
+          >
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+              <Picture
+                file={manga.cover_path}
+                height={leftPanelWidth((width: number) =>
+                  manga.cover_width && manga.cover_height
+                    ? (manga.cover_height / manga.cover_width) * width
+                    : width
+                )}
+              />
+              <box
+                class={"manga-info"}
+                orientation={Gtk.Orientation.VERTICAL}
+                spacing={2}
+              >
                 <label
+                  class={"title"}
                   label={manga.title}
-                  halign={Gtk.Align.START}
                   ellipsize={Pango.EllipsizeMode.END}
                 />
                 <label
+                  class={"description"}
                   label={manga.description.substring(0, 100) + "..."}
-                  halign={Gtk.Align.START}
                   wrap
                 />
                 <label
+                  class={"tags"}
                   label={`Tags: ${manga.tags.slice(0, 3).join(", ")}`}
-                  halign={Gtk.Align.START}
                   ellipsize={Pango.EllipsizeMode.END}
                 />
               </box>
-            </button>
-          )}
-        </For>
-      </box>
-    </scrolledwindow>
-  </box>
+            </box>
+          </button>
+        )}
+      </For>
+    </box>
+  </scrolledwindow>
 );
 
 const ChaptersTab = () => {
@@ -195,7 +200,7 @@ const ChaptersTab = () => {
       {selectedManga && (
         <label label={`Chapters for: ${selectedManga.get()!.title}`} />
       )}
-      <scrolledwindow vexpand>
+      <scrolledwindow vexpand hexpand>
         <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
           <For each={sortedChapters}>
             {(chapter) => (
@@ -217,12 +222,8 @@ const ChaptersTab = () => {
 
 const PagesTab = () => (
   <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
-    {selectedChapter && (
-      <label
-        label={`Pages for: Ch. ${selectedChapter.get()!.chapter || "N/A"}`}
-      />
-    )}
     <scrolledwindow
+      hexpand
       vexpand
       $={(self: any) => {
         loadMorePages();
@@ -252,48 +253,116 @@ const PagesTab = () => (
   </box>
 );
 
+const mangaApis = ["MangaDex", "WIP"];
+
 const Tabs = () => (
-  <box class="tab-list" spacing={5}>
-    <togglebutton
-      active={currentTab((tab) => tab === "Providers")}
-      label="Providers"
-      onToggled={({ active }) => active && setCurrentTab("Providers")}
-    />
-    <togglebutton
-      active={currentTab((tab) => tab === "Chapters")}
-      label="Chapters"
-      sensitive={selectedManga((manga) => manga !== null)}
-      onToggled={({ active }) =>
-        active && selectedManga.get() && setCurrentTab("Chapters")
-      }
-    />
-    <togglebutton
-      active={currentTab((tab) => tab === "Pages")}
-      label="Pages"
-      sensitive={selectedChapter((chapter) => chapter !== null)}
-      onToggled={({ active }) =>
-        active && selectedChapter.get() && setCurrentTab("Pages")
-      }
-    />
+  <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+    <box class="tab-list" spacing={5}>
+      {mangaApis.map((api) => (
+        <togglebutton
+          hexpand
+          label={api}
+          // active={currentApi((current) => current === api)}
+          // onToggled={({ active }) => active && setCurrentApi(api)}
+        />
+      ))}
+    </box>
+    <box class="tab-list" spacing={5}>
+      <togglebutton
+        active={currentTab((tab) => tab === "Manga")}
+        label="Manga"
+        onToggled={({ active }) => active && setCurrentTab("Manga")}
+      />
+      <togglebutton
+        active={currentTab((tab) => tab === "Chapters")}
+        label="Chapters"
+        sensitive={selectedManga((manga) => manga !== null)}
+        onToggled={({ active }) =>
+          active && selectedManga.get() && setCurrentTab("Chapters")
+        }
+      />
+      <togglebutton
+        active={currentTab((tab) => tab === "Pages")}
+        label="Pages"
+        sensitive={selectedChapter((chapter) => chapter !== null)}
+        onToggled={({ active }) =>
+          active && selectedChapter.get() && setCurrentTab("Pages")
+        }
+      />
+    </box>
   </box>
 );
 
 const Content = () => {
   return (
-    <With value={currentTab}>
-      {(tab) => {
-        switch (tab) {
-          case "Providers":
-            return ProvidersTab();
-          case "Chapters":
-            return ChaptersTab();
-          case "Pages":
-            return PagesTab();
-          default:
-            return ProvidersTab();
-        }
-      }}
-    </With>
+    <box class="content">
+      <With value={currentTab}>
+        {(tab) => {
+          switch (tab) {
+            case "Manga":
+              return MangaTab();
+            case "Chapters":
+              return ChaptersTab();
+            case "Pages":
+              return PagesTab();
+            default:
+              return MangaTab();
+          }
+        }}
+      </With>
+    </box>
+  );
+};
+
+const Bottom = () => {
+  const revealer = (
+    <revealer
+      class="bottom-revealer"
+      transitionType={Gtk.RevealerTransitionType.SWING_UP}
+      revealChild={bottomIsRevealed}
+      transitionDuration={globalTransition}
+    >
+      <box
+        class="bottom-bar"
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+      >
+        <entry
+          placeholderText="Search manga..."
+          text={searchQuery.get()}
+          onActivate={() => searchManga(searchQuery.get())}
+          $={(self) =>
+            self.connect("changed", () => setSearchQuery(self.get_text()))
+          }
+        />
+        <button
+          label="Search"
+          onClicked={() => searchManga(searchQuery.get())}
+        />
+        <button label="Popular" onClicked={() => fetchPopular()} />
+      </box>
+    </revealer>
+  );
+
+  // action box
+  const actions = (
+    <box class="actions" spacing={5}>
+      <button
+        hexpand
+        class="reveal-button"
+        label={bottomIsRevealed((revealed) => (!revealed ? "" : ""))}
+        onClicked={(self) => {
+          setBottomIsRevealed(!bottomIsRevealed.get());
+        }}
+      />
+    </box>
+  );
+
+  return (
+    <box class={"bottom"} orientation={Gtk.Orientation.VERTICAL}>
+      {actions}
+      {revealer}
+    </box>
   );
 };
 
@@ -306,11 +375,27 @@ export default () => {
     <box
       orientation={Gtk.Orientation.VERTICAL}
       class="manga-viewer"
-      spacing={10}
+      spacing={5}
+      $={(self) => {
+        const keyController = new Gtk.EventControllerKey();
+        keyController.connect("key-pressed", (_, keyval: number) => {
+          if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {
+            setBottomIsRevealed(true);
+            return true;
+          }
+          if (keyval === Gdk.KEY_Down && bottomIsRevealed.get()) {
+            setBottomIsRevealed(false);
+            return true;
+          }
+          return false;
+        });
+        self.add_controller(keyController);
+      }}
     >
       <Tabs />
-      <Progress revealed={isLoading} text={""} />
       <Content />
+      <Progress revealed={isLoading} text={""} />
+      <Bottom />
     </box>
   );
 };

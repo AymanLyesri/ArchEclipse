@@ -1,0 +1,34 @@
+.manga-viewer {
+  .manga-item {
+    @extend .module;
+    padding: 0px;
+
+    .manga-info {
+      padding: 5px;
+
+      .title {
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .description {
+        font-size: 12px;
+      }
+      .tags {
+        font-size: 12px;
+      }
+    }
+  }
+  .bottom {
+    .bottom-bar {
+      background: $background-semi-transparent;
+
+      @extend .module;
+      margin-top: 10px;
+      padding: 5px;
+
+      &:hover {
+        margin-bottom: 20px;
+      }
+    }
+  }
+}

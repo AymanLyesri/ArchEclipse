@@ -19,6 +19,7 @@
 @import "panel/left-panel/components/chat-bot.scss";
 @import "panel/left-panel/components/booru.scss";
 @import "panel/left-panel/components/custom-scripts.scss";
+@import "panel/left-panel/components/manga.scss";
 
 @import "widgets/resources.scss";
 @import "widgets/app-launcher.scss";
@@ -36,7 +37,6 @@
 @import "widgets/weather.scss";
 @import "widgets/bandwidth.scss";
 @import "widgets/image-dialog.scss";
-
 // Use the variables in the styles
 window {
   background-color: transparent;

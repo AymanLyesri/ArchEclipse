@@ -8,6 +8,8 @@ export interface Manga {
   status?: string;
   cover_url: string;
   cover_path: string;
+  cover_width?: number;
+  cover_height?: number;
 }
 
 export interface Chapter {
