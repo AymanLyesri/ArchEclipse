@@ -1,5 +1,5 @@
 .panel {
-  @extend .module;
+  @include module;
 
   &.exclusive {
     border-radius: 0px;

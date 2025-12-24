@@ -9,21 +9,22 @@ import {
 } from "../../../variables";
 import { Waifu } from "../../../interfaces/waifu.interface";
 
-import { PinImageToTerminal, previewFloatImage } from "../../../utils/image";
+import {
+  fetchImage,
+  PinImageToTerminal,
+  previewFloatImage,
+} from "../../../utils/image";
 import Gtk from "gi://Gtk?version=4.0";
 import Gio from "gi://Gio";
-import {
-  booruImagesPath,
-  booruPreviewPath,
-} from "../../../constants/path.constants";
 import Picture from "../../Picture";
 import { Accessor, createState } from "gnim";
 import { Eventbox } from "../../Custom/Eventbox";
+import { booruPath } from "../../../constants/path.constants";
 
 export default ({ image }: { image: Waifu }) => {
   const checkImageDownloaded = (image: Waifu): boolean => {
     const result = exec(
-      `bash -c "[ -e '${booruImagesPath}/${image.id}.${image.extension}' ] && echo 'exists' || echo 'not-exists'"`
+      `bash -c "[ -e '${booruPath}/${image.api.value}/images/${image.id}.${image.extension}' ] && echo 'exists' || echo 'not-exists'"`
     );
     return result.trim() === "exists";
   };
@@ -42,90 +43,11 @@ export default ({ image }: { image: Waifu }) => {
     bookMarkExists(image)
   );
 
-  // Create buttons with icons
-  const buttonsDTO: {
-    icon: string;
-    sensitive: boolean | Accessor<boolean>;
-    tooltip: string;
-    response: (image: Waifu) => void;
-  }[] = [
-    {
-      icon: "",
-      sensitive: true,
-      tooltip: "Open in browser",
-      response: (image: Waifu) => OpenInBrowser(image),
-    },
-    {
-      icon: "",
-      sensitive: true,
-      tooltip: "Download image",
-      response: (image: Waifu) => fetchImage(image, booruImagesPath),
-    },
-    {
-      icon: "",
-      sensitive: isDownloaded,
-      tooltip: "Copy image",
-      response: (image: Waifu) => CopyImage(image),
-    },
-    {
-      icon: "",
-      sensitive: isDownloaded,
-      tooltip: "Waifu this image",
-      response: (image: Waifu) => waifuThisImage(image),
-    },
-    {
-      icon: "",
-      sensitive: isDownloaded,
-      tooltip: "Open image",
-      response: (image: Waifu) => OpenImage(image),
-    },
-    {
-      icon: "",
-      sensitive: isDownloaded,
-      tooltip: "Pin to terminal",
-      response: (image: Waifu) => PinImageToTerminal(image),
-    },
-    {
-      icon: "󰸉",
-      sensitive: isDownloaded,
-      tooltip: "Add to wallpapers",
-      response: (image: Waifu) => addToWallpapers(image),
-    },
-    {
-      icon: "",
-      sensitive: true,
-      tooltip: "Bookmark image",
-      response: (image: Waifu) => bookMarkImage(image),
-    },
-    // remove bookmark button
-    {
-      icon: "󰧌",
-      sensitive: isBookmarked,
-      tooltip: "Remove bookmark",
-      response: (image: Waifu) => removeBookMarkImage(image),
-    },
-  ];
-
-  const fetchImage = async (image: Waifu, savePath: string) => {
-    // openProgress();
-    const url = image.url!;
-
-    await execAsync(`bash -c "mkdir -p ${savePath}"`).catch((err) =>
-      notify({ summary: "Error", body: String(err) })
-    );
-
-    await execAsync(
-      `bash -c "[ -e "${savePath}/${image.id}.${image.extension}" ] || curl -o ${savePath}/${image.id}.${image.extension} ${url}"`
-    )
-      .then(() => setIsDownloaded(true))
-      .catch((err) => notify({ summary: "Error", body: String(err) }));
-  };
-
   const waifuThisImage = async (image: Waifu) => {
     print(
       "Set waifu to",
       image.id,
-      `${booruImagesPath}/${image.id}.${image.extension}`
+      `${booruPath}/${image.api.value}/images/${image.id}.${image.extension}`
     );
     setWaifuCurrent({ ...image });
   };
@@ -143,17 +65,19 @@ export default ({ image }: { image: Waifu }) => {
 
   const CopyImage = (image: Waifu) =>
     execAsync(
-      `bash -c "wl-copy --type image/png < ${booruImagesPath}/${image.id}.${image.extension}"`
+      `bash -c "wl-copy --type image/png < ${booruPath}/${image.api.value}/images/${image.id}.${image.extension}"`
     ).catch((err) => notify({ summary: "Error", body: err }));
 
   const OpenImage = (image: Waifu) => {
-    previewFloatImage(`${booruImagesPath}/${image.id}.${image.extension}`);
+    previewFloatImage(
+      `${booruPath}/${image.api.value}/images/${image.id}.${image.extension}`
+    );
   };
 
   const addToWallpapers = (image: Waifu) => {
     // copy image to wallpapers folder
     execAsync(
-      `bash -c "cp ${booruImagesPath}/${image.id}.${image.extension} ~/.config/wallpapers/custom/${image.id}.${image.extension}"`
+      `bash -c "cp ${booruPath}/${image.api.value}/images/${image.id}.${image.extension} ~/.config/wallpapers/custom/${image.id}.${image.extension}"`
     )
       .then(() =>
         notify({ summary: "Success", body: "Image added to wallpapers" })
@@ -233,7 +157,13 @@ export default ({ image }: { image: Waifu }) => {
                 label=""
                 tooltip-text="Download image"
                 sensitive={isDownloaded((is) => !is)}
-                onClicked={() => fetchImage(image, booruImagesPath)}
+                onClicked={() =>
+                  fetchImage(image)
+                    .then(() => setIsDownloaded(true))
+                    .catch((err) =>
+                      notify({ summary: "Error", body: String(err) })
+                    )
+                }
                 hexpand
               />
               <button
@@ -292,8 +222,8 @@ export default ({ image }: { image: Waifu }) => {
         <Picture
           file={isDownloaded((is) =>
             is
-              ? `${booruImagesPath}/${image.id}.${image.extension}`
-              : `${booruPreviewPath}/${image.id}.${image.extension}`
+              ? `${booruPath}/${image.api.value}/images/${image.id}.${image.extension}`
+              : `${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`
           )}
           height={imageRatio >= 1 ? 300 : 300 / imageRatio}
           width={imageRatio >= 1 ? 300 * imageRatio : 300}

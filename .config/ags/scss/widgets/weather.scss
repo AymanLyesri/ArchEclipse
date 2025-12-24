@@ -4,13 +4,13 @@
   }
 
   .weather-heading {
-    @extend .module;
+    @include module;
     font-weight: bold;
     font-size: 16px;
   }
 
   .weather-section {
-    // @extend .module;
+    // @include module;
     color: $foreground;
     border-radius: 10px;
     background: $background-transparent;

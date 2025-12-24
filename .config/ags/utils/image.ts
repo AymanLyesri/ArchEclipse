@@ -3,6 +3,7 @@ import { notify } from "./notification";
 import { Waifu } from "../interfaces/waifu.interface";
 
 import GdkPixbuf from "gi://GdkPixbuf";
+import { booruPath } from "../constants/path.constants";
 
 const terminalWaifuPath = `$HOME/.config/fastfetch/assets/logo.webp`;
 
@@ -18,7 +19,7 @@ export function previewFloatImage(imagePath: string) {
 
 export const PinImageToTerminal = (image: Waifu) => {
   execAsync(
-    `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${image.url_file_path} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`
+    `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${booruPath}/${image.api.value}/images/${image.id}.${image.extension} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`
   )
     .then((output) =>
       notify({
@@ -39,3 +40,16 @@ export function getImageRatio(path: string): number {
     return 1;
   }
 }
+
+export const fetchImage = async (image: Waifu) => {
+  await execAsync(
+    `bash -c "mkdir -p ${booruPath}/${image.api.value}/images"`
+  ).catch((err) => notify({ summary: "Error", body: String(err) }));
+
+  return await execAsync(
+    `bash -c "[ -e "${booruPath}/${image.api.value}/images/${image.id}.${image.extension}" ] || curl -o ${booruPath}/${image.api.value}/images/${image.id}.${image.extension} ${image.url}"`
+  ).catch((err) => {
+    notify({ summary: "Error", body: String(err) });
+    throw err;
+  });
+};

@@ -1,6 +1,6 @@
 .chat-bot {
   > .info {
-    @extend .module;
+    @include module;
     padding: 10px 5px;
     color: $secondary;
   }
@@ -10,7 +10,7 @@
       background-color: $background-secondary;
     }
     .message {
-      @extend .module;
+      @include module;
       padding: 5px;
 
       .image {
@@ -67,7 +67,7 @@
     }
 
     .image-generation {
-      @extend .button;
+      @include button;
       padding: 5px 10px;
       border-radius: 20px;
     }

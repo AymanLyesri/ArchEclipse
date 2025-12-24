@@ -1,6 +1,6 @@
 .manga-viewer {
   .manga-item {
-    @extend .module;
+    @include module;
     padding: 0px;
 
     .manga-info {
@@ -22,7 +22,7 @@
     .bottom-bar {
       background: $background-semi-transparent;
 
-      @extend .module;
+      @include module;
       margin-top: 10px;
       padding: 5px;
 

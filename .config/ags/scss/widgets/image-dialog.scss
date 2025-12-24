@@ -1,10 +1,6 @@
 .image-dialog {
-  @extend .module;
-  //   min-width: 100px;
-
+  @include module;
   padding: 0px;
-  border: 5px solid $secondary;
-  border-radius: 15px;
 
   &:hover {
     background-color: $background-secondary;

@@ -26,7 +26,6 @@ const updateSelectedWorkspaceWidget = (workspaceId: number, widget: any) => {
 
 const targetTypes = ["workspace", "sddm", "lockscreen"];
 const [targetType, setTargetType] = createState<string>("workspace");
-const [wallpaperType, setWallpaperType] = createState<boolean>(false);
 
 const [allWallpapers, setAllWallpapers] = createState<string[]>([]);
 
@@ -49,6 +48,12 @@ const FetchWallpapers = async () => {
     print("Error fetching wallpapers: " + String(err));
   }
 };
+
+const [wallpaperType, setWallpaperType] = createState<boolean>(false);
+
+wallpaperType.subscribe(() => {
+  FetchWallpapers();
+});
 
 export function toThumbnailPath(file: string) {
   return file.replace(
@@ -110,60 +115,72 @@ function Display(monitor: string) {
             return (
               <button
                 class="wallpaper-button preview"
-                onClicked={() => {
-                  const target = targetType.get();
-                  const command = {
-                    sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
-                    lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
-                    workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.get()} ${wallpaper} ${monitor}"`,
-                  }[target];
+                onClicked={() => {}}
+                $={(self) => {
+                  const gesture = new Gtk.GestureClick({
+                    button: 0, // 0 = listen to all buttons
+                  });
 
-                  execAsync(command!)
-                    .then(() => {
-                      const picture = selectedWorkspaceWidget
-                        .get()
-                        .child.getPicture() as Gtk.Picture;
-                      if (target === "workspace" && picture) {
-                        picture.file = Gio.File.new_for_path(wallpaper);
-                        setSelectedWorkspaceWidget(picture);
-                      }
-                      notify({
-                        summary: target,
-                        body: `${target} wallpaper changed successfully!`,
-                      });
-                    })
-                    .catch(notify);
+                  gesture.connect("pressed", (gesture, nPress, x, y) => {
+                    if (gesture.get_current_button() === 1) {
+                      // Left click
+                      const target = targetType.get();
+                      const command = {
+                        sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
+                        lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
+                        workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.get()} ${wallpaper} ${monitor}"`,
+                      }[target];
+
+                      execAsync(command!)
+                        .then(() => {
+                          const picture = selectedWorkspaceWidget
+                            .get()
+                            .child.getPicture() as Gtk.Picture;
+                          if (target === "workspace" && picture) {
+                            picture.file = Gio.File.new_for_path(wallpaper);
+                            setSelectedWorkspaceWidget(picture);
+                          }
+                          notify({
+                            summary: target,
+                            body: `${target} wallpaper changed successfully!`,
+                          });
+                        })
+                        .catch(notify);
+                    } else if (gesture.get_current_button() === 3) {
+                      // Right click
+                      execAsync(
+                        `bash -c "rm -f '${toThumbnailPath(
+                          wallpaper
+                        )}' && rm -f '${wallpaper}'"`
+                      )
+                        .then(() =>
+                          notify({
+                            summary: "Success",
+                            body: "Wallpaper deleted successfully!",
+                          })
+                        )
+                        .catch((err) =>
+                          notify({
+                            summary: "Error",
+                            body: String(err),
+                          })
+                        );
+                    }
+                  });
+
+                  self.add_controller(gesture);
                 }}
+                tooltipMarkup={targetType(
+                  (type) =>
+                    "Click to set as <b>" +
+                    type +
+                    "</b> wallpaper.\nRight-click to delete."
+                )}
               >
                 <Picture
                   class="wallpaper"
                   file={toThumbnailPath(wallpaper)}
                 ></Picture>
-                {/* <button
-                  visible={wallpaperType.get()}
-                  class="delete-wallpaper"
-                  halign={Gtk.Align.END}
-                  valign={Gtk.Align.START}
-                  onClicked={() => {
-                    execAsync(
-                      `bash -c "rm -f '${toThumbnailPath(
-                        wallpaper
-                      )}' '${wallpaper}'"`
-                    )
-                      .then(() =>
-                        notify({
-                          summary: "Success",
-                          body: "Wallpaper deleted successfully!",
-                        })
-                      )
-                      .catch((err) =>
-                        notify({
-                          summary: "Error",
-                          body: String(err),
-                        })
-                      );
-                  }}
-                /> */}
               </button>
             );
           }}

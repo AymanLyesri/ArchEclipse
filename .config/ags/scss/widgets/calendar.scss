@@ -1,5 +1,5 @@
 .calendar {
-  @extend .module;
+  @include module;
   padding: 5px;
 
   * {

@@ -183,7 +183,7 @@ export function LeftPanelVisibility() {
         active={leftPanelVisibility}
         label={leftPanelVisibility((v) => (v ? "" : ""))}
         onToggled={({ active }) => setLeftPanelVisibility(active)}
-        class="panel-trigger icon"
+        class="panel-trigger"
       />
     </revealer>
   );

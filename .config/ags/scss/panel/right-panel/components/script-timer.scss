@@ -1,6 +1,6 @@
 .script-timer {
   // Uses lib.scss module base styles via .module class
-  @extend .module;
+  @include module;
   padding: 0.5em;
 
   .header {
@@ -11,7 +11,7 @@
   }
 
   .form-container {
-    @extend .module;
+    @include module;
     background: $background-semi-transparent;
 
     .form-label {
@@ -40,7 +40,7 @@
   }
 
   .task {
-    @extend .module;
+    @include module;
     background: $background-transparent;
 
     border-radius: 4px;

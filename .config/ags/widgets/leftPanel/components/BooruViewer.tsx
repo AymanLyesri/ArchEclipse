@@ -24,11 +24,8 @@ import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
 import { Progress } from "../../Progress";
 import { connectPopoverEvents } from "../../../utils/window";
-import {
-  booruImagesPath,
-  booruPreviewPath,
-} from "../../../constants/path.constants";
 import ImageDialog from "./ImageDialog";
+import { booruPath } from "../../../constants/path.constants";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -40,7 +37,9 @@ const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 const [selectedTab, setSelectedTab] = createState<string>(booruApis[0].name);
 
 const calculateCacheSize = async () =>
-  execAsync(`bash -c "du -sb ${booruPreviewPath} | cut -f1"`).then((res) => {
+  execAsync(
+    `bash -c "du -sb ${booruPath}/${booruApi.get().value}/previews | cut -f1"`
+  ).then((res) => {
     // Convert bytes to megabytes
     setCacheSize(`${Math.round(Number(res) / (1024 * 1024))}mb`);
   });
@@ -58,8 +57,10 @@ const ensureRatingTagFirst = () => {
 
 const cleanUp = () => {
   const promises = [
-    execAsync(`bash -c "rm -rf ${booruPreviewPath}/*"`),
-    execAsync(`bash -c "rm -rf ${booruImagesPath}/*"`),
+    execAsync(
+      `bash -c "rm -rf ${booruPath}/${booruApi.get().value}/previews/*"`
+    ),
+    execAsync(`bash -c "rm -rf ${booruPath}/${booruApi.get().value}/images/*"`),
   ];
 
   Promise.all(promises)
@@ -99,16 +100,20 @@ const fetchImages = async () => {
     }));
 
     // 4. Prepare directory in background
-    execAsync(`bash -c "mkdir -p ${booruPreviewPath}"`).catch((err) =>
-      notify({ summary: "Error", body: String(err) })
-    );
+    execAsync(
+      `bash -c "mkdir -p ${booruPath}/${booruApi.get().value}/previews"`
+    ).catch((err) => notify({ summary: "Error", body: String(err) }));
 
     setLoadingText(`Downloading ${newImages.length} images...`);
 
     // 5. Download images in parallel
     const downloadPromises = newImages.map((image) =>
       execAsync(
-        `bash -c "[ -e "${booruPreviewPath}/${image.id}.${image.extension}" ] || curl -o "${booruPreviewPath}/${image.id}.${image.extension}" "${image.preview}""`
+        `bash -c "[ -e "${booruPath}/${booruApi.get().value}/previews/${
+          image.id
+        }.${image.extension}" ] || curl -o "${booruPath}/${
+          booruApi.get().value
+        }/previews/${image.id}.${image.extension}" "${image.preview}""`
       )
         .then(() => {
           return image;
@@ -146,7 +151,11 @@ const fetchBookmarkImages = async () => {
     // 5. Download images in parallel
     const downloadPromises = booruBookMarkWaifus.get().map((image) =>
       execAsync(
-        `bash -c "[ -e "${booruPreviewPath}/${image.id}.${image.extension}" ] || curl -o "${booruPreviewPath}/${image.id}.${image.extension}" "${image.preview}""`
+        `bash -c "[ -e "${booruPath}/${booruApi.get().value}/previews/${
+          image.id
+        }.${image.extension}" ] || curl -o "${booruPath}/${
+          booruApi.get().value
+        }/previews/${image.id}.${image.extension}" "${image.preview}""`
       )
         .then(() => {
           return image;
@@ -233,7 +242,9 @@ const Images = () => {
                 print(
                   "Rendering image ID:",
                   image.id,
-                  `from path: ${booruPreviewPath}/${image.id}.${image.extension}`,
+                  `from path: ${booruPath}/${booruApi.get().value}/previews/${
+                    image.id
+                  }.${image.extension}`,
                   "height:",
                   image.height,
                   "width:",
@@ -250,8 +261,9 @@ const Images = () => {
                   >
                     <Picture
                       file={
-                        `${booruPreviewPath}/${image.id}.${image.extension}` ||
-                        ""
+                        `${booruPath}/${booruApi.get().value}/previews/${
+                          image.id
+                        }.${image.extension}` || ""
                       }
                     ></Picture>
                     <popover>

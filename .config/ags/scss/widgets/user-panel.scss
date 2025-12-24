@@ -1,6 +1,6 @@
 .user-panel {
   .main {
-    @extend .module;
+    @include module;
     padding: 1rem;
   }
 
@@ -11,12 +11,12 @@
     min-width: 300px;
   }
   .date {
-    @extend .module;
+    @include module;
     padding: 20px;
     font-size: 3em;
   }
   .profile {
-    @extend .module;
+    @include module;
     padding: 33px;
 
     .profile-picture {

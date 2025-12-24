@@ -1,50 +1,6 @@
 .bar-middle {
-  .media {
-    @extend .module;
-    background-size: cover;
-    background-position: center;
-    margin: 0px;
-    padding: 0px 10px;
-
-    &.spotify {
-      color: #1ed760;
-    }
-    &.vlc {
-      color: #ff9500;
-    }
-    &.youtube {
-      color: #ff0000;
-    }
-    &.brave {
-      color: #ff9500;
-    }
-    &.audacious {
-      color: #ff9500;
-    }
-    &.rhythmbox {
-      color: #ff9500;
-    }
-    &.chromium {
-      color: #ff9500;
-    }
-    &.firefox {
-      color: #ff9500;
-    }
-
-    .progress {
-      min-width: 15px; /* its size is min(min-height, min-width) */
-      margin: 0px; /* you can set margin on it */
-      font-size: 1px;
-      padding: 0px;
-      margin: 0px;
-
-      .icon {
-        color: unset; /* you can set color on it */
-      }
-    }
-    .title {
-      font-weight: 700;
-    }
+  popover {
+    background: transparent;
   }
 
   .clock {
@@ -54,6 +10,6 @@
   }
 
   .client-title {
-    @extend .module;
+    @include module;
   }
 }

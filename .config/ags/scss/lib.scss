@@ -5,7 +5,7 @@
   transition: all 0.2s;
 }
 
-.module {
+@mixin module {
   background: $background-transparent;
   color: $foreground;
   min-height: 1px;
@@ -14,7 +14,7 @@
   border-radius: 10px;
   font-size: $FONT-SIZE;
   text-shadow: none;
-  // padding: ($SCALE - 5) / 5 $SCALE / 1.5;
+  padding: ($SCALE - 5) / 5 $SCALE / 1.5;
   margin: 0;
 
   .image {
@@ -22,22 +22,12 @@
   }
 }
 
-.icon,
-button,
-.button {
-  font-size: $ICON-SIZE;
-  font-family: "JetBrainsMono NFP";
-  color: $foreground;
-}
-
-button,
-.button {
-  @extend .module;
+@mixin button {
+  @include module;
   border: none;
-  padding: $SCALE / $phi $SCALE;
-  min-width: 20px;
-  min-height: 20px;
-  outline: none;
+  min-width: $phi * 15 + px;
+
+  padding: $SCALE / 2 $SCALE / 1.5;
 
   background: $background-semi-transparent;
 
@@ -45,14 +35,9 @@ button,
     background: $background;
     text-shadow: $foreground 0 0 1px;
   }
-  // &:focus,
-  // &:checked {
-
-  //   // border-color: transparent;
-  // }
   &:checked {
-    background: $secondary;
-    color: $color0;
+    background: $foreground-secondary;
+    color: $background;
   }
 
   & .picture {
@@ -60,14 +45,26 @@ button,
   }
 }
 
+.icon,
+button {
+  font-size: $ICON-SIZE;
+  font-family: "JetBrainsMono NFP";
+  color: $foreground;
+}
+
+button,
+.button {
+  @include button;
+}
+
 .toggle {
   border: none;
   padding: 0px;
-  @extend .button;
+  @include button;
 }
 
 .dialog {
-  @extend .module;
+  @include module;
 }
 
 filechooserbutton * {
@@ -118,7 +115,7 @@ separator {
 }
 
 // menu {
-//   @extend .module;
+//   @include module;
 //   border-radius: 0;
 //   background: $background;
 //   padding: 0;
@@ -155,7 +152,7 @@ levelbar {
   }
 }
 switch {
-  @extend .module;
+  @include module;
   margin: 0;
   padding: 0;
   slider {
@@ -179,7 +176,7 @@ scrollbar {
 }
 
 .switch {
-  @extend .module;
+  @include module;
   margin: 0;
   padding: 0;
   slider {
@@ -217,18 +214,19 @@ scrollbar {
 }
 
 .custom-revealer {
-  @extend .button;
+  @include button;
 
   .slider {
     margin: 0px 5px;
   }
 
   .trigger {
-    // @extend .button;
+    // @include button;
     padding: 0px 5px;
   }
 }
 
 popover > * {
   all: unset;
+  @include module;
 }

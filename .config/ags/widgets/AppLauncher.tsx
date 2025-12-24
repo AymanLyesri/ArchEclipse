@@ -93,20 +93,29 @@ const helpCommands = {
 };
 
 const Help = (
-  <box class="help" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
-    {Object.entries(helpCommands).map(([command, explanation]) => (
-      <box hexpand homogeneous>
-        <label class="command" label={command} halign={Gtk.Align.END} hexpand />
-        <label class="separator" label="=>>" halign={Gtk.Align.CENTER} />
-        <label
-          class="explanation"
-          label={explanation}
-          halign={Gtk.Align.START}
-          hexpand
-        />
+  <menubutton class="help" tooltipText="Help" halign={Gtk.Align.END}>
+    <label label="" />
+    <popover>
+      <box class="help-popover" spacing={5}>
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+          {Object.entries(helpCommands).map(([command, description]) => (
+            <box spacing={10}>
+              <label
+                label={command}
+                class="command"
+                // ellipsize={Gtk.EllipsizeMode.END}
+              />
+              <label
+                label={description}
+                class="description"
+                // ellipsize={Gtk.EllipsizeMode.END}
+              />
+            </box>
+          ))}
+        </box>
       </box>
-    ))}
-  </box>
+    </popover>
+  </menubutton>
 );
 
 let debounceTimer: any;
@@ -377,10 +386,12 @@ export default (monitor: any) => (
       class="app-launcher"
       spacing={5}
     >
-      {Entry}
+      <box spacing={5}>
+        {Entry}
+        {Help}
+      </box>
       {ResultsDisplay()}
       {QuickApps()}
-      {Help}
     </box>
   </Astal.Window>
 );

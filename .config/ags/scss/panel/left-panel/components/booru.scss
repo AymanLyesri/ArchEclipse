@@ -4,14 +4,8 @@
   // }
 
   .images {
-    .image-button {
-      border-radius: 15px;
+    .image-button > button {
       padding: 0px;
-
-      // &:hover {
-      //   box-shadow: 0px 0px 20px 10px white inset;
-      //   transition: all 0.2s;
-      // }
     }
   }
 
@@ -19,7 +13,7 @@
     .bottom-bar {
       background: $background-semi-transparent;
 
-      @extend .module;
+      @include module;
       margin-top: 10px;
       padding: 5px;
 

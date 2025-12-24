@@ -1,5 +1,5 @@
 .player {
-  @extend .module;
+  @include module;
   padding: 0px;
 
   &.widget {
@@ -49,7 +49,6 @@
   }
 
   button {
-    padding: $SCALE - 10 $SCALE;
     background: transparent;
     &:hover {
       background: $background;

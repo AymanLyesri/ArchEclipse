@@ -21,12 +21,6 @@
     button:only-child {
       border-radius: 10px;
     }
-    popover {
-      @extend .module;
-      margin-top: 10px;
-      border-radius: 10px;
-      background-color: $background-semi-transparent;
-    }
   }
 }
 

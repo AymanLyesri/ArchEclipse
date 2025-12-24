@@ -1,5 +1,5 @@
 .crypto {
-  @extend .module;
+  @include module;
 
   .crypto-graph {
     font-family: monospace;

@@ -1,5 +1,5 @@
 .notification {
-  @extend .module;
+  @include module;
   margin: 0px;
   padding: 5px;
   transition: opacity 0.5s ease-out; /* Adjust timing */

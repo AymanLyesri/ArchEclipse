@@ -1,7 +1,7 @@
 .wallpaper-switcher {
   min-width: 1400px;
   min-height: 150px;
-  @extend .module;
+  @include module;
   padding: 10px 50px;
   border-radius: 50px;
   border: 1px solid $secondary;

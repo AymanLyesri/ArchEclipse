@@ -4,7 +4,7 @@
   }
 
   .bandwidth-heading {
-    @extend .module;
+    @include module;
     font-weight: bold;
     font-size: 16px;
   }

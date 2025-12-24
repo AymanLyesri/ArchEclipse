@@ -3,22 +3,21 @@
   padding: 5px;
   background: $background-transparent;
 
-  .module {
-    padding: ($SCALE - 5) / 5 $SCALE / 1.5;
-  }
-
-  // popover {
-  //   .module {
-  //     // padding: unset;
-  //     padding: 100px !important;
-  //   }
-  // }
-
   &.full {
     background: $background-transparent;
   }
 
   &.empty {
     background-color: rgba($color: #000000, $alpha: 0.1);
+  }
+
+  // Style the panel trigger inside the first child (revealer) of .bar
+  > :first-child .panel-trigger {
+    border-radius: 50px 30px 30px 50px;
+  }
+
+  // Style the panel trigger inside the last child (revealer) of .bar
+  > :last-child .panel-trigger {
+    border-radius: 30px 50px 50px 30px;
   }
 }

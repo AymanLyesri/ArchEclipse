@@ -40,7 +40,7 @@ function Mpris() {
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
     >
-      <menubutton>
+      <menubutton class={"mpris"}>
         <box spacing={5}>
           <Cava
             barCount={12}

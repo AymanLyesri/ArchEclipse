@@ -4,7 +4,7 @@
 }
 
 .screenshot-widget {
-  @extend .module;
+  @include module;
   background-color: $background-transparent;
   padding: 1rem;
 }

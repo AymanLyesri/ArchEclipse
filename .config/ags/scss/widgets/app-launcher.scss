@@ -1,14 +1,8 @@
 .app-launcher {
-  @extend .module;
+  @include module;
   padding: 10px;
   border-radius: 10px;
   min-width: 500px;
-
-  .help > * {
-    @extend .button;
-    font-size: $phi-min + em;
-    color: $secondary;
-  }
 
   .quick-apps {
     button {
