@@ -21,6 +21,9 @@
     button:only-child {
       border-radius: 10px;
     }
+    popover > * {
+      @include module;
+    }
   }
 }
 

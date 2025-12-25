@@ -4,6 +4,9 @@
 
   &:hover {
     background-color: $background-secondary;
+    .image {
+      opacity: $phi-min;
+    }
   }
 
   .actions {

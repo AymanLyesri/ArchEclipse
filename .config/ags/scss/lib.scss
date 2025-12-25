@@ -24,6 +24,9 @@
 
 @mixin button {
   @include module;
+  font-size: $ICON-SIZE;
+  font-family: "JetBrainsMono NFP";
+  color: $foreground;
   border: none;
   min-width: $phi * 15 + px;
 
@@ -39,22 +42,15 @@
     background: $foreground-secondary;
     color: $background;
   }
-
-  & .picture {
-    all: unset;
-  }
-}
-
-.icon,
-button {
-  font-size: $ICON-SIZE;
-  font-family: "JetBrainsMono NFP";
-  color: $foreground;
 }
 
 button,
 .button {
   @include button;
+}
+
+menubutton button {
+  background: transparent;
 }
 
 .toggle {
@@ -228,5 +224,4 @@ scrollbar {
 
 popover > * {
   all: unset;
-  @include module;
 }

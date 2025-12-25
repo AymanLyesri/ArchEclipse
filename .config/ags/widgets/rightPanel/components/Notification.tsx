@@ -25,19 +25,7 @@ function NotificationIcon(n: Notifd.Notification) {
   if (!notificationIcon)
     return <image class="icon" iconName={"dialog-information-symbolic"} />;
 
-  return (
-    // <box
-    //   class="image"
-    //   css={`
-    //     background-image: url("${notificationIcon}");
-    //     background-size: cover;
-    //     background-repeat: no-repeat;
-    //     background-position: center;
-    //     border-radius: 10px;
-    //   `}
-    // />
-    <Picture file={notificationIcon} class="icon" />
-  );
+  return <Picture file={notificationIcon} class="icon" />;
 }
 
 function copyNotificationContent(n: Notifd.Notification) {
@@ -120,27 +108,24 @@ export default ({
     />
   );
 
-  // const actions: string[] = n.actions
-  //   ? JSON.parse(n.actions.toString()[0])
-  //   : [];
+  const actions: Notifd.Action[] = n.actions;
 
-  // const Actions = (
-  //   <box className="actions">
-  //     {actions.map((action) => (
-  //       <button
-  //         className={action[0].includes("Delete") ? "delete" : ""}
-  //         onClicked={() => {
-  //           Hyprland.message_async(`dispatch exec ${action[1]}`).catch((err) =>
-  //             notify(err)
-  //           );
-  //         }}
-  //         hexpand={true}
-  //         child={
-  //           <label label={action[0].includes("Delete") ? "󰆴" : action[0]} />
-  //         }></button>
-  //     ))}
-  //   </box>
-  // );
+  const Actions = (
+    <box class="actions">
+      {actions.map((action) => {
+        return (
+          <button
+            hexpand
+            onClicked={() => {
+              n.invoke(action.id);
+            }}
+          >
+            <label label={action.label} />
+          </button>
+        );
+      })}
+    </box>
+  );
 
   const expand = (
     <togglebutton
@@ -241,7 +226,7 @@ export default ({
           {body}
         </box>
       </box>
-      {/* {Actions} */}
+      {Actions}
     </box>
   );
 

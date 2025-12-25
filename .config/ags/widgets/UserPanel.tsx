@@ -12,8 +12,6 @@ import Hyprland from "gi://AstalHyprland";
 import { date_less } from "../variables";
 import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
-import { notify } from "../utils/notification";
-import { FileChooserButton } from "./FileChooser";
 import Picture from "./Picture";
 const hyprland = Hyprland.get_default();
 
@@ -44,7 +42,6 @@ const UserPanel = (monitorName: string) => {
     );
 
     const ProfilePicture = (
-
       <Picture
         class={"profile-picture"}
         file={pfpPath}
@@ -84,6 +81,7 @@ const UserPanel = (monitorName: string) => {
         onClicked={() => {
           execAsync(`shutdown now`);
         }}
+        tooltipText={"SUPER + CTRL + SHIFT + ESC"}
       />
     );
 
@@ -107,6 +105,7 @@ const UserPanel = (monitorName: string) => {
           hideWindow(`user-panel-${monitorName}`);
           execAsync(`bash -c "$HOME/.config/hypr/scripts/hyprlock.sh suspend"`);
         }}
+        tooltipText={"SUPER + CTRL + ESC"}
       />
     );
 

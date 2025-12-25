@@ -58,7 +58,6 @@ function BrightnessWidget() {
 
   const label = (
     <label
-      class="trigger"
       label={screen((v) => {
         switch (true) {
           case v > 0.75:
@@ -74,9 +73,14 @@ function BrightnessWidget() {
     />
   );
 
+  const percentage = (
+    <label label={screen((v: number) => `${Math.round(v * 100)}%`)} />
+  );
   return (
     <CustomRevealer
-      trigger={label}
+      trigger={
+        <box class="trigger" spacing={5} children={[label, percentage]} />
+      }
       child={slider}
       visible={screen((s) => s != 0)}
     />

@@ -1,16 +1,50 @@
-#!/bin/bash
-# Create a timestamp for the image filename
-timestamp=$(date +%Y%m%d_%H%M%S)
-image_path="/tmp/clipboard_image_${timestamp}.png"
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Try to get an image from the clipboard
+# =========================
+# Config
+# =========================
+TMP_DIR="/tmp"
+PREVIEW_CMD="swayimg --class preview-image"
+EDIT_CMD="gimp"
+
+# =========================
+# Timestamped image path
+# =========================
+timestamp=$(date +%Y%m%d_%H%M%S)
+image_path="$TMP_DIR/clipboard_image_${timestamp}.png"
+
+# =========================
+# Try image from clipboard
+# =========================
 if wl-paste --type image/png >"$image_path" 2>/dev/null; then
-    echo "Image copied to clipboard: $image_path"
-    # If an image is detected, show it in the notification
-    notify-send "Clipboard" "Image copied" -i "$image_path" --hint=string:actions:"[[\"Preview\",\"swayimg --class 'preview-image' $image_path \"],[\"Edit\",\"gimp $image_path \"],[\"Delete\",\"rm $image_path \"]]"
-else
-    # If no image is found, check for text content
-    echo "No image found in clipboard, checking for text..."
-    clipboard_content=$(wl-paste --no-newline --type text 2>/dev/null)
-    [ -n "$clipboard_content" ] && notify-send "Clipboard" "$clipboard_content"
+    action=$(notify-send "Clipboard" "Image copied" \
+        -i "$image_path" \
+        --action=preview:Preview \
+        --action=edit:Edit \
+        --action=delete:Delete)
+
+    echo "ACTION RECEIVED: $action" >> /tmp/notify.log
+
+    case "$action" in
+  0)  # preview
+    swayimg --class preview-image "$image_path"
+    ;;
+  1)  # edit
+    gimp "$image_path"
+    ;;
+  2)  # delete
+    rm -f "$image_path"
+    ;;
+esac
+
+
+    exit 0
+fi
+
+# =========================
+# Fallback: text clipboard
+# =========================
+if clipboard_text=$(wl-paste --no-newline --type text 2>/dev/null) && [[ -n "$clipboard_text" ]]; then
+    notify-send "Clipboard" "$clipboard_text"
 fi

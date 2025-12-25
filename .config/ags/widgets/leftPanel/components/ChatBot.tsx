@@ -146,7 +146,7 @@ const sendMessage = async (message: Message) => {
 };
 
 const ApiList = () => (
-  <box class="api-list" spacing={5}>
+  <box class="tab-list" spacing={5}>
     {chatBotApis.map((provider) => (
       <togglebutton
         hexpand

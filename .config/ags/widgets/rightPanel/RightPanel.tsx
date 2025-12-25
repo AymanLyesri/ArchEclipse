@@ -203,6 +203,7 @@ export function RightPanelVisibility() {
         label={rightPanelVisibility((v) => (v ? "" : ""))}
         onToggled={({ active }) => setRightPanelVisibility(active)}
         class="panel-trigger icon"
+        tooltipText={"SUPER + R"}
       />
     </revealer>
   );

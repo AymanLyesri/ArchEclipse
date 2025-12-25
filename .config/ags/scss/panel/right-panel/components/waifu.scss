@@ -1,6 +1,10 @@
 .waifu {
   border-radius: 10px;
 
+  &:hover .image {
+    opacity: $phi-min;
+  }
+
   .actions {
     margin: $phi * 2 + px;
     border-radius: 10px;

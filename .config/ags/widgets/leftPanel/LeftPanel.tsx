@@ -184,6 +184,7 @@ export function LeftPanelVisibility() {
         label={leftPanelVisibility((v) => (v ? "" : ""))}
         onToggled={({ active }) => setLeftPanelVisibility(active)}
         class="panel-trigger"
+        tooltipText={"SUPER + L"}
       />
     </revealer>
   );

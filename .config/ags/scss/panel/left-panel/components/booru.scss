@@ -4,8 +4,10 @@
   // }
 
   .images {
-    .image-button > button {
-      padding: 0px;
+    .image-button {
+      > button {
+        padding: 0px;
+      }
     }
   }
 

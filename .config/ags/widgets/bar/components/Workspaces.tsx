@@ -50,6 +50,7 @@ function Workspaces() {
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
         }
+        tooltipText={`SUPER + ${id}`}
       />
     );
   };
@@ -157,6 +158,7 @@ const Special = (
     onClicked={() =>
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
     }
+    tooltipText={"SUPER + S"}
   />
 );
 
@@ -167,6 +169,7 @@ const OverView = (
     onClicked={() =>
       hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
     }
+    tooltipText={"SUPER + SHIFT + TAB"}
   />
 );
 
@@ -180,6 +183,7 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
           ? showWindow(`app-launcher-${monitorName}`)
           : hideWindow(`app-launcher-${monitorName}`);
       }}
+      tooltipText={"SUPER"}
     />
   );
 }
@@ -196,6 +200,7 @@ function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
           ? showWindow(`wallpaper-switcher-${monitorName}`)
           : hideWindow(`wallpaper-switcher-${monitorName}`);
       }}
+      tooltipText={"SUPER + W"}
     />
   );
 }
@@ -210,6 +215,7 @@ function Settings({ monitorName }: { monitorName: string }) {
           ? showWindow(`settings-${monitorName}`)
           : hideWindow(`settings-${monitorName}`)
       }
+      tooltipText={"SUPER + ALT + S"}
     />
   );
 }
@@ -224,6 +230,7 @@ function UserPanel({ monitorName }: { monitorName: string }) {
           ? showWindow(`user-panel-${monitorName}`)
           : hideWindow(`user-panel-${monitorName}`);
       }}
+      tooltipText={"SUPER + ESC"}
     />
   );
 }
