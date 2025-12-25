@@ -22,7 +22,7 @@ if wl-paste --type image/png >"$image_path" 2>/dev/null; then
         -i "$image_path" \
         --action=preview:Preview \
         --action=edit:Edit \
-        --action=delete:Delete)
+        --action=save:Save)
 
     echo "ACTION RECEIVED: $action" >> /tmp/notify.log
 
@@ -33,8 +33,18 @@ if wl-paste --type image/png >"$image_path" 2>/dev/null; then
   1)  # edit
     gimp "$image_path"
     ;;
-  2)  # delete
-    rm -f "$image_path"
+  2) # Save
+    save_path=$(zenity --file-selection \
+      --save \
+      --confirm-overwrite \
+      --filename="$HOME/Pictures/clipboard_$(date +%Y%m%d_%H%M%S).png" \
+      --title="Save Image")
+
+    # User cancelled
+    [ -z "$save_path" ] && exit 0
+
+    cp "$image_path" "$save_path"
+    notify-send "Info" "Saved to $(basename "$save_path")"
     ;;
 esac
 

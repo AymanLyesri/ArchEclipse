@@ -14,7 +14,7 @@
   border-radius: 10px;
   font-size: $FONT-SIZE;
   text-shadow: none;
-  padding: ($SCALE - 5) / 5 $SCALE / 1.5;
+  padding: $SCALE / 1.5;
   margin: 0;
 
   .image {
@@ -30,7 +30,7 @@
   border: none;
   min-width: $phi * 15 + px;
 
-  padding: $SCALE / 2 $SCALE / 1.5;
+  // padding: $SCALE / 2 $SCALE / 1.5;
 
   background: $background-semi-transparent;
 

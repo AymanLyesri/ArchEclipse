@@ -80,7 +80,7 @@ export default ({
   }
 
   const icon = (
-    <box valign={Gtk.Align.CENTER} halign={Gtk.Align.CENTER} class="icon">
+    <box valign={Gtk.Align.START} halign={Gtk.Align.START} class="icon">
       {NotificationIcon(n)}
     </box>
   );
@@ -120,7 +120,7 @@ export default ({
               n.invoke(action.id);
             }}
           >
-            <label label={action.label} />
+            <label label={action.label.split(":").at(-1)!} />
           </button>
         );
       })}
@@ -219,7 +219,7 @@ export default ({
       orientation={Gtk.Orientation.VERTICAL}
     >
       {topBar}
-      <box spacing={5}>
+      <box class={"content"} spacing={5}>
         {icon}
         <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
           {title}

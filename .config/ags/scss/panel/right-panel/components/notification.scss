@@ -65,31 +65,32 @@
     }
   }
 
-  &.Spotify .app-name {
-    color: $spotify-foreground;
-  }
+  // &.Spotify .app-name {
+  //   color: $spotify-foreground;
+  // }
+  .content {
+    padding: 5px;
+    .image,
+    .icon {
+      font-size: 30px;
+      min-width: 50px;
+      min-height: 50px;
+      color: $secondary;
+    }
 
-  .image,
-  .icon {
-    font-size: 30px;
-    min-width: 50px;
-    min-height: 50px;
-    color: $secondary;
-  }
+    .title {
+      color: $secondary;
+      // font-size: 0.9em;
+    }
 
-  .title {
-    color: $secondary;
-    // font-size: 0.9em;
-  }
-
-  .body {
-    color: $foreground-secondary;
-    font-size: 0.9em;
+    .body {
+      color: $foreground-secondary;
+      font-size: 0.9em;
+    }
   }
   .actions {
     button {
       // border-radius: 0px;
-      margin-top: 10px;
       border-radius: 0px;
 
       &.delete {
