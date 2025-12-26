@@ -101,7 +101,7 @@ function ClientTitle() {
       <label
         class="client-title"
         ellipsize={Pango.EllipsizeMode.END}
-        maxWidthChars={24}
+        maxWidthChars={50}
         label={focusedClient((c) => {
           if (!c) return "No focused client";
           return c.title || "No Title";

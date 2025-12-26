@@ -1,9 +1,8 @@
 .progress {
   @include module;
-  margin: 0px;
-  padding: 0px;
-  .loading-bars {
-    font-size: 9px;
-    color: $secondary;
+  // margin: 0px;
+  // padding: 0px;
+  &.success {
+    background-color: $green;
   }
 }

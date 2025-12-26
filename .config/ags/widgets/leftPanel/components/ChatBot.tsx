@@ -26,8 +26,9 @@ const [messages, setMessages] = createState<Message[]>([]);
 const [chatHistory, setChatHistory] = createState<Message[]>([]);
 
 // Progress State
-const [isLoading, setIsLoading] = createState<boolean>(false);
-const [loadingText, setLoadingText] = createState<string>("...");
+const [progressStatus, setProgressStatus] = createState<
+  "loading" | "error" | "success" | "idle"
+>("idle");
 
 // image generation
 const [chatBotImageGeneration, setChatBotImageGeneration] =
@@ -111,10 +112,7 @@ const sendMessage = async (message: Message) => {
           .replace(/`/g, "\\`")}'` +
     ` '${escapedContent}'`;
   try {
-    setIsLoading(true);
-    setLoadingText(
-      chatBotImageGeneration.get() ? "Generating image..." : "Thinking..."
-    );
+    setProgressStatus("loading");
 
     const beginTime = Date.now();
 
@@ -134,10 +132,9 @@ const sendMessage = async (message: Message) => {
     };
 
     setMessages([...messages.get(), newMessage]);
-    setIsLoading(false);
+    setProgressStatus("success");
   } catch (error) {
-    setLoadingText("Error occurred.");
-    setIsLoading(false);
+    setProgressStatus("error");
     notify({
       summary: "Error",
       body: (error instanceof Error ? error.message : String(error)) + prompt,
@@ -419,8 +416,7 @@ export default () => {
       <Messages />
       <box orientation={Gtk.Orientation.VERTICAL}>
         <Progress
-          text={loadingText}
-          revealed={isLoading}
+          status={progressStatus}
           transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
           custom_class="booru-progress"
         />

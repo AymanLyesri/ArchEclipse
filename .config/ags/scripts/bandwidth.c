@@ -54,8 +54,8 @@ int main()
 
     // Calculate speeds and update totals (in KB)
     BandwidthData speed = {
-        (new.rx - old.rx) / 1024,
-        (new.tx - old.tx) / 1024};
+        new.rx - old.rx,
+        new.tx - old.tx};
 
     today.rx += speed.rx;
     today.tx += speed.tx;

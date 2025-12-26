@@ -12,7 +12,12 @@ export default () => {
     (out) => {
       try {
         const parsed = JSON.parse(out);
-        return [parsed[0], parsed[1], parsed[2], parsed[3]];
+        return [
+          Math.round((parsed[0] / 1024) * 100) / 100,
+          Math.round((parsed[1] / 1024) * 100) / 100,
+          Math.round((parsed[2] / 1024) * 100) / 100,
+          Math.round((parsed[3] / 1024) * 100) / 100,
+        ];
       } catch (e) {
         return [0, 0, 0, 0];
       }
@@ -30,7 +35,7 @@ export default () => {
       val /= 1024;
       idx++;
     }
-    return `${val.toFixed(1)} ${units[idx]}`;
+    return `${val.toFixed(2)} ${units[idx]}`;
   }
 
   return (

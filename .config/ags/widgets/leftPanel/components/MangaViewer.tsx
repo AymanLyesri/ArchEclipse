@@ -17,7 +17,9 @@ const [selectedChapter, setSelectedChapter] = createState<Chapter | null>(null);
 const [pages, setPages] = createState<Page[]>([]);
 const [loadedPages, setLoadedPages] = createState<Page[]>([]);
 const [currentTab, setCurrentTab] = createState<string>("Manga");
-const [isLoading, setIsLoading] = createState<boolean>(false);
+const [progressStatus, setProgressStatus] = createState<
+  "loading" | "error" | "success" | "idle"
+>("idle");
 const [searchQuery, setSearchQuery] = createState<string>("");
 const [initialized, setInitialized] = createState(false);
 const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
@@ -25,38 +27,38 @@ const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
 const scriptPath = "/home/ayman/.config/ags/scripts/manga.py";
 
 const fetchPopular = async () => {
-  setIsLoading(true);
+  setProgressStatus("loading");
   try {
     const output = await execAsync(
       `python3 ${scriptPath} --popular --limit 10`
     );
     const data = JSON.parse(output);
     setMangaList(data);
+    setProgressStatus("success");
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
-  } finally {
-    setIsLoading(false);
+    setProgressStatus("error");
   }
 };
 
 const searchManga = async (query: string) => {
   if (!query.trim()) return fetchPopular();
-  setIsLoading(true);
+  setProgressStatus("loading");
   try {
     const output = await execAsync(
       `python3 ${scriptPath} --search "${query}" --limit 10`
     );
     const data = JSON.parse(output);
     setMangaList(data);
+    setProgressStatus("success");
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
-  } finally {
-    setIsLoading(false);
+    setProgressStatus("error");
   }
 };
 
 const fetchChapters = async (mangaId: string) => {
-  setIsLoading(true);
+  setProgressStatus("loading");
   try {
     const output = await execAsync(
       `python3 ${scriptPath} --chapters --manga-id ${mangaId}`
@@ -64,15 +66,15 @@ const fetchChapters = async (mangaId: string) => {
     const data = JSON.parse(output);
     setChapters(data);
     setCurrentTab("Chapters");
+    setProgressStatus("success");
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
-  } finally {
-    setIsLoading(false);
+    setProgressStatus("error");
   }
 };
 
 const fetchPages = async (chapterId: string) => {
-  setIsLoading(true);
+  setProgressStatus("loading");
   try {
     print(`python3 ${scriptPath} --pages --chapter-id ${chapterId}`);
     const output = await execAsync(
@@ -83,10 +85,10 @@ const fetchPages = async (chapterId: string) => {
     setPages(data);
     setLoadedPages([]);
     setCurrentTab("Pages");
+    setProgressStatus("success");
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
-  } finally {
-    setIsLoading(false);
+    setProgressStatus("error");
   }
 };
 
@@ -117,18 +119,18 @@ const loadMorePages = async () => {
 };
 
 const fetchPage = async (pageUrl: string) => {
-  setIsLoading(true);
+  setProgressStatus("loading");
   try {
     print(`python3 ${scriptPath} --page "${pageUrl}"`);
     const output = await execAsync(`python3 ${scriptPath} --page "${pageUrl}"`);
     const data = JSON.parse(output) as Page;
     print(data.url, data.path);
+    setProgressStatus("success");
     return data;
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
+    setProgressStatus("error");
     return null;
-  } finally {
-    setIsLoading(false);
   }
 };
 
@@ -394,7 +396,7 @@ export default () => {
     >
       <Tabs />
       <Content />
-      <Progress revealed={isLoading} text={""} />
+      <Progress status={progressStatus} />
       <Bottom />
     </box>
   );

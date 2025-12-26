@@ -29,10 +29,12 @@ import Gio from "gi://Gio?version=2.0";
 import Video from "../../Video";
 import { Eventbox } from "../../Custom/Eventbox";
 import { booruPath } from "../../../constants/path.constants";
-const [waifuLoading, setWaifuLoading] = createState<boolean>(false);
+const [progressStatus, setProgressStatus] = createState<
+  "loading" | "error" | "success" | "idle"
+>("idle");
 
 const GetImageByid = async (id: number) => {
-  setWaifuLoading(true);
+  setProgressStatus("loading");
   try {
     const res = await execAsync(
       `python ./scripts/search-booru.py 
@@ -49,16 +51,16 @@ const GetImageByid = async (id: number) => {
           ...image,
           api: waifuApi.get(),
         });
-        setWaifuLoading(false);
+        setProgressStatus("success");
       })
       .catch(() => {
         print("Failed to fetch image");
-        setWaifuLoading(false);
+        setProgressStatus("error");
       });
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
     print("Error fetching waifu by ID:", err);
-    setWaifuLoading(false);
+    setProgressStatus("error");
   }
 };
 
@@ -122,7 +124,7 @@ function Actions() {
           orientation={Gtk.Orientation.VERTICAL}
           spacing={5}
         >
-          <Progress text={"Image Loading..."} revealed={waifuLoading} />
+          <Progress status={progressStatus} />
           <box class="section">
             <button
               label=""

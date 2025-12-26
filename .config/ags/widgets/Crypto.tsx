@@ -63,12 +63,13 @@ function Crypto({
   // State for prices and current value
   const [getPrices, setPrices] = createState<number[]>([]);
   const [getCurrentPrice, setCurrentPrice] = createState<number>(0);
+  const [progressStatus, setProgressStatus] = createState<
+    "loading" | "error" | "success" | "idle"
+  >("loading");
   const [getPriceChange, setPriceChange] = createState<{
     change: number;
     percent: number;
-  }>({ change: 0, percent: 0 });
-
-  // Create the graph string from prices
+  }>({ change: 0, percent: 0 }); // Create the graph string from prices
   //   const graph = createComputed(() => updateGraph(getPrices.get()));
   const graph = getPrices((prices) => updateGraph(prices, barNumber));
 
@@ -104,6 +105,7 @@ function Crypto({
 
         if (!parsed.prices || !Array.isArray(parsed.prices)) {
           console.error("Invalid crypto data format");
+          setProgressStatus("error");
           return { price: 0, prices: [] };
         }
 
@@ -125,10 +127,12 @@ function Crypto({
         setPrices(prices);
         setCurrentPrice(currentPrice);
         setPriceChange({ change, percent });
+        setProgressStatus("success");
 
         return { price: currentPrice, prices };
       } catch (e) {
         console.error("Failed to parse crypto data:", e);
+        setProgressStatus("error");
         return { price: 0, prices: [] };
       }
     }
@@ -160,8 +164,7 @@ function Crypto({
           {(price) =>
             price === 0 ? (
               <Progress
-                text="Loading..."
-                revealed={true}
+                status={progressStatus}
                 custom_class="crypto-loading"
                 transitionType={Gtk.RevealerTransitionType.NONE}
               />

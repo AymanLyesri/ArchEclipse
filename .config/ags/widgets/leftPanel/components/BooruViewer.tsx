@@ -29,9 +29,9 @@ import { booruPath } from "../../../constants/path.constants";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
-const [isLoading, setIsLoading] = createState<boolean>(false);
-const [loadingText, setLoadingText] = createState<string>("Loading images...");
-
+const [progressStatus, setProgressStatus] = createState<
+  "loading" | "error" | "success" | "idle"
+>("idle");
 const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 
 const [selectedTab, setSelectedTab] = createState<string>(booruApis[0].name);
@@ -75,8 +75,7 @@ const cleanUp = () => {
 
 const fetchImages = async () => {
   try {
-    setIsLoading(true);
-    setLoadingText("Fetching images...");
+    setProgressStatus("loading");
     const escapedTags = booruTags
       .get()
       .map((tag) => tag.replace(/'/g, "'\\''"));
@@ -104,8 +103,6 @@ const fetchImages = async () => {
       `bash -c "mkdir -p ${booruPath}/${booruApi.get().value}/previews"`
     ).catch((err) => notify({ summary: "Error", body: String(err) }));
 
-    setLoadingText(`Downloading ${newImages.length} images...`);
-
     // 5. Download images in parallel
     const downloadPromises = newImages.map((image) =>
       execAsync(
@@ -132,21 +129,18 @@ const fetchImages = async () => {
       );
       setImages(successfulDownloads);
       calculateCacheSize();
-      setIsLoading(false);
+      setProgressStatus("success");
     });
   } catch (err) {
     console.error(err);
     notify({ summary: "Error", body: String(err) });
-    setIsLoading(false);
+    setProgressStatus("error");
   }
 };
 
 const fetchBookmarkImages = async () => {
   try {
-    setIsLoading(true);
-    setLoadingText("Fetching bookmarked images...");
-
-    setLoadingText(`Downloading ${booruBookMarkWaifus.get().length} images...`);
+    setProgressStatus("loading");
 
     // 5. Download images in parallel
     const downloadPromises = booruBookMarkWaifus.get().map((image) =>
@@ -174,12 +168,12 @@ const fetchBookmarkImages = async () => {
       );
       setImages(successfulDownloads);
       calculateCacheSize();
-      setIsLoading(false);
+      setProgressStatus("success");
     });
   } catch (err) {
     console.error(err);
     notify({ summary: "Error", body: String(err) });
-    setIsLoading(false);
+    setProgressStatus("error");
   }
 };
 
@@ -613,8 +607,7 @@ export default () => {
       <box orientation={Gtk.Orientation.VERTICAL}>
         <Images />
         <Progress
-          text={loadingText}
-          revealed={isLoading}
+          status={progressStatus}
           transitionType={Gtk.RevealerTransitionType.SWING_UP}
           custom_class="booru-progress"
         />
