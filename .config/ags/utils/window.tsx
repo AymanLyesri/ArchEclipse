@@ -121,8 +121,8 @@ export function WindowActions({
   windowVisibility: Accessor<boolean>;
   setWindowVisibility: (visibility: boolean) => void;
 }) {
-  const maxRightPanelWidth = 600;
-  const minRightPanelWidth = 250;
+  const maxPanelWidth = 1500;
+  const minPanelWidth = 250;
   return (
     <box
       class="window-actions"
@@ -138,7 +138,7 @@ export function WindowActions({
         onClicked={() => {
           const current = windowWidth.get();
           setWindowWidth(
-            current < maxRightPanelWidth ? current + 50 : maxRightPanelWidth
+            current < maxPanelWidth ? current + 50 : maxPanelWidth
           );
           queueResize(windowName);
         }}
@@ -149,7 +149,7 @@ export function WindowActions({
         onClicked={() => {
           const current = windowWidth.get();
           setWindowWidth(
-            current > minRightPanelWidth ? current - 50 : minRightPanelWidth
+            current > minPanelWidth ? current - 50 : minPanelWidth
           );
           queueResize(windowName);
         }}

@@ -1,15 +1,8 @@
 .panel {
   @include module;
-
+  padding: 0px;
   &.exclusive {
     border-radius: 0px;
-    padding: 0px;
-    // &.left-panel {
-    //   border-right: 1px solid $secondary;
-    // }
-    // &.right-panel {
-    //   border-left: 1px solid $secondary;
-    // }
   }
   &.normal {
     > box {
@@ -19,7 +12,7 @@
       // border: 1px solid $secondary;
     }
     .panel-actions {
-      border-radius: 15px;
+      border-radius: 10px;
     }
   }
 

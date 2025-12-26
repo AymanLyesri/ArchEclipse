@@ -1,24 +1,24 @@
 import Gtk from "gi://Gtk?version=4.0";
 import { Waifu } from "../../../interfaces/waifu.interface";
 import { execAsync } from "ags/process";
-import { Api } from "../../../interfaces/api.interface";
 import { readJson } from "../../../utils/json";
 import {
   booruApi,
   booruLimit,
   booruPage,
   booruTags,
+  booruColumns,
   globalTransition,
   leftPanelWidth,
-  waifuCurrent,
   setBooruApi,
   setBooruLimit,
   setBooruPage,
   setBooruTags,
+  setBooruColumns,
   booruBookMarkWaifus,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
-import { createState, For, With } from "ags";
+import { createState, createComputed, For, With } from "ags";
 import { booruApis } from "../../../constants/api.constants";
 import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
@@ -224,54 +224,64 @@ const fetchTags = async (tag: string) => {
 };
 
 const Images = () => {
-  const imageRows = images((imgs) =>
-    imgs.reduce((rows: any[][], image, index) => {
-      if (index % 2 === 0) rows.push([]);
-      rows[rows.length - 1].push(image);
-      return rows;
-    }, [])
+  function masonry(images: Waifu[], columnsCount: number) {
+    const columns = Array.from({ length: columnsCount }, () => ({
+      height: 0,
+      items: [] as Waifu[],
+    }));
+
+    for (const image of images) {
+      const ratio = image.height / image.width;
+      const target = columns.reduce((a, b) => (a.height < b.height ? a : b));
+
+      target.items.push(image);
+      target.height += ratio;
+    }
+
+    return columns.map((c) => c.items);
+  }
+
+  const imageColumns = createComputed([images, booruColumns], (imgs, cols) =>
+    masonry(imgs, cols)
   );
+  const columnWidth = leftPanelWidth((w) => w / imageColumns.get().length - 10);
 
   return (
-    <scrolledwindow hexpand vexpand>
-      <box class="images" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-        <For each={imageRows}>
-          {(row) => (
-            <box spacing={5}>
-              {row.map((image: Waifu) => {
-                print(
-                  "Rendering image ID:",
-                  image.id,
-                  `from path: ${booruPath}/${booruApi.get().value}/previews/${
-                    image.id
-                  }.${image.extension}`,
-                  "height:",
-                  image.height,
-                  "width:",
-                  image.width
-                );
-                return (
-                  <menubutton
-                    direction={Gtk.ArrowType.RIGHT}
-                    hexpand
-                    heightRequest={leftPanelWidth((w) => w / 2)}
-                    class="image-button"
-                    tooltipText={"Click to Open"}
-                    $={(self) => connectPopoverEvents(self)}
-                  >
-                    <Picture
-                      file={
-                        `${booruPath}/${booruApi.get().value}/previews/${
-                          image.id
-                        }.${image.extension}` || ""
-                      }
-                    ></Picture>
-                    <popover>
-                      <ImageDialog image={image} />
-                    </popover>
-                  </menubutton>
-                );
-              })}
+    <scrolledwindow
+      hexpand
+      vexpand
+      $={(self) => {
+        images.subscribe(() => {
+          const vadjustment = self.get_vadjustment();
+          vadjustment.set_value(0);
+        });
+      }}
+    >
+      <box class={"images"} spacing={5}>
+        <For each={imageColumns}>
+          {(column) => (
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
+              {column.map((image: Waifu) => (
+                <menubutton
+                  class="image-button"
+                  hexpand
+                  widthRequest={columnWidth}
+                  heightRequest={columnWidth(
+                    (w) => w * (image.height / image.width)
+                  )}
+                  $={(self) => connectPopoverEvents(self)}
+                  direction={Gtk.ArrowType.RIGHT}
+                >
+                  <Picture
+                    file={`${booruPath}/${booruApi.get().value}/previews/${
+                      image.id
+                    }.${image.extension}`}
+                  />
+                  <popover>
+                    <ImageDialog image={image} />
+                  </popover>
+                </menubutton>
+              ))}
             </box>
           )}
         </For>
@@ -291,7 +301,7 @@ const PageDisplay = () => (
           buttons.push(
             <button class="first" label="1" onClicked={() => setBooruPage(1)} />
           );
-          buttons.push(<label>...</label>);
+          buttons.push(<label label={"..."}></label>);
         }
 
         // Generate 5-page range dynamically without going below 1
@@ -341,6 +351,37 @@ const LimitDisplay = () => {
         }}
       />
       <label label={booruLimit((l) => String(l))}></label>
+    </box>
+  );
+};
+
+const ColumnDisplay = () => {
+  let debounceTimer: any;
+
+  return (
+    <box class="columns" spacing={5} hexpand>
+      <label label="Columns"></label>
+      <slider
+        value={booruColumns((c) => (c - 1) / 4)}
+        class="slider"
+        drawValue={false}
+        hexpand
+        $={(self) => {
+          self.set_range(0, 1);
+          self.set_increments(0.25, 0.25);
+          const adjustment = self.get_adjustment();
+          adjustment.connect("value-changed", () => {
+            // Clear the previous timeout if any
+            if (debounceTimer) clearTimeout(debounceTimer);
+
+            // Set a new timeout with the desired delay (e.g., 300ms)
+            debounceTimer = setTimeout(() => {
+              setBooruColumns(Math.round(adjustment.get_value() * 4) + 1);
+            }, 300);
+          });
+        }}
+      />
+      <label label={booruColumns((c) => String(c))}></label>
     </box>
   );
 };
@@ -465,11 +506,12 @@ const Bottom = () => {
       >
         <PageDisplay />
         <LimitDisplay />
-        <TagDisplay />
+        <ColumnDisplay />
         <box spacing={5}>
           <Entry />
           <ClearCacheButton />
         </box>
+        <TagDisplay />
       </box>
     </revealer>
   );
@@ -490,6 +532,7 @@ const Bottom = () => {
             setBooruPage(currentPage - 1);
           }
         }}
+        tooltipText={"KEY-LEFT"}
       />
       <button
         hexpand
@@ -498,6 +541,9 @@ const Bottom = () => {
         onClicked={(self) => {
           setBottomIsRevealed(!bottomIsRevealed.get());
         }}
+        tooltipText={bottomIsRevealed((revealed) =>
+          revealed ? "KEY-DOWN" : "KEY-UP"
+        )}
       />
       <button
         label=""
@@ -505,6 +551,7 @@ const Bottom = () => {
           const currentPage = booruPage.get();
           setBooruPage(currentPage + 1);
         }}
+        tooltipText={"KEY-RIGHT"}
       />
     </box>
   );
@@ -563,7 +610,6 @@ export default () => {
       }}
     >
       <Tabs />
-
       <box orientation={Gtk.Orientation.VERTICAL}>
         <Images />
         <Progress

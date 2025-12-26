@@ -117,7 +117,7 @@ function setGlobalTheme(value: boolean) {
 }
 export { globalTheme, setGlobalTheme };
 
-export const globalMargin = phi * 10;
+export const globalMargin = phi * 5;
 export const globalTransition = phi * 300;
 
 const [dateFormat, _setDateFormat] = createState<string>(
@@ -348,6 +348,15 @@ function setBooruPage(value: number) {
   setSetting("booru.page", value, globalSettings, setGlobalSettings);
 }
 export { booruPage, setBooruPage };
+
+const [booruColumns, _setBooruColumns] = createState<number>(
+  getSetting("booru.columns", globalSettings.get())
+);
+function setBooruColumns(value: number) {
+  _setBooruColumns(value);
+  setSetting("booru.columns", value, globalSettings, setGlobalSettings);
+}
+export { booruColumns, setBooruColumns };
 
 const [booruBookMarkWaifus, _setBooruBookMarkWaifus] = createState<Waifu[]>(
   getSetting("booru.bookMarkWaifus", globalSettings.get())

@@ -4,6 +4,12 @@
   border-radius: 10px;
   min-width: 500px;
 
+  .help {
+    popover {
+      @include module;
+    }
+  }
+
   .quick-apps {
     button {
       padding: 6px;
