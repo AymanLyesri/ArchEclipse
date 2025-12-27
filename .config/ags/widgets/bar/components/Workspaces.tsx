@@ -151,7 +151,7 @@ function Workspaces() {
     </box>
   );
 }
-const Special = (
+const Special = () => (
   <button
     class="special"
     label={workspaceToIcon[0]}
@@ -162,7 +162,7 @@ const Special = (
   />
 );
 
-const OverView = (
+const OverView = () => (
   <button
     class="overview"
     label="󱗼"
@@ -250,13 +250,13 @@ export default ({
   halign,
 }: {
   monitorName: string;
-  halign: Accessor<Gtk.Align>;
+  halign: Gtk.Align;
 }) => {
   return (
     <box class="bar-left" spacing={5} halign={halign} hexpand>
       <Actions monitorName={monitorName} />
-      {OverView}
-      {Special}
+      <OverView />
+      <Special />
       <Workspaces />
     </box>
   );

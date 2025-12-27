@@ -115,7 +115,7 @@ export default ({
   halign,
 }: {
   monitorName: string;
-  halign: Accessor<Gtk.Align>;
+  halign: Gtk.Align;
 }) => {
   return (
     <box class="bar-middle" spacing={5} halign={halign}>

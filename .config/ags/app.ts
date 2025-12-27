@@ -8,7 +8,7 @@ import AppLauncher from "./widgets/AppLauncher";
 import Progress from "./widgets/Progress";
 import UserPanel from "./widgets/UserPanel";
 import WallpaperSwitcher from "./widgets/WallpaperSwitcher";
-import SettingsWidget from "./widgets/SettingsWidget";
+import SettingsWidget from "./widgets/leftPanel/components/SettingsWidget";
 import BarHover from "./widgets/bar/BarHover";
 import OSD from "./widgets/OSD";
 import { getMonitorName } from "./utils/monitor";

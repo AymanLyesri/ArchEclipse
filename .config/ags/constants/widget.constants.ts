@@ -15,6 +15,7 @@ import Gtk from "gi://Gtk?version=4.0";
 import { Accessor } from "ags";
 import CryptoWidget from "../widgets/rightPanel/components/CryptoWidget";
 import MangaViewer from "../widgets/leftPanel/components/MangaViewer";
+import SettingsWidget from "../widgets/leftPanel/components/SettingsWidget";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {
@@ -87,13 +88,18 @@ export const leftPanelWidgetSelectors: WidgetSelector[] = [
     widget: () => BooruViewer(),
   },
   {
+    name: "MangaViewer",
+    icon: "",
+    widget: () => MangaViewer(),
+  },
+  {
+    name: "Settings",
+    icon: "",
+    widget: () => SettingsWidget(),
+  },
+  {
     name: "CustomScripts",
     icon: "",
     widget: () => CustomScripts(),
-  },
-  {
-    name: "MangaViewer",
-    icon: "󰠶",
-    widget: () => MangaViewer(),
   },
 ];

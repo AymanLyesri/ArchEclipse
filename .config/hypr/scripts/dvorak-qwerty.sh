@@ -1,7 +1,8 @@
 file=$HOME/.config/hypr/configs/custom/keyboard.conf
 
 # sed -i 's/kb_variant=dvorak/kb_variant=new_variant/g' $file
-
+#create the file if it doesn't exist
+touch "$file"
 #!/bin/bash
 
 # Function to check and replace 'kb_variant=dvorak,' with 'kb_variant=,'

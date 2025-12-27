@@ -2,6 +2,7 @@
 
 * {
   font-weight: 500;
+  font-size: $FONT-SIZE;
   transition: all 0.2s;
 }
 
@@ -12,11 +13,10 @@
   border: none;
   box-shadow: none;
   border-radius: 10px;
-  font-size: $FONT-SIZE;
+  font-size: 1em;
   text-shadow: none;
   padding: $SCALE / 2 $SCALE / 1.5;
   margin: 0;
-
   .image {
     border-radius: 10px;
   }
@@ -24,7 +24,6 @@
 
 @mixin button {
   @include module;
-  font-size: $ICON-SIZE;
   font-family: "JetBrainsMono NFP";
   color: $foreground;
   border: none;
@@ -108,86 +107,30 @@ separator {
   border-top: 1px solid $tertiary;
 }
 
-// menu {
-//   @include module;
-//   border-radius: 0;
-//   background: $background;
-//   padding: 0;
-//   menuitem {
-//     border-radius: 0;
-//     padding: 0;
-//     margin: 0;
-//     &:hover {
-//       background: $secondary;
-//     }
-//   }
-// }
-
-levelbar {
-  margin: 0;
-  padding: 0;
-  trough {
-    background: $background-transparent;
-    color: black;
-    min-height: 5px; // Match slider's min-height
-    padding: 0px; // Match slider's padding
-    border-radius: 10px; // Match slider's border-radius
-
-    .filled {
-      background: $secondary; // Match slider's highlight background
-      border-radius: 10px; // Match slider's border-radius
-      box-shadow: none; // Remove shadow to match slider
-      border: unset;
-    }
-  }
-
-  &:hover .filled {
-    background: $tertiary; // Match slider's hover highlight
-  }
-}
 switch {
-  @include module;
+  background-color: $background-secondary;
   margin: 0;
-  padding: 0;
+  padding: 5px;
   slider {
-    @extend .slider;
+    background-color: $background;
+  }
+
+  &:checked {
+    background-color: $foreground-secondary;
+  }
+
+  &:checked slider {
+    background-color: white;
   }
 }
 
-scrollable > * {
-  border-width: 0;
-}
-
-scrollbar {
-  border-radius: 8px;
-  background: transparent;
-  min-width: 8px; /* vertical */
-  min-height: 8px; /* horizontal */
-
-  trough {
-    color: $foreground;
-  }
-}
-
-.switch {
-  @include module;
-  margin: 0;
-  padding: 0;
-  slider {
-    border-radius: 10px;
-    font-size: 0.9em;
-    margin: 5px;
-    background: mix($foreground, $secondary, $phi-min);
-  }
-}
-
-.slider {
+scale {
   padding: 0px;
 
   trough {
     background: $background-transparent;
     color: black;
-    min-height: 6.9px;
+    min-height: 10px;
     padding: 0px;
 
     slider {
@@ -203,7 +146,7 @@ scrollbar {
   }
 
   &:hover highlight {
-    background: $tertiary;
+    background: $foreground;
   }
 }
 
@@ -217,6 +160,21 @@ scrollbar {
   .trigger {
     // @include button;
     padding: 0px 5px;
+  }
+}
+
+scrollable > * {
+  border-width: 0;
+}
+
+scrollbar {
+  border-radius: 8px;
+  background: transparent;
+  min-width: 8px; /* vertical */
+  min-height: 8px; /* horizontal */
+
+  trough {
+    color: $foreground;
   }
 }
 
