@@ -186,14 +186,8 @@ popover > * {
   all: unset;
 }
 .drag {
-  cursor: grab;
-
   &:hover {
     animation: grab-rotate infinite 0.2s ease-in-out;
-  }
-
-  &:active {
-    cursor: grabbing;
   }
 
   &:drop(active) {

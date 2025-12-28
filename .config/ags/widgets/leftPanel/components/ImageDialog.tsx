@@ -10,9 +10,12 @@ import {
 import { Waifu } from "../../../interfaces/waifu.interface";
 
 import {
+  bookMarkExists,
+  bookMarkImage,
   fetchImage,
   PinImageToTerminal,
   previewFloatImage,
+  removeBookMarkImage,
 } from "../../../utils/image";
 import Gtk from "gi://Gtk?version=4.0";
 import Gio from "gi://Gio";
@@ -27,13 +30,6 @@ export default ({ image }: { image: Waifu }) => {
       `bash -c "[ -e '${booruPath}/${image.api.value}/images/${image.id}.${image.extension}' ] && echo 'exists' || echo 'not-exists'"`
     );
     return result.trim() === "exists";
-  };
-
-  const bookMarkExists = (image: Waifu): boolean => {
-    const currentBookmarks = booruBookMarkWaifus.get();
-    return currentBookmarks.some(
-      (img) => img.id === image.id && img.api.value === image.api.value
-    );
   };
 
   const [isDownloaded, setIsDownloaded] = createState<boolean>(
@@ -85,31 +81,6 @@ export default ({ image }: { image: Waifu }) => {
       .catch((err) => notify({ summary: "Error", body: String(err) }));
   };
 
-  const bookMarkImage = (image: Waifu) => {
-    const currentBookmarks = booruBookMarkWaifus.get();
-    // check if image is already bookmarked
-    const exists = bookMarkExists(image);
-    if (exists) {
-      notify({ summary: "Info", body: "Image already bookmarked" });
-      return;
-    }
-
-    const updatedBookmarks = [...currentBookmarks, image];
-    setBooruBookMarkWaifus(updatedBookmarks);
-    setIsBookmarked(true);
-    notify({ summary: "Success", body: "Image bookmarked" });
-  };
-
-  const removeBookMarkImage = (image: Waifu) => {
-    const currentBookmarks = booruBookMarkWaifus.get();
-    const updatedBookmarks = currentBookmarks.filter(
-      (img) => !(img.id === image.id && img.api.value === image.api.value)
-    );
-    setBooruBookMarkWaifus(updatedBookmarks);
-    setIsBookmarked(false);
-    notify({ summary: "Success", body: "Bookmark removed" });
-  };
-
   function Actions() {
     return (
       <Eventbox
@@ -146,8 +117,13 @@ export default ({ image }: { image: Waifu }) => {
                 tooltip-text="Bookmark image"
                 active={isBookmarked}
                 onClicked={(self) => {
-                  if (self.active) bookMarkImage(image);
-                  else removeBookMarkImage(image);
+                  if (self.active) {
+                    bookMarkImage(image);
+                    setIsBookmarked(true);
+                  } else {
+                    removeBookMarkImage(image);
+                    setIsBookmarked(false);
+                  }
                 }}
                 hexpand
               />

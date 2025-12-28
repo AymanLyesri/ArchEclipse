@@ -15,13 +15,6 @@ import Cava from "./Cava";
 import GLib from "gi://GLib?version=2.0";
 import Pango from "gi://Pango?version=1.0";
 
-function lengthStr(length: number) {
-  const min = Math.floor(length / 60);
-  const sec = Math.floor(length % 60);
-  const sec0 = sec < 10 ? "0" : "";
-  return `${min}:${sec0}${sec}`;
-}
-
 export default ({
   player,
   playerType,
@@ -31,6 +24,9 @@ export default ({
 }) => {
   const [isDragging, setIsDragging] = createState(false);
   const [parentWidth, setParentWidth] = createState(0);
+  const [slideDirection, setSlideDirection] = createState<"next" | "prev">(
+    "next"
+  );
   const dominantColor = createBinding(
     player,
     "coverArt"
@@ -45,171 +41,204 @@ export default ({
     return Math.max(8, Math.min(calculated, 50)); // Clamp between 8 and 50 bars
   });
 
-  const title = (
-    <label
-      class="title"
-      ellipsize={Pango.EllipsizeMode.END}
-      halign={Gtk.Align.START}
-      label={createBinding(player, "title")((t) => t || "Unknown Track")}
-    ></label>
-  );
+  function lengthStr(length: number) {
+    const min = Math.floor(length / 60);
+    const sec = Math.floor(length % 60);
+    const sec0 = sec < 10 ? "0" : "";
+    return `${min}:${sec0}${sec}`;
+  }
 
-  const artist = (
-    <label
-      class="artist"
-      maxWidthChars={20}
-      halign={Gtk.Align.START}
-      label={createBinding(player, "artist")((a) => a || "Unknown Artist")}
-    ></label>
-  );
+  const playerStack = new Gtk.Stack({
+    transition_duration: 250,
+    hexpand: true,
+    vexpand: true,
+  });
 
-  const positionSlider = (
-    <slider
-      class="slider"
-      css={dominantColor((c) => `highlight{background: ${c}00};`)}
-      $={(self) => {
-        let unsubscribe: (() => void) | null = null;
+  function showPlayer(widget: Gtk.Widget, direction: "next" | "prev") {
+    playerStack.set_transition_type(
+      direction === "next"
+        ? Gtk.StackTransitionType.SLIDE_LEFT
+        : Gtk.StackTransitionType.SLIDE_RIGHT
+    );
 
-        const updateValue = () => {
-          if (!isDragging.get()) {
-            const pos = player.position;
-            const len = player.length;
-            self.set_value(len > 0 ? pos / len : 0);
-          }
-        };
+    const name = `player-${Date.now()}`;
+    playerStack.add_named(widget, name);
+    playerStack.set_visible_child_name(name);
+  }
 
-        const gestureClick = new Gtk.GestureDrag();
+  const bottomBar = () => {
+    const title = (
+      <label
+        class="title"
+        ellipsize={Pango.EllipsizeMode.END}
+        halign={Gtk.Align.START}
+        label={createBinding(player, "title")((t) => t || "Unknown Track")}
+      ></label>
+    );
 
-        gestureClick.connect("drag-begin", () => {
-          setIsDragging(true);
-          if (unsubscribe) {
-            unsubscribe();
-            unsubscribe = null;
-          }
-        });
+    const artist = (
+      <label
+        class="artist"
+        maxWidthChars={20}
+        halign={Gtk.Align.START}
+        label={createBinding(player, "artist")((a) => a || "Unknown Artist")}
+      ></label>
+    );
 
-        gestureClick.connect("drag-update", () => {
-          player.position = self.get_value() * player.length;
-        });
+    const positionSlider = (
+      <slider
+        class="slider"
+        css={dominantColor((c) => `highlight{background: ${c}00};`)}
+        $={(self) => {
+          let unsubscribe: (() => void) | null = null;
 
-        gestureClick.connect("drag-end", () => {
-          player.position = self.get_value() * player.length;
-          setIsDragging(false);
+          const updateValue = () => {
+            if (!isDragging.get()) {
+              const pos = player.position;
+              const len = player.length;
+              self.set_value(len > 0 ? pos / len : 0);
+            }
+          };
+
+          const gestureClick = new Gtk.GestureDrag();
+
+          gestureClick.connect("drag-begin", () => {
+            setIsDragging(true);
+            if (unsubscribe) {
+              unsubscribe();
+              unsubscribe = null;
+            }
+          });
+
+          gestureClick.connect("drag-update", () => {
+            player.position = self.get_value() * player.length;
+          });
+
+          gestureClick.connect("drag-end", () => {
+            player.position = self.get_value() * player.length;
+            setIsDragging(false);
+            unsubscribe = createBinding(player, "position").subscribe(
+              updateValue
+            );
+          });
+
+          self.add_controller(gestureClick);
           unsubscribe = createBinding(player, "position").subscribe(
             updateValue
           );
-        });
-
-        self.add_controller(gestureClick);
-        unsubscribe = createBinding(player, "position").subscribe(updateValue);
-      }}
-      visible={createBinding(player, "length")((l) => l > 0)}
-    />
-  );
-
-  const positionLabel = (
-    <label
-      class="position time"
-      halign={Gtk.Align.START}
-      label={createBinding(player, "position")(lengthStr)}
-      visible={createBinding(player, "length")((l) => l > 0)}
-    ></label>
-  );
-  const lengthLabel = (
-    <label
-      class="length time"
-      halign={Gtk.Align.END}
-      visible={createBinding(player, "length")((l) => l > 0)}
-      label={createBinding(player, "length")(lengthStr)}
-    ></label>
-  );
-
-  const icon = (
-    <box halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>
-      <image
-        class="icon"
-        tooltip_text={createBinding(player, "identity")((i) => i || "")}
-        file={createBinding(
-          player,
-          "entry"
-        )((entry) => {
-          const name = `${entry}-symbolic`;
-          return `icon:///audio-x-generic-symbolic`;
-        })}
+        }}
+        visible={createBinding(player, "length")((l) => l > 0)}
       />
-    </box>
-  );
-
-  const playPause = (
-    <button
-      onClicked={() => player.play_pause()}
-      class="play-pause"
-      visible={createBinding(player, "can_play")((c) => c)}
-    >
+    );
+    const positionLabel = (
       <label
-        label={createBinding(
-          player,
-          "playbackStatus"
-        )((s) => {
-          switch (s) {
-            case AstalMpris.PlaybackStatus.PLAYING:
-              return "⏸";
-            case AstalMpris.PlaybackStatus.PAUSED:
-            case AstalMpris.PlaybackStatus.STOPPED:
-              return "▶";
-            default:
-              return "▶";
-          }
-        })}
-      />
-    </button>
-  );
+        class="position time"
+        halign={Gtk.Align.START}
+        label={createBinding(player, "position")(lengthStr)}
+        visible={createBinding(player, "length")((l) => l > 0)}
+      ></label>
+    );
+    const lengthLabel = (
+      <label
+        class="length time"
+        halign={Gtk.Align.END}
+        visible={createBinding(player, "length")((l) => l > 0)}
+        label={createBinding(player, "length")(lengthStr)}
+      ></label>
+    );
 
-  const prev = (
-    <button
-      onClicked={() => player.previous()}
-      visible={createBinding(player, "can_go_previous")((c) => c)}
-    >
-      <label label="⏮" />
-    </button>
-  );
-
-  const next = (
-    <button
-      onClicked={() => player.next()}
-      visible={createBinding(player, "can_go_next")((c) => c)}
-    >
-      <label label="⏭" />
-    </button>
-  );
-
-  const content = (
-    <box
-      class="bottom-bar"
-      spacing={5}
-      orientation={Gtk.Orientation.VERTICAL}
-      hexpand
-      valign={Gtk.Align.END}
-    >
-      <box class="info" orientation={Gtk.Orientation.VERTICAL}>
-        {title}
-        {artist}
+    const icon = (
+      <box halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>
+        <image
+          class="icon"
+          tooltip_text={createBinding(player, "identity")((i) => i || "")}
+          file={createBinding(
+            player,
+            "entry"
+          )((entry) => {
+            const name = `${entry}-symbolic`;
+            return `icon:///audio-x-generic-symbolic`;
+          })}
+        />
       </box>
+    );
 
-      <centerbox>
-        <box $type="start">{positionLabel}</box>
-        <box $type="center" spacing={5}>
-          {prev}
-          {playPause}
-          {next}
+    const playPause = (
+      <button
+        onClicked={() => player.play_pause()}
+        class="play-pause"
+        visible={createBinding(player, "can_play")((c) => c)}
+      >
+        <label
+          label={createBinding(
+            player,
+            "playbackStatus"
+          )((s) => {
+            switch (s) {
+              case AstalMpris.PlaybackStatus.PLAYING:
+                return "⏸";
+              case AstalMpris.PlaybackStatus.PAUSED:
+              case AstalMpris.PlaybackStatus.STOPPED:
+                return "▶";
+              default:
+                return "▶";
+            }
+          })}
+        />
+      </button>
+    );
+
+    const prev = (
+      <button
+        onClicked={() => {
+          player.previous();
+          setSlideDirection("prev");
+        }}
+        visible={createBinding(player, "can_go_previous")((c) => c)}
+      >
+        <label label="⏮" />
+      </button>
+    );
+
+    const next = (
+      <button
+        onClicked={() => {
+          player.next();
+          setSlideDirection("next");
+        }}
+        visible={createBinding(player, "can_go_next")((c) => c)}
+      >
+        <label label="⏭" />
+      </button>
+    );
+    return (
+      <box
+        class="bottom-bar"
+        spacing={5}
+        orientation={Gtk.Orientation.VERTICAL}
+        hexpand
+        valign={Gtk.Align.END}
+      >
+        <box class="info" orientation={Gtk.Orientation.VERTICAL}>
+          {title}
+          {artist}
         </box>
-        <box $type="end">{lengthLabel}</box>
-      </centerbox>
-      {positionSlider}
-    </box>
-  );
 
-  return (
+        <centerbox>
+          <box $type="start">{positionLabel}</box>
+          <box $type="center" spacing={5}>
+            {prev}
+            {playPause}
+            {next}
+          </box>
+          <box $type="end">{lengthLabel}</box>
+        </centerbox>
+        {positionSlider}
+      </box>
+    );
+  };
+
+  const overlay = (
     <overlay
       class={`player ${playerType}`}
       hexpand
@@ -252,6 +281,13 @@ export default ({
 
         // Initial width check
         checkWidth();
+
+        playerStack.add_named(bottomBar() as Gtk.Widget, "bottom-bar");
+        playerStack.set_visible_child_name("bottom-bar");
+
+        createBinding(player, "title").subscribe(() => {
+          showPlayer(bottomBar() as Gtk.Widget, slideDirection.get() || "next");
+        });
       }}
     >
       <Picture
@@ -277,7 +313,7 @@ export default ({
               )}
             </With>
           </box>
-          {content}
+          {playerStack}
         </box>
       ) : (
         <box>
@@ -288,9 +324,11 @@ export default ({
             file={createBinding(player, "coverArt")}
           />
 
-          {content}
+          {playerStack}
         </box>
       )}
     </overlay>
   );
+
+  return overlay;
 };

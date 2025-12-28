@@ -48,29 +48,36 @@ urls=(
     "https://cdn.donmai.us/original/6b/b0/__lovely_labrynth_of_the_silver_castle_yu_gi_oh_drawn_by_ribao__6bb069c9a7f4b8a39e0b54a7901b2a81.jpg"
     "https://cdn.donmai.us/original/8b/16/__iuno_wuthering_waves_drawn_by_kryp132__8b16f466b4f3a18d119dd792121388e4.jpg"
     "https://cdn.donmai.us/original/7b/57/__warship_girls_r_drawn_by_tuweibu__7b5700be93c2158e2e3c35e7846d4a43.jpg"
+    "https://cdn.donmai.us/original/59/55/__iuno_wuthering_waves_drawn_by_mian_tu_qiu__5955302450c9fe542416571af954c2a8.png"
+    "https://cdn.donmai.us/original/e6/59/__ciel_kamitsubaki_studio_drawn_by_shirone_coxo_ii__e659fcfcb737cccce99c1f7ebdc34f2e.jpg"
+    "https://cdn.donmai.us/original/d5/d5/__demenishki_indie_virtual_youtuber_drawn_by_darr1o__d5d55d8fb04590c77e39e664da277a5f.jpg"
+    "https://cdn.donmai.us/original/5f/0f/__nimi_nightmare_and_naplings_indie_virtual_youtuber_drawn_by_greatodoggo__5f0fc1b6faec77b2f79efba5da92c737.png"
+    "https://cdn.donmai.us/original/e5/39/__original_drawn_by_johnblack__e5391290da53bff7203cb4f21cbc4387.jpg"
+    "https://cdn.donmai.us/original/0c/b9/__oshino_shinobu_monogatari_drawn_by_mika_pikazo__0cb93c971cdc7962d2aa8e313d76e649.jpg"
+    "https://cdn.donmai.us/original/b3/f3/__yamamura_sadako_the_ring_drawn_by_esmile__b3f35e1cc8af78f3df37b3f28ec459ab.jpg"
 )
 
 wallpapers_total_size() {
     curl --parallel --parallel-immediate -sI "${urls[@]}" |
-        grep -ioP 'Content-Length:\s*\K\d+' |
-        awk '{s+=$1} END {print int(s/1024/1024) " MB"}'
+    grep -ioP 'Content-Length:\s*\K\d+' |
+    awk '{s+=$1} END {print int(s/1024/1024) " MB"}'
 }
 
 download_wallpapers() {
     echo "Downloading wallpapers..."
-
+    
     # Folder to save the images
     folder="$HOME/.config/wallpapers/defaults"
     mkdir -p "$folder"
-
+    
     # Track filenames from URLs
     expected_files=()
-
+    
     for url in "${urls[@]}"; do
         filename=$(basename "$url")
         expected_files+=("$filename")
         filepath="$folder/$filename"
-
+        
         if [[ -f "$filepath" ]]; then
             echo "$filename already exists. Skipping download."
         else
@@ -78,7 +85,7 @@ download_wallpapers() {
             curl -L -o "$filepath" "$url"
         fi
     done
-
+    
     # Cleanup files not in the list
     echo "Cleaning up files not in the list..."
     for file in "$folder"/*; do
@@ -88,7 +95,7 @@ download_wallpapers() {
             rm "$file"
         fi
     done
-
+    
     echo "Done."
 }
 

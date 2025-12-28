@@ -157,7 +157,7 @@ export function WindowActions({
       <togglebutton
         label=""
         class="exclusivity"
-        active={!windowExclusivity}
+        active={windowExclusivity((exclusivity) => !exclusivity)}
         onToggled={({ active }) => {
           setWindowExclusivity(!active);
         }}

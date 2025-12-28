@@ -18,9 +18,12 @@ import { Waifu } from "../../../interfaces/waifu.interface";
 import { readJson } from "../../../utils/json";
 import { booruApis } from "../../../constants/api.constants";
 import {
+  bookMarkExists,
+  bookMarkImage,
   fetchImage,
   PinImageToTerminal,
   previewFloatImage,
+  removeBookMarkImage,
 } from "../../../utils/image";
 import Picture from "../../Picture";
 import { Progress } from "../../Progress";
@@ -126,6 +129,28 @@ function Actions() {
         >
           <Progress status={progressStatus} />
           <box class="section">
+            <togglebutton
+              class={"button"}
+              label={waifuCurrent((w) => (bookMarkExists(w) ? "" : ""))}
+              tooltip-text="Bookmark image"
+              active={waifuCurrent((w) => bookMarkExists(w))}
+              onClicked={(self) => {
+                if (self.active) {
+                  bookMarkImage(waifuCurrent.get());
+                } else {
+                  removeBookMarkImage(waifuCurrent.get());
+                }
+              }}
+              hexpand
+            />
+            <button
+              label=""
+              hexpand
+              class="pin"
+              onClicked={() => PinImageToTerminal(waifuCurrent.get())}
+            />
+          </box>
+          <box class="section">
             <button
               label=""
               class="open"
@@ -138,12 +163,7 @@ function Actions() {
               class="browser"
               onClicked={() => OpenInBrowser(waifuCurrent.get())}
             />
-            <button
-              label=""
-              hexpand
-              class="pin"
-              onClicked={() => PinImageToTerminal(waifuCurrent.get())}
-            />
+
             <button
               label=""
               hexpand

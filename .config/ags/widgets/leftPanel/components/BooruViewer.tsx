@@ -263,8 +263,19 @@ const Images = () => {
                   heightRequest={columnWidth(
                     (w) => w * (image.height / image.width)
                   )}
-                  $={(self) => connectPopoverEvents(self)}
+                  $={(self) => {
+                    connectPopoverEvents(self);
+                    // right click to open image url in browser
+                    // self.connect("button-press-event", (_, event) => {
+                    //   if (event.get_button() === 3) {
+                    //     execAsync(`xdg-open '${image.url}'`);
+                    //     return true;
+                    //   }
+                    //   return false;
+                    // });
+                  }}
                   direction={Gtk.ArrowType.RIGHT}
+                  tooltipText={`ID: ${image.id}\n${image.width}x${image.height}`}
                 >
                   <Picture
                     file={`${booruPath}/${booruApi.get().value}/previews/${
@@ -559,16 +570,6 @@ const Bottom = () => {
 };
 
 export default () => {
-  ensureRatingTagFirst();
-  booruPage.subscribe(() => fetchImages());
-  booruTags.subscribe(() => fetchImages());
-  booruApi.subscribe(() => fetchImages());
-  booruLimit.subscribe(() => fetchImages());
-  booruBookMarkWaifus.subscribe(() => {
-    if (selectedTab.get() == "bookmarks") fetchBookmarkImages();
-  });
-  fetchImages();
-
   return (
     <box
       class="booru"
@@ -601,6 +602,17 @@ export default () => {
           return false;
         });
         self.add_controller(keyController);
+
+        // Initial fetch
+        ensureRatingTagFirst();
+        booruPage.subscribe(() => fetchImages());
+        booruTags.subscribe(() => fetchImages());
+        booruApi.subscribe(() => fetchImages());
+        booruLimit.subscribe(() => fetchImages());
+        booruBookMarkWaifus.subscribe(() => {
+          if (selectedTab.get() == "bookmarks") fetchBookmarkImages();
+        });
+        fetchImages();
       }}
     >
       <Tabs />
