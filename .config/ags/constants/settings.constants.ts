@@ -1,6 +1,7 @@
 import {
   barWidgetSelectors,
   leftPanelWidgetSelectors,
+  rightPanelWidgetSelectors,
 } from "../constants/widget.constants";
 import { booruApis, chatBotApis } from "../constants/api.constants";
 import { WaifuClass } from "../interfaces/waifu.interface";
@@ -22,8 +23,8 @@ export const defaultSettings: Settings = {
 
     decoration: {
       rounding: { value: Math.round(phi * 10), min: 0, max: 50, type: "int" }, // already φ-based
-      active_opacity: { value: phi_min + 0.2, min: 0, max: 1, type: "float" }, // φ_min + small tweak
-      inactive_opacity: { value: phi_min, min: 0, max: 1, type: "float" }, // φ_min - small tweak
+      active_opacity: { value: 0.9, min: 0, max: 1, type: "float" }, // φ_min + small tweak
+      inactive_opacity: { value: 0.8, min: 0, max: 1, type: "float" }, // φ_min - small tweak
       blur: {
         enabled: { value: true, type: "bool", min: 0, max: 1 },
         size: { value: Math.round(phi * 2), type: "int", min: 0, max: 10 }, // 3 → φ*2 ≈ 3
@@ -91,7 +92,7 @@ export const defaultSettings: Settings = {
     lock: true,
     width: Math.round(300 * phi_min), // 300 → 300*0.618 ≈ 185
     visibility: false,
-    widgets: [],
+    widgets: rightPanelWidgetSelectors,
   },
   leftPanel: {
     exclusivity: true,

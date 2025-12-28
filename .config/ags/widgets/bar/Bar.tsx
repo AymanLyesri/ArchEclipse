@@ -76,49 +76,51 @@ export default (monitor: Gdk.Monitor) => {
           <With value={barLayout}>
             {(layout) => (
               <centerbox hexpand>
-                {layout.map((widget: WidgetSelector, key) => {
-                  const types =
-                    layout.length === 1
-                      ? ["center"]
-                      : layout.length === 2
-                      ? ["start", "end"]
-                      : ["start", "center", "end"];
-                  const type = types[key];
-                  const halign =
-                    type === "start"
-                      ? Gtk.Align.START
-                      : type === "center"
-                      ? Gtk.Align.CENTER
-                      : Gtk.Align.END;
-                  switch (widget.name) {
-                    case "workspaces":
-                      return (
-                        <Workspaces
-                          halign={halign}
-                          $type={type}
-                          monitorName={monitorName}
-                        />
-                      );
-                    case "information":
-                      return (
-                        <Information
-                          halign={halign}
-                          $type={type}
-                          monitorName={monitorName}
-                        />
-                      );
-                    case "utilities":
-                      return (
-                        <Utilities
-                          halign={halign}
-                          $type={type}
-                          monitorName={monitorName}
-                        />
-                      );
-                    default:
-                      return <box />;
-                  }
-                })}
+                {layout
+                  .filter((widget) => widget.enabled)
+                  .map((widget: WidgetSelector, key) => {
+                    const types =
+                      layout.length === 1
+                        ? ["center"]
+                        : layout.length === 2
+                        ? ["start", "end"]
+                        : ["start", "center", "end"];
+                    const type = types[key];
+                    const halign =
+                      type === "start"
+                        ? Gtk.Align.START
+                        : type === "center"
+                        ? Gtk.Align.CENTER
+                        : Gtk.Align.END;
+                    switch (widget.name) {
+                      case "workspaces":
+                        return (
+                          <Workspaces
+                            halign={halign}
+                            $type={type}
+                            monitorName={monitorName}
+                          />
+                        );
+                      case "information":
+                        return (
+                          <Information
+                            halign={halign}
+                            $type={type}
+                            monitorName={monitorName}
+                          />
+                        );
+                      case "utilities":
+                        return (
+                          <Utilities
+                            halign={halign}
+                            $type={type}
+                            monitorName={monitorName}
+                          />
+                        );
+                      default:
+                        return <box />;
+                    }
+                  })}
               </centerbox>
             )}
           </With>

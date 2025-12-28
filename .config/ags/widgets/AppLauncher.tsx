@@ -49,7 +49,7 @@ const QuickApps = () => {
     >
       <scrolledwindow heightRequest={quickApps.length * 40}>
         <box
-          class="quick-apps"
+          class="results quick-apps"
           spacing={5}
           orientation={Gtk.Orientation.VERTICAL}
         >
@@ -65,7 +65,7 @@ const QuickApps = () => {
               }}
             >
               <box spacing={5}>
-                <label class="icon" label={app.app_icon} />
+                <label widthRequest={24} label={app.app_icon} />
                 <label label={app.app_name} />
               </box>
             </Gtk.Button>
@@ -287,17 +287,16 @@ const launchApp = (app: LauncherApp) => {
 
 const ResultsDisplay = () => {
   const buttonContent = (element: LauncherApp) => (
-    <box
-      spacing={10}
-      halign={element.app_type === "emoji" ? Gtk.Align.CENTER : Gtk.Align.START}
-    >
-      {element.app_type === "app" ? (
-        <image iconName={element.app_icon} />
-      ) : (
-        <box />
-      )}
-      <label label={element.app_name} />
-      <label class="argument" label={element.app_arg || ""} />
+    <box spacing={10} hexpand>
+      {/* ICON SLOT — always present */}
+
+      <image visible={element.app_type === "app"} iconName={element.app_icon} />
+
+      {/* MAIN LABEL — expands */}
+      <label hexpand xalign={0} label={element.app_name} />
+
+      {/* ARGUMENT — fixed alignment */}
+      <label class="argument" xalign={1} label={element.app_arg || ""} />
     </box>
   );
 

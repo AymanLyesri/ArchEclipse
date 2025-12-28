@@ -30,30 +30,38 @@ New official [Discord](https://discord.gg/fMGt4vH6s5) server.
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
 - **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 - Gtk 3 replaced)~~: _these are just some of the features_
-  - Color scheme based on current wallpaper
+  - Dynamic Color schemes based on current wallpaper
+  - Dark/light modes
   - Main bar
-    - Dark/light modes
     - Bandwidth speed monitor
+    - Weather
+    - Media Player
+    - Tray System
+    - Notification Popups
+    - Crypto display
   - Application launcher ~~(Rofi replaced)~~
     - App launcher
     - Emojis
     - Arithmetics
     - Url forwarding to default browser
-    - custom commands
+    - Custom commands
   - Wallpaper switcher for each workspace
   - Media player
   - Right Panel
-    - Waifu display -- using [Danbooru](https://danbooru.donmai.us) and [Gelbooru](https://gelbooru.com) APIs
+    - Waifu display -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs & Custom Images/Gifs
     - Media Player
     - Notification history - filter
     - Calendar
     - Script Timer
+    - Crypto Viewer
   - Left Panel
     - Chat Bot -- multiple APIs + image generation
-    - Booru Viewer -- using [Danbooru](https://danbooru.donmai.us) and [Gelbooru](https://gelbooru.com) APIs
-  - Hyprland Settings widget
+    - Booru Viewer -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs
+    - Manga Reader -- Using [MangaDex](https://mangadex.org/) API
+    - Hyprland/Ags settings
+    - Custom Scripts
   - User Panel (logout etc...)
-- **High-quality wallpapers** from [Danbooru](https://danbooru.donmai.us), [Yandere](https://yande.re), and [Gelbooru](https://gelbooru.com)
+- **High-quality wallpapers** from [Danbooru](https://danbooru.donmai.us), [Yandere](https://yande.re), & [Gelbooru](https://gelbooru.com)
 
 # Current Workflow
 
@@ -70,7 +78,6 @@ New official [Discord](https://discord.gg/fMGt4vH6s5) server.
 # To-Do List
 
 - **Users: Any suggestions or issues?**
-- AGS V3 bundling
 - Make sure the dot-files work for every machine not just mine **(WIP)**
 - Add tutorials for each part of the dot-files **(WIP)**
 - Continuous improvements and polishing **(INDEFINITELY)**
@@ -125,48 +132,34 @@ update
 
 ## Application Launcher
 
-| Apps                                                                                                                | Emojis                                                                                    | Arithmetics                                                                               | URLs                                                                                      |
-| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| ![clipboard_image_20241013_132106](https://github.com/user-attachments/assets/20f9ed91-79cf-41e7-bf5e-dacad8f3933b) | ![image](https://github.com/user-attachments/assets/a0ee2cb8-129a-4f38-b4f2-0636351a0c69) | ![image](https://github.com/user-attachments/assets/8449ae19-0d81-4505-9d58-7241da8dfd48) | ![image](https://github.com/user-attachments/assets/77cabaf7-1233-4f5f-9f56-c27e6e5e1ea5) |
+| Apps                                           | Emojis                                           | Arithmetics                                           | URLs                                           |
+| ---------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------- |
+| ![image](.github/assets/app-launcher-apps.png) | ![image](.github/assets/app-launcher-emojis.png) | ![image](.github/assets/app-launcher-arithmetics.png) | ![image](.github/assets/app-launcher-urls.png) |
 
 ## Right Panel
 
 > You can customize the widget layout however you want!
 
-| Example Layout                                                                            | Example Layout                                                                            |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| ![image](https://github.com/user-attachments/assets/0e8865aa-9e3e-4b20-af7c-cce5d7cd9206) | ![image](https://github.com/user-attachments/assets/bec585c9-aece-4517-bc09-6d739a7994e9) |
+| Example Layout                                    | Example Layout                                    |
+| ------------------------------------------------- | ------------------------------------------------- |
+| ![image](.github/assets/right-panel-layout-1.png) | ![image](.github/assets/right-panel-layout-2.png) |
 
 ## Left Panel
 
-| Chat Bot                                                                                                                             | Booru Viewer                                                                                                                                       |
-| ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/aa1a0291-294d-434b-b8b2-1f03ad219936" /> | <img width="1920" height="1080" alt="1763917938_hyprshot" src="https://github.com/user-attachments/assets/80adc9cc-5aa1-40df-bc90-325ddfb6f0d0" /> |
-
-## Media Player
-
-![image](https://github.com/user-attachments/assets/1be9e780-88cd-4d9f-ba12-252784986bec)
+| Chat Bot                                        | Booru Viewer                                                                                    | Hyprland & AGS settings                          |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| ![image](.github/assets/left-panel-chatbot.png) | ![image](.github/assets/left-panel-booru-1.png) ![image](.github/assets/left-panel-booru-2.png) | ![image](.github/assets/left-panel-settings.png) |
 
 ## Wallpaper Switcher
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/84749534-449f-4c65-91ed-29810ca85327" />
+![image](.github/assets/wallpaper-switcher.png)
 
 ## Theme Switching
 
-| Dark Theme + Custom colors based on wallpaper                                             | Light Theme + Custom colors based on wallpaper                                            |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| ![image](https://github.com/user-attachments/assets/f3ff78c1-5243-4c00-9e03-898c517cccac) | ![image](https://github.com/user-attachments/assets/7b158721-38fa-4405-9cda-7864c1bc7818) |
+| Dark Theme + Custom colors based on wallpaper | Light Theme + Custom colors based on wallpaper |
+| --------------------------------------------- | ---------------------------------------------- |
+| ![image](.github/assets/dark-theme.png)       | ![image](.github/assets/light-theme.png)       |
 
 ## User Panel
 
-![image](https://github.com/user-attachments/assets/d88f9a5e-c7da-4e31-80db-38073dc0278c)
-
-# Tutorials
-
-## App launcher
-
-- `>` `[name]` : Custom Apps
-- `emoji` `[name]` : emojis
-- `translate` `[text]` `>` `fr|en|es|jp...` : translate text into other languages
-- `[...1+2...]` : arithmetics (maths)
-- `[link]` : open the link in browser
+![image](.github/assets/user-panel.png)

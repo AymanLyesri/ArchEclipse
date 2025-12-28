@@ -6,6 +6,8 @@
 !.gitignore
 !README.md
 
+!.github
+
 !.config/
 .config/*
 

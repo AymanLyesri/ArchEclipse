@@ -3,6 +3,7 @@ import Gtk from "gi://Gtk?version=4.0";
 import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 import Hyprland from "gi://AstalHyprland";
+import GObject from "ags/gobject";
 import {
   autoWorkspaceSwitching,
   setAutoWorkspaceSwitching,
@@ -21,7 +22,7 @@ import {
   barOrientation,
   setBarOrientation,
 } from "../../../variables";
-import { createBinding, createState, createComputed, Accessor } from "ags";
+import { createBinding, createState, createComputed, Accessor, For } from "ags";
 import { execAsync } from "ags/process";
 import { getSetting, setSetting } from "../../../utils/settings";
 import { notify } from "../../../utils/notification";
@@ -35,6 +36,13 @@ import { defaultSettings } from "../../../constants/settings.constants";
 const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
+
+function moveItem<T>(array: T[], from: number, to: number): T[] {
+  const copy = [...array];
+  const [item] = copy.splice(from, 1);
+  copy.splice(to, 0, item);
+  return copy;
+}
 
 function buildConfigString(keys: string[], value: any): string {
   if (keys.length === 1) return `${keys[0]}=${value}`;
@@ -108,35 +116,102 @@ const BarLayoutSetting = () => {
         halign={Gtk.Align.START}
       />
       <box class="setting" spacing={10} hexpand>
-        {barWidgetSelectors.map((widget) => {
-          return (
-            <togglebutton
-              hexpand
-              active={barLayout((layout) =>
-                layout.some((w) => w.name === widget.name)
-              )}
-              class="widget"
-              label={widget.name}
-              onToggled={({ active }) => {
-                if (active) {
-                  if (barLayout.peek().length >= 3) return;
-                  setBarLayout([...barLayout.peek(), widget]);
-                } else {
-                  const newWidgets = barLayout
-                    .peek()
-                    .filter((w) => w.name !== widget.name);
-                  setBarLayout(newWidgets);
-                  console.table(newWidgets);
-                }
-              }}
-            ></togglebutton>
-          );
-        })}
+        <For each={barLayout}>
+          {(widget) => {
+            return (
+              <togglebutton
+                hexpand
+                active={widget.enabled}
+                class="widget drag"
+                label={widget.name}
+                tooltipMarkup={`<b>Hold To Drag</b>\n${widget.name}`}
+                onToggled={({ active }) => {
+                  if (active) {
+                    // Enable the widget
+                    setBarLayout(
+                      barLayout
+                        .peek()
+                        .map((w) =>
+                          w.name === widget.name ? { ...w, enabled: true } : w
+                        )
+                    );
+                  } else {
+                    // Disable the widget
+                    setBarLayout(
+                      barLayout
+                        .peek()
+                        .map((w) =>
+                          w.name === widget.name ? { ...w, enabled: false } : w
+                        )
+                    );
+                  }
+                }}
+                $={(self) => {
+                  /* ---------- Drag source ---------- */
+                  const dragSource = new Gtk.DragSource({
+                    actions: Gdk.DragAction.MOVE,
+                  });
+
+                  dragSource.connect("prepare", () => {
+                    print("DRAG SOURCE PREPARE");
+                    const index = barLayout
+                      .get()
+                      .findIndex((w) => w.name === widget.name);
+
+                    const value = new GObject.Value();
+                    value.init(GObject.TYPE_INT);
+                    value.set_int(index);
+
+                    return Gdk.ContentProvider.new_for_value(value);
+                  });
+
+                  self.add_controller(dragSource);
+
+                  /* ---------- Drop target ---------- */
+                  const dropTarget = new Gtk.DropTarget({
+                    actions: Gdk.DragAction.MOVE,
+                  });
+
+                  dropTarget.set_gtypes([GObject.TYPE_INT]);
+
+                  dropTarget.connect("drop", (_, value: number) => {
+                    print("DROP TARGET DROP");
+                    const fromIndex = value;
+
+                    const widgets = barLayout.get();
+                    const toIndex = widgets.findIndex(
+                      (w) => w.name === widget.name
+                    );
+
+                    if (fromIndex === -1) {
+                      // Enabling by dragging
+                      if (widgets.length >= 3) return true;
+                      const newLayout = [...widgets];
+                      newLayout.splice(
+                        toIndex === -1 ? widgets.length : toIndex,
+                        0,
+                        widget
+                      );
+                      setBarLayout(newLayout);
+                      return true;
+                    } else {
+                      // Reordering
+                      if (toIndex === -1 || fromIndex === toIndex) return true;
+                      setBarLayout(moveItem(widgets, fromIndex, toIndex));
+                      return true;
+                    }
+                  });
+
+                  self.add_controller(dropTarget);
+                }}
+              ></togglebutton>
+            );
+          }}
+        </For>
       </box>
     </box>
   );
 };
-
 const Setting = (get: Accessor<AGSSetting>, set: any) => {
   const title = <label halign={Gtk.Align.START} label={get.peek().name} />;
 

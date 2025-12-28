@@ -12,12 +12,13 @@ EDIT_CMD="gimp"
 # Timestamped image path
 # =========================
 timestamp=$(date +%Y%m%d_%H%M%S)
-image_path="$TMP_DIR/clipboard_image_${timestamp}.png"
+image_path="$TMP_DIR/clipboard_image_${timestamp}.webp"
 
 # =========================
 # Try image from clipboard
 # =========================
 if wl-paste --type image/png >"$image_path" 2>/dev/null; then
+echo "Image saved to $image_path"
     action=$(notify-send "Clipboard" "Image copied" \
         -i "$image_path" \
         --action=preview:Preview \

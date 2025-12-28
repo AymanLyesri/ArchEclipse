@@ -1,43 +1,21 @@
 .app-launcher {
   @include module;
-  padding: 0.625em;
-  border-radius: 0.625em;
-  min-width: 31.25em;
+
+  min-width: 45em;
 
   .help {
     popover {
       @include module;
     }
   }
-
-  .quick-apps {
-    button {
-      padding: 0.375em;
-      &:focus {
-        background: $secondary;
-      }
-    }
-  }
-
-  .icon {
-    margin: 0.3125em 0.625em;
-  }
-
   .results {
     button {
-      padding: 0.625em;
+      padding: 1em;
       .argument {
         color: $secondary;
       }
       &:focus {
         background: $secondary;
-
-        // &.checked {
-        //   background: $secondary;
-        //   .argument {
-        //     color: white;
-        //   }
-        // }
       }
       &.checked {
         .argument {
