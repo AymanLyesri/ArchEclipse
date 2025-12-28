@@ -23,6 +23,11 @@ export interface Settings {
     kelvin: number;
   };
   hyprland: {
+    general: {
+      border_size: HyprlandSetting;
+      gaps_in: HyprlandSetting;
+      gaps_out: HyprlandSetting;
+    };
     decoration: {
       rounding: HyprlandSetting;
       active_opacity: HyprlandSetting;
@@ -31,6 +36,12 @@ export interface Settings {
         enabled: HyprlandSetting;
         size: HyprlandSetting;
         passes: HyprlandSetting;
+        xray?: HyprlandSetting;
+      };
+      shadow: {
+        enabled: HyprlandSetting;
+        range: HyprlandSetting;
+        render_power: HyprlandSetting;
       };
     };
   };
@@ -38,14 +49,13 @@ export interface Settings {
     dnd: boolean;
   };
   globalOpacity: AGSSetting;
-  globalIconSize: AGSSetting;
   globalScale: AGSSetting;
   globalFontSize: AGSSetting;
   autoWorkspaceSwitching: AGSSetting;
   bar: {
     visibility: boolean;
     lock: boolean;
-    orientation: boolean;
+    orientation: AGSSetting;
     layout: WidgetSelector[];
   };
   waifu: {

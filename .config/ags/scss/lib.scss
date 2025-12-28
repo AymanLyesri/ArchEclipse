@@ -2,7 +2,7 @@
 
 * {
   font-weight: 500;
-  font-size: $FONT-SIZE;
+  // font-size: $FONT-SIZE;
   transition: all 0.2s;
 }
 
@@ -13,7 +13,7 @@
   border: none;
   box-shadow: none;
   border-radius: 10px;
-  font-size: 1em;
+  font-size: $FONT-SIZE;
   text-shadow: none;
   padding: $SCALE / 2 $SCALE / 1.5;
   margin: 0;
@@ -46,8 +46,12 @@ button,
   @include button;
 }
 
-menubutton button {
-  background: transparent;
+menubutton {
+  // background: transparent;
+  // font-size: 1em;
+  button {
+    background-color: black;
+  }
 }
 
 .toggle {

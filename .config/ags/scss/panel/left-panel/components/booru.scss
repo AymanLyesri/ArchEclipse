@@ -16,19 +16,18 @@
       background: $background-semi-transparent;
 
       @include module;
-      margin-top: 10px;
-      padding: 5px;
+      margin-top: 0.625em;
+      padding: 0.3125em;
 
       &:hover {
-        margin-bottom: 20px;
+        margin-bottom: 1.25em;
       }
 
       .clear {
         @extend .danger;
-        font-size: 1rem;
       }
       .tags {
-        padding-bottom: 10px;
+        padding-bottom: 0.625em;
         .applied-tags {
           .explicit {
             background: $red;

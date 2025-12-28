@@ -59,16 +59,6 @@ function setGlobalOpacity(value: AGSSetting) {
 
 export { globalOpacity, setGlobalOpacity };
 
-const [globalIconSize, _setGlobalIconSize] = createState<AGSSetting>(
-  getSetting("globalIconSize", globalSettings.get())
-);
-function setGlobalIconSize(value: AGSSetting) {
-  _setGlobalIconSize(value);
-  setSetting("globalIconSize", value, globalSettings, setGlobalSettings);
-  refreshCss();
-}
-export { globalIconSize, setGlobalIconSize };
-
 const [globalScale, _setGlobalScale] = createState<AGSSetting>(
   getSetting("globalScale", globalSettings.get())
 );
@@ -157,12 +147,12 @@ function setBarLock(value: boolean) {
 }
 export { barLock, setBarLock };
 
-const [barOrientation, _setBarOrientation] = createState<boolean>(
+const [barOrientation, _setBarOrientation] = createState<AGSSetting>(
   getSetting("bar.orientation", globalSettings.get())
 );
-function setBarOrientation(value: boolean) {
-  _setBarOrientation(value);
-  setSetting("bar.orientation", value, globalSettings, setGlobalSettings);
+function setBarOrientation(setting: AGSSetting) {
+  _setBarOrientation(setting);
+  setSetting("bar.orientation", setting, globalSettings, setGlobalSettings);
 }
 export { barOrientation, setBarOrientation };
 

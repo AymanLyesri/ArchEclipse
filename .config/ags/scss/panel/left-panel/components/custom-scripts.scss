@@ -1,7 +1,10 @@
 .custom-scripts {
   .script {
     .icon {
-      font-size: $ICON-SIZE + 5;
+      font-size: 2em;
+    }
+    .description {
+      font-size: 0.9em;
     }
   }
 }

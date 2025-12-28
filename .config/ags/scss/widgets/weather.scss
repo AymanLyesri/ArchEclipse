@@ -1,20 +1,20 @@
 .weather {
   .weather-popover {
-    min-width: 500px;
+    min-width: 31.25em;
   }
 
   .weather-heading {
     @include module;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 1em;
   }
 
   .weather-section {
     // @include module;
     color: $foreground;
-    border-radius: 10px;
+    border-radius: 0.625em;
     background: $background-transparent;
-    padding: 20px;
+    padding: 1.25em;
     &:hover {
       background-color: $background-secondary;
     }
@@ -22,44 +22,44 @@
 
   .weather-subheading {
     font-weight: bold;
-    font-size: 14px;
-    margin-top: 8px;
+    font-size: 0.875em;
+    margin-top: 0.5em;
   }
 
   .weather-icon-large {
-    font-size: 48px;
+    font-size: 3em;
   }
 
   .weather-temp-large {
-    font-size: 32px;
+    font-size: 2em;
     font-weight: bold;
   }
 
   .weather-description {
-    font-size: 14px;
+    font-size: 0.875em;
   }
 
   .weather-feels-like {
-    font-size: 12px;
+    font-size: 0.75em;
   }
 
   // .weather-detail label:first-child {
   // }
 
   .forecast-label {
-    font-size: 11px;
+    font-size: 0.6875em;
   }
 
   .forecast-value {
-    font-size: 13px;
+    font-size: 0.8125em;
     font-weight: bold;
   }
 
   .weather-link {
-    font-size: 12px;
+    font-size: 0.75em;
 
     text-decoration: underline;
-    margin-top: 8px;
+    margin-top: 0.5em;
   }
 
   .weather-link:hover {

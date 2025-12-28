@@ -319,18 +319,6 @@ function DndToggle() {
   );
 }
 
-function BarOrientation() {
-  return (
-    <button
-      onClicked={() => {
-        setBarOrientation(!barOrientation.get());
-      }}
-      class="bar-orientation icon"
-      label={barOrientation((orientation) => (!orientation ? "" : ""))}
-    />
-  );
-}
-
 export default ({
   monitorName,
   halign,
@@ -347,7 +335,6 @@ export default ({
       <Theme />
       <PinBar />
       <DndToggle />
-      <BarOrientation />
     </box>
   );
 };

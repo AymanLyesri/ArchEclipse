@@ -240,7 +240,17 @@ export default () => {
               class="name"
               halign={Gtk.Align.START}
               wrap
+              wrapMode={Gtk.WrapMode.WORD_CHAR}
               label={script.name}
+              hexpand
+            />
+            <label
+              class="description"
+              halign={Gtk.Align.END}
+              wrap
+              wrapMode={Gtk.WrapMode.WORD_CHAR}
+              label={script.description}
+              hexpand
             />
           </box>
         </button>

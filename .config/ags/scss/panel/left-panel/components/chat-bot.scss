@@ -1,7 +1,7 @@
 .chat-bot {
   > .info {
     @include module;
-    padding: 10px 5px;
+    padding: 0.625em 0.3125em;
     color: $secondary;
   }
 
@@ -11,35 +11,30 @@
     }
     .message {
       @include module;
-      padding: 5px;
+      padding: 0.3125em;
 
       .image {
         background-position: center;
         background-size: cover;
-        border-radius: 10px;
+        border-radius: 0.625em;
       }
 
       &.user {
-        border-radius: 20px;
-      }
-
-      .info {
-        padding: 5px;
-        font-size: 0.9em;
+        border-radius: 1.25em;
       }
 
       .body {
-        padding: 10px;
+        padding: 0.625em;
 
         .code-block {
           background: $background-transparent;
-          border-radius: 10px;
-          padding: 10px;
+          border-radius: 0.625em;
+          padding: 0.625em;
           color: $secondary;
 
           &:hover {
             background: $background-transparent;
-            box-shadow: 0px 0px 10px 2px $secondary;
+            box-shadow: 0em 0em 0.625em 0.125em $secondary;
           }
         }
       }
@@ -47,29 +42,29 @@
   }
 
   .bottom-bar {
-    border-radius: 50px;
+    border-radius: 3.125em;
     background: $background-semi-transparent;
-    padding: 5px 15px;
+    padding: 0.3125em 0.9375em;
 
     &:hover {
-      margin-bottom: 20px;
+      margin-bottom: 1.25em;
     }
 
     entry {
-      border-radius: 50px;
+      border-radius: 3.125em;
       background: transparent;
       border: none;
     }
 
     .clear {
       @extend .danger;
-      padding: 5px;
+      padding: 0.3125em;
     }
 
     .image-generation {
       @include button;
-      padding: 5px 10px;
-      border-radius: 20px;
+      padding: 0.3125em 0.625em;
+      border-radius: 1.25em;
     }
   }
 }

@@ -15,7 +15,7 @@
     background: $background-semi-transparent;
 
     .form-label {
-      font-size: 12px;
+      font-size: 1em;
       font-weight: bold;
       color: $foreground-secondary;
       margin-bottom: 2px;
@@ -66,11 +66,11 @@
         color: $foreground;
       }
       .task-schedule {
-        font-size: $phi-min + em;
+        font-size: 1em;
         font-style: italic;
       }
       .task-type {
-        font-size: 10px;
+        font-size: 1em;
         color: $secondary;
         font-weight: bold;
         background: rgba($secondary, 0.2);

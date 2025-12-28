@@ -22,7 +22,6 @@
 @import "panel/left-panel/components/manga.scss";
 @import "panel/left-panel/components/settings.scss";
 
-@import "widgets/resources.scss";
 @import "widgets/app-launcher.scss";
 @import "widgets/player.scss";
 @import "widgets/progress.scss";
@@ -40,4 +39,5 @@
 // Use the variables in the styles
 window {
   font-family: "JetBrainsMono";
+  background-color: transparent;
 }

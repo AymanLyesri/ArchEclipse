@@ -1,20 +1,17 @@
 .manga-viewer {
   .manga-item {
     @include module;
-    padding: 0px;
+    padding: 0em;
 
     .manga-info {
-      padding: 5px;
+      padding: 0.3125em;
 
       .title {
-        font-size: 1.2rem;
+        font-size: 1.2em;
         font-weight: bold;
       }
-      .description {
-        font-size: 1rem;
-      }
       .tags {
-        font-size: 0.9rem;
+        font-size: 0.9em;
       }
     }
   }
@@ -23,11 +20,11 @@
       background: $background-semi-transparent;
 
       @include module;
-      margin-top: 10px;
-      padding: 5px;
+      margin-top: 0.625em;
+      padding: 0.3125em;
 
       &:hover {
-        margin-bottom: 20px;
+        margin-bottom: 1.25em;
       }
     }
   }

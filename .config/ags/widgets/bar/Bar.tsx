@@ -34,8 +34,8 @@ export default (monitor: Gdk.Monitor) => {
       application={App}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       layer={Astal.Layer.TOP}
-      anchor={barOrientation((orientation: boolean) =>
-        orientation
+      anchor={barOrientation(({ value }) =>
+        value
           ? Astal.WindowAnchor.TOP |
             Astal.WindowAnchor.LEFT |
             Astal.WindowAnchor.RIGHT

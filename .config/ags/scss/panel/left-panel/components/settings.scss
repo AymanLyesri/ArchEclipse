@@ -1,7 +1,7 @@
 .settings {
   .category {
     @include module;
-    padding: 10px;
+    padding: 0.625em;
 
     > label {
       font-weight: bold;

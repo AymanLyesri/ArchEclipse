@@ -1,12 +1,7 @@
 import { exec } from "ags/process";
 import { monitorFile } from "ags/file";
 import App from "ags/gtk4/app";
-import {
-  globalFontSize,
-  globalIconSize,
-  globalOpacity,
-  globalScale,
-} from "../variables";
+import { globalFontSize, globalOpacity, globalScale } from "../variables";
 import { notify } from "./notification";
 
 // target css file
@@ -28,7 +23,6 @@ export function refreshCss() {
   try {
     exec(`bash -c "echo '
         $OPACITY: ${globalOpacity.get().value};
-        $ICON-SIZE: ${globalIconSize.get().value}px;
         $FONT-SIZE: ${globalFontSize.get().value}px;
         $SCALE: ${globalScale.get().value}px;
         ' | cat - ${defaultColors} ${walColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);

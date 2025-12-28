@@ -10,8 +10,6 @@ import {
   setBarLayout,
   globalFontSize,
   setGlobalFontSize,
-  globalIconSize,
-  setGlobalIconSize,
   globalMargin,
   globalOpacity,
   setGlobalOpacity,
@@ -20,6 +18,8 @@ import {
   globalSettings,
   setGlobalSettings,
   leftPanelWidth,
+  barOrientation,
+  setBarOrientation,
 } from "../../../variables";
 import { createBinding, createState, createComputed, Accessor } from "ags";
 import { execAsync } from "ags/process";
@@ -44,15 +44,28 @@ function buildConfigString(keys: string[], value: any): string {
   return `${currentKey} {\n\t${nestedConfig.replace(/\n/g, "\n\t")}\n}`;
 }
 
-const normalizeValue = (value: any, type: string) => {
-  switch (type) {
-    case "int":
-      return Math.round(value);
-    case "float":
-      return parseFloat(value.toFixed(2));
-    default:
-      return value;
-  }
+const applyHyprlandSettings = (
+  settings: NestedSettings,
+  prefix: string = ""
+) => {
+  Object.entries(settings).forEach(([key, value]) => {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (typeof value === "object" && value !== null && !("type" in value)) {
+      // nested
+      applyHyprlandSettings(value as NestedSettings, fullKey);
+    } else {
+      // leaf setting
+      const setting = value as HyprlandSetting;
+      const keyArray = fullKey.split(".");
+      const configString = buildConfigString(keyArray, setting.value);
+      const hyprKey = keyArray.join(":");
+      execAsync(
+        `bash -c "echo -e '${configString}' >${
+          hyprCustomDir + "/" + keyArray.at(-2) + "." + keyArray.at(-1)
+        }.conf && hyprctl keyword ${hyprKey} ${setting.value}"`
+      ).catch((err) => notify(err));
+    }
+  });
 };
 
 const resetButton = () => {
@@ -66,11 +79,13 @@ const resetButton = () => {
     );
     // ags settings
     setGlobalOpacity(defaultSettings.globalOpacity);
-    setGlobalIconSize(defaultSettings.globalIconSize);
     setGlobalScale(defaultSettings.globalScale);
     setGlobalFontSize(defaultSettings.globalFontSize);
     setAutoWorkspaceSwitching(defaultSettings.autoWorkspaceSwitching);
     setBarLayout(defaultSettings.bar.layout);
+    setBarOrientation(defaultSettings.bar.orientation);
+    // apply hyprland settings
+    applyHyprlandSettings(defaultSettings.hyprland);
   };
   return (
     <button
@@ -125,16 +140,16 @@ const BarLayoutSetting = () => {
 const Setting = (get: Accessor<AGSSetting>, set: any) => {
   const title = <label halign={Gtk.Align.START} label={get.peek().name} />;
 
-  const sliderWidget = () => {
+  const SliderWidget = () => {
     const infoLabel = (
       <label
         hexpand={true}
-        xalign={1}
-        label={get(
-          (object) =>
-            `${Math.round(
-              ((object.value - object.min) / (object.max - object.min)) * 100
-            )}%`
+        label={get((setting) =>
+          String(
+            setting.type === "int"
+              ? Math.round(setting.value)
+              : setting.value.toFixed(2)
+          )
         )}
       />
     ) as Gtk.Label;
@@ -149,9 +164,9 @@ const Setting = (get: Accessor<AGSSetting>, set: any) => {
         value={get((setting) => setting.value)}
         onValueChanged={(self) => {
           let value = self.get_value();
-          infoLabel.label = `${Math.round(
-            ((value - get.peek().min) / (get.peek().max - get.peek().min)) * 100
-          )}%`;
+          infoLabel.label = String(
+            get.peek().type === "int" ? Math.round(value) : value.toFixed(2)
+          );
           switch (get.peek().type) {
             case "int":
               value = Math.round(value);
@@ -164,11 +179,8 @@ const Setting = (get: Accessor<AGSSetting>, set: any) => {
           }
 
           set({
-            name: get.peek().name,
-            value: normalizeValue(value, get.peek().type),
-            type: get.peek().type,
-            min: get.peek().min,
-            max: get.peek().max,
+            ...get.peek(),
+            value,
           });
         }}
       />
@@ -182,25 +194,22 @@ const Setting = (get: Accessor<AGSSetting>, set: any) => {
     );
   };
 
-  const switchWidget = () => {
+  const SwitchWidget = () => {
     const infoLabel = (
       <label
         hexpand={true}
-        label={get((object) => (object.value ? "On" : "Off"))}
+        label={get((setting) => (setting.value ? "On" : "Off"))}
       />
     );
 
     const Switch = (
       <switch
-        active={createComputed(() => get.peek().value)}
+        active={get((setting) => setting.value)}
         onNotifyActive={(self) => {
           const active = self.active;
           set({
-            name: get.peek().name,
+            ...get.peek(),
             value: active,
-            type: get.peek().type,
-            min: get.peek().min,
-            max: get.peek().max,
           });
         }}
       />
@@ -213,11 +222,12 @@ const Setting = (get: Accessor<AGSSetting>, set: any) => {
       </box>
     );
   };
-
+  console.table(get.peek());
   return (
     <box class="setting" hexpand={true} spacing={5}>
       {title}
-      {get.peek().type === "bool" ? switchWidget() : sliderWidget()}
+
+      {get.peek().type === "bool" ? <SwitchWidget /> : <SliderWidget />}
     </box>
   );
 };
@@ -301,9 +311,9 @@ export default () => {
           spacing={16}
         >
           <label label="AGS" halign={Gtk.Align.START} />
-          {BarLayoutSetting()}
+          <BarLayoutSetting />
+          {Setting(barOrientation, setBarOrientation)}
           {Setting(globalOpacity, setGlobalOpacity)}
-          {Setting(globalIconSize, setGlobalIconSize)}
           {Setting(globalScale, setGlobalScale)}
           {Setting(globalFontSize, setGlobalFontSize)}
         </box>

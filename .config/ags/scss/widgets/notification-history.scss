@@ -24,23 +24,7 @@
       }
     }
   }
-  // .notification {
-  //   min-width: 0px;
-  //   min-height: 0px;
-  //   margin: 0px;
-  //   padding: 0px;
-
-  //   .icon {
-  //     min-width: 20px;
-  //     min-height: 20px;
-
-  //     image {
-  //       font-size: 25px;
-  //     }
-  //   }
-  // }
   .clear {
     @extend .danger;
-    padding: 0px;
   }
 }

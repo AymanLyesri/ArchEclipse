@@ -1,8 +1,8 @@
 .app-launcher {
   @include module;
-  padding: 10px;
-  border-radius: 10px;
-  min-width: 500px;
+  padding: 0.625em;
+  border-radius: 0.625em;
+  min-width: 31.25em;
 
   .help {
     popover {
@@ -12,7 +12,7 @@
 
   .quick-apps {
     button {
-      padding: 6px;
+      padding: 0.375em;
       &:focus {
         background: $secondary;
       }
@@ -20,12 +20,12 @@
   }
 
   .icon {
-    margin: 5px 10px;
+    margin: 0.3125em 0.625em;
   }
 
   .results {
     button {
-      padding: 10px;
+      padding: 0.625em;
       .argument {
         color: $secondary;
       }

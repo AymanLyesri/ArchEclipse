@@ -16,7 +16,6 @@ import {
 import { Accessor, createBinding, For, With } from "ags";
 import { createPoll } from "ags/time";
 import Gtk from "gi://Gtk?version=4.0";
-import GLib from "gi://GLib?version=2.0";
 import CustomRevealer from "../../CustomRevealer";
 import { dateFormats } from "../../../constants/date.constants";
 import AstalMpris from "gi://AstalMpris";

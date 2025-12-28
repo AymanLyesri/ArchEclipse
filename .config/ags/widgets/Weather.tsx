@@ -399,7 +399,7 @@ export default () => {
                   <Eventbox
                     onClick={() =>
                       GLib.spawn_command_line_async(
-                        "xdg-open 'https://open-meteo.com/')"
+                        "xdg-open 'https://open-meteo.com/'"
                       )
                     }
                   >

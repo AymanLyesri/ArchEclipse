@@ -92,7 +92,7 @@ const helpCommands = {
   "100c to f / 10kg in lb": "unit conversion (temp/weight/length/volume/speed)",
 };
 
-const Help = (
+const Help = () => (
   <menubutton class="help" tooltipText="Help" halign={Gtk.Align.END}>
     <label label="" />
     <popover>
@@ -122,7 +122,7 @@ let debounceTimer: any;
 let args: string[];
 let entryWidget: any;
 
-const Entry = (
+const Entry = () => (
   <Gtk.Entry
     hexpand={true}
     placeholderText="Search for an app, emoji, translate, url, or do some math..."
@@ -387,11 +387,11 @@ export default (monitor: any) => (
       spacing={5}
     >
       <box spacing={5}>
-        {Entry}
-        {Help}
+        <Entry />
+        <Help />
       </box>
-      {ResultsDisplay()}
-      {QuickApps()}
+      <ResultsDisplay />
+      <QuickApps />
     </box>
   </Astal.Window>
 );
