@@ -52,6 +52,11 @@
       "key": "{#separator}│  {#keys}󰧨 DE"
     },
     {
+      "type": "custom",
+      "key": "{#separator}│  {#keys}󱡓 Configuration",
+      "format": "ArchEclipse"
+    },
+    {
       "type": "wm",
       "key": "{#separator}│  {#keys}󱂬 WM"
     },

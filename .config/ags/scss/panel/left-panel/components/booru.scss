@@ -1,8 +1,4 @@
 .booru {
-  // .images-container {
-  //   position: relative;
-  // }
-
   .images {
     .image-button {
       > button {
@@ -13,32 +9,43 @@
 
   .bottom {
     .bottom-bar {
-      background: $background-semi-transparent;
-
       @include module;
-      margin-top: 0.625em;
-      padding: 0.3125em;
+      background: $background-semi-transparent;
+      margin-top: 10px;
 
-      &:hover {
-        margin-bottom: 1.25em;
-      }
-
-      .clear {
-        @extend .danger;
-      }
-      .tags {
-        padding-bottom: 0.625em;
-        .applied-tags {
-          .explicit {
-            background: $red;
-          }
-          button:hover {
-            background: $red;
-          }
+      .input {
+        @include module;
+        background: $background-semi-transparent;
+        entry {
+          background-color: transparent;
         }
-        .fetched-tags {
-          button:hover {
-            background: $green;
+
+        .clear {
+          @extend .danger;
+        }
+        .tags {
+          * {
+            font-size: 0.95em;
+          }
+
+          .separator {
+            border-top: 1px solid $secondary;
+          }
+
+          button.tag.rating {
+            &:hover {
+              background: $blue;
+            }
+          }
+          button.tag.enabled {
+            &:hover {
+              background: $red;
+            }
+          }
+          button.tag.fetched {
+            &:hover {
+              background: $green;
+            }
           }
         }
       }

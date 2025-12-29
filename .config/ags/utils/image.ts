@@ -85,3 +85,12 @@ export const removeBookMarkImage = (image: Waifu) => {
   setBooruBookMarkWaifus(updatedBookmarks);
   notify({ summary: "Success", body: "Bookmark removed" });
 };
+
+export const OpenInBrowser = (image: Waifu) =>
+  execAsync(
+    `bash -c "xdg-open '${image.api.idSearchUrl}${image.id}' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
+  )
+    .then((browser) =>
+      notify({ summary: "Waifu", body: `opened in ${browser}` })
+    )
+    .catch((err) => notify({ summary: "Error", body: err }));

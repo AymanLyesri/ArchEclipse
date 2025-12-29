@@ -122,7 +122,7 @@ export function WindowActions({
   setWindowVisibility: (visibility: boolean) => void;
 }) {
   const maxPanelWidth = 1500;
-  const minPanelWidth = 250;
+  const minPanelWidth = 300;
   return (
     <box
       class="window-actions"

@@ -14,30 +14,6 @@ export default () => {
     name: "",
     class: "",
   });
-  const Filters: Filter[] = [
-    { name: "Spotify", class: "spotify" },
-    { name: "Clipboard", class: "clipboard" },
-    { name: "Update", class: "update" },
-  ];
-
-  const Filter = (
-    <box class="filter">
-      {Filters.map((filter) => (
-        <button
-          label={filter.name}
-          hexpand={true}
-          onClicked={() => {
-            setNotificationFilter((current) =>
-              current.class === filter.class ? { name: "", class: "" } : filter
-            );
-          }}
-          class={notificationFilter((f) =>
-            f.class === filter.class ? "active" : ""
-          )}
-        />
-      ))}
-    </box>
-  );
 
   function FilterNotifications(
     notifications: Notifd.Notification[],
@@ -94,6 +70,31 @@ export default () => {
     <scrolledwindow vexpand={true}>{NotificationHistory}</scrolledwindow>
   );
 
+  const Filters: Filter[] = [
+    { name: "Spotify", class: "spotify" },
+    { name: "Clipboard", class: "clipboard" },
+    { name: "Update", class: "update" },
+  ];
+
+  const Filter = (
+    <box class="filters">
+      {Filters.map((filter) => (
+        <button
+          label={filter.name}
+          hexpand={true}
+          onClicked={() => {
+            setNotificationFilter((current) =>
+              current.class === filter.class ? { name: "", class: "" } : filter
+            );
+          }}
+          class={notificationFilter((f) =>
+            f.class === filter.class ? "active" : ""
+          )}
+        />
+      ))}
+    </box>
+  );
+
   const ClearNotifications = (
     <button
       class="clear"
@@ -106,6 +107,13 @@ export default () => {
     />
   );
 
+  const Actions = () => (
+    <box class="actions" spacing={5}>
+      {Filter}
+      {ClearNotifications}
+    </box>
+  );
+
   return (
     <box
       class="notification-history"
@@ -113,7 +121,7 @@ export default () => {
       spacing={5}
     >
       {NotificationsDisplay}
-      <CustomRevealer trigger={Filter} child={ClearNotifications} />
+      <Actions />
     </box>
   );
 };

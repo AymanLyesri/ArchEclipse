@@ -33,7 +33,11 @@
 
   &:hover {
     background: $background;
-    text-shadow: $foreground 0 0 1px;
+
+    transform: scale(1.02) translateY(-5\px); /* Expand height by 10% */
+  }
+  &:active {
+    transform: scale(1) translateY(0px);
   }
   &:checked {
     background: $foreground-secondary;
@@ -72,11 +76,9 @@ filechooserbutton * {
 }
 
 .danger {
-  background: $red;
-  color: $foreground;
   &:hover,
   &:checked {
-    background: rgba($red, 0.8); // Pre-calculated hover and checked state
+    background: $red;
   }
 }
 
@@ -97,6 +99,7 @@ filechooserbutton * {
 }
 
 entry {
+  all: unset;
   padding: $SCALE / $phi;
   border-radius: 10px;
   color: $foreground;
@@ -211,5 +214,11 @@ popover > * {
     100% {
       transform: rotate(0deg);
     }
+  }
+}
+
+scrolledwindow {
+  viewport {
+    border-radius: 10px;
   }
 }

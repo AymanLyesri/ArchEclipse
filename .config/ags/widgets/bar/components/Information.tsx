@@ -28,47 +28,42 @@ import Cava from "../../Cava";
 import Weather from "../../Weather";
 import Bandwidth from "../../Bandwidth";
 
+const mpris = AstalMpris.get_default();
+
 function Mpris() {
-  const mpris = AstalMpris.get_default();
   const apps = new AstalApps.Apps();
   const players = createBinding(mpris, "players");
 
   return (
-    <revealer
-      revealChild={players((players) => players.length > 0)}
-      transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-    >
-      <menubutton class={"mpris"}>
-        <box spacing={5}>
-          <Cava
-            barCount={12}
-            transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
-          />
+    <menubutton class={"mpris"}>
+      <box spacing={5}>
+        <Cava
+          barCount={12}
+          transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
+        />
+        <For each={players}>
+          {(player) => {
+            const [app] = apps.exact_query(player.entry);
+            return (
+              <box spacing={5}>
+                <image visible={!!app.iconName} iconName={app?.iconName} />
+                <label
+                  label={createBinding(player, "title")}
+                  ellipsize={Pango.EllipsizeMode.END}
+                />
+              </box>
+            );
+          }}
+        </For>
+      </box>
+      <popover>
+        <box spacing={4} orientation={Gtk.Orientation.VERTICAL}>
           <For each={players}>
-            {(player) => {
-              const [app] = apps.exact_query(player.entry);
-              return (
-                <box spacing={5}>
-                  <image visible={!!app.iconName} iconName={app?.iconName} />
-                  <label
-                    label={createBinding(player, "title")}
-                    ellipsize={Pango.EllipsizeMode.END}
-                  />
-                </box>
-              );
-            }}
+            {(player) => <Player playerType="popup" player={player} />}
           </For>
         </box>
-        <popover>
-          <box spacing={4} orientation={Gtk.Orientation.VERTICAL}>
-            <For each={players}>
-              {(player) => <Player playerType="popup" player={player} />}
-            </For>
-          </box>
-        </popover>
-      </menubutton>
-    </revealer>
+      </popover>
+    </menubutton>
   );
 }
 
@@ -92,21 +87,15 @@ function Clock() {
 
 function ClientTitle() {
   return (
-    <revealer
-      revealChild={focusedClient((c) => !!c)}
-      transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SWING_RIGHT}
-    >
-      <label
-        class="client-title"
-        ellipsize={Pango.EllipsizeMode.END}
-        maxWidthChars={50}
-        label={focusedClient((c) => {
-          if (!c) return "No focused client";
-          return c.title || "No Title";
-        })}
-      />
-    </revealer>
+    <label
+      class="client-title"
+      ellipsize={Pango.EllipsizeMode.END}
+      maxWidthChars={50}
+      label={focusedClient((c) => {
+        if (!c) return "No focused client";
+        return c.title || "No Title";
+      })}
+    />
   );
 }
 export default ({
@@ -118,14 +107,19 @@ export default ({
 }) => {
   return (
     <box class="bar-middle" spacing={5} halign={halign}>
-      <Mpris />
-      <Clock />
+      <With value={createBinding(mpris, "players")}>
+        {(players: AstalMpris.Player[]) => players.length > 0 && <Mpris />}
+      </With>
+
       <Weather />
       <Bandwidth />
-      <ClientTitle />
+      <Clock />
+
+      <With value={focusedClient}>{(client) => client && <ClientTitle />}</With>
+
       <With value={pingedCrypto}>
         {(crypto) =>
-          crypto.symbol != "" ? (
+          crypto.symbol != "" && (
             <Eventbox
               tooltipText={"click to remove"}
               onClick={() => setPingedCrypto({ symbol: "", timeframe: "" })}
@@ -138,8 +132,6 @@ export default ({
                 orientation={Gtk.Orientation.HORIZONTAL}
               />
             </Eventbox>
-          ) : (
-            <box />
           )
         }
       </With>

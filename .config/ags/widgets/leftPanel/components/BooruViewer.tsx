@@ -18,7 +18,7 @@ import {
   booruBookMarkWaifus,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
-import { createState, createComputed, For, With } from "ags";
+import { createState, createComputed, For, With, Accessor } from "ags";
 import { booruApis } from "../../../constants/api.constants";
 import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
@@ -26,6 +26,9 @@ import { Progress } from "../../Progress";
 import { connectPopoverEvents } from "../../../utils/window";
 import ImageDialog from "./ImageDialog";
 import { booruPath } from "../../../constants/path.constants";
+import { OpenInBrowser } from "../../../utils/image";
+import Adw from "gi://Adw?version=1";
+import { get } from "http";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -214,6 +217,7 @@ const fetchTags = async (tag: string) => {
     --api ${booruApi.get().value} 
     --tag '${escapedTag}'`
   );
+  print(res);
   setFetchedTags(readJson(res));
 };
 
@@ -264,15 +268,17 @@ const Images = () => {
                     (w) => w * (image.height / image.width)
                   )}
                   $={(self) => {
+                    const gesture = new Gtk.GestureClick();
+                    gesture.set_button(3);
+                    gesture.set_propagation_phase(Gtk.PropagationPhase.BUBBLE);
+
+                    gesture.connect("released", () => {
+                      OpenInBrowser(image);
+                    });
+
+                    self.add_controller(gesture);
+
                     connectPopoverEvents(self);
-                    // right click to open image url in browser
-                    // self.connect("button-press-event", (_, event) => {
-                    //   if (event.get_button() === 3) {
-                    //     execAsync(`xdg-open '${image.url}'`);
-                    //     return true;
-                    //   }
-                    //   return false;
-                    // });
                   }}
                   direction={Gtk.ArrowType.RIGHT}
                   tooltipText={`ID: ${image.id}\n${image.width}x${image.height}`}
@@ -297,12 +303,13 @@ const Images = () => {
 
 const PageDisplay = () => (
   <box class="pages" spacing={5} halign={Gtk.Align.CENTER}>
-    <With value={booruPage}>
-      {(p) => {
+    <With value={createComputed([booruPage, leftPanelWidth])}>
+      {(computed: [number, number]) => {
         const buttons = [];
+        const totalPagesToShow = computed[1] / 100 + 2;
 
         // Show "1" button if the current page is greater than 3
-        if (p > 3) {
+        if (computed[0] > 3) {
           buttons.push(
             <button class="first" label="1" onClicked={() => setBooruPage(1)} />
           );
@@ -310,15 +317,25 @@ const PageDisplay = () => (
         }
 
         // Generate 5-page range dynamically without going below 1
-        const startPage = Math.max(1, p - 2);
-        const endPage = Math.max(5, p + 2);
+        // const startPage = Math.max(1, computed[0] - 2);
+        // const endPage = Math.max(5, computed[0] + 2);
+        let startPage = Math.max(
+          1,
+          computed[0] - Math.floor(totalPagesToShow / 2)
+        );
+        let endPage = startPage + totalPagesToShow - 1;
+
+        // Adjust if endPage exceeds totalPagesToShow
+        if (endPage - startPage + 1 < totalPagesToShow) {
+          endPage = startPage + totalPagesToShow - 1;
+        }
 
         for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
           buttons.push(
             <button
-              label={pageNum !== p ? String(pageNum) : ""}
+              label={pageNum !== computed[0] ? String(pageNum) : ""}
               onClicked={() =>
-                pageNum !== p ? setBooruPage(pageNum) : fetchImages()
+                pageNum !== computed[0] ? setBooruPage(pageNum) : fetchImages()
               }
             />
           );
@@ -329,115 +346,151 @@ const PageDisplay = () => (
   </box>
 );
 
-const LimitDisplay = () => {
+const SliderSetting = ({
+  label,
+  getValue,
+  setValue,
+  sliderMin,
+  sliderMax,
+  sliderStep,
+  displayTransform,
+}: {
+  label: string;
+  getValue: Accessor<number>;
+  setValue: (v: number) => void;
+  sliderMin: number;
+  sliderMax: number;
+  sliderStep: number;
+  displayTransform: (v: number) => string;
+}) => {
   let debounceTimer: any;
 
   return (
-    <box class="limits" spacing={5} hexpand>
-      <label label="Limit"></label>
-      <slider
-        value={booruLimit((l) => l / 100)}
-        class="slider"
-        drawValue={false}
-        hexpand
-        $={(self) => {
-          self.set_range(0, 1);
-          self.set_increments(0.1, 0.1);
-          const adjustment = self.get_adjustment();
-          adjustment.connect("value-changed", () => {
-            // Clear the previous timeout if any
-            if (debounceTimer) clearTimeout(debounceTimer);
+    <box class="setting" spacing={5}>
+      <label label={label} hexpand xalign={0} />
+      <box spacing={5} halign={Gtk.Align.END}>
+        <slider
+          value={getValue}
+          widthRequest={leftPanelWidth((width) => width / 2)}
+          class="slider"
+          drawValue={false}
+          hexpand
+          $={(self) => {
+            self.set_range(sliderMin, sliderMax);
+            self.set_increments(sliderStep, sliderStep);
+            const adjustment = self.get_adjustment();
+            adjustment.connect("value-changed", () => {
+              // Clear the previous timeout if any
+              if (debounceTimer) clearTimeout(debounceTimer);
 
-            // Set a new timeout with the desired delay (e.g., 300ms)
-            debounceTimer = setTimeout(() => {
-              setBooruLimit(Math.round(adjustment.get_value() * 100));
-            }, 300);
-          });
-        }}
-      />
-      <label label={booruLimit((l) => String(l))}></label>
+              // Set a new timeout with the desired delay (e.g., 300ms)
+              debounceTimer = setTimeout(() => {
+                setValue(adjustment.get_value());
+              }, 300);
+            });
+          }}
+        />
+        <label
+          label={getValue((v) => displayTransform(v))}
+          widthRequest={50}
+        ></label>
+      </box>
     </box>
   );
 };
 
-const ColumnDisplay = () => {
-  let debounceTimer: any;
+const LimitDisplay = () => (
+  <SliderSetting
+    label="Limit"
+    getValue={booruLimit((limit) => limit / 100)}
+    setValue={(v) => setBooruLimit(Math.round(v * 100))}
+    sliderMin={0}
+    sliderMax={1}
+    sliderStep={0.1}
+    displayTransform={(v) => String(Math.round(v * 100))}
+  />
+);
 
-  return (
-    <box class="columns" spacing={5} hexpand>
-      <label label="Columns"></label>
-      <slider
-        value={booruColumns((c) => (c - 1) / 4)}
-        class="slider"
-        drawValue={false}
-        hexpand
-        $={(self) => {
-          self.set_range(0, 1);
-          self.set_increments(0.25, 0.25);
-          const adjustment = self.get_adjustment();
-          adjustment.connect("value-changed", () => {
-            // Clear the previous timeout if any
-            if (debounceTimer) clearTimeout(debounceTimer);
-
-            // Set a new timeout with the desired delay (e.g., 300ms)
-            debounceTimer = setTimeout(() => {
-              setBooruColumns(Math.round(adjustment.get_value() * 4) + 1);
-            }, 300);
-          });
-        }}
-      />
-      <label label={booruColumns((c) => String(c))}></label>
-    </box>
-  );
-};
-
+const ColumnDisplay = () => (
+  <SliderSetting
+    label="Columns"
+    getValue={booruColumns((columns) => (columns - 1) / 4)}
+    setValue={(v) => setBooruColumns(Math.round(v * 4) + 1)}
+    sliderMin={0}
+    sliderMax={1}
+    sliderStep={0.25}
+    displayTransform={(v) => String(Math.round(v * 4) + 1)}
+  />
+);
 const TagDisplay = () => (
-  <scrolledwindow hexpand vscrollbarPolicy={Gtk.PolicyType.NEVER}>
-    <box class="tags" spacing={10}>
-      <box class="applied-tags" spacing={5}>
+  <Adw.Clamp class={"tags"} maximumSize={leftPanelWidth((w) => w - 20)}>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+      <Gtk.FlowBox
+        columnSpacing={5}
+        rowSpacing={5}
+        selectionMode={Gtk.SelectionMode.NONE}
+        homogeneous={false}
+      >
+        <For each={fetchedTags}>
+          {(tag) => (
+            <Gtk.FlowBoxChild>
+              <button
+                class="tag fetched"
+                label={tag}
+                onClicked={() => {
+                  setBooruTags([...new Set([...booruTags.get(), tag])]);
+                }}
+              />
+            </Gtk.FlowBoxChild>
+          )}
+        </For>
+      </Gtk.FlowBox>
+      <Gtk.FlowBox
+        columnSpacing={5}
+        rowSpacing={5}
+        selectionMode={Gtk.SelectionMode.NONE}
+        homogeneous={false}
+      >
         <For each={booruTags}>
           {(tag) =>
             tag.match(/[-+]rating:explicit/) ? (
-              <button
-                class={`rating ${tag.startsWith("+") ? "explicit" : "safe"}`}
-                label={tag}
-                onClicked={() => {
-                  const newRatingTag = tag.startsWith("-")
-                    ? "+rating:explicit"
-                    : "-rating:explicit";
-                  const newTags = booruTags
-                    .get()
-                    .filter((t) => !t.match(/[-+]rating:explicit/));
-                  newTags.unshift(newRatingTag);
-                  setBooruTags(newTags);
-                }}
-              />
+              <Gtk.FlowBoxChild>
+                <button
+                  class={`tag rating ${
+                    tag.startsWith("+") ? "explicit" : "safe"
+                  }`}
+                  label={tag}
+                  onClicked={() => {
+                    const newRatingTag = tag.startsWith("-")
+                      ? "+rating:explicit"
+                      : "-rating:explicit";
+
+                    const newTags = booruTags
+                      .get()
+                      .filter((t) => !t.match(/[-+]rating:explicit/));
+
+                    newTags.unshift(newRatingTag);
+                    setBooruTags(newTags);
+                  }}
+                />
+              </Gtk.FlowBoxChild>
             ) : (
-              <button
-                label={tag}
-                onClicked={() => {
-                  const newTags = booruTags.get().filter((t) => t !== tag);
-                  setBooruTags(newTags);
-                }}
-              />
+              <Gtk.FlowBoxChild>
+                <button
+                  label={tag}
+                  class="tag enabled"
+                  onClicked={() => {
+                    const newTags = booruTags.get().filter((t) => t !== tag);
+                    setBooruTags(newTags);
+                  }}
+                />
+              </Gtk.FlowBoxChild>
             )
           }
         </For>
-      </box>
-      <box class="fetched-tags" spacing={5}>
-        <For each={fetchedTags}>
-          {(tag) => (
-            <button
-              label={tag}
-              onClicked={() => {
-                setBooruTags([...new Set([...booruTags.get(), tag])]);
-              }}
-            />
-          )}
-        </For>
-      </box>
+      </Gtk.FlowBox>
     </box>
-  </scrolledwindow>
+  </Adw.Clamp>
 );
 
 const Entry = () => {
@@ -487,6 +540,7 @@ const ClearCacheButton = () => {
       valign={Gtk.Align.CENTER}
       label={cacheSize}
       class="clear"
+      tooltipText="Clear Cache"
       onClicked={() => {
         cleanUp();
       }}
@@ -512,11 +566,13 @@ const Bottom = () => {
         <PageDisplay />
         <LimitDisplay />
         <ColumnDisplay />
-        <box spacing={5}>
-          <Entry />
-          <ClearCacheButton />
+        <box class="input" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
+          <TagDisplay />
+          <box spacing={5}>
+            <Entry />
+            <ClearCacheButton />
+          </box>
         </box>
-        <TagDisplay />
       </box>
     </revealer>
   );

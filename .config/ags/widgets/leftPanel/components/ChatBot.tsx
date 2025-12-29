@@ -149,11 +149,12 @@ const ApiList = () => (
         hexpand
         active={chatBotApi((p) => p.name === provider.name)}
         class="provider"
-        label={provider.name}
         onToggled={({ active }) => {
           if (active) setChatBotApi(provider);
         }}
-      />
+      >
+        <label label={provider.name} ellipsize={Pango.EllipsizeMode.END} />
+      </togglebutton>
     ))}
   </box>
 );

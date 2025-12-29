@@ -122,13 +122,10 @@ export default (monitor: Gdk.Monitor) => {
       exclusivity={leftPanelExclusivity((exclusivity) =>
         exclusivity ? Astal.Exclusivity.EXCLUSIVE : Astal.Exclusivity.NORMAL
       )}
-      layer={leftPanelExclusivity((exclusivity) =>
-        exclusivity ? Astal.Layer.BOTTOM : Astal.Layer.TOP
-      )}
-      margin={leftPanelExclusivity((exclusivity) =>
-        exclusivity ? 0 : globalMargin
-      )}
+      layer={Astal.Layer.TOP}
       keymode={Astal.Keymode.ON_DEMAND}
+      marginLeft={5}
+      marginBottom={5}
       visible={leftPanelVisibility}
       $={(self) => {
         let hideTimeout: NodeJS.Timeout | null = null;

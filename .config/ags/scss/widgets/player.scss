@@ -5,8 +5,8 @@
   &.widget {
     .bottom-bar {
       background: $background-semi-transparent;
-      padding: 5px;
       opacity: 0.9;
+      margin: 0px 5px 5px 5px;
 
       &:hover {
         background-color: $background-secondary;
@@ -22,7 +22,7 @@
       background-color: $background-secondary;
     }
     .img {
-      margin: 5px;
+      margin: 5px 0px 5px 5px;
     }
   }
 
@@ -32,7 +32,7 @@
 
   .bottom-bar {
     border-radius: 10px;
-    margin: 0px 5px 5px 5px;
+    padding: 10px;
 
     .title {
       color: $secondary;

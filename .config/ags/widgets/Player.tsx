@@ -217,12 +217,13 @@ export default ({
         spacing={5}
         orientation={Gtk.Orientation.VERTICAL}
         hexpand
-        valign={Gtk.Align.END}
       >
         <box class="info" orientation={Gtk.Orientation.VERTICAL}>
           {title}
           {artist}
         </box>
+
+        <box class={"separator"} vexpand></box>
 
         <centerbox>
           <box $type="start">{positionLabel}</box>

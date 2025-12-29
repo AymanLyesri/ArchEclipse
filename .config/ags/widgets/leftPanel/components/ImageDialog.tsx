@@ -13,6 +13,7 @@ import {
   bookMarkExists,
   bookMarkImage,
   fetchImage,
+  OpenInBrowser,
   PinImageToTerminal,
   previewFloatImage,
   removeBookMarkImage,
@@ -48,17 +49,6 @@ export default ({ image }: { image: Waifu }) => {
     setWaifuCurrent({ ...image });
   };
 
-  const OpenInBrowser = (image: Waifu) =>
-    execAsync(
-      `bash -c "xdg-open '${booruApi.get().idSearchUrl}${
-        image.id
-      }' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
-    )
-      .then((browser) =>
-        notify({ summary: "Waifu", body: `opened in ${browser}` })
-      )
-      .catch((err) => notify({ summary: "Error", body: err }));
-
   const CopyImage = (image: Waifu) =>
     execAsync(
       `bash -c "wl-copy --type image/png < ${booruPath}/${image.api.value}/images/${image.id}.${image.extension}"`
@@ -83,104 +73,86 @@ export default ({ image }: { image: Waifu }) => {
 
   function Actions() {
     return (
-      <Eventbox
+      <box
         class={"actions"}
-        onHover={(self) => {
-          const revealer = self.get_first_child() as Gtk.Revealer;
-          revealer.reveal_child = true;
-        }}
-        onHoverLost={(self) => {
-          const revealer = self.get_first_child() as Gtk.Revealer;
-          revealer.reveal_child = false;
-        }}
+        spacing={10}
+        valign={Gtk.Align.END}
+        orientation={Gtk.Orientation.VERTICAL}
       >
-        <revealer
-          class={"actions-revealer"}
-          transition-type={Gtk.RevealerTransitionType.SWING_UP}
-        >
-          <box
-            spacing={10}
-            valign={Gtk.Align.END}
-            orientation={Gtk.Orientation.VERTICAL}
-          >
-            <box class={"section"}>
-              <button
-                label=""
-                tooltip-text="Open in browser"
-                sensitive={true}
-                onClicked={() => OpenInBrowser(image)}
-                hexpand
-              />
-              <togglebutton
-                class={"button"}
-                label={isBookmarked((bookmarked) => (bookmarked ? "󰧌" : ""))}
-                tooltip-text="Bookmark image"
-                active={isBookmarked}
-                onClicked={(self) => {
-                  if (self.active) {
-                    bookMarkImage(image);
-                    setIsBookmarked(true);
-                  } else {
-                    removeBookMarkImage(image);
-                    setIsBookmarked(false);
-                  }
-                }}
-                hexpand
-              />
-            </box>
-            <box class={"section"}>
-              <button
-                label=""
-                tooltip-text="Download image"
-                sensitive={isDownloaded((is) => !is)}
-                onClicked={() =>
-                  fetchImage(image)
-                    .then(() => setIsDownloaded(true))
-                    .catch((err) =>
-                      notify({ summary: "Error", body: String(err) })
-                    )
-                }
-                hexpand
-              />
-              <button
-                label=""
-                tooltip-text="Copy image"
-                sensitive={isDownloaded}
-                onClicked={() => CopyImage(image)}
-                hexpand
-              />
-              <button
-                label=""
-                tooltip-text="Waifu this image"
-                sensitive={isDownloaded}
-                onClicked={() => waifuThisImage(image)}
-                hexpand
-              />
-              <button
-                label=""
-                tooltip-text="Open image"
-                sensitive={isDownloaded}
-                onClicked={() => OpenImage(image)}
-                hexpand
-              />
-              <button
-                label=""
-                tooltip-text="Pin to terminal"
-                sensitive={isDownloaded}
-                onClicked={() => PinImageToTerminal(image)}
-                hexpand
-              />
-              <button
-                label="󰸉"
-                tooltip-text="Add to wallpapers"
-                sensitive={isDownloaded}
-                onClicked={() => addToWallpapers(image)}
-                hexpand
-              />
-            </box>
-          </box>
-        </revealer>
-      </Eventbox>
+        <box class={"section"}>
+          <button
+            label=""
+            tooltip-text="Open in browser"
+            sensitive={true}
+            onClicked={() => OpenInBrowser(image)}
+            hexpand
+          />
+          <togglebutton
+            class={"button"}
+            label={isBookmarked((bookmarked) => (bookmarked ? "󰧌" : ""))}
+            tooltip-text="Bookmark image"
+            active={isBookmarked}
+            onClicked={(self) => {
+              if (self.active) {
+                bookMarkImage(image);
+                setIsBookmarked(true);
+              } else {
+                removeBookMarkImage(image);
+                setIsBookmarked(false);
+              }
+            }}
+            hexpand
+          />
+        </box>
+        <box class={"section"}>
+          <button
+            label=""
+            tooltip-text="Download image"
+            sensitive={isDownloaded((is) => !is)}
+            onClicked={() =>
+              fetchImage(image)
+                .then(() => setIsDownloaded(true))
+                .catch((err) => notify({ summary: "Error", body: String(err) }))
+            }
+            hexpand
+          />
+          <button
+            label=""
+            tooltip-text="Copy image"
+            sensitive={isDownloaded}
+            onClicked={() => CopyImage(image)}
+            hexpand
+          />
+          <button
+            label=""
+            tooltip-text="Waifu this image"
+            sensitive={isDownloaded}
+            onClicked={() => waifuThisImage(image)}
+            hexpand
+          />
+          <button
+            label=""
+            tooltip-text="Open image"
+            sensitive={isDownloaded}
+            onClicked={() => OpenImage(image)}
+            hexpand
+          />
+          <button
+            label=""
+            tooltip-text="Pin to terminal"
+            sensitive={isDownloaded}
+            onClicked={() => PinImageToTerminal(image)}
+            hexpand
+          />
+          <button
+            label="󰸉"
+            tooltip-text="Add to wallpapers"
+            sensitive={isDownloaded}
+            onClicked={() => addToWallpapers(image)}
+            hexpand
+          />
+        </box>
+      </box>
     );
   }
 

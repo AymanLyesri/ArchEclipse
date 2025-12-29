@@ -21,6 +21,7 @@ import {
   bookMarkExists,
   bookMarkImage,
   fetchImage,
+  OpenInBrowser,
   PinImageToTerminal,
   previewFloatImage,
   removeBookMarkImage,
@@ -67,17 +68,6 @@ const GetImageByid = async (id: number) => {
   }
 };
 
-const OpenInBrowser = (image: Waifu) =>
-  execAsync(
-    `bash -c "xdg-open '${image.api.idSearchUrl}${
-      waifuCurrent.get().id
-    }' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
-  )
-    .then((browser) =>
-      notify({ summary: "Waifu", body: `opened in ${browser}` })
-    )
-    .catch((err) => notify({ summary: "Error", body: err }));
-
 const CopyImage = (image: Waifu) =>
   execAsync(
     `bash -c "wl-copy --type image/png < ${booruPath}/${image.api.value}/images/${image.id}.jpg"`
@@ -105,192 +95,164 @@ function Actions() {
   );
 
   return (
-    <Eventbox
-      class={"bottom"}
-      onHover={(self) => {
-        const revealer = self.get_last_child() as Gtk.Revealer;
-        revealer.reveal_child = true;
-      }}
-      onHoverLost={(self) => {
-        const revealer = self.get_last_child() as Gtk.Revealer;
-        revealer.reveal_child = false;
-      }}
+    <box
+      class="actions"
+      valign={Gtk.Align.END}
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={5}
     >
-      <revealer
-        revealChild={false}
-        transitionDuration={globalTransition}
-        transition_type={Gtk.RevealerTransitionType.SWING_UP}
-      >
-        <box
-          class="actions"
-          valign={Gtk.Align.END}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={5}
-        >
-          <Progress status={progressStatus} />
-          <box class="section">
-            <togglebutton
-              class={"button"}
-              label={waifuCurrent((w) => (bookMarkExists(w) ? "" : ""))}
-              tooltip-text="Bookmark image"
-              active={waifuCurrent((w) => bookMarkExists(w))}
-              onClicked={(self) => {
-                if (self.active) {
-                  bookMarkImage(waifuCurrent.get());
-                } else {
-                  removeBookMarkImage(waifuCurrent.get());
-                }
-              }}
-              hexpand
-            />
-            <button
-              label=""
-              hexpand
-              class="pin"
-              onClicked={() => PinImageToTerminal(waifuCurrent.get())}
-            />
-          </box>
-          <box class="section">
-            <button
-              label=""
-              class="open"
-              hexpand
-              onClicked={() => OpenImage(waifuCurrent.get())}
-            />
-            <button
-              label=""
-              hexpand
-              class="browser"
-              onClicked={() => OpenInBrowser(waifuCurrent.get())}
-            />
+      <Progress status={progressStatus} />
+      <box class="section">
+        <togglebutton
+          class={"button"}
+          label={waifuCurrent((w) => (bookMarkExists(w) ? "" : ""))}
+          tooltip-text="Bookmark image"
+          active={waifuCurrent((w) => bookMarkExists(w))}
+          onClicked={(self) => {
+            if (self.active) {
+              bookMarkImage(waifuCurrent.get());
+            } else {
+              removeBookMarkImage(waifuCurrent.get());
+            }
+          }}
+          hexpand
+        />
+        <button
+          label=""
+          hexpand
+          class="pin"
+          onClicked={() => PinImageToTerminal(waifuCurrent.get())}
+        />
+      </box>
+      <box class="section">
+        <button
+          label=""
+          class="open"
+          hexpand
+          onClicked={() => OpenImage(waifuCurrent.get())}
+        />
+        <button
+          label=""
+          hexpand
+          class="browser"
+          onClicked={() => OpenInBrowser(waifuCurrent.get())}
+        />
 
-            <button
-              label=""
-              hexpand
-              class="copy"
-              onClicked={() => CopyImage(waifuCurrent.get())}
-            />
-          </box>
-          <box class="section">
-            <button
-              hexpand
-              label=""
-              class="entry-search"
-              onClicked={() => (Entry as Gtk.Entry).activate()}
-            />
-            {Entry}
-            <button
-              hexpand
-              label={""}
-              class="upload"
-              onClicked={async (self) => {
-                const dialog = new Gtk.FileDialog({
-                  title: "Open Image",
-                  modal: true,
-                });
+        <button
+          label=""
+          hexpand
+          class="copy"
+          onClicked={() => CopyImage(waifuCurrent.get())}
+        />
+      </box>
+      <box class="section">
+        <button
+          hexpand
+          label=""
+          class="entry-search"
+          onClicked={() => (Entry as Gtk.Entry).activate()}
+        />
+        {Entry}
+        <button
+          hexpand
+          label={""}
+          class="upload"
+          onClicked={async (self) => {
+            const dialog = new Gtk.FileDialog({
+              title: "Open Image",
+              modal: true,
+            });
 
-                // Image filter
-                const filter = new Gtk.FileFilter();
-                filter.set_name("Images");
-                filter.add_mime_type("image/png");
-                filter.add_mime_type("image/jpeg");
-                filter.add_mime_type("image/webp");
-                filter.add_mime_type("image/gif");
+            // Image filter
+            const filter = new Gtk.FileFilter();
+            filter.set_name("Images");
+            filter.add_mime_type("image/png");
+            filter.add_mime_type("image/jpeg");
+            filter.add_mime_type("image/webp");
+            filter.add_mime_type("image/gif");
 
-                // dialog.set_filters([filter]);
-                dialog.set_default_filter(filter);
+            // dialog.set_filters([filter]);
+            dialog.set_default_filter(filter);
 
-                try {
-                  const root = self.get_root();
-                  if (!(root instanceof Gtk.Window)) return;
+            try {
+              const root = self.get_root();
+              if (!(root instanceof Gtk.Window)) return;
 
-                  const file: Gio.File = await new Promise(
-                    (resolve, reject) => {
-                      dialog.open(root, null, (dlg, res) => {
-                        try {
-                          resolve(dlg!.open_finish(res));
-                        } catch (e) {
-                          reject(e);
-                        }
-                      });
-                    }
-                  );
-
-                  if (!file) return;
-
-                  const filename = file.get_path();
-                  if (!filename) return;
-
-                  const [height, width] = exec(
-                    `identify -format "%h %w" "${filename}"`
-                  ).split(" ");
-
-                  await execAsync(
-                    `cp "${filename}" "${booruPath}/custom/-1.${filename
-                      .split(".")
-                      .pop()!}"`
-                  ).catch((err) =>
-                    notify({
-                      summary: "Error",
-                      body: String(err),
-                    })
-                  );
-
-                  setWaifuCurrent({
-                    id: -1,
-                    height: Number(height) || 0,
-                    width: Number(width) || 0,
-                    api: {} as Api,
-                    extension: filename.split(".").pop()!,
-                  });
-
-                  notify({
-                    summary: "Waifu",
-                    body: "Custom image set",
-                  });
-                } catch (err) {
-                  // Gtk.FileDialog throws on cancel — ignore silently
-                  if (
-                    err instanceof GLib.Error &&
-                    err.matches(
-                      Gtk.dialog_error_quark(),
-                      Gtk.DialogError.CANCELLED
-                    )
-                  )
-                    return;
-
-                  notify({
-                    summary: "Error",
-                    body: String(err),
-                  });
-                }
-              }}
-            />
-          </box>
-          <box class="section">
-            {booruApis.map((api) => (
-              <togglebutton
-                hexpand
-                class="api"
-                label={api.name}
-                active={waifuApi((_api) => _api.value === api.value)}
-                onToggled={({ active }) => {
-                  if (active) {
-                    setWaifuApi(api);
-                    setSetting(
-                      "waifu.api",
-                      api,
-                      globalSettings,
-                      setGlobalSettings
-                    );
+              const file: Gio.File = await new Promise((resolve, reject) => {
+                dialog.open(root, null, (dlg, res) => {
+                  try {
+                    resolve(dlg!.open_finish(res));
+                  } catch (e) {
+                    reject(e);
                   }
-                }}
-              />
-            ))}
-          </box>
-        </box>
-      </revealer>
-    </Eventbox>
+                });
+              });
+
+              if (!file) return;
+
+              const filename = file.get_path();
+              if (!filename) return;
+
+              const [height, width] = exec(
+                `identify -format "%h %w" "${filename}"`
+              ).split(" ");
+
+              await execAsync(
+                `cp "${filename}" "${booruPath}/custom/-1.${filename
+                  .split(".")
+                  .pop()!}"`
+              ).catch((err) =>
+                notify({
+                  summary: "Error",
+                  body: String(err),
+                })
+              );
+
+              setWaifuCurrent({
+                id: -1,
+                height: Number(height) || 0,
+                width: Number(width) || 0,
+                api: {} as Api,
+                extension: filename.split(".").pop()!,
+              });
+
+              notify({
+                summary: "Waifu",
+                body: "Custom image set",
+              });
+            } catch (err) {
+              // Gtk.FileDialog throws on cancel — ignore silently
+              if (
+                err instanceof GLib.Error &&
+                err.matches(Gtk.dialog_error_quark(), Gtk.DialogError.CANCELLED)
+              )
+                return;
+
+              notify({
+                summary: "Error",
+                body: String(err),
+              });
+            }
+          }}
+        />
+      </box>
+      <box class="section">
+        {booruApis.map((api) => (
+          <togglebutton
+            hexpand
+            class="api"
+            label={api.name}
+            active={waifuApi((_api) => _api.value === api.value)}
+            onToggled={({ active }) => {
+              if (active) {
+                setWaifuApi(api);
+                setSetting("waifu.api", api, globalSettings, setGlobalSettings);
+              }
+            }}
+          />
+        ))}
+      </box>
+    </box>
   );
 }
 

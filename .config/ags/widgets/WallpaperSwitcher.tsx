@@ -104,9 +104,8 @@ function Display(monitor: string) {
     });
   };
 
-  const getAllWallpapers = (
+  const allWallpapersDisplay = (
     <Gtk.ScrolledWindow
-      class="all-wallpapers-scrolledwindow"
       hscrollbarPolicy={Gtk.PolicyType.ALWAYS}
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       hexpand
@@ -347,7 +346,7 @@ function Display(monitor: string) {
         {currentWorkspaces}
       </box>
       {actions}
-      {getAllWallpapers}
+      {allWallpapersDisplay}
     </box>
   );
 }

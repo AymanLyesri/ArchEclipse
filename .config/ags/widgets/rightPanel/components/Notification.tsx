@@ -231,11 +231,7 @@ export default ({
   );
 
   const Box = (
-    <box
-      class={`notification ${n.urgency} ${n.app_name}`}
-      hexpand
-      orientation={Gtk.Orientation.VERTICAL}
-    >
+    <box class={`notification`} hexpand orientation={Gtk.Orientation.VERTICAL}>
       {topBar}
       <box class={"content"} spacing={5}>
         {icon}

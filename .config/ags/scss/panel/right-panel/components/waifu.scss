@@ -5,6 +5,27 @@
     opacity: $phi-min;
   }
 
+  $section-count: 5;
+  $section-delay: 80ms;
+
+  &:hover {
+    @for $i from 1 through $section-count {
+      .actions .section:nth-child(#{$i}) {
+        opacity: 1;
+        transition-delay: $section-delay * ($i - 1);
+      }
+    }
+  }
+
+  &:not(:hover) {
+    @for $i from 1 through $section-count {
+      .actions .section:nth-child(#{$i}) {
+        transition-delay: $section-delay * ($i - 1);
+        opacity: 0;
+      }
+    }
+  }
+
   .actions {
     margin: $phi * 2 + px;
     border-radius: 10px;
@@ -14,11 +35,12 @@
       margin: 0px;
     }
 
-    .section:hover {
-      background: $background-secondary;
-    }
     .section {
       border-radius: 10px;
+
+      &:hover {
+        background: $background-secondary;
+      }
     }
 
     button {

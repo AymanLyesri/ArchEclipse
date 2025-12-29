@@ -1,24 +1,11 @@
 .panel {
   @include module;
   padding: 0px;
-  &.exclusive {
-    border-radius: 0px;
-  }
-  &.normal {
-    > box {
-      border-radius: 15px;
-      margin: 0px;
-      padding: 0px;
-      // border: 1px solid $secondary;
-    }
-    .panel-actions {
-      border-radius: 10px;
-    }
-  }
 
   .panel-actions {
     background: $background;
     padding: 5px;
+    border-radius: 10px;
 
     button,
     .icon {
@@ -46,13 +33,13 @@
 
     .tab-list {
       border-bottom: 1px solid $secondary;
+      border-radius: 0px;
       button {
-        padding: $SCALE / 2;
         border-radius: 10px 10px 0px 0px;
+        &:hover {
+          border-radius: 10px;
+        }
       }
-      // button.checked {
-      //   border-bottom: 5px solid $foreground;
-      // }
     }
   }
 }

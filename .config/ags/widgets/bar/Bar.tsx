@@ -33,7 +33,7 @@ export default (monitor: Gdk.Monitor) => {
       class="Bar"
       application={App}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      layer={Astal.Layer.TOP}
+      // layer={Astal.Layer.TOP}
       anchor={barOrientation(({ value }) =>
         value
           ? Astal.WindowAnchor.TOP |

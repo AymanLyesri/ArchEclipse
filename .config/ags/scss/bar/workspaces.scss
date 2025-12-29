@@ -47,16 +47,10 @@
   0% {
     background: $background-transparent;
   }
-  100% {
-    // background: $background-semi-transparent;
-  }
 }
 
 @keyframes workspace-unfocus {
   0% {
-    // background: $background-semi-transparent;
-  }
-  100% {
-    background: $background-transparent;
+    background: $background-semi-transparent;
   }
 }

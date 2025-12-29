@@ -17,7 +17,7 @@
   }
 
   .top-bar {
-    padding: 0px 5px;
+    padding: 5px;
 
     border-radius: 5px;
     background: $background-transparent;
@@ -116,16 +116,3 @@
   100% {
   }
 }
-
-.notification.normal {
-  // border: 1px solid rgb(255, 255, 0);
-}
-
-.notification.low {
-  // border: 1px solid rgb(255, 255, 0);
-  // border: 1px solid rgb(0, 0, 255);
-}
-
-// .notification.success {
-//   border: 1px solid rgb(0, 255, 0);
-// }
