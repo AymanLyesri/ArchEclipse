@@ -5,7 +5,7 @@
   }
 
   .player {
-    min-width: 200px;
+    min-width: 300px;
   }
   .middle {
     min-width: 300px;
@@ -13,7 +13,17 @@
   .date {
     @include module;
     padding: 20px;
-    font-size: 3em;
+
+    .less {
+      font-size: 3em;
+    }
+
+    .more {
+      font-size: 1.5em;
+      .secondary {
+        color: $secondary;
+      }
+    }
   }
   .profile {
     @include module;

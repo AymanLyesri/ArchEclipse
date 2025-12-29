@@ -121,11 +121,11 @@ export const date_less = createPoll(
 export const date_more = createPoll(
   "",
   phi * 1000,
-  () => GLib.DateTime.new_now_local().format(":%S %b %e, %A.")!
+  () => GLib.DateTime.new_now_local().format(" %b %e, %A. ")!
 );
 function setDateFormat(value: string) {
   _setDateFormat(value);
-  setSetting("date.format", value, globalSettings, setGlobalSettings);
+  setSetting("dateFormat", value, globalSettings, setGlobalSettings);
 }
 export { dateFormat, setDateFormat };
 

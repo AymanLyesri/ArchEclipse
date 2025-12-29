@@ -57,9 +57,7 @@ const WidgetActions = () => {
                     )
                   );
                 }
-
                 if (!active) {
-                  // Disable the widget
                   setRightPanelWidgets(
                     current.map((w) =>
                       w.name === widget.name ? { ...w, enabled: false } : w
@@ -71,6 +69,10 @@ const WidgetActions = () => {
                 /* ---------- Drag source ---------- */
                 const dragSource = new Gtk.DragSource({
                   actions: Gdk.DragAction.MOVE,
+                });
+
+                dragSource.connect("drag-begin", (source) => {
+                  source.set_icon(Gtk.WidgetPaintable.new(self), 0, 0);
                 });
 
                 dragSource.connect("prepare", () => {

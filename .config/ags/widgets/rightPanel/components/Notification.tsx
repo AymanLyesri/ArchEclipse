@@ -11,6 +11,8 @@ import { asyncSleep, time } from "../../../utils/time";
 import { Eventbox } from "../../Custom/Eventbox";
 import Pango from "gi://Pango?version=1.0";
 import Picture from "../../Picture";
+import GdkPixbuf from "gi://GdkPixbuf?version=2.0";
+import Gdk from "gi://Gdk?version=4.0";
 const Hyprland = hyprland.get_default();
 
 // const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
@@ -20,12 +22,28 @@ const [wrapText, setWrapText] = createState<boolean>(false);
 const TRANSITION = 200;
 
 function NotificationIcon(n: Notifd.Notification) {
+  function textureFromFile(path: string): Gdk.Texture {
+    try {
+      const pixbuf = GdkPixbuf.Pixbuf.new_from_file(path);
+      return Gdk.Texture.new_for_pixbuf(pixbuf);
+    } catch (e) {
+      print("Failed to load image:", e);
+      return Gdk.Texture.new_from_filename("dialog-information-symbolic");
+    }
+  }
   const notificationIcon = n.image || n.app_icon || n.desktopEntry;
+
+  if (notificationIcon.endsWith(".webp")) {
+    const texture = textureFromFile(notificationIcon);
+    return <Picture paintable={texture} />;
+  }
 
   if (!notificationIcon)
     return <image class="icon" iconName={"dialog-information-symbolic"} />;
 
-  return <Picture file={notificationIcon} class="icon" />;
+  return (
+    <Picture file={"/tmp/clipboard_image_20251229_112252.webp"} class="icon" /> //hardcoded for testing
+  );
 }
 
 function copyNotificationContent(n: Notifd.Notification) {

@@ -1,9 +1,6 @@
 .bar-left {
   .actions {
-    background-color: $background-semi-transparent;
-    border-radius: 10px;
     button {
-      background: transparent;
       border-radius: 0px;
     }
     button:first-child {

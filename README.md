@@ -12,10 +12,6 @@ I use Arch BTW.. :)
 
 New official [Discord](https://discord.gg/fMGt4vH6s5) server.
 
-# See Wiki
-
-> The README as an organized [WIKI](https://archeclipse-wiki.vercel.app/)
-
 # Design Philosophy
 
 - Enhanced productivity

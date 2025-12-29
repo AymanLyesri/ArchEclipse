@@ -152,6 +152,10 @@ const BarLayoutSetting = () => {
                     actions: Gdk.DragAction.MOVE,
                   });
 
+                  dragSource.connect("drag-begin", (source) => {
+                    source.set_icon(Gtk.WidgetPaintable.new(self), 0, 0);
+                  });
+
                   dragSource.connect("prepare", () => {
                     print("DRAG SOURCE PREPARE");
                     const index = barLayout

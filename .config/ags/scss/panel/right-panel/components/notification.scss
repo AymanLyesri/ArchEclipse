@@ -90,23 +90,14 @@
   }
   .actions {
     button {
-      // border-radius: 0px;
-      border-radius: 0px;
+      background-color: transparent;
+
+      &:hover {
+        background-color: $background-secondary;
+      }
 
       &.delete {
         @extend .danger;
-      }
-
-      &:first-child {
-        border-radius: 10px 0px 0px 10px;
-      }
-
-      &:only-child {
-        border-radius: 10px;
-      }
-
-      &:last-child {
-        border-radius: 0px 10px 10px 0px;
       }
     }
   }

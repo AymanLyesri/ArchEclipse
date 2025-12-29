@@ -9,7 +9,7 @@ import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 
 import Hyprland from "gi://AstalHyprland";
-import { date_less } from "../variables";
+import { date_less, date_more } from "../variables";
 import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
 import Picture from "./Picture";
@@ -116,12 +116,12 @@ const UserPanel = (monitorName: string) => {
         spacing={10}
       >
         <box class="action" spacing={10}>
-          {Shutdown()}
-          {Restart()}
+          <Shutdown />
+          <Restart />
         </box>
         <box class="action" spacing={10}>
-          {Sleep()}
-          {Logout()}
+          <Sleep />
+          <Logout />
         </box>
       </box>
     );
@@ -134,14 +134,25 @@ const UserPanel = (monitorName: string) => {
       orientation={Gtk.Orientation.VERTICAL}
       spacing={10}
     >
-      {Profile()}
-      {Actions()}
+      <Profile />
+      <Actions />
     </box>
   );
 
   const Date = (
-    <box class="date">
-      <label halign={Gtk.Align.CENTER} hexpand={true} label={date_less} />
+    <box class="date" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+      <label
+        class={"less"}
+        halign={Gtk.Align.CENTER}
+        hexpand={true}
+        label={date_less}
+      />
+      <label
+        class={"more"}
+        halign={Gtk.Align.CENTER}
+        hexpand={true}
+        label={date_more}
+      />
     </box>
   );
 
@@ -154,15 +165,17 @@ const UserPanel = (monitorName: string) => {
       spacing={10}
     >
       {/* {Resources()} */}
-      {NotificationHistory()}
-      <label label={"WIP"}></label>
+      {/* {NotificationHistory()} */}
+      <NotificationHistory />
+      {/* <label label={"WIP"}></label> */}
       {Date}
     </box>
   );
 
   return (
     <box class="main" spacing={10}>
-      {MediaWidget()}
+      {/* {MediaWidget()} */}
+      <MediaWidget />
       {middle}
       {right}
     </box>
@@ -195,12 +208,17 @@ export default (monitor: Gdk.Monitor) => {
       layer={Astal.Layer.OVERLAY}
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
-      // onKeyPressEvent={(self, event) => {
-      //   if (event.get_keyval()[1] === Gdk.KEY_Escape) {
-      //     hideWindow(`user-panel-${monitorName}`);
-      //     return true;
-      //   }
-      // }}
+      $={(self) => {
+        const key = new Gtk.EventControllerKey();
+        key.connect("key-pressed", (controller, keyval) => {
+          if (keyval === Gdk.KEY_Escape) {
+            self.hide();
+            return true;
+          }
+          return false;
+        });
+        self.add_controller(key);
+      }}
     >
       <box class="display" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         {WindowActions(monitorName)}

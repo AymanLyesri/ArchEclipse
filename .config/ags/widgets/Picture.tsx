@@ -1,4 +1,5 @@
 import { Accessor } from "ags";
+import Gdk from "gi://Gdk";
 import Gio from "gi://Gio?version=2.0";
 import Gtk from "gi://Gtk?version=4.0";
 
@@ -6,7 +7,8 @@ interface PictureProps {
   class?: Accessor<string> | string;
   height?: Accessor<number> | number;
   width?: Accessor<number> | number;
-  file: Accessor<string> | string;
+  file?: Accessor<string> | string;
+  paintable?: Accessor<Gdk.Texture> | Gdk.Texture;
   contentFit?: Gtk.ContentFit;
   $?: (self: Gtk.Picture) => void;
 }
@@ -16,6 +18,7 @@ export default function Picture({
   width,
   file,
   contentFit = Gtk.ContentFit.COVER,
+  paintable,
   $,
 }: PictureProps) {
   let pictureRef: Gtk.Picture | undefined;
@@ -44,9 +47,18 @@ export default function Picture({
         $type="overlay"
         class={"image " + className}
         file={
-          typeof file === "string"
-            ? Gio.File.new_for_path(file)
-            : file((f) => Gio.File.new_for_path(f))
+          file != undefined
+            ? typeof file === "string"
+              ? Gio.File.new_for_path(file)
+              : file!((f) => Gio.File.new_for_path(f))
+            : undefined
+        }
+        paintable={
+          paintable != undefined
+            ? typeof paintable === "object"
+              ? paintable
+              : paintable!((p) => p)
+            : undefined
         }
         contentFit={contentFit}
         $={(self) => {

@@ -82,7 +82,7 @@ function Clock() {
       onClick={() => {
         const currentFormat = dateFormat.get();
         const currentIndex = dateFormats.indexOf(currentFormat);
-        setDateFormat(dateFormats[(currentIndex + 1) % dateFormats.length]);
+        setDateFormat(dateFormats[(currentIndex + 1) % dateFormats.length]); // Cycle through formats
       }}
     >
       <CustomRevealer trigger={trigger} child={revealer} custom_class="clock" />
