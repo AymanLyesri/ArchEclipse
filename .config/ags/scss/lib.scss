@@ -222,3 +222,8 @@ scrolledwindow {
     border-radius: 10px;
   }
 }
+
+flowbox > flowboxchild:first-child {
+  background-color: transparent; /* or your desired default color */
+  background-image: none; /* important if the theme uses background images for highlights */
+}

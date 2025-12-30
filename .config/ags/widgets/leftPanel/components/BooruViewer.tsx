@@ -29,6 +29,7 @@ import { booruPath } from "../../../constants/path.constants";
 import { OpenInBrowser } from "../../../utils/image";
 import Adw from "gi://Adw?version=1";
 import { get } from "http";
+import Pango from "gi://Pango?version=1.0";
 
 const [images, setImages] = createState<Waifu[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -37,7 +38,7 @@ const [progressStatus, setProgressStatus] = createState<
 >("idle");
 const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 
-const [selectedTab, setSelectedTab] = createState<string>(booruApis[0].name);
+const [selectedTab, setSelectedTab] = createState<string>("");
 
 const calculateCacheSize = async () =>
   execAsync(
@@ -50,9 +51,11 @@ const calculateCacheSize = async () =>
 const ensureRatingTagFirst = () => {
   let tags: string[] = booruTags.get();
   // Find existing rating tag
-  const ratingTag = tags.find((tag) => tag.match(/[-+]rating:explicit/));
+  const ratingTag = tags.find((tag) =>
+    tag.match(/[-]rating:explicit|rating:explicit/)
+  );
   // Remove any existing rating tag
-  tags = tags.filter((tag) => !tag.match(/[-+]rating:explicit/));
+  tags = tags.filter((tag) => !tag.match(/[-]rating:explicit|rating:explicit/));
   // Add the previous rating tag at the beginning, or default to "-rating:explicit"
   tags.unshift(ratingTag ?? "-rating:explicit");
   setBooruTags(tags);
@@ -141,33 +144,37 @@ const fetchBookmarkImages = async () => {
     setProgressStatus("loading");
 
     // 5. Download images in parallel
-    const downloadPromises = booruBookMarkWaifus.get().map((image) =>
-      execAsync(
-        `bash -c "[ -e "${booruPath}/${booruApi.get().value}/previews/${
-          image.id
-        }.${image.extension}" ] || curl -o "${booruPath}/${
-          booruApi.get().value
-        }/previews/${image.id}.${image.extension}" "${image.preview}""`
+    const downloadPromises = booruBookMarkWaifus.get().map((image) => {
+      console.table(booruBookMarkWaifus.get());
+      return execAsync(
+        `bash -c "[ -e "${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}" ] || curl -o "${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}" "${image.preview}""`
       )
         .then(() => {
           return image;
         })
         .catch((err) => {
           notify({ summary: "Error", body: String(err) });
+          setProgressStatus("error");
           return null;
-        })
-    );
+        });
+    });
 
     // 6. Update UI when all downloads complete
-    Promise.all(downloadPromises).then((downloadedImages) => {
-      // Filter out failed downloads (null values)
-      const successfulDownloads = downloadedImages.filter(
-        (img) => img !== null
-      );
-      setImages(successfulDownloads);
-      calculateCacheSize();
-      setProgressStatus("success");
-    });
+    Promise.all(downloadPromises)
+      .then((downloadedImages) => {
+        // Filter out failed downloads (null values)
+        const successfulDownloads = downloadedImages.filter(
+          (img) => img !== null
+        );
+        setImages(successfulDownloads);
+        calculateCacheSize();
+        setProgressStatus("success");
+      })
+      .catch((err) => {
+        console.error(err);
+        notify({ summary: "Error", body: String(err) });
+        setProgressStatus("error");
+      });
   } catch (err) {
     console.error(err);
     notify({ summary: "Error", body: String(err) });
@@ -278,9 +285,7 @@ const Images = () => {
                   tooltipMarkup={`Click to Open\nLeft Click to Open in Browser\n<b>ID:</b> ${image.id}\n<b>Dimensions:</b> ${image.width}x${image.height}`}
                 >
                   <Picture
-                    file={`${booruPath}/${booruApi.get().value}/previews/${
-                      image.id
-                    }.${image.extension}`}
+                    file={`${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`}
                   />
                   <popover>
                     <ImageDialog image={image} />
@@ -418,7 +423,7 @@ const ColumnDisplay = () => (
 );
 const TagDisplay = () => (
   <Adw.Clamp class={"tags"} maximumSize={leftPanelWidth((w) => w - 20)}>
-    <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+    <box widthRequest={100} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <Gtk.FlowBox
         columnSpacing={5}
         rowSpacing={5}
@@ -427,58 +432,67 @@ const TagDisplay = () => (
       >
         <For each={fetchedTags}>
           {(tag) => (
-            <Gtk.FlowBoxChild>
-              <button
-                class="tag fetched"
+            <button
+              class="tag fetched"
+              tooltipText={tag}
+              onClicked={() => {
+                setBooruTags([...new Set([...booruTags.get(), tag])]);
+              }}
+            >
+              <label
+                ellipsize={Pango.EllipsizeMode.END}
+                maxWidthChars={10}
                 label={tag}
-                onClicked={() => {
-                  setBooruTags([...new Set([...booruTags.get(), tag])]);
-                }}
-              />
-            </Gtk.FlowBoxChild>
+              ></label>
+            </button>
           )}
         </For>
       </Gtk.FlowBox>
-      <Gtk.FlowBox
-        columnSpacing={5}
-        rowSpacing={5}
-        selectionMode={Gtk.SelectionMode.NONE}
-        homogeneous={false}
-      >
+      <Gtk.FlowBox columnSpacing={5} rowSpacing={5}>
         <For each={booruTags}>
           {(tag) =>
-            tag.match(/[-+]rating:explicit/) ? (
-              <Gtk.FlowBoxChild>
-                <button
-                  class={`tag rating ${
-                    tag.startsWith("+") ? "explicit" : "safe"
-                  }`}
+            // match -rating:explicit or rating:explicit
+            tag.match(/[-]rating:explicit|rating:explicit/) ? (
+              <button
+                class={`tag rating`}
+                tooltipText={tag}
+                onClicked={() => {
+                  const newRatingTag = tag.startsWith("-")
+                    ? "rating:explicit"
+                    : "-rating:explicit";
+
+                  const newTags = booruTags
+                    .get()
+                    .filter(
+                      (t) => !t.match(/[-]rating:explicit|rating:explicit/)
+                    );
+
+                  newTags.unshift(newRatingTag);
+                  setBooruTags(newTags);
+                  console.log(booruTags.get());
+                }}
+              >
+                <label
+                  ellipsize={Pango.EllipsizeMode.END}
+                  maxWidthChars={10}
                   label={tag}
-                  onClicked={() => {
-                    const newRatingTag = tag.startsWith("-")
-                      ? "+rating:explicit"
-                      : "-rating:explicit";
-
-                    const newTags = booruTags
-                      .get()
-                      .filter((t) => !t.match(/[-+]rating:explicit/));
-
-                    newTags.unshift(newRatingTag);
-                    setBooruTags(newTags);
-                  }}
-                />
-              </Gtk.FlowBoxChild>
+                ></label>
+              </button>
             ) : (
-              <Gtk.FlowBoxChild>
-                <button
+              <button
+                class="tag enabled"
+                tooltipText={tag}
+                onClicked={() => {
+                  const newTags = booruTags.get().filter((t) => t !== tag);
+                  setBooruTags(newTags);
+                }}
+              >
+                <label
+                  ellipsize={Pango.EllipsizeMode.END}
+                  maxWidthChars={10}
                   label={tag}
-                  class="tag enabled"
-                  onClicked={() => {
-                    const newTags = booruTags.get().filter((t) => t !== tag);
-                    setBooruTags(newTags);
-                  }}
-                />
-              </Gtk.FlowBoxChild>
+                ></label>
+              </button>
             )
           }
         </For>
@@ -655,13 +669,12 @@ export default () => {
 
         // Initial fetch
         ensureRatingTagFirst();
+        setSelectedTab(booruApi.get().name);
         booruPage.subscribe(() => fetchImages());
         booruTags.subscribe(() => fetchImages());
         booruApi.subscribe(() => fetchImages());
         booruLimit.subscribe(() => fetchImages());
-        booruBookMarkWaifus.subscribe(() => {
-          if (selectedTab.get() == "bookmarks") fetchBookmarkImages();
-        });
+        booruBookMarkWaifus.subscribe(() => fetchBookmarkImages());
         fetchImages();
       }}
     >

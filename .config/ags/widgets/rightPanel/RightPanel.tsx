@@ -215,7 +215,8 @@ export default (monitor: Gdk.Monitor) => {
         exclusivity ? Astal.Exclusivity.EXCLUSIVE : Astal.Exclusivity.NORMAL
       )}
       layer={Astal.Layer.TOP}
-      marginRight={5}
+      marginTop={5}
+      marginRight={globalMargin}
       marginBottom={5}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={rightPanelVisibility}

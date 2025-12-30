@@ -1,5 +1,4 @@
 import { WidgetSelector } from "../interfaces/widgetSelector.interface";
-import Calendar from "../widgets/Calendar";
 import BooruViewer from "../widgets/leftPanel/components/BooruViewer";
 import ChatBot from "../widgets/leftPanel/components/ChatBot";
 import CustomScripts from "../widgets/leftPanel/components/CustomScripts";
@@ -16,6 +15,7 @@ import { Accessor } from "ags";
 import CryptoWidget from "../widgets/rightPanel/components/CryptoWidget";
 import MangaViewer from "../widgets/leftPanel/components/MangaViewer";
 import SettingsWidget from "../widgets/leftPanel/components/SettingsWidget";
+import Calendar from "../widgets/rightPanel/components/Calendar";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {
@@ -72,6 +72,12 @@ export const rightPanelWidgetSelectors: WidgetSelector[] = [
     icon: "",
     widget: () => CryptoWidget(),
     enabled: false,
+  },
+  {
+    name: "Calendar",
+    icon: "󰃰",
+    widget: () => Calendar(),
+    enabled: true,
   },
 ];
 

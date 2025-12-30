@@ -127,7 +127,8 @@ export default (monitor: Gdk.Monitor) => {
       )}
       layer={Astal.Layer.TOP}
       keymode={Astal.Keymode.ON_DEMAND}
-      marginLeft={5}
+      marginTop={5}
+      marginLeft={globalMargin}
       marginBottom={5}
       visible={leftPanelVisibility}
       $={(self) => {

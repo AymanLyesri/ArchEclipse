@@ -24,6 +24,7 @@ import Picture from "../../Picture";
 import { Accessor, createState } from "gnim";
 import { Eventbox } from "../../Custom/Eventbox";
 import { booruPath } from "../../../constants/path.constants";
+import Pango from "gi://Pango";
 
 export default ({ image }: { image: Waifu }) => {
   const checkImageDownloaded = (image: Waifu): boolean => {
@@ -79,19 +80,24 @@ export default ({ image }: { image: Waifu }) => {
         rowSpacing={5}
         columnSpacing={5}
       >
-        {image.tags.slice(0, 10).map((tag) => (
-          <Gtk.FlowBoxChild>
+        {image.tags !== undefined &&
+          image.tags.slice(0, 10).map((tag) => (
             <button
               class="tag"
-              label={tag}
+              tooltipText={tag}
               onClicked={() => {
                 execAsync(`bash -c "echo -n '${tag}' | wl-copy"`).catch((err) =>
                   notify({ summary: "Error", body: String(err) })
                 );
               }}
-            />
-          </Gtk.FlowBoxChild>
-        ))}
+            >
+              <label
+                ellipsize={Pango.EllipsizeMode.END}
+                maxWidthChars={10}
+                label={tag}
+              ></label>
+            </button>
+          ))}
       </Gtk.FlowBox>
     );
   };

@@ -46,4 +46,9 @@ export const booruApis: Api[] = [
     value: "gelbooru",
     idSearchUrl: "https://gelbooru.com/index.php?page=post&s=view&id=",
   },
+  {
+    name: "Safebooru",
+    value: "safebooru",
+    idSearchUrl: "https://safebooru.donmai.us/posts/",
+  },
 ];

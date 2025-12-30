@@ -13,6 +13,10 @@
       @include module;
       padding: 0.3125em;
 
+      &.last {
+        animation: opacityIn 0.5s ease-in-out;
+      }
+
       .image {
         background-position: center;
         background-size: cover;
@@ -36,6 +40,14 @@
             background: $background-transparent;
             box-shadow: 0em 0em 0.625em 0.125em $secondary;
           }
+        }
+      }
+      @keyframes opacityIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
         }
       }
     }

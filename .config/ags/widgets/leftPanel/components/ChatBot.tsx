@@ -177,7 +177,13 @@ const Info = () => (
   </box>
 );
 
-const MessageItem = ({ message }: { message: Message }) => {
+const MessageItem = ({
+  message,
+  islast = false,
+}: {
+  message: Message;
+  islast?: boolean;
+}) => {
   const [revealerVisible, setRevealerVisible] = createState(false);
   const Revealer = (
     <revealer
@@ -208,26 +214,6 @@ const MessageItem = ({ message }: { message: Message }) => {
     </revealer>
   );
 
-  const Actions = () => (
-    <box
-      class="actions"
-      spacing={5}
-      valign={Gtk.Align.END}
-      halign={message.sender === "user" ? Gtk.Align.END : Gtk.Align.START}
-      orientation={Gtk.Orientation.VERTICAL}
-    >
-      {[
-        <button
-          class="copy"
-          label=""
-          onClicked={() =>
-            execAsync(`wl-copy "${message.content}"`).catch(print)
-          }
-        />,
-      ]}
-    </box>
-  );
-
   const messageContent = (
     <box
       orientation={Gtk.Orientation.VERTICAL}
@@ -247,7 +233,7 @@ const MessageItem = ({ message }: { message: Message }) => {
 
   return (
     <box
-      class={`message ${message.sender}`}
+      class={`message ${message.sender} ${islast ? "last" : ""}`}
       orientation={Gtk.Orientation.VERTICAL}
       halign={
         message.image === undefined
@@ -257,11 +243,6 @@ const MessageItem = ({ message }: { message: Message }) => {
           : undefined
       }
     >
-      {/* <box class="main">
-        {message.sender !== "user"
-          ? [<Actions />, messageContent]
-          : [messageContent, <Actions />]}
-      </box> */}
       <Eventbox
         class="message-eventbox"
         onClick={(self, n, x, y) => {
@@ -307,8 +288,8 @@ const Messages = () => {
             orientation={Gtk.Orientation.VERTICAL}
             spacing={10}
           >
-            {msgs.map((msg) => (
-              <MessageItem message={msg} />
+            {msgs.map((msg, index) => (
+              <MessageItem message={msg} islast={index === msgs.length - 1} />
             ))}
           </box>
         )}

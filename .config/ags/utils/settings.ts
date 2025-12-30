@@ -6,51 +6,62 @@ import { Accessor } from "ags";
 
 export const settingsPath = "./assets/settings/settings.json";
 
-function deepMergePreserveStructure(target: any, source: any): any {
-  // Fast path for non-object cases
+function detectMergeKey(a: any[], b: any[]): string | null {
+  const candidates = ["id", "name", "key", "uuid"];
+
+  for (const key of candidates) {
+    if (
+      a.every((x) => typeof x?.[key] === "string") &&
+      b.every((x) => typeof x?.[key] === "string")
+    ) {
+      return key;
+    }
+  }
+
+  return null;
+}
+
+function mergeArraysAuto(defaults: any[], saved: any[]): any[] {
+  // Empty saved → defaults win
+  if (saved.length === 0) return defaults;
+
+  // Detect merge key automatically
+  const mergeKey = detectMergeKey(defaults, saved);
+
+  // No stable key → keep saved (user intent)
+  if (!mergeKey) return saved;
+
+  const savedMap = new Map(saved.map((item) => [item[mergeKey], item]));
+
+  return defaults.map((def) => {
+    const user = savedMap.get(def[mergeKey]);
+    return user ? deepMergeAuto(def, user) : def;
+  });
+}
+
+function deepMergeAuto(target: any, source: any): any {
   if (source === undefined) return target;
-  if (typeof target !== "object" || target === null || Array.isArray(target)) {
-    return source !== undefined ? source : target;
+
+  // Primitive or function → source wins
+  if (
+    typeof target !== "object" ||
+    target === null ||
+    typeof source !== "object" ||
+    source === null
+  ) {
+    return source;
   }
 
-  // Check if we need to do any merging at all
-  if (typeof source !== "object" || source === null || Array.isArray(source)) {
-    return target;
+  // Array handling
+  if (Array.isArray(target) && Array.isArray(source)) {
+    return mergeArraysAuto(target, source);
   }
 
-  // Optimized object creation and property copying
-  const result: Record<string, any> = Object.create(
-    Object.getPrototypeOf(target)
-  );
+  // Object handling
+  const result: any = Array.isArray(target) ? [] : {};
 
-  // Cache target keys for faster iteration
-  const targetKeys = Object.keys(target);
-
-  for (let i = 0; i < targetKeys.length; i++) {
-    const key = targetKeys[i];
-    const targetValue = target[key];
-    const sourceValue = source[key];
-
-    // Fast path for primitive values
-    if (
-      typeof targetValue !== "object" ||
-      targetValue === null ||
-      Array.isArray(targetValue)
-    ) {
-      result[key] = sourceValue !== undefined ? sourceValue : targetValue;
-      continue;
-    }
-
-    // Recursive case for objects
-    if (
-      typeof sourceValue === "object" &&
-      sourceValue !== null &&
-      !Array.isArray(sourceValue)
-    ) {
-      result[key] = deepMergePreserveStructure(targetValue, sourceValue);
-    } else {
-      result[key] = sourceValue !== undefined ? sourceValue : targetValue;
-    }
+  for (const key of Object.keys(target)) {
+    result[key] = deepMergeAuto(target[key], source[key]);
   }
 
   return result;
@@ -66,9 +77,7 @@ export function autoCreateSettings(
     const existingSettings = readJSONFile(settingsPath);
     if (Object.keys(existingSettings).length !== 0) {
       print("Settings file found, loading...");
-      setGlobalSettings(
-        deepMergePreserveStructure(defaultSettings, existingSettings)
-      );
+      setGlobalSettings(deepMergeAuto(defaultSettings, existingSettings));
     } else {
       print("Settings file is empty, creating default settings...");
       writeJSONFile(settingsPath, defaultSettings);

@@ -43,7 +43,7 @@ export default (monitor: Gdk.Monitor) => {
             Astal.WindowAnchor.LEFT |
             Astal.WindowAnchor.RIGHT
       )}
-      margin={emptyWorkspace((empty) => (empty ? globalMargin : 5))}
+      marginTop={globalMargin}
       visible={createComputed(
         [barVisibility, focusedClient],
         (barVisibility, focusedClient) => {

@@ -83,7 +83,7 @@ const NotificationStackView = ({ stack }: { stack: NotificationStack }) => {
   return (
     <box class="notification-stack" orientation={Gtk.Orientation.VERTICAL}>
       {/* Header */}
-      <box class="stack-header" spacing={8}>
+      <box class="stack-header" spacing={5}>
         <label
           class="stack-title"
           hexpand
@@ -128,7 +128,7 @@ export default () => {
   });
 
   const NotificationHistory = (
-    <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <For each={stackedNotifications}>
         {(stack) => <NotificationStackView stack={stack} />}
       </For>

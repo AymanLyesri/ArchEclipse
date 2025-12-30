@@ -103,7 +103,6 @@ function setGlobalTheme(value: boolean) {
 }
 export { globalTheme, setGlobalTheme };
 
-export const globalMargin = phi * 5;
 export const globalTransition = phi * 300;
 
 const [dateFormat, _setDateFormat] = createState<string>(
@@ -182,6 +181,8 @@ export { waifuCurrent, setWaifuCurrent };
 export const focusedClient = createBinding(hyprland, "focusedClient");
 export const emptyWorkspace = focusedClient((client) => !client);
 export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
+
+export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));
 
 export const [newAppWorkspace, setNewAppWorkspace] = createState(0);
 
