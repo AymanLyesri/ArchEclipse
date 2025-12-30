@@ -32,7 +32,6 @@ export default () => {
     hourly: any;
   }
   // Poll every 10 minutes (600,000 ms)
-  print(``);
   const weather = createPoll(
     null,
     600000,

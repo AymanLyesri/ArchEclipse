@@ -12,7 +12,6 @@ bc
 figlet
 git
 p7zip
-ranger
 wl-clipboard
 lsd
 tgpt-git
@@ -37,7 +36,6 @@ fd
 jq
 translate-shell
 python2-bin
-python-setuptools
 python-requests
 rclone
 visual-studio-code-bin
@@ -70,7 +68,6 @@ fzf-tab-git
 bluez
 bluez-utils
 blueman-git
-evremap-git
 network-manager-applet
 networkmanager
 pamixer
@@ -99,7 +96,6 @@ hyprshot-git
 swayimg
 kitty
 light
-lolcat
 spotify-launcher
 hyprpicker
 

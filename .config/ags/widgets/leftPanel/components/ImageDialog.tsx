@@ -71,12 +71,36 @@ export default ({ image }: { image: Waifu }) => {
       .catch((err) => notify({ summary: "Error", body: String(err) }));
   };
 
+  const Tags = () => {
+    return (
+      <Gtk.FlowBox
+        class="tags"
+        // orientation={Gtk.Orientation.HORIZONTAL}
+        rowSpacing={5}
+        columnSpacing={5}
+      >
+        {image.tags.slice(0, 10).map((tag) => (
+          <Gtk.FlowBoxChild>
+            <button
+              class="tag"
+              label={tag}
+              onClicked={() => {
+                execAsync(`bash -c "echo -n '${tag}' | wl-copy"`).catch((err) =>
+                  notify({ summary: "Error", body: String(err) })
+                );
+              }}
+            />
+          </Gtk.FlowBoxChild>
+        ))}
+      </Gtk.FlowBox>
+    );
+  };
+
   function Actions() {
     return (
       <box
         class={"actions"}
         spacing={10}
-        valign={Gtk.Align.END}
         orientation={Gtk.Orientation.VERTICAL}
       >
         <box class={"section"}>
@@ -166,7 +190,10 @@ export default ({ image }: { image: Waifu }) => {
         setIsDownloaded(await checkImageDownloaded(image));
       }}
     >
-      <overlay>
+      <overlay
+        widthRequest={imageRatio >= 1 ? 300 * imageRatio : 300}
+        heightRequest={imageRatio >= 1 ? 300 : 300 / imageRatio}
+      >
         <Picture
           file={isDownloaded((is) =>
             is
@@ -177,7 +204,16 @@ export default ({ image }: { image: Waifu }) => {
           width={imageRatio >= 1 ? 300 * imageRatio : 300}
           class="image"
         />
-        <Actions $type="overlay" />
+        <box
+          $type="overlay"
+          orientation={Gtk.Orientation.VERTICAL}
+          widthRequest={imageRatio >= 1 ? 300 * imageRatio : 300}
+          heightRequest={imageRatio >= 1 ? 300 : 300 / imageRatio}
+        >
+          <Tags />
+          <box vexpand />
+          <Actions />
+        </box>
       </overlay>
     </box>
   );

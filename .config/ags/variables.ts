@@ -27,12 +27,8 @@ export const NOTIFICATION_DELAY = phi * 3000;
 const [globalSettings, _setGlobalSettings] =
   createState<Settings>(defaultSettings);
 
-print("Loading variables...1");
-
 // Initialize settings after creating the state
 autoCreateSettings(globalSettings.get(), setGlobalSettings);
-
-print("Loading variables...2");
 
 function setGlobalSettings(value: Settings) {
   _setGlobalSettings(value);

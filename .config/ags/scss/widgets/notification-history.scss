@@ -1,33 +1,27 @@
 .notification-history {
-  .actions {
-    .filters {
-      .spotify {
-        background: $green;
-      }
-      .clipboard {
-        background: $blue-background;
-      }
-      .update {
-        background: $orange-background;
-      }
-      button {
-        padding: 5px 0px;
-        border-radius: 0px;
-        min-height: 0px;
-        min-width: 0px;
+  .notification-stack {
+    @include module;
+    padding: 0px;
 
-        &:first-child {
-          border-radius: 10px 0px 0px 10px;
-        }
+    &:hover {
+      .stack-header .actions button {
+        opacity: 1;
+      }
+    }
 
-        &:last-child {
-          border-radius: 0px 10px 10px 0px;
+    .stack-header {
+      padding: 5px 5px 0px 5px;
+      .stack-title {
+        font-weight: bold;
+      }
+      .actions button {
+        border-radius: 10px 10px 0px 0px;
+        opacity: 0;
+
+        &:hover {
+          border-radius: 10px;
         }
       }
     }
-  }
-
-  .clear {
-    @extend .danger;
   }
 }

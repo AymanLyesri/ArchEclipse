@@ -8,7 +8,7 @@ import { createState, createComputed, For, Accessor } from "ags";
 import { DND, globalMargin } from "../variables";
 
 // see comment below in constructor
-const TIMEOUT_DELAY = 5000;
+const TIMEOUT_DELAY = 3000;
 
 // The purpose if this class is to replace Variable<Array<Widget>>
 // with a Map<number, Widget> type in order to track notification widgets
@@ -78,7 +78,7 @@ class NotificationMap {
           // Trigger close animation via the notification's hide function
           hideFunc();
         }
-      }, TIMEOUT_DELAY);
+      }, TIMEOUT_DELAY) as any;
     });
 
     // notifications can be closed by the outside before

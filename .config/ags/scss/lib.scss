@@ -33,7 +33,7 @@
 
   &:hover {
     background: $background;
-
+    border-radius: 10px;
     transform: scale(1.02) translateY(-5\px); /* Expand height by 10% */
   }
   &:active {

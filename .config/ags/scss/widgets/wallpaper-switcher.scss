@@ -33,8 +33,7 @@
   }
   .actions {
     .selected-workspace {
-      color: $secondary;
-      border-radius: 50px;
+      @include button;
     }
     .targets {
       button {

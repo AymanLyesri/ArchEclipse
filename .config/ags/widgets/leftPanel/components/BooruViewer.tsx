@@ -91,13 +91,8 @@ const fetchImages = async () => {
     );
 
     // 2. Process metadata without blocking
-    const newImages: Waifu[] = readJson(res).map((image: any) => ({
-      id: image.id,
-      url: image.url,
-      preview: image.preview,
-      width: image.width,
-      height: image.height,
-      extension: image.extension,
+    const newImages: Waifu[] = readJson(res).map((image: Waifu) => ({
+      ...image,
       api: booruApi.get(),
     }));
 
@@ -217,7 +212,6 @@ const fetchTags = async (tag: string) => {
     --api ${booruApi.get().value} 
     --tag '${escapedTag}'`
   );
-  print(res);
   setFetchedTags(readJson(res));
 };
 
@@ -281,7 +275,7 @@ const Images = () => {
                     connectPopoverEvents(self);
                   }}
                   direction={Gtk.ArrowType.RIGHT}
-                  tooltipText={`ID: ${image.id}\n${image.width}x${image.height}`}
+                  tooltipMarkup={`Click to Open\nLeft Click to Open in Browser\n<b>ID:</b> ${image.id}\n<b>Dimensions:</b> ${image.width}x${image.height}`}
                 >
                   <Picture
                     file={`${booruPath}/${booruApi.get().value}/previews/${

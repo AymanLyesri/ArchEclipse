@@ -22,13 +22,12 @@ const [wrapText, setWrapText] = createState<boolean>(false);
 const TRANSITION = 200;
 
 function NotificationIcon(n: Notifd.Notification) {
-  function textureFromFile(path: string): Gdk.Texture {
+  function textureFromFile(path: string): Gdk.Texture | undefined {
     try {
       const pixbuf = GdkPixbuf.Pixbuf.new_from_file(path);
       return Gdk.Texture.new_for_pixbuf(pixbuf);
     } catch (e) {
       print("Failed to load image:", e);
-      return Gdk.Texture.new_from_filename("dialog-information-symbolic");
     }
   }
   const notificationIcon = n.image || n.app_icon || n.desktopEntry;
@@ -75,6 +74,7 @@ export default ({
   onHide?: (hideFunc: () => void) => void;
 }) => {
   const [IsLocked, setIsLocked] = createState<boolean>(false);
+  const [isEllipsized, setIsEllipsized] = createState<boolean>(true);
   // IsLocked.subscribe((value) => {
   //   if (!value)
   //     GLib.timeout_add(GLib.PRIORITY_DEFAULT, NOTIFICATION_DELAY, () => {
@@ -121,7 +121,11 @@ export default ({
       label={n.body}
       wrap={true}
       wrapMode={Pango.WrapMode.WORD_CHAR}
-      lines={2}
+      ellipsize={isEllipsized((ellipsized) =>
+        ellipsized ? Pango.EllipsizeMode.END : Pango.EllipsizeMode.NONE
+      )}
+      maxWidthChars={10}
+      singleLineMode={isEllipsized}
       vexpand={false} // need height constraint to make wrap work
     />
   );
@@ -150,9 +154,9 @@ export default ({
       class="expand"
       active={false}
       onToggled={(self) => {
-        setWrapText(self.active);
+        setIsEllipsized(!self.active);
       }}
-      label={wrapText((wrap) => (wrap ? "" : ""))}
+      label={isEllipsized((ellipsized) => (!ellipsized ? "" : ""))}
     />
   );
 
@@ -174,16 +178,6 @@ export default ({
     />
   );
 
-  // const leftRevealer = (
-  //   <revealer
-  //     reveal_child={false}
-  //     transition_type={Gtk.RevealerTransitionType.CROSSFADE}
-  //     transitionDuration={globalTransition}
-  //   >
-  //     {isPopup ? lockButton : copyButton}
-  //   </revealer>
-  // );
-
   const close = (
     <button
       class="close"
@@ -194,21 +188,6 @@ export default ({
       }}
     />
   );
-
-  // const CircularProgress = (
-  //   <circularprogress
-  //     class="circular-progress"
-  //     rounded={true}
-  //     value={1}
-  //     $={async (self) => {
-  //       while (self.value >= 0) {
-  //         self.value -= 0.01;
-  //         await asyncSleep(50);
-  //       }
-  //       self.visible = false;
-  //     }}
-  //   />
-  // );
 
   const topBar = (
     <box class="top-bar" spacing={5}>
@@ -222,6 +201,7 @@ export default ({
       </box>
       <box class={"separator"} hexpand />
       <box class="quick-actions">
+        {expand}
         {close}
         {/* {expand} */}
       </box>

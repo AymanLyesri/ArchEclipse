@@ -2,25 +2,25 @@ import { Api } from "./api.interface";
 
 export interface Waifu {
   id: number;
-  url?: string;
-  // url_file_path?: string;
-  preview?: string;
-  // preview_file_path?: string;
   width: number;
   height: number;
   api: Api;
+  tags: string[];
   extension?: string;
+  url?: string;
+  preview?: string;
 }
 
 export class WaifuClass implements Waifu {
   // Implement the Waifu interface
   id: number;
-  url?: string;
-  preview?: string;
   width: number;
   height: number;
   api: Api;
+  tags: string[] = [];
   extension?: string;
+  url?: string;
+  preview?: string;
 
   constructor(waifu: Waifu = {} as Waifu) {
     this.id = waifu.id;
@@ -32,6 +32,7 @@ export class WaifuClass implements Waifu {
     this.height = waifu.height;
     this.api = waifu.api;
     this.extension = waifu.extension;
+    this.tags = waifu.tags || [];
   }
 }
 

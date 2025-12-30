@@ -214,6 +214,7 @@ function Actions() {
                 width: Number(width) || 0,
                 api: {} as Api,
                 extension: filename.split(".").pop()!,
+                tags: ["custom"],
               });
 
               notify({

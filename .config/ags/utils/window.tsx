@@ -110,6 +110,8 @@ export function WindowActions({
   setWindowLock,
   windowVisibility,
   setWindowVisibility,
+  maxPanelWidth = 1500,
+  minPanelWidth = 250,
 }: {
   windowName: string;
   windowWidth: Accessor<number>;
@@ -120,9 +122,10 @@ export function WindowActions({
   setWindowLock: (lock: boolean) => void;
   windowVisibility: Accessor<boolean>;
   setWindowVisibility: (visibility: boolean) => void;
+
+  maxPanelWidth?: number;
+  minPanelWidth?: number;
 }) {
-  const maxPanelWidth = 1500;
-  const minPanelWidth = 300;
   return (
     <box
       class="window-actions"

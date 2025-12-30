@@ -280,7 +280,7 @@ function Display(monitor: string) {
 
   const selectedWorkspaceLabel = (
     <label
-      class="button selected-workspace"
+      class="selected-workspace"
       label={createComputed(
         [selectedWorkspaceId, targetType],
         (workspace, targetType) =>

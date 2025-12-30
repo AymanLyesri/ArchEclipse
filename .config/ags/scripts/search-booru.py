@@ -45,6 +45,9 @@ def fetch_danbooru(tags, post_id, page=1, limit=6):
                 "width": post.get("image_width"),
                 "height": post.get("image_height"),
                 "extension": post.get("file_ext"),
+                "tags": (
+                    post.get("tag_string").split(" ") if post.get("tag_string") else []
+                ),
             }
 
             # Filter out posts that have any empty (None or missing) values
@@ -156,10 +159,10 @@ def fetch_gelbooru(tags, post_id, page=1, limit=6):
             "preview": post.get("preview_url"),
             "width": post.get("width"),
             "height": post.get("height"),
-            # derive extension from file_url
             "extension": (
                 post.get("file_url").split(".")[-1] if post.get("file_url") else None  # type: ignore
             ),
+            "tags": (str(post.get("tags")).split(" ") if post.get("tags") else []),
         }
         # keep same filtering behavior as your Danbooru function (only complete posts)
         if all(post_data.values()):

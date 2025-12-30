@@ -40,6 +40,7 @@ const WidgetActions = () => {
                 setLeftPanelWidget(widgetSelector);
               }
             }}
+            tooltipMarkup={`Click to select\n<b>${widgetSelector.name}</b>`}
           />
         );
       })}
@@ -64,6 +65,8 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
       setWindowLock={setLeftPanelLock}
       windowVisibility={leftPanelVisibility}
       setWindowVisibility={setLeftPanelVisibility}
+      maxPanelWidth={1500}
+      minPanelWidth={300}
     />
   </box>
 );
