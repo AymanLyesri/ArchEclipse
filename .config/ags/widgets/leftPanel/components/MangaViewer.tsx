@@ -1,12 +1,11 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { exec, execAsync } from "ags/process";
+import { execAsync } from "ags/process";
 import { Manga, Chapter, Page } from "../../../interfaces/manga.interface";
-import { createComputed, createState, For, With } from "ags";
+import { createState, For, With } from "ags";
 import { notify } from "../../../utils/notification";
 import Picture from "../../Picture";
 import { Progress } from "../../Progress";
 import Pango from "gi://Pango?version=1.0";
-import { load } from "mime";
 import Gdk from "gi://Gdk?version=4.0";
 import { leftPanelWidth, globalTransition } from "../../../variables";
 
@@ -24,7 +23,7 @@ const [searchQuery, setSearchQuery] = createState<string>("");
 const [initialized, setInitialized] = createState(false);
 const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
 
-const scriptPath = "/home/ayman/.config/ags/scripts/manga.py";
+const scriptPath = "./scripts/manga.py";
 
 const fetchPopular = async () => {
   setProgressStatus("loading");

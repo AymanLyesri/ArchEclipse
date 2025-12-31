@@ -12,6 +12,7 @@ import { hideWindow } from "../utils/window";
 import Picture from "./Picture";
 import Gio from "gi://Gio";
 import { Progress } from "./Progress";
+import { timeout } from "ags/time";
 
 // progress status
 const [progressStatus, setProgressStatus] = createState<
@@ -95,10 +96,27 @@ function Display(monitor: string) {
             }
           }}
         >
-          <Picture
-            class="wallpaper"
-            file={toThumbnailPath(wallpaper)}
-          ></Picture>
+          {wallpaper !== "" ? (
+            <Picture
+              class="wallpaper"
+              file={toThumbnailPath(wallpaper)}
+            ></Picture>
+          ) : (
+            <box
+              class="wallpaper no-wallpaper"
+              vexpand
+              hexpand
+              tooltipMarkup={`Click to set Wallpaper\n<b>For Workspace ${workspaceId}</b>`}
+            >
+              <label
+                label={"?"}
+                halign={Gtk.Align.CENTER}
+                valign={Gtk.Align.CENTER}
+                hexpand
+                vexpand
+              />
+            </box>
+          )}
         </button>
       );
     });
@@ -280,7 +298,13 @@ function Display(monitor: string) {
 
   const selectedWorkspaceLabel = (
     <label
-      class="selected-workspace"
+      // class="selected-workspace"
+      class={createComputed(
+        [selectedWorkspaceId, targetType],
+        (workspace, targetType) =>
+          // set a timout to add a ping class and remove the class after 2 seconds
+          `selected-workspace }`
+      )}
       label={createComputed(
         [selectedWorkspaceId, targetType],
         (workspace, targetType) =>
@@ -288,6 +312,14 @@ function Display(monitor: string) {
             targetType === "workspace" ? workspace : ""
           }`
       )}
+      $={(self) =>
+        createComputed([selectedWorkspaceId, targetType]).subscribe(() => {
+          self.add_css_class("ping");
+          timeout(500, () => {
+            self.remove_css_class("ping");
+          });
+        })
+      }
     />
   );
 
