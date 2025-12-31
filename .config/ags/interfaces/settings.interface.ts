@@ -61,7 +61,7 @@ export interface Settings {
   waifu: {
     visibility: boolean;
     input_history: string;
-    current: Waifu;
+    current: Waifu | undefined;
     api: Api;
   };
   rightPanel: {

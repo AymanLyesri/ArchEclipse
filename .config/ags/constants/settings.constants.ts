@@ -84,7 +84,7 @@ export const defaultSettings: Settings = {
   waifu: {
     input_history: "",
     visibility: true,
-    current: new WaifuClass(),
+    current: undefined,
     api: booruApis[0],
   },
   rightPanel: {

@@ -51,7 +51,8 @@ export const rightPanelWidgetSelectors: WidgetSelector[] = [
   {
     name: "Media",
     icon: "",
-    widget: () => MediaWidget(),
+    widget: (rightPanelWidth?: number, rightPanelHeight?: number) =>
+      MediaWidget(rightPanelWidth, rightPanelHeight),
     enabled: true,
   },
   {

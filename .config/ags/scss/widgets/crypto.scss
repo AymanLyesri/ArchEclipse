@@ -1,5 +1,6 @@
 .crypto {
   @include module;
+  padding: 0px 10px;
 
   .crypto-graph {
     font-family: monospace;

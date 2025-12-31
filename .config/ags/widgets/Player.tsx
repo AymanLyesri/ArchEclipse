@@ -17,10 +17,12 @@ import Pango from "gi://Pango?version=1.0";
 
 export default ({
   player,
-  playerType,
+  width,
+  height,
 }: {
   player: AstalMpris.Player;
-  playerType: "popup" | "widget";
+  width?: Accessor<number> | number | undefined;
+  height?: Accessor<number> | number | undefined;
 }) => {
   const [isDragging, setIsDragging] = createState(false);
   const [parentWidth, setParentWidth] = createState(0);
@@ -211,6 +213,7 @@ export default ({
         <label label="⏭" />
       </button>
     );
+    print(height, width);
     return (
       <box
         class="bottom-bar"
@@ -241,7 +244,7 @@ export default ({
 
   const overlay = (
     <overlay
-      class={`player ${playerType}`}
+      class={`player`}
       hexpand
       $={(self) => {
         // Create a controller to monitor size changes
@@ -293,41 +296,28 @@ export default ({
     >
       <Picture
         class="img"
-        height={rightPanelWidth}
+        height={height}
+        width={width}
         file={createBinding(player, "coverArt")}
       />
-      {playerType == "widget" ? (
-        <box
-          $type="overlay"
-          orientation={Gtk.Orientation.VERTICAL}
-          hexpand
-          valign={Gtk.Align.END}
-          spacing={0}
-        >
-          <box halign={Gtk.Align.CENTER}>
-            <With value={barCount}>
-              {(count) => (
-                <Cava
-                  barCount={count} // Use computed bar count
-                  transitionType={Gtk.RevealerTransitionType.SWING_UP}
-                />
-              )}
-            </With>
-          </box>
-          {playerStack}
-        </box>
-      ) : (
-        <box>
-          <Picture
-            class="img"
-            width={100}
-            height={100}
-            file={createBinding(player, "coverArt")}
-          />
 
-          {playerStack}
+      <box
+        $type="overlay"
+        orientation={Gtk.Orientation.VERTICAL}
+        valign={Gtk.Align.END}
+      >
+        <box halign={Gtk.Align.CENTER}>
+          <With value={barCount}>
+            {(count) => (
+              <Cava
+                barCount={count} // Use computed bar count
+                transitionType={Gtk.RevealerTransitionType.SWING_UP}
+              />
+            )}
+          </With>
         </box>
-      )}
+        {playerStack}
+      </box>
     </overlay>
   );
 

@@ -674,8 +674,11 @@ export default () => {
         booruTags.subscribe(() => fetchImages());
         booruApi.subscribe(() => fetchImages());
         booruLimit.subscribe(() => fetchImages());
-        booruBookMarkWaifus.subscribe(() => fetchBookmarkImages());
-        fetchImages();
+        booruBookMarkWaifus.subscribe(() => {
+          if (selectedTab.get() === "Bookmarks") {
+            fetchBookmarkImages();
+          }
+        });
       }}
     >
       <Tabs />

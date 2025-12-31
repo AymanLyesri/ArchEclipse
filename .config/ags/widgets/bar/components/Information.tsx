@@ -59,7 +59,7 @@ function Mpris() {
       <popover>
         <box spacing={4} orientation={Gtk.Orientation.VERTICAL}>
           <For each={players}>
-            {(player) => <Player playerType="popup" player={player} />}
+            {(player) => <Player height={200} width={300} player={player} />}
           </For>
         </box>
       </popover>

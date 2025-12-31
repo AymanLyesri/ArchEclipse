@@ -197,8 +197,16 @@ function Actions() {
                 `identify -format "%h %w" "${filename}"`
               ).split(" ");
 
+              // create custom booru directory if not exists
+              await execAsync(`mkdir -p "${booruPath}/custom/images"`).catch(
+                (err) =>
+                  notify({
+                    summary: "Error",
+                    body: String(err),
+                  })
+              );
               await execAsync(
-                `cp "${filename}" "${booruPath}/custom/-1.${filename
+                `cp "${filename}" "${booruPath}/custom/images/-1.${filename
                   .split(".")
                   .pop()!}"`
               ).catch((err) =>
@@ -212,7 +220,10 @@ function Actions() {
                 id: -1,
                 height: Number(height) || 0,
                 width: Number(width) || 0,
-                api: {} as Api,
+                api: {
+                  name: "Custom",
+                  value: "custom",
+                } as Api,
                 extension: filename.split(".").pop()!,
                 tags: ["custom"],
               });
@@ -267,32 +278,42 @@ function Image() {
   );
 
   return (
-    <overlay class="overlay">
-      <With value={waifuCurrent}>
-        {(w) => {
-          return w.extension === "mp4" ||
+    <With value={waifuCurrent}>
+      {(w) => {
+        print(w);
+        return w ? (
+          <overlay class="overlay">
+            {w.extension === "mp4" ||
             w.extension === "webm" ||
             w.extension === "mkv" ||
             w.extension === "gif" ||
             w.extension === "zip" ? (
-            <Video
-              class="image"
-              width={rightPanelWidth}
-              file={`${booruPath}/${w.api.value}/images/${w.id}.${w.extension}`}
-            />
-          ) : (
-            <Picture
-              class="image"
-              height={imageHeight}
-              file={`${booruPath}/${w.api.value}/images/${w.id}.${w.extension}`}
-              contentFit={Gtk.ContentFit.COVER}
-            />
-          );
-        }}
-      </With>
-
-      <Actions $type="overlay" />
-    </overlay>
+              <Video
+                class="image"
+                width={rightPanelWidth}
+                file={`${booruPath}/${w.api.value}/images/${w.id}.${w.extension}`}
+              />
+            ) : (
+              <Picture
+                class="image"
+                height={imageHeight}
+                file={`${booruPath}/${w.api.value}/images/${w.id}.${w.extension}`}
+                contentFit={Gtk.ContentFit.COVER}
+              />
+            )}
+            <Actions $type="overlay" />
+          </overlay>
+        ) : (
+          <box
+            halign={Gtk.Align.CENTER}
+            valign={Gtk.Align.CENTER}
+            class="no-image"
+          >
+            <label label="No image selected" />
+          </box>
+        );
+      }}
+    </With>
   );
 }
 

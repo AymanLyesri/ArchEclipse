@@ -180,7 +180,7 @@ function Panel({ monitorName }: { monitorName: string }) {
         <For each={enabledWidgets}>
           {(widget) => {
             try {
-              return widget.widget() as JSX.Element;
+              return widget.widget(undefined, rightPanelWidth) as JSX.Element;
             } catch (error) {
               console.error(`Error rendering widget:`, error);
               return (<box />) as JSX.Element;

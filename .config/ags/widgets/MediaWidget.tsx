@@ -2,7 +2,7 @@ import Player from "./Player";
 import Gtk from "gi://Gtk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 import Mpris from "gi://AstalMpris";
-import { createBinding, createComputed, With } from "ags";
+import { Accessor, createBinding, createComputed, With } from "ags";
 const mpris = Mpris.get_default();
 
 const noPlayerFound = () => (
@@ -16,26 +16,33 @@ const noPlayerFound = () => (
   </box>
 );
 
-const activePlayer = () => {
-  // if (mpris.players.length == 0) return noPlayerFound();
-
-  const player =
-    mpris.players.find(
-      (player) => player.playbackStatus === Mpris.PlaybackStatus.PLAYING
-    ) || mpris.players[0];
-
-  // return Player(player, "widget");
-  return <Player player={player} playerType="widget" />;
-};
-
 const players = createBinding(mpris, "players");
 
-const Media = () => (
-  <box>
-    <With value={players}>
-      {(players) => (players.length > 0 ? activePlayer() : noPlayerFound())}
-    </With>
-  </box>
-);
-
-export default () => Media();
+export default function (
+  width?: Accessor<number> | number,
+  height?: Accessor<number> | number
+) {
+  print(height, width);
+  return (
+    <box>
+      <With value={players}>
+        {(players) =>
+          players.length > 0 ? (
+            <Player
+              width={width}
+              height={height}
+              player={
+                mpris.players.find(
+                  (player) =>
+                    player.playbackStatus === Mpris.PlaybackStatus.PLAYING
+                ) || mpris.players[0]
+              }
+            />
+          ) : (
+            noPlayerFound()
+          )
+        }
+      </With>
+    </box>
+  );
+}

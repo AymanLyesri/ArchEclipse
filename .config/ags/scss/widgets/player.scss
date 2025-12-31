@@ -2,27 +2,15 @@
   @include module;
   padding: 0px;
 
-  &.widget {
-    .bottom-bar {
-      background: $background-semi-transparent;
-      opacity: 0.9;
-      margin: 0px 5px 5px 5px;
+  .bottom-bar {
+    background: $background-semi-transparent;
+    opacity: 0.9;
+    margin: 0px 5px 5px 5px;
 
-      &:hover {
-        background-color: $background-secondary;
-        margin-bottom: 20px;
-        opacity: 1;
-      }
-    }
-  }
-
-  &.popup {
-    min-width: $phi * 200 + px;
     &:hover {
       background-color: $background-secondary;
-    }
-    .img {
-      margin: 5px 0px 5px 5px;
+      margin-bottom: 20px;
+      opacity: 1;
     }
   }
 
