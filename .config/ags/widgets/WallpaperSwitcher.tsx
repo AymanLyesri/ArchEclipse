@@ -95,28 +95,12 @@ function Display(monitor: string) {
               updateSelectedWorkspaceWidget(workspaceId, self);
             }
           }}
+          tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId}</b>`}
         >
-          {wallpaper !== "" ? (
-            <Picture
-              class="wallpaper"
-              file={toThumbnailPath(wallpaper)}
-            ></Picture>
-          ) : (
-            <box
-              class="wallpaper no-wallpaper"
-              vexpand
-              hexpand
-              tooltipMarkup={`Click to set Wallpaper\n<b>For Workspace ${workspaceId}</b>`}
-            >
-              <label
-                label={"?"}
-                halign={Gtk.Align.CENTER}
-                valign={Gtk.Align.CENTER}
-                hexpand
-                vexpand
-              />
-            </box>
-          )}
+          <Picture
+            class="wallpaper"
+            file={toThumbnailPath(wallpaper)}
+          ></Picture>
         </button>
       );
     });
@@ -148,7 +132,7 @@ function Display(monitor: string) {
                       const command = {
                         sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
                         lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
-                        workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.get()} ${wallpaper} ${monitor}"`,
+                        workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.get()} ${monitor} ${wallpaper}"`,
                       }[target];
 
                       execAsync(command!)

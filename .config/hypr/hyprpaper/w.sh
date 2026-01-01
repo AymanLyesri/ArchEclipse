@@ -2,8 +2,8 @@
 
 # Define variables
 hyprdir=$HOME/.config/hypr
-wallpaper=$1 # This is passed as an argument to the script
-monitor=$2
+monitor=$1
+wallpaper=$2 # This is passed as an argument to the script
 
 hyprctl hyprpaper wallpaper "$monitor,$wallpaper"
 
