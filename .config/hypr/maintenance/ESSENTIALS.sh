@@ -137,7 +137,7 @@ install_discord_client() {
     
     yay -S --noconfirm $package
     
-    echo -e "workspace = 6, gapsout:69, on-created-empty:$class \n windowrule = workspace 6 silent, match:class ^($class)$" >$HOME/.config/hypr/configs/defaults/discord_client.conf
+    echo -e "workspace = 6, gapsout:69, on-created-empty:$class \n windowrule = workspace 6 silent, match:class ^.*cord$" >$HOME/.config/hypr/configs/defaults/discord_client.conf
 }
 
 # Function to install paru

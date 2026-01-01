@@ -115,8 +115,8 @@ export const defaultSettings: Settings = {
   },
   crypto: {
     favorite: {
-      symbol: "btc",
-      timeframe: "7d",
+      symbol: "",
+      timeframe: "",
     },
   },
 };
