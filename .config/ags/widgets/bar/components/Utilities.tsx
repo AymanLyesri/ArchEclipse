@@ -47,7 +47,7 @@ function BrightnessWidget() {
       class="slider"
       drawValue={false}
       onValueChanged={(self) => (brightness.screen = self.get_value())}
-      value={screen((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
+      value={screen.peek()}
     />
   );
 

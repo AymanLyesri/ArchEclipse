@@ -184,7 +184,7 @@ export const defaultSettings: Settings = {
     tags: [],
     limit: Math.round(20 * phi_min), // 20 → 20*0.618 ≈ 12
     page: 1,
-    columns: 3,
+    columns: 2,
     bookmarks: [],
   },
   crypto: {
