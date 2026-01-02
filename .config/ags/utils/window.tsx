@@ -107,7 +107,6 @@ export function WindowActions({
   windowSettingKey,
   windowExclusivity,
   windowLock,
-  windowVisibility,
   maxPanelWidth = 1500,
   minPanelWidth = 250,
 }: {
@@ -116,7 +115,6 @@ export function WindowActions({
   windowSettingKey: string;
   windowExclusivity: Accessor<boolean>;
   windowLock: Accessor<boolean>;
-  windowVisibility: Accessor<boolean>;
   maxPanelWidth?: number;
   minPanelWidth?: number;
 }) {
@@ -173,7 +171,7 @@ export function WindowActions({
         label=""
         class="close"
         onClicked={() => {
-          setGlobalSetting(windowSettingKey + ".visibility", false);
+          app.get_window(windowName)?.hide();
         }}
       />
     </box>

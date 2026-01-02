@@ -20,6 +20,7 @@ import {
 import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 import GObject from "ags/gobject";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
+import app from "ags/gtk4/app";
 
 function moveItem<T>(array: T[], from: number, to: number): T[] {
   const copy = [...array];
@@ -144,9 +145,6 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
         ({ rightPanel }) => rightPanel.exclusivity
       )}
       windowLock={globalSettings(({ rightPanel }) => rightPanel.lock)}
-      windowVisibility={globalSettings(
-        ({ rightPanel }) => rightPanel.visibility
-      )}
     />
   </box>
 );
@@ -229,7 +227,7 @@ export default (monitor: Gdk.Monitor) => {
       marginRight={globalMargin}
       marginBottom={5}
       keymode={Astal.Keymode.ON_DEMAND}
-      visible={globalSettings(({ rightPanel }) => rightPanel.visibility)}
+      visible={false}
       $={(self) => {
         let hideTimeout: NodeJS.Timeout | null = null;
         const windowInstance = new Window();
@@ -246,7 +244,9 @@ export default (monitor: Gdk.Monitor) => {
               !globalSettings.peek().rightPanel.lock &&
               !windowInstance.popupIsOpen()
             ) {
-              setGlobalSetting("rightPanel.visibility", false);
+              hideWindow(
+                `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+              );
             }
           }, 500);
         });
@@ -264,7 +264,9 @@ export default (monitor: Gdk.Monitor) => {
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
-            setGlobalSetting("rightPanel.visibility", false);
+            hideWindow(
+              `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+            );
             widget.hide();
             return true;
           }
@@ -275,7 +277,7 @@ export default (monitor: Gdk.Monitor) => {
   );
 };
 
-export function RightPanelVisibility() {
+export function RightPanelVisibility({ monitor }: { monitor: Gdk.Monitor }) {
   return (
     <revealer
       revealChild={globalSettings(({ rightPanel }) => rightPanel.lock)}
@@ -283,13 +285,21 @@ export function RightPanelVisibility() {
       transitionDuration={globalTransition}
     >
       <togglebutton
-        active={globalSettings(({ rightPanel }) => rightPanel.visibility)}
-        label={globalSettings(({ rightPanel }) =>
-          rightPanel.visibility ? "" : ""
-        )}
-        onToggled={({ active }) =>
-          setGlobalSetting("rightPanel.visibility", active)
-        }
+        active={false}
+        label={""}
+        onToggled={(self) => {
+          // setGlobalSetting("rightPanel.visibility", active)
+          const rightPanel = app.get_window(
+            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+          ) as Gtk.Window;
+          if (self.active) {
+            rightPanel.show();
+            self.label = "";
+          } else {
+            rightPanel.hide();
+            self.label = "";
+          }
+        }}
         class="panel-trigger icon"
         tooltipText={"SUPER + R"}
       />

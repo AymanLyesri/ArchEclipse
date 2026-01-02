@@ -144,7 +144,6 @@ export const defaultSettings: Settings = {
     max: 1,
   },
   bar: {
-    visibility: true,
     lock: true,
     orientation: {
       name: "Orientation",
@@ -164,15 +163,13 @@ export const defaultSettings: Settings = {
   rightPanel: {
     exclusivity: true,
     lock: true,
-    width: Math.round(300 * phi_min), // 300 → 300*0.618 ≈ 185
-    visibility: false,
+    width: Math.round(300), // 300 → 300*0.618 ≈ 185
     widgets: rightPanelWidgetSelectors,
   },
   leftPanel: {
     exclusivity: true,
     lock: true,
-    width: Math.round(400 * phi), // 400 → 400*1.618 ≈ 647
-    visibility: false,
+    width: Math.round(300), // 400 → 400*1.618 ≈ 647
     widget: leftPanelWidgetSelectors[0],
   },
   chatBot: {

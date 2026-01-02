@@ -20,6 +20,7 @@ import Gtk from "gi://Gtk?version=4.0";
 import { Eventbox } from "../Custom/Eventbox";
 import { RightPanelVisibility } from "../rightPanel/RightPanel";
 import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
+import app from "ags/gtk4/app";
 
 export default (monitor: Gdk.Monitor) => {
   const monitorName = getMonitorName(monitor.get_display(), monitor)!;
@@ -49,10 +50,10 @@ export default (monitor: Gdk.Monitor) => {
             const isFullscreen: boolean =
               focusedClient.fullscreen === 2 ||
               focusedClient.get_fullscreen?.() === 2;
-            const visibility: boolean = !isFullscreen && bar.visibility;
+            const visibility: boolean = !isFullscreen && bar.lock;
             return visibility;
           } else {
-            return bar.visibility;
+            return bar.lock;
           }
         }
       )}
@@ -60,7 +61,7 @@ export default (monitor: Gdk.Monitor) => {
         const motion = new Gtk.EventControllerMotion();
         motion.connect("leave", () => {
           if (!globalSettings.peek().bar.lock)
-            setGlobalSetting("bar.visibility", false);
+            app.get_window(`bar-${monitorName}`)!.hide();
         });
         self.add_controller(motion);
       }}
@@ -69,7 +70,7 @@ export default (monitor: Gdk.Monitor) => {
         spacing={5}
         class={emptyWorkspace((empty) => (empty ? "bar empty" : "bar full"))}
       >
-        <LeftPanelVisibility />
+        <LeftPanelVisibility monitor={monitor} />
 
         <box class="bar-center" hexpand>
           <With value={globalSettings(({ bar }) => bar.layout)}>
@@ -125,7 +126,7 @@ export default (monitor: Gdk.Monitor) => {
           </With>
         </box>
 
-        <RightPanelVisibility />
+        <RightPanelVisibility monitor={monitor} />
       </box>
     </window>
   );

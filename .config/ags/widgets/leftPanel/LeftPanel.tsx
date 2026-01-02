@@ -14,6 +14,7 @@ import { getMonitorName } from "../../utils/monitor";
 import { hideWindow, WindowActions, Window } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
+import app from "ags/gtk4/app";
 
 const WidgetActions = () => {
   return (
@@ -58,7 +59,6 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
         ({ leftPanel }) => leftPanel.exclusivity
       )}
       windowLock={globalSettings(({ leftPanel }) => leftPanel.lock)}
-      windowVisibility={globalSettings(({ leftPanel }) => leftPanel.visibility)}
       minPanelWidth={300}
     />
   </box>
@@ -125,7 +125,7 @@ export default (monitor: Gdk.Monitor) => {
       marginTop={5}
       marginLeft={globalMargin}
       marginBottom={5}
-      visible={globalSettings(({ leftPanel }) => leftPanel.visibility)}
+      visible={false}
       $={(self) => {
         let hideTimeout: NodeJS.Timeout | null = null;
         const windowInstance = new Window();
@@ -142,7 +142,7 @@ export default (monitor: Gdk.Monitor) => {
               !globalSettings.peek().leftPanel.lock &&
               !windowInstance.popupIsOpen()
             ) {
-              setGlobalSetting("leftPanel.visibility", false);
+              app.get_window(monitorName)?.hide();
             }
           }, 500);
         });
@@ -160,7 +160,7 @@ export default (monitor: Gdk.Monitor) => {
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
-            setGlobalSetting("leftPanel.visibility", false);
+            app.get_window(monitorName)?.hide();
             widget.hide();
             return true;
           }
@@ -171,7 +171,7 @@ export default (monitor: Gdk.Monitor) => {
   );
 };
 
-export function LeftPanelVisibility() {
+export function LeftPanelVisibility({ monitor }: { monitor: Gdk.Monitor }) {
   return (
     <revealer
       revealChild={globalSettings(({ leftPanel }) => leftPanel.lock)}
@@ -179,13 +179,21 @@ export function LeftPanelVisibility() {
       transitionDuration={globalTransition}
     >
       <togglebutton
-        active={globalSettings(({ leftPanel }) => leftPanel.visibility)}
-        label={globalSettings(({ leftPanel }) =>
-          leftPanel.visibility ? "" : ""
-        )}
-        onToggled={({ active }) =>
-          setGlobalSetting("leftPanel.visibility", active)
-        }
+        active={false}
+        label={""}
+        onToggled={(self) => {
+          // setGlobalSetting("rightPanel.visibility", active)
+          const leftPanel = app.get_window(
+            `left-panel-${getMonitorName(monitor.get_display(), monitor)}`
+          ) as Gtk.Window;
+          if (self.active) {
+            leftPanel.show();
+            self.label = "";
+          } else {
+            leftPanel.hide();
+            self.label = "";
+          }
+        }}
         class="panel-trigger"
         tooltipText={"SUPER + L"}
       />

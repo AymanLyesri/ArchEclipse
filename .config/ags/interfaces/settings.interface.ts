@@ -48,7 +48,6 @@ export interface Settings {
   };
   autoWorkspaceSwitching: AGSSetting;
   bar: {
-    visibility: boolean;
     lock: boolean;
     orientation: AGSSetting;
     layout: WidgetSelector[];
@@ -60,7 +59,6 @@ export interface Settings {
     api: Api;
   };
   rightPanel: {
-    visibility: boolean;
     exclusivity: boolean;
     width: number;
     widgets: WidgetSelector[];
@@ -79,7 +77,6 @@ export interface Settings {
     bookmarks: Waifu[];
   };
   leftPanel: {
-    visibility: boolean;
     exclusivity: boolean;
     width: number;
     lock: boolean;

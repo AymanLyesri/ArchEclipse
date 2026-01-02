@@ -4,6 +4,8 @@ import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 import { createComputed } from "gnim";
 import { globalSettings, setGlobalSetting } from "../../variables";
+import app from "ags/gtk4/app";
+import { getMonitorName } from "../../utils/monitor";
 
 export default (monitor: Gdk.Monitor) => {
   return (
@@ -19,12 +21,19 @@ export default (monitor: Gdk.Monitor) => {
       exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.TOP}
       visible={globalSettings(
-        ({ rightPanel }) => !rightPanel.visibility && !rightPanel.lock
+        ({ rightPanel }) =>
+          !app.get_window(
+            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+          )!.visible && !rightPanel.lock
       )}
       $={(self) => {
         const motion = new Gtk.EventControllerMotion();
         motion.connect("enter", () => {
-          setGlobalSetting("rightPanel.visibility", true);
+          app
+            .get_window(
+              `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+            )!
+            .show();
         });
         self.add_controller(motion);
       }}
