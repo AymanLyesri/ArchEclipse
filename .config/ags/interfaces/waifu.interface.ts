@@ -1,4 +1,4 @@
-import { Api } from "./api.interface";
+import { Api, ApiClass } from "./api.interface";
 
 export interface Waifu {
   id: number;
@@ -30,7 +30,7 @@ export class WaifuClass implements Waifu {
     // this.preview_file_path = waifu.preview_file_path;
     this.width = waifu.width;
     this.height = waifu.height;
-    this.api = waifu.api;
+    this.api = waifu.api || new ApiClass();
     this.extension = waifu.extension;
     this.tags = waifu.tags || [];
   }

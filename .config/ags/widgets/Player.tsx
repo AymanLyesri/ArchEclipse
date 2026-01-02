@@ -1,7 +1,6 @@
 import AstalMpris from "gi://AstalMpris?version=0.1";
 import { getDominantColor, getImageRatio } from "../utils/image";
 import Gtk from "gi://Gtk?version=4.0";
-import { rightPanelWidth } from "../variables";
 import {
   createBinding,
   createState,
@@ -90,7 +89,7 @@ export default ({
     const positionSlider = (
       <slider
         class="slider"
-        css={dominantColor((c) => `highlight{background: ${c}00};`)}
+        // css={dominantColor((c) => `highlight{background: ${c}00};`)}
         $={(self) => {
           let unsubscribe: (() => void) | null = null;
 
@@ -213,7 +212,6 @@ export default ({
         <label label="⏭" />
       </button>
     );
-    print(height, width);
     return (
       <box
         class="bottom-bar"

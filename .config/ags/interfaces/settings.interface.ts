@@ -2,13 +2,6 @@ import { Api } from "./api.interface";
 import { Waifu } from "./waifu.interface";
 import { WidgetSelector } from "./widgetSelector.interface";
 
-export interface HyprlandSetting {
-  value: any;
-  type: string;
-  min: number;
-  max: number;
-}
-
 export interface AGSSetting {
   name: string;
   value: any;
@@ -24,33 +17,35 @@ export interface Settings {
   };
   hyprland: {
     general: {
-      border_size: HyprlandSetting;
-      gaps_in: HyprlandSetting;
-      gaps_out: HyprlandSetting;
+      border_size: AGSSetting;
+      gaps_in: AGSSetting;
+      gaps_out: AGSSetting;
     };
     decoration: {
-      rounding: HyprlandSetting;
-      active_opacity: HyprlandSetting;
-      inactive_opacity: HyprlandSetting;
+      rounding: AGSSetting;
+      active_opacity: AGSSetting;
+      inactive_opacity: AGSSetting;
       blur: {
-        enabled: HyprlandSetting;
-        size: HyprlandSetting;
-        passes: HyprlandSetting;
-        xray?: HyprlandSetting;
+        enabled: AGSSetting;
+        size: AGSSetting;
+        passes: AGSSetting;
+        xray?: AGSSetting;
       };
       shadow: {
-        enabled: HyprlandSetting;
-        range: HyprlandSetting;
-        render_power: HyprlandSetting;
+        enabled: AGSSetting;
+        range: AGSSetting;
+        render_power: AGSSetting;
       };
     };
   };
   notifications: {
     dnd: boolean;
   };
-  globalOpacity: AGSSetting;
-  globalScale: AGSSetting;
-  globalFontSize: AGSSetting;
+  ui: {
+    opacity: AGSSetting;
+    scale: AGSSetting;
+    fontSize: AGSSetting;
+  };
   autoWorkspaceSwitching: AGSSetting;
   bar: {
     visibility: boolean;
@@ -61,7 +56,7 @@ export interface Settings {
   waifu: {
     visibility: boolean;
     input_history: string;
-    current: Waifu | undefined;
+    current: Waifu;
     api: Api;
   };
   rightPanel: {
@@ -81,7 +76,7 @@ export interface Settings {
     limit: number;
     page: number;
     columns: number;
-    bookMarkWaifus: Waifu[];
+    bookmarks: Waifu[];
   };
   leftPanel: {
     visibility: boolean;

@@ -4,7 +4,7 @@ import { Waifu } from "../interfaces/waifu.interface";
 
 import GdkPixbuf from "gi://GdkPixbuf";
 import { booruPath } from "../constants/path.constants";
-import { booruBookMarkWaifus, setBooruBookMarkWaifus } from "../variables";
+import { globalSettings, setGlobalSetting } from "../variables";
 
 const terminalWaifuPath = `$HOME/.config/fastfetch/assets/logo.webp`;
 
@@ -56,14 +56,14 @@ export const fetchImage = async (image: Waifu) => {
 };
 
 export const bookMarkExists = (image: Waifu): boolean => {
-  const currentBookmarks = booruBookMarkWaifus.get();
+  const currentBookmarks = globalSettings.peek().booru.bookmarks;
   return currentBookmarks.some(
     (img) => img.id === image.id && img.api.value === image.api.value
   );
 };
 
 export const bookMarkImage = (image: Waifu) => {
-  const currentBookmarks = booruBookMarkWaifus.get();
+  const currentBookmarks = globalSettings.peek().booru.bookmarks;
   // check if image is already bookmarked
   const exists = bookMarkExists(image);
   if (exists) {
@@ -72,17 +72,17 @@ export const bookMarkImage = (image: Waifu) => {
   }
 
   const updatedBookmarks = [...currentBookmarks, image];
-  setBooruBookMarkWaifus(updatedBookmarks);
+  setGlobalSetting("booru.bookmarks", updatedBookmarks);
 
   notify({ summary: "Success", body: "Image bookmarked" });
 };
 
 export const removeBookMarkImage = (image: Waifu) => {
-  const currentBookmarks = booruBookMarkWaifus.get();
+  const currentBookmarks = globalSettings.peek().booru.bookmarks;
   const updatedBookmarks = currentBookmarks.filter(
     (img) => !(img.id === image.id && img.api.value === image.api.value)
   );
-  setBooruBookMarkWaifus(updatedBookmarks);
+  setGlobalSetting("booru.bookmarks", updatedBookmarks);
   notify({ summary: "Success", body: "Bookmark removed" });
 };
 

@@ -12,26 +12,21 @@ import { execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
 
-import Battery from "gi://AstalBattery";
-const battery = Battery.get_default();
-
 import Notifd from "gi://AstalNotifd";
 const notifd = Notifd.get_default();
 
 import Gtk from "gi://Gtk?version=4.0";
 import {
-  barLock,
-  setBarLock,
-  barOrientation,
-  setBarOrientation,
-  DND,
-  setDND,
+  globalSettings,
   globalTheme,
+  setGlobalSetting,
   setGlobalTheme,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { For } from "ags";
 import AstalTray from "gi://AstalTray";
+import AstalBattery from "gi://AstalBattery";
+import AstalPowerProfiles from "gi://AstalPowerProfiles";
 
 function Theme() {
   return (
@@ -123,79 +118,112 @@ function Volume() {
   );
 }
 
-function BatteryWidget() {
-  const _percentage = createBinding(battery, "percentage");
-  const charging = createBinding(battery, "charging");
+// function BatteryWidget() {
+//   const _percentage = createBinding(battery, "percentage");
+//   const charging = createBinding(battery, "charging");
 
-  const label = (
-    <label
-      label={createComputed(() => {
-        const isCharging = charging.get();
-        const p = _percentage.get() * 100;
-        switch (true) {
-          case isCharging:
-            return "⚡";
-          case p > 85:
-            return "";
-          case p > 75:
-            return "";
-          case p > 50:
-            return "";
-          case p > 25:
-            return "";
-          case p > 10:
-            return "";
-          case p > 0:
-            return "";
-          default:
-            return "";
-        }
-      })}
-    />
-  );
+//   const label = (
+//     <label
+//       label={_percentage((percentage) => {
+//         const isCharging = charging.peek();
+//         const p = percentage * 100;
+//         switch (true) {
+//           case isCharging:
+//             return "⚡";
+//           case p > 85:
+//             return "";
+//           case p > 75:
+//             return "";
+//           case p > 50:
+//             return "";
+//           case p > 25:
+//             return "";
+//           case p > 10:
+//             return "";
+//           case p > 0:
+//             return "";
+//           default:
+//             return "";
+//         }
+//       })}
+//     />
+//   );
 
-  const percentage = (
-    <label label={_percentage((p: number) => `${Math.round(p * 100)}%`)} />
-  );
+//   const percentage = (
+//     <label label={_percentage((p: number) => `${Math.round(p * 100)}%`)} />
+//   );
 
-  const levelbar = (
-    <levelbar
-      widthRequest={100}
-      value={_percentage((v: number) =>
-        isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v
-      )}
-    />
-  );
+//   const levelbar = (
+//     <levelbar
+//       widthRequest={100}
+//       value={_percentage((p: number) =>
+//         isNaN(p) || p < 0 ? 0 : p > 1 ? 1 : p
+//       )}
+//     />
+//   );
 
-  const box = (
-    <box class={"details"} spacing={5}>
-      {levelbar}
-    </box>
-  );
+//   const box = (
+//     <box class={"details"} spacing={5}>
+//       {levelbar}
+//     </box>
+//   );
+
+//   return (
+//     <CustomRevealer
+//       trigger={
+//         <box class="trigger" spacing={5} children={[label, percentage]} />
+//       }
+//       child={box}
+//       custom_class={createComputed([charging, _percentage], (c, p) => {
+//         const isCharging = c;
+//         const value = p * 100;
+//         if (isCharging) {
+//           return "battery charging";
+//         } else {
+//           return value <= 15 ? "battery low" : "battery";
+//         }
+//       })}
+//       visible={createComputed(() => battery.percentage > 0)}
+//       revealChild={_percentage((v) => {
+//         const isCharging = charging.get();
+//         return (v < 0.1 && !isCharging) || (v >= 0.95 && isCharging);
+//       })}
+//     />
+//   );
+// }
+
+function Battery() {
+  const battery = AstalBattery.get_default();
+  const powerprofiles = AstalPowerProfiles.get_default();
+
+  const percent = createBinding(
+    battery,
+    "percentage"
+  )((p) => `${Math.floor(p * 100)}%`);
+
+  const setProfile = (profile: string) => {
+    powerprofiles.set_active_profile(profile);
+  };
 
   return (
-    <CustomRevealer
-      trigger={
-        <box class="trigger" spacing={5} children={[label, percentage]} />
-      }
-      child={box}
-      custom_class={createComputed([charging, _percentage], (c, p) => {
-        const isCharging = c;
-        const value = p * 100;
-        if (isCharging) {
-          return "battery charging";
-        } else {
-          return value <= 15 ? "battery low" : "battery";
-        }
-      })}
-      visible={createComputed(() => battery.percentage > 0)}
-      revealChild={_percentage((v) => {
-        const isCharging = charging.get();
-        return (v < 0.1 && !isCharging) || (v >= 0.95 && isCharging);
-      })}
-    />
+    <menubutton visible={createBinding(battery, "isPresent")}>
+      <box spacing={5} class="battery">
+        <image iconName={createBinding(battery, "iconName")} />
+        <label label={percent} />
+      </box>
+      <popover>
+        <box orientation={Gtk.Orientation.VERTICAL}>
+          {powerprofiles.get_profiles().map(({ profile }) => (
+            <button onClicked={() => setProfile(profile)}>
+              <label label={profile} xalign={0} />
+            </button>
+          ))}
+        </box>
+      </popover>
+    </menubutton>
   );
 }
+
 function Tray() {
   const tray = AstalTray.get_default();
   const items = createBinding(tray, "items");
@@ -274,12 +302,12 @@ function Tray() {
 function PinBar() {
   return (
     <togglebutton
-      active={barLock}
+      active={globalSettings(({ bar }) => bar.lock)}
       onToggled={({ active }) => {
-        setBarLock(active);
+        setGlobalSetting("bar.lock", active);
       }}
       class="panel-lock icon"
-      label={barLock((lock) => (lock ? "" : ""))}
+      label={globalSettings(({ bar }) => (bar.lock ? "" : ""))}
     />
   );
 }
@@ -289,8 +317,7 @@ function DndToggle() {
 
   // Listen for new notifications when DND is on
   notifd.connect("notified", () => {
-    if (DND.get()) {
-      print("New notification while DND is on");
+    if (globalSettings.peek().notifications.dnd) {
       setHasPing(true);
       // Reset ping after animation completes
       setTimeout(() => setHasPing(false), 600);
@@ -298,23 +325,27 @@ function DndToggle() {
   });
 
   // Reset ping when DND is turned off
-  const dndActive = DND((dnd) => {
-    if (!dnd) {
+  const dndActive = globalSettings(({ notifications }) => {
+    if (!notifications.dnd) {
       setHasPing(false);
     }
-    return dnd;
+    return notifications.dnd;
   });
 
   return (
     <togglebutton
       active={dndActive}
       onToggled={({ active }) => {
-        setDND(active);
+        setGlobalSetting("notifications.dnd", active);
       }}
       // class="dnd-toggle icon"
       class={hasPing((ping) => (ping ? "dnd-toggle active" : "dnd-toggle"))}
     >
-      <label label={DND((dnd) => (dnd ? "" : ""))}></label>
+      <label
+        label={globalSettings(({ notifications }) =>
+          notifications.dnd ? "" : ""
+        )}
+      ></label>
     </togglebutton>
   );
 }
@@ -328,7 +359,8 @@ export default ({
 }) => {
   return (
     <box class="bar-right" spacing={5} halign={halign} hexpand>
-      <BatteryWidget />
+      {/* <BatteryWidget /> */}
+      <Battery />
       <BrightnessWidget />
       <Volume />
       <Tray />

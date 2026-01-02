@@ -4,14 +4,12 @@ import { execAsync } from "ags/process";
 import {
   globalSettings,
   globalTransition,
-  rightPanelWidth,
-  setPingedCrypto,
+  setGlobalSetting,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { readJSONFile, writeJSONFile } from "../../../utils/json";
 import { Eventbox } from "../../Custom/Eventbox";
 import Crypto from "../../Crypto";
-import { setSetting } from "../../../utils/settings";
 
 // Interfaces
 interface CryptoEntry {
@@ -217,7 +215,10 @@ const CryptoEntryItem = ({ entry }: { entry: CryptoEntry }) => {
   };
 
   const pingEntry = () => {
-    setPingedCrypto({ symbol: entry.symbol, timeframe: entry.timeframe });
+    setGlobalSetting("crypto.favorite", {
+      symbol: entry.symbol,
+      timeframe: entry.timeframe,
+    });
     notify({
       summary: "Crypto Display",
       body: `${entry.symbol.toUpperCase()} pinned to top bar`,
@@ -266,8 +267,8 @@ const CryptoEntryItem = ({ entry }: { entry: CryptoEntry }) => {
         </box>
 
         <box class="crypto-widget-container">
-          <With value={rightPanelWidth}>
-            {(width) => (
+          <With value={globalSettings(({ rightPanel }) => rightPanel.width)}>
+            {(width: number) => (
               <Crypto
                 symbol={entry.symbol}
                 timeframe={entry.timeframe}

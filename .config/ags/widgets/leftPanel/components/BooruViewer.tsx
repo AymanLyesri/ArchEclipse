@@ -3,19 +3,9 @@ import { Waifu } from "../../../interfaces/waifu.interface";
 import { execAsync } from "ags/process";
 import { readJson } from "../../../utils/json";
 import {
-  booruApi,
-  booruLimit,
-  booruPage,
-  booruTags,
-  booruColumns,
+  globalSettings,
   globalTransition,
-  leftPanelWidth,
-  setBooruApi,
-  setBooruLimit,
-  setBooruPage,
-  setBooruTags,
-  setBooruColumns,
-  booruBookMarkWaifus,
+  setGlobalSetting,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { createState, createComputed, For, With, Accessor } from "ags";
@@ -42,14 +32,16 @@ const [selectedTab, setSelectedTab] = createState<string>("");
 
 const calculateCacheSize = async () =>
   execAsync(
-    `bash -c "du -sb ${booruPath}/${booruApi.get().value}/previews | cut -f1"`
+    `bash -c "du -sb ${booruPath}/${
+      globalSettings.peek().booru.api.value
+    }/previews | cut -f1"`
   ).then((res) => {
     // Convert bytes to megabytes
     setCacheSize(`${Math.round(Number(res) / (1024 * 1024))}mb`);
   });
 
 const ensureRatingTagFirst = () => {
-  let tags: string[] = booruTags.get();
+  let tags: string[] = globalSettings.peek().booru.tags;
   // Find existing rating tag
   const ratingTag = tags.find((tag) =>
     tag.match(/[-]rating:explicit|rating:explicit/)
@@ -58,15 +50,21 @@ const ensureRatingTagFirst = () => {
   tags = tags.filter((tag) => !tag.match(/[-]rating:explicit|rating:explicit/));
   // Add the previous rating tag at the beginning, or default to "-rating:explicit"
   tags.unshift(ratingTag ?? "-rating:explicit");
-  setBooruTags(tags);
+  setGlobalSetting("booru.tags", tags);
 };
 
 const cleanUp = () => {
   const promises = [
     execAsync(
-      `bash -c "rm -rf ${booruPath}/${booruApi.get().value}/previews/*"`
+      `bash -c "rm -rf ${booruPath}/${
+        globalSettings.peek().booru.api.value
+      }/previews/*"`
     ),
-    execAsync(`bash -c "rm -rf ${booruPath}/${booruApi.get().value}/images/*"`),
+    execAsync(
+      `bash -c "rm -rf ${booruPath}/${
+        globalSettings.peek().booru.api.value
+      }/images/*"`
+    ),
   ];
 
   Promise.all(promises)
@@ -78,103 +76,88 @@ const cleanUp = () => {
       notify({ summary: "Error", body: String(err) });
     });
 };
-
 const fetchImages = async () => {
   try {
     setProgressStatus("loading");
-    const escapedTags = booruTags
-      .get()
-      .map((tag) => tag.replace(/'/g, "'\\''"));
-    const res = await execAsync(
-      `python ./scripts/search-booru.py 
-      --api ${booruApi.get().value} 
-      --tags '${escapedTags.join(",")}' 
-      --limit ${booruLimit.get()} 
-      --page ${booruPage.get()}`
+
+    const settings = globalSettings.peek();
+    const escapedTags = settings.booru.tags.map((t) =>
+      t.replace(/'/g, "'\\''")
     );
 
-    // 2. Process metadata without blocking
-    const newImages: Waifu[] = readJson(res).map((image: Waifu) => ({
-      ...image,
-      api: booruApi.get(),
+    const res = await execAsync(`
+      python ./scripts/search-booru.py \
+        --api ${settings.booru.api.value} \
+        --tags '${escapedTags.join(",")}' \
+        --limit ${settings.booru.limit} \
+        --page ${settings.booru.page}
+    `);
+
+    const images: Waifu[] = readJson(res).map((img: Waifu) => ({
+      ...img,
+      api: settings.booru.api,
     }));
 
-    // 4. Prepare directory in background
-    execAsync(
-      `bash -c "mkdir -p ${booruPath}/${booruApi.get().value}/previews"`
-    ).catch((err) => notify({ summary: "Error", body: String(err) }));
+    await execAsync(`
+      bash -c '
+        set -e
+        DIR="${booruPath}/${settings.booru.api.value}/previews"
+        mkdir -p "$DIR"
 
-    // 5. Download images in parallel
-    const downloadPromises = newImages.map((image) =>
-      execAsync(
-        `bash -c "[ -e "${booruPath}/${booruApi.get().value}/previews/${
-          image.id
-        }.${image.extension}" ] || curl -o "${booruPath}/${
-          booruApi.get().value
-        }/previews/${image.id}.${image.extension}" "${image.preview}""`
-      )
-        .then(() => {
-          return image;
-        })
-        .catch((err) => {
-          notify({ summary: "Error", body: String(err) });
-          return null;
-        })
-    );
+        for img in ${images
+          .map(
+            (i) => `"${i.id}|${i.extension}|${i.preview!.replace(/"/g, '\\"')}"`
+          )
+          .join(" ")}
+        do
+          IFS="|" read -r id ext url <<< "$img"
+          file="$DIR/$id.$ext"
+          [ -f "$file" ] || curl -sSf -o "$file" "$url"
+        done
+      '
+    `);
 
-    // 6. Update UI when all downloads complete
-    Promise.all(downloadPromises).then((downloadedImages) => {
-      // Filter out failed downloads (null values)
-      const successfulDownloads = downloadedImages.filter(
-        (img) => img !== null
-      );
-      setImages(successfulDownloads);
-      calculateCacheSize();
-      setProgressStatus("success");
-    });
+    setImages(images);
+    calculateCacheSize();
+    setProgressStatus("success");
   } catch (err) {
     console.error(err);
     notify({ summary: "Error", body: String(err) });
     setProgressStatus("error");
   }
 };
-
 const fetchBookmarkImages = async () => {
   try {
     setProgressStatus("loading");
 
-    // 5. Download images in parallel
-    const downloadPromises = booruBookMarkWaifus.get().map((image) => {
-      console.table(booruBookMarkWaifus.get());
-      return execAsync(
-        `bash -c "[ -e "${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}" ] || curl -o "${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}" "${image.preview}""`
-      )
-        .then(() => {
-          return image;
-        })
-        .catch((err) => {
-          notify({ summary: "Error", body: String(err) });
-          setProgressStatus("error");
-          return null;
-        });
-    });
+    const bookmarks = globalSettings.peek().booru.bookmarks;
 
-    // 6. Update UI when all downloads complete
-    Promise.all(downloadPromises)
-      .then((downloadedImages) => {
-        // Filter out failed downloads (null values)
-        const successfulDownloads = downloadedImages.filter(
-          (img) => img !== null
-        );
-        setImages(successfulDownloads);
-        calculateCacheSize();
-        setProgressStatus("success");
-      })
-      .catch((err) => {
-        console.error(err);
-        notify({ summary: "Error", body: String(err) });
-        setProgressStatus("error");
-      });
+    await execAsync(`
+      bash -c '
+        set -e
+
+        for img in ${bookmarks
+          .map(
+            (i) =>
+              `"${i.api.value}|${i.id}|${i.extension}|${i.preview!.replace(
+                /"/g,
+                '\\"'
+              )}"`
+          )
+          .join(" ")}
+        do
+          IFS="|" read -r api id ext url <<< "$img"
+          DIR="${booruPath}/$api/previews"
+          mkdir -p "$DIR"
+          file="$DIR/$id.$ext"
+          [ -f "$file" ] || curl -sSf -o "$file" "$url"
+        done
+      '
+    `);
+
+    setImages(bookmarks);
+    calculateCacheSize();
+    setProgressStatus("success");
   } catch (err) {
     console.error(err);
     notify({ summary: "Error", body: String(err) });
@@ -192,8 +175,9 @@ const Tabs = () => (
         label={api.name}
         onToggled={({ active }) => {
           if (active) {
-            setBooruApi(api);
+            setGlobalSetting("booru.api", api);
             setSelectedTab(api.name);
+            fetchImages();
           }
         }}
       />
@@ -216,7 +200,7 @@ const fetchTags = async (tag: string) => {
   const escapedTag = tag.replace(/'/g, "'\\'''");
   const res = await execAsync(
     `python ./scripts/search-booru.py 
-    --api ${booruApi.get().value} 
+    --api ${globalSettings.peek().booru.api.value} 
     --tag '${escapedTag}'`
   );
   setFetchedTags(readJson(res));
@@ -240,10 +224,13 @@ const Images = () => {
     return columns.map((c) => c.items);
   }
 
-  const imageColumns = createComputed([images, booruColumns], (imgs, cols) =>
-    masonry(imgs, cols)
+  const imageColumns = createComputed(
+    [images, globalSettings(({ booru }) => booru.columns)],
+    (imgs, cols) => masonry(imgs, cols)
   );
-  const columnWidth = leftPanelWidth((w) => w / imageColumns.get().length - 10);
+  const columnWidth = globalSettings(
+    ({ leftPanel }) => leftPanel.width / imageColumns.peek().length - 10
+  );
 
   return (
     <scrolledwindow
@@ -302,15 +289,19 @@ const Images = () => {
 
 const PageDisplay = () => (
   <box class="pages" spacing={5} halign={Gtk.Align.CENTER}>
-    <With value={createComputed([booruPage, leftPanelWidth])}>
-      {(computed: [number, number]) => {
+    <With value={globalSettings}>
+      {(settings) => {
         const buttons = [];
-        const totalPagesToShow = computed[1] / 100 + 2;
+        const totalPagesToShow = settings.leftPanel.width / 100 + 2;
 
         // Show "1" button if the current page is greater than 3
-        if (computed[0] > 3) {
+        if (settings.booru.page > 3) {
           buttons.push(
-            <button class="first" label="1" onClicked={() => setBooruPage(1)} />
+            <button
+              class="first"
+              label="1"
+              onClicked={() => setGlobalSetting("booru.page", 1)}
+            />
           );
           buttons.push(<label label={"..."}></label>);
         }
@@ -320,7 +311,7 @@ const PageDisplay = () => (
         // const endPage = Math.max(5, computed[0] + 2);
         let startPage = Math.max(
           1,
-          computed[0] - Math.floor(totalPagesToShow / 2)
+          settings.booru.page - Math.floor(totalPagesToShow / 2)
         );
         let endPage = startPage + totalPagesToShow - 1;
 
@@ -332,9 +323,11 @@ const PageDisplay = () => (
         for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
           buttons.push(
             <button
-              label={pageNum !== computed[0] ? String(pageNum) : ""}
+              label={pageNum !== settings.booru.page ? String(pageNum) : ""}
               onClicked={() =>
-                pageNum !== computed[0] ? setBooruPage(pageNum) : fetchImages()
+                pageNum !== settings.booru.page
+                  ? setGlobalSetting("booru.page", pageNum)
+                  : fetchImages()
               }
             />
           );
@@ -370,7 +363,9 @@ const SliderSetting = ({
       <box spacing={5} halign={Gtk.Align.END}>
         <slider
           value={getValue}
-          widthRequest={leftPanelWidth((width) => width / 2)}
+          widthRequest={globalSettings(
+            (settings) => settings.leftPanel.width / 2
+          )}
           class="slider"
           drawValue={false}
           hexpand
@@ -401,8 +396,8 @@ const SliderSetting = ({
 const LimitDisplay = () => (
   <SliderSetting
     label="Limit"
-    getValue={booruLimit((limit) => limit / 100)}
-    setValue={(v) => setBooruLimit(Math.round(v * 100))}
+    getValue={globalSettings(({ booru }) => booru.limit / 100)}
+    setValue={(v) => setGlobalSetting("booru.limit", Math.round(v * 100))}
     sliderMin={0}
     sliderMax={1}
     sliderStep={0.1}
@@ -413,8 +408,8 @@ const LimitDisplay = () => (
 const ColumnDisplay = () => (
   <SliderSetting
     label="Columns"
-    getValue={booruColumns((columns) => (columns - 1) / 4)}
-    setValue={(v) => setBooruColumns(Math.round(v * 4) + 1)}
+    getValue={globalSettings(({ booru }) => (booru.columns - 1) / 4)}
+    setValue={(v) => setGlobalSetting("booru.columns", Math.round(v * 4) + 1)}
     sliderMin={0}
     sliderMax={1}
     sliderStep={0.25}
@@ -422,7 +417,10 @@ const ColumnDisplay = () => (
   />
 );
 const TagDisplay = () => (
-  <Adw.Clamp class={"tags"} maximumSize={leftPanelWidth((w) => w - 20)}>
+  <Adw.Clamp
+    class={"tags"}
+    maximumSize={globalSettings((settings) => settings.leftPanel.width - 20)}
+  >
     <box widthRequest={100} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <Gtk.FlowBox
         columnSpacing={5}
@@ -436,7 +434,9 @@ const TagDisplay = () => (
               class="tag fetched"
               tooltipText={tag}
               onClicked={() => {
-                setBooruTags([...new Set([...booruTags.get(), tag])]);
+                setGlobalSetting("booru.tags", [
+                  ...new Set([...globalSettings.peek().booru.tags, tag]),
+                ]);
               }}
             >
               <label
@@ -449,8 +449,8 @@ const TagDisplay = () => (
         </For>
       </Gtk.FlowBox>
       <Gtk.FlowBox columnSpacing={5} rowSpacing={5}>
-        <For each={booruTags}>
-          {(tag) =>
+        <For each={globalSettings(({ booru }) => booru.tags)}>
+          {(tag: string) =>
             // match -rating:explicit or rating:explicit
             tag.match(/[-]rating:explicit|rating:explicit/) ? (
               <button
@@ -461,15 +461,15 @@ const TagDisplay = () => (
                     ? "rating:explicit"
                     : "-rating:explicit";
 
-                  const newTags = booruTags
-                    .get()
-                    .filter(
+                  const newTags = globalSettings
+                    .peek()
+                    .booru.tags.filter(
                       (t) => !t.match(/[-]rating:explicit|rating:explicit/)
                     );
 
                   newTags.unshift(newRatingTag);
-                  setBooruTags(newTags);
-                  console.log(booruTags.get());
+                  setGlobalSetting("booru.tags", newTags);
+                  console.log(globalSettings.peek().booru.tags);
                 }}
               >
                 <label
@@ -483,8 +483,10 @@ const TagDisplay = () => (
                 class="tag enabled"
                 tooltipText={tag}
                 onClicked={() => {
-                  const newTags = booruTags.get().filter((t) => t !== tag);
-                  setBooruTags(newTags);
+                  const newTags = globalSettings
+                    .peek()
+                    .booru.tags.filter((t) => t !== tag);
+                  setGlobalSetting("booru.tags", newTags);
                 }}
               >
                 <label
@@ -519,14 +521,14 @@ const Entry = () => {
   };
 
   const addTags = (self: Gtk.Entry) => {
-    const currentTags = booruTags.get();
+    const currentTags = globalSettings.peek().booru.tags;
     const text = self.get_text();
     const newTags = text.split(" ");
 
     // Create a Set to remove duplicates
     const uniqueTags = [...new Set([...currentTags, ...newTags])];
 
-    setBooruTags(uniqueTags);
+    setGlobalSetting("booru.tags", uniqueTags);
   };
 
   return (
@@ -596,9 +598,9 @@ const Bottom = () => {
       <button
         label=""
         onClicked={() => {
-          const currentPage = booruPage.get();
+          const currentPage = globalSettings.peek().booru.page;
           if (currentPage > 1) {
-            setBooruPage(currentPage - 1);
+            setGlobalSetting("booru.page", currentPage - 1);
           }
         }}
         tooltipText={"KEY-LEFT"}
@@ -617,8 +619,8 @@ const Bottom = () => {
       <button
         label=""
         onClicked={() => {
-          const currentPage = booruPage.get();
-          setBooruPage(currentPage + 1);
+          const currentPage = globalSettings.peek().booru.page;
+          setGlobalSetting("booru.page", currentPage + 1);
         }}
         tooltipText={"KEY-RIGHT"}
       />
@@ -632,6 +634,10 @@ const Bottom = () => {
     </box>
   );
 };
+
+const [page, setPage] = createState<number>(1);
+const [tags, setTags] = createState<string[]>([]);
+const [limit, setLimit] = createState<number>(100);
 
 export default () => {
   return (
@@ -652,14 +658,14 @@ export default () => {
             return true;
           }
           if (keyval === Gdk.KEY_Right) {
-            const currentPage = booruPage.get();
-            setBooruPage(currentPage + 1);
+            const currentPage = globalSettings.peek().booru.page;
+            setGlobalSetting("booru.page", currentPage + 1);
             return true;
           }
           if (keyval === Gdk.KEY_Left) {
-            const currentPage = booruPage.get();
+            const currentPage = globalSettings.peek().booru.page;
             if (currentPage > 1) {
-              setBooruPage(currentPage - 1);
+              setGlobalSetting("booru.page", currentPage - 1);
             }
             return true;
           }
@@ -669,14 +675,24 @@ export default () => {
 
         // Initial fetch
         ensureRatingTagFirst();
-        setSelectedTab(booruApi.get().name);
-        booruPage.subscribe(() => fetchImages());
-        booruTags.subscribe(() => fetchImages());
-        booruApi.subscribe(() => fetchImages());
-        booruLimit.subscribe(() => fetchImages());
-        booruBookMarkWaifus.subscribe(() => {
-          if (selectedTab.get() === "Bookmarks") {
-            fetchBookmarkImages();
+        setSelectedTab(globalSettings.peek().booru.api.name);
+        fetchImages();
+
+        globalSettings.subscribe(() => {
+          if (globalSettings.peek().booru.page !== page.peek()) {
+            setPage(globalSettings.peek().booru.page);
+            fetchImages();
+          }
+          if (globalSettings.peek().booru.limit !== limit.peek()) {
+            setLimit(globalSettings.peek().booru.limit);
+            fetchImages();
+          }
+          if (
+            globalSettings.peek().booru.tags.toString() !==
+            tags.peek().toString()
+          ) {
+            setTags(globalSettings.peek().booru.tags);
+            fetchImages();
           }
         });
       }}

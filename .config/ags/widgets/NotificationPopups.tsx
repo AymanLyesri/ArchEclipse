@@ -5,7 +5,7 @@ import Astal from "gi://Astal?version=4.0";
 import Notifd from "gi://AstalNotifd";
 import Notification from "./rightPanel/components/Notification";
 import { createState, createComputed, For, Accessor } from "ags";
-import { DND, globalMargin } from "../variables";
+import { globalMargin, globalSettings } from "../variables";
 
 // see comment below in constructor
 const TIMEOUT_DELAY = 3000;
@@ -43,7 +43,7 @@ class NotificationMap {
     // notifd.ignoreTimeout = true
 
     notifd.connect("notified", (_, id) => {
-      if (DND.get()) return;
+      if (globalSettings.peek().notifications.dnd) return;
       // this.clearOldNotifications(); // Clear old notifications before adding new one
 
       let timeoutId: number | null = null;

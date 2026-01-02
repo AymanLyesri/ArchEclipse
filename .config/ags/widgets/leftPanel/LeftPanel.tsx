@@ -4,23 +4,16 @@ import Gdk from "gi://Gdk?version=4.0";
 import Gtk from "gi://Gtk?version=4.0";
 import {
   globalMargin,
+  globalSettings,
   globalTransition,
-  leftPanelExclusivity,
-  leftPanelLock,
-  leftPanelVisibility,
-  setLeftPanelVisibility,
-  leftPanelWidget,
-  setLeftPanelWidget,
-  leftPanelWidth,
-  setLeftPanelWidth,
-  setLeftPanelExclusivity,
-  setLeftPanelLock,
+  setGlobalSetting,
 } from "../../variables";
 import { createBinding, createState, Node, With } from "ags";
 import { Eventbox } from "../Custom/Eventbox";
 import { getMonitorName } from "../../utils/monitor";
 import { hideWindow, WindowActions, Window } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
+import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 
 const WidgetActions = () => {
   return (
@@ -34,10 +27,12 @@ const WidgetActions = () => {
           <togglebutton
             class="widget-selector"
             label={widgetSelector.icon}
-            active={leftPanelWidget((w) => w.name === widgetSelector.name)}
+            active={globalSettings(
+              ({ leftPanel }) => leftPanel.widget.name === widgetSelector.name
+            )}
             onToggled={({ active }) => {
               if (active) {
-                setLeftPanelWidget(widgetSelector);
+                setGlobalSetting("leftPanel.widget", widgetSelector);
               }
             }}
             tooltipMarkup={`Click to select\n<b>${widgetSelector.name}</b>`}
@@ -57,15 +52,13 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
     <WidgetActions />
     <WindowActions
       windowName={monitorName}
-      windowWidth={leftPanelWidth}
-      setWindowWidth={setLeftPanelWidth}
-      windowExclusivity={leftPanelExclusivity}
-      setWindowExclusivity={setLeftPanelExclusivity}
-      windowLock={leftPanelLock}
-      setWindowLock={setLeftPanelLock}
-      windowVisibility={leftPanelVisibility}
-      setWindowVisibility={setLeftPanelVisibility}
-      maxPanelWidth={1500}
+      windowWidth={globalSettings(({ leftPanel }) => leftPanel.width)}
+      windowSettingKey="leftPanel"
+      windowExclusivity={globalSettings(
+        ({ leftPanel }) => leftPanel.exclusivity
+      )}
+      windowLock={globalSettings(({ leftPanel }) => leftPanel.lock)}
+      windowVisibility={globalSettings(({ leftPanel }) => leftPanel.visibility)}
       minPanelWidth={300}
     />
   </box>
@@ -80,10 +73,10 @@ function Panel({ monitorName }: { monitorName: string }) {
         class="main-content"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
-        widthRequest={leftPanelWidth}
+        widthRequest={globalSettings(({ leftPanel }) => leftPanel.width)}
       >
-        <With value={leftPanelWidget}>
-          {(widget) => {
+        <With value={globalSettings(({ leftPanel }) => leftPanel.widget)}>
+          {(widget: WidgetSelector) => {
             const selector = leftPanelWidgetSelectors.find(
               (ws) => ws.name === widget.name
             );
@@ -114,23 +107,25 @@ export default (monitor: Gdk.Monitor) => {
       name={monitorName}
       namespace="left-panel"
       application={App}
-      class={leftPanelExclusivity((exclusivity) =>
-        exclusivity ? "left-panel exclusive" : "left-panel normal"
+      class={globalSettings(({ leftPanel }) =>
+        leftPanel.exclusivity ? "left-panel exclusive" : "left-panel normal"
       )}
       anchor={
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.LEFT |
         Astal.WindowAnchor.BOTTOM
       }
-      exclusivity={leftPanelExclusivity((exclusivity) =>
-        exclusivity ? Astal.Exclusivity.EXCLUSIVE : Astal.Exclusivity.NORMAL
+      exclusivity={globalSettings(({ leftPanel }) =>
+        leftPanel.exclusivity
+          ? Astal.Exclusivity.EXCLUSIVE
+          : Astal.Exclusivity.NORMAL
       )}
       layer={Astal.Layer.TOP}
       keymode={Astal.Keymode.ON_DEMAND}
       marginTop={5}
       marginLeft={globalMargin}
       marginBottom={5}
-      visible={leftPanelVisibility}
+      visible={globalSettings(({ leftPanel }) => leftPanel.visibility)}
       $={(self) => {
         let hideTimeout: NodeJS.Timeout | null = null;
         const windowInstance = new Window();
@@ -139,12 +134,15 @@ export default (monitor: Gdk.Monitor) => {
         const motion = new Gtk.EventControllerMotion();
 
         motion.connect("leave", () => {
-          if (leftPanelLock.get()) return;
+          if (globalSettings.peek().leftPanel.lock) return;
 
           hideTimeout = setTimeout(() => {
             hideTimeout = null;
-            if (!leftPanelLock.get() && !windowInstance.popupIsOpen()) {
-              setLeftPanelVisibility(false);
+            if (
+              !globalSettings.peek().leftPanel.lock &&
+              !windowInstance.popupIsOpen()
+            ) {
+              setGlobalSetting("leftPanel.visibility", false);
             }
           }, 500);
         });
@@ -162,7 +160,7 @@ export default (monitor: Gdk.Monitor) => {
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
-            setLeftPanelVisibility(false);
+            setGlobalSetting("leftPanel.visibility", false);
             widget.hide();
             return true;
           }
@@ -176,14 +174,18 @@ export default (monitor: Gdk.Monitor) => {
 export function LeftPanelVisibility() {
   return (
     <revealer
-      revealChild={leftPanelLock}
+      revealChild={globalSettings(({ leftPanel }) => leftPanel.lock)}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
       transitionDuration={globalTransition}
     >
       <togglebutton
-        active={leftPanelVisibility}
-        label={leftPanelVisibility((v) => (v ? "" : ""))}
-        onToggled={({ active }) => setLeftPanelVisibility(active)}
+        active={globalSettings(({ leftPanel }) => leftPanel.visibility)}
+        label={globalSettings(({ leftPanel }) =>
+          leftPanel.visibility ? "" : ""
+        )}
+        onToggled={({ active }) =>
+          setGlobalSetting("leftPanel.visibility", active)
+        }
         class="panel-trigger"
         tooltipText={"SUPER + L"}
       />

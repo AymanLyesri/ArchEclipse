@@ -2,6 +2,7 @@ import app from "ags/gtk4/app";
 import Gtk from "gi://Gtk?version=4.0";
 import GLib from "gi://GLib";
 import { Accessor, createComputed } from "ags";
+import { setGlobalSetting } from "../variables";
 
 /**
  * Window utility class for managing popup state
@@ -103,26 +104,19 @@ export const connectPopoverEvents = (
 export function WindowActions({
   windowName,
   windowWidth,
-  setWindowWidth,
+  windowSettingKey,
   windowExclusivity,
-  setWindowExclusivity,
   windowLock,
-  setWindowLock,
   windowVisibility,
-  setWindowVisibility,
   maxPanelWidth = 1500,
   minPanelWidth = 250,
 }: {
   windowName: string;
   windowWidth: Accessor<number>;
-  setWindowWidth: (width: number) => void;
+  windowSettingKey: string;
   windowExclusivity: Accessor<boolean>;
-  setWindowExclusivity: (exclusivity: boolean) => void;
   windowLock: Accessor<boolean>;
-  setWindowLock: (lock: boolean) => void;
   windowVisibility: Accessor<boolean>;
-  setWindowVisibility: (visibility: boolean) => void;
-
   maxPanelWidth?: number;
   minPanelWidth?: number;
 }) {
@@ -140,7 +134,8 @@ export function WindowActions({
         class="expand-window"
         onClicked={() => {
           const current = windowWidth.get();
-          setWindowWidth(
+          setGlobalSetting(
+            windowSettingKey + ".width",
             current < maxPanelWidth ? current + 50 : maxPanelWidth
           );
           queueResize(windowName);
@@ -151,7 +146,8 @@ export function WindowActions({
         class="shrink-window"
         onClicked={() => {
           const current = windowWidth.get();
-          setWindowWidth(
+          setGlobalSetting(
+            windowSettingKey + ".width",
             current > minPanelWidth ? current - 50 : minPanelWidth
           );
           queueResize(windowName);
@@ -162,7 +158,7 @@ export function WindowActions({
         class="exclusivity"
         active={windowExclusivity((exclusivity) => !exclusivity)}
         onToggled={({ active }) => {
-          setWindowExclusivity(!active);
+          setGlobalSetting(windowSettingKey + ".exclusivity", !active);
         }}
       />
       <togglebutton
@@ -170,14 +166,14 @@ export function WindowActions({
         class="lock"
         active={windowLock}
         onToggled={({ active }) => {
-          setWindowLock(active);
+          setGlobalSetting(windowSettingKey + ".lock", active);
         }}
       />
       <button
         label=""
         class="close"
         onClicked={() => {
-          setWindowVisibility(false);
+          setGlobalSetting(windowSettingKey + ".visibility", false);
         }}
       />
     </box>

@@ -7,7 +7,7 @@ import Picture from "../../Picture";
 import { Progress } from "../../Progress";
 import Pango from "gi://Pango?version=1.0";
 import Gdk from "gi://Gdk?version=4.0";
-import { leftPanelWidth, globalTransition } from "../../../variables";
+import { globalSettings, globalTransition } from "../../../variables";
 
 const [mangaList, setMangaList] = createState<Manga[]>([]);
 const [selectedManga, setSelectedManga] = createState<Manga | null>(null);
@@ -80,7 +80,6 @@ const fetchPages = async (chapterId: string) => {
       `python3 ${scriptPath} --pages --chapter-id ${chapterId}`
     );
     const data = JSON.parse(output);
-    print(data);
     setPages(data);
     setLoadedPages([]);
     setCurrentTab("Pages");
@@ -148,10 +147,10 @@ const MangaTab = () => (
             <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
               <Picture
                 file={manga.cover_path}
-                height={leftPanelWidth((width: number) =>
+                height={globalSettings(({ leftPanel }) =>
                   manga.cover_width && manga.cover_height
-                    ? (manga.cover_height / manga.cover_width) * width
-                    : width
+                    ? (manga.cover_height / manga.cover_width) * leftPanel.width
+                    : leftPanel.width
                 )}
               />
               <box
@@ -241,10 +240,10 @@ const PagesTab = () => (
             <Picture
               file={page.path || ""}
               // width={page.width}
-              height={leftPanelWidth((width: number) =>
+              height={globalSettings(({ leftPanel }) =>
                 page.width && page.height
-                  ? (page.height / page.width) * width
-                  : width
+                  ? (page.height / page.width) * leftPanel.width
+                  : leftPanel.width
               )}
             />
           )}

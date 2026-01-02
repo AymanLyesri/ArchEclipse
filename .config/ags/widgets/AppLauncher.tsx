@@ -260,7 +260,6 @@ const Entry = () => (
             body: err instanceof Error ? err.message : String(err),
           });
         }
-        print("Results:", Results.get().length);
       }, 100); // 100ms delay
     }}
     onActivate={() => {

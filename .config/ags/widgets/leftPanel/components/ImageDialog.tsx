@@ -1,12 +1,5 @@
 import { exec, execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
-import {
-  booruApi,
-  waifuCurrent,
-  setWaifuCurrent,
-  booruBookMarkWaifus,
-  setBooruBookMarkWaifus,
-} from "../../../variables";
 import { Waifu } from "../../../interfaces/waifu.interface";
 
 import {
@@ -25,6 +18,7 @@ import { Accessor, createState } from "gnim";
 import { Eventbox } from "../../Custom/Eventbox";
 import { booruPath } from "../../../constants/path.constants";
 import Pango from "gi://Pango";
+import { setGlobalSetting } from "../../../variables";
 
 export default ({ image }: { image: Waifu }) => {
   const checkImageDownloaded = (image: Waifu): boolean => {
@@ -47,7 +41,7 @@ export default ({ image }: { image: Waifu }) => {
       image.id,
       `${booruPath}/${image.api.value}/images/${image.id}.${image.extension}`
     );
-    setWaifuCurrent({ ...image });
+    setGlobalSetting("waifu.current", { ...image });
   };
 
   const CopyImage = (image: Waifu) =>

@@ -6,12 +6,10 @@ import { lookupIcon, playerToIcon } from "../../../utils/icon";
 import {
   date_less,
   date_more,
-  dateFormat,
-  setDateFormat,
   focusedClient,
+  globalSettings,
   globalTransition,
-  pingedCrypto,
-  setPingedCrypto,
+  setGlobalSetting,
 } from "../../../variables";
 import { Accessor, createBinding, For, With } from "ags";
 import { createPoll } from "ags/time";
@@ -75,9 +73,12 @@ function Clock() {
   return (
     <Eventbox
       onClick={() => {
-        const currentFormat = dateFormat.get();
+        const currentFormat = globalSettings.peek().dateFormat;
         const currentIndex = dateFormats.indexOf(currentFormat);
-        setDateFormat(dateFormats[(currentIndex + 1) % dateFormats.length]); // Cycle through formats
+        setGlobalSetting(
+          "dateFormat",
+          dateFormats[(currentIndex + 1) % dateFormats.length]
+        ); // Cycle through formats
       }}
     >
       <CustomRevealer trigger={trigger} child={revealer} custom_class="clock" />
@@ -117,12 +118,17 @@ export default ({
 
       <With value={focusedClient}>{(client) => client && <ClientTitle />}</With>
 
-      <With value={pingedCrypto}>
-        {(crypto) =>
+      <With value={globalSettings(({ crypto }) => crypto.favorite)}>
+        {(crypto: { symbol: string; timeframe: string }) =>
           crypto.symbol != "" && (
             <Eventbox
               tooltipText={"click to remove"}
-              onClick={() => setPingedCrypto({ symbol: "", timeframe: "" })}
+              onClick={() =>
+                setGlobalSetting("crypto.favorite", {
+                  symbol: "",
+                  timeframe: "",
+                })
+              }
             >
               <Crypto
                 symbol={crypto.symbol}

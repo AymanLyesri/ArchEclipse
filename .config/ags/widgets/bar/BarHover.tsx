@@ -2,12 +2,7 @@ import App from "ags/gtk4/app";
 import Gtk from "gi://Gtk?version=4.0";
 import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
-import {
-  barLock,
-  barOrientation,
-  barVisibility,
-  setBarVisibility,
-} from "../../variables";
+import { globalSettings, setGlobalSetting } from "../../variables";
 import { createComputed } from "ags";
 
 export default (monitor: Gdk.Monitor) => {
@@ -16,8 +11,8 @@ export default (monitor: Gdk.Monitor) => {
       name="bar-hover"
       application={App}
       gdkmonitor={monitor}
-      anchor={barOrientation((orientation) =>
-        orientation
+      anchor={globalSettings(({ bar }) =>
+        bar.orientation
           ? Astal.WindowAnchor.TOP |
             Astal.WindowAnchor.LEFT |
             Astal.WindowAnchor.RIGHT
@@ -26,14 +21,11 @@ export default (monitor: Gdk.Monitor) => {
             Astal.WindowAnchor.RIGHT
       )}
       exclusivity={Astal.Exclusivity.IGNORE}
-      visible={createComputed([barVisibility, barLock], (v, l) => !v && !l)}
+      visible={globalSettings(({ bar }) => !bar.visibility && !bar.lock)}
       layer={Astal.Layer.TOP}
       $={(self) => {
         const motion = new Gtk.EventControllerMotion();
-        motion.connect("enter", () => {
-          setBarVisibility(true);
-          print("visible", barVisibility.get());
-        });
+        motion.connect("enter", () => {});
         self.add_controller(motion);
       }}
     >

@@ -4,35 +4,20 @@ import Gdk from "gi://Gdk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 import Hyprland from "gi://AstalHyprland";
 import GObject from "ags/gobject";
-import {
-  autoWorkspaceSwitching,
-  setAutoWorkspaceSwitching,
-  barLayout,
-  setBarLayout,
-  globalFontSize,
-  setGlobalFontSize,
-  globalMargin,
-  globalOpacity,
-  setGlobalOpacity,
-  globalScale,
-  setGlobalScale,
-  globalSettings,
-  setGlobalSettings,
-  leftPanelWidth,
-  barOrientation,
-  setBarOrientation,
-} from "../../../variables";
 import { createBinding, createState, createComputed, Accessor, For } from "ags";
 import { execAsync } from "ags/process";
-import { getSetting, setSetting } from "../../../utils/settings";
 import { notify } from "../../../utils/notification";
-import {
-  AGSSetting,
-  HyprlandSetting,
-} from "../../../interfaces/settings.interface";
+import { AGSSetting } from "../../../interfaces/settings.interface";
 import { hideWindow } from "../../../utils/window";
 import { barWidgetSelectors } from "../../../constants/widget.constants";
 import { defaultSettings } from "../../../constants/settings.constants";
+import {
+  globalSettings,
+  setGlobalSetting,
+  setGlobalSettings,
+} from "../../../variables";
+import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
+import { refreshCss } from "../../../utils/scss";
 const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
@@ -43,57 +28,71 @@ function moveItem<T>(array: T[], from: number, to: number): T[] {
   copy.splice(to, 0, item);
   return copy;
 }
+// const applyHyprlandSettings = (
+//   settings: NestedSettings,
+//   prefix: string = ""
+// ) => {
+//   Object.entries(settings).forEach(([key, value]) => {
+//     const fullKey = prefix ? `${prefix}.${key}` : key;
+//     if (typeof value === "object" && value !== null && !("type" in value)) {
+//       // nested
+//       applyHyprlandSettings(value as NestedSettings, fullKey);
+//     } else {
+//       // leaf setting
+//       const setting = value as AGSSetting;
+//       const keyArray = fullKey.split(".");
+//       const configString = buildConfigString(keyArray, setting.value);
+//       const hyprKey = keyArray.join(":");
+//       execAsync(
+//         `bash -c "echo -e '${configString}' >${
+//           hyprCustomDir + "/" + keyArray.at(-2) + "." + keyArray.at(-1)
+//         }.conf && hyprctl keyword ${hyprKey} ${setting.value}"`
+//       ).catch((err) => notify(err));
+//     }
+//   });
+// };
 
-function buildConfigString(keys: string[], value: any): string {
-  if (keys.length === 1) return `${keys[0]}=${value}`;
+// const applyHyprlandSettings = (settings: NestedSettings) => {
+//   Object.entries(settings).forEach(([key, value]) => {
+//     if (typeof value === "object" && value !== null && !("type" in value)) {
+//       // nested
+//       applyHyprlandSettings(value as NestedSettings);
+//     } else {
+//       // leaf setting
 
-  const currentKey = keys[0];
-  const nestedConfig = buildConfigString(keys.slice(1), value);
-  return `${currentKey} {\n\t${nestedConfig.replace(/\n/g, "\n\t")}\n}`;
-}
-
-const applyHyprlandSettings = (
-  settings: NestedSettings,
-  prefix: string = ""
-) => {
-  Object.entries(settings).forEach(([key, value]) => {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === "object" && value !== null && !("type" in value)) {
-      // nested
-      applyHyprlandSettings(value as NestedSettings, fullKey);
-    } else {
-      // leaf setting
-      const setting = value as HyprlandSetting;
-      const keyArray = fullKey.split(".");
-      const configString = buildConfigString(keyArray, setting.value);
-      const hyprKey = keyArray.join(":");
-      execAsync(
-        `bash -c "echo -e '${configString}' >${
-          hyprCustomDir + "/" + keyArray.at(-2) + "." + keyArray.at(-1)
-        }.conf && hyprctl keyword ${hyprKey} ${setting.value}"`
-      ).catch((err) => notify(err));
-    }
-  });
-};
+//       const key = fullKey.replace(/\./g, ":");
+//       const setting = value as AGSSetting;
+//       const fullKey = key;
+//       applyHyprlandSetting(key, setting.value);
+//     }
+//   });
+// };
 
 const resetButton = () => {
   const resetSettings = () => {
     //hyprland settings
-    setSetting(
-      "hyprland",
-      defaultSettings.hyprland,
-      globalSettings,
-      setGlobalSettings
-    );
+    const newSettings = { ...globalSettings.peek() };
+    newSettings.hyprland = defaultSettings.hyprland;
+    setGlobalSettings(newSettings);
+
     // ags settings
-    setGlobalOpacity(defaultSettings.globalOpacity);
-    setGlobalScale(defaultSettings.globalScale);
-    setGlobalFontSize(defaultSettings.globalFontSize);
-    setAutoWorkspaceSwitching(defaultSettings.autoWorkspaceSwitching);
-    setBarLayout(defaultSettings.bar.layout);
-    setBarOrientation(defaultSettings.bar.orientation);
+    // setGlobalOpacity(defaultSettings.globalOpacity);
+    // setGlobalScale(defaultSettings.globalScale);
+    // setGlobalFontSize(defaultSettings.globalFontSize);
+    // setAutoWorkspaceSwitching(defaultSettings.autoWorkspaceSwitching);
+    // setBarLayout(defaultSettings.bar.layout);
+    // setBarOrientation(defaultSettings.bar.orientation);
+    setGlobalSetting("ui.opacity", defaultSettings.ui.opacity);
+    setGlobalSetting("ui.scale", defaultSettings.ui.scale);
+    setGlobalSetting("ui.fontSize", defaultSettings.ui.fontSize);
+    setGlobalSetting(
+      "autoWorkspaceSwitching",
+      defaultSettings.autoWorkspaceSwitching
+    );
+    setGlobalSetting("bar.layout", defaultSettings.bar.layout);
+    setGlobalSetting("bar.orientation", defaultSettings.bar.orientation);
     // apply hyprland settings
-    applyHyprlandSettings(defaultSettings.hyprland);
+    // applyHyprlandSettings(defaultSettings.hyprland);
   };
   return (
     <button
@@ -116,8 +115,8 @@ const BarLayoutSetting = () => {
         halign={Gtk.Align.START}
       />
       <box class="setting" spacing={10} hexpand>
-        <For each={barLayout}>
-          {(widget) => {
+        <For each={globalSettings(({ bar }) => bar.layout)}>
+          {(widget: WidgetSelector) => {
             return (
               <togglebutton
                 hexpand
@@ -128,19 +127,21 @@ const BarLayoutSetting = () => {
                 onToggled={({ active }) => {
                   if (active) {
                     // Enable the widget
-                    setBarLayout(
-                      barLayout
+                    setGlobalSetting(
+                      "bar.layout",
+                      globalSettings
                         .peek()
-                        .map((w) =>
+                        .bar.layout.map((w) =>
                           w.name === widget.name ? { ...w, enabled: true } : w
                         )
                     );
                   } else {
                     // Disable the widget
-                    setBarLayout(
-                      barLayout
+                    setGlobalSetting(
+                      "bar.layout",
+                      globalSettings
                         .peek()
-                        .map((w) =>
+                        .bar.layout.map((w) =>
                           w.name === widget.name ? { ...w, enabled: false } : w
                         )
                     );
@@ -158,9 +159,9 @@ const BarLayoutSetting = () => {
 
                   dragSource.connect("prepare", () => {
                     print("DRAG SOURCE PREPARE");
-                    const index = barLayout
-                      .get()
-                      .findIndex((w) => w.name === widget.name);
+                    const index = globalSettings
+                      .peek()
+                      .bar.layout.findIndex((w) => w.name === widget.name);
 
                     const value = new GObject.Value();
                     value.init(GObject.TYPE_INT);
@@ -182,7 +183,7 @@ const BarLayoutSetting = () => {
                     print("DROP TARGET DROP");
                     const fromIndex = value;
 
-                    const widgets = barLayout.get();
+                    const widgets = globalSettings.peek().bar.layout;
                     const toIndex = widgets.findIndex(
                       (w) => w.name === widget.name
                     );
@@ -196,12 +197,15 @@ const BarLayoutSetting = () => {
                         0,
                         widget
                       );
-                      setBarLayout(newLayout);
+                      setGlobalSetting("bar.layout", newLayout);
                       return true;
                     } else {
                       // Reordering
                       if (toIndex === -1 || fromIndex === toIndex) return true;
-                      setBarLayout(moveItem(widgets, fromIndex, toIndex));
+                      setGlobalSetting(
+                        "bar.layout",
+                        moveItem(widgets, fromIndex, toIndex)
+                      );
                       return true;
                     }
                   });
@@ -216,37 +220,39 @@ const BarLayoutSetting = () => {
     </box>
   );
 };
-const Setting = (get: Accessor<AGSSetting>, set: any) => {
-  const title = <label halign={Gtk.Align.START} label={get.peek().name} />;
+const Setting = (
+  keyChanged: string,
+  setting: AGSSetting,
+  callBack?: (newValue?: any) => void
+) => {
+  const title = <label halign={Gtk.Align.START} label={setting.name} />;
 
   const SliderWidget = () => {
     const infoLabel = (
       <label
         hexpand={true}
-        label={get((setting) =>
-          String(
-            setting.type === "int"
-              ? Math.round(setting.value)
-              : setting.value.toFixed(2)
-          )
+        label={String(
+          setting.type === "int"
+            ? Math.round(setting.value ?? 0)
+            : (setting.value ?? 0).toFixed(2)
         )}
       />
     ) as Gtk.Label;
 
     const Slider = (
       <slider
-        widthRequest={leftPanelWidth((width) => width / 2)}
+        widthRequest={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
         class="slider"
         drawValue={false}
-        min={get.peek().min}
-        max={get.peek().max}
-        value={get((setting) => setting.value)}
+        min={setting.min}
+        max={setting.max}
+        value={setting.value ?? 0}
         onValueChanged={(self) => {
           let value = self.get_value();
           infoLabel.label = String(
-            get.peek().type === "int" ? Math.round(value) : value.toFixed(2)
+            setting.type === "int" ? Math.round(value) : value.toFixed(2)
           );
-          switch (get.peek().type) {
+          switch (setting.type) {
             case "int":
               value = Math.round(value);
               break;
@@ -257,10 +263,8 @@ const Setting = (get: Accessor<AGSSetting>, set: any) => {
               break;
           }
 
-          set({
-            ...get.peek(),
-            value,
-          });
+          setGlobalSetting(keyChanged + ".value", value);
+          if (callBack) callBack(value);
         }}
       />
     );
@@ -275,21 +279,17 @@ const Setting = (get: Accessor<AGSSetting>, set: any) => {
 
   const SwitchWidget = () => {
     const infoLabel = (
-      <label
-        hexpand={true}
-        label={get((setting) => (setting.value ? "On" : "Off"))}
-      />
-    );
+      <label hexpand={true} label={setting.value ? "On" : "Off"} />
+    ) as Gtk.Label;
 
     const Switch = (
       <switch
-        active={get((setting) => setting.value)}
+        active={setting.value}
         onNotifyActive={(self) => {
           const active = self.active;
-          set({
-            ...get.peek(),
-            value: active,
-          });
+          setGlobalSetting(keyChanged + ".value", active);
+          infoLabel.label = active ? "On" : "Off";
+          if (callBack) callBack(active);
         }}
       />
     );
@@ -301,84 +301,61 @@ const Setting = (get: Accessor<AGSSetting>, set: any) => {
       </box>
     );
   };
-  console.table(get.peek());
   return (
     <box class="setting" hexpand={true} spacing={5}>
       {title}
 
-      {get.peek().type === "bool" ? <SwitchWidget /> : <SliderWidget />}
+      {setting.type === "bool" ? <SwitchWidget /> : <SliderWidget />}
     </box>
   );
 };
 
 interface NestedSettings {
-  [key: string]: HyprlandSetting | NestedSettings;
+  [key: string]: AGSSetting | NestedSettings;
 }
 
-const createCategory = (key: string, value: NestedSettings) => {
-  const settings: any[] = [];
-  Object.entries(value).forEach(([childKey, childValue]) => {
-    if (typeof childValue === "object" && childValue !== null) {
-      const firstKey = Object.keys(childValue)[0];
-      if (
-        firstKey &&
-        typeof (childValue as NestedSettings)[firstKey] === "object" &&
-        (childValue as NestedSettings)[firstKey] !== null
-      ) {
-        // nested category
-        settings.push(
-          createCategory(`${key}.${childKey}`, childValue as NestedSettings)
-        );
-      } else {
-        // setting
-        const keys = `hyprland.${key}.${childKey}`;
-        const keyArray = keys.split(".");
-        const lastKey = keyArray.at(-1);
-        if (!lastKey) return;
-        const setting = childValue as HyprlandSetting;
-        const get = createComputed(() => ({
-          name: lastKey.charAt(0).toUpperCase() + lastKey.slice(1),
-          value: getSetting(keys + ".value", globalSettings.peek()),
-          type: setting.type,
-          min: setting.min,
-          max: setting.max,
-        }));
-        const set = (newSetting: AGSSetting) => {
-          setSetting(
-            keys + ".value",
-            newSetting.value,
-            globalSettings,
-            setGlobalSettings
-          );
-          const configString = buildConfigString(
-            keyArray.slice(1),
-            newSetting.value
-          );
-          const hyprKey = keyArray.slice(1).join(":");
-          execAsync(
-            `bash -c "echo -e '${configString}' >${
-              hyprCustomDir + "/" + keyArray.at(-2) + "." + keyArray.at(-1)
-            }.conf && hyprctl keyword ${hyprKey} ${newSetting.value}"`
-          ).catch((err) => notify(err));
-        };
-        settings.push(Setting(get, set));
-      }
+const applyHyprlandSetting = (fullKey: string, value: any) => {
+  execAsync(
+    `bash -c "echo -e '${fullKey} = ${value}' > ${hyprCustomDir}/${fullKey}.conf && hyprctl keyword ${fullKey} ${value}"`
+  ).catch((err) => notify(err));
+};
+
+const createHyprlandSettings = (
+  prefix: string,
+  settings: NestedSettings
+): JSX.Element[] => {
+  const result: JSX.Element[] = [];
+
+  Object.entries(settings).forEach(([key, value]) => {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (typeof value === "object" && value !== null && !("type" in value)) {
+      // Nested category
+      result.push(...createHyprlandSettings(fullKey, value as NestedSettings));
+    } else {
+      // Leaf setting
+      const setting = value as AGSSetting;
+      const settingKey = `hyprland.${fullKey}`;
+
+      result.push(
+        Setting(settingKey, setting, (newValue) => {
+          // replace . with :
+          print("Applying Hyprland setting:", fullKey, "=", newValue);
+          const key = fullKey.replace(/\./g, ":");
+          print("Hyprland key:", key);
+          applyHyprlandSetting(key, newValue);
+        })
+      );
     }
   });
-  return (
-    <box class={"category"} orientation={Gtk.Orientation.VERTICAL} spacing={16}>
-      <label
-        label={key.charAt(0).toUpperCase() + key.slice(1)}
-        halign={Gtk.Align.START}
-      />
-      {settings}
-    </box>
-  );
+
+  return result;
 };
 
 export default () => {
-  const hyprlandCategories = Object.entries(globalSettings.peek().hyprland).map(
-    ([key, value]) => createCategory(key, value as NestedSettings)
+  const hyprlandSettings = createHyprlandSettings(
+    "",
+    globalSettings.peek().hyprland
   );
 
   return (
@@ -391,19 +368,37 @@ export default () => {
         >
           <label label="AGS" halign={Gtk.Align.START} />
           <BarLayoutSetting />
-          {Setting(barOrientation, setBarOrientation)}
-          {Setting(globalOpacity, setGlobalOpacity)}
-          {Setting(globalScale, setGlobalScale)}
-          {Setting(globalFontSize, setGlobalFontSize)}
+          {Setting(
+            "bar.orientation",
+            globalSettings.peek().bar.orientation,
+            refreshCss
+          )}
+          {Setting("ui.opacity", globalSettings.peek().ui.opacity, refreshCss)}
+          {Setting("ui.scale", globalSettings.peek().ui.scale, refreshCss)}
+          {Setting(
+            "ui.fontSize",
+            globalSettings.peek().ui.fontSize,
+            refreshCss
+          )}
         </box>
-        {hyprlandCategories}
+        <box
+          class={"category"}
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={16}
+        >
+          <label label="Hyprland" halign={Gtk.Align.START} />
+          {hyprlandSettings}
+        </box>
         <box
           class={"category"}
           orientation={Gtk.Orientation.VERTICAL}
           spacing={16}
         >
           <label label="Custom" halign={Gtk.Align.START} />
-          {Setting(autoWorkspaceSwitching, setAutoWorkspaceSwitching)}
+          {Setting(
+            "autoWorkspaceSwitching",
+            globalSettings.peek().autoWorkspaceSwitching
+          )}
         </box>
         {resetButton()}
       </box>

@@ -4,25 +4,22 @@ import Gdk from "gi://Gdk?version=4.0";
 import Gtk from "gi://Gtk?version=4.0";
 import {
   globalMargin,
+  globalSettings,
   globalTransition,
-  rightPanelExclusivity,
-  rightPanelLock,
-  rightPanelVisibility,
-  setRightPanelVisibility,
-  rightPanelWidgets,
-  setRightPanelWidgets,
-  rightPanelWidth,
-  widgetLimit,
-  setRightPanelWidth,
-  setRightPanelExclusivity,
-  setRightPanelLock,
+  setGlobalSetting,
 } from "../../variables";
 import { createBinding, For, With } from "ags";
 import { Eventbox } from "../Custom/Eventbox";
 import { getMonitorName } from "../../utils/monitor";
-import { hideWindow, WindowActions, queueResize } from "../../utils/window";
+import {
+  hideWindow,
+  WindowActions,
+  queueResize,
+  Window,
+} from "../../utils/window";
 import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 import GObject from "ags/gobject";
+import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 
 function moveItem<T>(array: T[], from: number, to: number): T[] {
   const copy = [...array];
@@ -38,8 +35,8 @@ const WidgetActions = () => {
       class="widget-actions"
       spacing={5}
     >
-      <For each={rightPanelWidgets}>
-        {(widget) => {
+      <For each={globalSettings(({ rightPanel }) => rightPanel.widgets)}>
+        {(widget: WidgetSelector) => {
           return (
             <togglebutton
               class="widget-selector drag"
@@ -47,18 +44,20 @@ const WidgetActions = () => {
               active={widget.enabled}
               tooltipMarkup={`<b>Hold To Drag</b>\n${widget.name}`}
               onToggled={({ active }) => {
-                const current = rightPanelWidgets.get();
+                const current = globalSettings.peek().rightPanel.widgets;
                 if (active) {
                   // if (current.length >= widgetLimit) return;
                   // Enable the widget
-                  setRightPanelWidgets(
+                  setGlobalSetting(
+                    "rightPanel.widgets",
                     current.map((w) =>
                       w.name === widget.name ? { ...w, enabled: true } : w
                     )
                   );
                 }
                 if (!active) {
-                  setRightPanelWidgets(
+                  setGlobalSetting(
+                    "rightPanel.widgets",
                     current.map((w) =>
                       w.name === widget.name ? { ...w, enabled: false } : w
                     )
@@ -77,9 +76,11 @@ const WidgetActions = () => {
 
                 dragSource.connect("prepare", () => {
                   print("DRAG SOURCE PREPARE");
-                  const index = rightPanelWidgets
-                    .get()
-                    .findIndex((w) => w.name === widget.name);
+                  const index = globalSettings
+                    .peek()
+                    .rightPanel.widgets.findIndex(
+                      (w) => w.name === widget.name
+                    );
 
                   if (index === -1) return null;
 
@@ -103,14 +104,17 @@ const WidgetActions = () => {
                   print("DROP TARGET DROP");
                   const fromIndex = value;
 
-                  const widgets = rightPanelWidgets.get();
+                  const widgets = globalSettings.peek().rightPanel.widgets;
                   const toIndex = widgets.findIndex(
                     (w) => w.name === widget.name
                   );
 
                   if (toIndex === -1 || fromIndex === toIndex) return true;
 
-                  setRightPanelWidgets(moveItem(widgets, fromIndex, toIndex));
+                  setGlobalSetting(
+                    "rightPanel.widgets",
+                    moveItem(widgets, fromIndex, toIndex)
+                  );
 
                   return true;
                 });
@@ -134,22 +138,23 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
     <WidgetActions />
     <WindowActions
       windowName={monitorName}
-      windowWidth={rightPanelWidth}
-      setWindowWidth={setRightPanelWidth}
-      windowExclusivity={rightPanelExclusivity}
-      setWindowExclusivity={setRightPanelExclusivity}
-      windowLock={rightPanelLock}
-      setWindowLock={setRightPanelLock}
-      windowVisibility={rightPanelVisibility}
-      setWindowVisibility={setRightPanelVisibility}
+      windowWidth={globalSettings(({ rightPanel }) => rightPanel.width)}
+      windowSettingKey="rightPanel"
+      windowExclusivity={globalSettings(
+        ({ rightPanel }) => rightPanel.exclusivity
+      )}
+      windowLock={globalSettings(({ rightPanel }) => rightPanel.lock)}
+      windowVisibility={globalSettings(
+        ({ rightPanel }) => rightPanel.visibility
+      )}
     />
   </box>
 );
 
 function Panel({ monitorName }: { monitorName: string }) {
   /// Get enabled widgets with their components cause `widget()` its not saved in settings file
-  const enabledWidgets = rightPanelWidgets((widgets) => {
-    const enabled = widgets.filter((w) => w.enabled);
+  const enabledWidgets = globalSettings(({ rightPanel }) => {
+    const enabled = rightPanel.widgets.filter((w) => w.enabled);
     //add widget function from constants
     const widgetSelectors = rightPanelWidgetSelectors;
     return enabled
@@ -165,7 +170,7 @@ function Panel({ monitorName }: { monitorName: string }) {
         }
         return null;
       })
-      .filter((w) => w !== null) as typeof widgets;
+      .filter((w) => w !== null) as typeof enabled;
   });
 
   return (
@@ -174,13 +179,16 @@ function Panel({ monitorName }: { monitorName: string }) {
         hexpand
         class="main-content"
         orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-        widthRequest={rightPanelWidth} // ignore action section
+        spacing={5}
+        widthRequest={globalSettings(({ rightPanel }) => rightPanel.width)} // ignore action section
       >
         <For each={enabledWidgets}>
           {(widget) => {
             try {
-              return widget.widget(undefined, rightPanelWidth) as JSX.Element;
+              return widget.widget(
+                undefined,
+                globalSettings(({ rightPanel }) => rightPanel.width - 20)
+              ) as JSX.Element;
             } catch (error) {
               console.error(`Error rendering widget:`, error);
               return (<box />) as JSX.Element;
@@ -203,35 +211,42 @@ export default (monitor: Gdk.Monitor) => {
       name={monitorName}
       namespace="right-panel"
       application={App}
-      class={rightPanelExclusivity((exclusivity) =>
-        exclusivity ? "right-panel exclusive" : "right-panel normal"
+      class={globalSettings(({ rightPanel }) =>
+        rightPanel.exclusivity ? "right-panel exclusive" : "right-panel normal"
       )}
       anchor={
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.RIGHT |
         Astal.WindowAnchor.BOTTOM
       }
-      exclusivity={rightPanelExclusivity((exclusivity) =>
-        exclusivity ? Astal.Exclusivity.EXCLUSIVE : Astal.Exclusivity.NORMAL
+      exclusivity={globalSettings(({ rightPanel }) =>
+        rightPanel.exclusivity
+          ? Astal.Exclusivity.EXCLUSIVE
+          : Astal.Exclusivity.NORMAL
       )}
       layer={Astal.Layer.TOP}
       marginTop={5}
       marginRight={globalMargin}
       marginBottom={5}
       keymode={Astal.Keymode.ON_DEMAND}
-      visible={rightPanelVisibility}
+      visible={globalSettings(({ rightPanel }) => rightPanel.visibility)}
       $={(self) => {
         let hideTimeout: NodeJS.Timeout | null = null;
+        const windowInstance = new Window();
+        (self as any).rightPanelWindow = windowInstance;
 
         const motion = new Gtk.EventControllerMotion();
 
         motion.connect("leave", () => {
-          if (rightPanelLock.get()) return;
+          if (globalSettings.peek().rightPanel.lock) return;
 
           hideTimeout = setTimeout(() => {
             hideTimeout = null;
-            if (!rightPanelLock.get()) {
-              setRightPanelVisibility(false);
+            if (
+              !globalSettings.peek().rightPanel.lock &&
+              !windowInstance.popupIsOpen()
+            ) {
+              setGlobalSetting("rightPanel.visibility", false);
             }
           }, 500);
         });
@@ -249,7 +264,7 @@ export default (monitor: Gdk.Monitor) => {
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
-            setRightPanelVisibility(false);
+            setGlobalSetting("rightPanel.visibility", false);
             widget.hide();
             return true;
           }
@@ -263,14 +278,18 @@ export default (monitor: Gdk.Monitor) => {
 export function RightPanelVisibility() {
   return (
     <revealer
-      revealChild={rightPanelLock}
+      revealChild={globalSettings(({ rightPanel }) => rightPanel.lock)}
       transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
       transitionDuration={globalTransition}
     >
       <togglebutton
-        active={rightPanelVisibility}
-        label={rightPanelVisibility((v) => (v ? "" : ""))}
-        onToggled={({ active }) => setRightPanelVisibility(active)}
+        active={globalSettings(({ rightPanel }) => rightPanel.visibility)}
+        label={globalSettings(({ rightPanel }) =>
+          rightPanel.visibility ? "" : ""
+        )}
+        onToggled={({ active }) =>
+          setGlobalSetting("rightPanel.visibility", active)
+        }
         class="panel-trigger icon"
         tooltipText={"SUPER + R"}
       />

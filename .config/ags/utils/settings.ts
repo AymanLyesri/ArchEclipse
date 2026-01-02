@@ -1,8 +1,6 @@
-import { execAsync } from "ags/process";
 import { readJSONFile, writeJSONFile } from "./json";
 import { Settings } from "../interfaces/settings.interface";
 import { defaultSettings } from "../constants/settings.constants";
-import { Accessor } from "ags";
 
 export const settingsPath = "./assets/settings/settings.json";
 
@@ -72,46 +70,48 @@ export function autoCreateSettings(
   globalSettings: Settings,
   setGlobalSettings: (value: Settings) => void
 ) {
-  print("Checking settings file...");
+  print(`\n############ Auto Creating Settings ###########`);
   try {
     const existingSettings = readJSONFile(settingsPath);
     if (Object.keys(existingSettings).length !== 0) {
-      print("Settings file found, loading...");
+      print("\nSettings file found, loading...");
       setGlobalSettings(deepMergeAuto(defaultSettings, existingSettings));
     } else {
-      print("Settings file is empty, creating default settings...");
+      print("\nSettings file is empty, creating default settings...");
       writeJSONFile(settingsPath, defaultSettings);
       setGlobalSettings(defaultSettings);
     }
   } catch (e) {
-    print("Settings file not found, creating one...");
+    print("\nSettings file not found, creating one...");
     writeJSONFile(settingsPath, defaultSettings);
     setGlobalSettings(defaultSettings);
   }
+
+  print(`\n############ Settings Loaded ###########`);
 }
 
-export function setSetting(
-  key: string,
-  value: any,
-  globalSettings: Accessor<Settings>,
-  setGlobalSettings: (value: Settings) => void
-): any {
-  let o: any = globalSettings.get();
-  key
-    .split(".")
-    .reduce(
-      (o, k, i, arr) => (o[k] = i === arr.length - 1 ? value : o[k] || {}),
-      o
-    );
+// export function setSetting(
+//   key: string,
+//   value: any,
+//   globalSettings: Accessor<Settings>,
+//   setGlobalSettings: (value: Settings) => void
+// ): any {
+//   let o: any = globalSettings.get();
+//   key
+//     .split(".")
+//     .reduce(
+//       (o, k, i, arr) => (o[k] = i === arr.length - 1 ? value : o[k] || {}),
+//       o
+//     );
 
-  setGlobalSettings({ ...o });
-}
+//   setGlobalSettings({ ...o });
+// }
 
-export function getSetting(key: string, globalSettings: Settings): any {
-  // returns the value of the key in the settings
-  return key.split(".").reduce((o: any, k) => o?.[k], globalSettings);
-}
+// export function getSetting(key: string, globalSettings: Settings): any {
+//   // returns the value of the key in the settings
+//   return key.split(".").reduce((o: any, k) => o?.[k], globalSettings);
+// }
 
-export function exportSettings() {
-  execAsync(`bash -c 'cat ${settingsPath} | wl-copy'`);
-}
+// export function exportSettings() {
+//   execAsync(`bash -c 'cat ${settingsPath} | wl-copy'`);
+// }

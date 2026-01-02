@@ -1,26 +1,22 @@
-import {
-  autoCreateSettings,
-  getSetting,
-  setSetting,
-  settingsPath,
-} from "./utils/settings";
+import { autoCreateSettings, settingsPath } from "./utils/settings";
 
 import Hyprland from "gi://AstalHyprland";
 const hyprland = Hyprland.get_default();
 
-import { WidgetSelector } from "./interfaces/widgetSelector.interface";
-import { refreshCss } from "./utils/scss";
+// import { WidgetSelector } from "./interfaces/widgetSelector.interface";
+// import { refreshCss } from "./utils/scss";
 import { createBinding, createState, createComputed } from "ags";
 import { createPoll } from "ags/time";
 import GLib from "gi://GLib";
 import { writeJSONFile } from "./utils/json";
 import { AGSSetting, Settings } from "./interfaces/settings.interface";
-import { Api } from "./interfaces/api.interface";
-import { Waifu } from "./interfaces/waifu.interface";
+// import { Api } from "./interfaces/api.interface";
+// import { Waifu } from "./interfaces/waifu.interface";
 import { phi, phi_min } from "./constants/phi.constants";
 import { defaultSettings } from "./constants/settings.constants";
 import { exec, execAsync } from "ags/process";
 import { switchGlobalTheme } from "./utils/theme";
+import { notify } from "./utils/notification";
 
 export const NOTIFICATION_DELAY = phi * 3000;
 
@@ -28,7 +24,28 @@ const [globalSettings, _setGlobalSettings] =
   createState<Settings>(defaultSettings);
 
 // Initialize settings after creating the state
-autoCreateSettings(globalSettings.get(), setGlobalSettings);
+autoCreateSettings(globalSettings.peek(), setGlobalSettings);
+
+export function setGlobalSetting(keyChanged: string, value: any) {
+  try {
+    let o: any = globalSettings.peek();
+    keyChanged
+      .split(".")
+      .reduce(
+        (o, k, i, arr) => (o[k] = i === arr.length - 1 ? value : o[k] || {}),
+        o
+      );
+
+    _setGlobalSettings({ ...o });
+    writeJSONFile(settingsPath, o);
+  } catch (e) {
+    print(`Error setting global setting ${keyChanged}: ${e}`);
+    notify({
+      summary: "Error",
+      body: `Error setting global setting ${keyChanged}: ${e}`,
+    });
+  }
+}
 
 function setGlobalSettings(value: Settings) {
   _setGlobalSettings(value);
@@ -36,59 +53,23 @@ function setGlobalSettings(value: Settings) {
 }
 export { globalSettings, setGlobalSettings };
 
-function printAllSettings(_: any) {
-  console.log("=== Global Settings ===");
-  console.log(JSON.stringify(_.get(), null, 2));
-}
+export const focusedClient = createBinding(hyprland, "focusedClient");
+export const emptyWorkspace = focusedClient((client) => !client);
+export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
 
-export { printAllSettings };
+export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));
+export const globalTransition = phi * 300;
 
-const [globalOpacity, _setGlobalOpacity] = createState<AGSSetting>(
-  getSetting("globalOpacity", globalSettings.get())
+export const date_less = createPoll(
+  "",
+  phi * 1000,
+  () => GLib.DateTime.new_now_local().format(globalSettings.peek().dateFormat)!
 );
-
-function setGlobalOpacity(value: AGSSetting) {
-  _setGlobalOpacity(value);
-  setSetting("globalOpacity", value, globalSettings, setGlobalSettings);
-  refreshCss();
-}
-
-export { globalOpacity, setGlobalOpacity };
-
-const [globalScale, _setGlobalScale] = createState<AGSSetting>(
-  getSetting("globalScale", globalSettings.get())
+export const date_more = createPoll(
+  "",
+  phi * 1000,
+  () => GLib.DateTime.new_now_local().format(" %b %e, %A. ")!
 );
-function setGlobalScale(value: AGSSetting) {
-  _setGlobalScale(value);
-  setSetting("globalScale", value, globalSettings, setGlobalSettings);
-  refreshCss();
-}
-export { globalScale, setGlobalScale };
-
-const [globalFontSize, _setGlobalFontSize] = createState<AGSSetting>(
-  getSetting("globalFontSize", globalSettings.get())
-);
-function setGlobalFontSize(value: AGSSetting) {
-  _setGlobalFontSize(value);
-  setSetting("globalFontSize", value, globalSettings, setGlobalSettings);
-  refreshCss();
-}
-export { globalFontSize, setGlobalFontSize };
-
-const [autoWorkspaceSwitching, _setAutoWorkspaceSwitching] =
-  createState<AGSSetting>(
-    getSetting("autoWorkspaceSwitching", globalSettings.get())
-  );
-function setAutoWorkspaceSwitching(value: AGSSetting) {
-  _setAutoWorkspaceSwitching(value);
-  setSetting(
-    "autoWorkspaceSwitching",
-    value,
-    globalSettings,
-    setGlobalSettings
-  );
-}
-export { autoWorkspaceSwitching, setAutoWorkspaceSwitching };
 
 const [globalTheme, _setGlobalTheme] = createState<boolean>(
   exec([
@@ -103,287 +84,317 @@ function setGlobalTheme(value: boolean) {
 }
 export { globalTheme, setGlobalTheme };
 
-export const globalTransition = phi * 300;
+// const [globalOpacity, _setGlobalOpacity] = createState<AGSSetting>(
+//   getSetting("globalOpacity", globalSettings.get())
+// );
 
-const [dateFormat, _setDateFormat] = createState<string>(
-  getSetting("dateFormat", globalSettings.get())
-);
-export const date_less = createPoll(
-  "",
-  phi * 1000,
-  () => GLib.DateTime.new_now_local().format(dateFormat.get())!
-);
-export const date_more = createPoll(
-  "",
-  phi * 1000,
-  () => GLib.DateTime.new_now_local().format(" %b %e, %A. ")!
-);
-function setDateFormat(value: string) {
-  _setDateFormat(value);
-  setSetting("dateFormat", value, globalSettings, setGlobalSettings);
-}
-export { dateFormat, setDateFormat };
+// function setGlobalOpacity(key: "string", value: AGSSetting) {
+//   _setGlobalOpacity(value);
+//   setSetting("globalOpacity", value, globalSettings, setGlobalSettings);
+//   refreshCss();
+// }
 
-const [barVisibility, _setBarVisibility] = createState<boolean>(
-  getSetting("bar.visibility", globalSettings.get())
-);
-function setBarVisibility(value: boolean) {
-  _setBarVisibility(value);
-  setSetting("bar.visibility", value, globalSettings, setGlobalSettings);
-}
-export { barVisibility, setBarVisibility };
+// export { globalOpacity, setGlobalOpacity };
 
-const [barLock, _setBarLock] = createState<boolean>(
-  getSetting("bar.lock", globalSettings.get())
-);
-function setBarLock(value: boolean) {
-  _setBarLock(value);
-  setSetting("bar.lock", value, globalSettings, setGlobalSettings);
-}
-export { barLock, setBarLock };
+// const [globalScale, _setGlobalScale] = createState<AGSSetting>(
+//   getSetting("globalScale", globalSettings.get())
+// );
+// function setGlobalScale(value: AGSSetting) {
+//   _setGlobalScale(value);
+//   setSetting("globalScale", value, globalSettings, setGlobalSettings);
+//   refreshCss();
+// }
+// export { globalScale, setGlobalScale };
 
-const [barOrientation, _setBarOrientation] = createState<AGSSetting>(
-  getSetting("bar.orientation", globalSettings.get())
-);
-function setBarOrientation(setting: AGSSetting) {
-  _setBarOrientation(setting);
-  setSetting("bar.orientation", setting, globalSettings, setGlobalSettings);
-}
-export { barOrientation, setBarOrientation };
+// const [globalFontSize, _setGlobalFontSize] = createState<AGSSetting>(
+//   getSetting("globalFontSize", globalSettings.get())
+// );
+// function setGlobalFontSize(value: AGSSetting) {
+//   _setGlobalFontSize(value);
+//   setSetting("globalFontSize", value, globalSettings, setGlobalSettings);
+//   refreshCss();
+// }
+// export { globalFontSize, setGlobalFontSize };
 
-const [barLayout, _setBarLayout] = createState<WidgetSelector[]>(
-  getSetting("bar.layout", globalSettings.get())
-);
-function setBarLayout(value: WidgetSelector[]) {
-  _setBarLayout(value);
-  setSetting("bar.layout", value, globalSettings, setGlobalSettings);
-}
-export { barLayout, setBarLayout };
+// const [autoWorkspaceSwitching, _setAutoWorkspaceSwitching] =
+//   createState<AGSSetting>(
+//     getSetting("autoWorkspaceSwitching", globalSettings.get())
+//   );
+// function setAutoWorkspaceSwitching(value: AGSSetting) {
+//   _setAutoWorkspaceSwitching(value);
+//   setSetting(
+//     "autoWorkspaceSwitching",
+//     value,
+//     globalSettings,
+//     setGlobalSettings
+//   );
+// }
+// export { autoWorkspaceSwitching, setAutoWorkspaceSwitching };
 
-const [waifuApi, _setWaifuApi] = createState<Api>(
-  getSetting("waifu.api", globalSettings.get())
-);
-function setWaifuApi(value: Api) {
-  _setWaifuApi(value);
-  setSetting("waifu.api", value, globalSettings, setGlobalSettings);
-}
-export { waifuApi, setWaifuApi };
+// const [dateFormat, _setDateFormat] = createState<string>(
+//   getSetting("dateFormat", globalSettings.get())
+// );
 
-const [waifuCurrent, _setWaifuCurrent] = createState<Waifu>(
-  getSetting("waifu.current", globalSettings.get())
-);
-function setWaifuCurrent(value: Waifu) {
-  _setWaifuCurrent(value);
-  setSetting("waifu.current", value, globalSettings, setGlobalSettings);
-}
-export { waifuCurrent, setWaifuCurrent };
+// function setDateFormat(value: string) {
+//   _setDateFormat(value);
+//   setSetting("dateFormat", value, globalSettings, setGlobalSettings);
+// }
+// export { dateFormat, setDateFormat };
 
-export const focusedClient = createBinding(hyprland, "focusedClient");
-export const emptyWorkspace = focusedClient((client) => !client);
-export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
+// const [barVisibility, _setBarVisibility] = createState<boolean>(
+//   getSetting("bar.visibility", globalSettings.get())
+// );
+// function setBarVisibility(value: boolean) {
+//   _setBarVisibility(value);
+//   setSetting("bar.visibility", value, globalSettings, setGlobalSettings);
+// }
+// export { barVisibility, setBarVisibility };
 
-export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));
+// const [barLock, _setBarLock] = createState<boolean>(
+//   getSetting("bar.lock", globalSettings.get())
+// );
+// function setBarLock(value: boolean) {
+//   _setBarLock(value);
+//   setSetting("bar.lock", value, globalSettings, setGlobalSettings);
+// }
+// export { barLock, setBarLock };
 
-export const [newAppWorkspace, setNewAppWorkspace] = createState(0);
+// const [barOrientation, _setBarOrientation] = createState<AGSSetting>(
+//   getSetting("bar.orientation", globalSettings.get())
+// );
+// function setBarOrientation(setting: AGSSetting) {
+//   _setBarOrientation(setting);
+//   setSetting("bar.orientation", setting, globalSettings, setGlobalSettings);
+// }
+// export { barOrientation, setBarOrientation };
 
-const [rightPanelVisibility, _setRightPanelVisibility] = createState<boolean>(
-  getSetting("rightPanel.visibility", globalSettings.get())
-);
-function setRightPanelVisibility(value: boolean) {
-  _setRightPanelVisibility(value);
-  setSetting("rightPanel.visibility", value, globalSettings, setGlobalSettings);
-}
-export { rightPanelVisibility, setRightPanelVisibility };
+// const [barLayout, _setBarLayout] = createState<WidgetSelector[]>(
+//   getSetting("bar.layout", globalSettings.get())
+// );
+// function setBarLayout(value: WidgetSelector[]) {
+//   _setBarLayout(value);
+//   setSetting("bar.layout", value, globalSettings, setGlobalSettings);
+// }
+// export { barLayout, setBarLayout };
 
-const [rightPanelExclusivity, _setRightPanelExclusivity] = createState<boolean>(
-  getSetting("rightPanel.exclusivity", globalSettings.get())
-);
-function setRightPanelExclusivity(value: boolean) {
-  _setRightPanelExclusivity(value);
-  setSetting(
-    "rightPanel.exclusivity",
-    value,
-    globalSettings,
-    setGlobalSettings
-  );
-}
-export { rightPanelExclusivity, setRightPanelExclusivity };
+// const [waifuApi, _setWaifuApi] = createState<Api>(
+//   getSetting("waifu.api", globalSettings.get())
+// );
+// function setWaifuApi(value: Api) {
+//   _setWaifuApi(value);
+//   setSetting("waifu.api", value, globalSettings, setGlobalSettings);
+// }
+// export { waifuApi, setWaifuApi };
 
-const [rightPanelWidth, _setRightPanelWidth] = createState<number>(
-  getSetting("rightPanel.width", globalSettings.get())
-);
-function setRightPanelWidth(value: number) {
-  _setRightPanelWidth(value);
-  setSetting("rightPanel.width", value, globalSettings, setGlobalSettings);
-}
-export { rightPanelWidth, setRightPanelWidth };
+// const [waifuCurrent, _setWaifuCurrent] = createState<Waifu>(
+//   getSetting("waifu.current", globalSettings.get())
+// );
+// function setWaifuCurrent(value: Waifu) {
+//   _setWaifuCurrent(value);
+//   setSetting("waifu.current", value, globalSettings, setGlobalSettings);
+// }
+// export { waifuCurrent, setWaifuCurrent };
 
-const [rightPanelLock, _setRightPanelLock] = createState<boolean>(
-  getSetting("rightPanel.lock", globalSettings.get())
-);
-function setRightPanelLock(value: boolean) {
-  _setRightPanelLock(value);
-  setSetting("rightPanel.lock", value, globalSettings, setGlobalSettings);
-}
-export { rightPanelLock, setRightPanelLock };
+// export const [newAppWorkspace, setNewAppWorkspace] = createState(0);
 
-const [DND, _setDND] = createState<boolean>(
-  getSetting("notifications.dnd", globalSettings.get())
-);
-function setDND(value: boolean) {
-  _setDND(value);
-  setSetting("notifications.dnd", value, globalSettings, setGlobalSettings);
-}
-export { DND, setDND };
+// const [rightPanelVisibility, _setRightPanelVisibility] = createState<boolean>(
+//   getSetting("rightPanel.visibility", globalSettings.get())
+// );
+// function setRightPanelVisibility(value: boolean) {
+//   _setRightPanelVisibility(value);
+//   setSetting("rightPanel.visibility", value, globalSettings, setGlobalSettings);
+// }
+// export { rightPanelVisibility, setRightPanelVisibility };
 
-export const widgetLimit = 6;
-const [rightPanelWidgets, _setRightPanelWidgets] = createState<
-  WidgetSelector[]
->(getSetting("rightPanel.widgets", globalSettings.get()));
-function setRightPanelWidgets(value: WidgetSelector[]) {
-  _setRightPanelWidgets(value);
-  setSetting("rightPanel.widgets", value, globalSettings, setGlobalSettings);
-}
-export { rightPanelWidgets, setRightPanelWidgets };
+// const [rightPanelExclusivity, _setRightPanelExclusivity] = createState<boolean>(
+//   getSetting("rightPanel.exclusivity", globalSettings.get())
+// );
+// function setRightPanelExclusivity(value: boolean) {
+//   _setRightPanelExclusivity(value);
+//   setSetting(
+//     "rightPanel.exclusivity",
+//     value,
+//     globalSettings,
+//     setGlobalSettings
+//   );
+// }
+// export { rightPanelExclusivity, setRightPanelExclusivity };
 
-const [leftPanelVisibility, _setLeftPanelVisibility] = createState<boolean>(
-  getSetting("leftPanel.visibility", globalSettings.get())
-);
-function setLeftPanelVisibility(value: boolean) {
-  _setLeftPanelVisibility(value);
-  setSetting("leftPanel.visibility", value, globalSettings, setGlobalSettings);
-}
-export { leftPanelVisibility, setLeftPanelVisibility };
+// const [rightPanelWidth, _setRightPanelWidth] = createState<number>(
+//   getSetting("rightPanel.width", globalSettings.get())
+// );
+// function setRightPanelWidth(value: number) {
+//   _setRightPanelWidth(value);
+//   setSetting("rightPanel.width", value, globalSettings, setGlobalSettings);
+// }
+// export { rightPanelWidth, setRightPanelWidth };
 
-const [leftPanelExclusivity, _setLeftPanelExclusivity] = createState<boolean>(
-  getSetting("leftPanel.exclusivity", globalSettings.get())
-);
-function setLeftPanelExclusivity(value: boolean) {
-  _setLeftPanelExclusivity(value);
-  setSetting("leftPanel.exclusivity", value, globalSettings, setGlobalSettings);
-}
-export { leftPanelExclusivity, setLeftPanelExclusivity };
+// const [rightPanelLock, _setRightPanelLock] = createState<boolean>(
+//   getSetting("rightPanel.lock", globalSettings.get())
+// );
+// function setRightPanelLock(value: boolean) {
+//   _setRightPanelLock(value);
+//   setSetting("rightPanel.lock", value, globalSettings, setGlobalSettings);
+// }
+// export { rightPanelLock, setRightPanelLock };
 
-const [leftPanelWidth, _setLeftPanelWidth] = createState<number>(
-  getSetting("leftPanel.width", globalSettings.get())
-);
-function setLeftPanelWidth(value: number) {
-  _setLeftPanelWidth(value);
-  setSetting("leftPanel.width", value, globalSettings, setGlobalSettings);
-}
-export { leftPanelWidth, setLeftPanelWidth };
+// const [DND, _setDND] = createState<boolean>(
+//   getSetting("notifications.dnd", globalSettings.get())
+// );
+// function setDND(value: boolean) {
+//   _setDND(value);
+//   setSetting("notifications.dnd", value, globalSettings, setGlobalSettings);
+// }
+// export { DND, setDND };
 
-const [leftPanelLock, _setLeftPanelLock] = createState<boolean>(
-  getSetting("leftPanel.lock", globalSettings.get())
-);
-function setLeftPanelLock(value: boolean) {
-  _setLeftPanelLock(value);
-  setSetting("leftPanel.lock", value, globalSettings, setGlobalSettings);
-}
-export { leftPanelLock, setLeftPanelLock };
+// export const widgetLimit = 6;
+// const [rightPanelWidgets, _setRightPanelWidgets] = createState<
+//   WidgetSelector[]
+// >(getSetting("rightPanel.widgets", globalSettings.get()));
+// function setRightPanelWidgets(value: WidgetSelector[]) {
+//   _setRightPanelWidgets(value);
+//   setSetting("rightPanel.widgets", value, globalSettings, setGlobalSettings);
+// }
+// export { rightPanelWidgets, setRightPanelWidgets };
 
-const [leftPanelWidget, _setLeftPanelWidget] = createState<WidgetSelector>(
-  getSetting("leftPanel.widget", globalSettings.get())
-);
-function setLeftPanelWidget(value: WidgetSelector) {
-  _setLeftPanelWidget(value);
-  setSetting("leftPanel.widget", value, globalSettings, setGlobalSettings);
-}
-export { leftPanelWidget, setLeftPanelWidget };
+// const [leftPanelVisibility, _setLeftPanelVisibility] = createState<boolean>(
+//   getSetting("leftPanel.visibility", globalSettings.get())
+// );
+// function setLeftPanelVisibility(value: boolean) {
+//   _setLeftPanelVisibility(value);
+//   setSetting("leftPanel.visibility", value, globalSettings, setGlobalSettings);
+// }
+// export { leftPanelVisibility, setLeftPanelVisibility };
 
-const [chatBotApi, _setChatBotApi] = createState<Api>(
-  getSetting("chatBot.api", globalSettings.get())
-);
-function setChatBotApi(value: Api) {
-  _setChatBotApi(value);
-  setSetting("chatBot.api", value, globalSettings, setGlobalSettings);
-}
-export { chatBotApi, setChatBotApi };
+// const [leftPanelExclusivity, _setLeftPanelExclusivity] = createState<boolean>(
+//   getSetting("leftPanel.exclusivity", globalSettings.get())
+// );
+// function setLeftPanelExclusivity(value: boolean) {
+//   _setLeftPanelExclusivity(value);
+//   setSetting("leftPanel.exclusivity", value, globalSettings, setGlobalSettings);
+// }
+// export { leftPanelExclusivity, setLeftPanelExclusivity };
 
-const [booruApi, _setBooruApi] = createState<Api>(
-  getSetting("booru.api", globalSettings.get())
-);
-function setBooruApi(value: Api) {
-  _setBooruApi(value);
-  setSetting("booru.api", value, globalSettings, setGlobalSettings);
-}
-export { booruApi, setBooruApi };
+// const [leftPanelWidth, _setLeftPanelWidth] = createState<number>(
+//   getSetting("leftPanel.width", globalSettings.get())
+// );
+// function setLeftPanelWidth(value: number) {
+//   _setLeftPanelWidth(value);
+//   setSetting("leftPanel.width", value, globalSettings, setGlobalSettings);
+// }
+// export { leftPanelWidth, setLeftPanelWidth };
 
-const [booruTags, _setBooruTags] = createState<string[]>(
-  getSetting("booru.tags", globalSettings.get())
-);
-function setBooruTags(value: string[]) {
-  _setBooruTags(value);
-  setSetting("booru.tags", value, globalSettings, setGlobalSettings);
-}
-export { booruTags, setBooruTags };
+// const [leftPanelLock, _setLeftPanelLock] = createState<boolean>(
+//   getSetting("leftPanel.lock", globalSettings.get())
+// );
+// function setLeftPanelLock(value: boolean) {
+//   _setLeftPanelLock(value);
+//   setSetting("leftPanel.lock", value, globalSettings, setGlobalSettings);
+// }
+// export { leftPanelLock, setLeftPanelLock };
 
-const [booruLimit, _setBooruLimit] = createState<number>(
-  getSetting("booru.limit", globalSettings.get())
-);
-function setBooruLimit(value: number) {
-  _setBooruLimit(value);
-  setSetting("booru.limit", value, globalSettings, setGlobalSettings);
-}
-export { booruLimit, setBooruLimit };
+// const [leftPanelWidget, _setLeftPanelWidget] = createState<WidgetSelector>(
+//   getSetting("leftPanel.widget", globalSettings.get())
+// );
+// function setLeftPanelWidget(value: WidgetSelector) {
+//   _setLeftPanelWidget(value);
+//   setSetting("leftPanel.widget", value, globalSettings, setGlobalSettings);
+// }
+// export { leftPanelWidget, setLeftPanelWidget };
 
-const [booruPage, _setBooruPage] = createState<number>(
-  getSetting("booru.page", globalSettings.get())
-);
-function setBooruPage(value: number) {
-  _setBooruPage(value);
-  setSetting("booru.page", value, globalSettings, setGlobalSettings);
-}
-export { booruPage, setBooruPage };
+// const [chatBotApi, _setChatBotApi] = createState<Api>(
+//   getSetting("chatBot.api", globalSettings.get())
+// );
+// function setChatBotApi(value: Api) {
+//   _setChatBotApi(value);
+//   setSetting("chatBot.api", value, globalSettings, setGlobalSettings);
+// }
+// export { chatBotApi, setChatBotApi };
 
-const [booruColumns, _setBooruColumns] = createState<number>(
-  getSetting("booru.columns", globalSettings.get())
-);
-function setBooruColumns(value: number) {
-  _setBooruColumns(value);
-  setSetting("booru.columns", value, globalSettings, setGlobalSettings);
-}
-export { booruColumns, setBooruColumns };
+// const [booruApi, _setBooruApi] = createState<Api>(
+//   getSetting("booru.api", globalSettings.get())
+// );
+// function setBooruApi(value: Api) {
+//   _setBooruApi(value);
+//   setSetting("booru.api", value, globalSettings, setGlobalSettings);
+// }
+// export { booruApi, setBooruApi };
 
-const [booruBookMarkWaifus, _setBooruBookMarkWaifus] = createState<Waifu[]>(
-  getSetting("booru.bookMarkWaifus", globalSettings.get())
-);
-function setBooruBookMarkWaifus(value: Waifu[]) {
-  _setBooruBookMarkWaifus(value);
-  setSetting("booru.bookMarkWaifus", value, globalSettings, setGlobalSettings);
-}
-export { booruBookMarkWaifus, setBooruBookMarkWaifus };
+// const [booruTags, _setBooruTags] = createState<string[]>(
+//   getSetting("booru.tags", globalSettings.get())
+// );
+// function setBooruTags(value: string[]) {
+//   _setBooruTags(value);
+//   setSetting("booru.tags", value, globalSettings, setGlobalSettings);
+// }
+// export { booruTags, setBooruTags };
 
-const [screenShotVisibility, _setScreenShotVisibility] =
-  createState<boolean>(false);
-function setScreenShotVisibility(value: boolean) {
-  _setScreenShotVisibility(value);
-  if (value) {
-    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 5000 * phi, () => {
-      _setScreenShotVisibility(false);
-      return false;
-    });
-  }
-}
-export { screenShotVisibility, setScreenShotVisibility };
+// const [booruLimit, _setBooruLimit] = createState<number>(
+//   getSetting("booru.limit", globalSettings.get())
+// );
+// function setBooruLimit(value: number) {
+//   _setBooruLimit(value);
+//   setSetting("booru.limit", value, globalSettings, setGlobalSettings);
+// }
+// export { booruLimit, setBooruLimit };
 
-const [pingedCrypto, _setPingedCrypto] = createState<{
-  symbol: string;
-  timeframe: string;
-}>(getSetting("crypto.favorite", globalSettings.get()));
-function setPingedCrypto({
-  symbol,
-  timeframe,
-}: {
-  symbol: string;
-  timeframe: string;
-}) {
-  _setPingedCrypto({ symbol, timeframe });
-  setSetting(
-    "crypto.favorite",
-    { symbol, timeframe },
-    globalSettings,
-    setGlobalSettings
-  );
-}
-export { pingedCrypto, setPingedCrypto };
+// const [booruPage, _setBooruPage] = createState<number>(
+//   getSetting("booru.page", globalSettings.get())
+// );
+// function setBooruPage(value: number) {
+//   _setBooruPage(value);
+//   setSetting("booru.page", value, globalSettings, setGlobalSettings);
+// }
+// export { booruPage, setBooruPage };
+
+// const [booruColumns, _setBooruColumns] = createState<number>(
+//   getSetting("booru.columns", globalSettings.get())
+// );
+// function setBooruColumns(value: number) {
+//   _setBooruColumns(value);
+//   setSetting("booru.columns", value, globalSettings, setGlobalSettings);
+// }
+// export { booruColumns, setBooruColumns };
+
+// const [booruBookMarkWaifus, _setBooruBookMarkWaifus] = createState<Waifu[]>(
+//   getSetting("booru.bookMarkWaifus", globalSettings.get())
+// );
+// function setBooruBookMarkWaifus(value: Waifu[]) {
+//   _setBooruBookMarkWaifus(value);
+//   setSetting("booru.bookMarkWaifus", value, globalSettings, setGlobalSettings);
+// }
+// export { booruBookMarkWaifus, setBooruBookMarkWaifus };
+
+// const [screenShotVisibility, _setScreenShotVisibility] =
+//   createState<boolean>(false);
+// function setScreenShotVisibility(value: boolean) {
+//   _setScreenShotVisibility(value);
+//   if (value) {
+//     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 5000 * phi, () => {
+//       _setScreenShotVisibility(false);
+//       return false;
+//     });
+//   }
+// }
+// export { screenShotVisibility, setScreenShotVisibility };
+
+// const [pingedCrypto, _setPingedCrypto] = createState<{
+//   symbol: string;
+//   timeframe: string;
+// }>(getSetting("crypto.favorite", globalSettings.get()));
+// function setPingedCrypto({
+//   symbol,
+//   timeframe,
+// }: {
+//   symbol: string;
+//   timeframe: string;
+// }) {
+//   _setPingedCrypto({ symbol, timeframe });
+//   setSetting(
+//     "crypto.favorite",
+//     { symbol, timeframe },
+//     globalSettings,
+//     setGlobalSettings
+//   );
+// }
+// export { pingedCrypto, setPingedCrypto };

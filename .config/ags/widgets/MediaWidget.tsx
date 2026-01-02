@@ -18,11 +18,13 @@ const noPlayerFound = () => (
 
 const players = createBinding(mpris, "players");
 
-export default function (
-  width?: Accessor<number> | number,
-  height?: Accessor<number> | number
-) {
-  print(height, width);
+export default function ({
+  width,
+  height,
+}: {
+  width?: Accessor<number> | number;
+  height?: Accessor<number> | number;
+}) {
   return (
     <box>
       <With value={players}>

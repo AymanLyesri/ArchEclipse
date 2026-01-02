@@ -1,23 +1,18 @@
 import app from "ags/gtk4/app";
 import Bar from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
-import RightPanel from "./widgets/rightPanel/RightPanel";
-import RightPanelHover from "./widgets/rightPanel/RightPanelHover";
-import NotificationPopups from "./widgets/NotificationPopups";
-import AppLauncher from "./widgets/AppLauncher";
-import Progress from "./widgets/Progress";
-import UserPanel from "./widgets/UserPanel";
-import WallpaperSwitcher from "./widgets/WallpaperSwitcher";
-import SettingsWidget from "./widgets/leftPanel/components/SettingsWidget";
-import BarHover from "./widgets/bar/BarHover";
-import OSD from "./widgets/OSD";
 import { getMonitorName } from "./utils/monitor";
 import { logTime } from "./utils/time";
+import { compileBinaries } from "./utils/gcc";
+import BarHover from "./widgets/bar/BarHover";
+import RightPanelHover from "./widgets/rightPanel/RightPanelHover";
+import RightPanel from "./widgets/rightPanel/RightPanel";
 import LeftPanel from "./widgets/leftPanel/LeftPanel";
 import LeftPanelHover from "./widgets/leftPanel/LeftPanelHover";
-import { compileBinaries } from "./utils/gcc";
-// import "./services/autoSwitchWorkspace";
-import ScreenShot from "./widgets/ScreenShot";
+import WallpaperSwitcher from "./widgets/WallpaperSwitcher";
+import AppLauncher from "./widgets/AppLauncher";
+import UserPanel from "./widgets/UserPanel";
+import NotificationPopups from "./widgets/NotificationPopups";
 
 const perMonitorDisplay = () =>
   app.get_monitors().map((monitor) => {
@@ -27,7 +22,6 @@ const perMonitorDisplay = () =>
     const widgetInitializers = [
       { name: "Bar", fn: () => Bar(monitor) },
       { name: "BarHover", fn: () => BarHover(monitor) },
-      // { name: "Progress", fn: () => Progress(monitor) },
       { name: "RightPanel", fn: () => RightPanel(monitor) },
       { name: "RightPanelHover", fn: () => RightPanelHover(monitor) },
       { name: "LeftPanel", fn: () => LeftPanel(monitor) },
@@ -36,10 +30,6 @@ const perMonitorDisplay = () =>
       { name: "AppLauncher", fn: () => AppLauncher(monitor) },
       { name: "UserPanel", fn: () => UserPanel(monitor) },
       { name: "WallpaperSwitcher", fn: () => WallpaperSwitcher(monitor) },
-      // { name: "MediaPopups", fn: () => MediaPopups(monitor) },
-      // { name: "SettingsWidget", fn: () => SettingsWidget(monitor) },
-      // { name: "OSD", fn: () => OSD(monitor) },
-      // { name: "ScreenShot", fn: () => ScreenShot(monitor) },
     ];
 
     // Launch each widget independently without waiting

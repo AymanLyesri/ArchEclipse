@@ -5,10 +5,9 @@ import { execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
 import { readJSONFile, writeJSONFile } from "../../../utils/json";
 import {
-  chatBotApi,
-  setChatBotApi,
+  globalSettings,
   globalTransition,
-  leftPanelWidth,
+  setGlobalSetting,
 } from "../../../variables";
 import { chatBotApis } from "../../../constants/api.constants";
 import { Api } from "../../../interfaces/api.interface";
@@ -36,7 +35,9 @@ const [chatBotImageGeneration, setChatBotImageGeneration] =
 
 // Utils
 const getMessageFilePath = () =>
-  `${MESSAGE_FILE_PATH}/${chatBotApi.get().value}/history.json`;
+  `${MESSAGE_FILE_PATH}/${
+    globalSettings.peek().chatBot.api.value
+  }/history.json`;
 
 const formatTextWithCodeBlocks = (text: string) => {
   const parts = text.split(/```(\w*)?\n?([\s\S]*?)```/gs);
@@ -95,19 +96,19 @@ const saveMessages = () => {
 };
 
 const sendMessage = async (message: Message) => {
-  const imagePath = `./assets/chatbot/${chatBotApi.get().value}/images/${
-    message.id
-  }.jpg`;
+  const imagePath = `./assets/chatbot/${
+    globalSettings.peek().chatBot.api.value
+  }/images/${message.id}.jpg`;
 
   // Escape single quotes in message content
   const escapedContent = message.content.replace(/'/g, "'\\''");
   const prompt =
     `tgpt --quiet ` +
-    `${chatBotImageGeneration.get() ? "--img" : ""} ` +
-    `${chatBotImageGeneration.get() ? `--out ${imagePath}` : ""} ` +
-    `--provider ${chatBotApi.get().value} ` +
+    `${chatBotImageGeneration.peek() ? "--img" : ""} ` +
+    `${chatBotImageGeneration.peek() ? `--out ${imagePath}` : ""} ` +
+    `--provider ${globalSettings.peek().chatBot.api.value} ` +
     `--preprompt 'short and straight forward response, 
-        ${JSON.stringify(chatHistory.get())
+        ${JSON.stringify(chatHistory.peek())
           .replace(/'/g, `'"'"'`)
           .replace(/`/g, "\\`")}'` +
     ` '${escapedContent}'`;
@@ -119,16 +120,16 @@ const sendMessage = async (message: Message) => {
     const response = await execAsync(prompt);
     const endTime = Date.now();
 
-    notify({ summary: chatBotApi.get().name, body: response });
+    notify({ summary: globalSettings.peek().chatBot.api.name, body: response });
 
     const newMessage: Message = {
       id: (messages.get().length + 1).toString(),
-      sender: chatBotApi.get().value,
+      sender: globalSettings.peek().chatBot.api.value,
       receiver: "user",
       content: response,
       timestamp: Date.now(),
       responseTime: endTime - beginTime,
-      image: chatBotImageGeneration.get() ? imagePath : undefined,
+      image: chatBotImageGeneration.peek() ? imagePath : undefined,
     };
 
     setMessages([...messages.get(), newMessage]);
@@ -147,10 +148,15 @@ const ApiList = () => (
     {chatBotApis.map((provider) => (
       <togglebutton
         hexpand
-        active={chatBotApi((p) => p.name === provider.name)}
+        active={globalSettings(
+          ({ chatBot }) => chatBot.api.name === provider.name
+        )}
         class="provider"
         onToggled={({ active }) => {
-          if (active) setChatBotApi(provider);
+          if (active) {
+            setGlobalSetting("chatBot.api", provider);
+            fetchMessages();
+          }
         }}
       >
         <label label={provider.name} ellipsize={Pango.EllipsizeMode.END} />
@@ -166,13 +172,13 @@ const Info = () => (
       class="name"
       hexpand
       wrap
-      label={chatBotApi((api) => `[${api.name}]`)}
+      label={globalSettings(({ chatBot }) => `[${chatBot.api.name}]`)}
     />
     <label
       class="description"
       hexpand
       wrap
-      label={chatBotApi((api) => api.description || "")}
+      label={globalSettings(({ chatBot }) => chatBot.api.description || "")}
     />
   </box>
 );
@@ -224,7 +230,7 @@ const MessageItem = ({
       {message.image && (
         <Picture
           contentFit={Gtk.ContentFit.SCALE_DOWN}
-          height={leftPanelWidth}
+          height={globalSettings(({ leftPanel }) => leftPanel.width)}
           file={message.image}
         ></Picture>
       )}
@@ -307,7 +313,9 @@ const ClearButton = () => (
     onClicked={() => {
       setMessages([]);
       execAsync(
-        `rm -rf ${MESSAGE_FILE_PATH}/${chatBotApi.get().value}/images`
+        `rm -rf ${MESSAGE_FILE_PATH}/${
+          globalSettings.peek().chatBot.api.value
+        }/images`
       ).catch((err) => notify({ summary: "err", body: err }));
     }}
   />
@@ -315,7 +323,9 @@ const ClearButton = () => (
 
 const ImageGenerationSwitch = () => (
   <togglebutton
-    sensitive={chatBotApi((api) => api.imageGenerationSupport ?? false)}
+    sensitive={globalSettings(
+      ({ chatBot }) => chatBot.api.imageGenerationSupport ?? false
+    )}
     active={chatBotImageGeneration}
     class="image-generation"
     label=""
@@ -331,7 +341,7 @@ const MessageEntry = () => {
     const newMessage: Message = {
       id: (messages.get().length + 1).toString(),
       sender: "user",
-      receiver: chatBotApi.get().value,
+      receiver: globalSettings.peek().chatBot.api.value,
       content: text,
       timestamp: Date.now(),
     };
@@ -363,8 +373,8 @@ const BottomBar = () => (
 const EnsurePaths = async () => {
   const paths = [
     `${MESSAGE_FILE_PATH}`,
-    `${MESSAGE_FILE_PATH}/${chatBotApi.get().value}`,
-    `${MESSAGE_FILE_PATH}/${chatBotApi.get().value}/images`,
+    `${MESSAGE_FILE_PATH}/${globalSettings.peek().chatBot.api.value}`,
+    `${MESSAGE_FILE_PATH}/${globalSettings.peek().chatBot.api.value}/images`,
   ];
 
   paths.forEach((path) => {
@@ -373,10 +383,6 @@ const EnsurePaths = async () => {
 };
 
 export default () => {
-  chatBotApi.subscribe(() => {
-    EnsurePaths();
-    fetchMessages();
-  });
   messages.subscribe(() => {
     saveMessages();
     // set the last 50 messages to chat history

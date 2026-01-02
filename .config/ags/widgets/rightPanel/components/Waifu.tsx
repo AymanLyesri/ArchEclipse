@@ -1,17 +1,11 @@
 import { createState, createComputed, createBinding, With } from "ags";
 import { execAsync, exec } from "ags/process";
 import {
-  waifuApi,
-  setWaifuApi,
   globalSettings,
-  globalTransition,
-  rightPanelWidth,
-  waifuCurrent,
-  setWaifuCurrent,
+  setGlobalSetting,
   setGlobalSettings,
 } from "../../../variables";
 import Gtk from "gi://Gtk?version=4.0";
-import { getSetting, setSetting } from "../../../utils/settings";
 import { notify } from "../../../utils/notification";
 import { Api } from "../../../interfaces/api.interface";
 import { Waifu } from "../../../interfaces/waifu.interface";
@@ -31,7 +25,7 @@ import { Progress } from "../../Progress";
 import GLib from "gi://GLib?version=2.0";
 import Gio from "gi://Gio?version=2.0";
 import Video from "../../Video";
-import { Eventbox } from "../../Custom/Eventbox";
+
 import { booruPath } from "../../../constants/path.constants";
 const [progressStatus, setProgressStatus] = createState<
   "loading" | "error" | "success" | "idle"
@@ -42,18 +36,18 @@ const GetImageByid = async (id: number) => {
   try {
     const res = await execAsync(
       `python ./scripts/search-booru.py 
-    --api ${waifuApi.get().value} 
+    --api ${globalSettings.peek().waifu.api.value} 
     --id ${id}`
     );
 
     const image: Waifu = readJson(res)[0] as Waifu;
-    image.api = waifuApi.get();
+    image.api = globalSettings.peek().waifu.api;
 
     fetchImage(image)
       .then(() => {
-        setWaifuCurrent({
+        setGlobalSetting("waifu", {
           ...image,
-          api: waifuApi.get(),
+          api: globalSettings.peek().waifu.api,
         });
         setProgressStatus("success");
       })
@@ -81,14 +75,9 @@ function Actions() {
     <entry
       class="input"
       placeholderText="enter post ID"
-      text={getSetting("waifu.input_history", globalSettings.get()) || ""}
+      text={globalSettings.peek().waifu.input_history || ""}
       onActivate={(self) => {
-        setSetting(
-          "waifu.input_history",
-          self.text,
-          globalSettings,
-          setGlobalSettings
-        );
+        setGlobalSetting("waifu.input_history", self.text);
         GetImageByid(Number(self.text));
       }}
     />
@@ -105,14 +94,16 @@ function Actions() {
       <box class="section">
         <togglebutton
           class={"button"}
-          label={waifuCurrent((w) => (bookMarkExists(w) ? "" : ""))}
+          label={globalSettings(({ waifu }) =>
+            bookMarkExists(waifu.current!) ? "" : ""
+          )}
           tooltip-text="Bookmark image"
-          active={waifuCurrent((w) => bookMarkExists(w))}
+          active={globalSettings(({ waifu }) => bookMarkExists(waifu.current!))}
           onClicked={(self) => {
             if (self.active) {
-              bookMarkImage(waifuCurrent.get());
+              bookMarkImage(globalSettings.peek().waifu.current!);
             } else {
-              removeBookMarkImage(waifuCurrent.get());
+              removeBookMarkImage(globalSettings.peek().waifu.current!);
             }
           }}
           hexpand
@@ -121,7 +112,9 @@ function Actions() {
           label=""
           hexpand
           class="pin"
-          onClicked={() => PinImageToTerminal(waifuCurrent.get())}
+          onClicked={() =>
+            PinImageToTerminal(globalSettings.peek().waifu.current!)
+          }
         />
       </box>
       <box class="section">
@@ -129,20 +122,20 @@ function Actions() {
           label=""
           class="open"
           hexpand
-          onClicked={() => OpenImage(waifuCurrent.get())}
+          onClicked={() => OpenImage(globalSettings.peek().waifu.current!)}
         />
         <button
           label=""
           hexpand
           class="browser"
-          onClicked={() => OpenInBrowser(waifuCurrent.get())}
+          onClicked={() => OpenInBrowser(globalSettings.peek().waifu.current!)}
         />
 
         <button
           label=""
           hexpand
           class="copy"
-          onClicked={() => CopyImage(waifuCurrent.get())}
+          onClicked={() => CopyImage(globalSettings.peek().waifu.current!)}
         />
       </box>
       <box class="section">
@@ -216,7 +209,7 @@ function Actions() {
                 })
               );
 
-              setWaifuCurrent({
+              setGlobalSetting("waifu.current", {
                 id: -1,
                 height: Number(height) || 0,
                 width: Number(width) || 0,
@@ -254,11 +247,12 @@ function Actions() {
             hexpand
             class="api"
             label={api.name}
-            active={waifuApi((_api) => _api.value === api.value)}
+            active={globalSettings(
+              ({ waifu }) => waifu.api.value === api.value
+            )}
             onToggled={({ active }) => {
               if (active) {
-                setWaifuApi(api);
-                setSetting("waifu.api", api, globalSettings, setGlobalSettings);
+                setGlobalSetting("waifu.api", api);
               }
             }}
           />
@@ -269,19 +263,17 @@ function Actions() {
 }
 
 function Image() {
-  const imageHeight = createComputed(
-    [waifuCurrent, rightPanelWidth],
-    (current, width) =>
-      current.width && current.height
-        ? (current.height / current.width) * width
-        : width
+  const imageHeight = globalSettings((settings) =>
+    settings.waifu.current.width && settings.waifu.current.height
+      ? (settings.waifu.current.height / settings.waifu.current.width) *
+        settings.rightPanel.width
+      : settings.rightPanel.width
   );
 
   return (
-    <With value={waifuCurrent}>
-      {(w) => {
-        print(w);
-        return w ? (
+    <With value={globalSettings(({ waifu }) => waifu.current)}>
+      {(w: Waifu) => {
+        return w.id ? (
           <overlay class="overlay">
             {w.extension === "mp4" ||
             w.extension === "webm" ||
@@ -290,7 +282,7 @@ function Image() {
             w.extension === "zip" ? (
               <Video
                 class="image"
-                width={rightPanelWidth}
+                width={globalSettings(({ rightPanel }) => rightPanel.width)}
                 file={`${booruPath}/${w.api.value}/images/${w.id}.${w.extension}`}
               />
             ) : (
@@ -329,14 +321,7 @@ export function WaifuVisibility() {
   return (
     <togglebutton
       active={globalSettings((s) => s.waifu.visibility)}
-      onToggled={({ active }) =>
-        setSetting(
-          "waifu.visibility",
-          active,
-          globalSettings,
-          setGlobalSettings
-        )
-      }
+      onToggled={({ active }) => setGlobalSetting("waifu.visibility", active)}
       label="󰉣"
       class="waifu icon"
     />
