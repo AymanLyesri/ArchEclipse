@@ -1,7 +1,8 @@
 #!/bin/bash
 hyprDir=$HOME/.config/hypr # hypr directory
 
-# hyprctl hyprpaper unload all # unload wallpaper
-killall auto.sh              # kill auto.sh
+# Kill existing hyprpaper and auto.sh to prevent memory leak
+killall hyprpaper 2>/dev/null
+killall auto.sh 2>/dev/null
 
 nohup $hyprDir/hyprpaper/load.sh & # load wallpaper

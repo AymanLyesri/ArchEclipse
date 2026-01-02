@@ -18,6 +18,10 @@ all_wallpapers=$HOME/.config/wallpapers/all          # all wallpapers directory
 
 #################################################
 
+# Kill existing hyprpaper instances to prevent memory leak
+killall hyprpaper 2>/dev/null
+sleep 0.5
+
 hyprpaper &
 
 # wait until hyprpaper's IPC socket exists
