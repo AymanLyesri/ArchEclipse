@@ -3,6 +3,9 @@
 file="$(date +'%s_hyprshot.webp')"
 screenshot_dir="$HOME/Pictures/Screenshots"
 
+# create screenshot directory if it doesn't exist
+mkdir -p "$screenshot_dir"
+
 # check if file argument is passed as second argument
 if [[ "$2" ]]; then
     file=$2

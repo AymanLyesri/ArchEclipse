@@ -71,14 +71,14 @@ export const defaultSettings: Settings = {
         },
         size: {
           name: "Blur Size",
-          value: Math.round(phi * 2),
+          value: 4,
           type: "int",
           min: 0,
           max: 10,
         }, // 3 → φ*2 ≈ 3
         passes: {
           name: "Blur Passes",
-          value: Math.round(phi * 2),
+          value: 4,
           type: "int",
           min: 0,
           max: 10,

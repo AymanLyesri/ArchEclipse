@@ -70,6 +70,9 @@ export default function Picture({
         $={(self) => {
           // also capture directly (more reliable)
           pictureRef = self;
+          if ($) {
+            $.call(undefined, self);
+          }
         }}
       />
     </overlay>

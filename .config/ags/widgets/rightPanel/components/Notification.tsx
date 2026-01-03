@@ -41,7 +41,7 @@ function NotificationIcon(n: Notifd.Notification) {
     return <image class="icon" iconName={"dialog-information-symbolic"} />;
 
   return (
-    <Picture file={"/tmp/clipboard_image_20251229_112252.webp"} class="icon" /> //hardcoded for testing
+    <Picture file={notificationIcon} class="icon" /> //hardcoded for testing
   );
 }
 

@@ -31,6 +31,10 @@
 
     .profile-picture {
       border-radius: 50%;
+      background: transparent;
+      .image {
+        border-radius: 50%;
+      }
       margin-bottom: 1rem;
     }
     .user-name,

@@ -13,6 +13,10 @@ import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
 import Picture from "./Picture";
 import NotificationHistory from "./rightPanel/components/NotificationHistory";
+import Gio from "gi://Gio";
+import { notify } from "../utils/notification";
+import GLib from "gi://GLib";
+import { monitorFile } from "ags/file";
 const hyprland = Hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
@@ -42,12 +46,73 @@ const UserPanel = (monitorName: string) => {
     );
 
     const ProfilePicture = (
-      <Picture
-        class={"profile-picture"}
-        file={pfpPath}
-        width={200}
-        height={200}
-      />
+      <button
+        class="profile-picture"
+        onClicked={async (self) => {
+          // setProgressStatus("loading");
+          const dialog = new Gtk.FileDialog({
+            title: "Open Image",
+            modal: true,
+          });
+
+          // Image filter
+          const filter = new Gtk.FileFilter();
+          filter.set_name("Images");
+          filter.add_mime_type("image/png");
+          filter.add_mime_type("image/jpeg");
+          filter.add_mime_type("image/webp");
+
+          dialog.set_default_filter(filter);
+
+          try {
+            const root = self.get_root();
+            if (!(root instanceof Gtk.Window)) return;
+
+            const file: Gio.File = await new Promise((resolve, reject) => {
+              dialog.open(root, null, (dlg, res) => {
+                try {
+                  resolve(dlg!.open_finish(res));
+                } catch (e) {
+                  reject(e);
+                }
+              });
+            });
+
+            if (!file) return;
+
+            const filename = file.get_path();
+            if (!filename) return;
+
+            await execAsync(`bash -c "cp '${filename}' $HOME/.face.icon"`);
+
+            notify({
+              summary: "Success",
+              body: "User picture updated!",
+            });
+            // refresh picture
+            const picture = (self.child as any).getPicture() as Gtk.Picture;
+            picture.set_file(Gio.File.new_for_path(filename));
+            // setProgressStatus("success");
+          } catch (err) {
+            // Gtk.FileDialog throws on cancel — ignore silently
+            if (
+              err instanceof GLib.Error &&
+              err.matches(Gtk.dialog_error_quark(), Gtk.DialogError.CANCELLED)
+            )
+              return;
+
+            // setProgressStatus("error");
+
+            notify({
+              summary: "Error",
+              body: String(err),
+            });
+          }
+        }}
+      >
+        <Picture file={pfpPath} width={200} height={200} />
+      </button>
+
       // </box>
     );
 

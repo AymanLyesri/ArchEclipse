@@ -2,10 +2,14 @@
   .notification-stack {
     @include module;
     padding: 0px;
+    background: transparent;
 
     &:hover {
-      .stack-header .actions button {
-        opacity: 1;
+      background-color: $background-transparent;
+      .stack-header {
+        .actions button {
+          opacity: 1;
+        }
       }
     }
 
@@ -13,6 +17,7 @@
       padding: 5px 5px 0px 5px;
       .stack-title {
         font-weight: bold;
+        font-size: 0.9em;
       }
       .actions button {
         border-radius: 10px 10px 0px 0px;

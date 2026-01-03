@@ -10,7 +10,7 @@ I use Arch BTW.. :)
 
 # Discord
 
-New official [Discord](https://discord.gg/fMGt4vH6s5) server.
+Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 
 # Design Philosophy
 
@@ -22,7 +22,7 @@ New official [Discord](https://discord.gg/fMGt4vH6s5) server.
 
 # Features
 
-- **Dynamic wallpapers** based on workspaces: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper)
+- **Dynamic wallpapers** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper)
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
 - **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 - Gtk 3 replaced)~~: _these are just some of the features_

@@ -2,17 +2,20 @@
   @include module;
   margin: 0px;
   padding: 5px;
-  transition: opacity 0.5s ease-out; /* Adjust timing */
+  // transition: opacity 0.5s ease-out; /* Adjust timing */
   min-width: 0px;
   min-height: 0px;
 
-  &:hover .top-bar {
-    background-color: $background-secondary;
-    .copy,
-    .lock,
-    .close,
-    .expand {
-      opacity: 1;
+  &:hover {
+    background-color: $background-semi-transparent;
+    .top-bar {
+      // background-color: $background-secondary;
+      .copy,
+      .lock,
+      .close,
+      .expand {
+        opacity: 1;
+      }
     }
   }
 
