@@ -1,4 +1,3 @@
-import hyprland from "gi://AstalHyprland";
 import { createState, createComputed, For } from "ags";
 import { exec, execAsync } from "ags/process";
 import { monitorFile } from "ags/file";
@@ -8,7 +7,6 @@ import Astal from "gi://Astal?version=4.0";
 import { notify } from "../utils/notification";
 import { focusedWorkspace, globalTransition } from "../variables";
 import { getMonitorName } from "../utils/monitor";
-import { hideWindow } from "../utils/window";
 import Picture from "./Picture";
 import Gio from "gi://Gio";
 import { Progress } from "./Progress";
@@ -55,10 +53,6 @@ const FetchWallpapers = async () => {
 };
 
 const [wallpaperType, setWallpaperType] = createState<boolean>(false);
-
-wallpaperType.subscribe(() => {
-  FetchWallpapers();
-});
 
 export function toThumbnailPath(file: string) {
   return file.replace(
@@ -367,10 +361,6 @@ function Display(monitor: string) {
   );
 }
 
-// Initialize
-FetchWallpapers();
-monitorFile("./../wallpapers/custom", FetchWallpapers);
-
 export default (monitor: any) => {
   const monitorName = getMonitorName(monitor.get_display(), monitor)!;
   return (
@@ -386,6 +376,14 @@ export default (monitor: any) => {
         Astal.WindowAnchor.BOTTOM |
         Astal.WindowAnchor.RIGHT
       }
+      $={() => {
+        // Initialize
+        FetchWallpapers();
+        monitorFile("./../wallpapers/custom", FetchWallpapers);
+        wallpaperType.subscribe(() => {
+          FetchWallpapers();
+        });
+      }}
     >
       {Display(monitorName)}
     </window>

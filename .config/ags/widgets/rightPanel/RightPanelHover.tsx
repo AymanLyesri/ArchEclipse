@@ -20,12 +20,7 @@ export default (monitor: Gdk.Monitor) => {
       }
       exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.TOP}
-      visible={globalSettings(
-        ({ rightPanel }) =>
-          !app.get_window(
-            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
-          )!.visible && !rightPanel.lock
-      )}
+      visible={globalSettings(({ rightPanel }) => !rightPanel.lock)}
       $={(self) => {
         const motion = new Gtk.EventControllerMotion();
         motion.connect("enter", () => {

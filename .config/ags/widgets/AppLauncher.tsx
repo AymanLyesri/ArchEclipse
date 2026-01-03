@@ -246,10 +246,13 @@ const Entry = () => (
             if (Results.get().length === 0) {
               setResults([
                 {
-                  app_name: `Try ${text}`,
+                  app_name: `Try ${text} in terminal`,
                   app_icon: "󰋖",
                   app_launch: () =>
-                    hyprland.message_async(`dispatch exec ${text}`, () => {}),
+                    hyprland.message_async(
+                      `dispatch exec kitty 'bash -c "${text}"'`,
+                      () => {}
+                    ),
                 },
               ]);
             }

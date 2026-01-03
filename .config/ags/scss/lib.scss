@@ -34,7 +34,7 @@
   &:hover {
     background: $background;
     border-radius: 10px;
-    transform: scale(1.02) translateY(-5\px); /* Expand height by 10% */
+    transform: scale(1.02) translateY(-2.5px); /* Expand height by 10% */
   }
   &:active {
     transform: scale(1) translateY(0px);

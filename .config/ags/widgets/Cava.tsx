@@ -60,7 +60,7 @@ export default ({
 
   // visibility hysteresis: ignore short silence gaps
   const REVEAL_SHOW_DELAY = 300; // ms before showing on non-empty
-  const REVEAL_HIDE_DELAY = 700; // ms before hiding on empty
+  const REVEAL_HIDE_DELAY = 2000; // ms before hiding on empty
   let visible = false;
   let showTimeoutId: number | null = null;
   let hideTimeoutId: number | null = null;

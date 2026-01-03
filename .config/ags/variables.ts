@@ -15,7 +15,6 @@ import { AGSSetting, Settings } from "./interfaces/settings.interface";
 import { phi, phi_min } from "./constants/phi.constants";
 import { defaultSettings } from "./constants/settings.constants";
 import { exec, execAsync } from "ags/process";
-import { switchGlobalTheme } from "./utils/theme";
 import { notify } from "./utils/notification";
 
 export const NOTIFICATION_DELAY = phi * 3000;
@@ -68,7 +67,7 @@ export const date_less = createPoll(
 export const date_more = createPoll(
   "",
   phi * 1000,
-  () => GLib.DateTime.new_now_local().format(" %b %e, %A. ")!
+  () => GLib.DateTime.new_now_local().format(" %A ·%e %b %Y ")!
 );
 
 const [globalTheme, _setGlobalTheme] = createState<boolean>(
@@ -79,8 +78,15 @@ const [globalTheme, _setGlobalTheme] = createState<boolean>(
   ]).includes("light")
 );
 function setGlobalTheme(value: boolean) {
-  _setGlobalTheme(value);
-  switchGlobalTheme(value);
+  execAsync([
+    "bash",
+    "-c",
+    `$HOME/.config/hypr/theme/scripts/system-theme.sh switch ${
+      value ? "light" : "dark"
+    }`,
+  ]).then(() => {
+    _setGlobalTheme(value);
+  });
 }
 export { globalTheme, setGlobalTheme };
 

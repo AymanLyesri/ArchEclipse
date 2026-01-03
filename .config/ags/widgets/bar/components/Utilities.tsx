@@ -32,7 +32,9 @@ function Theme() {
   return (
     <togglebutton
       active={globalTheme}
-      onToggled={({ active }) => setGlobalTheme(active)}
+      onToggled={({ active }) =>
+        globalTheme.peek() !== active && setGlobalTheme(active)
+      }
       label={globalTheme((theme) => (theme ? "" : ""))}
       class="theme icon"
     />
