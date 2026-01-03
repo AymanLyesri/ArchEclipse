@@ -2,7 +2,6 @@ import { Accessor } from "ags";
 import Adw from "gi://Adw?version=1";
 import Gio from "gi://Gio?version=2.0";
 import Gtk from "gi://Gtk?version=4.0";
-import { rightPanelWidth } from "../variables";
 
 interface VideoProps {
   class?: Accessor<string> | string;
@@ -24,7 +23,7 @@ export default function Video({
   return (
     <Adw.Clamp maximumSize={height || width}>
       <Gtk.Video
-        class={"video"}
+        class={className}
         autoplay
         loop
         file={

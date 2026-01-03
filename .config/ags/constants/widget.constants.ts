@@ -4,7 +4,6 @@ import ChatBot from "../widgets/leftPanel/components/ChatBot";
 import CustomScripts from "../widgets/leftPanel/components/CustomScripts";
 import MediaWidget from "../widgets/MediaWidget";
 import Waifu from "../widgets/rightPanel/components/Waifu";
-import NotificationHistory from "../widgets/rightPanel/NotificationHistory";
 
 import Workspaces from "../widgets/bar/components/Workspaces";
 import Information from "../widgets/bar/components/Information";
@@ -16,6 +15,7 @@ import CryptoWidget from "../widgets/rightPanel/components/CryptoWidget";
 import MangaViewer from "../widgets/leftPanel/components/MangaViewer";
 import SettingsWidget from "../widgets/leftPanel/components/SettingsWidget";
 import Calendar from "../widgets/rightPanel/components/Calendar";
+import NotificationHistory from "../widgets/rightPanel/components/NotificationHistory";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {

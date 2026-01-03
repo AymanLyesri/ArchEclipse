@@ -39,12 +39,13 @@ class DanbooruProvider(BooruProvider):
     BASE = "https://danbooru.donmai.us"
     USER = "publicapi"
     KEY = "Pr5ddYN7P889AnM6nq2nhgw1"
+    EXCLUDE_TAGS = ["-animated"]
 
     def fetch_posts(self, tags, post_id="random", page=1, limit=6):
         if post_id == "random":
             url = (
                 f"{self.BASE}/posts.json?"
-                f"limit={limit}&page={page}&tags=+{'+'.join(tags)}"
+                f"limit={limit}&page={page}&tags=+{'+'.join(tags) + '+' + '+'.join(self.EXCLUDE_TAGS)}"
             )
         else:
             url = f"{self.BASE}/posts/{post_id}.json"
@@ -186,6 +187,7 @@ class SafebooruProvider(BooruProvider):
     """
 
     BASE = "https://safebooru.donmai.us"
+    EXCLUDE_TAGS = ["-animated"]
 
     def fetch_posts(
         self,
@@ -198,7 +200,7 @@ class SafebooruProvider(BooruProvider):
         if post_id == "random":
             url = (
                 f"{self.BASE}/posts.json?"
-                f"limit={limit}&page={page}&tags=+{'+'.join(tags)}"
+                f"limit={limit}&page={page}&tags=+{'+'.join(tags) + '+' + '+'.join(self.EXCLUDE_TAGS)}"
             )
         else:
             url = f"{self.BASE}/posts/{post_id}.json"

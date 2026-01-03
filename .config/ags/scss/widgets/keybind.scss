@@ -1,0 +1,14 @@
+.keybind {
+  .binding {
+    border-color: $foreground-secondary;
+    border-top: 1px solid;
+    border-left: 1px solid;
+    border-right: 1px solid;
+    border-bottom: 5px solid;
+
+    // &:hover {
+    //   border-bottom: 10px solid;
+    //   transform: border;
+    // }
+  }
+}

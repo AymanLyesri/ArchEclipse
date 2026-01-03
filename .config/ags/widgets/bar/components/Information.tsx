@@ -23,8 +23,8 @@ import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
 import Cava from "../../Cava";
-import Weather from "../../Weather";
-import Bandwidth from "../../Bandwidth";
+import Weather from "./sub-components/Weather";
+import Bandwidth from "./sub-components/Bandwidth";
 
 const mpris = AstalMpris.get_default();
 

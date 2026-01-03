@@ -1,15 +1,7 @@
 .bar {
-  border-radius: 50px;
+  border-radius: 10px;
   padding: 5px;
   background: $background-transparent;
-
-  &.full {
-    background: $background-transparent;
-  }
-
-  &.empty {
-    background-color: rgba($color: #000000, $alpha: 0.2);
-  }
 
   // Style the panel trigger inside the first child (revealer) of .bar
   > :first-child .panel-trigger {

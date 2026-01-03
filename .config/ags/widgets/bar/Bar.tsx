@@ -43,6 +43,8 @@ export default (monitor: Gdk.Monitor) => {
               Astal.WindowAnchor.RIGHT;
       })}
       marginTop={globalMargin}
+      marginRight={globalMargin}
+      marginLeft={globalMargin}
       visible={createComputed(
         [globalSettings, focusedClient],
         ({ bar }, focusedClient) => {

@@ -43,7 +43,7 @@ alias ls='lsd'
 alias cat='bat'
 
 # Aliases for fastfetch
-fastfetch() {
+fastfetch_refresh() {
     clear
     $HOME/.config/fastfetch/fastfetch.sh
     if zle; then
@@ -51,12 +51,12 @@ fastfetch() {
         zle redisplay
     fi
 }
-alias f=fastfetch
-zle -N fastfetch
-bindkey '^F' fastfetch
+alias f=fastfetch_refresh
+zle -N fastfetch_refresh
+bindkey '^F' fastfetch_refresh
 
-TRAPUSR1() { # fastfetch on signal
-    fastfetch
+TRAPUSR1() { # refresh fastfetch on signal
+    fastfetch_refresh
 }
 
 # Aliase functions

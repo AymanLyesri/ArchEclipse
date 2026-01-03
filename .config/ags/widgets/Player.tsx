@@ -38,7 +38,7 @@ export default ({
     // Calculate bar count based on width
     // You might want to adjust this formula based on your needs
     // Example: 1 bar per 10 pixels, but ensure minimum of 8 bars
-    const calculated = Math.floor(width / 6.9);
+    const calculated = Math.floor(width / 10);
     return Math.max(8, Math.min(calculated, 50)); // Clamp between 8 and 50 bars
   });
 
@@ -177,12 +177,12 @@ export default ({
           )((s) => {
             switch (s) {
               case AstalMpris.PlaybackStatus.PLAYING:
-                return "⏸";
+                return "";
               case AstalMpris.PlaybackStatus.PAUSED:
               case AstalMpris.PlaybackStatus.STOPPED:
-                return "▶";
+                return "";
               default:
-                return "▶";
+                return "";
             }
           })}
         />
@@ -197,7 +197,7 @@ export default ({
         }}
         visible={createBinding(player, "can_go_previous")((c) => c)}
       >
-        <label label="⏮" />
+        <label label="󰒮" />
       </button>
     );
 
@@ -209,7 +209,7 @@ export default ({
         }}
         visible={createBinding(player, "can_go_next")((c) => c)}
       >
-        <label label="⏭" />
+        <label label="󰒭" />
       </button>
     );
     return (

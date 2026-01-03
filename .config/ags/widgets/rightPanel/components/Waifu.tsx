@@ -30,25 +30,27 @@ import { booruPath } from "../../../constants/path.constants";
 const [progressStatus, setProgressStatus] = createState<
   "loading" | "error" | "success" | "idle"
 >("idle");
+const [searchApi, setSearchApi] = createState<Api>(booruApis[0]);
 
 const GetImageByid = async (id: number) => {
   setProgressStatus("loading");
   try {
     const res = await execAsync(
       `python ./scripts/search-booru.py 
-    --api ${globalSettings.peek().waifu.api.value} 
+    --api ${searchApi.peek().value} 
     --id ${id}`
     );
 
+    print("API Response:", res);
+
     const image: Waifu = readJson(res)[0] as Waifu;
-    image.api = globalSettings.peek().waifu.api;
+    image.api = searchApi.peek();
+
+    console.table(image);
 
     fetchImage(image)
       .then(() => {
-        setGlobalSetting("waifu", {
-          ...image,
-          api: globalSettings.peek().waifu.api,
-        });
+        setGlobalSetting("waifu.current", image);
         setProgressStatus("success");
       })
       .catch(() => {
@@ -112,6 +114,12 @@ function Actions() {
           label=""
           hexpand
           class="pin"
+          sensitive={globalSettings(
+            ({ waifu }) =>
+              waifu.current.extension !== "gif" &&
+              waifu.current.extension !== "mp4"
+          )}
+          tooltip-text="Pin image to terminal"
           onClicked={() =>
             PinImageToTerminal(globalSettings.peek().waifu.current!)
           }
@@ -251,12 +259,10 @@ function Actions() {
               hexpand
               class="api"
               label={api.name}
-              active={globalSettings(
-                ({ waifu }) => waifu.api.value === api.value
-              )}
+              active={searchApi((searchApi) => searchApi.value === api.value)}
               onToggled={({ active }) => {
                 if (active) {
-                  setGlobalSetting("waifu.api", api);
+                  setSearchApi(api);
                 }
               }}
             />

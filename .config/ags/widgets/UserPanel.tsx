@@ -2,7 +2,6 @@ import { execAsync, exec } from "ags/process";
 import { createPoll } from "ags/time";
 import MediaWidget from "./MediaWidget";
 
-import NotificationHistory from "./rightPanel/NotificationHistory";
 import App from "ags/gtk4/app";
 import Gtk from "gi://Gtk?version=4.0";
 import Gdk from "gi://Gdk?version=4.0";
@@ -13,6 +12,7 @@ import { date_less, date_more } from "../variables";
 import { hideWindow } from "../utils/window";
 import { getMonitorName } from "../utils/monitor";
 import Picture from "./Picture";
+import NotificationHistory from "./rightPanel/components/NotificationHistory";
 const hyprland = Hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
@@ -164,17 +164,13 @@ const UserPanel = (monitorName: string) => {
       vexpand={true}
       spacing={10}
     >
-      {/* {Resources()} */}
-      {/* {NotificationHistory()} */}
       <NotificationHistory />
-      {/* <label label={"WIP"}></label> */}
       {Date}
     </box>
   );
 
   return (
     <box class="main" spacing={10}>
-      {/* {MediaWidget()} */}
       <MediaWidget />
       {middle}
       {right}

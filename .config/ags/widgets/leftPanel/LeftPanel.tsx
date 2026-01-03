@@ -59,7 +59,7 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
         ({ leftPanel }) => leftPanel.exclusivity
       )}
       windowLock={globalSettings(({ leftPanel }) => leftPanel.lock)}
-      minPanelWidth={300}
+      minPanelWidth={400}
     />
   </box>
 );
