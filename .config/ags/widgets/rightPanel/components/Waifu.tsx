@@ -138,125 +138,130 @@ function Actions() {
           onClicked={() => CopyImage(globalSettings.peek().waifu.current!)}
         />
       </box>
-      <box class="section">
-        <button
-          hexpand
-          label=""
-          class="entry-search"
-          onClicked={() => (Entry as Gtk.Entry).activate()}
-        />
-        {Entry}
-        <button
-          hexpand
-          label={""}
-          class="upload"
-          onClicked={async (self) => {
-            const dialog = new Gtk.FileDialog({
-              title: "Open Image",
-              modal: true,
-            });
-
-            // Image filter
-            const filter = new Gtk.FileFilter();
-            filter.set_name("Images");
-            filter.add_mime_type("image/png");
-            filter.add_mime_type("image/jpeg");
-            filter.add_mime_type("image/webp");
-            filter.add_mime_type("image/gif");
-
-            // dialog.set_filters([filter]);
-            dialog.set_default_filter(filter);
-
-            try {
-              const root = self.get_root();
-              if (!(root instanceof Gtk.Window)) return;
-
-              const file: Gio.File = await new Promise((resolve, reject) => {
-                dialog.open(root, null, (dlg, res) => {
-                  try {
-                    resolve(dlg!.open_finish(res));
-                  } catch (e) {
-                    reject(e);
-                  }
-                });
+      <box class="section" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+        <box>
+          <button
+            hexpand
+            label=""
+            class="entry-search"
+            onClicked={() => (Entry as Gtk.Entry).activate()}
+          />
+          {Entry}
+          <button
+            hexpand
+            label={""}
+            class="upload"
+            onClicked={async (self) => {
+              const dialog = new Gtk.FileDialog({
+                title: "Open Image",
+                modal: true,
               });
 
-              if (!file) return;
+              // Image filter
+              const filter = new Gtk.FileFilter();
+              filter.set_name("Images");
+              filter.add_mime_type("image/png");
+              filter.add_mime_type("image/jpeg");
+              filter.add_mime_type("image/webp");
+              filter.add_mime_type("image/gif");
 
-              const filename = file.get_path();
-              if (!filename) return;
+              // dialog.set_filters([filter]);
+              dialog.set_default_filter(filter);
 
-              const [height, width] = exec(
-                `identify -format "%h %w" "${filename}"`
-              ).split(" ");
+              try {
+                const root = self.get_root();
+                if (!(root instanceof Gtk.Window)) return;
 
-              // create custom booru directory if not exists
-              await execAsync(`mkdir -p "${booruPath}/custom/images"`).catch(
-                (err) =>
+                const file: Gio.File = await new Promise((resolve, reject) => {
+                  dialog.open(root, null, (dlg, res) => {
+                    try {
+                      resolve(dlg!.open_finish(res));
+                    } catch (e) {
+                      reject(e);
+                    }
+                  });
+                });
+
+                if (!file) return;
+
+                const filename = file.get_path();
+                if (!filename) return;
+
+                const [height, width] = exec(
+                  `identify -format "%h %w" "${filename}"`
+                ).split(" ");
+
+                // create custom booru directory if not exists
+                await execAsync(`mkdir -p "${booruPath}/custom/images"`).catch(
+                  (err) =>
+                    notify({
+                      summary: "Error",
+                      body: String(err),
+                    })
+                );
+                await execAsync(
+                  `cp "${filename}" "${booruPath}/custom/images/-1.${filename
+                    .split(".")
+                    .pop()!}"`
+                ).catch((err) =>
                   notify({
                     summary: "Error",
                     body: String(err),
                   })
-              );
-              await execAsync(
-                `cp "${filename}" "${booruPath}/custom/images/-1.${filename
-                  .split(".")
-                  .pop()!}"`
-              ).catch((err) =>
+                );
+
+                setGlobalSetting("waifu.current", {
+                  id: -1,
+                  height: Number(height) || 0,
+                  width: Number(width) || 0,
+                  api: {
+                    name: "Custom",
+                    value: "custom",
+                  } as Api,
+                  extension: filename.split(".").pop()!,
+                  tags: ["custom"],
+                });
+
+                notify({
+                  summary: "Waifu",
+                  body: "Custom image set",
+                });
+              } catch (err) {
+                // Gtk.FileDialog throws on cancel — ignore silently
+                if (
+                  err instanceof GLib.Error &&
+                  err.matches(
+                    Gtk.dialog_error_quark(),
+                    Gtk.DialogError.CANCELLED
+                  )
+                )
+                  return;
+
                 notify({
                   summary: "Error",
                   body: String(err),
-                })
-              );
-
-              setGlobalSetting("waifu.current", {
-                id: -1,
-                height: Number(height) || 0,
-                width: Number(width) || 0,
-                api: {
-                  name: "Custom",
-                  value: "custom",
-                } as Api,
-                extension: filename.split(".").pop()!,
-                tags: ["custom"],
-              });
-
-              notify({
-                summary: "Waifu",
-                body: "Custom image set",
-              });
-            } catch (err) {
-              // Gtk.FileDialog throws on cancel — ignore silently
-              if (
-                err instanceof GLib.Error &&
-                err.matches(Gtk.dialog_error_quark(), Gtk.DialogError.CANCELLED)
-              )
-                return;
-
-              notify({
-                summary: "Error",
-                body: String(err),
-              });
-            }
-          }}
-        />
-      </box>
-      <box class="section">
-        {booruApis.map((api) => (
-          <togglebutton
-            hexpand
-            class="api"
-            label={api.name}
-            active={globalSettings(
-              ({ waifu }) => waifu.api.value === api.value
-            )}
-            onToggled={({ active }) => {
-              if (active) {
-                setGlobalSetting("waifu.api", api);
+                });
               }
             }}
           />
-        ))}
+        </box>
+        <box>
+          {booruApis.map((api) => (
+            <togglebutton
+              hexpand
+              class="api"
+              label={api.name}
+              active={globalSettings(
+                ({ waifu }) => waifu.api.value === api.value
+              )}
+              onToggled={({ active }) => {
+                if (active) {
+                  setGlobalSetting("waifu.api", api);
+                }
+              }}
+            />
+          ))}
+        </box>
       </box>
     </box>
   );

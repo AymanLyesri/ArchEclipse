@@ -45,7 +45,13 @@ export default function Picture({
     >
       <Gtk.Picture
         $type="overlay"
-        class={"image " + className}
+        class={
+          className != undefined
+            ? typeof className === "string"
+              ? "image " + className
+              : className!((c) => "image " + c)
+            : "image"
+        }
         file={
           file != undefined
             ? typeof file === "string"

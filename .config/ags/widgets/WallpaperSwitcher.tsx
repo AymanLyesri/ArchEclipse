@@ -9,6 +9,7 @@ import { focusedWorkspace, globalTransition } from "../variables";
 import { getMonitorName } from "../utils/monitor";
 import Picture from "./Picture";
 import Gio from "gi://Gio";
+import GLib from "gi://GLib?version=2.0";
 import { Progress } from "./Progress";
 import { timeout } from "ags/time";
 
@@ -110,66 +111,69 @@ function Display(monitor: string) {
       <Gtk.Box class="all-wallpapers" spacing={5}>
         <For each={allWallpapers}>
           {(wallpaper, key) => {
+            const handleLeftClick = () => {
+              setProgressStatus("loading");
+              const target = targetType.peek();
+              const command = {
+                sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
+                lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
+                workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${monitor} ${wallpaper}"`,
+              }[target];
+
+              execAsync(command!)
+                .then(() => {
+                  const picture = selectedWorkspaceWidget
+                    .peek()
+                    .child.getPicture() as Gtk.Picture;
+                  if (target === "workspace" && picture) {
+                    picture.file = Gio.File.new_for_path(wallpaper);
+                  }
+                })
+                .finally(() => {
+                  setProgressStatus("success");
+                })
+                .catch((err) => {
+                  setProgressStatus("error");
+                  notify({ summary: "Error", body: String(err) });
+                  throw err;
+                });
+            };
+
+            const handleRightClick = () => {
+              setProgressStatus("loading");
+              execAsync(
+                `bash -c "rm -f '${toThumbnailPath(
+                  wallpaper
+                )}' && rm -f '${wallpaper}'"`
+              )
+                .then(() =>
+                  notify({
+                    summary: "Success",
+                    body: "Wallpaper deleted successfully!",
+                  })
+                )
+                .catch((err) => {
+                  setProgressStatus("error");
+                  notify({ summary: "Error", body: String(err) });
+                  throw err;
+                })
+                .finally(() => {
+                  FetchWallpapers();
+                  setProgressStatus("success");
+                });
+            };
+
             return (
               <button
                 class="wallpaper-button preview"
+                onClicked={handleLeftClick}
                 $={(self) => {
                   const gesture = new Gtk.GestureClick({
-                    button: 0, // 0 = listen to all buttons
+                    button: 3, // Right click only
                   });
 
-                  gesture.connect("pressed", (gesture, nPress, x, y) => {
-                    if (gesture.get_current_button() === 1) {
-                      // Left click
-                      setProgressStatus("loading");
-                      const target = targetType.get();
-                      const command = {
-                        sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
-                        lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
-                        workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.get()} ${monitor} ${wallpaper}"`,
-                      }[target];
-
-                      execAsync(command!)
-                        .then(() => {
-                          const picture = selectedWorkspaceWidget
-                            .get()
-                            .child.getPicture() as Gtk.Picture;
-                          if (target === "workspace" && picture) {
-                            picture.file = Gio.File.new_for_path(wallpaper);
-                          }
-                        })
-                        .finally(() => {
-                          setProgressStatus("success");
-                        })
-                        .catch((err) => {
-                          setProgressStatus("error");
-                          notify({ summary: "Error", body: String(err) });
-                          throw err;
-                        });
-                    } else if (gesture.get_current_button() === 3) {
-                      // Right click
-                      setProgressStatus("loading");
-                      execAsync(
-                        `bash -c "rm -f '${toThumbnailPath(
-                          wallpaper
-                        )}' && rm -f '${wallpaper}'"`
-                      )
-                        .then(() =>
-                          notify({
-                            summary: "Success",
-                            body: "Wallpaper deleted successfully!",
-                          })
-                        )
-                        .catch((err) => {
-                          setProgressStatus("error");
-                          notify({ summary: "Error", body: String(err) });
-                          throw err;
-                        })
-                        .finally(() => {
-                          FetchWallpapers();
-                          setProgressStatus("success");
-                        });
-                    }
+                  gesture.connect("pressed", () => {
+                    handleRightClick();
                   });
 
                   self.add_controller(gesture);
@@ -207,6 +211,7 @@ function Display(monitor: string) {
       valign={Gtk.Align.CENTER}
       class="reload-wallpapers"
       label="󰑐"
+      tooltipMarkup={`Reload <b>HyprPaper</b>`}
       onClicked={() => {
         execAsync('bash -c "$HOME/.config/hypr/hyprpaper/reload.sh"')
           .finally(FetchWallpapers)
@@ -220,21 +225,22 @@ function Display(monitor: string) {
       valign={Gtk.Align.CENTER}
       class="random-wallpaper"
       label=""
+      tooltipMarkup={`Set a <b>Random</b> wallpaper`}
       onClicked={() => {
         setProgressStatus("loading");
         const randomWallpaper =
-          allWallpapers.get()[
-            Math.floor(Math.random() * allWallpapers.get().length)
+          allWallpapers.peek()[
+            Math.floor(Math.random() * allWallpapers.peek().length)
           ];
         execAsync(
-          `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.get()} ${randomWallpaper} ${monitor}"`
+          `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${monitor} ${randomWallpaper}"`
         )
           .finally(() => {
             const newWallpaper = JSON.parse(
               exec(`bash ./scripts/get-wallpapers.sh --current ${monitor}`)
-            )[selectedWorkspaceId.get() - 1];
+            )[selectedWorkspaceId.peek() - 1];
             const picture = selectedWorkspaceWidget
-              .get()
+              .peek()
               .child.getPicture() as Gtk.Picture;
             if (picture) {
               picture.file = Gio.File.new_for_path(newWallpaper);
@@ -276,18 +282,11 @@ function Display(monitor: string) {
 
   const selectedWorkspaceLabel = (
     <label
-      // class="selected-workspace"
-      class={createComputed(
-        [selectedWorkspaceId, targetType],
-        (workspace, targetType) =>
-          // set a timout to add a ping class and remove the class after 2 seconds
-          `selected-workspace }`
-      )}
+      class="selected-workspace"
       label={createComputed(
-        [selectedWorkspaceId, targetType],
-        (workspace, targetType) =>
-          `Wallpaper -> ${targetType} ${
-            targetType === "workspace" ? workspace : ""
+        () =>
+          `Wallpaper -> ${targetType()} ${
+            targetType() === "workspace" ? selectedWorkspaceId() : ""
           }`
       )}
       $={(self) =>
@@ -301,35 +300,76 @@ function Display(monitor: string) {
     />
   );
 
-  // const addWallpaperButton = (
-  //   <button
-  //     label=""
-  //     class="upload"
-  //     onClicked={() => {
-  //       let dialog = new Gtk.FileChooserDialog({
-  //         title: "Open Image",
-  //         action: Gtk.FileChooserAction.OPEN,
-  //       });
-  //       dialog.add_button("Upload", Gtk.ResponseType.OK);
-  //       dialog.add_button("Cancel", Gtk.ResponseType.CANCEL);
-  //       let response = dialog.run();
-  //       if (response == Gtk.ResponseType.OK) {
-  //         let filename = dialog.get_filename();
-  //         execAsync(
-  //           `bash -c "cp '${filename}' $HOME/.config/wallpapers/custom"`
-  //         )
-  //           .then(() =>
-  //             notify({
-  //               summary: "Success",
-  //               body: "Wallpaper added successfully!",
-  //             })
-  //           )
-  //           .catch((err) => notify({ summary: "Error", body: String(err) }));
-  //       }
-  //       dialog.destroy();
-  //     }}
-  //   />
-  // );
+  const addWallpaper = (
+    <button
+      label=""
+      class="upload"
+      tooltipMarkup={`Add a <b>New Custom Wallpaper</b>`}
+      onClicked={async (self) => {
+        setProgressStatus("loading");
+        const dialog = new Gtk.FileDialog({
+          title: "Open Image",
+          modal: true,
+        });
+
+        // Image filter
+        const filter = new Gtk.FileFilter();
+        filter.set_name("Images");
+        filter.add_mime_type("image/png");
+        filter.add_mime_type("image/jpeg");
+        filter.add_mime_type("image/webp");
+        filter.add_mime_type("image/gif");
+
+        dialog.set_default_filter(filter);
+
+        try {
+          const root = self.get_root();
+          if (!(root instanceof Gtk.Window)) return;
+
+          const file: Gio.File = await new Promise((resolve, reject) => {
+            dialog.open(root, null, (dlg, res) => {
+              try {
+                resolve(dlg!.open_finish(res));
+              } catch (e) {
+                reject(e);
+              }
+            });
+          });
+
+          if (!file) return;
+
+          const filename = file.get_path();
+          if (!filename) return;
+
+          await execAsync(
+            `bash -c "cp '${filename}' $HOME/.config/wallpapers/custom"`
+          );
+
+          notify({
+            summary: "Success",
+            body: "Wallpaper added successfully!",
+          });
+          setProgressStatus("success");
+
+          // FetchWallpapers();
+        } catch (err) {
+          // Gtk.FileDialog throws on cancel — ignore silently
+          if (
+            err instanceof GLib.Error &&
+            err.matches(Gtk.dialog_error_quark(), Gtk.DialogError.CANCELLED)
+          )
+            return;
+
+          setProgressStatus("error");
+
+          notify({
+            summary: "Error",
+            body: String(err),
+          });
+        }
+      }}
+    />
+  );
 
   const actions = (
     <box class="actions" hexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
@@ -338,11 +378,11 @@ function Display(monitor: string) {
       {customToggle}
       {randomButton}
       {resetButton}
+      {addWallpaper}
       <Progress
         status={progressStatus}
         transitionType={Gtk.RevealerTransitionType.SWING_RIGHT}
       />
-      {/* {addWallpaperButton} */}
     </box>
   );
 

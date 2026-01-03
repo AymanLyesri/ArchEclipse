@@ -2,7 +2,13 @@
   @include module;
   padding: 0px;
 
+  .img {
+    border-radius: 10px;
+  }
+
   .bottom-bar {
+    border-radius: 10px;
+    padding: 10px;
     background: $background-semi-transparent;
     opacity: 0.9;
     margin: 0px 5px 5px 5px;
@@ -12,15 +18,6 @@
       margin-bottom: 20px;
       opacity: 1;
     }
-  }
-
-  .img {
-    border-radius: 10px;
-  }
-
-  .bottom-bar {
-    border-radius: 10px;
-    padding: 10px;
 
     .title {
       color: $secondary;
@@ -33,8 +30,26 @@
     }
 
     .time {
-      font-size: 0.8em;
+      font-size: 0.9em;
       font-weight: 400;
+    }
+
+    .cover-art-spinner {
+      border-radius: 50%;
+      animation: spin 10s linear infinite;
+
+      &.paused {
+        animation-play-state: paused;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
     }
   }
 

@@ -44,7 +44,18 @@ function Mpris() {
             const [app] = apps.exact_query(player.entry);
             return (
               <box spacing={5}>
-                <image visible={!!app.iconName} iconName={app?.iconName} />
+                <image
+                  visible={!!app.iconName}
+                  iconName={app?.iconName}
+                  class={createBinding(
+                    player,
+                    "playbackStatus"
+                  )((s) =>
+                    s === AstalMpris.PlaybackStatus.PLAYING
+                      ? "mpris-icon playing"
+                      : "mpris-icon paused"
+                  )}
+                />
                 <label
                   label={createBinding(player, "title")}
                   ellipsize={Pango.EllipsizeMode.END}

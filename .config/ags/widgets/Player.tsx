@@ -219,9 +219,24 @@ export default ({
         orientation={Gtk.Orientation.VERTICAL}
         hexpand
       >
-        <box class="info" orientation={Gtk.Orientation.VERTICAL}>
-          {title}
-          {artist}
+        <box class="top-row" spacing={10}>
+          <Picture
+            class={createBinding(
+              player,
+              "playbackStatus"
+            )((s) =>
+              s === AstalMpris.PlaybackStatus.PLAYING
+                ? "cover-art-spinner playing"
+                : "cover-art-spinner paused"
+            )}
+            height={40}
+            width={40}
+            file={createBinding(player, "coverArt")}
+          />
+          <box class="info" orientation={Gtk.Orientation.VERTICAL}>
+            {title}
+            {artist}
+          </box>
         </box>
 
         <box class={"separator"} vexpand></box>
