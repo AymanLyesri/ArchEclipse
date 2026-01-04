@@ -1,0 +1,49 @@
+#Commands to be executed at launch
+$scriptsDir = $HOME/.config/hypr/scripts            # scripts directory
+$themeScriptsDir = $HOME/.config/hypr/theme/scripts # themes directory
+$hyprDir = $HOME/.config/hypr                       # hypr directory
+$terminal = kitty                                   # terminal emulator
+
+### WALLPAPER ###
+exec-once = $hyprDir/hyprpaper/load.sh # load hyprpaper
+
+### BAR ###
+# AGS
+exec-once = ags run --log-file /tmp/ags.log
+
+### APPS ###
+# onedrive
+exec-once = onedriver ~/OneDrive &
+# wayvnc
+exec-once = wayvnc
+# hypridle
+exec-once = hypridle
+
+### THEME ###
+# polkit agent
+exec-once = /usr/lib/polkit-kde-authentication-agent-1
+# dark mode for gtk apps
+exec-once = $themeScriptsDir/set-global-theme.sh
+
+### PLUGINS ###
+# exec-once = hyprpm reload -n
+
+### NOTIFICATIONS ###
+# alert loops
+exec-once = $scriptsDir/compile-run-binaries.sh
+# Network Systray
+exec-once = nm-applet
+# Clipboard monitor
+exec-once = wl-paste --watch bash -c "$HOME/.config/hypr/scripts/clipboard-monitor.sh &"
+# Bluetooth
+exec = blueman-applet
+
+### MULTI-MONITOR SUPPORT ###
+# Auto-configure monitors on startup
+exec-once = $scriptsDir/multi-monitor-manager.sh auto
+# Start lid event handler service
+exec-once = systemctl --user start hyprland-lid-handler.service
+# Start monitor hotplug detection service
+exec-once = systemctl --user start hyprland-monitor-hotplug.service
+
+

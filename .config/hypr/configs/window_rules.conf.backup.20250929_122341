@@ -1,0 +1,37 @@
+# See https://wiki.hyprland.org/Configuring/Window-Rules/ for more
+# Example windowrule v1
+
+windowrulev2 = float, class:^(org.kde.polkit-kde-authentication-agent-1)$
+windowrulev2 = float, class:^(nm-connection-editor|blueman-manager)$
+windowrulev2 = float, class:^(swayimg|vlc|Viewnior|pavucontrol|org.pulseaudio.pavucontrol)$
+windowrulev2 = float, class:^(nwg-look|qt5ct|mpv|zoom|Rofi|feh)$
+
+windowrulev2 = pin, class:^(Rofi|pavucontrol|blueman-manager)$
+
+windowrulev2 = workspace 4 silent, class:^(Spotify)$
+
+windowrulev2 = workspace 7 silent, class:^(steam)$
+windowrulev2 = workspace 7 silent, class:^((.*)lutris(.*))$
+
+windowrulev2 = unset, class:^(steam_app_\d+)$
+windowrulev2 = unset, class:^(.+\.exe)$
+windowrulev2 = workspace 10 silent, class:^(steam_app_\d+)$
+windowrulev2 = workspace 10 silent, class:^(.+\.exe)$
+windowrulev2 = opacity 1 override 1 override, class:^(steam_app_\d+)$
+windowrulev2 = opacity 1 override 1 override, class:^(.+\.exe)$
+windowrulev2 = opacity 1 override 1 override, class:^(Emulator)$
+windowrulev2 = fullscreen, class:^(steam_app_\d+)$
+windowrulev2 = fullscreen, class:^(.+\.exe)$
+
+windowrulev2 = float, title:(Picture-in-Picture)
+windowrulev2 = move 100%-w-14 100%-w-7, title:(Picture-in-Picture)
+windowrulev2 = pin, title:(Picture-in-Picture)
+
+windowrulev2 = float, class:(preview-image)  
+windowrulev2 = move cursor -50% -50%, class:(preview-image)
+windowrulev2 = float, title:(booru-image)
+windowrulev2 = move cursor -50% -50%, title:(booru-image)
+
+windowrulev2 = workspace 9 silent, class:^(grass)
+
+

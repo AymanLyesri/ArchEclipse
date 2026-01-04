@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Simple lock to prevent concurrent executions
+LOCK_FILE="/tmp/clipboard-monitor-exec.lock"
+
+# Try to acquire lock (non-blocking)
+if ! mkdir "$LOCK_FILE" 2>/dev/null; then
+    echo "[$(date '+%H:%M:%S')] SKIP: Already running" >> /tmp/clip-count.log
+    exit 0
+fi
+
+# Clean up lock on exit
+trap 'rmdir "$LOCK_FILE" 2>/dev/null' EXIT
+
+echo "[$(date '+%H:%M:%S')] EXEC" >> /tmp/clip-count.log
+
+# Check what types are available in the clipboard
+available_types=$(wl-paste --list-types 2>/dev/null)
+
+# Check if there's an image in the clipboard first
+if echo "$available_types" | grep -q "^image/"; then
+    # Image detected, save and show it
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    image_path="/tmp/clipboard_image_${timestamp}.png"
+
+    # Completely isolate wl-paste from current stdin/stdout
+    if timeout 3s wl-paste --type image/png </dev/null >"$image_path" 2>/dev/null && [ -s "$image_path" ]; then
+        notify-send "Clipboard" "Image copied" -i "$image_path"
+        echo "[$(date '+%H:%M:%S')] IMAGE: $image_path ($(stat -c%s "$image_path") bytes)" >> /tmp/clip-count.log
+    else
+        echo "[$(date '+%H:%M:%S')] ERROR: Failed to save image (file size: $(stat -c%s "$image_path" 2>/dev/null || echo 0) bytes)" >> /tmp/clip-count.log
+        # Don't remove the file - it might have been saved by a concurrent execution
+    fi
+else
+    # No image, try text
+    clipboard_content=$(wl-paste --no-newline 2>/dev/null)
+
+    if [ -n "$clipboard_content" ]; then
+        # We have text content, show it
+        notify-send "Clipboard" "$clipboard_content"
+        echo "[$(date '+%H:%M:%S')] SENT: ${clipboard_content:0:15}" >> /tmp/clip-count.log
+    else
+        echo "[$(date '+%H:%M:%S')] EMPTY: No clipboard content" >> /tmp/clip-count.log
+    fi
+fi
+
+echo "[$(date '+%H:%M:%S')] DONE" >> /tmp/clip-count.log
