@@ -1,4 +1,23 @@
-# Ignore all files
+# ===========================================
+# ArchEclipse .gitignore
+# ===========================================
+# Strategy: Ignore EVERYTHING by default, then whitelist specific files.
+# This prevents personal files from being tracked accidentally.
+#
+# Personal folders automatically ignored (by /* rule):
+#   - Documents/, Downloads/, Pictures/, Music/, Videos/
+#   - Desktop/, Games/, dev_proyects/
+#   - .cache/, .local/, .mozilla/, .steam/
+#   - Any *.log, *.blend, or other personal files
+#
+# Rice folders in ~/ that ARE tracked (part of upstream):
+#   - wofi/, wofifull/, mako/, swaylock/ (legacy, not in active use)
+#   - waybar/, waybarBackUp/ (legacy, replaced by AGS)
+#   - themes/, scripts/, configs/ (active, part of rice)
+#   - hypr/, hyprland.conf, hyprpaper.conf (core rice)
+# ===========================================
+
+# Ignore all files by default
 /*
 
 !LICENSE
