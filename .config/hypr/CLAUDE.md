@@ -615,6 +615,60 @@ hyprctl layers | grep -E "Monitor|bar"
 #     Layer ...: namespace: bar
 ```
 
+#### 3. NotificationIcon Null Reference Error (Fixed: 2026-01-04)
+
+**Problem:** AGS crashes when rendering notifications that have no icon, preventing UserPanel, WallpaperSwitcher, and other widgets from being created.
+
+**Symptoms:**
+- `ags toggle user-panel-eDP-1` returns "no window registered with name"
+- AGS log shows: `TypeError: can't access property "endsWith", notificationIcon is null`
+- UserPanel and WallpaperSwitcher don't appear in widget creation logs
+- Only Bar, BarHover, NotificationPopups, and AppLauncher are created
+
+**Root Cause:**
+In `Notification.tsx`, the code checked for `.endsWith(".webp")` BEFORE checking if the icon was null:
+
+```typescript
+// BROKEN: null check comes AFTER .endsWith() call
+const notificationIcon = n.image || n.app_icon || n.desktopEntry;
+
+if (notificationIcon.endsWith(".webp")) {  // <-- Crashes if null
+  // ...
+}
+
+if (!notificationIcon)  // <-- Too late, already crashed
+  return <image class="icon" iconName={"dialog-information-symbolic"} />;
+```
+
+**Fix:** Move the null check BEFORE any method calls on the variable:
+
+```typescript
+// FIXED: null check comes FIRST
+const notificationIcon = n.image || n.app_icon || n.desktopEntry;
+
+if (!notificationIcon)
+  return <image class="icon" iconName={"dialog-information-symbolic"} />;
+
+if (notificationIcon.endsWith(".webp")) {  // <-- Safe, notificationIcon is not null
+  // ...
+}
+```
+
+**Files Fixed:**
+- `.config/ags/widgets/rightPanel/components/Notification.tsx`
+
+**Verification:**
+```bash
+# After fix, all widgets should be created:
+cat /tmp/ags.log | grep -E "(UserPanel|WallpaperSwitcher):"
+# Should show:
+#     UserPanel: XX.XXX ms
+#     WallpaperSwitcher: XX.XXX ms
+
+# UserPanel toggle should work:
+ags toggle user-panel-eDP-1  # No error
+```
+
 ## Architecture Patterns
 
 ### Configuration Sourcing Order
