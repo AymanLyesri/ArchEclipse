@@ -1,7 +1,8 @@
 #!/bin/bash
 
-file="$(date +'%s_hyprshot.webp')"
+file="$(date +'%s_hyprshot.png')"
 screenshot_dir="$HOME/Pictures/Screenshots"
+latest="$screenshot_dir/latest.png"
 
 # create screenshot directory if it doesn't exist
 mkdir -p "$screenshot_dir"
@@ -21,18 +22,18 @@ echo "Saving screenshot to $img"
 if [[ "$1" == "--now" ]]; then
     # Full output
     grim "$img"
-    
+
     elif [[ "$1" == "--area" ]]; then
     # Select region
     grim -g "$(slurp)" "$img"
-    
+
 else
-    
+
     echo -e "Available Options : --now --area --all"
 fi
 
-# Convert to WebP (high compression, visually lossless)
-convert "$img" -define webp:method=6 -quality 80 "$img"
+# Copy to latest.png for easy Claude Code access
+cp "$img" "$latest"
 
-# Send optimized image to clipboard
+# Send image to clipboard
 wl-copy --type image/png < "$img"

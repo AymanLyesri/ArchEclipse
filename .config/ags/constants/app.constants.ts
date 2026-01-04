@@ -59,7 +59,7 @@ export const quickApps: LauncherApp[] = [
   },
   {
     app_name: "Files",
-    app_launch: () => execAsync("thunar"),
+    app_launch: () => execAsync("nautilus"),
     app_icon: "",
   },
   {
