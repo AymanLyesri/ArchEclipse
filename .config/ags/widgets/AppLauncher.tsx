@@ -85,7 +85,7 @@ const QuickApps = () => {
 const helpCommands = {
   "Press <Escape>": "to reset input",
   "... ...": "open with argument",
-  "translate .. > ..": "translate .. > (en,fr,es,de,pt,ru,ar...)",
+  "translate .. > ..": "translate into (en,fr,es,de,pt,ru,ar...)",
   "... .com OR https://...": "open link",
   "..*/+-..": "arithmetics",
   "emoji ...": "search emojis",

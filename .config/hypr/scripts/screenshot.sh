@@ -20,11 +20,11 @@ echo "Saving screenshot to $img"
 
 if [[ "$1" == "--now" ]]; then
     # Full output
-    grim "$img"
+    grimblast --freeze save screen "$img"
     
     elif [[ "$1" == "--area" ]]; then
     # Select region
-    grim -g "$(slurp)" "$img"
+    grimblast --freeze save area "$img"
     
 else
     
@@ -32,7 +32,7 @@ else
 fi
 
 # Convert to WebP (high compression, visually lossless)
-convert "$img" -define webp:method=6 -quality 80 "$img"
+magick convert "$img" -define webp:method=6 -quality 80 "$img"
 
 # Send optimized image to clipboard
 wl-copy --type image/png < "$img"

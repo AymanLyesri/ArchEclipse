@@ -1,4 +1,9 @@
-.bar-left {
+.workspaces {
+  .special {
+    &.active {
+      @include button-checked;
+    }
+  }
   .actions {
     button {
       border-radius: 0px;
@@ -11,7 +16,7 @@
     }
   }
 
-  .workspaces {
+  .workspaces-display {
     /**
      * WORKSPACE GROUP CONTAINERS
      * 
@@ -48,8 +53,7 @@
 
       /* Currently focused workspace */
       &.is-focused {
-        background: $foreground-secondary;
-        color: $background;
+        @include button-checked;
         min-width: 50px;
 
         /* Smooth fade-in when gaining focus */
@@ -111,8 +115,7 @@
     min-width: 25px;
   }
   to {
-    background: $foreground-secondary;
-    color: $background;
+    @include button-checked;
     min-width: 50px;
   }
 }
@@ -120,7 +123,7 @@
 /* Focus lost: fade out the background */
 @keyframes lose-focus {
   from {
-    background: $foreground-secondary;
+    @include button-checked;
     min-width: 50px;
   }
   to {

@@ -28,19 +28,6 @@ import AstalTray from "gi://AstalTray";
 import AstalBattery from "gi://AstalBattery";
 import AstalPowerProfiles from "gi://AstalPowerProfiles";
 
-function Theme() {
-  return (
-    <togglebutton
-      active={globalTheme}
-      onToggled={({ active }) =>
-        globalTheme.peek() !== active && setGlobalTheme(active)
-      }
-      label={globalTheme((theme) => (theme ? "" : ""))}
-      class="theme icon"
-    />
-  );
-}
-
 function BrightnessWidget() {
   const screen = createBinding(brightness, "screen");
   const slider = (
@@ -75,12 +62,51 @@ function BrightnessWidget() {
   );
   return (
     <CustomRevealer
+      tooltipText={screen((v) => `Brightness: ${Math.round(v * 100)}%`)}
       trigger={
         <box class="trigger" spacing={5} children={[label, percentage]} />
       }
       child={slider}
       visible={screen((s) => s != 0)}
     />
+  );
+}
+
+function Battery() {
+  const battery = AstalBattery.get_default();
+  const powerprofiles = AstalPowerProfiles.get_default();
+
+  const percent = createBinding(
+    battery,
+    "percentage"
+  )((p) => `${Math.floor(p * 100)}%`);
+
+  const setProfile = (profile: string) => {
+    powerprofiles.set_active_profile(profile);
+  };
+
+  return (
+    <menubutton
+      visible={createBinding(battery, "isPresent")}
+      tooltipMarkup={createComputed(() => {
+        const profile = powerprofiles.active_profile;
+        return `Battery: ${percent.peek()} \nProfile: ${profile}`;
+      })}
+    >
+      <box spacing={5} class="battery">
+        <image iconName={createBinding(battery, "iconName")} />
+        <label label={percent} />
+      </box>
+      <popover>
+        <box orientation={Gtk.Orientation.VERTICAL}>
+          {powerprofiles.get_profiles().map(({ profile }) => (
+            <button onClicked={() => setProfile(profile)}>
+              <label label={profile} xalign={0} />
+            </button>
+          ))}
+        </box>
+      </popover>
+    </menubutton>
   );
 }
 
@@ -107,6 +133,9 @@ function Volume() {
 
   return (
     <CustomRevealer
+      tooltipText={volume(
+        (v) => `Volume: ${Math.round(v * 100)}%\nClick to open Volume Mixer`
+      )}
       trigger={
         <box class="trigger" spacing={5} children={[icon, percentage]} />
       }
@@ -117,38 +146,6 @@ function Volume() {
         );
       }}
     />
-  );
-}
-
-function Battery() {
-  const battery = AstalBattery.get_default();
-  const powerprofiles = AstalPowerProfiles.get_default();
-
-  const percent = createBinding(
-    battery,
-    "percentage"
-  )((p) => `${Math.floor(p * 100)}%`);
-
-  const setProfile = (profile: string) => {
-    powerprofiles.set_active_profile(profile);
-  };
-
-  return (
-    <menubutton visible={createBinding(battery, "isPresent")}>
-      <box spacing={5} class="battery">
-        <image iconName={createBinding(battery, "iconName")} />
-        <label label={percent} />
-      </box>
-      <popover>
-        <box orientation={Gtk.Orientation.VERTICAL}>
-          {powerprofiles.get_profiles().map(({ profile }) => (
-            <button onClicked={() => setProfile(profile)}>
-              <label label={profile} xalign={0} />
-            </button>
-          ))}
-        </box>
-      </popover>
-    </menubutton>
   );
 }
 
@@ -227,6 +224,22 @@ function Tray() {
   );
 }
 
+function Theme() {
+  return (
+    <togglebutton
+      active={globalTheme}
+      onToggled={({ active }) =>
+        globalTheme.peek() !== active && setGlobalTheme(active)
+      }
+      label={globalTheme((theme) => (theme ? "" : ""))}
+      class="theme icon"
+      tooltipMarkup={globalTheme((theme) =>
+        theme ? `Switch to Dark Theme` : `Switch to Light Theme`
+      )}
+    />
+  );
+}
+
 function PinBar() {
   return (
     <togglebutton
@@ -236,6 +249,9 @@ function PinBar() {
       }}
       class="panel-lock icon"
       label={globalSettings(({ bar }) => (bar.lock ? "" : ""))}
+      tooltipMarkup={globalSettings(({ bar }) =>
+        bar.lock ? `Unlock Bar` : `Lock Bar`
+      )}
     />
   );
 }
@@ -268,6 +284,9 @@ function DndToggle() {
       }}
       // class="dnd-toggle icon"
       class={hasPing((ping) => (ping ? "dnd-toggle active" : "dnd-toggle"))}
+      tooltipMarkup={globalSettings(({ notifications }) =>
+        notifications.dnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
+      )}
     >
       <label
         label={globalSettings(({ notifications }) =>
@@ -286,8 +305,7 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box class="bar-right" spacing={5} halign={halign} hexpand>
-      {/* <BatteryWidget /> */}
+    <box class="utilities" spacing={5} halign={halign} hexpand>
       <Battery />
       <BrightnessWidget />
       <Volume />

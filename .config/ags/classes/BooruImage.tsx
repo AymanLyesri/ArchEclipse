@@ -350,8 +350,6 @@ export class BooruImage {
         api: api,
       });
 
-      console.table(image);
-
       // Automatically fetch the image file
       await image.fetchImage();
       this._setLoadingState("success");

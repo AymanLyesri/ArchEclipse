@@ -1,5 +1,5 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { focusedWorkspace } from "../../../variables";
+import { focusedWorkspace, specialWorkspace } from "../../../variables";
 
 import Hyprland from "gi://AstalHyprland";
 import { createBinding, createComputed } from "ags";
@@ -205,7 +205,7 @@ function Workspaces() {
 
   // Render the workspaces container with bound workspace elements
   return (
-    <box class="workspaces">
+    <box class="workspaces-display">
       <For each={workspaces}>
         {(workspace, index: Accessor<number>) => workspace}
       </For>
@@ -215,7 +215,9 @@ function Workspaces() {
 
 const Special = () => (
   <button
-    class="special"
+    class={specialWorkspace((special) =>
+      special ? "special active" : "special inactive"
+    )}
     label={workspaceToIcon[0]}
     onClicked={() =>
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
@@ -301,7 +303,6 @@ const Actions = ({ monitorName }: { monitorName: string }) => {
   return (
     <box class="actions">
       <UserPanel monitorName={monitorName} />
-      {/* <Settings monitorName={monitorName} /> */}
       <WallpaperSwitcher monitorName={monitorName} />
     </box>
   );
@@ -315,7 +316,7 @@ export default ({
   halign: Gtk.Align;
 }) => {
   return (
-    <box class="bar-left" spacing={5} halign={halign} hexpand>
+    <box class="workspaces" spacing={5} halign={halign} hexpand>
       <Actions monitorName={monitorName} />
       <OverView />
       <Special />

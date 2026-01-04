@@ -22,8 +22,6 @@ function WaifuDisplay() {
         // Convert plain object to BooruImage instance
         const image = new BooruImage(waifuData);
 
-        console.table(image);
-
         // All rendering and actions are handled by BooruImage.renderAsWaifuWidget()
         return image.renderAsWaifuWidget({
           width: globalSettings.peek().rightPanel.width,

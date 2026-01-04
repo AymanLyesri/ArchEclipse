@@ -37,8 +37,6 @@ jq
 translate-shell
 python2-bin
 python-requests
-rclone
-visual-studio-code-bin
 zsh
 zsh-auto-notify
 zsh-history-substring-search
@@ -98,6 +96,7 @@ kitty
 light
 spotify-launcher
 hyprpicker
+grimblast-git
 
 # _____ _                                                _   _   _ ___ 
 #|_   _| |__   ___ _ __ ___   ___  ___    __ _ _ __   __| | | | | |_ _|
