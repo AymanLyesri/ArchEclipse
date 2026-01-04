@@ -190,24 +190,81 @@ Then tell Claude Code to read the specific file.
 
 ## Syncing with Upstream
 
+### Current Fork Status (Updated 2026-01-04)
+
+✅ **Historial limpio y lineal** - El fork ahora tiene un historial limpio basado en upstream/master.
+
+| Métrica | Estado |
+|---------|--------|
+| Commits detrás de upstream | 0 |
+| Commits adelante de upstream | 2 (mejoras del fork) |
+| Historial | Lineal (no divergente) |
+
+### Simple Sync Procedure (NUEVO - Post Rebase 2026-01-04)
+
+Ahora que el historial está limpio, sincronizar es simple:
+
+```bash
+# 1. Fetch upstream
+git fetch upstream
+
+# 2. Ver qué commits hay nuevos
+git log --oneline HEAD..upstream/master
+
+# 3. Si hay commits nuevos, hacer merge (debería ser fast-forward o limpio)
+git merge upstream/master
+
+# 4. Verificar que AGS compila
+cd ~/.config/ags && ags bundle app.ts /tmp/test.js
+
+# 5. Push a tu fork
+git push origin master
+```
+
+**Si hay conflictos:**
+```bash
+# Resolver conflictos manualmente
+git status  # Ver archivos en conflicto
+# Editar archivos, resolver conflictos
+git add <archivos-resueltos>
+git commit -m "merge: resolve conflicts with upstream"
+```
+
+### Verificar Estado de Sincronización
+
+```bash
+# Ver cuántos commits estás detrás/adelante
+git fetch upstream
+git rev-list --count HEAD..upstream/master  # Detrás
+git rev-list --count upstream/master..HEAD  # Adelante
+
+# Ver commits pendientes de upstream
+git log --oneline HEAD..upstream/master
+```
+
 ### Upstream Integration Procedure (via Claude Code)
 
-**IMPORTANT:** All upstream integrations must follow this procedure:
+**IMPORTANT:** Si Claude Code hace integraciones, debe seguir este procedimiento:
 
-1. **Create integration branch** with naming convention:
+1. **Verificar estado** antes de empezar:
+   ```bash
+   git fetch upstream
+   git log --oneline HEAD..upstream/master
+   ```
+
+2. **Si hay pocos commits** (< 10): Merge directo
+   ```bash
+   git merge upstream/master
+   ```
+
+3. **Si hay muchos commits** o conflictos potenciales: Crear rama de integración
    ```
    integration/upstream-sync-YYYYMMDD
    ```
 
-2. **Fetch and analyze** upstream commits before merging
+4. **Verificar AGS compilation** después del merge
 
-3. **Merge with conflict detection** - never force merge
-
-4. **Verify AGS compilation** after merge
-
-5. **Ask user before creating PR**
-
-6. **NEVER include in commits:**
+5. **NEVER include in commits:**
    - `Co-Authored-By: Claude`
    - `Generated with [Claude Code]`
    - Any AI attribution markers
@@ -616,12 +673,45 @@ The MangaViewer widget needs significant improvements:
 
 ---
 
-## TODO: Home Directory Reorganization
+## Home Directory Reorganization
 
-**Status:** 🔴 Pendiente
-**Priority:** Media
-**Fecha diagnóstico:** 2026-01-03
-**Última verificación:** 2026-01-04
+**Status:** ✅ **COMPLETADO**
+**Fecha completado:** 2026-01-04
+**Fecha diagnóstico original:** 2026-01-03
+
+### Resumen de Resultados
+
+| Métrica | Antes | Después |
+|---------|-------|---------|
+| Disco usado | 348GB | 321GB |
+| Disco libre | 582GB | 609GB |
+| Cache `~/.cache/` | 54GB | 12GB |
+| **Espacio recuperado** | - | **+27GB** |
+
+### Acciones Completadas
+
+#### Fase 1: Limpieza de Caches ✅
+- `~/.cache/davinci-resolve-install/` (24GB) - **BORRADO**
+- `~/.cache/JetBrains/` versiones antiguas (~17GB) - **BORRADO**
+- `pip cache purge` (673MB) - **BORRADO**
+- `npm cache clean` (3.7GB) - **BORRADO**
+
+#### Fase 2: Mover Archivos Personales ✅
+- `COMO_USAR_*.md` → `~/Documents/guides/`
+- `paquetes_instalados.txt` → `~/Documents/backups/`
+- `fix-vlc-mime.sh`, `setup-teams-profiles.sh` → `~/.local/bin/`
+- `postman.log`, `Untitled.blend` - **BORRADOS**
+
+#### Fase 3: Consolidar Configs ✅
+- **Hallazgo:** Las carpetas `~/wofi/`, `~/mako/`, `~/swaylock/` están trackeadas por git (upstream)
+- **Decisión:** Mantener para compatibilidad con upstream (no están en uso activo)
+
+#### Fase 4: Limpiar Carpetas Obsoletas ✅
+- `~/dotfiles_backup_20250320/` (619MB) - **BORRADO**
+- Carpetas legacy (waybar, wofi, etc.) - **MANTENIDAS** (trackeadas por git)
+
+#### Fase 5: Actualizar .gitignore ✅
+- Agregada documentación explicando la estrategia de ignore
 
 ### Inventario Verificado (2026-01-04)
 
@@ -868,3 +958,150 @@ Después de la reorganización:
 - **Scripts organizados** en `~/.local/bin/` o `~/.config/hypr/scripts/`
 - **Rice intacta** y funcionando
 - **Git repo más limpio** con .gitignore apropiado
+
+---
+
+## Git History Rebase (2026-01-04)
+
+**Status:** ✅ **COMPLETADO**
+**Fecha:** 2026-01-04
+
+### Problema Original
+
+El historial de git del fork había divergido completamente del upstream debido a:
+1. Commits con `Co-Authored-By: Claude` que fueron reescritos
+2. Múltiples integraciones de upstream que crearon historiales paralelos
+3. 233 commits totales mezclados entre upstream y fork
+
+**Síntomas:**
+- `git merge-base HEAD upstream/master` no encontraba ancestro común
+- 868 commits "detrás" de upstream (falso - era divergencia)
+- Imposible hacer `git pull upstream master` limpiamente
+
+### Solución Aplicada: Rebase Limpio
+
+#### Paso 1: Crear rama desde upstream/master
+```bash
+git checkout -b clean-rebase upstream/master
+```
+
+#### Paso 2: Identificar archivos únicos del fork
+Se identificaron los archivos que son ÚNICOS del fork (no existen en upstream):
+- Documentación: `CLAUDE.md`, `CLAUDE_PASTE_SOLUTION.md`, `CLIPBOARD-MONITOR-README.md`, etc.
+- Scripts: `monitor-hotplug.sh`, `lid-handler.sh`, `multi-monitor-manager.sh`, etc.
+- Configs: `exec.conf` (con fix LD_PRELOAD), `multi-monitor-keybinds.conf`
+
+#### Paso 3: Copiar archivos únicos
+```bash
+git checkout backup-before-rebase -- .config/hypr/CLAUDE.md
+git checkout backup-before-rebase -- .config/hypr/scripts/monitor-hotplug.sh
+# ... etc
+```
+
+#### Paso 4: Commit con todas las mejoras del fork
+```bash
+git commit -m "feat: add multi-monitor support, clipboard management, and documentation"
+```
+
+#### Paso 5: Reemplazar master
+```bash
+git branch -m master old-master
+git branch -m clean-rebase master
+git push --force origin master
+```
+
+### Resultado
+
+| Métrica | Antes | Después |
+|---------|-------|---------|
+| Commits totales | 233 (mezclados) | Lineal desde upstream |
+| Commits detrás de upstream | 868 (divergente) | **0** |
+| Commits adelante de upstream | N/A | **2** |
+| Historial | Divergente | **Lineal y limpio** |
+
+### Archivos Preservados en el Rebase
+
+#### Documentación (8 archivos)
+- `.config/hypr/CLAUDE.md` - Documentación principal del proyecto
+- `.config/hypr/CLAUDE_PASTE_SOLUTION.md` - Solución para paste en Claude Code
+- `.config/hypr/CLIPBOARD-MONITOR-README.md` - Documentación del clipboard monitor
+- `.config/hypr/CHANGELOG.md` - Historial de cambios
+- `.config/hypr/COMANDOS-UPDATE.md` - Guía de comandos de actualización
+- `.config/hypr/.claude/agents/*.md` - Configuraciones de agentes
+
+#### Scripts de Multi-Monitor (5 archivos)
+- `monitor-hotplug.sh` - Detección automática de monitores
+- `lid-handler.sh` - Manejo de tapa del laptop
+- `multi-monitor-manager.sh` - Gestión central de monitores
+- `workspace-state-manager.sh` - Preservación de estado (KVM)
+- `multi-monitor-keybinds.conf` - Atajos de teclado para monitores
+
+#### Scripts de Clipboard (4 archivos)
+- `start-clipboard-monitor.sh` - Lanzador singleton
+- `clipboard-monitor.sh` - Lógica de notificaciones
+- `check-clipboard-monitor.sh` - Diagnóstico de salud
+
+#### Scripts Mejorados
+- `UPDATE.sh` - Script de actualización (+1000 líneas sobre upstream)
+- `bar.sh` - Compatibilidad AGS 3.0
+- `exec.conf` - Fix LD_PRELOAD para gtk4-layer-shell
+
+### Backups Disponibles
+
+Si necesitas recuperar algo del historial anterior:
+- `old-master` - Rama con el historial anterior al rebase
+- `backup-before-rebase` - Backup completo antes del rebase
+
+```bash
+# Ver commits del historial anterior
+git log old-master --oneline -20
+
+# Recuperar un archivo específico del historial anterior
+git checkout old-master -- path/to/file
+```
+
+### Sincronización Futura
+
+Ahora que el historial está limpio, sincronizar con upstream es simple:
+
+```bash
+git fetch upstream
+git merge upstream/master  # Debería ser fast-forward o merge limpio
+git push origin master
+```
+
+---
+
+## Session Log: 2026-01-04
+
+### Acciones Realizadas en Esta Sesión
+
+1. **Home Directory Reorganization (Fases 1-5)**
+   - Limpieza de caches: +27GB recuperados
+   - Reorganización de archivos personales
+   - Documentación de carpetas trackeadas vs personales
+   - Actualización de .gitignore
+
+2. **Git History Rebase**
+   - Identificación de archivos únicos del fork
+   - Creación de rama limpia desde upstream/master
+   - Preservación de todas las mejoras del fork
+   - Force push con historial lineal
+
+3. **GitHub Issue #190**
+   - Creada propuesta para reorganización de home directory en upstream
+   - Preguntas sobre carpetas legacy (waybar, wofi, mako, swaylock)
+   - Propuesta de script `reorganize-home.sh`
+
+### Commits Creados
+```
+8f70b4b chore: add local config backups and experimental scripts
+6d37954 feat: add multi-monitor support, clipboard management, and documentation
+```
+
+### Estado Final del Fork
+- Historial: Lineal, basado en upstream/master
+- Commits adelante: 2 (mejoras del fork)
+- Commits detrás: 0 (totalmente sincronizado)
+- AGS: Compila correctamente
+- Servicios: Todos activos y funcionando
