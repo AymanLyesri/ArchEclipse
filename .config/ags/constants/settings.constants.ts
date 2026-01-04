@@ -4,7 +4,7 @@ import {
   rightPanelWidgetSelectors,
 } from "../constants/widget.constants";
 import { booruApis, chatBotApis } from "../constants/api.constants";
-import { WaifuClass } from "../interfaces/waifu.interface";
+import { BooruImage } from "../classes/BooruImage";
 import { dateFormats } from "../constants/date.constants";
 import { phi, phi_min } from "../constants/phi.constants";
 import { Settings } from "../interfaces/settings.interface";
@@ -154,10 +154,10 @@ export const defaultSettings: Settings = {
     },
     layout: barWidgetSelectors,
   },
-  waifu: {
+  waifuWidget: {
     input_history: "",
     visibility: true,
-    current: new WaifuClass(),
+    current: new BooruImage(),
     api: booruApis[0],
   },
   rightPanel: {

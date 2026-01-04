@@ -19,7 +19,7 @@ image_path="$TMP_DIR/clipboard_image_${timestamp}.webp"
 # =========================
 if wl-paste --type image/png >"$image_path" 2>/dev/null; then
 echo "Image saved to $image_path"
-    action=$(notify-send "Clipboard" "Image copied" \
+    action=$(notify-send "Clipboard Image" "Image copied" \
         -i "$image_path" \
         --action=preview:Preview \
         --action=edit:Edit \

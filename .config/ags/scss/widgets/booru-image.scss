@@ -1,0 +1,138 @@
+// .waifu {
+//   border-radius: 10px;
+
+//   &:hover .image {
+//     opacity: $phi-min;
+//   }
+
+//   $section-count: 5;
+//   $section-delay: 80ms;
+
+//   &:hover {
+//     @for $i from 1 through $section-count {
+//       .actions .section:nth-child(#{$i}) {
+//         opacity: 1;
+//         transition-delay: $section-delay * ($i - 1);
+//       }
+//     }
+//   }
+
+//   &:not(:hover) {
+//     @for $i from 1 through $section-count {
+//       .actions .section:nth-child(#{$i}) {
+//         transition-delay: $section-delay * ($i - 1);
+//         opacity: 0;
+//       }
+//     }
+//   }
+
+// .actions {
+//   margin: $phi * 2 + px;
+//   border-radius: 10px;
+//   entry {
+//     border-radius: 0px;
+//     padding: 0px;
+//     margin: 0px;
+//   }
+
+//   .section {
+//     border-radius: 10px;
+//     padding: 5px;
+
+//     &:hover {
+//       background: $background-semi-transparent;
+//     }
+
+//     button,
+//     entry {
+//       border-radius: 0px;
+//     }
+
+//     button {
+//       &:first-child {
+//         border-radius: 10px 0px 0px 10px;
+//       }
+//       &:last-child {
+//         border-radius: 0px 10px 10px 0px;
+//       }
+//     }
+//   }
+// }
+// }
+
+.booru-image {
+  @include module;
+  padding: 0px;
+
+  $section-count: 20;
+  $section-delay: 50ms;
+
+  .tag,
+  .actions .section {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  &:hover {
+    background-color: $background-secondary;
+    .image {
+      opacity: $phi-min;
+    }
+
+    @for $i from 1 through $section-count {
+      .tags > :nth-child(#{$i}) .tag,
+      .actions .section:nth-child(#{$i}) {
+        opacity: 1;
+        transition-delay: $section-delay * ($i - 1), 0s;
+      }
+    }
+  }
+
+  &:not(:hover) {
+    @for $i from 1 through $section-count {
+      .tags > :nth-child(#{$i}) .tag,
+      .actions .section:nth-child(#{$i}) {
+        transition-delay: $section-delay * ($i - 1), 0s;
+        opacity: 0;
+      }
+    }
+  }
+
+  .tags {
+    padding: 10px;
+    .tag {
+      @include button;
+      opacity: 0;
+    }
+  }
+
+  .actions {
+    padding: 10px;
+
+    border-radius: 8px;
+
+    .section {
+      border-radius: 10px;
+      opacity: 0;
+      background-color: $background-transparent;
+      transition: background-color 0.2s ease;
+      &:hover {
+        background-color: $background-semi-transparent;
+      }
+      entry {
+        border-radius: 0px;
+        padding: 0px;
+        margin: 0px;
+      }
+
+      button {
+        border-radius: 0px;
+        &:first-child {
+          border-radius: 10px 0px 0px 10px;
+        }
+        &:last-child {
+          border-radius: 0px 10px 10px 0px;
+        }
+      }
+    }
+  }
+}

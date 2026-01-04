@@ -224,42 +224,9 @@ export default (monitor: Gdk.Monitor) => {
       )}
       layer={Astal.Layer.TOP}
       marginTop={5}
-      marginRight={globalMargin}
       marginBottom={5}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={false}
-      $={(self) => {
-        let hideTimeout: NodeJS.Timeout | null = null;
-        const windowInstance = new Window();
-        (self as any).rightPanelWindow = windowInstance;
-
-        const motion = new Gtk.EventControllerMotion();
-
-        motion.connect("leave", () => {
-          if (globalSettings.peek().rightPanel.lock) return;
-
-          hideTimeout = setTimeout(() => {
-            hideTimeout = null;
-            if (
-              !globalSettings.peek().rightPanel.lock &&
-              !windowInstance.popupIsOpen()
-            ) {
-              hideWindow(
-                `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
-              );
-            }
-          }, 500);
-        });
-
-        motion.connect("enter", () => {
-          if (hideTimeout !== null) {
-            clearTimeout(hideTimeout);
-            hideTimeout = null;
-          }
-        });
-
-        self.add_controller(motion);
-      }}
     >
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
@@ -272,6 +239,16 @@ export default (monitor: Gdk.Monitor) => {
           }
         }}
       />
+      <Gtk.EventControllerMotion
+        onLeave={() => {
+          if (globalSettings.peek().rightPanel.lock) return;
+
+          hideWindow(
+            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+          );
+        }}
+      />
+
       <Panel monitorName={monitorName} />
     </window>
   );

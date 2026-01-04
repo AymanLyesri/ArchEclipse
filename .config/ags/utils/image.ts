@@ -1,12 +1,6 @@
 import { exec, execAsync } from "ags/process";
 import { notify } from "./notification";
-import { Waifu } from "../interfaces/waifu.interface";
-
 import GdkPixbuf from "gi://GdkPixbuf";
-import { booruPath } from "../constants/path.constants";
-import { globalSettings, setGlobalSetting } from "../variables";
-
-const terminalWaifuPath = `$HOME/.config/fastfetch/assets/logo.webp`;
 
 export function getDominantColor(imagePath: string) {
   return exec(`bash ./scripts/get-image-color.sh ${imagePath}`);
@@ -18,21 +12,6 @@ export function previewFloatImage(imagePath: string) {
   );
 }
 
-export const PinImageToTerminal = (image: Waifu) => {
-  execAsync(
-    `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${booruPath}/${image.api.value}/images/${image.id}.${image.extension} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`
-  )
-    .then((output) =>
-      notify({
-        summary: "Waifu",
-        body: `${
-          Number(output) == 0 ? "Pinned To Terminal" : "UN-Pinned from Terminal"
-        }`,
-      })
-    )
-    .catch((err) => notify({ summary: "Error", body: err }));
-};
-
 export function getImageRatio(path: string): number {
   try {
     const pixbuf = GdkPixbuf.Pixbuf.new_from_file(path);
@@ -41,56 +20,3 @@ export function getImageRatio(path: string): number {
     return 1;
   }
 }
-
-export const fetchImage = async (image: Waifu) => {
-  await execAsync(
-    `bash -c "mkdir -p ${booruPath}/${image.api.value}/images"`
-  ).catch((err) => notify({ summary: "Error", body: String(err) }));
-
-  return await execAsync(
-    `bash -c "[ -e "${booruPath}/${image.api.value}/images/${image.id}.${image.extension}" ] || curl -o ${booruPath}/${image.api.value}/images/${image.id}.${image.extension} ${image.url}"`
-  ).catch((err) => {
-    notify({ summary: "Error", body: String(err) });
-    throw err;
-  });
-};
-
-export const bookMarkExists = (image: Waifu): boolean => {
-  const currentBookmarks = globalSettings.peek().booru.bookmarks;
-  return currentBookmarks.some(
-    (img) => img.id === image.id && img.api.value === image.api.value
-  );
-};
-
-export const bookMarkImage = (image: Waifu) => {
-  const currentBookmarks = globalSettings.peek().booru.bookmarks;
-  // check if image is already bookmarked
-  const exists = bookMarkExists(image);
-  if (exists) {
-    notify({ summary: "Info", body: "Image already bookmarked" });
-    return;
-  }
-
-  const updatedBookmarks = [...currentBookmarks, image];
-  setGlobalSetting("booru.bookmarks", updatedBookmarks);
-
-  notify({ summary: "Success", body: "Image bookmarked" });
-};
-
-export const removeBookMarkImage = (image: Waifu) => {
-  const currentBookmarks = globalSettings.peek().booru.bookmarks;
-  const updatedBookmarks = currentBookmarks.filter(
-    (img) => !(img.id === image.id && img.api.value === image.api.value)
-  );
-  setGlobalSetting("booru.bookmarks", updatedBookmarks);
-  notify({ summary: "Success", body: "Bookmark removed" });
-};
-
-export const OpenInBrowser = (image: Waifu) =>
-  execAsync(
-    `bash -c "xdg-open '${image.api.idSearchUrl}${image.id}' && xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
-  )
-    .then((browser) =>
-      notify({ summary: "Waifu", body: `opened in ${browser}` })
-    )
-    .catch((err) => notify({ summary: "Error", body: err }));

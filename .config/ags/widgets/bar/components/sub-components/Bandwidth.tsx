@@ -6,7 +6,7 @@ const BANDWIDTH_POLL_MS = 2000; // bandwidth poll period (increase to reduce CPU
 
 export default () => {
   const bandwidth = createPoll(
-    [],
+    [0, 0, 0, 0],
     BANDWIDTH_POLL_MS,
     ["./assets/binaries/bandwidth"],
     (out) => {

@@ -12,8 +12,18 @@ const hyprland = Hyprland.get_default();
 // workspaces icons
 const workspaceToIcon = ["", "", "", "", "", "", "󰙯", "󰓓", "", "", ""];
 function Workspaces() {
-  // Track the previously focused workspace for transition effects
-  let previousWorkspace = 0;
+  /**
+   * WORKSPACE STATE TRACKING
+   *
+   * We need to persist state across re-renders to detect transitions.
+   * This stores the complete state of each workspace from the previous render.
+   *
+   * Map structure: { workspaceId: { isActive, isFocused } }
+   */
+  let previousWorkspaceStates = new Map<
+    number,
+    { isActive: boolean; isFocused: boolean }
+  >();
 
   // Icons configuration
   const emptyIcon = ""; // Icon for empty workspaces
@@ -21,12 +31,24 @@ function Workspaces() {
   const maxWorkspaces = 10; // Maximum number of workspaces with custom icons
 
   /**
-   * Creates a workspace button element with proper classes and click handler
-   * @param id - Workspace ID number
-   * @param isActive - Whether the workspace contains windows
-   * @param isFocused - Whether the workspace is currently focused
-   * @param icon - The icon to display for this workspace
-   * @returns A button element for the workspace
+   * WORKSPACE BUTTON CREATOR
+   *
+   * Creates a button with classes that represent both current state and transitions.
+   * Classes are mutually exclusive to prevent conflicts:
+   *
+   * FOCUS STATES (mutually exclusive):
+   * - "is-focused": Currently focused workspace
+   * - "is-unfocused": Not currently focused
+   *
+   * ACTIVE STATES (mutually exclusive):
+   * - "is-active": Has windows
+   * - "is-inactive": No windows
+   *
+   * TRANSITION STATES (can combine with above):
+   * - "trans-gaining-focus": Transitioning from unfocused to focused
+   * - "trans-losing-focus": Transitioning from focused to unfocused
+   * - "trans-becoming-active": Transitioning from inactive to active
+   * - "trans-becoming-inactive": Transitioning from active to inactive
    */
   const createWorkspaceButton = (
     id: number,
@@ -34,18 +56,37 @@ function Workspaces() {
     isFocused: boolean,
     icon: string
   ) => {
-    // Determine button classes based on state
-    const buttonClass = [
-      isFocused ? (previousWorkspace !== id ? "focused" : "same-focused") : "",
-      previousWorkspace === id ? "unfocused" : "",
-      isActive ? "" : "inactive",
-    ]
-      .filter(Boolean) // Remove empty strings
-      .join(" "); // Combine into space-separated string
+    const classes: string[] = [];
+
+    // Get previous state for this workspace (if it existed)
+    const prevState = previousWorkspaceStates.get(id);
+
+    // ===== CURRENT STATE CLASSES =====
+    // These represent the current state only
+    classes.push(isFocused ? "is-focused" : "is-unfocused");
+    classes.push(isActive ? "is-active" : "is-inactive");
+
+    // ===== TRANSITION CLASSES =====
+    // Only add transition classes if we have previous state to compare
+    if (prevState) {
+      // Focus transitions
+      if (!prevState.isFocused && isFocused) {
+        classes.push("trans-gaining-focus");
+      } else if (prevState.isFocused && !isFocused) {
+        classes.push("trans-losing-focus");
+      }
+
+      // Active transitions
+      if (!prevState.isActive && isActive) {
+        classes.push("trans-becoming-active");
+      } else if (prevState.isActive && !isActive) {
+        classes.push("trans-becoming-inactive");
+      }
+    }
 
     return (
       <button
-        class={buttonClass}
+        class={classes.join(" ")}
         label={icon}
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
@@ -56,91 +97,111 @@ function Workspaces() {
   };
 
   // Reactive workspace state that updates when workspaces or focus changes
-  const workspaces: Accessor<any[]> = createComputed(
-    [
-      createBinding(hyprland, "workspaces"), // Bind to Hyprland workspace list
-      focusedWorkspace.as((w) => w.id), // Bind to currently focused workspace ID
-    ],
-    (workspaces, currentWorkspace) => {
-      // Get array of active workspace IDs
-      const workspaceIds = workspaces.map((w) => w.id);
-      // Calculate total workspaces needed (active ones or maxWorkspaces, whichever is larger)
-      const totalWorkspaces = Math.max(...workspaceIds, maxWorkspaces);
-      // Create array of all workspace IDs [1, 2, ..., totalWorkspaces]
-      const allWorkspaces = Array.from(
-        { length: totalWorkspaces },
-        (_, i) => i + 1
-      );
+  const workspaces: Accessor<any[]> = createComputed(() => {
+    const workspaces = createBinding(hyprland, "workspaces")();
+    const currentWorkspace = focusedWorkspace().id;
 
-      // Array to hold the final grouped workspace elements
-      const groupElements: any[] = [];
-      // Current group of adjacent active workspaces being built
-      let currentGroup: any[] = [];
-      // Flag indicating if current group contains active workspaces
-      let currentGroupIsActive = false;
+    // Get array of active workspace IDs
+    const workspaceIds = workspaces.map((w) => w.id);
+    // Calculate total workspaces needed (active ones or maxWorkspaces, whichever is larger)
+    const totalWorkspaces = Math.max(...workspaceIds, maxWorkspaces);
+    // Create array of all workspace IDs [1, 2, ..., totalWorkspaces]
+    const allWorkspaces = Array.from(
+      { length: totalWorkspaces },
+      (_, i) => i + 1
+    );
 
-      /**
-       * Finalizes the current workspace group by adding it to groupElements
-       * with proper classes and resetting group state
-       */
-      const finalizeCurrentGroup = () => {
-        if (currentGroup.length > 0) {
-          groupElements.push(
-            <box
-              class={`workspace-group ${
-                currentGroupIsActive ? "active" : "inactive"
-              }`}
-            >
-              {currentGroup}
-            </box>
-          );
-          // Reset group state
-          currentGroup = [];
-          currentGroupIsActive = false;
-        }
-      };
+    // Array to hold the final grouped workspace elements
+    let groupElements: any[] = [];
+    // Current group of adjacent active workspaces being built
+    let currentGroup: any[] = [];
+    // Flag indicating if current group contains active workspaces
+    let currentGroupIsActive = false;
 
-      // Process each workspace in order
-      allWorkspaces.forEach((id) => {
-        const isActive = workspaceIds.includes(id); // Does workspace have windows?
-        // Determine which icon to use based on workspace state
-        const icon =
-          id > maxWorkspaces
-            ? extraWorkspaceIcon
-            : isActive
-            ? workspaceToIcon[id]
-            : emptyIcon;
-        const isFocused = currentWorkspace === id; // Is this the current workspace?
+    /**
+     * Finalizes the current workspace group by adding it to groupElements
+     * with proper classes and resetting group state
+     */
+    const finalizeCurrentGroup = () => {
+      if (currentGroup.length > 0) {
+        groupElements.push(
+          <box
+            class={`workspace-group ${
+              currentGroupIsActive ? "active" : "inactive"
+            }`}
+          >
+            {currentGroup}
+          </box>
+        );
+        // Reset group state
+        currentGroup = [];
+        currentGroupIsActive = false;
+      }
+    };
 
-        // Handle inactive workspaces (no windows)
-        if (isActive) {
-          // If we get here, workspace is active
-          currentGroupIsActive = true;
-          // Add button to current group
-          currentGroup.push(
-            createWorkspaceButton(id, isActive, isFocused, icon)
-          );
+    /**
+     * WORKSPACE PROCESSING LOOP
+     *
+     * Process each workspace and group them:
+     * - Active workspaces (with windows) are grouped together
+     * - Inactive workspaces (empty) are shown individually
+     *
+     * This creates visual separation between empty and occupied workspaces.
+     */
+    allWorkspaces.forEach((id) => {
+      const isActive = workspaceIds.includes(id);
+      const isFocused = currentWorkspace === id;
 
-          // Finalize group if we've reached the end or next workspace is inactive
-          if (id === allWorkspaces.length || !workspaceIds.includes(id + 1)) {
-            finalizeCurrentGroup();
-          }
-        } else {
-          // Finalize any active group we were building
+      // Select appropriate icon
+      const icon =
+        id > maxWorkspaces
+          ? extraWorkspaceIcon
+          : isActive
+          ? workspaceToIcon[id]
+          : emptyIcon;
+
+      if (isActive) {
+        // ACTIVE WORKSPACE: Add to current group
+        currentGroupIsActive = true;
+        currentGroup.push(createWorkspaceButton(id, isActive, isFocused, icon));
+
+        // Close group if this is the last workspace or next one is inactive
+        if (id === allWorkspaces.length || !workspaceIds.includes(id + 1)) {
           finalizeCurrentGroup();
-          // Add inactive workspace as single-element group
-          groupElements.push(
-            <box class="workspace-group inactive">
-              {createWorkspaceButton(id, isActive, isFocused, icon)}
-            </box>
-          );
         }
-      });
-      previousWorkspace = currentWorkspace; // Update previous workspace for next render
+      } else {
+        // INACTIVE WORKSPACE: Close any active group and add as standalone
+        finalizeCurrentGroup();
+        groupElements.push(
+          <box class="workspace-group inactive">
+            {createWorkspaceButton(id, isActive, isFocused, icon)}
+          </box>
+        );
+      }
+    });
 
-      return groupElements;
-    }
-  );
+    /**
+     * STATE PERSISTENCE FOR NEXT RENDER
+     *
+     * Store current workspace states so we can detect transitions
+     * in the next render cycle. This is crucial for animations.
+     */
+    const newStates = new Map<
+      number,
+      { isActive: boolean; isFocused: boolean }
+    >();
+
+    allWorkspaces.forEach((id) => {
+      newStates.set(id, {
+        isActive: workspaceIds.includes(id),
+        isFocused: currentWorkspace === id,
+      });
+    });
+
+    previousWorkspaceStates = newStates;
+
+    return groupElements;
+  });
 
   // Render the workspaces container with bound workspace elements
   return (
@@ -151,6 +212,7 @@ function Workspaces() {
     </box>
   );
 }
+
 const Special = () => (
   <button
     class="special"

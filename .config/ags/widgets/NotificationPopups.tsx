@@ -6,6 +6,7 @@ import Notifd from "gi://AstalNotifd";
 import Notification from "./rightPanel/components/Notification";
 import { createState, createComputed, For, Accessor } from "ags";
 import { globalMargin, globalSettings } from "../variables";
+import { timeout } from "ags/time";
 
 // see comment below in constructor
 const TIMEOUT_DELAY = 3000;
@@ -73,12 +74,12 @@ class NotificationMap {
 
       // Auto-remove notification from popup after delay
       // Don't dismiss from daemon to keep in history
-      timeoutId = setTimeout(() => {
+      timeoutId = timeout(TIMEOUT_DELAY, () => {
         if (this.notificationMap.has(id) && hideFunc) {
           // Trigger close animation via the notification's hide function
           hideFunc();
         }
-      }, TIMEOUT_DELAY) as any;
+      }) as any;
     });
 
     // notifications can be closed by the outside before
@@ -86,9 +87,9 @@ class NotificationMap {
     notifd.connect("resolved", (_, id) => {
       // Remove from popup when dismissed from history or externally
       if (this.notificationMap.has(id)) {
-        setTimeout(() => {
+        timeout(1000, () => {
           this.delete(id);
-        }, 200); // Wait for animation to complete
+        });
       }
     });
   }

@@ -10,47 +10,142 @@
       border-radius: 0px 10px 10px 0px;
     }
   }
+
   .workspaces {
-    border-radius: 10px;
+    /**
+     * WORKSPACE GROUP CONTAINERS
+     * 
+     * Groups hold multiple workspace buttons.
+     * - Active groups: contain workspaces with windows (grouped together)
+     * - Inactive groups: contain empty workspaces (shown individually)
+     */
     .workspace-group {
-      border-radius: 10px;
+      border-radius: 50px;
+
       &.active {
         background-color: $background-transparent;
       }
-      &.inactive button {
-        background: transparent;
-        padding: 0px;
+
+      &.inactive {
+        background-color: transparent;
       }
     }
+
+    /**
+     * WORKSPACE BUTTONS - BASE STYLES
+     * 
+     * All workspace buttons start with transparent background.
+     * Specific states override this below.
+     */
     button {
       background: transparent;
-      ////////////////////////////
-      &.focused {
-        background: $background-semi-transparent;
-        animation: workspace-focus 1s;
+      transition: all 0.3s ease;
+
+      /**
+       * ===== FOCUS STATES =====
+       * These represent whether the workspace is currently selected.
+       */
+
+      /* Currently focused workspace */
+      &.is-focused {
+        background: $foreground-secondary;
+        color: $background;
+        min-width: 50px;
+
+        /* Smooth fade-in when gaining focus */
+        &.trans-gaining-focus {
+          animation: gain-focus 0.5s ease;
+        }
       }
-      &.same-focused {
-        background: $background-semi-transparent;
+
+      /* Not currently focused workspace */
+      &.is-unfocused {
+        /* Smooth fade-out when losing focus */
+        &.trans-losing-focus {
+          animation: lose-focus 0.5s ease;
+        }
       }
-      &.unfocused {
-        background: $background-transparent;
-        animation: workspace-unfocus 1s;
+
+      /**
+       * ===== ACTIVE STATES =====
+       * These represent whether the workspace has windows.
+       */
+
+      /* Workspace with windows */
+      &.is-active {
+        /* Active workspaces show their icon and have normal size */
+        opacity: 1;
+
+        /* Expanding animation when becoming active */
+        &.trans-becoming-active {
+          animation: become-active 0.5s ease;
+        }
       }
-      &.new-app {
-        @extend .danger;
+
+      /* Empty workspace (no windows) */
+      &.is-inactive {
+        /* Inactive workspaces are more subtle */
+        opacity: 0.4;
+        min-width: 10px;
+
+        /* Shrinking animation when becoming inactive */
+        &.trans-becoming-inactive {
+          animation: become-inactive 0.5s ease;
+        }
       }
     }
   }
 }
 
-@keyframes workspace-focus {
-  0% {
+/**
+ * ===== ANIMATIONS =====
+ * 
+ * Keyframe definitions for all workspace transitions.
+ * These create smooth visual feedback for state changes.
+ */
+
+/* Focus gained: fade in the background */
+@keyframes gain-focus {
+  from {
+    background: $background-transparent;
+    min-width: 25px;
+  }
+  to {
+    background: $foreground-secondary;
+    color: $background;
+    min-width: 50px;
+  }
+}
+
+/* Focus lost: fade out the background */
+@keyframes lose-focus {
+  from {
+    background: $foreground-secondary;
+    min-width: 50px;
+  }
+  to {
     background: $background-transparent;
   }
 }
 
-@keyframes workspace-unfocus {
-  0% {
-    background: $background-semi-transparent;
+/* Becoming active: expand and fade in */
+@keyframes become-active {
+  from {
+    opacity: 0.4;
+    min-width: 10px;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Becoming inactive: shrink and fade out */
+@keyframes become-inactive {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.4;
+    min-width: 10px;
   }
 }

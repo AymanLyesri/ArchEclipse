@@ -10,7 +10,6 @@
 @import "panel/panel.scss";
 
 @import "panel/right-panel/right-panel.scss";
-@import "panel/right-panel/components/waifu.scss";
 @import "panel/right-panel/components/script-timer.scss";
 @import "panel/right-panel/components/notification.scss";
 @import "panel/right-panel/components/notification-popups.scss";
@@ -35,7 +34,7 @@
 @import "widgets/cava.scss";
 @import "widgets/weather.scss";
 @import "widgets/bandwidth.scss";
-@import "widgets/image-dialog.scss";
+@import "widgets/booru-image.scss";
 @import "widgets/keybind.scss";
 // Use the variables in the styles
 window {

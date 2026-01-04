@@ -4,22 +4,17 @@ import { createState } from "ags";
 import Gtk from "gi://Gtk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 import Notifd from "gi://AstalNotifd";
-import { globalTransition, NOTIFICATION_DELAY } from "../../../variables";
+import { globalTransition } from "../../../variables";
 import hyprland from "gi://AstalHyprland";
 import { notify } from "../../../utils/notification";
-import { asyncSleep, time } from "../../../utils/time";
-import { Eventbox } from "../../Custom/Eventbox";
+import { time } from "../../../utils/time";
+
 import Pango from "gi://Pango?version=1.0";
 import Picture from "../../Picture";
 import GdkPixbuf from "gi://GdkPixbuf?version=2.0";
 import Gdk from "gi://Gdk?version=4.0";
-const Hyprland = hyprland.get_default();
 
-// const isIcon = (icon: string) => !!Astal.Icon.lookup_icon(icon);
-
-const [wrapText, setWrapText] = createState<boolean>(false);
-
-const TRANSITION = 200;
+const TRANSITION = 250;
 
 function NotificationIcon(n: Notifd.Notification) {
   function textureFromFile(path: string): Gdk.Texture | undefined {
@@ -192,9 +187,7 @@ export default ({
   const topBar = (
     <box class="top-bar" spacing={5}>
       <box spacing={5}>
-        <box visible={isPopup} class="circular-progress-box">
-          {/* {CircularProgress} */}
-        </box>
+        {n.appIcon && <image class="app-icon" iconName={n.appIcon} />}
         <label wrap={true} class="app-name" label={n.app_name} />
 
         {copyButton}
@@ -203,7 +196,6 @@ export default ({
       <box class="quick-actions">
         {expand}
         {close}
-        {/* {expand} */}
       </box>
 
       <label halign={Gtk.Align.END} class="time" label={time(n.time)} />

@@ -1,5 +1,6 @@
 .left-panel {
   @extend .panel;
+  margin-left: 5px;
 
   .bottom-eventbox:hover .bottom-bar {
     background-color: $background-secondary;

@@ -21,6 +21,6 @@ export class ApiClass implements Api {
     this.icon = api.icon;
     this.description = api.description;
     this.idSearchUrl = api.idSearchUrl;
-    this.imageGenerationSupport = api.imageGenerationSupport || false;
+    this.imageGenerationSupport = api.imageGenerationSupport;
   }
 }

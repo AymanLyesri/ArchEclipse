@@ -52,7 +52,7 @@ export interface Settings {
     orientation: AGSSetting;
     layout: WidgetSelector[];
   };
-  waifu: {
+  waifuWidget: {
     visibility: boolean;
     input_history: string;
     current: Waifu;

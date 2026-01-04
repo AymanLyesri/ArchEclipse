@@ -15,6 +15,7 @@ import { hideWindow, WindowActions, Window } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 import app from "ags/gtk4/app";
+import { timeout, Timer } from "ags/time";
 
 const WidgetActions = () => {
   return (
@@ -123,11 +124,10 @@ export default (monitor: Gdk.Monitor) => {
       layer={Astal.Layer.TOP}
       keymode={Astal.Keymode.ON_DEMAND}
       marginTop={5}
-      marginLeft={globalMargin}
       marginBottom={5}
       visible={false}
       $={(self) => {
-        let hideTimeout: NodeJS.Timeout | null = null;
+        let hideTimeout: Timer | null = null;
         const windowInstance = new Window();
         (self as any).leftPanelWindow = windowInstance;
 
@@ -136,7 +136,7 @@ export default (monitor: Gdk.Monitor) => {
         motion.connect("leave", () => {
           if (globalSettings.peek().leftPanel.lock) return;
 
-          hideTimeout = setTimeout(() => {
+          hideTimeout = timeout(100, () => {
             hideTimeout = null;
             if (
               !globalSettings.peek().leftPanel.lock &&
@@ -144,12 +144,12 @@ export default (monitor: Gdk.Monitor) => {
             ) {
               app.get_window(monitorName)?.hide();
             }
-          }, 500);
+          });
         });
 
         motion.connect("enter", () => {
           if (hideTimeout !== null) {
-            clearTimeout(hideTimeout);
+            hideTimeout.cancel();
             hideTimeout = null;
           }
         });

@@ -97,7 +97,11 @@ function Clock() {
   );
 }
 
-function ClientTitle() {
+function ClientTitle({
+  focusedClient,
+}: {
+  focusedClient: Accessor<Hyprland.Client>;
+}) {
   return (
     <label
       class="client-title"
@@ -119,15 +123,21 @@ export default ({
 }) => {
   return (
     <box class="bar-middle" spacing={5} halign={halign}>
-      <With value={createBinding(mpris, "players")}>
-        {(players: AstalMpris.Player[]) => players.length > 0 && <Mpris />}
-      </With>
+      <box
+        visible={createBinding(
+          mpris,
+          "players"
+        )((players) => players.length > 0)}
+      >
+        <With value={createBinding(mpris, "players")}>
+          {(players: AstalMpris.Player[]) => players.length > 0 && <Mpris />}
+        </With>
+      </box>
 
       <Weather />
       <Bandwidth />
       <Clock />
-
-      <With value={focusedClient}>{(client) => client && <ClientTitle />}</With>
+      <ClientTitle focusedClient={focusedClient} />
 
       <With value={globalSettings(({ crypto }) => crypto.favorite)}>
         {(crypto: { symbol: string; timeframe: string }) =>

@@ -11,7 +11,12 @@ export const Progress = ({
   custom_class = "",
   transitionType = Gtk.RevealerTransitionType.SLIDE_DOWN,
 }: {
-  status: Accessor<"loading" | "error" | "success" | "idle">;
+  status:
+    | Accessor<"loading" | "error" | "success" | "idle">
+    | "loading"
+    | "error"
+    | "success"
+    | "idle";
   custom_class?: string;
   transitionType?: Gtk.RevealerTransitionType;
 }) => {
@@ -21,6 +26,11 @@ export const Progress = ({
       transitionDuration={globalTransition}
       transitionType={transitionType}
       $={(self) => {
+        if (typeof status === "string") {
+          self.revealChild = status === "loading" || status === "success";
+          return;
+        }
+
         status.subscribe(() => {
           const newStatus = status.get();
           if (newStatus === "success") {
@@ -37,24 +47,48 @@ export const Progress = ({
         });
       }}
     >
-      <box class={status((status) => `progress ${status}`)} spacing={5} hexpand>
-        <box class="progress-icon">
-          <With value={status}>
-            {(status) =>
-              status === "error" ? (
+      {
+        /* Content */
+        typeof status === "string" ? (
+          <box spacing={5} hexpand>
+            <box class="progress-icon">
+              {status === "error" ? (
                 <label class="progress-error" label="❌" />
               ) : status === "success" ? (
                 <label class="progress-success" label="✅" />
               ) : status === "loading" ? (
                 <Spinner />
-              ) : null
-            }
-          </With>
-        </box>
-        <box class="progress-content">
-          <label class="progress-text" label={status} />
-        </box>
-      </box>
+              ) : null}
+            </box>
+            <box class="progress-content">
+              <label class="progress-text" label={status} />
+            </box>
+          </box>
+        ) : (
+          <box
+            class={status((status) => `progress ${status}`)}
+            spacing={5}
+            hexpand
+          >
+            <box class="progress-icon">
+              <With value={status}>
+                {(status) =>
+                  status === "error" ? (
+                    <label class="progress-error" label="❌" />
+                  ) : status === "success" ? (
+                    <label class="progress-success" label="✅" />
+                  ) : status === "loading" ? (
+                    <Spinner />
+                  ) : null
+                }
+              </With>
+            </box>
+            <box class="progress-content">
+              <label class="progress-text" label={status} />
+            </box>
+          </box>
+        )
+      }
     </revealer>
   );
 };

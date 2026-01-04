@@ -1,5 +1,5 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { Waifu } from "../../../interfaces/waifu.interface";
+import { BooruImage } from "../../../classes/BooruImage";
 import { execAsync } from "ags/process";
 import { readJson } from "../../../utils/json";
 import {
@@ -14,14 +14,11 @@ import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
 import { Progress } from "../../Progress";
 import { connectPopoverEvents } from "../../../utils/window";
-import ImageDialog from "./ImageDialog";
 import { booruPath } from "../../../constants/path.constants";
-import { OpenInBrowser } from "../../../utils/image";
 import Adw from "gi://Adw?version=1";
-import { get } from "http";
 import Pango from "gi://Pango?version=1.0";
 
-const [images, setImages] = createState<Waifu[]>([]);
+const [images, setImages] = createState<BooruImage[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
 const [progressStatus, setProgressStatus] = createState<
   "loading" | "error" | "success" | "idle"
@@ -93,10 +90,13 @@ const fetchImages = async () => {
         --page ${settings.booru.page}
     `);
 
-    const images: Waifu[] = readJson(res).map((img: Waifu) => ({
-      ...img,
-      api: settings.booru.api,
-    }));
+    const images: BooruImage[] = readJson(res).map(
+      (img: any) =>
+        new BooruImage({
+          ...img,
+          api: settings.booru.api,
+        })
+    );
 
     await execAsync(`
       bash -c '
@@ -155,7 +155,9 @@ const fetchBookmarkImages = async () => {
       '
     `);
 
-    setImages(bookmarks);
+    // Convert bookmarks to BooruImage instances
+    const bookmarkImages = bookmarks.map((b: any) => new BooruImage(b));
+    setImages(bookmarkImages);
     calculateCacheSize();
     setProgressStatus("success");
   } catch (err) {
@@ -207,10 +209,10 @@ const fetchTags = async (tag: string) => {
 };
 
 const Images = () => {
-  function masonry(images: Waifu[], columnsCount: number) {
+  function masonry(images: BooruImage[], columnsCount: number) {
     const columns = Array.from({ length: columnsCount }, () => ({
       height: 0,
-      items: [] as Waifu[],
+      items: [] as BooruImage[],
     }));
 
     for (const image of images) {
@@ -247,7 +249,7 @@ const Images = () => {
         <For each={imageColumns}>
           {(column) => (
             <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
-              {column.map((image: Waifu) => (
+              {column.map((image: BooruImage) => (
                 <menubutton
                   class="image-button"
                   hexpand
@@ -261,7 +263,7 @@ const Images = () => {
                     gesture.set_propagation_phase(Gtk.PropagationPhase.BUBBLE);
 
                     gesture.connect("released", () => {
-                      OpenInBrowser(image);
+                      image.openInBrowser();
                     });
 
                     self.add_controller(gesture);
@@ -274,9 +276,7 @@ const Images = () => {
                   <Picture
                     file={`${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`}
                   />
-                  <popover>
-                    <ImageDialog image={image} />
-                  </popover>
+                  <popover>{image.renderAsImageDialog()}</popover>
                 </menubutton>
               ))}
             </box>
