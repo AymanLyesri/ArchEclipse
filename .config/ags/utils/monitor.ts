@@ -18,6 +18,11 @@ export function getConnectorFromHyprland(model: string) {
 }
 
 export function getMonitorName(display: Gdk.Display, monitor: Gdk.Monitor) {
+  // GTK4 provides get_connector() which returns the Wayland connector name directly
+  const connector = monitor.get_connector();
+  if (connector) return connector;
+
+  // Fallback to the old method using model matching
   const model = monitor.get_model() || monitor.get_description();
   return getConnectorFromHyprland(model as any);
 }

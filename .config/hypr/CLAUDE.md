@@ -536,6 +536,85 @@ cat /sys/class/drm/card1/device/mem_info_vram_used | awk '{printf "%.2f GiB\n", 
 cat /sys/class/drm/card1/device/mem_info_vram_total | awk '{printf "%.2f GiB\n", $1/1024/1024/1024}'
 ```
 
+#### 2. AGS Multi-Monitor Bar Not Appearing (Fixed: 2026-01-04)
+
+**Problem:** When multiple monitors are connected, AGS only creates bars for the first monitor. The second monitor has no bar even though AGS detects both monitors.
+
+**Symptoms:**
+- `hyprctl layers` shows bar only on first monitor (eDP-1)
+- AGS log shows "TOTAL MONITORS DETECTED: 2" but only processes first monitor
+- Second monitor (DP-3) has no bar layer surface
+
+**Root Causes (3 issues):**
+
+1. **`getMonitorName()` returning undefined for second monitor:**
+   - Original code used `monitor.get_model()` + complex hyprctl matching
+   - GTK4's `Gdk.Monitor.get_connector()` directly returns connector name (eDP-1, DP-3)
+   - Fix: Use `get_connector()` as primary method with fallback to old method
+
+2. **Errors in first monitor blocking second monitor:**
+   - Original code used `.map()` without error handling
+   - Notification widget errors (`notificationIcon is null`) caused exception
+   - Exception stopped iteration before processing second monitor
+   - Fix: Use `.forEach()` with try-catch wrapper
+
+3. **No support for monitor hotplug:**
+   - Original code only called `perMonitorDisplay()` once at startup
+   - Monitors connected after AGS start never got widgets
+   - Fix: Listen to `notify::monitors` signal and create widgets for new monitors
+
+**Files Fixed:**
+- `.config/ags/app.ts`: Added GLib import, monitor tracking Set, error handling, hotplug detection
+- `.config/ags/utils/monitor.ts`: Use `get_connector()` as primary method
+
+**Code Changes in `app.ts`:**
+```typescript
+// Track initialized monitors to avoid duplicates
+const initializedMonitors = new Set<string>();
+
+// Process each monitor with error handling
+monitors.forEach((monitor) => {
+  try {
+    createWidgetsForMonitor(monitor);
+  } catch (e) {
+    print("\t ERROR creating widgets for monitor: " + monitor.get_connector() + " - " + e);
+  }
+});
+
+// Setup hotplug detection
+app.connect("notify::monitors", () => {
+  GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+    monitors.forEach((monitor) => createWidgetsForMonitor(monitor));
+    return GLib.SOURCE_REMOVE;
+  });
+});
+```
+
+**Code Changes in `utils/monitor.ts`:**
+```typescript
+export function getMonitorName(display: Gdk.Display, monitor: Gdk.Monitor) {
+  // GTK4 provides get_connector() which returns Wayland connector name directly
+  const connector = monitor.get_connector();
+  if (connector) return connector;
+
+  // Fallback to old method
+  const model = monitor.get_model() || monitor.get_description();
+  return getConnectorFromHyprland(model as any);
+}
+```
+
+**Verification:**
+```bash
+# Check bars on all monitors
+hyprctl layers | grep -E "Monitor|bar"
+
+# Should show bar layer for each monitor:
+# Monitor eDP-1:
+#     Layer ...: namespace: bar
+# Monitor DP-3:
+#     Layer ...: namespace: bar
+```
+
 ## Architecture Patterns
 
 ### Configuration Sourcing Order
