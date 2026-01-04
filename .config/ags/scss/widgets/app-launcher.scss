@@ -1,27 +1,55 @@
 .app-launcher {
   @include module;
 
-  min-width: 45em;
+  min-width: 64em;
+
+  padding-top: 10px;
+  padding-bottom: 10px;
 
   .help {
     popover {
       @include module;
     }
   }
+  .input {
+    padding-right: 10px;
+    padding-left: 10px;
+
+    entry {
+      padding: 10px;
+      background-color: transparent;
+    }
+  }
+
   .results {
+    padding-right: 10px;
+    padding-left: 10px;
+
     button {
-      padding: 1em;
+      .description {
+        color: $foreground-tertiary;
+        font-size: 0.9em;
+      }
       .argument {
-        color: $secondary;
+        color: $foreground-secondary;
       }
       &:focus {
-        background: $secondary;
-      }
-      &.checked {
+        @include button-checked;
         .argument {
-          color: $tertiary;
+          color: $background-secondary;
+        }
+        .description {
+          color: $background-tertiary;
         }
       }
+    }
+  }
+
+  button {
+    padding: 1em;
+    background-color: $background-transparent;
+    &:hover {
+      background-color: $background-semi-transparent;
     }
   }
 }

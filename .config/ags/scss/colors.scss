@@ -29,3 +29,6 @@ $background-secondary: mix($background, $secondary, $phi-percentage);
 $foreground-secondary: mix($foreground, $secondary, $phi-percentage);
 
 $background-semi-transparent: rgba($background, $OPACITY + 0.2);
+
+$foreground-tertiary: mix($foreground, $tertiary, $phi-percentage);
+$background-tertiary: mix($background, $tertiary, $phi-percentage);
