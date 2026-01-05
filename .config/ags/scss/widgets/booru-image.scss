@@ -69,6 +69,7 @@
 
   .tag,
   .actions .section {
+    opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
   }
 
@@ -101,7 +102,6 @@
     padding: 10px;
     .tag {
       @include button;
-      opacity: 0;
     }
   }
 
@@ -112,7 +112,6 @@
 
     .section {
       border-radius: 10px;
-      opacity: 0;
       background-color: $background-transparent;
       transition: background-color 0.2s ease;
       &:hover {

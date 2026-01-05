@@ -13,7 +13,14 @@ import { setGlobalSetting } from "../variables";
  *
  * 2. In widgets with popovers, call connectPopoverEvents in the $ property:
  *    <menubutton $={(self) => connectPopoverEvents(self, "windowPropertyName")}>>
- *      <popover>...</popover>
+ *       <popover
+      $={(self) => {
+        self.connect("notify::visible", () => {
+          if (self.visible) self.add_css_class("popover-open");
+          else if (self.get_child()) self.remove_css_class("popover-open");
+        });
+      }}
+    >...</popover>
  *    </menubutton>
  *
  * 3. Check popup state before hiding panel on leave event:

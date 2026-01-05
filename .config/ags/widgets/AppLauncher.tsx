@@ -96,7 +96,14 @@ const helpCommands = {
 const Help = () => (
   <menubutton class="help" tooltipText="Help" halign={Gtk.Align.END}>
     <label label="" />
-    <popover>
+    <popover
+      $={(self) => {
+        self.connect("notify::visible", () => {
+          if (self.visible) self.add_css_class("popover-open");
+          else if (self.get_child()) self.remove_css_class("popover-open");
+        });
+      }}
+    >
       <box class="help-popover" spacing={5}>
         <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
           {Object.entries(helpCommands).map(([command, description]) => (

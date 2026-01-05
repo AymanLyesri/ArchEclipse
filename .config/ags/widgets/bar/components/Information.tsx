@@ -65,7 +65,14 @@ function Mpris() {
           }}
         </For>
       </box>
-      <popover>
+      <popover
+        $={(self) => {
+          self.connect("notify::visible", () => {
+            if (self.visible) self.add_css_class("popover-open");
+            else if (self.get_child()) self.remove_css_class("popover-open");
+          });
+        }}
+      >
         <box spacing={4} orientation={Gtk.Orientation.VERTICAL}>
           <For each={players}>
             {(player) => <Player height={200} width={300} player={player} />}

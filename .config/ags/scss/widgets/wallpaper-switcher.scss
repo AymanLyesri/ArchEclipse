@@ -11,6 +11,9 @@
     min-width: 100px;
     border: none;
     padding: 0px;
+
+    animation: opacity-in 0.5s ease-out;
+
     &:hover,
     &.focused {
       min-width: 300px;
