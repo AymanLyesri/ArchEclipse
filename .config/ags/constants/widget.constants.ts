@@ -21,37 +21,22 @@ export const barWidgetSelectors: WidgetSelector[] = [
   {
     name: "workspaces",
     icon: "󰒘",
-    widget: ({
-      monitorName,
-      halign,
-    }: {
-      monitorName?: string | Accessor<string>;
-      halign?: Gtk.Align | Accessor<Gtk.Align>;
-    }) => Workspaces({ monitorName: monitorName, halign: halign }),
+    widget: ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) =>
+      Workspaces({ halign: halign }),
     enabled: true,
   },
   {
     name: "information",
     icon: "󰒘",
-    widget: ({
-      monitorName,
-      halign,
-    }: {
-      monitorName?: string | Accessor<string>;
-      halign?: Gtk.Align | Accessor<Gtk.Align>;
-    }) => Information({ monitorName: monitorName, halign: halign }),
+    widget: ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) =>
+      Information({ halign: halign }),
     enabled: true,
   },
   {
     name: "utilities",
     icon: "󰒘",
-    widget: ({
-      monitorName,
-      halign,
-    }: {
-      monitorName?: string | Accessor<string>;
-      halign?: Gtk.Align | Accessor<Gtk.Align>;
-    }) => Utilities({ monitorName: monitorName, halign: halign }),
+    widget: ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) =>
+      Utilities({ halign: halign }),
     enabled: true,
   },
 ];

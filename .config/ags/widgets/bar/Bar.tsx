@@ -23,7 +23,7 @@ import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
 import app from "ags/gtk4/app";
 
 export default ({ monitor }: { monitor: Gdk.Monitor }) => {
-  const monitorName = getMonitorName(monitor.get_display(), monitor)!;
+  const monitorName = getMonitorName(monitor)!;
 
   return (
     <window
@@ -60,6 +60,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
         }
       )}
       $={(self) => {
+        (self as any).monitorName = monitorName;
         const motion = new Gtk.EventControllerMotion();
         motion.connect("leave", () => {
           if (!globalSettings.peek().bar.lock)
@@ -72,7 +73,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
         spacing={5}
         class={emptyWorkspace((empty) => (empty ? "bar empty" : "bar full"))}
       >
-        <LeftPanelVisibility monitor={monitor} />
+        <LeftPanelVisibility />
 
         <box class="bar-center" hexpand>
           <With value={globalSettings(({ bar }) => bar.layout)}>
@@ -98,21 +99,9 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
                       case "workspaces":
                         return <Workspaces halign={halign} $type={type} />;
                       case "information":
-                        return (
-                          <Information
-                            halign={halign}
-                            $type={type}
-                            monitorName={monitorName}
-                          />
-                        );
+                        return <Information halign={halign} $type={type} />;
                       case "utilities":
-                        return (
-                          <Utilities
-                            halign={halign}
-                            $type={type}
-                            monitorName={monitorName}
-                          />
-                        );
+                        return <Utilities halign={halign} $type={type} />;
                       default:
                         return <box />;
                     }
@@ -122,7 +111,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
           </With>
         </box>
 
-        <RightPanelVisibility monitor={monitor} />
+        <RightPanelVisibility />
       </box>
     </window>
   );

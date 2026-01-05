@@ -28,11 +28,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       $={(self) => {
         const motion = new Gtk.EventControllerMotion();
         motion.connect("enter", () => {
-          app
-            .get_window(
-              `bar-${getMonitorName(monitor.get_display(), monitor)}`
-            )!
-            .show();
+          app.get_window(`bar-${getMonitorName(monitor)}`)!.show();
         });
         self.add_controller(motion);
       }}
