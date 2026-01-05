@@ -1,6 +1,6 @@
 import Gtk from "gi://Gtk?version=4.0";
 import Notifd from "gi://AstalNotifd";
-import { createState, createComputed, createBinding, For } from "ags";
+import { createState, createComputed, createBinding, For, Accessor } from "ags";
 import Pango from "gi://Pango?version=1.0";
 import Notification from "./Notification";
 
@@ -110,7 +110,7 @@ const NotificationStackView = ({ stack }: { stack: NotificationStack }) => {
 
 /* --------------------------- Main UI ------------------------------ */
 
-export default () => {
+export default ({ className }: { className?: string | Accessor<string> }) => {
   const notifd = Notifd.get_default();
 
   const [notificationFilter] = createState<Filter>({
@@ -141,7 +141,7 @@ export default () => {
 
   return (
     <box
-      class="notification-history"
+      class={`notification-history ${className ?? ""}`}
       orientation={Gtk.Orientation.VERTICAL}
       spacing={8}
     >

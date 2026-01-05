@@ -1,5 +1,5 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { createState, For, With } from "ags";
+import { Accessor, createState, For, With } from "ags";
 import { execAsync } from "ags/process";
 import { globalTransition } from "../../../variables";
 import { notify } from "../../../utils/notification";
@@ -372,7 +372,11 @@ const TaskItem = ({ task }: { task: ScriptTask }) => {
 };
 
 // Main component
-const ScriptTimer = () => {
+const ScriptTimer = ({
+  className,
+}: {
+  className?: string | Accessor<string>;
+}) => {
   const toggleForm = () => {
     setEditingTask(null);
     setShowAddForm(!showAddForm.get());
@@ -380,7 +384,7 @@ const ScriptTimer = () => {
 
   return (
     <box
-      class="script-timer module"
+      class={`script-timer module ${className ?? ""}`}
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
     >

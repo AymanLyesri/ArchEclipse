@@ -127,7 +127,7 @@ function OnScreenProgress(orientation={Gtk.Orientation.VERTICAL}: boolean) {
   );
 }
 
-export default (monitor: Gdk.Monitor) => (
+export default ({ monitor }: { monitor: Gdk.Monitor }) => (
   <window
     gdkmonitor={monitor}
     name="osd"

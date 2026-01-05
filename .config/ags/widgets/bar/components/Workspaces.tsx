@@ -254,7 +254,11 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
 
 // wallpaper switcher
 
-function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
+function WallpaperSwitcher({
+  monitorName,
+}: {
+  monitorName?: string | Accessor<string>;
+}) {
   return (
     <togglebutton
       class="wallpaper-switcher-trigger"
@@ -284,7 +288,11 @@ function Settings({ monitorName }: { monitorName: string }) {
   );
 }
 
-function UserPanel({ monitorName }: { monitorName: string }) {
+function UserPanel({
+  monitorName,
+}: {
+  monitorName?: string | Accessor<string>;
+}) {
   return (
     <togglebutton
       class="user-panel"
@@ -299,7 +307,11 @@ function UserPanel({ monitorName }: { monitorName: string }) {
   );
 }
 
-const Actions = ({ monitorName }: { monitorName: string }) => {
+const Actions = ({
+  monitorName,
+}: {
+  monitorName?: string | Accessor<string>;
+}) => {
   return (
     <box class="actions">
       <UserPanel monitorName={monitorName} />
@@ -312,8 +324,8 @@ export default ({
   monitorName,
   halign,
 }: {
-  monitorName: string;
-  halign: Gtk.Align;
+  monitorName?: string | Accessor<string>;
+  halign?: Gtk.Align | Accessor<Gtk.Align>;
 }) => {
   return (
     <box class="workspaces" spacing={5} halign={halign} hexpand>

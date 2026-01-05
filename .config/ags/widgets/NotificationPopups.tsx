@@ -124,7 +124,7 @@ class NotificationMap {
   }
 }
 
-export default (monitor: Gdk.Monitor) => {
+export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   const { TOP, RIGHT } = Astal.WindowAnchor;
   const notifications = new NotificationMap().get();
 

@@ -374,7 +374,7 @@ const ResultsDisplay = () => {
   );
 };
 
-export default (monitor: any) => (
+export default ({ monitor }: { monitor: Gdk.Monitor }) => (
   <Astal.Window
     gdkmonitor={monitor}
     name={`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`}

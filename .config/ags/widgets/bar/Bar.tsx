@@ -22,7 +22,7 @@ import { RightPanelVisibility } from "../rightPanel/RightPanel";
 import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
 import app from "ags/gtk4/app";
 
-export default (monitor: Gdk.Monitor) => {
+export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   const monitorName = getMonitorName(monitor.get_display(), monitor)!;
 
   return (
@@ -96,13 +96,7 @@ export default (monitor: Gdk.Monitor) => {
                         : Gtk.Align.END;
                     switch (widget.name) {
                       case "workspaces":
-                        return (
-                          <Workspaces
-                            halign={halign}
-                            $type={type}
-                            monitorName={monitorName}
-                          />
-                        );
+                        return <Workspaces halign={halign} $type={type} />;
                       case "information":
                         return (
                           <Information

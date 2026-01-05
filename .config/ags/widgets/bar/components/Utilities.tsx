@@ -301,8 +301,8 @@ export default ({
   monitorName,
   halign,
 }: {
-  monitorName: string;
-  halign: Gtk.Align;
+  monitorName?: string | Accessor<string>;
+  halign?: Gtk.Align | Accessor<Gtk.Align>;
 }) => {
   return (
     <box class="utilities" spacing={5} halign={halign} hexpand>

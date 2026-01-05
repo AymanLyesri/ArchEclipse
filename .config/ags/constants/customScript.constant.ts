@@ -36,9 +36,9 @@ export const customScripts: CustomScript[] = [
     icon: "󰍹",
     description: "Change Resolution",
     script: () => {
-      execAsync(
-        `bash -c "kitty $HOME/.config/hypr/scripts/change-resolution.sh"`
-      ).catch((err) => notify({ summary: "Resolution", body: err }));
+      execAsync(`kitty hyprmon`).catch((err) =>
+        notify({ summary: "Resolution", body: err })
+      );
     },
   },
   {
