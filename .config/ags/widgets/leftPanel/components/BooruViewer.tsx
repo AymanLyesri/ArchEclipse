@@ -90,7 +90,12 @@ const fetchImages = async () => {
         --page ${settings.booru.page}
     `);
 
-    const images: BooruImage[] = readJson(res).map(
+    const jsonData = readJson(res);
+    if (!Array.isArray(jsonData)) {
+      print("BooruViewer: No results or invalid response");
+      return;
+    }
+    const images: BooruImage[] = jsonData.map(
       (img: any) =>
         new BooruImage({
           ...img,
@@ -201,11 +206,12 @@ const Tabs = () => (
 const fetchTags = async (tag: string) => {
   const escapedTag = tag.replace(/'/g, "'\\'''");
   const res = await execAsync(
-    `python ./scripts/search-booru.py 
-    --api ${globalSettings.peek().booru.api.value} 
+    `python ./scripts/search-booru.py
+    --api ${globalSettings.peek().booru.api.value}
     --tag '${escapedTag}'`
   );
-  setFetchedTags(readJson(res));
+  const tags = readJson(res);
+  setFetchedTags(Array.isArray(tags) ? tags : []);
 };
 
 const Images = () => {

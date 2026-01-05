@@ -55,9 +55,9 @@ export default function Picture({
         file={
           file != undefined
             ? typeof file === "string"
-              ? Gio.File.new_for_path(file)
-              : file!((f) => Gio.File.new_for_path(f))
-            : undefined
+              ? (file ? Gio.File.new_for_path(file) : null)
+              : file!((f) => f ? Gio.File.new_for_path(f) : null)
+            : null
         }
         paintable={
           paintable != undefined

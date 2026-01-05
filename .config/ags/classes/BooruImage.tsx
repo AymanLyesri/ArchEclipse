@@ -344,7 +344,11 @@ export class BooruImage {
 
       print("API Response:", res);
 
-      const imageData = readJson(res)[0];
+      const jsonData = readJson(res);
+      if (!Array.isArray(jsonData) || jsonData.length === 0) {
+        throw new Error("No image data returned from API");
+      }
+      const imageData = jsonData[0];
       const image = new BooruImage({
         ...imageData,
         api: api,

@@ -311,7 +311,7 @@ export default ({
         class="img"
         height={height}
         width={width}
-        file={createBinding(player, "coverArt")}
+        file={createBinding(player, "coverArt").as((art) => art || "")}
       />
 
       <box
