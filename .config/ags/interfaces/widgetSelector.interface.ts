@@ -1,10 +1,23 @@
 import Gtk from "gi://Gtk?version=4.0";
+import { Accessor } from "gnim";
 
 export interface WidgetSelector {
   name: string;
   icon: string;
   // make arg0 not necessary
-  widget: (...arg0: any) => Gtk.Widget | Object;
+  widget: ({
+    width,
+    height,
+    monitorName,
+    halign,
+    className,
+  }: {
+    width?: number | Accessor<number>;
+    height?: number | Accessor<number>;
+    monitorName?: string | Accessor<string>;
+    halign?: Gtk.Align | Accessor<Gtk.Align>;
+    className?: string | Accessor<string>;
+  }) => Gtk.Widget | Object;
   widgetInstance?: Gtk.Widget; // To track the active widget instance
   enabled: boolean;
 }

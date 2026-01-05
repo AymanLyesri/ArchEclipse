@@ -1,5 +1,5 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { createState, For, With } from "ags";
+import { Accessor, createState, For, With } from "ags";
 import { execAsync } from "ags/process";
 import {
   globalSettings,
@@ -286,7 +286,11 @@ const CryptoEntryItem = ({ entry }: { entry: CryptoEntry }) => {
 };
 
 // Main component
-const CryptoWidget = () => {
+const CryptoWidget = ({
+  className,
+}: {
+  className?: string | Accessor<string>;
+}) => {
   const toggleForm = () => {
     setEditingEntry(null);
     setShowAddForm(!showAddForm.get());
@@ -294,7 +298,7 @@ const CryptoWidget = () => {
 
   return (
     <box
-      class="crypto-widget"
+      class={`crypto-widget ${className ?? ""}`}
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
     >

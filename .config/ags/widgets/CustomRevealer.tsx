@@ -10,6 +10,7 @@ export default ({
   revealChild = false,
   custom_class = "",
   on_primary_click = () => {},
+  tooltipText = "",
 }: {
   trigger: any;
   child: any;
@@ -17,6 +18,7 @@ export default ({
   revealChild?: boolean | Accessor<boolean>;
   custom_class?: string | Accessor<string>;
   on_primary_click?: () => void;
+  tooltipText?: string | Accessor<string>;
 }) => {
   const revealer = (
     <revealer
@@ -30,6 +32,7 @@ export default ({
   const _Eventbox = (
     <Eventbox
       visible={visible}
+      tooltipText={tooltipText}
       class={"custom-revealer " + custom_class}
       onHover={(self) => {
         (revealer as Gtk.Revealer).reveal_child = true;

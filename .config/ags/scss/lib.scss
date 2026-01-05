@@ -22,6 +22,11 @@
   }
 }
 
+@mixin button-checked {
+  background: $foreground-secondary;
+  color: $background;
+}
+
 @mixin button {
   @include module;
   font-family: "JetBrainsMono NFP";
@@ -40,8 +45,7 @@
     transform: scale(1) translateY(0px);
   }
   &:checked {
-    background: $foreground-secondary;
-    color: $background;
+    @include button-checked;
   }
 }
 

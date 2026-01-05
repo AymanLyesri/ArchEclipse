@@ -45,7 +45,7 @@ const WidgetActions = () => {
   );
 };
 
-const Actions = ({ monitorName }: { monitorName: string }) => (
+const Actions = () => (
   <box
     class="panel-actions"
     halign={Gtk.Align.START}
@@ -53,7 +53,6 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
   >
     <WidgetActions />
     <WindowActions
-      windowName={monitorName}
       windowWidth={globalSettings(({ leftPanel }) => leftPanel.width)}
       windowSettingKey="leftPanel"
       windowExclusivity={globalSettings(
@@ -65,10 +64,10 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
   </box>
 );
 
-function Panel({ monitorName }: { monitorName: string }) {
+function Panel() {
   return (
     <box>
-      <Actions monitorName={monitorName} />
+      <Actions />
       <box
         hexpand
         class="main-content"
@@ -83,7 +82,7 @@ function Panel({ monitorName }: { monitorName: string }) {
             );
             if (selector?.widget) {
               try {
-                return selector.widget() as JSX.Element;
+                return selector.widget({}) as JSX.Element;
               } catch (error) {
                 console.error(`Error rendering widget:`, error);
                 return (<box />) as JSX.Element;
@@ -97,7 +96,7 @@ function Panel({ monitorName }: { monitorName: string }) {
   );
 }
 
-export default (monitor: Gdk.Monitor) => {
+export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   const monitorName = `left-panel-${getMonitorName(
     monitor.get_display(),
     monitor
@@ -166,7 +165,7 @@ export default (monitor: Gdk.Monitor) => {
           }
         }}
       />
-      <Panel monitorName={monitorName} />
+      <Panel />
     </window>
   );
 };
@@ -182,7 +181,6 @@ export function LeftPanelVisibility({ monitor }: { monitor: Gdk.Monitor }) {
         active={false}
         label={""}
         onToggled={(self) => {
-          // setGlobalSetting("rightPanel.visibility", active)
           const leftPanel = app.get_window(
             `left-panel-${getMonitorName(monitor.get_display(), monitor)}`
           ) as Gtk.Window;

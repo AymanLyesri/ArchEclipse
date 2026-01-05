@@ -32,6 +32,7 @@ import { quickApps } from "../constants/app.constants";
 import { For } from "gnim";
 import Gdk from "gi://Gdk?version=4.0";
 import { convert, isConversionQuery } from "../utils/convert";
+import Pango from "gi://Pango?version=1.0";
 const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
@@ -85,7 +86,7 @@ const QuickApps = () => {
 const helpCommands = {
   "Press <Escape>": "to reset input",
   "... ...": "open with argument",
-  "translate .. > ..": "translate .. > (en,fr,es,de,pt,ru,ar...)",
+  "translate .. > ..": "translate into (en,fr,es,de,pt,ru,ar...)",
   "... .com OR https://...": "open link",
   "..*/+-..": "arithmetics",
   "emoji ...": "search emojis",
@@ -229,9 +230,10 @@ const Entry = () => (
               apps
                 .fuzzy_query(args.shift()!)
                 .slice(0, MAX_ITEMS)
-                .map((app: any) => ({
+                .map((app: Apps.Application) => ({
                   app_name: app.name,
                   app_icon: app.iconName,
+                  app_description: app.description,
                   app_type: "app",
                   app_arg: args.join(" "),
                   app_launch: () =>
@@ -295,10 +297,22 @@ const ResultsDisplay = () => {
       <image visible={element.app_type === "app"} iconName={element.app_icon} />
 
       {/* MAIN LABEL — expands */}
-      <label hexpand xalign={0} label={element.app_name} />
+      <label xalign={0} label={element.app_name} />
 
       {/* ARGUMENT — fixed alignment */}
-      <label class="argument" xalign={1} label={element.app_arg || ""} />
+      <label
+        class="argument"
+        hexpand
+        xalign={0}
+        label={element.app_arg || ""}
+      />
+
+      <label
+        class="description"
+        xalign={1}
+        ellipsize={Pango.EllipsizeMode.END}
+        label={element.app_description || ""}
+      />
     </box>
   );
 
@@ -329,7 +343,7 @@ const ResultsDisplay = () => {
       visible={Results((results) => results.length > 0)}
       class="results"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={5}
+      spacing={10}
     >
       <For each={Results}>
         {(result, i) => (
@@ -360,7 +374,7 @@ const ResultsDisplay = () => {
   );
 };
 
-export default (monitor: any) => (
+export default ({ monitor }: { monitor: Gdk.Monitor }) => (
   <Astal.Window
     gdkmonitor={monitor}
     name={`app-launcher-${getMonitorName(monitor.get_display(), monitor)}`}
@@ -385,14 +399,15 @@ export default (monitor: any) => (
     <box
       orientation={Gtk.Orientation.VERTICAL}
       class="app-launcher"
-      spacing={5}
+      spacing={10}
     >
-      <box spacing={5}>
+      <box class={"input"} spacing={5}>
         <Entry />
         <Help />
       </box>
-      <ResultsDisplay />
+
       <QuickApps />
+      <ResultsDisplay />
     </box>
   </Astal.Window>
 );

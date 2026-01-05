@@ -7,7 +7,7 @@ import { globalSettings, setGlobalSetting } from "../../variables";
 import app from "ags/gtk4/app";
 import { getMonitorName } from "../../utils/monitor";
 
-export default (monitor: Gdk.Monitor) => {
+export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   return (
     <window
       name="right-panel-hover"

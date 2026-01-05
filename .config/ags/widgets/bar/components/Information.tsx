@@ -118,11 +118,11 @@ export default ({
   monitorName,
   halign,
 }: {
-  monitorName: string;
-  halign: Gtk.Align;
+  monitorName?: string | Accessor<string>;
+  halign?: Gtk.Align | Accessor<Gtk.Align>;
 }) => {
   return (
-    <box class="bar-middle" spacing={5} halign={halign}>
+    <box class="information" spacing={5} halign={halign}>
       <box
         visible={createBinding(
           mpris,
@@ -135,8 +135,8 @@ export default ({
       </box>
 
       <Weather />
-      <Bandwidth />
       <Clock />
+      <Bandwidth />
       <ClientTitle focusedClient={focusedClient} />
 
       <With value={globalSettings(({ crypto }) => crypto.favorite)}>

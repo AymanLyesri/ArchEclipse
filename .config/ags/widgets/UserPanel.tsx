@@ -257,7 +257,7 @@ const WindowActions = (monitorName: string) => {
   );
 };
 
-export default (monitor: Gdk.Monitor) => {
+export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   const monitorName = getMonitorName(monitor.get_display(), monitor)!;
   return (
     <window

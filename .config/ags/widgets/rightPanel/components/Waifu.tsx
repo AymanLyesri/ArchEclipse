@@ -1,4 +1,4 @@
-import { createState, With } from "ags";
+import { Accessor, createState, With } from "ags";
 import { globalSettings, setGlobalSetting } from "../../../variables";
 import Gtk from "gi://Gtk?version=4.0";
 import { BooruImage } from "../../../classes/BooruImage";
@@ -22,8 +22,6 @@ function WaifuDisplay() {
         // Convert plain object to BooruImage instance
         const image = new BooruImage(waifuData);
 
-        console.table(image);
-
         // All rendering and actions are handled by BooruImage.renderAsWaifuWidget()
         return image.renderAsWaifuWidget({
           width: globalSettings.peek().rightPanel.width,
@@ -33,9 +31,12 @@ function WaifuDisplay() {
   );
 }
 
-export default () => {
+export default ({ className }: { className?: string | Accessor<string> }) => {
   return (
-    <box class="waifu" orientation={Gtk.Orientation.VERTICAL}>
+    <box
+      class={`waifu ${className ?? ""}`}
+      orientation={Gtk.Orientation.VERTICAL}
+    >
       <WaifuDisplay />
     </box>
   );

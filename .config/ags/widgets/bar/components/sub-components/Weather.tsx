@@ -156,7 +156,7 @@ export default () => {
   const currentWeatherLabel = weather((w) => {
     if (!w) return "Weather N/A";
     const current = w.current;
-    return `${current.temp}${current.temp_unit} - ${
+    return `${current.temp}${current.temp_unit} ${
       weatherCodes[current.weather_code] || "Unknown"
     }`;
   });

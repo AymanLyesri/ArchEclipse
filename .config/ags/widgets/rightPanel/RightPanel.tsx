@@ -8,7 +8,7 @@ import {
   globalTransition,
   setGlobalSetting,
 } from "../../variables";
-import { createBinding, For, With } from "ags";
+import { createBinding, createState, For, With } from "ags";
 import { Eventbox } from "../Custom/Eventbox";
 import { getMonitorName } from "../../utils/monitor";
 import {
@@ -21,6 +21,7 @@ import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 import GObject from "ags/gobject";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 import app from "ags/gtk4/app";
+import { timeout } from "ags/time";
 
 function moveItem<T>(array: T[], from: number, to: number): T[] {
   const copy = [...array];
@@ -73,6 +74,11 @@ const WidgetActions = () => {
 
                 dragSource.connect("drag-begin", (source) => {
                   source.set_icon(Gtk.WidgetPaintable.new(self), 0, 0);
+                  const windowInstance = (self.get_root() as any)
+                    .rightPanelWindow;
+                  if (windowInstance) {
+                    windowInstance.setIsDragging(true);
+                  }
                 });
 
                 dragSource.connect("prepare", () => {
@@ -90,6 +96,16 @@ const WidgetActions = () => {
                   value.set_int(index);
 
                   return Gdk.ContentProvider.new_for_value(value);
+                });
+
+                dragSource.connect("drag-end", () => {
+                  const windowInstance = (self.get_root() as any)
+                    .rightPanelWindow;
+                  if (windowInstance) {
+                    timeout(100, () => {
+                      windowInstance.setIsDragging(false);
+                    });
+                  }
                 });
 
                 self.add_controller(dragSource);
@@ -110,12 +126,29 @@ const WidgetActions = () => {
                     (w) => w.name === widget.name
                   );
 
-                  if (toIndex === -1 || fromIndex === toIndex) return true;
+                  if (toIndex === -1 || fromIndex === toIndex) {
+                    const windowInstance = (self.get_root() as any)
+                      .rightPanelWindow;
+                    if (windowInstance) {
+                      timeout(100, () => {
+                        windowInstance.setIsDragging(false);
+                      });
+                    }
+                    return true;
+                  }
 
                   setGlobalSetting(
                     "rightPanel.widgets",
                     moveItem(widgets, fromIndex, toIndex)
                   );
+
+                  const windowInstance = (self.get_root() as any)
+                    .rightPanelWindow;
+                  if (windowInstance) {
+                    timeout(100, () => {
+                      windowInstance.setIsDragging(false);
+                    });
+                  }
 
                   return true;
                 });
@@ -130,7 +163,7 @@ const WidgetActions = () => {
   );
 };
 
-const Actions = ({ monitorName }: { monitorName: string }) => (
+const Actions = () => (
   <box
     class="panel-actions"
     halign={Gtk.Align.END}
@@ -138,7 +171,7 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
   >
     <WidgetActions />
     <WindowActions
-      windowName={monitorName}
+      // windowName={"right-panel"}
       windowWidth={globalSettings(({ rightPanel }) => rightPanel.width)}
       windowSettingKey="rightPanel"
       windowExclusivity={globalSettings(
@@ -149,10 +182,19 @@ const Actions = ({ monitorName }: { monitorName: string }) => (
   </box>
 );
 
-function Panel({ monitorName }: { monitorName: string }) {
+function Panel() {
+  let oldWidgets: WidgetSelector[] = [];
+  // const [newWidgetsIndex, setNewWidgetsIndex] = createState<number[]>([]);
+  let newWidgetsIndex: number[] = [];
   /// Get enabled widgets with their components cause `widget()` its not saved in settings file
   const enabledWidgets = globalSettings(({ rightPanel }) => {
     const enabled = rightPanel.widgets.filter((w) => w.enabled);
+
+    newWidgetsIndex = enabled
+      .map((item, index) => (oldWidgets.includes(item) ? -1 : index))
+      .filter((index) => index !== -1);
+
+    oldWidgets = enabled;
     //add widget function from constants
     const widgetSelectors = rightPanelWidgetSelectors;
     return enabled
@@ -181,12 +223,16 @@ function Panel({ monitorName }: { monitorName: string }) {
         widthRequest={globalSettings(({ rightPanel }) => rightPanel.width)} // ignore action section
       >
         <For each={enabledWidgets}>
-          {(widget) => {
+          {(widget, index) => {
             try {
-              return widget.widget(
-                undefined,
-                globalSettings(({ rightPanel }) => rightPanel.width - 20)
-              ) as JSX.Element;
+              return widget.widget({
+                height: globalSettings(
+                  ({ rightPanel }) => rightPanel.width - 20
+                ),
+                className: newWidgetsIndex.includes(index.peek())
+                  ? "new-widget"
+                  : "",
+              }) as JSX.Element;
             } catch (error) {
               console.error(`Error rendering widget:`, error);
               return (<box />) as JSX.Element;
@@ -194,11 +240,11 @@ function Panel({ monitorName }: { monitorName: string }) {
           }}
         </For>
       </box>
-      <Actions monitorName={monitorName} />
+      <Actions />
     </box>
   );
 }
-export default (monitor: Gdk.Monitor) => {
+export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   const monitorName = `right-panel-${getMonitorName(
     monitor.get_display(),
     monitor
@@ -227,6 +273,25 @@ export default (monitor: Gdk.Monitor) => {
       marginBottom={5}
       keymode={Astal.Keymode.ON_DEMAND}
       visible={false}
+      $={(self) => {
+        const windowInstance = new Window();
+        (self as any).rightPanelWindow = windowInstance;
+
+        const motion = new Gtk.EventControllerMotion();
+
+        motion.connect("leave", () => {
+          if (globalSettings.peek().rightPanel.lock) return;
+
+          const windowInstance = (self as any).rightPanelWindow;
+          if (windowInstance && windowInstance.isDragging()) return;
+
+          hideWindow(
+            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+          );
+        });
+
+        self.add_controller(motion);
+      }}
     >
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
@@ -239,17 +304,8 @@ export default (monitor: Gdk.Monitor) => {
           }
         }}
       />
-      <Gtk.EventControllerMotion
-        onLeave={() => {
-          if (globalSettings.peek().rightPanel.lock) return;
 
-          hideWindow(
-            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
-          );
-        }}
-      />
-
-      <Panel monitorName={monitorName} />
+      <Panel />
     </window>
   );
 };

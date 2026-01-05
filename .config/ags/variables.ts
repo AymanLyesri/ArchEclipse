@@ -51,6 +51,9 @@ export { globalSettings, setGlobalSettings };
 export const focusedClient = createBinding(hyprland, "focusedClient");
 export const emptyWorkspace = focusedClient((client) => !client);
 export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
+export const specialWorkspace = focusedClient((client) => {
+  return client ? client.workspace.id == -99 : false;
+});
 
 export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));
 export const globalTransition = phi * 300;

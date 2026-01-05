@@ -21,9 +21,11 @@ const players = createBinding(mpris, "players");
 export default function ({
   width,
   height,
+  className,
 }: {
   width?: Accessor<number> | number;
   height?: Accessor<number> | number;
+  className?: Accessor<string> | string;
 }) {
   return (
     <box>

@@ -22,8 +22,8 @@ import { setGlobalSetting } from "../variables";
 
 export const hideWindow = (name: string) => app.get_window(name)?.hide();
 export const showWindow = (name: string) => app.get_window(name)?.show();
-export const queueResize = (name: string) => {
-  const window = app.get_window(name);
+export const queueResize = (window: Gtk.Window | null) => {
+  print("Queueing resize for window:", window?.name);
   if (window) {
     // For layer-shell windows in Hyprland, we need to hide/show to force size update
     const wasVisible = window.get_visible();
@@ -40,6 +40,7 @@ export const queueResize = (name: string) => {
 
 class Window {
   private _popupIsOpen: boolean = false;
+  private _isDragging: boolean = false;
 
   constructor() {}
 
@@ -49,6 +50,14 @@ class Window {
 
   public setPopupIsOpen(value: boolean): void {
     this._popupIsOpen = value;
+  }
+
+  public isDragging(): boolean {
+    return this._isDragging;
+  }
+
+  public setIsDragging(value: boolean): void {
+    this._isDragging = value;
   }
 }
 
@@ -102,7 +111,6 @@ export const connectPopoverEvents = (
 };
 
 export function WindowActions({
-  windowName,
   windowWidth,
   windowSettingKey,
   windowExclusivity,
@@ -110,7 +118,6 @@ export function WindowActions({
   maxPanelWidth = 1500,
   minPanelWidth = 250,
 }: {
-  windowName: string;
   windowWidth: Accessor<number>;
   windowSettingKey: string;
   windowExclusivity: Accessor<boolean>;
@@ -118,6 +125,7 @@ export function WindowActions({
   maxPanelWidth?: number;
   minPanelWidth?: number;
 }) {
+  let parentWindow: Gtk.Window | null;
   return (
     <box
       class="window-actions"
@@ -126,6 +134,14 @@ export function WindowActions({
       valign={Gtk.Align.END}
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
+      $={(self) => {
+        self.connect("notify::root", () => {
+          const root = self.get_root();
+          if (root instanceof Gtk.Window) {
+            parentWindow = root;
+          }
+        });
+      }}
     >
       <button
         label=""
@@ -136,7 +152,7 @@ export function WindowActions({
             windowSettingKey + ".width",
             current < maxPanelWidth ? current + 50 : maxPanelWidth
           );
-          queueResize(windowName);
+          queueResize(parentWindow);
         }}
       />
       <button
@@ -148,7 +164,7 @@ export function WindowActions({
             windowSettingKey + ".width",
             current > minPanelWidth ? current - 50 : minPanelWidth
           );
-          queueResize(windowName);
+          queueResize(parentWindow);
         }}
       />
       <togglebutton
@@ -171,7 +187,7 @@ export function WindowActions({
         label=""
         class="close"
         onClicked={() => {
-          app.get_window(windowName)?.hide();
+          app.get_window(parentWindow?.name || "")?.hide();
         }}
       />
     </box>

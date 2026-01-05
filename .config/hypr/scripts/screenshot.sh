@@ -21,11 +21,11 @@ echo "Saving screenshot to $img"
 
 if [[ "$1" == "--now" ]]; then
     # Full output
-    grim "$img"
+    grimblast --freeze save screen "$img"
 
-    elif [[ "$1" == "--area" ]]; then
+elif [[ "$1" == "--area" ]]; then
     # Select region
-    grim -g "$(slurp)" "$img"
+    grimblast --freeze save area "$img"
 
 else
 

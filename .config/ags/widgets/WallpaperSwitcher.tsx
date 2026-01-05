@@ -12,6 +12,7 @@ import Gio from "gi://Gio";
 import GLib from "gi://GLib?version=2.0";
 import { Progress } from "./Progress";
 import { timeout } from "ags/time";
+import { Gdk } from "ags/gtk4";
 
 // progress status
 const [progressStatus, setProgressStatus] = createState<
@@ -401,7 +402,7 @@ function Display(monitor: string) {
   );
 }
 
-export default (monitor: any) => {
+export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   const monitorName = getMonitorName(monitor.get_display(), monitor)!;
   return (
     <window

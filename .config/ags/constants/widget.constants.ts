@@ -21,22 +21,37 @@ export const barWidgetSelectors: WidgetSelector[] = [
   {
     name: "workspaces",
     icon: "󰒘",
-    widget: (monitorName: string, halign: Gtk.Align) =>
-      Workspaces({ monitorName, halign }),
+    widget: ({
+      monitorName,
+      halign,
+    }: {
+      monitorName?: string | Accessor<string>;
+      halign?: Gtk.Align | Accessor<Gtk.Align>;
+    }) => Workspaces({ monitorName: monitorName, halign: halign }),
     enabled: true,
   },
   {
     name: "information",
     icon: "󰒘",
-    widget: (monitorName: string, halign: Gtk.Align) =>
-      Information({ monitorName, halign }),
+    widget: ({
+      monitorName,
+      halign,
+    }: {
+      monitorName?: string | Accessor<string>;
+      halign?: Gtk.Align | Accessor<Gtk.Align>;
+    }) => Information({ monitorName: monitorName, halign: halign }),
     enabled: true,
   },
   {
     name: "utilities",
     icon: "󰒘",
-    widget: (monitorName: string, halign: Gtk.Align) =>
-      Utilities({ monitorName, halign }),
+    widget: ({
+      monitorName,
+      halign,
+    }: {
+      monitorName?: string | Accessor<string>;
+      halign?: Gtk.Align | Accessor<Gtk.Align>;
+    }) => Utilities({ monitorName: monitorName, halign: halign }),
     enabled: true,
   },
 ];
@@ -45,39 +60,51 @@ export const rightPanelWidgetSelectors: WidgetSelector[] = [
   {
     name: "Waifu",
     icon: "",
-    widget: () => Waifu(),
+    widget: ({ className }: { className?: string | Accessor<string> }) =>
+      Waifu({ className }),
     enabled: true,
   },
   {
     name: "Media",
     icon: "",
-    widget: (rightPanelWidth?: number, rightPanelHeight?: number) =>
-      MediaWidget({ width: rightPanelWidth, height: rightPanelHeight }),
+    widget: ({
+      width,
+      height,
+      className,
+    }: {
+      width?: number | Accessor<number>;
+      height?: number | Accessor<number>;
+      className?: string | Accessor<string>;
+    }) => MediaWidget({ width: width, height: height, className: className }),
     enabled: true,
   },
   {
     name: "NotificationHistory",
     icon: "",
-    widget: () => NotificationHistory(),
+    widget: ({ className }: { className?: string | Accessor<string> }) =>
+      NotificationHistory({ className }),
     enabled: true,
   },
   {
     name: "ScriptTimer",
     icon: "󰀠",
-    widget: () => ScriptTimer(),
+    widget: ({ className }: { className?: string | Accessor<string> }) =>
+      ScriptTimer({ className }),
 
     enabled: false,
   },
   {
     name: "Crypto",
     icon: "",
-    widget: () => CryptoWidget(),
+    widget: ({ className }: { className?: string | Accessor<string> }) =>
+      CryptoWidget({ className }),
     enabled: false,
   },
   {
     name: "Calendar",
     icon: "󰃰",
-    widget: () => Calendar(),
+    widget: ({ className }: { className?: string | Accessor<string> }) =>
+      Calendar({ className }),
     enabled: true,
   },
 ];

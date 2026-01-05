@@ -1,5 +1,5 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { focusedWorkspace } from "../../../variables";
+import { focusedWorkspace, specialWorkspace } from "../../../variables";
 
 import Hyprland from "gi://AstalHyprland";
 import { createBinding, createComputed } from "ags";
@@ -205,7 +205,7 @@ function Workspaces() {
 
   // Render the workspaces container with bound workspace elements
   return (
-    <box class="workspaces">
+    <box class="workspaces-display">
       <For each={workspaces}>
         {(workspace, index: Accessor<number>) => workspace}
       </For>
@@ -215,7 +215,9 @@ function Workspaces() {
 
 const Special = () => (
   <button
-    class="special"
+    class={specialWorkspace((special) =>
+      special ? "special active" : "special inactive"
+    )}
     label={workspaceToIcon[0]}
     onClicked={() =>
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
@@ -252,7 +254,11 @@ function AppLauncher({ monitorName }: { monitorName: string }) {
 
 // wallpaper switcher
 
-function WallpaperSwitcher({ monitorName }: { monitorName: string }) {
+function WallpaperSwitcher({
+  monitorName,
+}: {
+  monitorName?: string | Accessor<string>;
+}) {
   return (
     <togglebutton
       class="wallpaper-switcher-trigger"
@@ -282,7 +288,11 @@ function Settings({ monitorName }: { monitorName: string }) {
   );
 }
 
-function UserPanel({ monitorName }: { monitorName: string }) {
+function UserPanel({
+  monitorName,
+}: {
+  monitorName?: string | Accessor<string>;
+}) {
   return (
     <togglebutton
       class="user-panel"
@@ -297,11 +307,14 @@ function UserPanel({ monitorName }: { monitorName: string }) {
   );
 }
 
-const Actions = ({ monitorName }: { monitorName: string }) => {
+const Actions = ({
+  monitorName,
+}: {
+  monitorName?: string | Accessor<string>;
+}) => {
   return (
     <box class="actions">
       <UserPanel monitorName={monitorName} />
-      {/* <Settings monitorName={monitorName} /> */}
       <WallpaperSwitcher monitorName={monitorName} />
     </box>
   );
@@ -311,11 +324,11 @@ export default ({
   monitorName,
   halign,
 }: {
-  monitorName: string;
-  halign: Gtk.Align;
+  monitorName?: string | Accessor<string>;
+  halign?: Gtk.Align | Accessor<Gtk.Align>;
 }) => {
   return (
-    <box class="bar-left" spacing={5} halign={halign} hexpand>
+    <box class="workspaces" spacing={5} halign={halign} hexpand>
       <Actions monitorName={monitorName} />
       <OverView />
       <Special />
