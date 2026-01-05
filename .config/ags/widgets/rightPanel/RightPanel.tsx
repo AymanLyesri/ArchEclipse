@@ -8,15 +8,9 @@ import {
   globalTransition,
   setGlobalSetting,
 } from "../../variables";
-import { createBinding, createState, For, With } from "ags";
-import { Eventbox } from "../Custom/Eventbox";
+import { For } from "ags";
 import { getMonitorName } from "../../utils/monitor";
-import {
-  hideWindow,
-  WindowActions,
-  queueResize,
-  Window,
-} from "../../utils/window";
+import { hideWindow, WindowActions, Window } from "../../utils/window";
 import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 import GObject from "ags/gobject";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";

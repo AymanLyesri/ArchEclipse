@@ -52,11 +52,11 @@ export const focusedClient = createBinding(hyprland, "focusedClient");
 export const emptyWorkspace = focusedClient((client) => !client);
 export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
 export const specialWorkspace = focusedClient((client) => {
-  return client ? client.workspace.id == -99 : false;
+  return client ? client.workspace.id < 0 : false;
 });
 
 export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));
-export const globalTransition = phi * 300;
+export const globalTransition = 300;
 
 export const date_less = createPoll(
   "",
