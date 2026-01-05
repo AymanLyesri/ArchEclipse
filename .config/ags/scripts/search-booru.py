@@ -55,6 +55,8 @@ class DanbooruProvider(BooruProvider):
             return None
 
         posts = r.json()
+        if posts is None:
+            return None
         if not isinstance(posts, list):
             posts = [posts]
 
@@ -90,7 +92,10 @@ class DanbooruProvider(BooruProvider):
         if r.status_code != 200:
             return []
 
-        return [t["name"] for t in r.json()]
+        json_data = r.json()
+        if json_data is None:
+            return []
+        return [t["name"] for t in json_data]
 
 
 # ============================================================
@@ -124,10 +129,13 @@ class GelbooruProvider(BooruProvider):
         try:
             r = requests.get(self.BASE, params=params, timeout=15)
             r.raise_for_status()
+            json_data = r.json()
         except Exception:
             return None
 
-        posts = r.json().get("post", [])
+        if json_data is None:
+            return None
+        posts = json_data.get("post", [])
         if isinstance(posts, dict):
             posts = [posts]
 
@@ -164,10 +172,13 @@ class GelbooruProvider(BooruProvider):
         try:
             r = requests.get(self.BASE, params=params, timeout=15)
             r.raise_for_status()
+            json_data = r.json()
         except Exception:
             return []
 
-        tags = r.json().get("tag", []) or []
+        if json_data is None:
+            return []
+        tags = json_data.get("tag", []) or []
         tags.sort(key=lambda t: int(t.get("post_count", 0)), reverse=True)
         return [t["name"] for t in tags[:limit] if t.get("name")]
 
@@ -212,6 +223,8 @@ class SafebooruProvider(BooruProvider):
             return None
 
         posts = r.json()
+        if posts is None:
+            return None
         if not isinstance(posts, list):
             posts = [posts]
 
@@ -249,7 +262,10 @@ class SafebooruProvider(BooruProvider):
         except Exception:
             return []
 
-        return [t["name"] for t in r.json()]
+        json_data = r.json()
+        if json_data is None:
+            return []
+        return [t["name"] for t in json_data]
 
 
 # ============================================================
