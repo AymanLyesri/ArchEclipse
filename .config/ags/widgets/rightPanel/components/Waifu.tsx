@@ -56,21 +56,9 @@ export default ({ className }: { className?: string | Accessor<string> }) => {
     <box
       class={`waifu ${className ?? ""}`}
       orientation={Gtk.Orientation.VERTICAL}
+      css={"border-radius: 10px;"}
     >
       <WaifuDisplay />
     </box>
   );
 };
-
-export function WaifuVisibility() {
-  return (
-    <togglebutton
-      active={globalSettings((s) => s.waifuWidget.visibility)}
-      onToggled={({ active }) =>
-        setGlobalSetting("waifuWidget.visibility", active)
-      }
-      label="󰉣"
-      class="waifu icon"
-    />
-  );
-}

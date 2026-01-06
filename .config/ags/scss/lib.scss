@@ -1,5 +1,7 @@
 // Define the theme variables
 
+$BOX-SHADOW: 0px 5px 10px rgba(0, 0, 0, 0.3);
+
 @mixin module {
   background: $background-transparent;
   color: $foreground;
@@ -203,6 +205,14 @@ popover {
   contents {
     padding: 0px;
     background: transparent;
+    box-shadow: unset;
+    border: unset;
+    * {
+      transition: all 0.2s;
+    }
+    button {
+      @include button;
+    }
   }
 }
 .drag {

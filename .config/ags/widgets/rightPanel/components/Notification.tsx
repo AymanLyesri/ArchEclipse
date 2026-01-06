@@ -101,7 +101,6 @@ export class NotificationWidget {
       <label
         class="title"
         xalign={0}
-        justify={Gtk.Justification.LEFT}
         maxWidthChars={24}
         wrap={true}
         label={this.n.summary}
@@ -115,6 +114,7 @@ export class NotificationWidget {
       <label
         class="body"
         label={this.n.body}
+        xalign={0}
         wrap={true}
         wrapMode={Pango.WrapMode.WORD_CHAR}
         ellipsize={this.isEllipsized((ellipsized) =>
@@ -186,9 +186,9 @@ export class NotificationWidget {
     return (
       <box class="top-bar" spacing={5}>
         <box spacing={5}>
-          {this.n.appIcon && (
+          {/* {this.n.appIcon && (
             <image class="app-icon" iconName={this.n.appIcon} />
-          )}
+          )} */}
           <label wrap={true} class="app-name" label={this.n.app_name} />
 
           {this.getCopyButton()}
@@ -212,7 +212,7 @@ export class NotificationWidget {
         orientation={Gtk.Orientation.VERTICAL}
       >
         {this.getTopBar()}
-        <box class={"content"} spacing={5}>
+        <box class={"content"} spacing={10}>
           {this.getIcon()}
           <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
             {this.getTitle()}

@@ -116,7 +116,11 @@ const UserPanel = () => {
     );
 
     return (
-      <box class="profile" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+      <box
+        class="section profile"
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={5}
+      >
         {ProfilePicture}
         {UserName}
         {DesktopEnv}
@@ -175,7 +179,7 @@ const UserPanel = () => {
 
     return (
       <box
-        class="system-actions"
+        class="section system-actions"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
       >
@@ -204,7 +208,11 @@ const UserPanel = () => {
   );
 
   const Date = (
-    <box class="date" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+    <box
+      class="section date"
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={5}
+    >
       <label
         class={"less"}
         halign={Gtk.Align.CENTER}
@@ -228,30 +236,16 @@ const UserPanel = () => {
       vexpand={true}
       spacing={10}
     >
-      <NotificationHistory />
+      <NotificationHistory className="section" />
       {Date}
     </box>
   );
 
   return (
     <box class="main" spacing={10}>
-      <MediaWidget />
+      <MediaWidget className="section" />
       {middle}
       {right}
-    </box>
-  );
-};
-
-const WindowActions = () => {
-  return (
-    <box class="window-actions" hexpand={true} halign={Gtk.Align.END}>
-      <button
-        class="close"
-        label=""
-        onClicked={(self) => {
-          hideWindow(`user-panel-${(self.get_root() as any).monitorName}`);
-        }}
-      />
     </box>
   );
 };
@@ -282,7 +276,6 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       }}
     >
       <box class="display" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
-        <WindowActions />
         <UserPanel />
       </box>
     </window>

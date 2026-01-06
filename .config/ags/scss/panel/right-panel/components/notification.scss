@@ -29,14 +29,6 @@
       padding-right: 5px;
     }
 
-    .circular-progress {
-      margin: 0px;
-      padding: 0px;
-      min-width: 20px;
-      min-height: 10px;
-      font-size: 5px;
-    }
-
     .app-name {
       font-size: 0.9em;
       color: $foreground;
@@ -76,14 +68,13 @@
     .image,
     .icon {
       font-size: 30px;
-      min-width: 50px;
-      min-height: 50px;
+      min-width: 30px;
+      min-height: 30px;
       color: $secondary;
     }
 
     .title {
       color: $secondary;
-      // font-size: 0.9em;
     }
 
     .body {

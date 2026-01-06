@@ -11,6 +11,7 @@ export default ({
   custom_class = "",
   on_primary_click = () => {},
   tooltipText = "",
+  transitionType = Gtk.RevealerTransitionType.SWING_LEFT,
 }: {
   trigger: any;
   child: any;
@@ -19,12 +20,15 @@ export default ({
   custom_class?: string | Accessor<string>;
   on_primary_click?: () => void;
   tooltipText?: string | Accessor<string>;
+  transitionType?:
+    | Gtk.RevealerTransitionType
+    | Accessor<Gtk.RevealerTransitionType>;
 }) => {
   const revealer = (
     <revealer
       revealChild={revealChild}
       transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
+      transitionType={transitionType}
       child={child}
     />
   );
