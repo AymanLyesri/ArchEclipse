@@ -1,5 +1,8 @@
 (cat ~/.cache/wal/sequences &)
 
+# Add local bin to PATH (for claude, npm global, etc.)
+export PATH="$HOME/.local/bin:$PATH"
+
 eval "$(starship init zsh)"
 
 # fetch system information
@@ -80,9 +83,10 @@ alias logout='hyprctl dispatch exit'
 # Set up fzf key bindings and fuzzy completion
 source <(fzf --zsh)
 
-# Configuration Update
-alias update='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/UPDATE.sh)"'
-alias 'update dev'='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/UPDATE.sh)" -- dev'
+# Configuration Update (usando scripts locales del fork)
+alias update='~/.config/hypr/maintenance/UPDATE.sh'
+alias update-all='~/.config/hypr/maintenance/UPDATE.sh --all'
+alias update-quick='~/.config/hypr/maintenance/UPDATE.sh --quick'
 
 alias defaults="$HOME/.config/hypr/maintenance/DEFAULTS.sh"
 

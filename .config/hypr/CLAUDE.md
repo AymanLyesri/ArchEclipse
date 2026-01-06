@@ -111,10 +111,12 @@ git cherry-pick <hash>
 ### Archivos protegidos del fork
 
 Ver `docs/FORK-MODIFICATIONS.md` para lista completa. Principales:
-- `.config/ags/constants/app.constants.ts` (file manager)
-- `.config/ags/app.ts` (multi-monitor fix)
+- `.config/ags/constants/app.constants.ts` (File Manager Selector)
+- `.config/ags/widgets/leftPanel/components/SettingsWidget.tsx` (File Manager Selector UI)
 - `.config/ags/scripts/search-booru.py` (null safety)
 - `configs/exec.conf` (LD_PRELOAD fix)
+
+**Nota**: El fix de `get_connector()` fue incorporado por Ayman en `utils/monitor.ts` (commit 1c8f1fb7)
 
 ### Commit Rules
 

@@ -2,100 +2,80 @@
 
 This document tracks widgets and elements from upstream (AymanLyesri) that are commented out, disabled, or pending migration to GTK4/AGS 3.0.
 
-Last updated: 2026-01-04
+Last updated: 2026-01-05
 
-## Widgets Completely Commented (in `app.ts`)
+## Recent Sync with Upstream (2026-01-05)
+
+Cherry-picked 3 commits from Ayman:
+- `7bcbdb00` - feat: add animation keyframes
+- `1c8f1fb7` - refactor: simplify monitor name retrieval (includes our get_connector fix!)
+- `d304fd97` - refactor: streamline notification handling (fixed null check bug)
+
+## Widgets Completely Commented (in `app.tsx`)
 
 | Widget | File | Status | Notes |
 |--------|------|--------|-------|
 | **Progress** | `widgets/Progress.tsx` | Comentado | Loading indicator widget |
 | **MediaPopups** | N/A | Eliminado | File deleted, import commented |
-| **SettingsWidget** | `widgets/SettingsWidget.tsx` | Comentado | Settings panel |
 | **OSD** | `widgets/OSD.tsx` | Comentado | On-Screen Display (volume, brightness) |
-| **ScreenShot** | `widgets/ScreenShot.tsx` | 100% Comentado | Screenshot preview widget - entire file is commented |
+| **ScreenShot** | `widgets/ScreenShot.tsx` | 100% Comentado | Screenshot preview widget |
 
-## Widgets with Internal Issues
+## Widgets Status
 
-| Widget | File | Issue | Priority |
-|--------|------|-------|----------|
-| **Brightness** | `widgets/bar/components/Utilities.tsx` | Screen flickers when adjusting, brightness not applied correctly | Alta |
-| **Keyboard Brightness** | `widgets/bar/components/Utilities.tsx` | Keyboard brightness keys not working | Alta |
-| **FileChooser** | `widgets/FileChooser.tsx` | File deleted but still imported in UserPanel.tsx | Alta |
-| **WallpaperSwitcher** | `widgets/WallpaperSwitcher.tsx` | FileChooserDialog section commented (~30 lines) | Media |
-| **ImageDialog** | `widgets/leftPanel/components/ImageDialog.tsx` | `openProgress()` commented | Baja |
-| **UserPanel** | `widgets/UserPanel.tsx` | Section marked as "WIP" | Baja |
+| Widget | File | Status |
+|--------|------|--------|
+| ~~**Brightness**~~ | `Utilities.tsx` | ✅ Funciona correctamente |
+| ~~**Keyboard Brightness**~~ | `Utilities.tsx` | ✅ Funciona correctamente |
+| ~~**WallpaperSwitcher**~~ | `WallpaperSwitcher.tsx` | ✅ Funciona (Gtk.FileDialog) |
+| ~~**File Manager Selector**~~ | `SettingsWidget.tsx` | ✅ **Implementado 2026-01-05** (PR #195) |
+| **ImageDialog** | `ImageDialog.tsx` | `openProgress()` comentado - Baja prioridad |
+| **UserPanel** | `UserPanel.tsx` | Sección WIP - Baja prioridad |
 
-## Settings Disabled by Default
+## ~~File Manager Selector~~ ✅ COMPLETADO
 
-```typescript
-// In constants/settings.constants.ts
-rightPanel: {
-  visibility: false,  // Right panel hidden by default
-},
-chatBot: {
-  visibility: false,  // ChatBot hidden by default
-}
-```
+Implementado el 2026-01-05 (PR #195 pendiente de merge):
 
-## Broken Imports/References
+**Features implementadas:**
+- ✅ Auto-detecta file managers instalados (nautilus, thunar, dolphin, nemo, pcmanfm, ranger)
+- ✅ Selector con togglebuttons en Settings > Custom
+- ✅ Persiste selección en settings.json
+- ✅ Actualiza Files quick app dinámicamente
 
-| Missing File | Referenced In | Impact |
-|--------------|---------------|--------|
-| `FileChooser.tsx` | `UserPanel.tsx` line 16 | Import will fail |
-| `MediaPopups.tsx` | `app.ts` line 56 | Commented, no impact |
-
-## Migration Priority
-
-**High Priority (broken functionality):**
-1. Brightness widget - flickering and keys not working
-2. FileChooser - broken import in UserPanel
-
-**Medium Priority (disabled widgets):**
-3. ScreenShot - completely commented
-4. OSD - commented
-5. SettingsWidget - commented
-
-**Low Priority (minor issues):**
-6. WallpaperSwitcher - FileChooser section
-7. Progress - loading bars commented
-8. UserPanel WIP section
-9. MangaViewer - needs architectural improvements (see below)
-
-## File Manager Selector TODO
-
-Add a self-service file manager selector in Settings panel:
-
-**Requirements:**
-1. Add dropdown in Settings to choose file manager (Nautilus, Dolphin, Thunar, Nemo, PCManFM)
-2. Auto-detect installed file managers
-3. Option to install missing file manager (via pacman/yay)
-4. Update `app.constants.ts` and `CustomScripts.tsx` dynamically
-5. Store preference in settings.json
-
-**Files to modify:**
-- `constants/app.constants.ts` - make file manager configurable
-- `widgets/leftPanel/components/SettingsWidget.tsx` - add selector UI
-- `widgets/leftPanel/components/CustomScripts.tsx` - use configured file manager
+**Archivos modificados:**
+- `settings.interface.ts` - Added `fileManager: string`
+- `settings.constants.ts` - Default: `"nautilus"`
+- `SettingsWidget.tsx` - `FileManagerSelector` component
+- `app.constants.ts` - `getFileManagerCommand()` helper
 
 ## MangaViewer TODO
-
-The MangaViewer widget needs significant improvements:
 
 **Current Issues:**
 - Downloads all pages locally (consumes disk space and memory)
 - No cache size limit or automatic cleanup
 - Can cause system freeze due to memory consumption
-- Multiple concurrent downloads without proper throttling
 
 **Proposed Improvements:**
 1. Stream images directly instead of downloading to disk
 2. Implement LRU cache with configurable size limit
 3. Add automatic cleanup of old cached pages
 4. Lazy load with virtualized list (only render visible pages)
-5. Add download progress indicator
-6. Consider using a dedicated manga reader app integration instead
+
+## Migration Priority
+
+**High Priority:**
+- ~~FileChooser import~~ - Verificar si aún aplica después del refactor de Ayman
+
+**Medium Priority (disabled widgets):**
+- ScreenShot - completely commented
+- OSD - commented
+
+**Low Priority:**
+- Progress - loading bars commented
+- UserPanel WIP section
+- MangaViewer improvements
 
 ## Notes
 
-- All widgets need GTK4 compatibility review
-- Some widgets may depend on deprecated AGS 2.x APIs
+- Ayman incorporó nuestro fix de `get_connector()` en `utils/monitor.ts` (commit 1c8f1fb7)
+- El refactor de Notification.tsx tenía un bug de null check que corregimos
+- All widgets now use simplified `getMonitorName(monitor)` function
