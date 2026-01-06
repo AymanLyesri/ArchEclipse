@@ -1,24 +1,28 @@
 // Define the theme variables
 
-* {
-  font-weight: 500;
-  // font-size: $FONT-SIZE;
-  transition: all 0.2s;
-}
-
 @mixin module {
   background: $background-transparent;
   color: $foreground;
-  min-height: 1px;
+
+  font-size: $FONT-SIZE;
+  font-weight: 500;
+
+  text-shadow: none;
   border: none;
   box-shadow: none;
+
+  min-height: 1px;
   border-radius: 10px;
-  font-size: $FONT-SIZE;
-  text-shadow: none;
-  padding: $SCALE / 2 $SCALE / 1.5;
   margin: 0;
+  padding: $SCALE / 2 $SCALE / 1.5;
+
   .image {
     border-radius: 10px;
+  }
+
+  &,
+  * {
+    transition: all 0.2s;
   }
 }
 
@@ -193,8 +197,12 @@ popover {
   &.popover-open {
     animation: opacity-in 0.4s ease-out;
   }
-  > * {
-    all: unset;
+  arrow {
+    background: $background-secondary;
+  }
+  contents {
+    padding: 0px;
+    background: transparent;
   }
 }
 .drag {

@@ -33,13 +33,19 @@ const fileManagerOptions = [
 ];
 
 // Detect installed file managers
-const [installedFileManagers, setInstalledFileManagers] = createState<typeof fileManagerOptions>([]);
+const [installedFileManagers, setInstalledFileManagers] = createState<
+  typeof fileManagerOptions
+>([]);
 
 const detectFileManagers = async () => {
   const installed: typeof fileManagerOptions = [];
   for (const fm of fileManagerOptions) {
     try {
-      const result = await execAsync(`bash -c "command -v ${fm.command.split(' ')[0]} >/dev/null 2>&1 && echo 'yes' || echo 'no'"`);
+      const result = await execAsync(
+        `bash -c "command -v ${
+          fm.command.split(" ")[0]
+        } >/dev/null 2>&1 && echo 'yes' || echo 'no'"`
+      );
       if (result.trim() === "yes") {
         installed.push(fm);
       }
@@ -50,54 +56,12 @@ const detectFileManagers = async () => {
   setInstalledFileManagers(installed);
 };
 
-// Initialize detection
-detectFileManagers();
-
 function moveItem<T>(array: T[], from: number, to: number): T[] {
   const copy = [...array];
   const [item] = copy.splice(from, 1);
   copy.splice(to, 0, item);
   return copy;
 }
-// const applyHyprlandSettings = (
-//   settings: NestedSettings,
-//   prefix: string = ""
-// ) => {
-//   Object.entries(settings).forEach(([key, value]) => {
-//     const fullKey = prefix ? `${prefix}.${key}` : key;
-//     if (typeof value === "object" && value !== null && !("type" in value)) {
-//       // nested
-//       applyHyprlandSettings(value as NestedSettings, fullKey);
-//     } else {
-//       // leaf setting
-//       const setting = value as AGSSetting;
-//       const keyArray = fullKey.split(".");
-//       const configString = buildConfigString(keyArray, setting.value);
-//       const hyprKey = keyArray.join(":");
-//       execAsync(
-//         `bash -c "echo -e '${configString}' >${
-//           hyprCustomDir + "/" + keyArray.at(-2) + "." + keyArray.at(-1)
-//         }.conf && hyprctl keyword ${hyprKey} ${setting.value}"`
-//       ).catch((err) => notify(err));
-//     }
-//   });
-// };
-
-// const applyHyprlandSettings = (settings: NestedSettings) => {
-//   Object.entries(settings).forEach(([key, value]) => {
-//     if (typeof value === "object" && value !== null && !("type" in value)) {
-//       // nested
-//       applyHyprlandSettings(value as NestedSettings);
-//     } else {
-//       // leaf setting
-
-//       const key = fullKey.replace(/\./g, ":");
-//       const setting = value as AGSSetting;
-//       const fullKey = key;
-//       applyHyprlandSetting(key, setting.value);
-//     }
-//   });
-// };
 
 // File Manager Selector Component
 const FileManagerSelector = () => {
@@ -120,7 +84,10 @@ const FileManagerSelector = () => {
               onToggled={({ active }) => {
                 if (active) {
                   setGlobalSetting("fileManager", fm.id);
-                  notify({ summary: "File Manager", body: `Changed to ${fm.name}` });
+                  notify({
+                    summary: "File Manager",
+                    body: `Changed to ${fm.name}`,
+                  });
                 }
               }}
             />
@@ -131,31 +98,32 @@ const FileManagerSelector = () => {
   );
 };
 
+const applyHyprlandSettings = (
+  settings: NestedSettings,
+  prefix: string = ""
+) => {
+  Object.entries(settings).forEach(([key, value]) => {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (typeof value === "object" && value !== null && !("type" in value)) {
+      // nested
+      applyHyprlandSettings(value as NestedSettings, fullKey);
+    } else {
+      // leaf setting
+      const setting = value as AGSSetting;
+      print("Applying Hyprland setting:", fullKey, "=", setting.value);
+      const hyprKey = fullKey.replace(/\./g, ":");
+      applyHyprlandSetting(hyprKey, setting.value);
+    }
+  });
+};
+
 const resetButton = () => {
   const resetSettings = () => {
-    //hyprland settings
-    const newSettings = { ...globalSettings.peek() };
-    newSettings.hyprland = defaultSettings.hyprland;
-    setGlobalSettings(newSettings);
+    //global settings
+    setGlobalSettings(defaultSettings);
 
-    // ags settings
-    // setGlobalOpacity(defaultSettings.globalOpacity);
-    // setGlobalScale(defaultSettings.globalScale);
-    // setGlobalFontSize(defaultSettings.globalFontSize);
-    // setAutoWorkspaceSwitching(defaultSettings.autoWorkspaceSwitching);
-    // setBarLayout(defaultSettings.bar.layout);
-    // setBarOrientation(defaultSettings.bar.orientation);
-    setGlobalSetting("ui.opacity", defaultSettings.ui.opacity);
-    setGlobalSetting("ui.scale", defaultSettings.ui.scale);
-    setGlobalSetting("ui.fontSize", defaultSettings.ui.fontSize);
-    setGlobalSetting(
-      "autoWorkspaceSwitching",
-      defaultSettings.autoWorkspaceSwitching
-    );
-    setGlobalSetting("bar.layout", defaultSettings.bar.layout);
-    setGlobalSetting("bar.orientation", defaultSettings.bar.orientation);
-    // apply hyprland settings
-    // applyHyprlandSettings(defaultSettings.hyprland);
+    // hyprland settings
+    applyHyprlandSettings(defaultSettings.hyprland);
   };
   return (
     <button
@@ -422,7 +390,13 @@ export default () => {
   );
 
   return (
-    <scrolledwindow vexpand>
+    <scrolledwindow
+      vexpand
+      $={() =>
+        // Initialize detection
+        detectFileManagers()
+      }
+    >
       <box orientation={Gtk.Orientation.VERTICAL} spacing={16} class="settings">
         <box
           class={"category"}

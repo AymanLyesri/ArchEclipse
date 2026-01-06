@@ -41,8 +41,8 @@ const fetchPopular = async () => {
 };
 
 const searchManga = async (query: string) => {
-  if (!query.trim()) return fetchPopular();
   setProgressStatus("loading");
+  if (!query.trim()) return fetchPopular();
   try {
     const output = await execAsync(
       `python3 ${scriptPath} --search "${query}" --limit 10`
@@ -57,8 +57,8 @@ const searchManga = async (query: string) => {
 };
 
 const fetchChapters = async (mangaId: string) => {
-  setProgressStatus("loading");
   try {
+    setProgressStatus("loading");
     const output = await execAsync(
       `python3 ${scriptPath} --chapters --manga-id ${mangaId}`
     );
@@ -73,8 +73,8 @@ const fetchChapters = async (mangaId: string) => {
 };
 
 const fetchPages = async (chapterId: string) => {
-  setProgressStatus("loading");
   try {
+    setProgressStatus("loading");
     print(`python3 ${scriptPath} --pages --chapter-id ${chapterId}`);
     const output = await execAsync(
       `python3 ${scriptPath} --pages --chapter-id ${chapterId}`
@@ -92,6 +92,7 @@ const fetchPages = async (chapterId: string) => {
 
 const loadMorePages = async () => {
   try {
+    setProgressStatus("loading");
     const currentLoaded = loadedPages.get();
     const allPages = pages.get();
 
@@ -111,8 +112,10 @@ const loadMorePages = async () => {
       }
     }
     setLoadedPages([...currentLoaded, ...newLoaded]);
+    setProgressStatus("success");
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
+    setProgressStatus("error");
   }
 };
 

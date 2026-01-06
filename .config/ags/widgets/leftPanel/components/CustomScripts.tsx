@@ -10,7 +10,7 @@ export default () => {
       hexpand
       spacing={10}
     >
-      {customScripts.map((script) => {
+      {customScripts().map((script) => {
         return (
           <button
             onClicked={() => {

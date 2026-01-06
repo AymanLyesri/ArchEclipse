@@ -1,8 +1,9 @@
 import { execAsync } from "ags/process";
 import { CustomScript } from "../interfaces/customScript.interface";
 import { notify } from "../utils/notification";
+import { globalSettings } from "../variables";
 
-export const customScripts: CustomScript[] = [
+export const customScripts = (): CustomScript[] => [
   {
     name: "Restart Bar",
     icon: "󰜉",
@@ -148,16 +149,12 @@ export const customScripts: CustomScript[] = [
   // },
 
   {
-    name: "Thunar File Manager",
+    name: globalSettings(({ fileManager }) => `${fileManager} File Manager`),
     icon: "󰉋",
-    description: "Open file browser",
-    sensitive: execAsync(
-      `bash -c "command -v thunar >/dev/null 2>&1 && echo true || echo false"`
-    )
-      .then((res) => res.trim() === "true")
-      .catch(() => false),
+    description: globalSettings(({ fileManager }) => `Open ${fileManager}`),
     script: () => {
-      execAsync(`bash -c "thunar"`).catch((err) =>
+      const fileManager = globalSettings.peek().fileManager;
+      execAsync(`bash -c "${fileManager}"`).catch((err) =>
         notify({ summary: "Files", body: err })
       );
     },
