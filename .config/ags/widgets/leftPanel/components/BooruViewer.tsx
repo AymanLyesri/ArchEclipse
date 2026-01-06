@@ -655,7 +655,7 @@ export default () => {
       class="booru"
       orientation={Gtk.Orientation.VERTICAL}
       hexpand
-      spacing={10}
+      spacing={5}
       $={async (self) => {
         const keyController = new Gtk.EventControllerKey();
         keyController.connect("key-pressed", (_, keyval: number) => {
