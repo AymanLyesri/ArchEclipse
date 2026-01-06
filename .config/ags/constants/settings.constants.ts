@@ -162,14 +162,14 @@ export const defaultSettings: Settings = {
   },
   rightPanel: {
     exclusivity: true,
-    lock: true,
-    width: Math.round(300), // 300 → 300*0.618 ≈ 185
+    lock: false,
+    width: 250,
     widgets: rightPanelWidgetSelectors,
   },
   leftPanel: {
     exclusivity: true,
-    lock: true,
-    width: Math.round(300), // 400 → 400*1.618 ≈ 647
+    lock: false,
+    width: 400,
     widget: leftPanelWidgetSelectors[0],
   },
   chatBot: {

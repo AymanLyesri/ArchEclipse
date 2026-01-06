@@ -267,6 +267,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       $={(self) => {
         const windowInstance = new Window();
         (self as any).rightPanelWindow = windowInstance;
+        (self as any).monitorName = monitorName;
 
         const motion = new Gtk.EventControllerMotion();
 
