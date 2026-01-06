@@ -88,4 +88,5 @@ export interface Settings {
       timeframe: string;
     };
   };
+  fileManager: string;
 }

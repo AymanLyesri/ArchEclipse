@@ -22,6 +22,37 @@ const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
 
+// File Manager options with display names and commands
+const fileManagerOptions = [
+  { id: "nautilus", name: "Nautilus (GNOME)", command: "nautilus" },
+  { id: "thunar", name: "Thunar (XFCE)", command: "thunar" },
+  { id: "dolphin", name: "Dolphin (KDE)", command: "dolphin" },
+  { id: "nemo", name: "Nemo (Cinnamon)", command: "nemo" },
+  { id: "pcmanfm", name: "PCManFM", command: "pcmanfm" },
+  { id: "ranger", name: "Ranger (Terminal)", command: "kitty ranger" },
+];
+
+// Detect installed file managers
+const [installedFileManagers, setInstalledFileManagers] = createState<typeof fileManagerOptions>([]);
+
+const detectFileManagers = async () => {
+  const installed: typeof fileManagerOptions = [];
+  for (const fm of fileManagerOptions) {
+    try {
+      const result = await execAsync(`bash -c "command -v ${fm.command.split(' ')[0]} >/dev/null 2>&1 && echo 'yes' || echo 'no'"`);
+      if (result.trim() === "yes") {
+        installed.push(fm);
+      }
+    } catch {
+      // Command not found
+    }
+  }
+  setInstalledFileManagers(installed);
+};
+
+// Initialize detection
+detectFileManagers();
+
 function moveItem<T>(array: T[], from: number, to: number): T[] {
   const copy = [...array];
   const [item] = copy.splice(from, 1);
@@ -67,6 +98,38 @@ function moveItem<T>(array: T[], from: number, to: number): T[] {
 //     }
 //   });
 // };
+
+// File Manager Selector Component
+const FileManagerSelector = () => {
+  return (
+    <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+      <label
+        class={"subcategory-label"}
+        label={"File Manager"}
+        halign={Gtk.Align.START}
+      />
+      <box class="setting" spacing={10} hexpand>
+        <For each={installedFileManagers}>
+          {(fm) => (
+            <togglebutton
+              hexpand
+              class="widget"
+              label={fm.id}
+              tooltipMarkup={`<b>${fm.name}</b>\nCommand: ${fm.command}`}
+              active={globalSettings((s) => s.fileManager === fm.id)}
+              onToggled={({ active }) => {
+                if (active) {
+                  setGlobalSetting("fileManager", fm.id);
+                  notify({ summary: "File Manager", body: `Changed to ${fm.name}` });
+                }
+              }}
+            />
+          )}
+        </For>
+      </box>
+    </box>
+  );
+};
 
 const resetButton = () => {
   const resetSettings = () => {
@@ -399,6 +462,7 @@ export default () => {
             "autoWorkspaceSwitching",
             globalSettings.peek().autoWorkspaceSwitching
           )}
+          <FileManagerSelector />
         </box>
         {resetButton()}
       </box>
