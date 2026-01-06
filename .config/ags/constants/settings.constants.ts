@@ -190,4 +190,5 @@ export const defaultSettings: Settings = {
       timeframe: "",
     },
   },
+  fileManager: "nautilus",
 };
