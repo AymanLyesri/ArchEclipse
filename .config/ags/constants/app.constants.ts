@@ -1,6 +1,22 @@
 import { LauncherApp } from "../interfaces/app.interface";
 import { subprocess, exec, execAsync, createSubprocess } from "ags/process";
-import { setGlobalTheme } from "../variables";
+import { setGlobalTheme, globalSettings } from "../variables";
+
+// File manager command mapping
+const fileManagerCommands: Record<string, string> = {
+  nautilus: "nautilus",
+  thunar: "thunar",
+  dolphin: "dolphin",
+  nemo: "nemo",
+  pcmanfm: "pcmanfm",
+  ranger: "kitty ranger",
+};
+
+// Get the configured file manager command
+const getFileManagerCommand = () => {
+  const fm = globalSettings.peek().fileManager || "nautilus";
+  return fileManagerCommands[fm] || "nautilus";
+};
 
 export const customApps: LauncherApp[] = [
   {
@@ -59,7 +75,7 @@ export const quickApps: LauncherApp[] = [
   },
   {
     app_name: "Files",
-    app_launch: () => execAsync("nautilus"),
+    app_launch: () => execAsync(getFileManagerCommand()),
     app_icon: "",
   },
   {
