@@ -61,7 +61,14 @@ export default () => {
           })}
         />
       </box>
-      <popover>
+      <popover
+        $={(self) => {
+          self.connect("notify::visible", () => {
+            if (self.visible) self.add_css_class("popover-open");
+            else if (self.get_child()) self.remove_css_class("popover-open");
+          });
+        }}
+      >
         <box
           class="bandwidth-popover"
           spacing={12}

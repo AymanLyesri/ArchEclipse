@@ -1,7 +1,9 @@
 @import "constants.scss";
 @import "colors.scss";
 
+@import "animations.scss";
 @import "lib.scss";
+
 @import "bar/bar.scss";
 @import "bar/workspaces.scss";
 @import "bar/information.scss";
@@ -36,7 +38,7 @@
 @import "widgets/bandwidth.scss";
 @import "widgets/booru-image.scss";
 @import "widgets/keybind.scss";
-// Use the variables in the styles
+
 window {
   font-family: "JetBrainsMono";
   background-color: transparent;

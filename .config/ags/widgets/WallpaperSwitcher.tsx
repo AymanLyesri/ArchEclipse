@@ -13,6 +13,7 @@ import GLib from "gi://GLib?version=2.0";
 import { Progress } from "./Progress";
 import { timeout } from "ags/time";
 import { Gdk } from "ags/gtk4";
+import GObject from "gnim/gobject";
 
 // progress status
 const [progressStatus, setProgressStatus] = createState<
@@ -22,9 +23,12 @@ const [progressStatus, setProgressStatus] = createState<
 // State management
 const [selectedWorkspaceId, setSelectedWorkspaceId] = createState<number>(0);
 const [selectedWorkspaceWidget, setSelectedWorkspaceWidget] =
-  createState<any>(null);
+  createState<Gtk.Widget>(null!);
 
-const updateSelectedWorkspaceWidget = (workspaceId: number, widget: any) => {
+const updateSelectedWorkspaceWidget = (
+  workspaceId: number,
+  widget: Gtk.Widget
+) => {
   setSelectedWorkspaceId(workspaceId);
   setSelectedWorkspaceWidget(widget);
 };
@@ -43,7 +47,7 @@ const FetchWallpapers = async () => {
       execAsync("bash ./scripts/get-wallpapers.sh --custom").then(JSON.parse),
     ]);
 
-    if (wallpaperType.get()) {
+    if (wallpaperType.peek()) {
       setAllWallpapers(customWalls);
     } else {
       setAllWallpapers([...defaultWalls, ...customWalls]);
@@ -65,7 +69,7 @@ export function toThumbnailPath(file: string) {
 
 // Main Display Component
 function Display(monitor: string) {
-  const getCurrentWorkspaces = () => {
+  const getCurrentWorkspaces = (): Gtk.Button[] => {
     const wallpapers: string[] = JSON.parse(
       exec(`bash ./scripts/get-wallpapers.sh --current ${monitor}`) || "[]"
     );
@@ -98,7 +102,7 @@ function Display(monitor: string) {
             file={toThumbnailPath(wallpaper)}
           ></Picture>
         </button>
-      );
+      ) as Gtk.Button;
     });
   };
 
@@ -123,9 +127,9 @@ function Display(monitor: string) {
 
               execAsync(command!)
                 .then(() => {
-                  const picture = selectedWorkspaceWidget
-                    .peek()
-                    .child.getPicture() as Gtk.Picture;
+                  const picture = (
+                    selectedWorkspaceWidget.peek() as any
+                  ).child.getPicture() as Gtk.Picture;
                   if (target === "workspace" && picture) {
                     picture.file = Gio.File.new_for_path(wallpaper);
                   }
@@ -200,7 +204,7 @@ function Display(monitor: string) {
 
   let currentWorkspaces = getCurrentWorkspaces();
   focusedWorkspace.subscribe(() => {
-    const workspace = focusedWorkspace.get();
+    const workspace = focusedWorkspace.peek();
     if (workspace) {
       setSelectedWorkspaceId(workspace.id);
       setSelectedWorkspaceWidget(currentWorkspaces[workspace.id - 1]);
@@ -240,9 +244,9 @@ function Display(monitor: string) {
             const newWallpaper = JSON.parse(
               exec(`bash ./scripts/get-wallpapers.sh --current ${monitor}`)
             )[selectedWorkspaceId.peek() - 1];
-            const picture = selectedWorkspaceWidget
-              .peek()
-              .child.getPicture() as Gtk.Picture;
+            const picture = (
+              selectedWorkspaceWidget.peek() as any
+            ).child.getPicture() as Gtk.Picture;
             if (picture) {
               picture.file = Gio.File.new_for_path(newWallpaper);
             }
@@ -261,7 +265,10 @@ function Display(monitor: string) {
       valign={Gtk.Align.CENTER}
       class="custom-wallpaper"
       label={wallpaperType((type) => (type ? "Custom" : "All"))}
-      onToggled={({ active }) => setWallpaperType(active)}
+      onToggled={({ active }) => {
+        setWallpaperType(active);
+        FetchWallpapers();
+      }}
     />
   );
 
@@ -417,16 +424,13 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
         Astal.WindowAnchor.BOTTOM |
         Astal.WindowAnchor.RIGHT
       }
-      $={() => {
-        // Initialize
+      $={async () => {
         FetchWallpapers();
-        monitorFile("./../wallpapers/custom", FetchWallpapers);
-        wallpaperType.subscribe(() => {
-          FetchWallpapers();
-        });
       }}
     >
       {Display(monitorName)}
     </window>
   );
 };
+
+monitorFile("./../wallpapers/custom", async () => FetchWallpapers());

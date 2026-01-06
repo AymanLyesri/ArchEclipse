@@ -46,15 +46,15 @@
 }
 
 .dnd-toggle {
-  animation: ping-background 0.6s ease-in-out;
+  animation: ping-background 0.6s ease-out;
 
   &.active {
     opacity: 1;
-    animation: ping-pulse 0.6s ease-in-out;
+    animation: ping-pulse 0.6s ease-out;
 
     label {
-      animation: ping-color 0.6s ease-in-out;
-      animation: ping-rotate 0.6s ease-in-out;
+      animation: ping-color 0.6s ease-out;
+      animation: ping-rotate 0.6s ease-out;
     }
   }
 }

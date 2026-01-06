@@ -244,7 +244,7 @@ const Images = () => {
     <scrolledwindow
       hexpand
       vexpand
-      $={(self) => {
+      $={async (self) => {
         images.subscribe(() => {
           const vadjustment = self.get_vadjustment();
           vadjustment.set_value(0);
@@ -282,7 +282,17 @@ const Images = () => {
                   <Picture
                     file={`${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`}
                   />
-                  <popover>{image.renderAsImageDialog()}</popover>
+                  <popover
+                    $={(self) => {
+                      self.connect("notify::visible", () => {
+                        if (self.visible) self.add_css_class("popover-open");
+                        else if (self.get_child())
+                          self.remove_css_class("popover-open");
+                      });
+                    }}
+                  >
+                    {image.renderAsImageDialog()}
+                  </popover>
                 </menubutton>
               ))}
             </box>
@@ -652,7 +662,7 @@ export default () => {
       orientation={Gtk.Orientation.VERTICAL}
       hexpand
       spacing={10}
-      $={(self) => {
+      $={async (self) => {
         const keyController = new Gtk.EventControllerKey();
         keyController.connect("key-pressed", (_, keyval: number) => {
           if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {

@@ -97,7 +97,14 @@ function Battery() {
         <image iconName={createBinding(battery, "iconName")} />
         <label label={percent} />
       </box>
-      <popover>
+      <popover
+        $={(self) => {
+          self.connect("notify::visible", () => {
+            if (self.visible) self.add_css_class("popover-open");
+            else if (self.get_child()) self.remove_css_class("popover-open");
+          });
+        }}
+      >
         <box orientation={Gtk.Orientation.VERTICAL}>
           {powerprofiles.get_profiles().map(({ profile }) => (
             <button onClicked={() => setProfile(profile)}>
@@ -190,7 +197,15 @@ function Tray() {
                 tooltipText="More icons"
               >
                 <image pixelSize={11} iconName="view-more-symbolic" />
-                <popover>
+                <popover
+                  $={(self) => {
+                    self.connect("notify::visible", () => {
+                      if (self.visible) self.add_css_class("popover-open");
+                      else if (self.get_child())
+                        self.remove_css_class("popover-open");
+                    });
+                  }}
+                >
                   <box
                     class="tray-popover"
                     orientation={Gtk.Orientation.VERTICAL}

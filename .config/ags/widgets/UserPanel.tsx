@@ -16,7 +16,6 @@ import NotificationHistory from "./rightPanel/components/NotificationHistory";
 import Gio from "gi://Gio";
 import { notify } from "../utils/notification";
 import GLib from "gi://GLib";
-import { monitorFile } from "ags/file";
 const hyprland = Hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
