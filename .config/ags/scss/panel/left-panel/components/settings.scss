@@ -2,6 +2,7 @@
   .category {
     @include module;
     padding: 0.625em;
+    box-shadow: $BOX-SHADOW;
 
     > label {
       font-weight: bold;

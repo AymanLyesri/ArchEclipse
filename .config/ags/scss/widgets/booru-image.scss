@@ -14,7 +14,7 @@
   &:hover {
     background-color: $background-secondary;
     .image {
-      opacity: $phi-min;
+      opacity: 0.8;
     }
 
     @for $i from 1 through $section-count {
@@ -40,6 +40,7 @@
     padding: 10px;
     .tag {
       @include button;
+      box-shadow: $BOX-SHADOW;
     }
   }
 
@@ -50,6 +51,8 @@
 
     .section {
       border-radius: 10px;
+      background: $background;
+      box-shadow: $BOX-SHADOW;
       entry {
         border-radius: 0px;
         padding: 0px;

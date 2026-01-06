@@ -13,6 +13,7 @@ export default () => {
       {customScripts().map((script) => {
         return (
           <button
+            class="script"
             onClicked={() => {
               script.script();
             }}
@@ -36,7 +37,7 @@ export default () => {
               });
             }}
           >
-            <box class="script" spacing={10}>
+            <box spacing={10}>
               <label
                 class="icon"
                 halign={Gtk.Align.START}

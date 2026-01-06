@@ -33,6 +33,8 @@
     .profile-picture {
       border-radius: 50%;
       background: transparent;
+      padding: 0px;
+      box-shadow: $BOX-SHADOW;
       .image {
         border-radius: 50%;
       }
