@@ -245,14 +245,11 @@ function Panel() {
   );
 }
 export default ({ monitor }: { monitor: Gdk.Monitor }) => {
-  const monitorName = `right-panel-${getMonitorName(
-    monitor.get_display(),
-    monitor
-  )}`;
+  const monitorName = getMonitorName(monitor);
   return (
     <window
       gdkmonitor={monitor}
-      name={monitorName}
+      name={`right-panel-${monitorName}`}
       namespace="right-panel"
       application={App}
       class={globalSettings(({ rightPanel }) =>
@@ -285,9 +282,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
           const windowInstance = (self as any).rightPanelWindow;
           if (windowInstance && windowInstance.isDragging()) return;
 
-          hideWindow(
-            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
-          );
+          hideWindow(`right-panel-${monitorName}`);
         });
 
         self.add_controller(motion);
@@ -296,9 +291,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
-            hideWindow(
-              `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
-            );
+            hideWindow(`right-panel-${monitorName}`);
             widget.hide();
             return true;
           }
@@ -310,7 +303,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   );
 };
 
-export function RightPanelVisibility({ monitor }: { monitor: Gdk.Monitor }) {
+export function RightPanelVisibility() {
   return (
     <revealer
       revealChild={globalSettings(({ rightPanel }) => rightPanel.lock)}
@@ -321,9 +314,8 @@ export function RightPanelVisibility({ monitor }: { monitor: Gdk.Monitor }) {
         active={false}
         label={""}
         onToggled={(self) => {
-          // setGlobalSetting("rightPanel.visibility", active)
           const rightPanel = app.get_window(
-            `right-panel-${getMonitorName(monitor.get_display(), monitor)}`
+            `right-panel-${(self.get_root() as any).monitorName}`
           ) as Gtk.Window;
           if (self.active) {
             rightPanel.show();

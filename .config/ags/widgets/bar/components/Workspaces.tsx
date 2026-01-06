@@ -6,6 +6,7 @@ import { createBinding, createComputed } from "ags";
 import { hideWindow, showWindow } from "../../../utils/window";
 import { For } from "ags";
 import { Accessor } from "ags";
+import app from "ags/gtk4/app";
 
 const hyprland = Hyprland.get_default();
 
@@ -237,70 +238,38 @@ const OverView = () => (
   />
 );
 
-function AppLauncher({ monitorName }: { monitorName: string }) {
-  return (
-    <togglebutton
-      class="app-search"
-      label=""
-      onToggled={({ active }) => {
-        active
-          ? showWindow(`app-launcher-${monitorName}`)
-          : hideWindow(`app-launcher-${monitorName}`);
-      }}
-      tooltipText={"SUPER"}
-    />
-  );
-}
-
-// wallpaper switcher
-
-function WallpaperSwitcher({
-  monitorName,
-}: {
-  monitorName?: string | Accessor<string>;
-}) {
+function WallpaperSwitcher() {
   return (
     <togglebutton
       class="wallpaper-switcher-trigger"
       label="󰸉"
-      onToggled={({ active }) => {
-        active
-          ? showWindow(`wallpaper-switcher-${monitorName}`)
-          : hideWindow(`wallpaper-switcher-${monitorName}`);
+      onToggled={(self) => {
+        self.active
+          ? showWindow(
+              `wallpaper-switcher-${(self.get_root() as any).monitorName}`
+            )
+          : hideWindow(
+              `wallpaper-switcher-${(self.get_root() as any).monitorName}`
+            );
       }}
       tooltipText={"SUPER + W"}
     />
   );
 }
 
-function Settings({ monitorName }: { monitorName: string }) {
-  return (
-    <togglebutton
-      class="settings"
-      label=""
-      onToggled={({ active }) =>
-        active
-          ? showWindow(`settings-${monitorName}`)
-          : hideWindow(`settings-${monitorName}`)
-      }
-      tooltipText={"SUPER + ALT + S"}
-    />
-  );
-}
-
-function UserPanel({
-  monitorName,
-}: {
-  monitorName?: string | Accessor<string>;
-}) {
+function UserPanel() {
   return (
     <togglebutton
       class="user-panel"
       label=""
-      onToggled={({ active }) => {
-        active
-          ? showWindow(`user-panel-${monitorName}`)
-          : hideWindow(`user-panel-${monitorName}`);
+      onToggled={(self) => {
+        self.active
+          ? app
+              .get_window(`user-panel-${(self.get_root() as any).monitorName}`)
+              ?.show()
+          : app
+              .get_window(`user-panel-${(self.get_root() as any).monitorName}`)
+              ?.hide();
       }}
       tooltipText={"SUPER + ESC"}
     />
@@ -314,22 +283,16 @@ const Actions = ({
 }) => {
   return (
     <box class="actions">
-      <UserPanel monitorName={monitorName} />
-      <WallpaperSwitcher monitorName={monitorName} />
+      <UserPanel />
+      <WallpaperSwitcher />
     </box>
   );
 };
 
-export default ({
-  monitorName,
-  halign,
-}: {
-  monitorName?: string | Accessor<string>;
-  halign?: Gtk.Align | Accessor<Gtk.Align>;
-}) => {
+export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="workspaces" spacing={5} halign={halign} hexpand>
-      <Actions monitorName={monitorName} />
+      <Actions />
       <OverView />
       <Special />
       <Workspaces />

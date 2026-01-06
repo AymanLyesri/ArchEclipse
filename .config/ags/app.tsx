@@ -19,7 +19,7 @@ import { Gtk } from "ags/gtk4";
 
 // const perMonitorDisplay = () =>
 //   app.get_monitors().map((monitor) => {
-//     print("\t MONITOR: " + getMonitorName(monitor.get_display(), monitor));
+//     print("\t MONITOR: " + getMonitorName(monitor));
 
 //     // List of widget initializers
 //     const widgetInitializers = [

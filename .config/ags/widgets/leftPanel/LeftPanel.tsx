@@ -97,14 +97,11 @@ function Panel() {
 }
 
 export default ({ monitor }: { monitor: Gdk.Monitor }) => {
-  const monitorName = `left-panel-${getMonitorName(
-    monitor.get_display(),
-    monitor
-  )}`;
+  const monitorName = getMonitorName(monitor);
   return (
     <window
       gdkmonitor={monitor}
-      name={monitorName}
+      name={`left-panel-${monitorName}`}
       namespace="left-panel"
       application={App}
       class={globalSettings(({ leftPanel }) =>
@@ -141,7 +138,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
               !globalSettings.peek().leftPanel.lock &&
               !windowInstance.popupIsOpen()
             ) {
-              app.get_window(monitorName)?.hide();
+              app.get_window(`left-panel-${monitorName}`)?.hide();
             }
           });
         });
@@ -159,7 +156,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
-            app.get_window(monitorName)?.hide();
+            app.get_window(`left-panel-${monitorName}`)?.hide();
             widget.hide();
             return true;
           }
@@ -170,7 +167,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
   );
 };
 
-export function LeftPanelVisibility({ monitor }: { monitor: Gdk.Monitor }) {
+export function LeftPanelVisibility() {
   return (
     <revealer
       revealChild={globalSettings(({ leftPanel }) => leftPanel.lock)}
@@ -182,7 +179,7 @@ export function LeftPanelVisibility({ monitor }: { monitor: Gdk.Monitor }) {
         label={""}
         onToggled={(self) => {
           const leftPanel = app.get_window(
-            `left-panel-${getMonitorName(monitor.get_display(), monitor)}`
+            `left-panel-${(self.get_root() as any).monitorName}`
           ) as Gtk.Window;
           if (self.active) {
             leftPanel.show();

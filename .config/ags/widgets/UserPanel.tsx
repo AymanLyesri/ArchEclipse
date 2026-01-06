@@ -10,12 +10,12 @@ import Astal from "gi://Astal?version=4.0";
 import Hyprland from "gi://AstalHyprland";
 import { date_less, date_more } from "../variables";
 import { hideWindow } from "../utils/window";
-import { getMonitorName } from "../utils/monitor";
 import Picture from "./Picture";
 import NotificationHistory from "./rightPanel/components/NotificationHistory";
 import Gio from "gi://Gio";
 import { notify } from "../utils/notification";
 import GLib from "gi://GLib";
+import { getMonitorName } from "../utils/monitor";
 const hyprland = Hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
@@ -23,7 +23,7 @@ const username = exec(`whoami`);
 const desktopEnv = exec(`bash -c "echo $XDG_CURRENT_DESKTOP"`);
 const uptime = createPoll("", 600000, "uptime -p"); // every 10 minutes
 
-const UserPanel = (monitorName: string) => {
+const UserPanel = () => {
   const Profile = () => {
     const UserName = (
       <box halign={Gtk.Align.CENTER} class="user-name">
@@ -165,8 +165,8 @@ const UserPanel = (monitorName: string) => {
         hexpand={true}
         class="sleep"
         label="󰤄"
-        onClicked={() => {
-          hideWindow(`user-panel-${monitorName}`);
+        onClicked={(self) => {
+          hideWindow(`user-panel-${(self.get_root() as any).monitorName}`);
           execAsync(`bash -c "$HOME/.config/hypr/scripts/hyprlock.sh suspend"`);
         }}
         tooltipText={"SUPER + CTRL + ESC"}
@@ -242,14 +242,14 @@ const UserPanel = (monitorName: string) => {
   );
 };
 
-const WindowActions = (monitorName: string) => {
+const WindowActions = () => {
   return (
     <box class="window-actions" hexpand={true} halign={Gtk.Align.END}>
       <button
         class="close"
         label=""
-        onClicked={() => {
-          hideWindow(`user-panel-${monitorName}`);
+        onClicked={(self) => {
+          hideWindow(`user-panel-${(self.get_root() as any).monitorName}`);
         }}
       />
     </box>
@@ -257,7 +257,7 @@ const WindowActions = (monitorName: string) => {
 };
 
 export default ({ monitor }: { monitor: Gdk.Monitor }) => {
-  const monitorName = getMonitorName(monitor.get_display(), monitor)!;
+  const monitorName = getMonitorName(monitor)!;
   return (
     <window
       gdkmonitor={monitor}
@@ -269,6 +269,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
       $={(self) => {
+        (self as any).monitorName = monitorName;
         const key = new Gtk.EventControllerKey();
         key.connect("key-pressed", (controller, keyval) => {
           if (keyval === Gdk.KEY_Escape) {
@@ -281,8 +282,8 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       }}
     >
       <box class="display" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
-        {WindowActions(monitorName)}
-        {UserPanel(monitorName)}
+        <WindowActions />
+        <UserPanel />
       </box>
     </window>
   );

@@ -121,13 +121,7 @@ function ClientTitle({
     />
   );
 }
-export default ({
-  monitorName,
-  halign,
-}: {
-  monitorName?: string | Accessor<string>;
-  halign?: Gtk.Align | Accessor<Gtk.Align>;
-}) => {
+export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="information" spacing={5} halign={halign}>
       <box

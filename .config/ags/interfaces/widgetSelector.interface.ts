@@ -8,13 +8,11 @@ export interface WidgetSelector {
   widget: ({
     width,
     height,
-    monitorName,
     halign,
     className,
   }: {
     width?: number | Accessor<number>;
     height?: number | Accessor<number>;
-    monitorName?: string | Accessor<string>;
     halign?: Gtk.Align | Accessor<Gtk.Align>;
     className?: string | Accessor<string>;
   }) => Gtk.Widget | Object;
