@@ -13,6 +13,7 @@ import Gio from "gi://Gio";
 import Cava from "./Cava";
 import GLib from "gi://GLib?version=2.0";
 import Pango from "gi://Pango?version=1.0";
+import AstalApps from "gi://AstalApps";
 
 export default ({
   player,
@@ -23,6 +24,7 @@ export default ({
   width?: Accessor<number> | number | undefined;
   height?: Accessor<number> | number | undefined;
 }) => {
+  const apps = new AstalApps.Apps();
   const [isDragging, setIsDragging] = createState(false);
   const [parentWidth, setParentWidth] = createState(0);
   const [slideDirection, setSlideDirection] = createState<"next" | "prev">(
@@ -148,18 +150,14 @@ export default ({
       ></label>
     );
 
-    const icon = (
-      <box halign={Gtk.Align.END} valign={Gtk.Align.CENTER}>
+    const Icon = () => (
+      <box hexpand halign={Gtk.Align.END} valign={Gtk.Align.START}>
         <image
           class="icon"
           tooltip_text={createBinding(player, "identity")((i) => i || "")}
-          file={createBinding(
-            player,
-            "entry"
-          )((entry) => {
-            const name = `${entry}-symbolic`;
-            return `icon:///audio-x-generic-symbolic`;
-          })}
+          iconName={
+            apps.exact_query(player.entry)[0]?.iconName || "audio-x-generic"
+          }
         />
       </box>
     );
@@ -237,6 +235,7 @@ export default ({
             {title}
             {artist}
           </box>
+          <Icon />
         </box>
 
         <box class={"separator"} vexpand></box>

@@ -13,11 +13,31 @@ import Pango from "gi://Pango?version=1.0";
 import Picture from "../../Picture";
 import GdkPixbuf from "gi://GdkPixbuf?version=2.0";
 import Gdk from "gi://Gdk?version=4.0";
+import { timeout } from "ags/time";
 
-const TRANSITION = 250;
+interface NotificationProps {
+  n: Notifd.Notification;
+  newNotification?: boolean;
+}
 
-function NotificationIcon(n: Notifd.Notification) {
-  function textureFromFile(path: string): Gdk.Texture | undefined {
+export class NotificationWidget {
+  private n: Notifd.Notification;
+  private newNotification: boolean;
+  private isEllipsized: ReturnType<typeof createState<boolean>>[0];
+  private setIsEllipsized: ReturnType<typeof createState<boolean>>[1];
+  private Revealer!: Gtk.Revealer;
+
+  constructor(props: NotificationProps) {
+    this.n = props.n;
+    this.newNotification = props.newNotification ?? false;
+
+    const [isEllipsized, setIsEllipsized] = createState<boolean>(true);
+
+    this.isEllipsized = isEllipsized;
+    this.setIsEllipsized = setIsEllipsized;
+  }
+
+  private textureFromFile(path: string): Gdk.Texture | undefined {
     try {
       const pixbuf = GdkPixbuf.Pixbuf.new_from_file(path);
       return Gdk.Texture.new_for_pixbuf(pixbuf);
@@ -25,237 +45,209 @@ function NotificationIcon(n: Notifd.Notification) {
       print("Failed to load image:", e);
     }
   }
-  const notificationIcon = n.image || n.app_icon || n.desktopEntry;
 
-  // Check for null/undefined BEFORE calling .endsWith()
-  if (!notificationIcon)
-    return <image class="icon" iconName={"dialog-information-symbolic"} />;
+  private getNotificationIcon() {
+    const notificationIcon =
+      this.n.image || this.n.app_icon || this.n.desktopEntry;
 
-  if (notificationIcon.endsWith(".webp")) {
-    const texture = textureFromFile(notificationIcon);
-    return <Picture paintable={texture} />;
+    // Check for null/undefined BEFORE calling .endsWith()
+    if (!notificationIcon)
+      return <image class="icon" iconName={"dialog-information-symbolic"} />;
+
+    if (notificationIcon.endsWith(".webp")) {
+      const texture = this.textureFromFile(notificationIcon);
+      return <Picture paintable={texture} />;
+    }
+
+    return <Picture file={notificationIcon} class="icon" />;
   }
 
-  return (
-    <Picture file={notificationIcon} class="icon" />
-  );
-}
+  private copyNotificationContent() {
+    if (this.n.appIcon) {
+      execAsync(`bash -c "wl-copy --type image/png < '${this.n.appIcon}'"`)
+        .finally(() => notify({ summary: "Copied", body: this.n.appIcon }))
+        .catch((err) => notify({ summary: "Error", body: err }));
+      return;
+    }
 
-function copyNotificationContent(n: Notifd.Notification) {
-  if (n.appIcon) {
-    execAsync(`bash -c "wl-copy --type image/png < '${n.appIcon}'"`)
-      .finally(() => notify({ summary: "Copied", body: n.appIcon }))
-      .catch((err) => notify({ summary: "Error", body: err }));
-    return;
+    const content = this.n.body || this.n.app_name;
+    if (!content) return;
+    execAsync(`wl-copy "${content}"`).catch((err) =>
+      notify({ summary: "Error", body: err })
+    );
   }
 
-  const content = n.body || n.app_name;
-  if (!content) return;
-  execAsync(`wl-copy "${content}"`).catch((err) =>
-    notify({ summary: "Error", body: err })
-  );
-}
+  private dismissNotification() {
+    this.n.dismiss();
+  }
 
-export default ({
-  n,
-  newNotification = false,
-  isPopup = false,
-  onClose,
-  onHide,
-}: {
-  n: Notifd.Notification;
-  newNotification?: boolean;
-  isPopup?: boolean;
-  onClose?: () => void;
-  onHide?: (hideFunc: () => void) => void;
-}) => {
-  const [IsLocked, setIsLocked] = createState<boolean>(false);
-  const [isEllipsized, setIsEllipsized] = createState<boolean>(true);
-  // IsLocked.subscribe((value) => {
-  //   if (!value)
-  //     GLib.timeout_add(GLib.PRIORITY_DEFAULT, NOTIFICATION_DELAY, () => {
-  //       if (!IsLocked.get() && isPopup) closeNotification();
-  //       return false;
-  //     });
-  // });
-
-  async function closeNotification(dismiss = false) {
-    (Revealer as Gtk.Revealer).reveal_child = false;
-    GLib.timeout_add(GLib.PRIORITY_DEFAULT, globalTransition, () => {
-      // Only dismiss from daemon when in history (not popup)
-      // This keeps notifications in history even when popup is closed
-      if (dismiss && !isPopup) {
-        n.dismiss();
-      }
-      // Always call onClose to remove from popup map
-      if (onClose) onClose();
-      return false;
+  public closeNotification = (dismiss = false) => {
+    this.Revealer.reveal_child = false;
+    timeout(globalTransition, () => {
+      if (dismiss) this.dismissNotification();
     });
+  };
+
+  private getIcon() {
+    return (
+      <box valign={Gtk.Align.START} halign={Gtk.Align.START} class="icon">
+        {this.getNotificationIcon()}
+      </box>
+    );
   }
 
-  const icon = (
-    <box valign={Gtk.Align.START} halign={Gtk.Align.START} class="icon">
-      {NotificationIcon(n)}
-    </box>
-  );
+  private getTitle() {
+    return (
+      <label
+        class="title"
+        xalign={0}
+        justify={Gtk.Justification.LEFT}
+        maxWidthChars={24}
+        wrap={true}
+        label={this.n.summary}
+        useMarkup={true}
+      />
+    );
+  }
 
-  const title = (
-    <label
-      class="title"
-      xalign={0}
-      justify={Gtk.Justification.LEFT}
-      maxWidthChars={24}
-      wrap={true}
-      label={n.summary}
-      useMarkup={true}
-    />
-  );
+  private getBody() {
+    return (
+      <label
+        class="body"
+        label={this.n.body}
+        wrap={true}
+        wrapMode={Pango.WrapMode.WORD_CHAR}
+        ellipsize={this.isEllipsized((ellipsized) =>
+          ellipsized ? Pango.EllipsizeMode.END : Pango.EllipsizeMode.NONE
+        )}
+        maxWidthChars={10}
+        singleLineMode={this.isEllipsized}
+        vexpand={false}
+      />
+    );
+  }
 
-  const body = (
-    <label
-      class="body"
-      label={n.body}
-      wrap={true}
-      wrapMode={Pango.WrapMode.WORD_CHAR}
-      ellipsize={isEllipsized((ellipsized) =>
-        ellipsized ? Pango.EllipsizeMode.END : Pango.EllipsizeMode.NONE
-      )}
-      maxWidthChars={10}
-      singleLineMode={isEllipsized}
-      vexpand={false} // need height constraint to make wrap work
-    />
-  );
-
-  const actions: Notifd.Action[] = n.actions;
-
-  const Actions = (
-    <box class="actions">
-      {actions.map((action) => {
-        return (
-          <button
-            hexpand
-            onClicked={() => {
-              n.invoke(action.id);
-            }}
-          >
-            <label label={action.label.split(":").at(-1)!} />
-          </button>
-        );
-      })}
-    </box>
-  );
-
-  const expand = (
-    <togglebutton
-      class="expand"
-      active={false}
-      onToggled={(self) => {
-        setIsEllipsized(!self.active);
-      }}
-      label={isEllipsized((ellipsized) => (!ellipsized ? "" : ""))}
-    />
-  );
-
-  const lockButton = (
-    <togglebutton
-      class="lock"
-      label=""
-      onToggled={(self) => {
-        setIsLocked(self.active);
-      }}
-    />
-  );
-
-  const copyButton = (
-    <button
-      class="copy"
-      label=""
-      onClicked={() => copyNotificationContent(n)}
-    />
-  );
-
-  const close = (
-    <button
-      class="close"
-      label=""
-      // sensitive={isPopup}
-      onClicked={() => {
-        closeNotification(true);
-      }}
-    />
-  );
-
-  const topBar = (
-    <box class="top-bar" spacing={5}>
-      <box spacing={5}>
-        {n.appIcon && <image class="app-icon" iconName={n.appIcon} />}
-        <label wrap={true} class="app-name" label={n.app_name} />
-
-        {copyButton}
+  private getActions() {
+    const actions: Notifd.Action[] = this.n.actions;
+    return (
+      <box class="actions">
+        {actions.map((action) => {
+          return (
+            <button
+              hexpand
+              onClicked={() => {
+                this.n.invoke(action.id);
+              }}
+            >
+              <label label={action.label.split(":").at(-1)!} />
+            </button>
+          );
+        })}
       </box>
-      <box class={"separator"} hexpand />
-      <box class="quick-actions">
-        {expand}
-        {close}
-      </box>
+    );
+  }
 
-      <label halign={Gtk.Align.END} class="time" label={time(n.time)} />
-    </box>
-  );
+  private getExpandButton() {
+    return (
+      <togglebutton
+        class="expand"
+        active={false}
+        onToggled={(self) => {
+          this.setIsEllipsized(!self.active);
+        }}
+        label={this.isEllipsized((ellipsized) => (!ellipsized ? "" : ""))}
+      />
+    );
+  }
 
-  const Box = (
-    <box class={`notification`} hexpand orientation={Gtk.Orientation.VERTICAL}>
-      {topBar}
-      <box class={"content"} spacing={5}>
-        {icon}
-        <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-          {title}
-          {body}
+  private getCopyButton() {
+    return (
+      <button
+        class="copy"
+        label=""
+        onClicked={() => this.copyNotificationContent()}
+      />
+    );
+  }
+
+  private getCloseButton() {
+    return (
+      <button
+        class="close"
+        label=""
+        onClicked={() => {
+          this.closeNotification(true);
+        }}
+      />
+    );
+  }
+
+  private getTopBar() {
+    return (
+      <box class="top-bar" spacing={5}>
+        <box spacing={5}>
+          {this.n.appIcon && (
+            <image class="app-icon" iconName={this.n.appIcon} />
+          )}
+          <label wrap={true} class="app-name" label={this.n.app_name} />
+
+          {this.getCopyButton()}
         </box>
+        <box class={"separator"} hexpand />
+        <box class="quick-actions">
+          {this.getExpandButton()}
+          {this.getCloseButton()}
+        </box>
+
+        <label halign={Gtk.Align.END} class="time" label={time(this.n.time)} />
       </box>
-      {Actions}
-    </box>
-  );
+    );
+  }
 
-  const Revealer = (
-    <revealer
-      transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
-      transitionDuration={TRANSITION}
-      reveal_child={!newNotification}
-      $={(self) => {
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1, () => {
-          self.reveal_child = true;
-          return false;
-        });
-      }}
-    >
-      {Box}
-    </revealer>
-  );
-  const Parent = (
-    <box
-      class="notification-parent"
-      visible={true}
-      $={(self) => {
-        // Only handle resolved signal for popups
-        if (isPopup) {
-          const handler = n.connect("resolved", () => {
-            closeNotification(false);
+  private getNotificationBox() {
+    return (
+      <box
+        class={`notification`}
+        hexpand
+        orientation={Gtk.Orientation.VERTICAL}
+      >
+        {this.getTopBar()}
+        <box class={"content"} spacing={5}>
+          {this.getIcon()}
+          <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+            {this.getTitle()}
+            {this.getBody()}
+          </box>
+        </box>
+        {this.getActions()}
+      </box>
+    );
+  }
+
+  private getRevealer() {
+    return (
+      <revealer
+        transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+        transitionDuration={globalTransition}
+        reveal_child={!this.newNotification}
+        $={(self) => {
+          this.Revealer = self as Gtk.Revealer;
+          GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1, () => {
+            self.reveal_child = true;
+            return false;
           });
-          self.connect("destroy", () => {
-            n.disconnect(handler);
-          });
-        }
+        }}
+      >
+        {this.getNotificationBox()}
+      </revealer>
+    );
+  }
 
-        // Expose hide function to parent via callback
-        if (onHide) {
-          onHide(() => closeNotification(false));
-        }
-      }}
-    >
-      {Revealer}
-    </box>
-  );
-
-  return Parent;
-};
+  public render() {
+    return (
+      <box class="notification-parent" visible={true}>
+        {this.getRevealer()}
+      </box>
+    );
+  }
+}

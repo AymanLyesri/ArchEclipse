@@ -1,8 +1,16 @@
 import Gtk from "gi://Gtk?version=4.0";
 import Notifd from "gi://AstalNotifd";
-import { createState, createComputed, createBinding, For, Accessor } from "ags";
+import GLib from "gi://GLib?version=2.0";
+import {
+  createState,
+  createComputed,
+  createBinding,
+  For,
+  Accessor,
+  Setter,
+} from "ags";
 import Pango from "gi://Pango?version=1.0";
-import Notification from "./Notification";
+import { NotificationWidget } from "./Notification";
 
 /* ----------------------------- Types ----------------------------- */
 
@@ -50,11 +58,21 @@ function stackNotifications(
 
 /* ---------------------- Stack Component --------------------------- */
 
-const NotificationStackView = ({ stack }: { stack: NotificationStack }) => {
-  const [expanded, setExpanded] = createState(false);
+const NotificationStackView = ({
+  stack,
+  expandedStacks,
+  setExpandedStacks,
+}: {
+  stack: NotificationStack;
+  expandedStacks: Accessor<Map<string, boolean>>;
+  setExpandedStacks: Setter<Map<string, boolean>>;
+}) => {
+  const isExpanded = createComputed(
+    () => expandedStacks().get(stack.title) ?? false
+  );
 
   const visibleNotifications = createComputed(() =>
-    expanded() ? stack.notifications : stack.notifications.slice(0, 1)
+    isExpanded() ? stack.notifications : stack.notifications.slice(0, 1)
   );
 
   const ClearNotifications = (
@@ -73,8 +91,14 @@ const NotificationStackView = ({ stack }: { stack: NotificationStack }) => {
       {stack.notifications.length > 1 && (
         <button
           class="stack-expand"
-          label={expanded((expanded) => (expanded ? "" : ""))}
-          onClicked={() => setExpanded(!expanded())}
+          label={isExpanded((expanded) => (expanded ? "" : ""))}
+          onClicked={() => {
+            setExpandedStacks((prev) => {
+              const next = new Map(prev);
+              next.set(stack.title, !isExpanded());
+              return next;
+            });
+          }}
         />
       )}
     </box>
@@ -101,7 +125,9 @@ const NotificationStackView = ({ stack }: { stack: NotificationStack }) => {
         spacing={5}
       >
         <For each={visibleNotifications}>
-          {(notification) => <Notification n={notification} />}
+          {(notification) =>
+            new NotificationWidget({ n: notification }).render()
+          }
         </For>
       </box>
     </box>
@@ -118,25 +144,70 @@ export default ({ className }: { className?: string | Accessor<string> }) => {
     class: "",
   });
 
+  const [expandedStacks, setExpandedStacks] = createState<Map<string, boolean>>(
+    new Map()
+  );
+
+  let scrolledWindow: Gtk.ScrolledWindow;
+  let savedScrollPosition = 0;
+
   const stackedNotifications = createBinding(
     notifd,
     "notifications"
   )((notifications) => {
     const filter = notificationFilter.peek();
     if (!notifications) return [];
+
+    // Schedule scroll position restoration after DOM updates
+    if (scrolledWindow && savedScrollPosition > 0) {
+      GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        const vadj = scrolledWindow.get_vadjustment();
+        if (vadj) {
+          vadj.set_value(
+            Math.min(
+              savedScrollPosition,
+              vadj.get_upper() - vadj.get_page_size()
+            )
+          );
+        }
+        return false;
+      });
+    }
+
     return stackNotifications(notifications, filter.name);
   });
 
   const NotificationHistory = (
     <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <For each={stackedNotifications}>
-        {(stack) => <NotificationStackView stack={stack} />}
+        {(stack) => (
+          <NotificationStackView
+            stack={stack}
+            expandedStacks={expandedStacks}
+            setExpandedStacks={setExpandedStacks}
+          />
+        )}
       </For>
     </box>
   );
 
   const NotificationsDisplay = (
-    <scrolledwindow vexpand>{NotificationHistory}</scrolledwindow>
+    <scrolledwindow
+      vexpand
+      $={(self) => {
+        scrolledWindow = self as Gtk.ScrolledWindow;
+
+        // Track scroll position changes
+        const vadj = self.get_vadjustment();
+        if (vadj) {
+          vadj.connect("value-changed", () => {
+            savedScrollPosition = vadj.get_value();
+          });
+        }
+      }}
+    >
+      {NotificationHistory}
+    </scrolledwindow>
   );
 
   return (

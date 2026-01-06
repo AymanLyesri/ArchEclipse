@@ -1,5 +1,5 @@
 import App from "ags/gtk4/app";
-import { createBinding, createComputed, For, With } from "ags";
+import { createComputed, With } from "ags";
 import Workspaces from "./components/Workspaces";
 import Information from "./components/Information";
 import Utilities from "./components/Utilities";
@@ -8,16 +8,12 @@ import {
   focusedClient,
   globalMargin,
   globalSettings,
-  setGlobalSetting,
 } from "../../variables";
 import { getMonitorName } from "../../utils/monitor";
-// import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
-// import { RightPanelVisibility } from "../rightPanel/RightPanel";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 import Astal from "gi://Astal?version=4.0";
 import Gdk from "gi://Gdk?version=4.0";
 import Gtk from "gi://Gtk?version=4.0";
-import { Eventbox } from "../Custom/Eventbox";
 import { RightPanelVisibility } from "../rightPanel/RightPanel";
 import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
 import app from "ags/gtk4/app";
