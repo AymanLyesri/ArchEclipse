@@ -213,7 +213,6 @@ function Panel() {
         hexpand
         class="main-content"
         orientation={Gtk.Orientation.VERTICAL}
-        spacing={5}
         widthRequest={globalSettings(({ rightPanel }) => rightPanel.width)} // ignore action section
       >
         <For each={enabledWidgets}>

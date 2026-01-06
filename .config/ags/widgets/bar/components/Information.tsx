@@ -37,7 +37,7 @@ function Mpris() {
       <box spacing={5}>
         <Cava
           barCount={12}
-          transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
+          transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
         />
         <For each={players}>
           {(player) => {
@@ -99,7 +99,12 @@ function Clock() {
         ); // Cycle through formats
       }}
     >
-      <CustomRevealer trigger={trigger} child={revealer} custom_class="clock" />
+      <CustomRevealer
+        trigger={trigger}
+        child={revealer}
+        custom_class="clock"
+        transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+      />
     </Eventbox>
   );
 }
@@ -110,15 +115,20 @@ function ClientTitle({
   focusedClient: Accessor<Hyprland.Client>;
 }) {
   return (
-    <label
-      class="client-title"
-      ellipsize={Pango.EllipsizeMode.END}
-      maxWidthChars={50}
-      label={focusedClient((c) => {
-        if (!c) return "No focused client";
-        return c.title || "No Title";
-      })}
-    />
+    <revealer
+      transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+      revealChild={focusedClient((c) => !!c)}
+    >
+      <label
+        class="client-title"
+        ellipsize={Pango.EllipsizeMode.END}
+        maxWidthChars={50}
+        label={focusedClient((c) => {
+          if (!c) return "No focused client";
+          return c.title || "No Title";
+        })}
+      />
+    </revealer>
   );
 }
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {

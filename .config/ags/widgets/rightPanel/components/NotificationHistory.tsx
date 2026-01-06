@@ -119,24 +119,31 @@ const NotificationStackView = ({
       </box>
 
       {/* Content */}
-      <box
-        class="stack-content"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={5}
+      <scrolledwindow
+        class={isExpanded((expanded) =>
+          expanded ? "stack-scrolled expanded" : "stack-scrolled collapsed"
+        )}
+        vexpand
       >
-        <For each={visibleNotifications}>
-          {(notification) =>
-            new NotificationWidget({ n: notification }).render()
-          }
-        </For>
-      </box>
+        <box
+          class="stack-content"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={5}
+        >
+          <For each={visibleNotifications}>
+            {(notification) =>
+              new NotificationWidget({ n: notification }).render()
+            }
+          </For>
+        </box>
+      </scrolledwindow>
     </box>
   );
 };
 
 /* --------------------------- Main UI ------------------------------ */
 
-export default ({ className }: { className?: string | Accessor<string> }) => {
+export default ({ className }: { className?: string }) => {
   const notifd = Notifd.get_default();
 
   const [notificationFilter] = createState<Filter>({
@@ -178,7 +185,7 @@ export default ({ className }: { className?: string | Accessor<string> }) => {
   });
 
   const NotificationHistory = (
-    <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+    <box orientation={Gtk.Orientation.VERTICAL}>
       <For each={stackedNotifications}>
         {(stack) => (
           <NotificationStackView

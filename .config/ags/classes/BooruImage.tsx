@@ -456,35 +456,45 @@ export class BooruImage {
           />
           <button
             label=""
-            tooltip-text="Copy image"
+            tooltipMarkup={isDownloaded((is) =>
+              is ? "Copy image" : "<b>Download</b> first to copy"
+            )}
             sensitive={isDownloaded}
             onClicked={() => this.copyToClipboard()}
             hexpand
           />
           <button
             label=""
-            tooltip-text="Waifu this image"
+            tooltipMarkup={isDownloaded((is) =>
+              is ? "Set as current waifu" : "<b>Download</b> first to set"
+            )}
             sensitive={isDownloaded}
             onClicked={() => this.setAsCurrentWaifu()}
             hexpand
           />
           <button
             label=""
-            tooltip-text="Open image"
+            tooltipMarkup={isDownloaded((is) =>
+              is ? "Open in viewer" : "<b>Download</b> first to open"
+            )}
             sensitive={isDownloaded}
             onClicked={() => this.openInViewer()}
             hexpand
           />
           <button
             label=""
-            tooltip-text="Pin to terminal"
+            tooltipMarkup={isDownloaded((is) =>
+              is ? "Pin to terminal" : "<b>Download</b> first to pin"
+            )}
             sensitive={isDownloaded}
             onClicked={() => this.pinToTerminal()}
             hexpand
           />
           <button
             label="󰸉"
-            tooltip-text="Add to wallpapers"
+            tooltipMarkup={isDownloaded((is) =>
+              is ? "Add to wallpapers" : "<b>Download</b> first to add"
+            )}
             sensitive={isDownloaded}
             onClicked={() => this.addToWallpapers()}
             hexpand
@@ -776,40 +786,6 @@ export class BooruImage {
 
         <Actions $type="overlay" />
       </overlay>
-    );
-  }
-
-  /**
-   * Render as compact grid item (for future use)
-   *
-   * Could be used for: Thumbnail grids, search results
-   */
-  renderAsGridItem(options?: { size?: number; showTags?: boolean }): any {
-    const opts = {
-      size: 150,
-      showTags: false,
-      ...options,
-    };
-
-    return (
-      <box class="grid-item" orientation={Gtk.Orientation.VERTICAL}>
-        <Picture
-          class="thumbnail"
-          width={opts.size}
-          height={opts.size}
-          file={
-            this.isDownloaded() ? this.getImagePath() : this.getPreviewPath()
-          }
-          contentFit={Gtk.ContentFit.COVER}
-        />
-        {opts.showTags && (
-          <label
-            class="tags-preview"
-            label={this.tags.slice(0, 3).join(", ")}
-            ellipsize={Pango.EllipsizeMode.END}
-          />
-        )}
-      </box>
     );
   }
 }

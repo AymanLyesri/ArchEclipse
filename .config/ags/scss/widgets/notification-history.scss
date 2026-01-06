@@ -1,11 +1,22 @@
 .notification-history {
+  border-radius: 10px;
+  background: $background-transparent;
   .notification-stack {
     @include module;
-    padding: 0px;
     background: transparent;
+    padding: 5px;
+
+    .stack-scrolled {
+      transition: min-height 0.6s ease-in-out;
+      &.expanded {
+        min-height: 300px;
+      }
+      &.collapsed {
+        min-height: 90px;
+      }
+    }
 
     &:hover {
-      background-color: $background-transparent;
       .stack-header {
         .actions button {
           opacity: 1;
@@ -14,17 +25,18 @@
     }
 
     .stack-header {
-      padding: 5px 5px 0px 5px;
+      padding: 5px;
       .stack-title {
-        font-weight: bold;
+        // font-weight: bold;
+        padding-left: 5px;
         font-size: 0.9em;
       }
       .actions button {
-        border-radius: 10px 10px 0px 0px;
+        // padding: 0px 10px;
         opacity: 0;
 
-        &:hover {
-          border-radius: 10px;
+        &:not(:hover) {
+          background: transparent;
         }
       }
     }

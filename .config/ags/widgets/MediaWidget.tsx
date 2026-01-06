@@ -25,10 +25,10 @@ export default function ({
 }: {
   width?: Accessor<number> | number;
   height?: Accessor<number> | number;
-  className?: Accessor<string> | string;
+  className?: string;
 }) {
   return (
-    <box>
+    <box css={"border-radius: 10px;"}>
       <With value={players}>
         {(players) =>
           players.length > 0 ? (

@@ -19,10 +19,12 @@ export default ({
   player,
   width,
   height,
+  className,
 }: {
   player: AstalMpris.Player;
-  width?: Accessor<number> | number | undefined;
-  height?: Accessor<number> | number | undefined;
+  width?: Accessor<number> | number;
+  height?: Accessor<number> | number;
+  className?: string;
 }) => {
   const apps = new AstalApps.Apps();
   const [isDragging, setIsDragging] = createState(false);
@@ -256,7 +258,7 @@ export default ({
 
   const overlay = (
     <overlay
-      class={`player`}
+      class={`player ${className || ""}`}
       hexpand
       $={(self) => {
         // Create a controller to monitor size changes

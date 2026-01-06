@@ -25,6 +25,7 @@ export default function Picture({
 
   return (
     <overlay
+      class="image"
       heightRequest={height}
       widthRequest={width}
       $={(self) => {

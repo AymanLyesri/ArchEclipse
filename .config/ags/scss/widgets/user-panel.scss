@@ -1,6 +1,7 @@
 .user-panel {
   .main {
-    @include module;
+    background: $background-transparent;
+    border-radius: 20px;
     padding: 1rem;
   }
 
@@ -8,7 +9,7 @@
     min-width: 300px;
   }
   .middle {
-    min-width: 300px;
+    min-width: 400px;
   }
   .date {
     @include module;

@@ -13,6 +13,8 @@
     opacity: 0.9;
     margin: 0px 5px 5px 5px;
 
+    box-shadow: $BOX-SHADOW;
+
     &:hover {
       background-color: $background-secondary;
       margin-bottom: 20px;

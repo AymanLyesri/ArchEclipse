@@ -26,6 +26,7 @@
     padding-left: 10px;
 
     button {
+      animation: opacity-in 0.4s ease-in;
       .description {
         color: $foreground-tertiary;
         font-size: 0.9em;
