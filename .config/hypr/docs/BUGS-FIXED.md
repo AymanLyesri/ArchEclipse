@@ -167,3 +167,51 @@ cat /tmp/ags.log | grep -E "(UserPanel|WallpaperSwitcher):"
 # UserPanel toggle should work:
 ags toggle user-panel-eDP-1  # No error
 ```
+
+---
+
+## 4. REAPER XWayland Window Creation Bug (Fixed: 2026-01-07)
+
+**Problem:** REAPER occasionally starts as a zombie process - audio engine runs (microphone feedback works) but GUI window never creates. This is an XWayland timing issue.
+
+**Symptoms:**
+- `pgrep reaper` shows process running
+- Audio works (mic feedback audible)
+- `hyprctl clients | grep -i reaper` shows no window
+- Must manually kill and restart REAPER
+
+**Solution:** Custom launcher script with window detection and auto-restart.
+
+**Files Created:**
+- `~/.config/hypr/scripts/launch-reaper.sh`
+
+**Script Features:**
+1. Kills any existing REAPER zombie processes before launch
+2. Monitors for window creation with 5-second timeout
+3. Auto-retries up to 3 times if window doesn't appear
+4. Sends notification on final failure
+
+**Usage:**
+```bash
+# Use instead of `reaper` command
+~/.config/hypr/scripts/launch-reaper.sh
+
+# Or create desktop entry override
+```
+
+**Verification:**
+```bash
+# Check REAPER window exists
+hyprctl clients -j | jq '.[] | select(.class == "REAPER")'
+```
+
+**Desktop Entry Override (Optional):**
+Create `~/.local/share/applications/reaper.desktop` to override system entry:
+```ini
+[Desktop Entry]
+Name=REAPER
+Exec=/home/alphonse/.config/hypr/scripts/launch-reaper.sh
+Type=Application
+Icon=cockos-reaper
+Categories=Audio;AudioVideo;
+```
