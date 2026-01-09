@@ -120,10 +120,10 @@ function Display() {
               const target = targetType.peek();
               const command = {
                 sddm: `pkexec sh -c 'sed -i "s|^background=.*|background=\"${wallpaper}\"|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
-                lockscreen: `bash -c "cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
+                lockscreen: `bash -c "cp '${wallpaper}' $HOME/.config/wallpapers/lockscreen/wallpaper"`,
                 workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
                   (self.get_root() as any).monitorName
-                } ${wallpaper}"`,
+                } '${wallpaper}'"`,
               }[target];
 
               execAsync(command!)
@@ -232,7 +232,7 @@ function Display() {
         execAsync(
           `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
             (self.get_root() as any).monitorName
-          } ${randomWallpaper}"`
+          } '${randomWallpaper}'"`
         )
           .finally(() => {
             const newWallpaper = JSON.parse(
