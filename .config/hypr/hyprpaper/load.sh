@@ -53,17 +53,17 @@ echo "Config files created!"
 
 #################################################
 
-for conf in $hyprpaper_conf/*/defaults.conf; do
-    monitor=$(basename $conf/defaults.conf)
+# Nota: En hyprpaper 0.8+ ya no es necesario precargar wallpapers
+# El comando 'hyprctl hyprpaper wallpaper' los carga automáticamente
+# Se mantiene comentado por referencia:
+# for conf in $hyprpaper_conf/*/defaults.conf; do
+#     wallpapers=$(awk -F'=' '{print $2}' $conf)
+#     for wallpaper in $wallpapers; do
+#         hyprctl hyprpaper preload "$wallpaper"
+#     done
+# done
 
-    wallpapers=$(awk -F'=' '{print $2}' $conf)
-
-    for wallpaper in $wallpapers; do
-        hyprctl hyprpaper preload "$wallpaper"
-    done
-done
-
-echo "Wallpapers preloaded!"
+echo "Hyprpaper ready!"
 
 #################################################
 
