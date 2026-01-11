@@ -394,8 +394,10 @@ export class BooruImage {
 
     const imageRatio = this.getAspectRatio();
     const displayWidth = imageRatio >= 1 ? opts.width * imageRatio : opts.width;
-    const displayHeight =
-      imageRatio >= 1 ? opts.height : opts.height / imageRatio;
+    // Ensure minimum height for action buttons (approx 120px for 2 rows of buttons + tags)
+    const minHeight = 350;
+    const calculatedHeight = imageRatio >= 1 ? opts.height : opts.height / imageRatio;
+    const displayHeight = Math.max(calculatedHeight, minHeight);
 
     // Tags component
     const Tags = () => (
@@ -505,33 +507,28 @@ export class BooruImage {
 
     // Main dialog layout
     return (
-      <overlay
-        widthRequest={displayWidth}
-        heightRequest={displayHeight}
+      <box
+        orientation={Gtk.Orientation.VERTICAL}
         class="booru-image"
         $={async () => {
           setIsDownloaded(this.isDownloaded());
         }}
       >
-        <Picture
-          file={isDownloaded((is) =>
-            is ? this.getImagePath() : this.getPreviewPath()
-          )}
-          height={displayHeight}
-          width={displayWidth}
-          class="image"
-        />
-        <box
-          $type="overlay"
-          orientation={Gtk.Orientation.VERTICAL}
-          widthRequest={displayWidth}
-          heightRequest={displayHeight}
-        >
-          <Tags />
-          <box vexpand />
-          <Actions />
-        </box>
-      </overlay>
+        <overlay widthRequest={displayWidth} heightRequest={displayHeight}>
+          <Picture
+            file={isDownloaded((is) =>
+              is ? this.getImagePath() : this.getPreviewPath()
+            )}
+            height={displayHeight}
+            width={displayWidth}
+            class="image"
+          />
+          <box $type="overlay" orientation={Gtk.Orientation.VERTICAL}>
+            <Tags />
+          </box>
+        </overlay>
+        <Actions />
+      </box>
     );
   }
 
