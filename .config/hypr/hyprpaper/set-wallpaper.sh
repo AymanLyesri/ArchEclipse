@@ -50,8 +50,8 @@ if [ "$old_wallpaper" = "$new_wallpaper" ]; then
     exit 0
 fi
 
-# Nota: En hyprpaper 0.8+ preload/unload ya no funcionan via hyprctl
-# El wallpaper se carga automáticamente al aplicarlo
+# Note: In hyprpaper 0.8+ preload/unload no longer work via hyprctl
+# The wallpaper is loaded automatically when applied
 
 sed -i "s|w-${workspace_id}=.*|w-${workspace_id}=|" $current_config # clear old entry
 
