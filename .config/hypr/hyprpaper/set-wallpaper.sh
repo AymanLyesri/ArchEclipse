@@ -50,17 +50,10 @@ if [ "$old_wallpaper" = "$new_wallpaper" ]; then
     exit 0
 fi
 
-hyprctl hyprpaper preload "$new_wallpaper" # preload wallpaper
+# Note: In hyprpaper 0.8+ preload/unload no longer work via hyprctl
+# The wallpaper is loaded automatically when applied
 
-sed -i "s|w-${workspace_id}=.*|w-${workspace_id}=|" $current_config # set wallpaper in config
-
-for conf in $hyprDir/hyprpaper/config/*/defaults.conf; do
-    # unload old wallpaper if it is not in use in other workspaces
-    if ! grep -q "$old_wallpaper" "$conf"; then
-        hyprctl hyprpaper unload "$old_wallpaper"
-        echo "Unloaded $old_wallpaper"
-    fi
-done
+sed -i "s|w-${workspace_id}=.*|w-${workspace_id}=|" $current_config # clear old entry
 
 # hyprctl hyprpaper unload "$old_wallpaper" # unload old wallpaper
 
