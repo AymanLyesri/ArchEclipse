@@ -261,16 +261,6 @@ const mangaApis = ["MangaDex", "WIP"];
 const Tabs = () => (
   <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
     <box class="tab-list" spacing={5}>
-      {mangaApis.map((api) => (
-        <togglebutton
-          hexpand
-          label={api}
-          // active={currentApi((current) => current === api)}
-          // onToggled={({ active }) => active && setCurrentApi(api)}
-        />
-      ))}
-    </box>
-    <box class="tab-list" spacing={5}>
       <togglebutton
         active={currentTab((tab) => tab === "Manga")}
         label="Manga"
@@ -292,6 +282,16 @@ const Tabs = () => (
           active && selectedChapter.get() && setCurrentTab("Pages")
         }
       />
+    </box>
+    <box class="tab-list" spacing={5}>
+      {mangaApis.map((api) => (
+        <togglebutton
+          hexpand
+          label={api}
+          // active={currentApi((current) => current === api)}
+          // onToggled={({ active }) => active && setCurrentApi(api)}
+        />
+      ))}
     </box>
   </box>
 );
@@ -395,10 +395,10 @@ export default () => {
         self.add_controller(keyController);
       }}
     >
-      <Tabs />
       <Content />
       <Progress status={progressStatus} />
       <Bottom />
+      <Tabs />
     </box>
   );
 };

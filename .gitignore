@@ -25,15 +25,12 @@
 !.config/pipewire/
 # include ags
 !.config/ags/
-!.config/agsV1/
 # include wayvnc config
 !.config/wayvnc/
 # include fastfetch config
 !.config/fastfetch/
 # wallpapers
 !.config/wallpapers/
-# lossless scaling config (frame generation)
-!.config/lsfg-vk/
 # include starship config
 !.config/starship.toml
 

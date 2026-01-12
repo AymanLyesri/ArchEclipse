@@ -399,7 +399,6 @@ export default () => {
       hexpand
       spacing={5}
     >
-      <ApiList />
       <Info />
       <Messages />
       <box orientation={Gtk.Orientation.VERTICAL}>
@@ -410,6 +409,7 @@ export default () => {
         />
         <BottomBar />
       </box>
+      <ApiList />
     </box>
   );
 };

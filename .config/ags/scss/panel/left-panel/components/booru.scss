@@ -9,10 +9,13 @@
   }
 
   .bottom {
+    .actions {
+      @include module;
+    }
     .bottom-bar {
       @include module;
       background: $background-semi-transparent;
-      margin-top: 10px;
+      margin-top: 5px;
 
       .input {
         @include module;

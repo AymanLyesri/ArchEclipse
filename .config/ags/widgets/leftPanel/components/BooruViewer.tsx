@@ -707,7 +707,6 @@ export default () => {
         });
       }}
     >
-      <Tabs />
       <box orientation={Gtk.Orientation.VERTICAL}>
         <Images />
         <Progress
@@ -717,6 +716,7 @@ export default () => {
         />
       </box>
       <Bottom />
+      <Tabs />
     </box>
   );
 };
