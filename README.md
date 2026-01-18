@@ -80,7 +80,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 
 # KeyBinds
 
-KeyBinds are displayed and organized [Here](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/configs/keybinds.conf), be sure to check them out!
+KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form of text [Here](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/configs/keybinds.conf), be sure to check them out!
 
 # Installation and Update
 
@@ -112,7 +112,6 @@ update
 - Press `SUPER + w` to select the wallpaper you like
 - Custom wallpapers should be added in `$HOME/.config/wallpapers/custom`
 - Custom hyprland configuration should be put in `$HOME/.config/hypr/configs/custom`
-- Most functionalities have associated [keybinds](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/configs/keybinds.conf). Check them out!
 
 > **Important**: If you encounter any problems, no matter how small, please feel free to open an issue. I’m happy to help! :)
 
@@ -142,9 +141,13 @@ update
 
 ## Left Panel
 
-| Chat Bot                                        | Booru Viewer                                                                                    | Hyprland & AGS settings                          |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| ![image](.github/assets/left-panel-chatbot.png) | ![image](.github/assets/left-panel-booru-1.png) ![image](.github/assets/left-panel-booru-2.png) | ![image](.github/assets/left-panel-settings.png) |
+| Chat Bot                                        | Booru Viewer                                                                                    |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| ![image](.github/assets/left-panel-chatbot.png) | ![image](.github/assets/left-panel-booru-1.png) ![image](.github/assets/left-panel-booru-2.png) |
+
+| Hyprland & Panel settings                        | KeyBinds                                         |
+| ------------------------------------------------ | ------------------------------------------------ |
+| ![image](.github/assets/left-panel-settings.png) | ![image](.github/assets/left-panel-keybinds.png) |
 
 ## Wallpaper Switcher
 

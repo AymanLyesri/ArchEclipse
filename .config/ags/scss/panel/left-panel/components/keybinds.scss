@@ -1,0 +1,19 @@
+.keybinds {
+  .keybind-category {
+    @include module;
+    box-shadow: $BOX-SHADOW;
+
+    .keybind-category-title {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin: 5px;
+    }
+    .keybind-box {
+      @include button;
+
+      &:not(:hover) {
+        background-color: transparent;
+      }
+    }
+  }
+}

@@ -16,6 +16,7 @@ import MangaViewer from "../widgets/leftPanel/components/MangaViewer";
 import SettingsWidget from "../widgets/leftPanel/components/SettingsWidget";
 import Calendar from "../widgets/rightPanel/components/Calendar";
 import NotificationHistory from "../widgets/rightPanel/components/NotificationHistory";
+import KeyBinds from "../widgets/leftPanel/components/KeyBinds";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {
@@ -123,6 +124,12 @@ export const leftPanelWidgetSelectors: WidgetSelector[] = [
     name: "CustomScripts",
     icon: "",
     widget: () => CustomScripts(),
+    enabled: false,
+  },
+  {
+    name: "KeyBinds",
+    icon: "",
+    widget: () => KeyBinds(),
     enabled: false,
   },
 ];

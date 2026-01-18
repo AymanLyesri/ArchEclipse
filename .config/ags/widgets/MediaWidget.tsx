@@ -25,7 +25,7 @@ export default function ({
 }: {
   width?: Accessor<number> | number;
   height?: Accessor<number> | number;
-  className?: string;
+  className?: string | Accessor<string>;
 }) {
   return (
     <box css={"border-radius: 10px;"}>
@@ -38,7 +38,7 @@ export default function ({
               player={
                 mpris.players.find(
                   (player) =>
-                    player.playbackStatus === Mpris.PlaybackStatus.PLAYING
+                    player.playbackStatus === Mpris.PlaybackStatus.PLAYING,
                 ) || mpris.players[0]
               }
             />

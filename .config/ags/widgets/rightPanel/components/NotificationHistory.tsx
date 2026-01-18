@@ -28,7 +28,7 @@ interface NotificationStack {
 
 function stackNotifications(
   notifications: Notifd.Notification[],
-  filter: string
+  filter: string,
 ): NotificationStack[] {
   const MAX_NOTIFICATIONS = 50;
   const stacks = new Map<string, Notifd.Notification[]>();
@@ -68,11 +68,11 @@ const NotificationStackView = ({
   setExpandedStacks: Setter<Map<string, boolean>>;
 }) => {
   const isExpanded = createComputed(
-    () => expandedStacks().get(stack.title) ?? false
+    () => expandedStacks().get(stack.title) ?? false,
   );
 
   const visibleNotifications = createComputed(() =>
-    isExpanded() ? stack.notifications : stack.notifications.slice(0, 1)
+    isExpanded() ? stack.notifications : stack.notifications.slice(0, 1),
   );
 
   const ClearNotifications = (
@@ -121,7 +121,7 @@ const NotificationStackView = ({
       {/* Content */}
       <scrolledwindow
         class={isExpanded((expanded) =>
-          expanded ? "stack-scrolled expanded" : "stack-scrolled collapsed"
+          expanded ? "stack-scrolled expanded" : "stack-scrolled collapsed",
         )}
         vexpand
       >
@@ -143,7 +143,7 @@ const NotificationStackView = ({
 
 /* --------------------------- Main UI ------------------------------ */
 
-export default ({ className }: { className?: string }) => {
+export default ({ className }: { className?: string | Accessor<string> }) => {
   const notifd = Notifd.get_default();
 
   const [notificationFilter] = createState<Filter>({
@@ -152,7 +152,7 @@ export default ({ className }: { className?: string }) => {
   });
 
   const [expandedStacks, setExpandedStacks] = createState<Map<string, boolean>>(
-    new Map()
+    new Map(),
   );
 
   let scrolledWindow: Gtk.ScrolledWindow;
@@ -160,7 +160,7 @@ export default ({ className }: { className?: string }) => {
 
   const stackedNotifications = createBinding(
     notifd,
-    "notifications"
+    "notifications",
   )((notifications) => {
     const filter = notificationFilter.peek();
     if (!notifications) return [];
@@ -173,8 +173,8 @@ export default ({ className }: { className?: string }) => {
           vadj.set_value(
             Math.min(
               savedScrollPosition,
-              vadj.get_upper() - vadj.get_page_size()
-            )
+              vadj.get_upper() - vadj.get_page_size(),
+            ),
           );
         }
         return false;
