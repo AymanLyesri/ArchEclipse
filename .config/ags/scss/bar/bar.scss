@@ -7,7 +7,8 @@
   }
 
   &.empty {
-    button {
+    button,
+    .custom-revealer {
       @include button;
       border-radius: 50px;
     }
@@ -19,8 +20,8 @@
       padding: 5px;
     }
     .panel-trigger {
-      border-radius: 50%;
-      padding: 0px;
+      border-radius: 50px;
+      padding: 0px 10px;
       margin: 5px;
       min-height: 0px;
     }

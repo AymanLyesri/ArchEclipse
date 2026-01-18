@@ -3,8 +3,8 @@ import { Accessor } from "gnim";
 export interface CustomScript {
   name: string | Accessor<string>;
   icon: string;
-  description: string | Accessor<string>;
+  description: string;
   keybind?: string[];
-  sensitive?: boolean | Promise<boolean>;
+  app?: string;
   script: () => void;
 }

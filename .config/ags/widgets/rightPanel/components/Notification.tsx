@@ -188,7 +188,11 @@ export class NotificationWidget {
           {/* {this.n.appIcon && (
             <image class="app-icon" iconName={this.n.appIcon} />
           )} */}
-          <label wrap={true} class="app-name" label={this.n.app_name} />
+          <label
+            class="app-name"
+            label={this.n.app_name}
+            ellipsize={Pango.EllipsizeMode.END}
+          />
 
           {this.getCopyButton()}
         </box>
