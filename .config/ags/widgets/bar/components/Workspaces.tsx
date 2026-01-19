@@ -10,8 +10,32 @@ import app from "ags/gtk4/app";
 
 const hyprland = Hyprland.get_default();
 
-// workspaces icons
-const workspaceToIcon = ["", "", "", "", "", "", "󰙯", "󰓓", "", "", ""];
+const workspaceIconMap: { [name: string]: string } = {
+  special: "",
+  overview: "󱗼",
+  zen: "󰖟",
+  firefox: "󰈹",
+  code: "",
+  kitty: "",
+  ranger: "󰉋",
+  thunar: "󰉋",
+  vlc: "󰕾",
+  "spotify-launcher": "",
+  spotify: "",
+  systemmonitor: "",
+  discord: "󰙯",
+  vencord: "󰙯",
+  legcord: "󰙯",
+  vesktop: "󰙯",
+  steam: "󰓓",
+  game: "",
+};
+
+// const workspaceRegexIconMap: { [regex: RegExp]: string } = {
+//   // all that ends with "cord"
+//   "/cord$/": "󰙯",
+// };
+
 function Workspaces() {
   /**
    * WORKSPACE STATE TRACKING
@@ -55,7 +79,7 @@ function Workspaces() {
     id: number,
     isActive: boolean,
     isFocused: boolean,
-    icon: string
+    icon: string,
   ) => {
     const classes: string[] = [];
 
@@ -109,7 +133,7 @@ function Workspaces() {
     // Create array of all workspace IDs [1, 2, ..., totalWorkspaces]
     const allWorkspaces = Array.from(
       { length: totalWorkspaces },
-      (_, i) => i + 1
+      (_, i) => i + 1,
     );
 
     // Array to hold the final grouped workspace elements
@@ -132,7 +156,7 @@ function Workspaces() {
             }`}
           >
             {currentGroup}
-          </box>
+          </box>,
         );
         // Reset group state
         currentGroup = [];
@@ -153,13 +177,13 @@ function Workspaces() {
       const isActive = workspaceIds.includes(id);
       const isFocused = currentWorkspace === id;
 
-      // Select appropriate icon
-      const icon =
-        id > maxWorkspaces
-          ? extraWorkspaceIcon
-          : isActive
-          ? workspaceToIcon[id]
-          : emptyIcon;
+      const main_client = workspaces.find((w) => w.id === id)?.get_clients()[0];
+      const client_class = main_client?.class.toLowerCase() || "empty";
+
+      // Select appropriate icon based on workspace client class
+      const icon = isActive
+        ? workspaceIconMap[client_class] || extraWorkspaceIcon
+        : emptyIcon;
 
       if (isActive) {
         // ACTIVE WORKSPACE: Add to current group
@@ -176,7 +200,7 @@ function Workspaces() {
         groupElements.push(
           <box class="workspace-group inactive">
             {createWorkspaceButton(id, isActive, isFocused, icon)}
-          </box>
+          </box>,
         );
       }
     });
@@ -217,9 +241,9 @@ function Workspaces() {
 const Special = () => (
   <button
     class={specialWorkspace((special) =>
-      special ? "special active" : "special inactive"
+      special ? "special active" : "special inactive",
     )}
-    label={workspaceToIcon[0]}
+    label={workspaceIconMap["special"]}
     onClicked={() =>
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
     }
@@ -230,7 +254,7 @@ const Special = () => (
 const OverView = () => (
   <button
     class="overview"
-    label="󱗼"
+    label={workspaceIconMap["overview"]}
     onClicked={() =>
       hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
     }
@@ -246,10 +270,10 @@ function WallpaperSwitcher() {
       onToggled={(self) => {
         self.active
           ? showWindow(
-              `wallpaper-switcher-${(self.get_root() as any).monitorName}`
+              `wallpaper-switcher-${(self.get_root() as any).monitorName}`,
             )
           : hideWindow(
-              `wallpaper-switcher-${(self.get_root() as any).monitorName}`
+              `wallpaper-switcher-${(self.get_root() as any).monitorName}`,
             );
       }}
       tooltipText={"SUPER + W"}

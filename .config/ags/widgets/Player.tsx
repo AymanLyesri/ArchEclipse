@@ -30,11 +30,11 @@ export default ({
   const [isDragging, setIsDragging] = createState(false);
   const [parentWidth, setParentWidth] = createState(0);
   const [slideDirection, setSlideDirection] = createState<"next" | "prev">(
-    "next"
+    "next",
   );
   const dominantColor = createBinding(
     player,
-    "coverArt"
+    "coverArt",
   )((path) => getDominantColor(path));
 
   // Calculate bar count based on parent width
@@ -63,7 +63,7 @@ export default ({
     playerStack.set_transition_type(
       direction === "next"
         ? Gtk.StackTransitionType.SLIDE_LEFT
-        : Gtk.StackTransitionType.SLIDE_RIGHT
+        : Gtk.StackTransitionType.SLIDE_RIGHT,
     );
 
     const name = `player-${Date.now()}`;
@@ -86,6 +86,7 @@ export default ({
         class="artist"
         maxWidthChars={20}
         halign={Gtk.Align.START}
+        ellipsize={Pango.EllipsizeMode.END}
         label={createBinding(player, "artist")((a) => a || "Unknown Artist")}
       ></label>
     );
@@ -123,13 +124,13 @@ export default ({
             player.position = self.get_value() * player.length;
             setIsDragging(false);
             unsubscribe = createBinding(player, "position").subscribe(
-              updateValue
+              updateValue,
             );
           });
 
           self.add_controller(gestureClick);
           unsubscribe = createBinding(player, "position").subscribe(
-            updateValue
+            updateValue,
           );
         }}
         visible={createBinding(player, "length")((l) => l > 0)}
@@ -173,7 +174,7 @@ export default ({
         <label
           label={createBinding(
             player,
-            "playbackStatus"
+            "playbackStatus",
           )((s) => {
             switch (s) {
               case AstalMpris.PlaybackStatus.PLAYING:
@@ -223,11 +224,11 @@ export default ({
           <Picture
             class={createBinding(
               player,
-              "playbackStatus"
+              "playbackStatus",
             )((s) =>
               s === AstalMpris.PlaybackStatus.PLAYING
                 ? "cover-art-spinner playing"
-                : "cover-art-spinner paused"
+                : "cover-art-spinner paused",
             )}
             height={40}
             width={40}
@@ -285,7 +286,7 @@ export default ({
         const timeoutId = GLib.timeout_add(
           GLib.PRIORITY_DEFAULT,
           100, // Check every 100ms
-          checkWidth
+          checkWidth,
         );
 
         // Clean up on destroy

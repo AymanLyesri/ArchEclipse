@@ -67,7 +67,7 @@ if clipboard_uri=$(wl-paste --no-newline --type text/uri-list 2>/dev/null) && [[
     extension="${file_path##*.}"
 
     # Vlc action
-    notify-send "Video Copied" "$file_path" \
+    notify-send -i "edit-copy" "Video Copied" "$file_path" \
         -a "ScreenRecord" \
         --action=play:Play \
         --action=save:Save | while read -r action; do
@@ -97,5 +97,5 @@ fi
 # Fallback: text clipboard
 # =========================
 if clipboard_text=$(wl-paste --no-newline --type text 2>/dev/null) && [[ -n "$clipboard_text" ]]; then
-    notify-send -a "Clipboard" "Text Copied" "$clipboard_text"
+    notify-send -i "edit-copy" -a "Clipboard" "Text Copied" "$clipboard_text"
 fi
