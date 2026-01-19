@@ -1,7 +1,12 @@
 .keybinds {
+  animation: opacity-in 0.6s ease forwards;
+
   .keybind-category {
     @include module;
     box-shadow: $BOX-SHADOW;
+    &:hover {
+      background: $background-semi-transparent;
+    }
 
     .keybind-category-title {
       font-size: 1.2em;
@@ -9,11 +14,7 @@
       margin: 5px;
     }
     .keybind-box {
-      @include button;
-
-      &:not(:hover) {
-        background-color: transparent;
-      }
+      padding: 5px;
     }
   }
 }

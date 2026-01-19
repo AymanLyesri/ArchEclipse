@@ -6,5 +6,6 @@ export interface CustomScript {
   description: string;
   keybind?: string[];
   app?: string;
+  package?: string;
   script: () => void;
 }

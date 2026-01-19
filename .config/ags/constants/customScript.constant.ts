@@ -1,7 +1,8 @@
-import { execAsync } from "ags/process";
 import { CustomScript } from "../interfaces/customScript.interface";
-import { notify } from "../utils/notification";
 import { globalSettings } from "../variables";
+
+import Hyprland from "gi://AstalHyprland";
+const hyprland = Hyprland.get_default();
 
 export const customScripts = (): CustomScript[] => [
   {
@@ -10,9 +11,10 @@ export const customScripts = (): CustomScript[] => [
     description: "Restart the AGS bar",
     keybind: ["SUPER", "B"],
     script: () => {
-      execAsync(`bash -c "$HOME/.config/hypr/scripts/bar.sh"`).catch((err) =>
-        notify({ summary: "AGS Bar", body: err }),
-      );
+      // execAsync(`bash -c "$HOME/.config/hypr/scripts/bar.sh"`).catch((err) =>
+      //   notify({ summary: "AGS Bar", body: err }),
+      // );
+      hyprland.dispatch("exec", `bash -c "$HOME/.config/hypr/scripts/bar.sh"`);
     },
   },
   {
@@ -21,21 +23,22 @@ export const customScripts = (): CustomScript[] => [
     description: "Color Picker for Hyprland",
     app: "hyprpicker",
     script: () => {
-      execAsync("hyprpicker")
-        .then((res) => {
-          execAsync(`wl-copy "${res}"`);
-        })
-        .catch((err) => notify({ summary: "HyprPicker", body: err }));
+      // execAsync("hyprpicker")
+      //   .then((res) => {
+      //     execAsync(`wl-copy "${res}"`);
+      //   })
+      //   .catch((err) => notify({ summary: "HyprPicker", body: err }));
+      hyprland.dispatch("exec", "hyprpicker");
     },
   },
   {
     name: "Change Resolution",
     icon: "󰍹",
     description: "Change Resolution",
+    app: "hyprmon",
+    package: "hyprmon-bin",
     script: () => {
-      execAsync(`kitty hyprmon`).catch((err) =>
-        notify({ summary: "Resolution", body: err }),
-      );
+      hyprland.dispatch("exec", "kitty hyprmon");
     },
   },
   {
@@ -43,9 +46,7 @@ export const customScripts = (): CustomScript[] => [
     icon: "󰏗",
     description: "Update Packages (pacman)",
     script: () => {
-      execAsync(`bash -c "kitty sudo pacman -Syu"`).catch((err) =>
-        notify({ summary: "Update", body: err }),
-      );
+      hyprland.dispatch("exec", "kitty -e sudo pacman -Syu");
     },
   },
   // Clipboard Utilities
@@ -53,10 +54,10 @@ export const customScripts = (): CustomScript[] => [
     name: "Clear Clipboard",
     icon: "󰃢",
     description: "Clear clipboard history",
+    app: "wl-copy",
+    package: "wl-clipboard",
     script: () => {
-      execAsync("wl-copy --clear")
-        .then(() => notify({ summary: "Clipboard", body: "Cleared clipboard" }))
-        .catch((err) => notify({ summary: "Clipboard", body: err }));
+      hyprland.dispatch("exec", "wl-copy --clear");
     },
   },
   {
@@ -64,10 +65,12 @@ export const customScripts = (): CustomScript[] => [
     icon: "",
     description: "Screenshot entire screen",
     keybind: ["SUPER", "SHIFT", "S"],
+    app: "grim",
     script: () => {
-      execAsync(
+      hyprland.dispatch(
+        "exec",
         `bash -c "$HOME/.config/hypr/scripts/screenshot.sh --now"`,
-      ).catch((err) => notify({ summary: "Screenshot", body: err }));
+      );
     },
   },
   {
@@ -75,10 +78,12 @@ export const customScripts = (): CustomScript[] => [
     icon: "",
     description: "Select area to screenshot",
     keybind: ["SUPER", "CTRL", "SHIFT", "S"],
+    app: "grim",
     script: () => {
-      execAsync(
+      hyprland.dispatch(
+        "exec",
         `bash -c "$HOME/.config/hypr/scripts/screenshot.sh --area"`,
-      ).catch((err) => notify({ summary: "Screenshot", body: err }));
+      );
     },
   },
 
@@ -89,9 +94,10 @@ export const customScripts = (): CustomScript[] => [
     keybind: ["SUPER", "SHIFT", "R"],
     app: "wf-recorder",
     script: () => {
-      execAsync(
+      hyprland.dispatch(
+        "exec",
         `bash -c "$HOME/.config/hypr/scripts/screenrecord.sh --now"`,
-      ).catch((err) => notify({ summary: "Recording", body: err }));
+      );
     },
   },
   {
@@ -101,9 +107,10 @@ export const customScripts = (): CustomScript[] => [
     keybind: ["SUPER", "CTRL", "SHIFT", "R"],
     app: "wf-recorder",
     script: () => {
-      execAsync(
+      hyprland.dispatch(
+        "exec",
         `bash -c "$HOME/.config/hypr/scripts/screenrecord.sh --area"`,
-      ).catch((err) => notify({ summary: "Recording", body: err }));
+      );
     },
   },
   // System Utilities
@@ -112,9 +119,7 @@ export const customScripts = (): CustomScript[] => [
     icon: "󰑓",
     description: "Restart Hyprland session",
     script: () => {
-      execAsync("hyprctl dispatch exit").catch((err) =>
-        notify({ summary: "Hyprland", body: err }),
-      );
+      hyprland.dispatch("dispatch", "exit");
     },
   },
   {
@@ -123,9 +128,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Open system monitor",
     app: "btop",
     script: () => {
-      execAsync(`bash -c "kitty btop"`).catch((err) =>
-        notify({ summary: "Monitor", body: err }),
-      );
+      hyprland.dispatch("exec", "kitty -e btop");
     },
   },
 
@@ -136,22 +139,9 @@ export const customScripts = (): CustomScript[] => [
     description: "Adjust volume",
     app: "pavucontrol",
     script: () => {
-      execAsync(`bash -c "pavucontrol"`).catch((err) =>
-        notify({ summary: "Volume", body: err }),
-      );
+      hyprland.dispatch("exec", "pavucontrol");
     },
   },
-  // {
-  //   name: "Mute/Unmute",
-  //   icon: "󰖁",
-  //   description: "Toggle audio mute",
-  //   sensitive: false,
-  //   script: () => {
-  //     execAsync("pactl set-sink-mute @DEFAULT_SINK@ toggle")
-  //       .then(() => notify({ summary: "Audio", body: "Toggled mute" }))
-  //       .catch((err) => notify({ summary: "Audio", body: err }));
-  //   },
-  // },
 
   {
     name: globalSettings(({ fileManager }) => `${fileManager} File Manager`),
@@ -159,9 +149,7 @@ export const customScripts = (): CustomScript[] => [
     description: `Open ${globalSettings.peek().fileManager}`,
     script: () => {
       const fileManager = globalSettings.peek().fileManager;
-      execAsync(`bash -c "${fileManager}"`).catch((err) =>
-        notify({ summary: "Files", body: err }),
-      );
+      hyprland.dispatch("exec", fileManager);
     },
   },
   // Development Tools
@@ -171,9 +159,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Git Manager",
     app: "lazygit",
     script: () => {
-      execAsync(`bash -c "lazygit"`).catch((err) =>
-        notify({ summary: "Git", body: err }),
-      );
+      hyprland.dispatch("exec", `bash -c "lazygit"`);
     },
   },
   {
@@ -181,10 +167,29 @@ export const customScripts = (): CustomScript[] => [
     icon: "󰨞",
     description: "Code Editor",
     app: "code",
+    package: "visual-studio-code-bin",
     script: () => {
-      execAsync(`bash -c "code"`).catch((err) =>
-        notify({ summary: "Editor", body: err }),
-      );
+      hyprland.dispatch("exec", "code");
+    },
+  },
+  // spotify
+  {
+    name: "Spotify",
+    icon: "",
+    description: "Music Streaming",
+    app: "spotify-launcher",
+    script: () => {
+      hyprland.dispatch("exec", "spotify-launcher");
+    },
+  },
+  // steam
+  {
+    name: "Steam",
+    icon: "",
+    description: "Game Launcher",
+    app: "steam",
+    script: () => {
+      hyprland.dispatch("exec", "steam");
     },
   },
 ];

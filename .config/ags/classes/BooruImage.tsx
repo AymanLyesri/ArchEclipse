@@ -118,7 +118,7 @@ export class BooruImage {
     if (this._isDownloaded !== undefined) return this._isDownloaded;
 
     const result = exec(
-      `bash -c "[ -e '${this.getImagePath()}' ] && echo 'exists' || echo 'not-exists'"`
+      `bash -c "[ -e '${this.getImagePath()}' ] && echo 'exists' || echo 'not-exists'"`,
     );
     this._isDownloaded = result.trim() === "exists";
     return this._isDownloaded;
@@ -132,7 +132,7 @@ export class BooruImage {
 
     const currentBookmarks = globalSettings.peek().booru.bookmarks;
     this._isBookmarked = currentBookmarks.some(
-      (img) => img.id === this.id && img.api.value === this.api.value
+      (img) => img.id === this.id && img.api.value === this.api.value,
     );
     return this._isBookmarked;
   }
@@ -143,7 +143,7 @@ export class BooruImage {
   getImageRatio(path?: string): number {
     try {
       const pixbuf = GdkPixbuf.Pixbuf.new_from_file(
-        path ?? this.getImagePath()
+        path ?? this.getImagePath(),
       );
       return pixbuf.get_height() / pixbuf.get_width();
     } catch {
@@ -159,13 +159,13 @@ export class BooruImage {
 
     try {
       await execAsync(
-        `bash -c "mkdir -p ${booruPath}/${this.api.value}/images"`
+        `bash -c "mkdir -p ${booruPath}/${this.api.value}/images"`,
       );
 
       await execAsync(
         `bash -c "[ -e '${this.getImagePath()}' ] || curl -o ${this.getImagePath()} ${
           this.url
-        }"`
+        }"`,
       );
 
       this._isDownloaded = true;
@@ -183,7 +183,7 @@ export class BooruImage {
   async copyToClipboard(): Promise<void> {
     try {
       await execAsync(
-        `bash -c "wl-copy --type image/png < ${this.getImagePath()}"`
+        `bash -c "wl-copy --type image/png < ${this.getImagePath()}"`,
       );
       notify({ summary: "Success", body: "Image copied to clipboard" });
     } catch (err) {
@@ -197,7 +197,7 @@ export class BooruImage {
   async openInViewer(): Promise<void> {
     try {
       await execAsync(
-        `swayimg -w 690,690 --class 'preview-image' ${this.getImagePath()}`
+        `swayimg -w 690,690 --class 'preview-image' ${this.getImagePath()}`,
       );
     } catch (err) {
       notify({ summary: "Error", body: String(err) });
@@ -210,7 +210,7 @@ export class BooruImage {
   async openInBrowser(): Promise<void> {
     try {
       const browser = await execAsync(
-        `bash -c "xdg-open '${this.api.idSearchUrl}${this.id}' && xdg-settings get default-web-browser | sed 's/\\.desktop$//'"`
+        `bash -c "xdg-open '${this.api.idSearchUrl}${this.id}' && xdg-settings get default-web-browser | sed 's/\\.desktop$//'"`,
       );
       notify({ summary: "Success", body: `Opened in ${browser}` });
     } catch (err) {
@@ -226,7 +226,7 @@ export class BooruImage {
 
     try {
       const output = await execAsync(
-        `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`
+        `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`,
       );
 
       notify({
@@ -250,7 +250,7 @@ export class BooruImage {
 
     if (exists) {
       const updatedBookmarks = currentBookmarks.filter(
-        (img) => !(img.id === this.id && img.api.value === this.api.value)
+        (img) => !(img.id === this.id && img.api.value === this.api.value),
       );
       setGlobalSetting("booru.bookmarks", updatedBookmarks);
       notify({ summary: "Success", body: "Bookmark removed" });
@@ -271,7 +271,7 @@ export class BooruImage {
       await execAsync(
         `bash -c "cp ${this.getImagePath()} ~/.config/wallpapers/custom/${
           this.id
-        }.${this.extension}"`
+        }.${this.extension}"`,
       );
       notify({ summary: "Success", body: "Image added to wallpapers" });
     } catch (err) {
@@ -339,7 +339,7 @@ export class BooruImage {
       const res = await execAsync(
         `python ./scripts/search-booru.py 
     --api ${api.value} 
-    --id ${id}`
+    --id ${id}`,
       );
 
       print("API Response:", res);
@@ -386,10 +386,10 @@ export class BooruImage {
 
     // State management
     const [isDownloaded, setIsDownloaded] = createState<boolean>(
-      this.isDownloaded()
+      this.isDownloaded(),
     );
     const [isBookmarked, setIsBookmarked] = createState<boolean>(
-      this.isBookmarked()
+      this.isBookmarked(),
     );
 
     const imageRatio = this.getAspectRatio();
@@ -406,7 +406,7 @@ export class BooruImage {
             tooltipText={tag}
             onClicked={() => {
               execAsync(`bash -c "echo -n '${tag}' | wl-copy"`).catch((err) =>
-                notify({ summary: "Error", body: String(err) })
+                notify({ summary: "Error", body: String(err) }),
               );
             }}
           >
@@ -457,7 +457,7 @@ export class BooruImage {
           <button
             label=""
             tooltipMarkup={isDownloaded((is) =>
-              is ? "Copy image" : "<b>Download</b> first to copy"
+              is ? "Copy image" : "<b>Download</b> first to copy",
             )}
             sensitive={isDownloaded}
             onClicked={() => this.copyToClipboard()}
@@ -466,7 +466,7 @@ export class BooruImage {
           <button
             label=""
             tooltipMarkup={isDownloaded((is) =>
-              is ? "Set as current waifu" : "<b>Download</b> first to set"
+              is ? "Set as current waifu" : "<b>Download</b> first to set",
             )}
             sensitive={isDownloaded}
             onClicked={() => this.setAsCurrentWaifu()}
@@ -475,7 +475,7 @@ export class BooruImage {
           <button
             label=""
             tooltipMarkup={isDownloaded((is) =>
-              is ? "Open in viewer" : "<b>Download</b> first to open"
+              is ? "Open in viewer" : "<b>Download</b> first to open",
             )}
             sensitive={isDownloaded}
             onClicked={() => this.openInViewer()}
@@ -484,7 +484,7 @@ export class BooruImage {
           <button
             label=""
             tooltipMarkup={isDownloaded((is) =>
-              is ? "Pin to terminal" : "<b>Download</b> first to pin"
+              is ? "Pin to terminal" : "<b>Download</b> first to pin",
             )}
             sensitive={isDownloaded}
             onClicked={() => this.pinToTerminal()}
@@ -493,7 +493,7 @@ export class BooruImage {
           <button
             label="󰸉"
             tooltipMarkup={isDownloaded((is) =>
-              is ? "Add to wallpapers" : "<b>Download</b> first to add"
+              is ? "Add to wallpapers" : "<b>Download</b> first to add",
             )}
             sensitive={isDownloaded}
             onClicked={() => this.addToWallpapers()}
@@ -515,7 +515,7 @@ export class BooruImage {
       >
         <Picture
           file={isDownloaded((is) =>
-            is ? this.getImagePath() : this.getPreviewPath()
+            is ? this.getImagePath() : this.getPreviewPath(),
           )}
           height={displayHeight}
           width={displayWidth}
@@ -546,7 +546,7 @@ export class BooruImage {
     showProgress?: boolean;
     progressStatus?: "loading" | "error" | "success" | "idle";
     onProgressStatusChange?: (
-      status: "loading" | "error" | "success" | "idle"
+      status: "loading" | "error" | "success" | "idle",
     ) => void;
   }): any {
     const [searchApi, setSearchApi] = createState<Api>(booruApis[0]);
@@ -639,124 +639,103 @@ export class BooruImage {
             onClicked={() => this.copyToClipboard()}
           />
         </box>
-        <box
-          class="search-controls"
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={5}
-        >
-          <box
-            class="section"
-            orientation={Gtk.Orientation.VERTICAL}
-            spacing={5}
-          >
-            <box>
-              <button
-                hexpand
-                label=""
-                class="entry-search"
-                onClicked={() => (Entry as Gtk.Entry).activate()}
-              />
-              {Entry}
-              <button
-                hexpand
-                label=""
-                class="upload"
-                onClicked={async (self) => {
-                  const dialog = new Gtk.FileDialog({
-                    title: "Open Image",
-                    modal: true,
+        <box class="section" spacing={5}>
+          <button
+            hexpand
+            label=""
+            class="entry-search"
+            onClicked={() => (Entry as Gtk.Entry).activate()}
+          />
+          {Entry}
+          <button
+            hexpand
+            label=""
+            class="upload"
+            onClicked={async (self) => {
+              const dialog = new Gtk.FileDialog({
+                title: "Open Image",
+                modal: true,
+              });
+
+              const filter = new Gtk.FileFilter();
+              filter.set_name("Images");
+              filter.add_mime_type("image/png");
+              filter.add_mime_type("image/jpeg");
+              filter.add_mime_type("image/webp");
+              filter.add_mime_type("image/gif");
+              dialog.set_default_filter(filter);
+
+              try {
+                const root = self.get_root();
+                if (!(root instanceof Gtk.Window)) return;
+
+                const file: Gio.File = await new Promise((resolve, reject) => {
+                  dialog.open(root, null, (dlg, res) => {
+                    try {
+                      resolve(dlg!.open_finish(res));
+                    } catch (e) {
+                      reject(e);
+                    }
                   });
+                });
 
-                  const filter = new Gtk.FileFilter();
-                  filter.set_name("Images");
-                  filter.add_mime_type("image/png");
-                  filter.add_mime_type("image/jpeg");
-                  filter.add_mime_type("image/webp");
-                  filter.add_mime_type("image/gif");
-                  dialog.set_default_filter(filter);
+                if (!file) return;
 
-                  try {
-                    const root = self.get_root();
-                    if (!(root instanceof Gtk.Window)) return;
+                const filename = file.get_path();
+                if (!filename) return;
 
-                    const file: Gio.File = await new Promise(
-                      (resolve, reject) => {
-                        dialog.open(root, null, (dlg, res) => {
-                          try {
-                            resolve(dlg!.open_finish(res));
-                          } catch (e) {
-                            reject(e);
-                          }
-                        });
-                      }
-                    );
+                const [height, width] = exec(
+                  `identify -format "%h %w" "${filename}"`,
+                ).split(" ");
 
-                    if (!file) return;
+                await execAsync(`mkdir -p "${booruPath}/custom/images"`).catch(
+                  (err) => notify({ summary: "Error", body: String(err) }),
+                );
+                await execAsync(
+                  `cp "${filename}" "${booruPath}/custom/images/-1.${filename
+                    .split(".")
+                    .pop()!}"`,
+                ).catch((err) =>
+                  notify({ summary: "Error", body: String(err) }),
+                );
 
-                    const filename = file.get_path();
-                    if (!filename) return;
+                const customImage = new BooruImage({
+                  id: -1,
+                  height: Number(height) || 0,
+                  width: Number(width) || 0,
+                  api: { name: "Custom", value: "custom" } as Api,
+                  extension: filename.split(".").pop()!,
+                  tags: ["custom"],
+                });
 
-                    const [height, width] = exec(
-                      `identify -format "%h %w" "${filename}"`
-                    ).split(" ");
-
-                    await execAsync(
-                      `mkdir -p "${booruPath}/custom/images"`
-                    ).catch((err) =>
-                      notify({ summary: "Error", body: String(err) })
-                    );
-                    await execAsync(
-                      `cp "${filename}" "${booruPath}/custom/images/-1.${filename
-                        .split(".")
-                        .pop()!}"`
-                    ).catch((err) =>
-                      notify({ summary: "Error", body: String(err) })
-                    );
-
-                    const customImage = new BooruImage({
-                      id: -1,
-                      height: Number(height) || 0,
-                      width: Number(width) || 0,
-                      api: { name: "Custom", value: "custom" } as Api,
-                      extension: filename.split(".").pop()!,
-                      tags: ["custom"],
-                    });
-
-                    setGlobalSetting(
-                      "waifuWidget.current",
-                      customImage.toJSON()
-                    );
-                    notify({ summary: "Waifu", body: "Custom image set" });
-                  } catch (err) {
-                    if (
-                      err instanceof GLib.Error &&
-                      err.matches(
-                        Gtk.dialog_error_quark(),
-                        Gtk.DialogError.CANCELLED
-                      )
-                    )
-                      return;
-                    notify({ summary: "Error", body: String(err) });
-                  }
-                }}
-              />
-            </box>
-            <box>
-              {booruApis.map((api) => (
-                <togglebutton
-                  hexpand
-                  class="api"
-                  label={api.name}
-                  active={searchApi(
-                    (searchApi) => searchApi.value === api.value
-                  )}
-                  onToggled={({ active }) => {
-                    if (active) setSearchApi(api);
-                  }}
-                />
-              ))}
-            </box>
-          </box>
+                setGlobalSetting("waifuWidget.current", customImage.toJSON());
+                notify({ summary: "Waifu", body: "Custom image set" });
+              } catch (err) {
+                if (
+                  err instanceof GLib.Error &&
+                  err.matches(
+                    Gtk.dialog_error_quark(),
+                    Gtk.DialogError.CANCELLED,
+                  )
+                )
+                  return;
+                notify({ summary: "Error", body: String(err) });
+              }
+            }}
+          />
+        </box>
+        <box class="section" spacing={5}>
+          {booruApis.map((api) => (
+            <togglebutton
+              hexpand
+              class="api"
+              label={api.name}
+              active={searchApi((searchApi) => searchApi.value === api.value)}
+              onToggled={({ active }) => {
+                if (active) setSearchApi(api);
+              }}
+            />
+          ))}
         </box>
       </box>
     );

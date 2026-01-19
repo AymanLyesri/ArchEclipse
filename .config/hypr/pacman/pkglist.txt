@@ -77,7 +77,6 @@ hyprcursor
 hyprland
 hypridle
 hyprsunset
-hyprshot-git
 
 #    _             _ _                _     _                               _ 
 #   / \  _   _  __| (_) ___    __   _(_) __| | ___  ___      __ _ _ __   __| |
@@ -94,10 +93,7 @@ hyprshot-git
 swayimg
 kitty
 light
-spotify-launcher
-hyprpicker
 grimblast-git
-hyprmon-bin
 wf-recorder
 
 # _____ _                                                _   _   _ ___ 
