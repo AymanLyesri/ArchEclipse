@@ -5,7 +5,10 @@
     }
   }
   .actions {
+    @include button;
+    padding: 0;
     button {
+      background-color: transparent;
       border-radius: 0px;
     }
     button:first-child {

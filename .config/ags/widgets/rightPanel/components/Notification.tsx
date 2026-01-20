@@ -47,10 +47,6 @@ export class NotificationWidget {
   }
 
   private getNotificationIcon() {
-    print("image", this.n.image);
-    print("app_icon", this.n.app_icon);
-    // if (this.n.image)
-
     if (this.n.app_icon)
       if (this.n.app_icon.startsWith("/")) {
         // check if app_icon is a path to an image

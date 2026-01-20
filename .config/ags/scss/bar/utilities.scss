@@ -1,7 +1,6 @@
 .utilities {
   .system-tray {
-    background-color: $background-semi-transparent;
-    border-radius: 10px;
+    @include button;
     padding: 0px;
     button {
       background: transparent;
@@ -23,6 +22,19 @@
     }
     popover > * {
       @include module;
+    }
+  }
+
+  .resource-monitor {
+    @include button;
+    padding-top: 0px;
+    padding-bottom: 0px;
+
+    .cpu-monitor,
+    .ram-monitor,
+    .gpu-monitor {
+      width: 24px;
+      height: 24px;
     }
   }
 }

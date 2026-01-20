@@ -8,8 +8,10 @@
 
   &.empty {
     button,
-    .custom-revealer {
-      @include button;
+    .custom-revealer,
+    .workspaces .actions,
+    .utilities .resource-monitor,
+    .utilities .system-tray {
       border-radius: 50px;
     }
     .workspaces,

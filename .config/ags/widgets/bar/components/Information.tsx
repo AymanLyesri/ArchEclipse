@@ -12,7 +12,6 @@ import {
   setGlobalSetting,
 } from "../../../variables";
 import { Accessor, createBinding, For, With } from "ags";
-import { createPoll } from "ags/time";
 import Gtk from "gi://Gtk?version=4.0";
 import CustomRevealer from "../../CustomRevealer";
 import { dateFormats } from "../../../constants/date.constants";
@@ -49,11 +48,11 @@ function Mpris() {
                   iconName={app?.iconName}
                   class={createBinding(
                     player,
-                    "playbackStatus"
+                    "playbackStatus",
                   )((s) =>
                     s === AstalMpris.PlaybackStatus.PLAYING
                       ? "mpris-icon playing"
-                      : "mpris-icon paused"
+                      : "mpris-icon paused",
                   )}
                 />
                 <label
@@ -95,7 +94,7 @@ function Clock() {
         const currentIndex = dateFormats.indexOf(currentFormat);
         setGlobalSetting(
           "dateFormat",
-          dateFormats[(currentIndex + 1) % dateFormats.length]
+          dateFormats[(currentIndex + 1) % dateFormats.length],
         ); // Cycle through formats
       }}
     >
@@ -137,7 +136,7 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
       <box
         visible={createBinding(
           mpris,
-          "players"
+          "players",
         )((players) => players.length > 0)}
       >
         <With value={createBinding(mpris, "players")}>

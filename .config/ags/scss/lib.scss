@@ -254,3 +254,10 @@ flowbox > flowboxchild:first-child {
   background-color: transparent; /* or your desired default color */
   background-image: none; /* important if the theme uses background images for highlights */
 }
+
+.circular-progress {
+  color: $secondary;
+  &:hover {
+    transform: scale(1.2);
+  }
+}

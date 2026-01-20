@@ -27,6 +27,11 @@ import { For } from "ags";
 import AstalTray from "gi://AstalTray";
 import AstalBattery from "gi://AstalBattery";
 import AstalPowerProfiles from "gi://AstalPowerProfiles";
+import CircularProgress from "../../CircularProgress";
+import { createPoll } from "ags/time";
+
+import Hyprland from "gi://AstalHyprland";
+const hyprland = Hyprland.get_default();
 
 function BrightnessWidget() {
   const screen = createBinding(brightness, "screen");
@@ -78,7 +83,7 @@ function Battery() {
 
   const percent = createBinding(
     battery,
-    "percentage"
+    "percentage",
   )((p) => `${Math.floor(p * 100)}%`);
 
   const setProfile = (profile: string) => {
@@ -141,7 +146,7 @@ function Volume() {
   return (
     <CustomRevealer
       tooltipText={volume(
-        (v) => `Volume: ${Math.round(v * 100)}%\nClick to open Volume Mixer`
+        (v) => `Volume: ${Math.round(v * 100)}%\nClick to open Volume Mixer`,
       )}
       trigger={
         <box class="trigger" spacing={5} children={[icon, percentage]} />
@@ -149,7 +154,7 @@ function Volume() {
       child={slider}
       on_primary_click={() => {
         execAsync(`pavucontrol`).catch((err) =>
-          notify({ summary: "pavu", body: err })
+          notify({ summary: "pavu", body: err }),
         );
       }}
     />
@@ -249,7 +254,7 @@ function Theme() {
       label={globalTheme((theme) => (theme ? "" : ""))}
       class="theme icon"
       tooltipMarkup={globalTheme((theme) =>
-        theme ? `Switch to Dark Theme` : `Switch to Light Theme`
+        theme ? `Switch to Dark Theme` : `Switch to Light Theme`,
       )}
     />
   );
@@ -265,7 +270,7 @@ function PinBar() {
       class="panel-lock icon"
       label={globalSettings(({ bar }) => (bar.lock ? "" : ""))}
       tooltipMarkup={globalSettings(({ bar }) =>
-        bar.lock ? `Unlock Bar` : `Lock Bar`
+        bar.lock ? `Unlock Bar` : `Lock Bar`,
       )}
     />
   );
@@ -300,15 +305,60 @@ function DndToggle() {
       // class="dnd-toggle icon"
       class={hasPing((ping) => (ping ? "dnd-toggle active" : "dnd-toggle"))}
       tooltipMarkup={globalSettings(({ notifications }) =>
-        notifications.dnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
+        notifications.dnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb",
       )}
     >
       <label
         label={globalSettings(({ notifications }) =>
-          notifications.dnd ? "" : ""
+          notifications.dnd ? "" : "",
         )}
       ></label>
     </togglebutton>
+  );
+}
+
+function ResourceMonitor() {
+  const systemResource = createPoll(
+    [0, 0, 0],
+    1000,
+    "./assets/binaries/system-resources",
+    (out) => {
+      try {
+        return JSON.parse(out);
+      } catch (e) {
+        return [0, 0, 0];
+      }
+    },
+  );
+  return (
+    <box class="resource-monitor">
+      <Gtk.GestureClick
+        onPressed={() => {
+          hyprland.dispatch("workspace", "5");
+        }}
+      />
+      <With value={systemResource}>
+        {(res) => (
+          <box spacing={10}>
+            <CircularProgress
+              tooltipText="CPU Usage"
+              value={res[0] / 100}
+              className="cpu-monitor"
+            />
+            <CircularProgress
+              tooltipText="RAM Usage"
+              value={res[1] / 100}
+              className="ram-monitor"
+            />
+            <CircularProgress
+              tooltipText="GPU Usage"
+              value={res[2] / 100}
+              className="gpu-monitor"
+            />
+          </box>
+        )}
+      </With>
+    </box>
   );
 }
 
@@ -319,6 +369,7 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
       <BrightnessWidget />
       <Volume />
       <Tray />
+      <ResourceMonitor />
       <Theme />
       <PinBar />
       <DndToggle />

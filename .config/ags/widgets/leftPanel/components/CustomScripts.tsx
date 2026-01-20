@@ -4,10 +4,12 @@ import { customScripts } from "../../../constants/customScript.constant";
 import { execAsync } from "ags/process";
 
 import Hyprland from "gi://AstalHyprland";
-import { createState } from "gnim";
+import { createState, For } from "gnim";
 const hyprland = Hyprland.get_default();
 
 export default () => {
+  const [getCustomScripts, setCustomScripts] = createState(customScripts());
+
   return (
     <scrolledwindow hexpand vexpand>
       <box
@@ -16,39 +18,32 @@ export default () => {
         hexpand
         spacing={10}
       >
-        {customScripts().map((script) => {
-          const [isInstalled, setIsInstalled] = createState(
-            script.app ? false : true,
-          );
-          return (
-            <box
-              spacing={5}
-              $={(self) => {
-                if (script.app) {
-                  execAsync(
-                    `bash -c "command -v ${script.app} >/dev/null 2>&1 && echo true || echo false"`,
-                  )
-                    .then((res) => {
-                      setIsInstalled(res.trim() === "true");
-                    })
-                    .catch(() => {
-                      self.sensitive = true;
-                      self.tooltipText = script.description;
-                    });
-                }
-              }}
-            >
+        <For each={getCustomScripts}>
+          {(script) => (
+            <box spacing={5}>
               <button
                 class="script"
                 onClicked={() => {
                   script.script();
                 }}
-                sensitive={isInstalled}
-                tooltipText={isInstalled((installed) =>
-                  installed
-                    ? script.description
-                    : `${script.app} (Requires installation)`,
-                )}
+                $={(self) => {
+                  if (script.app) {
+                    execAsync(
+                      `bash -c "command -v ${script.app} >/dev/null 2>&1 && echo true || echo false"`,
+                    )
+                      .then((res) => {
+                        self.sensitive = res.trim() === "true";
+                        self.tooltipText =
+                          res.trim() === "true"
+                            ? script.description
+                            : `${script.app} (Requires installation)`;
+                      })
+                      .catch(() => {
+                        self.sensitive = true;
+                        self.tooltipText = script.description;
+                      });
+                  }
+                }}
               >
                 <box spacing={10}>
                   <label
@@ -71,28 +66,33 @@ export default () => {
               <button
                 class="install-button"
                 label=""
-                visible={isInstalled((installed) => !installed)}
+                visible={false}
                 tooltipText={`Install ${script.app}`}
+                $={(self) => {
+                  if (script.app) {
+                    execAsync(
+                      `bash -c "command -v ${script.app} >/dev/null 2>&1 && echo true || echo false"`,
+                    )
+                      .then((res) => {
+                        self.visible = res.trim() === "false";
+                      })
+                      .catch(() => {
+                        self.visible = true;
+                      });
+                  }
+                }}
                 onClicked={() => {
-                  const cmd = `bash -c 'yay -S ${script.package || script.app}; echo $?'`;
+                  const cmd = `bash -c 'yay -S ${script.package || script.app}'`;
                   execAsync(`kitty -e ${cmd}`)
                     .then((output) => {
-                      // Check the exit code from the output
-                      const exitCode = output.trim().split("\n").pop();
-                      if (exitCode === "0") {
-                        setIsInstalled(true);
-                      } else {
-                        setIsInstalled(false);
-                      }
+                      setCustomScripts(customScripts());
                     })
-                    .catch(() => {
-                      setIsInstalled(false);
-                    });
+                    .catch(() => {});
                 }}
               ></button>
             </box>
-          );
-        })}
+          )}
+        </For>
       </box>
     </scrolledwindow>
   );
