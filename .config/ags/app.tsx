@@ -14,46 +14,58 @@ import UserPanel from "./widgets/UserPanel";
 import NotificationPopups from "./widgets/NotificationPopups";
 import { createBinding, For, This } from "ags";
 import Notifd from "gi://AstalNotifd";
+import KeyStrokeVisualizer from "./widgets/KeyStrokeVisualizer";
 const Notification = Notifd.get_default();
 
 const perMonitorDisplay = () => {
   const monitors = createBinding(app, "monitors");
 
+  // const widgetInitializers = [
+  //   { name: "Bar", fn: () => Bar({ monitor: monitor }) },
+  //   { name: "BarHover", fn: () => BarHover({ monitor: monitor }) },
+  //   { name: "RightPanel", fn: () => RightPanel({ monitor: monitor }) },
+  //   {
+  //     name: "RightPanelHover",
+  //     fn: () => RightPanelHover({ monitor: monitor }),
+  //   },
+  //   { name: "LeftPanel", fn: () => LeftPanel({ monitor: monitor }) },
+  //   {
+  //     name: "LeftPanelHover",
+  //     fn: () => LeftPanelHover({ monitor: monitor }),
+  //   },
+  //   {
+  //     name: "NotificationPopups",
+  //     fn: () => NotificationPopups({ monitor: monitor }),
+  //   },
+  //   { name: "AppLauncher", fn: () => AppLauncher({ monitor: monitor }) },
+  //   { name: "UserPanel", fn: () => UserPanel({ monitor: monitor }) },
+  //   {
+  //     name: "WallpaperSwitcher",
+  //     fn: () => WallpaperSwitcher({ monitor: monitor }),
+  //   },
+  //   {
+  //     name: "KeyStrokeVisualizer",
+  //     fn: () => KeyStrokeVisualizer(),
+  //   },
+  // ];
+
   return (
     <For each={monitors}>
-      {(monitor) => {
-        const widgetInitializers = [
-          { name: "Bar", fn: () => Bar({ monitor: monitor }) },
-          { name: "BarHover", fn: () => BarHover({ monitor: monitor }) },
-          { name: "RightPanel", fn: () => RightPanel({ monitor: monitor }) },
-          {
-            name: "RightPanelHover",
-            fn: () => RightPanelHover({ monitor: monitor }),
-          },
-          { name: "LeftPanel", fn: () => LeftPanel({ monitor: monitor }) },
-          {
-            name: "LeftPanelHover",
-            fn: () => LeftPanelHover({ monitor: monitor }),
-          },
-          {
-            name: "NotificationPopups",
-            fn: () => NotificationPopups({ monitor: monitor }),
-          },
-          { name: "AppLauncher", fn: () => AppLauncher({ monitor: monitor }) },
-          { name: "UserPanel", fn: () => UserPanel({ monitor: monitor }) },
-          {
-            name: "WallpaperSwitcher",
-            fn: () => WallpaperSwitcher({ monitor: monitor }),
-          },
-        ];
-        return (
-          <This this={app}>
-            {widgetInitializers.map(({ name, fn }) =>
-              logTimeWidget(`\t\t ${name}`, fn),
-            )}
-          </This>
-        );
-      }}
+      {(monitor) => (
+        <This this={app}>
+          <Bar monitor={monitor} />
+          <BarHover monitor={monitor} />
+          <RightPanel monitor={monitor} />
+          <RightPanelHover monitor={monitor} />
+          <LeftPanel monitor={monitor} />
+          <LeftPanelHover monitor={monitor} />
+          <NotificationPopups monitor={monitor} />
+          <AppLauncher monitor={monitor} />
+          <UserPanel monitor={monitor} />
+          <WallpaperSwitcher monitor={monitor} />
+          <KeyStrokeVisualizer />
+        </This>
+      )}
     </For>
   );
 };

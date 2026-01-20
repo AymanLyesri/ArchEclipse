@@ -191,4 +191,13 @@ export const defaultSettings: Settings = {
     },
   },
   fileManager: "nautilus",
+  keyStrokeVisualizer: {
+    visibility: {
+      name: "Key Stroke Visualizer Visibility",
+      value: true,
+      type: "bool",
+      min: 0,
+      max: 1,
+    },
+  },
 };

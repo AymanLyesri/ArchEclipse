@@ -18,6 +18,7 @@ import {
 } from "../../../variables";
 import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
 import { refreshCss } from "../../../utils/scss";
+import { timeout } from "ags/time";
 const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
@@ -44,7 +45,7 @@ const detectFileManagers = async () => {
       const result = await execAsync(
         `bash -c "command -v ${
           fm.command.split(" ")[0]
-        } >/dev/null 2>&1 && echo 'yes' || echo 'no'"`
+        } >/dev/null 2>&1 && echo 'yes' || echo 'no'"`,
       );
       if (result.trim() === "yes") {
         installed.push(fm);
@@ -100,7 +101,7 @@ const FileManagerSelector = () => {
 
 const applyHyprlandSettings = (
   settings: NestedSettings,
-  prefix: string = ""
+  prefix: string = "",
 ) => {
   Object.entries(settings).forEach(([key, value]) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
@@ -163,8 +164,8 @@ const BarLayoutSetting = () => {
                       globalSettings
                         .peek()
                         .bar.layout.map((w) =>
-                          w.name === widget.name ? { ...w, enabled: true } : w
-                        )
+                          w.name === widget.name ? { ...w, enabled: true } : w,
+                        ),
                     );
                   } else {
                     // Disable the widget
@@ -173,8 +174,8 @@ const BarLayoutSetting = () => {
                       globalSettings
                         .peek()
                         .bar.layout.map((w) =>
-                          w.name === widget.name ? { ...w, enabled: false } : w
-                        )
+                          w.name === widget.name ? { ...w, enabled: false } : w,
+                        ),
                     );
                   }
                 }}
@@ -216,7 +217,7 @@ const BarLayoutSetting = () => {
 
                     const widgets = globalSettings.peek().bar.layout;
                     const toIndex = widgets.findIndex(
-                      (w) => w.name === widget.name
+                      (w) => w.name === widget.name,
                     );
 
                     if (fromIndex === -1) {
@@ -226,7 +227,7 @@ const BarLayoutSetting = () => {
                       newLayout.splice(
                         toIndex === -1 ? widgets.length : toIndex,
                         0,
-                        widget
+                        widget,
                       );
                       setGlobalSetting("bar.layout", newLayout);
                       return true;
@@ -235,7 +236,7 @@ const BarLayoutSetting = () => {
                       if (toIndex === -1 || fromIndex === toIndex) return true;
                       setGlobalSetting(
                         "bar.layout",
-                        moveItem(widgets, fromIndex, toIndex)
+                        moveItem(widgets, fromIndex, toIndex),
                       );
                       return true;
                     }
@@ -254,7 +255,7 @@ const BarLayoutSetting = () => {
 const Setting = (
   keyChanged: string,
   setting: AGSSetting,
-  callBack?: (newValue?: any) => void
+  callBack?: (newValue?: any) => void,
 ) => {
   const title = <label halign={Gtk.Align.START} label={setting.name} />;
 
@@ -265,7 +266,7 @@ const Setting = (
         label={String(
           setting.type === "int"
             ? Math.round(setting.value ?? 0)
-            : (setting.value ?? 0).toFixed(2)
+            : (setting.value ?? 0).toFixed(2),
         )}
       />
     ) as Gtk.Label;
@@ -281,7 +282,7 @@ const Setting = (
         onValueChanged={(self) => {
           let value = self.get_value();
           infoLabel.label = String(
-            setting.type === "int" ? Math.round(value) : value.toFixed(2)
+            setting.type === "int" ? Math.round(value) : value.toFixed(2),
           );
           switch (setting.type) {
             case "int":
@@ -347,13 +348,13 @@ interface NestedSettings {
 
 const applyHyprlandSetting = (fullKey: string, value: any) => {
   execAsync(
-    `bash -c "echo -e '${fullKey} = ${value}' > ${hyprCustomDir}/${fullKey}.conf && hyprctl keyword ${fullKey} ${value}"`
+    `bash -c "echo -e '${fullKey} = ${value}' > ${hyprCustomDir}/${fullKey}.conf && hyprctl keyword ${fullKey} ${value}"`,
   ).catch((err) => notify(err));
 };
 
 const createHyprlandSettings = (
   prefix: string,
-  settings: NestedSettings
+  settings: NestedSettings,
 ): JSX.Element[] => {
   const result: JSX.Element[] = [];
 
@@ -375,7 +376,7 @@ const createHyprlandSettings = (
           const key = fullKey.replace(/\./g, ":");
           print("Hyprland key:", key);
           applyHyprlandSetting(key, newValue);
-        })
+        }),
       );
     }
   });
@@ -386,7 +387,7 @@ const createHyprlandSettings = (
 export default () => {
   const hyprlandSettings = createHyprlandSettings(
     "",
-    globalSettings.peek().hyprland
+    globalSettings.peek().hyprland,
   );
 
   return (
@@ -404,18 +405,54 @@ export default () => {
           spacing={16}
         >
           <label label="AGS" halign={Gtk.Align.START} />
+          {Setting(
+            "keyStrokeVisualizer.visibility",
+            globalSettings.peek().keyStrokeVisualizer.visibility,
+            (visibility) => {
+              if (visibility) {
+                // check if user is in input group, if not add user to input group
+                execAsync(
+                  `bash -c "groups $USER | grep -q '\\binput\\b' && echo 'yes' || echo $USER"`,
+                )
+                  .then((result) => {
+                    if (result.trim() !== "yes") {
+                      notify({
+                        summary: "Key Stroke Visualizer",
+                        body: `Adding ${result.trim()} to 'input' group for keystroke detection.\n You may be prompted for your password.`,
+                      });
+                      execAsync(`pkexec usermod -aG input ${result.trim()}`)
+                        .then(() => {
+                          notify({
+                            summary: "Key Stroke Visualizer",
+                            body: "Will be Logging out to apply changes. in 5 seconds...",
+                          });
+                          timeout(5000, () => {
+                            hyprland.message_async("dispatch exit", () => {});
+                          });
+                        })
+                        .catch((err) =>
+                          notify({ summary: "Error", body: err.toString() }),
+                        );
+                    }
+                  })
+                  .catch((err) =>
+                    notify({ summary: "Error", body: err.toString() }),
+                  );
+              }
+            },
+          )}
           <BarLayoutSetting />
           {Setting(
             "bar.orientation",
             globalSettings.peek().bar.orientation,
-            refreshCss
+            refreshCss,
           )}
           {Setting("ui.opacity", globalSettings.peek().ui.opacity, refreshCss)}
           {Setting("ui.scale", globalSettings.peek().ui.scale, refreshCss)}
           {Setting(
             "ui.fontSize",
             globalSettings.peek().ui.fontSize,
-            refreshCss
+            refreshCss,
           )}
         </box>
         <box
@@ -434,7 +471,7 @@ export default () => {
           <label label="Custom" halign={Gtk.Align.START} />
           {Setting(
             "autoWorkspaceSwitching",
-            globalSettings.peek().autoWorkspaceSwitching
+            globalSettings.peek().autoWorkspaceSwitching,
           )}
           <FileManagerSelector />
         </box>

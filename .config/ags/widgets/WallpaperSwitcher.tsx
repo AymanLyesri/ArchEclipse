@@ -29,7 +29,7 @@ const [currentWorkspaces, setCurrentWorkspaces] = createState<Gtk.Button[]>([]);
 
 const updateSelectedWorkspaceWidget = (
   workspaceId: number,
-  widget: Gtk.Widget
+  widget: Gtk.Widget,
 ) => {
   setSelectedWorkspaceId(workspaceId);
   setSelectedWorkspaceWidget(widget);
@@ -65,13 +65,13 @@ const [wallpaperType, setWallpaperType] = createState<boolean>(false);
 export function toThumbnailPath(file: string) {
   return file.replace(
     "/.config/wallpapers/",
-    "/.config/ags/assets/thumbnails/"
+    "/.config/ags/assets/thumbnails/",
   );
 }
 
 const getCurrentWorkspaces = (monitorName: string): Gtk.Button[] => {
   const wallpapers: string[] = JSON.parse(
-    exec(`bash ./scripts/get-wallpapers.sh --current ${monitorName}`) || "[]"
+    exec(`bash ./scripts/get-wallpapers.sh --current ${monitorName}`) || "[]",
   );
 
   return wallpapers.map((wallpaper, key) => {
@@ -149,14 +149,14 @@ function Display() {
               setProgressStatus("loading");
               execAsync(
                 `bash -c "rm -f '${toThumbnailPath(
-                  wallpaper
-                )}' && rm -f '${wallpaper}'"`
+                  wallpaper,
+                )}' && rm -f '${wallpaper}'"`,
               )
                 .then(() =>
                   notify({
                     summary: "Success",
                     body: "Wallpaper deleted successfully!",
-                  })
+                  }),
                 )
                 .catch((err) => {
                   setProgressStatus("error");
@@ -188,7 +188,7 @@ function Display() {
                   (type) =>
                     "Click to set as <b>" +
                     type +
-                    "</b> wallpaper.\nRight-click to delete."
+                    "</b> wallpaper.\nRight-click to delete.",
                 )}
               >
                 <Picture
@@ -232,15 +232,15 @@ function Display() {
         execAsync(
           `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
             (self.get_root() as any).monitorName
-          } ${randomWallpaper}"`
+          } ${randomWallpaper}"`,
         )
           .finally(() => {
             const newWallpaper = JSON.parse(
               exec(
                 `bash ./scripts/get-wallpapers.sh --current ${
                   (self.get_root() as any).monitorName
-                }`
-              )
+                }`,
+              ),
             )[selectedWorkspaceId.peek() - 1];
             const picture = (
               selectedWorkspaceWidget.peek() as any
@@ -293,7 +293,7 @@ function Display() {
         () =>
           `Wallpaper -> ${targetType()} ${
             targetType() === "workspace" ? selectedWorkspaceId() : ""
-          }`
+          }`,
       )}
       $={(self) =>
         createComputed([selectedWorkspaceId, targetType]).subscribe(() => {
@@ -348,7 +348,7 @@ function Display() {
           if (!filename) return;
 
           await execAsync(
-            `bash -c "cp '${filename}' $HOME/.config/wallpapers/custom"`
+            `bash -c "cp '${filename}' $HOME/.config/wallpapers/custom"`,
           );
 
           notify({
@@ -417,6 +417,8 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       application={app}
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
+      exclusivity={Astal.Exclusivity.NORMAL}
+      layer={Astal.Layer.OVERLAY}
       anchor={
         Astal.WindowAnchor.LEFT |
         Astal.WindowAnchor.BOTTOM |
@@ -431,7 +433,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
           if (workspace) {
             setSelectedWorkspaceId(workspace.id);
             setSelectedWorkspaceWidget(
-              currentWorkspaces.peek()[workspace.id - 1]
+              currentWorkspaces.peek()[workspace.id - 1],
             );
           }
         });

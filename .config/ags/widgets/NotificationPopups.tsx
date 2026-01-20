@@ -9,7 +9,7 @@ import { timeout, Timer } from "ags/time";
 import { NotificationWidget } from "./rightPanel/components/Notification";
 
 // see comment below in constructor
-const TIMEOUT_DELAY = 2500;
+const TIMEOUT_DELAY = 4000;
 
 // The purpose if this class is to replace Variable<Array<Widget>>
 // with a Map<number, NotificationWidget> type in order to track notification widgets

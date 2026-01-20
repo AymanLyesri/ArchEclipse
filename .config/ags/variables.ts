@@ -28,7 +28,7 @@ export function setGlobalSetting(keyChanged: string, value: any) {
       .split(".")
       .reduce(
         (o, k, i, arr) => (o[k] = i === arr.length - 1 ? value : o[k] || {}),
-        o
+        o,
       );
 
     _setGlobalSettings({ ...o });
@@ -49,6 +49,10 @@ function setGlobalSettings(value: Settings) {
 export { globalSettings, setGlobalSettings };
 
 export const focusedClient = createBinding(hyprland, "focusedClient");
+export const fullscreenClient = focusedClient((client) => {
+  if (!client) return false;
+  return client.fullscreen === 2 || client.get_fullscreen?.() === 2;
+});
 export const emptyWorkspace = focusedClient((client) => !client);
 export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
 export const specialWorkspace = focusedClient((client) => {
@@ -61,12 +65,12 @@ export const globalTransition = 300;
 export const date_less = createPoll(
   "",
   phi * 1000,
-  () => GLib.DateTime.new_now_local().format(globalSettings.peek().dateFormat)!
+  () => GLib.DateTime.new_now_local().format(globalSettings.peek().dateFormat)!,
 );
 export const date_more = createPoll(
   "",
   phi * 1000,
-  () => GLib.DateTime.new_now_local().format(" %A ·%e %b %Y ")!
+  () => GLib.DateTime.new_now_local().format(" %A ·%e %b %Y ")!,
 );
 
 const [globalTheme, _setGlobalTheme] = createState<boolean>(
@@ -74,7 +78,7 @@ const [globalTheme, _setGlobalTheme] = createState<boolean>(
     "bash",
     "-c",
     "$HOME/.config/hypr/theme/scripts/system-theme.sh get",
-  ]).includes("light")
+  ]).includes("light"),
 );
 function setGlobalTheme(value: boolean) {
   execAsync([

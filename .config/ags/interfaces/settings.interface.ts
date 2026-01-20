@@ -1,5 +1,5 @@
+import { Waifu } from "../classes/BooruImage";
 import { Api } from "./api.interface";
-import { Waifu } from "./waifu.interface";
 import { WidgetSelector } from "./widgetSelector.interface";
 
 export interface AGSSetting {
@@ -89,4 +89,7 @@ export interface Settings {
     };
   };
   fileManager: string;
+  keyStrokeVisualizer: {
+    visibility: AGSSetting;
+  };
 }
