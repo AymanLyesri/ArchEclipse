@@ -62,6 +62,9 @@ export class NotificationWidget {
         if (texture) return <Picture paintable={texture} />;
       } else return <image class="icon" iconName={this.n.app_icon} />;
 
+    if (this.n.desktopEntry)
+      return <image class="icon" iconName={this.n.desktopEntry} />;
+
     return <image class="icon" iconName={"dialog-information-symbolic"} />;
   }
 

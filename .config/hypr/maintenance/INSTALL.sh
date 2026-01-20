@@ -1,5 +1,15 @@
 #!/bin/bash
 
+################################################################
+# Counter for Installations
+################################################################
+
+curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?workspace=archeclipse&counter=install"
+
+################################################################
+# Hyprland ArchEclipse Installation Script
+################################################################
+
 export FZF_HEIGHT="40%"
 MAINTENANCE_DIR=".config/hypr/maintenance"
 CONF_DIR="ArchEclipse"
@@ -38,11 +48,11 @@ aur_helpers=("yay" "paru")
 aur_helper=$(echo "${aur_helpers[@]}" | tr ' ' '\n' | fzf --height $FZF_HEIGHT)
 echo "AUR helper selected: $aur_helper"
 case $aur_helper in
-yay)
-    install_yay
+    yay)
+        install_yay
     ;;
-paru)
-    install_paru
+    paru)
+        install_paru
     ;;
 esac
 

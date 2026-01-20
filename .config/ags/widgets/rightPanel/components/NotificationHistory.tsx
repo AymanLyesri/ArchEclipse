@@ -123,7 +123,6 @@ const NotificationStackView = ({
         class={isExpanded((expanded) =>
           expanded ? "stack-scrolled expanded" : "stack-scrolled collapsed",
         )}
-        vexpand
       >
         <box
           class="stack-content"

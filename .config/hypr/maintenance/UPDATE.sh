@@ -1,5 +1,15 @@
 #!/bin/bash
 
+################################################################
+# Counter for Updates
+################################################################
+
+curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?workspace=archeclipse&counter=update"
+
+################################################################
+# Hyprland ArchEclipse Update Script
+################################################################
+
 MAINTENANCE_DIR="$HOME/.config/hypr/maintenance"
 
 figlet "Updating Config"

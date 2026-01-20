@@ -39,7 +39,8 @@ class DanbooruProvider(BooruProvider):
     BASE = "https://danbooru.donmai.us"
     USER = "publicapi"
     KEY = "Pr5ddYN7P889AnM6nq2nhgw1"
-    EXCLUDE_TAGS = ["-animated"]
+    # EXCLUDE_TAGS = ["-animated"]
+    EXCLUDE_TAGS = []
 
     def fetch_posts(self, tags, post_id="random", page=1, limit=6):
         if post_id == "random":
