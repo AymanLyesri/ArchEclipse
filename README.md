@@ -15,7 +15,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 # Design Philosophy
 
 - Enhanced productivity
-- Faster responsiveness
+- Faster execution
 - Smooth animations
 - Vibrant color schemes
 - It just works
@@ -25,7 +25,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 - **Dynamic wallpapers** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper)
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
-- **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 - Gtk 3 replaced)~~: _these are just some of the features_
+- **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 / Gtk 3 replaced)~~: _these are just some of the features_
   - Dynamic Color schemes based on current wallpaper `pywal`
   - Dark/light modes `pywal`
   - Main bar `switchable widgets`
@@ -87,7 +87,7 @@ KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form
 
 ## Required Dependencies and packages
 
-- [Arch Linux](https://archlinux.org/) (I use Arch linux BTW)
+- [Arch Linux](https://archlinux.org/) (Other Arch-based distributions may work, with varying degrees of success)
 - [Hyprland](https://hyprland.org/)
 - [Necessary packages](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/pacman/pkglist.txt) (do not worry they will be installed automatically)
 
@@ -146,7 +146,7 @@ update
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | ![image](.github/assets/left-panel-chatbot.png) | ![image](.github/assets/left-panel-booru-1.png) ![image](.github/assets/left-panel-booru-2.png) |
 
-| Hyprland & Panel settings                        | KeyBinds                                         |
+| Hyprland & Panel settings                        | KeyBinds Display                                 |
 | ------------------------------------------------ | ------------------------------------------------ |
 | ![image](.github/assets/left-panel-settings.png) | ![image](.github/assets/left-panel-keybinds.png) |
 
@@ -156,7 +156,7 @@ update
 
 ## Keystroke Visualizer `optional`
 
-<video src=".github/assets/keystroke-visualizer.mp4" width="100&" controls></video>
+![keystroke-visualizer](.github/assets/keystroke-visualizer.gif)
 
 ## Theme Switching
 

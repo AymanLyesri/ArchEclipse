@@ -30,7 +30,7 @@ const WidgetActions = () => {
             class="widget-selector"
             label={widgetSelector.icon}
             active={globalSettings(
-              ({ leftPanel }) => leftPanel.widget.name === widgetSelector.name
+              ({ leftPanel }) => leftPanel.widget.name === widgetSelector.name,
             )}
             onToggled={({ active }) => {
               if (active) {
@@ -56,7 +56,7 @@ const Actions = () => (
       windowWidth={globalSettings(({ leftPanel }) => leftPanel.width)}
       windowSettingKey="leftPanel"
       windowExclusivity={globalSettings(
-        ({ leftPanel }) => leftPanel.exclusivity
+        ({ leftPanel }) => leftPanel.exclusivity,
       )}
       windowLock={globalSettings(({ leftPanel }) => leftPanel.lock)}
       minPanelWidth={400}
@@ -78,7 +78,7 @@ function Panel() {
         <With value={globalSettings(({ leftPanel }) => leftPanel.widget)}>
           {(widget: WidgetSelector) => {
             const selector = leftPanelWidgetSelectors.find(
-              (ws) => ws.name === widget.name
+              (ws) => ws.name === widget.name,
             );
             if (selector?.widget) {
               try {
@@ -105,7 +105,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       namespace="left-panel"
       application={App}
       class={globalSettings(({ leftPanel }) =>
-        leftPanel.exclusivity ? "left-panel exclusive" : "left-panel normal"
+        leftPanel.exclusivity ? "left-panel exclusive" : "left-panel normal",
       )}
       anchor={
         Astal.WindowAnchor.TOP |
@@ -115,7 +115,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       exclusivity={globalSettings(({ leftPanel }) =>
         leftPanel.exclusivity
           ? Astal.Exclusivity.EXCLUSIVE
-          : Astal.Exclusivity.NORMAL
+          : Astal.Exclusivity.NORMAL,
       )}
       layer={Astal.Layer.TOP}
       keymode={Astal.Keymode.ON_DEMAND}
@@ -179,7 +179,7 @@ export function LeftPanelVisibility() {
         label={""}
         onToggled={(self) => {
           const leftPanel = app.get_window(
-            `left-panel-${(self.get_root() as any).monitorName}`
+            `left-panel-${(self.get_root() as any).monitorName}`,
           ) as Gtk.Window;
           if (self.active) {
             leftPanel.show();

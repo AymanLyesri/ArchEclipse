@@ -5,6 +5,7 @@ import { execAsync } from "ags/process";
 
 import Hyprland from "gi://AstalHyprland";
 import { createState, For } from "gnim";
+import { notify } from "../../../utils/notification";
 const hyprland = Hyprland.get_default();
 
 export default () => {
@@ -82,12 +83,23 @@ export default () => {
                   }
                 }}
                 onClicked={() => {
-                  const cmd = `bash -c 'yay -S ${script.package || script.app}'`;
+                  const pkg = script.package || script.app;
+                  const cmd = `bash -c 'if command -v yay >/dev/null 2>&1;
+                    then yay -S ${pkg}; 
+                    elif command -v paru >/dev/null 2>&1; 
+                    then paru -S ${pkg}; 
+                    else pacman -S ${pkg}; 
+                  fi'`;
                   execAsync(`kitty -e ${cmd}`)
-                    .then((output) => {
+                    .then(() => {
                       setCustomScripts(customScripts());
                     })
-                    .catch(() => {});
+                    .catch(() => {
+                      notify({
+                        summary: "Error",
+                        body: `Failed to install ${pkg}. Please install it manually.`,
+                      });
+                    });
                 }}
               ></button>
             </box>

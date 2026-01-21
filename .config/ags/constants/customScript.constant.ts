@@ -65,7 +65,8 @@ export const customScripts = (): CustomScript[] => [
     icon: "",
     description: "Screenshot entire screen",
     keybind: ["SUPER", "SHIFT", "S"],
-    app: "grim",
+    app: "grimblast",
+    package: "grimblast-git",
     script: () => {
       hyprland.dispatch(
         "exec",
@@ -78,7 +79,8 @@ export const customScripts = (): CustomScript[] => [
     icon: "",
     description: "Select area to screenshot",
     keybind: ["SUPER", "CTRL", "SHIFT", "S"],
-    app: "grim",
+    app: "grimblast",
+    package: "grimblast-git",
     script: () => {
       hyprland.dispatch(
         "exec",

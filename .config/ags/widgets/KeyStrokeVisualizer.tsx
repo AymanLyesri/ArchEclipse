@@ -5,6 +5,7 @@ import Gtk from "gi://Gtk?version=4.0";
 import { fullscreenClient, globalMargin, globalSettings } from "../variables";
 import GLib from "gi://GLib";
 import { createState, createComputed } from "ags";
+import { timeout, Timer } from "ags/time";
 
 interface KeyStrokeWidget {
   revealer: Gtk.Revealer;
@@ -13,7 +14,7 @@ interface KeyStrokeWidget {
 
 export default () => {
   const maxKeystrokes = 5;
-  const keystrokeTimeout = 3000; // milliseconds before each keystroke fades out
+  const hideDelay = 2000; // milliseconds of inactivity before hiding the window
   const [keystrokes, setKeystrokes] = createState<KeyStrokeWidget[]>([]);
 
   // One persistent container
@@ -23,6 +24,7 @@ export default () => {
   });
 
   let counter = 0;
+  let hideTimer: number | null = null;
 
   function createKeystroke(key: string): Gtk.Revealer {
     const button = (
@@ -47,7 +49,30 @@ export default () => {
       namespace="keystroke-visualizer"
       layer={Astal.Layer.OVERLAY}
       exclusivity={Astal.Exclusivity.NORMAL}
-      anchor={Astal.WindowAnchor.BOTTOM}
+      anchor={globalSettings((settings) => {
+        const anchor = settings.keyStrokeVisualizer.anchor.value;
+        if (Array.isArray(anchor)) {
+          let result = Astal.WindowAnchor.NONE;
+          for (const a of anchor) {
+            switch (a) {
+              case "bottom":
+                result |= Astal.WindowAnchor.BOTTOM;
+                break;
+              case "left":
+                result |= Astal.WindowAnchor.LEFT;
+                break;
+              case "right":
+                result |= Astal.WindowAnchor.RIGHT;
+                break;
+              case "top":
+                result |= Astal.WindowAnchor.TOP;
+                break;
+            }
+          }
+          return result;
+        }
+        return Astal.WindowAnchor.BOTTOM;
+      })}
       visible={createComputed(
         () =>
           !fullscreenClient() &&
@@ -57,6 +82,7 @@ export default () => {
       resizable={false}
       margin={globalMargin}
       $={() => {
+        let Timeout: Timer | null = null;
         subprocess(`bash -c "./scripts/ags-keystroke-listener.sh"`, (out) => {
           const key = out.trim();
           if (!key) return;
@@ -74,28 +100,6 @@ export default () => {
             return GLib.SOURCE_REMOVE;
           });
 
-          // Auto-hide after delay
-          setTimeout(() => {
-            const currentKeystrokes = keystrokes();
-            const idx = currentKeystrokes.findIndex((ks) => ks.id === id);
-            if (idx !== -1) {
-              const item = currentKeystrokes[idx];
-              item.revealer.transitionType =
-                Gtk.RevealerTransitionType.SWING_LEFT;
-              item.revealer.reveal_child = false;
-
-              const updatedKeystrokes = currentKeystrokes.filter(
-                (ks) => ks.id !== id,
-              );
-              setKeystrokes(updatedKeystrokes);
-
-              // Remove after animation finishes
-              setTimeout(() => {
-                row.remove(item.revealer);
-              }, 200);
-            }
-          }, keystrokeTimeout);
-
           // Animate OUT oldest if max exceeded
           if (newKeystrokes.length > maxKeystrokes) {
             const old = newKeystrokes[0];
@@ -110,6 +114,24 @@ export default () => {
               row.remove(old.revealer);
             }, 300);
           }
+          // Reset hide timer on each keystroke
+          if (Timeout !== null) {
+            Timeout.cancel();
+            Timeout = null;
+          }
+
+          // Set timer to hide window after inactivity
+          Timeout = timeout(hideDelay, () => {
+            // Clear all keystrokes
+            const currentKeystrokes = keystrokes();
+            currentKeystrokes.forEach((ks) => {
+              ks.revealer.reveal_child = false;
+              setTimeout(() => {
+                row.remove(ks.revealer);
+              });
+            });
+            setKeystrokes([]);
+          });
         });
       }}
     >

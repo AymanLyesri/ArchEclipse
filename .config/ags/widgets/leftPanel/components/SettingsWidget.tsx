@@ -23,6 +23,34 @@ const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
 
+// Add User to input group for key stroke visualizer
+function addUserToInputGroup() {
+  // check if user is in input group, if not add user to input group
+  execAsync(
+    `bash -c "groups $USER | grep -q '\\binput\\b' && echo 'yes' || echo $USER"`,
+  )
+    .then((result) => {
+      if (result.trim() !== "yes") {
+        notify({
+          summary: "Key Stroke Visualizer",
+          body: `Adding ${result.trim()} to 'input' group for keystroke detection.\n You may be prompted for your password.`,
+        });
+        execAsync(`pkexec usermod -aG input ${result.trim()}`)
+          .then(() => {
+            notify({
+              summary: "Key Stroke Visualizer",
+              body: "Will be Logging out to apply changes. in 5 seconds...",
+            });
+            timeout(5000, () => {
+              hyprland.message_async("dispatch exit", () => {});
+            });
+          })
+          .catch((err) => notify({ summary: "Error", body: err.toString() }));
+      }
+    })
+    .catch((err) => notify({ summary: "Error", body: err.toString() }));
+}
+
 // File Manager options with display names and commands
 const fileManagerOptions = [
   { id: "nautilus", name: "Nautilus (GNOME)", command: "nautilus" },
@@ -73,7 +101,7 @@ const FileManagerSelector = () => {
         label={"File Manager"}
         halign={Gtk.Align.START}
       />
-      <box class="setting" spacing={10} hexpand>
+      <box class="setting" spacing={10}>
         <For each={installedFileManagers}>
           {(fm) => (
             <togglebutton
@@ -146,7 +174,7 @@ const BarLayoutSetting = () => {
         label={"bar Layout"}
         halign={Gtk.Align.START}
       />
-      <box class="setting" spacing={10} hexpand>
+      <box class="setting" spacing={10}>
         <For each={globalSettings(({ bar }) => bar.layout)}>
           {(widget: WidgetSelector) => {
             return (
@@ -252,12 +280,19 @@ const BarLayoutSetting = () => {
     </box>
   );
 };
-const Setting = (
-  keyChanged: string,
-  setting: AGSSetting,
-  callBack?: (newValue?: any) => void,
-) => {
-  const title = <label halign={Gtk.Align.START} label={setting.name} />;
+
+const Setting = ({
+  keyChanged,
+  setting,
+  callBack,
+  choices,
+}: {
+  keyChanged: string;
+  setting: AGSSetting;
+  callBack?: (newValue?: any) => void;
+  choices?: { label: string; value: any }[];
+}) => {
+  const Title = () => <label hexpand xalign={0} label={setting.name} />;
 
   const SliderWidget = () => {
     const infoLabel = (
@@ -302,9 +337,12 @@ const Setting = (
     );
 
     return (
-      <box hexpand={true} halign={Gtk.Align.END} spacing={5}>
-        {Slider}
-        {infoLabel}
+      <box spacing={5}>
+        <Title />
+        <box hexpand halign={Gtk.Align.END} spacing={5}>
+          {Slider}
+          {infoLabel}
+        </box>
       </box>
     );
   };
@@ -327,17 +365,68 @@ const Setting = (
     );
 
     return (
-      <box hexpand={true} halign={Gtk.Align.END} spacing={5}>
-        {Switch}
-        {infoLabel}
+      <box spacing={5}>
+        <Title />
+        <box hexpand halign={Gtk.Align.END} spacing={5}>
+          {Switch}
+          {infoLabel}
+        </box>
       </box>
     );
   };
-  return (
-    <box class="setting" hexpand={true} spacing={5}>
-      {title}
 
-      {setting.type === "bool" ? <SwitchWidget /> : <SliderWidget />}
+  const SelectWidget = () => {
+    return (
+      <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+        <Title />
+        <box spacing={5}>
+          {choices &&
+            choices.map((choice) => (
+              <togglebutton
+                hexpand
+                label={choice.label}
+                active={globalSettings((s) => {
+                  // get current value from AGSSetting from settings
+                  const keys = keyChanged.split(".");
+                  let current: any = s;
+                  for (const key of keys) {
+                    current = current[key];
+                  }
+                  return current.value === choice.value;
+                })}
+                onToggled={({ active }) => {
+                  if (active) {
+                    setGlobalSetting(keyChanged + ".value", choice.value);
+                    if (callBack) callBack(choice.value);
+                  }
+                }}
+              />
+            ))}
+        </box>
+      </box>
+    );
+  };
+
+  const Widget = () => {
+    switch (setting.type) {
+      case "int":
+        return SliderWidget();
+      case "float":
+        return SliderWidget();
+      case "bool":
+        return SwitchWidget();
+      case "select":
+        return SelectWidget();
+      default:
+        return (
+          <label halign={Gtk.Align.END} label={"Unsupported setting type"} />
+        );
+    }
+  };
+
+  return (
+    <box class="setting" spacing={5}>
+      <Widget />
     </box>
   );
 };
@@ -370,13 +459,16 @@ const createHyprlandSettings = (
       const settingKey = `hyprland.${fullKey}`;
 
       result.push(
-        Setting(settingKey, setting, (newValue) => {
-          // replace . with :
-          print("Applying Hyprland setting:", fullKey, "=", newValue);
-          const key = fullKey.replace(/\./g, ":");
-          print("Hyprland key:", key);
-          applyHyprlandSetting(key, newValue);
-        }),
+        <Setting
+          keyChanged={settingKey}
+          setting={setting}
+          callBack={(newValue) => {
+            print("Applying Hyprland setting:", fullKey, "=", newValue);
+            const key = fullKey.replace(/\./g, ":");
+            print("Hyprland key:", key);
+            applyHyprlandSetting(key, newValue);
+          }}
+        />,
       );
     }
   });
@@ -404,56 +496,58 @@ export default () => {
           orientation={Gtk.Orientation.VERTICAL}
           spacing={16}
         >
-          <label label="AGS" halign={Gtk.Align.START} />
-          {Setting(
-            "keyStrokeVisualizer.visibility",
-            globalSettings.peek().keyStrokeVisualizer.visibility,
-            (visibility) => {
-              if (visibility) {
-                // check if user is in input group, if not add user to input group
-                execAsync(
-                  `bash -c "groups $USER | grep -q '\\binput\\b' && echo 'yes' || echo $USER"`,
-                )
-                  .then((result) => {
-                    if (result.trim() !== "yes") {
-                      notify({
-                        summary: "Key Stroke Visualizer",
-                        body: `Adding ${result.trim()} to 'input' group for keystroke detection.\n You may be prompted for your password.`,
-                      });
-                      execAsync(`pkexec usermod -aG input ${result.trim()}`)
-                        .then(() => {
-                          notify({
-                            summary: "Key Stroke Visualizer",
-                            body: "Will be Logging out to apply changes. in 5 seconds...",
-                          });
-                          timeout(5000, () => {
-                            hyprland.message_async("dispatch exit", () => {});
-                          });
-                        })
-                        .catch((err) =>
-                          notify({ summary: "Error", body: err.toString() }),
-                        );
-                    }
-                  })
-                  .catch((err) =>
-                    notify({ summary: "Error", body: err.toString() }),
-                  );
-              }
-            },
-          )}
+          <label label="AGS -- Global" halign={Gtk.Align.START} />
+
           <BarLayoutSetting />
-          {Setting(
-            "bar.orientation",
-            globalSettings.peek().bar.orientation,
-            refreshCss,
-          )}
-          {Setting("ui.opacity", globalSettings.peek().ui.opacity, refreshCss)}
-          {Setting("ui.scale", globalSettings.peek().ui.scale, refreshCss)}
-          {Setting(
-            "ui.fontSize",
-            globalSettings.peek().ui.fontSize,
-            refreshCss,
-          )}
+          <Setting
+            keyChanged="bar.orientation"
+            setting={globalSettings.peek().bar.orientation}
+            callBack={refreshCss}
+          />
+          <Setting
+            keyChanged="ui.opacity"
+            setting={globalSettings.peek().ui.opacity}
+            callBack={refreshCss}
+          />
+          <Setting
+            keyChanged="ui.scale"
+            setting={globalSettings.peek().ui.scale}
+            callBack={refreshCss}
+          />
+          <Setting
+            keyChanged="ui.fontSize"
+            setting={globalSettings.peek().ui.fontSize}
+            callBack={refreshCss}
+          />
+        </box>
+        <box
+          class={"category"}
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={16}
+        >
+          <label label="AGS -- KeyStrokeVisualizer" halign={Gtk.Align.START} />
+          <Setting
+            keyChanged="keyStrokeVisualizer.visibility"
+            setting={globalSettings.peek().keyStrokeVisualizer.visibility}
+            callBack={(visibility) => {
+              if (visibility) addUserToInputGroup();
+            }}
+          />
+          <Setting
+            keyChanged="keyStrokeVisualizer.anchor"
+            setting={globalSettings.peek().keyStrokeVisualizer.anchor}
+            choices={[
+              {
+                label: "Bottom Left",
+                value: ["bottom", "left"],
+              },
+              { label: "Bottom", value: ["bottom"] },
+              {
+                label: "Bottom Right",
+                value: ["bottom", "right"],
+              },
+            ]}
+          />
         </box>
         <box
           class={"category"}
@@ -469,10 +563,10 @@ export default () => {
           spacing={16}
         >
           <label label="Custom" halign={Gtk.Align.START} />
-          {Setting(
-            "autoWorkspaceSwitching",
-            globalSettings.peek().autoWorkspaceSwitching,
-          )}
+          <Setting
+            keyChanged="autoWorkspaceSwitching"
+            setting={globalSettings.peek().autoWorkspaceSwitching}
+          />
           <FileManagerSelector />
         </box>
         {resetButton()}

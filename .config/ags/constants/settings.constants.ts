@@ -8,6 +8,7 @@ import { BooruImage } from "../classes/BooruImage";
 import { dateFormats } from "../constants/date.constants";
 import { phi, phi_min } from "../constants/phi.constants";
 import { Settings } from "../interfaces/settings.interface";
+import { Astal } from "ags/gtk4";
 
 export const defaultSettings: Settings = {
   dateFormat: dateFormats[0],
@@ -198,6 +199,13 @@ export const defaultSettings: Settings = {
       type: "bool",
       min: 0,
       max: 1,
+    },
+    anchor: {
+      name: "Key Stroke Visualizer Anchor",
+      value: ["bottom"],
+      type: "select",
+      min: 0,
+      max: 0,
     },
   },
 };
