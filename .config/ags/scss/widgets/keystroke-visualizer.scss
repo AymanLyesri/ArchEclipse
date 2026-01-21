@@ -1,8 +1,19 @@
 .keystroke-visualizer {
-  padding: 5px;
   // background-color: rgb(0, 0, 0);
 
   .keystroke {
-    // animation: opacity-out 0.6s ease-in-out;
+    opacity: 0.7;
+    border-top: 5px solid;
+    border-left: 2px solid;
+    border-right: 2px solid;
+    border-bottom: 2px solid;
+
+    font-weight: bolder;
+
+    &:hover {
+      border: 2px solid $secondary;
+      transform: unset;
+      opacity: 0.9;
+    }
   }
 }

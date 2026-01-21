@@ -15,7 +15,6 @@ export default () => {
 
   return (
     <scrolledwindow
-      class="keybinds"
       hexpand
       vexpand
       $={(self) => {

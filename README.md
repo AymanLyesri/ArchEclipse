@@ -26,9 +26,9 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
 - **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 - Gtk 3 replaced)~~: _these are just some of the features_
-  - Dynamic Color schemes based on current wallpaper
-  - Dark/light modes
-  - Main bar
+  - Dynamic Color schemes based on current wallpaper `pywal`
+  - Dark/light modes `pywal`
+  - Main bar `switchable widgets`
     - Bandwidth speed monitor
     - Weather
     - Media Player
@@ -42,8 +42,8 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Url forwarding to default browser
     - Custom commands
   - Wallpaper switcher for each workspace
-  - Media player
-  - Right Panel
+  - Keystroke Visualizer `optional`
+  - Right Panel `optional & switchable widgets`
     - Waifu display -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs & Custom Images/Gifs
     - Media Player
     - Notification history - filter
@@ -56,6 +56,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Manga Reader -- Using [MangaDex](https://mangadex.org/) API
     - Hyprland/Ags settings
     - Custom Scripts
+    - Keybinds display
   - User Panel (logout etc...)
 - **High-quality wallpapers** from [Danbooru](https://danbooru.donmai.us), [Yandere](https://yande.re), & [Gelbooru](https://gelbooru.com)
 
@@ -74,8 +75,8 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 # To-Do List
 
 - **Users: Any suggestions or issues?**
-- Make sure the dot-files work for every machine not just mine **(WIP)**
 - Add tutorials for each part of the dot-files **(WIP)**
+- Optimizing performance to squeeze more FPS out of games **(WIP)**
 - Continuous improvements and polishing **(INDEFINITELY)**
 
 # KeyBinds
@@ -152,6 +153,10 @@ update
 ## Wallpaper Switcher
 
 ![image](.github/assets/wallpaper-switcher.png)
+
+## Keystroke Visualizer `optional`
+
+<video src=".github/assets/keystroke-visualizer.mp4" width="100&" controls></video>
 
 ## Theme Switching
 

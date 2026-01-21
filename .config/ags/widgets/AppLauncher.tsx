@@ -157,7 +157,7 @@ const Entry = () => (
                 app_icon: "󰟛", // Conversion icon
                 app_desc: `Converted from ${conv.original}`,
                 app_launch: () => execAsync(`wl-copy "${conv.formatted}"`),
-              }))
+              })),
             );
             return; // Exit early after conversion
           }
@@ -167,7 +167,7 @@ const Entry = () => (
             const filteredCommands = customApps.filter((app) =>
               app.app_name
                 .toLowerCase()
-                .includes(text.replace(">", "").trim().toLowerCase())
+                .includes(text.replace(">", "").trim().toLowerCase()),
             );
             setResults(filteredCommands);
           } else if (args[0].includes("translate")) {
@@ -178,7 +178,7 @@ const Entry = () => (
               `bash ./scripts/translate.sh '${text
                 .split(">")[0]
                 .replace("translate", "")
-                .trim()}' '${language}'`
+                .trim()}' '${language}'`,
             );
             setResults([
               {
@@ -193,7 +193,7 @@ const Entry = () => (
               (emoji: { app_tags: string; app_name: string }) =>
                 emoji.app_tags
                   .toLowerCase()
-                  .includes(text.replace("emoji", "").trim())
+                  .includes(text.replace("emoji", "").trim()),
             );
             setResults(
               filteredEmojis.map((emoji: { app_name: string }) => ({
@@ -201,8 +201,17 @@ const Entry = () => (
                 app_icon: emoji.app_name,
                 app_type: "emoji",
                 app_launch: () => execAsync(`wl-copy ${emoji.app_name}`),
-              }))
+              })),
             );
+          }
+          // handle arithmetic (check BEFORE URL to avoid "/" being detected as protocol)
+          else if (containsOperator(args[0])) {
+            setResults([
+              {
+                app_name: arithmetic(text),
+                app_launch: () => execAsync(`wl-copy ${arithmetic(text)}`),
+              },
+            ]);
           }
           // handle URL
           else if (containsProtocolOrTLD(args[0])) {
@@ -212,22 +221,13 @@ const Entry = () => (
                 app_launch: () =>
                   execAsync(`xdg-open ${formatToURL(text)}`).then(() => {
                     const browser = execAsync(
-                      `bash -c "xdg-settings get default-web-browser | sed 's/\.desktop$//'"`
+                      `bash -c "xdg-settings get default-web-browser | sed 's/\.desktop$//'"`,
                     );
                     notify({
                       summary: "URL",
                       body: `Opening ${text} in ${browser}`,
                     });
                   }),
-              },
-            ]);
-          }
-          // handle arithmetic
-          else if (containsOperator(args[0])) {
-            setResults([
-              {
-                app_name: arithmetic(text),
-                app_launch: () => execAsync(`wl-copy ${arithmetic(text)}`),
               },
             ]);
           }
@@ -248,9 +248,9 @@ const Entry = () => (
                       ? app.launch()
                       : hyprland.message_async(
                           `dispatch exec ${app.executable} ${args.join(" ")}`,
-                          () => {}
+                          () => {},
                         ),
-                }))
+                })),
             );
             if (Results.get().length === 0) {
               setResults([
@@ -260,7 +260,7 @@ const Entry = () => (
                   app_launch: () =>
                     hyprland.message_async(
                       `dispatch exec kitty 'bash -c "${text}"'`,
-                      () => {}
+                      () => {},
                     ),
                 },
               ]);
@@ -372,7 +372,7 @@ const ResultsDisplay = () => {
     >
       <scrolledwindow
         heightRequest={Results((results) =>
-          results.length * 45 > maxHeight ? maxHeight : results.length * 45
+          results.length * 45 > maxHeight ? maxHeight : results.length * 45,
         )}
       >
         {rows}

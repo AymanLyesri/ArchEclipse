@@ -383,7 +383,7 @@ export async function convert(input: string): Promise<ConversionResult[]> {
   const parsed = parseConversionInput(input);
   if (!parsed) {
     throw new Error(
-      'Invalid conversion format. Try: "100c to f" or "10kg in lb"'
+      'Invalid conversion format. Try: "100c to f" or "10kg in lb"',
     );
   }
 
@@ -432,7 +432,7 @@ export async function convert(input: string): Promise<ConversionResult[]> {
 // Get common conversions for a unit type
 function getCommonConversionsForType(
   type: string,
-  excludeUnit: string
+  excludeUnit: string,
 ): string[] {
   const commonConversions: Record<string, string[]> = {
     temperature: ["celsius", "fahrenheit", "kelvin"],
@@ -466,7 +466,7 @@ function formatNumber(num: number): string {
 // Check if input is a conversion query
 export function isConversionQuery(text: string): boolean {
   return (
-    /^(convert\s+)?\d+(\.\d+)?\s*[a-zA-Z°/%]/.test(text) ||
-    /\d+(\.\d+)?\s*[a-zA-Z°/%]+\s+(to|in|as|=>)\s+[a-zA-Z°/%]+/.test(text)
+    /^(convert\s+)?\d+(\.\d+)?\s*[a-zA-Z°%]/.test(text) ||
+    /\d+(\.\d+)?\s*[a-zA-Z°%]+\s+(to|in|as|=>)\s+[a-zA-Z°%]+/.test(text)
   );
 }

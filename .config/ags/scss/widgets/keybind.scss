@@ -1,6 +1,5 @@
 .keybind {
   .binding {
-    border-color: $secondary;
     border-top: 1px solid;
     border-left: 1px solid;
     border-right: 1px solid;
@@ -8,5 +7,10 @@
 
     font-size: 0.8rem;
     min-width: 0px;
+
+    &:hover {
+      border: 1px solid $secondary;
+      transform: unset;
+    }
   }
 }

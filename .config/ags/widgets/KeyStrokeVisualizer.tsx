@@ -2,7 +2,7 @@ import { Astal } from "ags/gtk4";
 import app from "ags/gtk4/app";
 import { subprocess } from "ags/process";
 import Gtk from "gi://Gtk?version=4.0";
-import { fullscreenClient, globalSettings } from "../variables";
+import { fullscreenClient, globalMargin, globalSettings } from "../variables";
 import GLib from "gi://GLib";
 import { createState, createComputed } from "ags";
 
@@ -13,7 +13,7 @@ interface KeyStrokeWidget {
 
 export default () => {
   const maxKeystrokes = 5;
-  const keystrokeTimeout = 2000; // milliseconds before each keystroke fades out
+  const keystrokeTimeout = 3000; // milliseconds before each keystroke fades out
   const [keystrokes, setKeystrokes] = createState<KeyStrokeWidget[]>([]);
 
   // One persistent container
@@ -30,8 +30,8 @@ export default () => {
     ) as Gtk.Widget;
 
     const revealer = new Gtk.Revealer({
-      transition_type: Gtk.RevealerTransitionType.SLIDE_RIGHT,
-      transition_duration: 180,
+      transition_type: Gtk.RevealerTransitionType.SWING_RIGHT,
+      transition_duration: 300,
       reveal_child: false,
       child: button,
     });
@@ -55,6 +55,7 @@ export default () => {
           globalSettings().keyStrokeVisualizer.visibility.value,
       )}
       resizable={false}
+      margin={globalMargin}
       $={() => {
         subprocess(`bash -c "./scripts/ags-keystroke-listener.sh"`, (out) => {
           const key = out.trim();
@@ -79,6 +80,8 @@ export default () => {
             const idx = currentKeystrokes.findIndex((ks) => ks.id === id);
             if (idx !== -1) {
               const item = currentKeystrokes[idx];
+              item.revealer.transitionType =
+                Gtk.RevealerTransitionType.SWING_LEFT;
               item.revealer.reveal_child = false;
 
               const updatedKeystrokes = currentKeystrokes.filter(
@@ -96,6 +99,7 @@ export default () => {
           // Animate OUT oldest if max exceeded
           if (newKeystrokes.length > maxKeystrokes) {
             const old = newKeystrokes[0];
+            old.revealer.transitionType = Gtk.RevealerTransitionType.SWING_LEFT;
             old.revealer.reveal_child = false;
 
             const updatedKeystrokes = newKeystrokes.slice(1);
@@ -104,7 +108,7 @@ export default () => {
             // Remove after animation finishes
             setTimeout(() => {
               row.remove(old.revealer);
-            }, 200);
+            }, 300);
           }
         });
       }}
