@@ -195,7 +195,7 @@ export const defaultSettings: Settings = {
   keyStrokeVisualizer: {
     visibility: {
       name: "Key Stroke Visualizer Visibility",
-      value: true,
+      value: false,
       type: "bool",
       min: 0,
       max: 1,

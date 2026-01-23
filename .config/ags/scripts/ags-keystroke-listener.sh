@@ -1,6 +1,37 @@
 #!/usr/bin/env bash
 
-KEYBOARD_DEVICE=$(ls -1 /dev/input/by-id/*-event-kbd 2>/dev/null | head -n1)
+# Try multiple patterns to find keyboard device
+KEYBOARD_DEVICE=$(
+    ls -1 /dev/input/by-id/*-event-kbd 2>/dev/null | head -n1 || \
+    ls -1 /dev/input/by-id/*-kbd 2>/dev/null | head -n1 || \
+    ls -1 /dev/input/by-path/*-event-kbd 2>/dev/null | head -n1 || \
+    ls -1 /dev/input/by-path/*-kbd 2>/dev/null | head -n1
+)
+
+# Fallback: find keyboard by capabilities in /proc/bus/input/devices
+if [[ -z "$KEYBOARD_DEVICE" ]]; then
+    # Look for devices with keyboard capabilities (EV=120013 or similar)
+    KEYBOARD_EVENT=$(awk '
+        /^I:/ { bus=$0 }
+        /^N: Name=/ { name=$0 }
+        /^H: Handlers=/ { 
+            if ($0 ~ /kbd/ || $0 ~ /event/) {
+                handlers=$0
+            }
+        }
+        /^B: EV=/ { 
+            # Check if it has keyboard event bit (bit 1)
+            if ($0 ~ /EV=120013|EV=120003|EV=12001[0-9]/) {
+                match(handlers, /event([0-9]+)/, arr)
+                if (arr[1] != "") {
+                    print "event" arr[1]
+                    exit
+                }
+            }
+        }
+    ' /proc/bus/input/devices)
+    [[ -n "$KEYBOARD_EVENT" ]] && KEYBOARD_DEVICE="/dev/input/$KEYBOARD_EVENT"
+fi
 
 if [[ -z "$KEYBOARD_DEVICE" ]]; then
     echo "No keyboard device found" >&2
