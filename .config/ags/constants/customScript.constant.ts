@@ -194,4 +194,44 @@ export const customScripts = (): CustomScript[] => [
       hyprland.dispatch("exec", "steam");
     },
   },
+  // pipes
+  {
+    name: "Pipes.sh",
+    icon: "󰟥",
+    description: "Pipes Animation",
+    app: "pipes.sh",
+    script: () => {
+      hyprland.dispatch("exec", "kitty -e pipes.sh");
+    },
+  },
+  // cava
+  {
+    name: "Cava",
+    icon: "󰕾",
+    description: "Audio Visualizer",
+    app: "cava",
+    script: () => {
+      hyprland.dispatch("exec", "kitty -e cava");
+    },
+  },
+  // cmatrix
+  {
+    name: "CMatrix",
+    icon: "󱔼",
+    description: "Matrix Digital Rain",
+    app: "cmatrix",
+    script: () => {
+      hyprland.dispatch("exec", "kitty -e cmatrix");
+    },
+  },
+  // asciiquarium
+  {
+    name: "Asciiquarium",
+    icon: "",
+    description: "Aquarium Animation",
+    app: "asciiquarium",
+    script: () => {
+      hyprland.dispatch("exec", "kitty -e asciiquarium");
+    },
+  },
 ];

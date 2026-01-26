@@ -3,13 +3,8 @@
     @include button;
     padding: 0px;
     button {
-      background: transparent;
-      &:hover {
-        background: $background-semi-transparent;
-      }
-    }
-    button {
       border-radius: 0px;
+      padding: 0.1em;
     }
     button:first-child {
       border-radius: 10px 0px 0px 10px;
@@ -29,11 +24,6 @@
     @include button;
     padding-top: 0px;
     padding-bottom: 0px;
-
-    .cpu-monitor,
-    .ram-monitor,
-    .gpu-monitor {
-    }
   }
 }
 

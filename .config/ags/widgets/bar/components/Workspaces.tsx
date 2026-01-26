@@ -79,7 +79,7 @@ function Workspaces() {
     id: number,
     isActive: boolean,
     isFocused: boolean,
-    icon: string,
+    client_class: string,
   ) => {
     const classes: string[] = [];
 
@@ -109,6 +109,11 @@ function Workspaces() {
       }
     }
 
+    // Select appropriate icon based on workspace client class
+    const icon = isActive
+      ? workspaceIconMap[client_class] || extraWorkspaceIcon
+      : emptyIcon;
+
     return (
       <button
         class={classes.join(" ")}
@@ -116,7 +121,8 @@ function Workspaces() {
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
         }
-        tooltipText={`SUPER + ${id}`}
+        // tooltipMarkup={`switch to workspace ${id} [${client_class}]`}
+        tooltipMarkup={`Workspace ${id} [${client_class}]\n<b>SUPER + ${id}</b>`}
       />
     );
   };
@@ -180,15 +186,12 @@ function Workspaces() {
       const main_client = workspaces.find((w) => w.id === id)?.get_clients()[0];
       const client_class = main_client?.class.toLowerCase() || "empty";
 
-      // Select appropriate icon based on workspace client class
-      const icon = isActive
-        ? workspaceIconMap[client_class] || extraWorkspaceIcon
-        : emptyIcon;
-
       if (isActive) {
         // ACTIVE WORKSPACE: Add to current group
         currentGroupIsActive = true;
-        currentGroup.push(createWorkspaceButton(id, isActive, isFocused, icon));
+        currentGroup.push(
+          createWorkspaceButton(id, isActive, isFocused, client_class),
+        );
 
         // Close group if this is the last workspace or next one is inactive
         if (id === allWorkspaces.length || !workspaceIds.includes(id + 1)) {
@@ -199,7 +202,7 @@ function Workspaces() {
         finalizeCurrentGroup();
         groupElements.push(
           <box class="workspace-group inactive">
-            {createWorkspaceButton(id, isActive, isFocused, icon)}
+            {createWorkspaceButton(id, isActive, isFocused, client_class)}
           </box>,
         );
       }
@@ -247,7 +250,7 @@ const Special = () => (
     onClicked={() =>
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
     }
-    tooltipText={"SUPER + S"}
+    tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
   />
 );
 
@@ -258,53 +261,49 @@ const OverView = () => (
     onClicked={() =>
       hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
     }
-    tooltipText={"SUPER + SHIFT + TAB"}
+    tooltipMarkup={`Overview Mode\n<b>SUPER + SHIFT + TAB</b>`}
   />
 );
 
 function WallpaperSwitcher() {
   return (
-    <togglebutton
-      class="wallpaper-switcher-trigger"
+    <button
+      class="wallpaper-switcher"
       label="󰸉"
-      onToggled={(self) => {
-        self.active
-          ? showWindow(
-              `wallpaper-switcher-${(self.get_root() as any).monitorName}`,
-            )
-          : hideWindow(
-              `wallpaper-switcher-${(self.get_root() as any).monitorName}`,
-            );
+      onClicked={(self) => {
+        const window = app.get_window(
+          `wallpaper-switcher-${(self.get_root() as any).monitorName}`,
+        );
+        if (window)
+          window.is_visible()
+            ? (window.visible = false)
+            : (window.visible = true);
       }}
-      tooltipText={"SUPER + W"}
+      tooltipMarkup={`Wallpaper Switcher\n<b>SUPER + W</b>`}
     />
   );
 }
 
 function UserPanel() {
   return (
-    <togglebutton
+    <button
       class="user-panel"
       label=""
-      onToggled={(self) => {
-        self.active
-          ? app
-              .get_window(`user-panel-${(self.get_root() as any).monitorName}`)
-              ?.show()
-          : app
-              .get_window(`user-panel-${(self.get_root() as any).monitorName}`)
-              ?.hide();
+      onClicked={(self) => {
+        const window = app.get_window(
+          `user-panel-${(self.get_root() as any).monitorName}`,
+        );
+        if (window)
+          window.is_visible()
+            ? (window.visible = false)
+            : (window.visible = true);
       }}
-      tooltipText={"SUPER + ESC"}
+      tooltipMarkup={`User Panel\n<b>SUPER + ESC</b>`}
     />
   );
 }
 
-const Actions = ({
-  monitorName,
-}: {
-  monitorName?: string | Accessor<string>;
-}) => {
+const Actions = () => {
   return (
     <box class="actions">
       <UserPanel />

@@ -138,6 +138,7 @@ const UserPanel = () => {
         onClicked={() => {
           hyprland.message_async("dispatch exit", () => {});
         }}
+        tooltipText={"logout from Hyprland"}
       />
     );
 
@@ -149,7 +150,7 @@ const UserPanel = () => {
         onClicked={() => {
           execAsync(`shutdown now`);
         }}
-        tooltipText={"SUPER + CTRL + SHIFT + ESC"}
+        tooltipText={"shutdown immediately"}
       />
     );
 
@@ -161,6 +162,7 @@ const UserPanel = () => {
         onClicked={() => {
           execAsync(`reboot`);
         }}
+        tooltipText={"restart immediately"}
       />
     );
 
@@ -173,7 +175,7 @@ const UserPanel = () => {
           hideWindow(`user-panel-${(self.get_root() as any).monitorName}`);
           execAsync(`bash -c "$HOME/.config/hypr/scripts/hyprlock.sh suspend"`);
         }}
-        tooltipText={"SUPER + CTRL + ESC"}
+        tooltipText={"put system to sleep"}
       />
     );
 

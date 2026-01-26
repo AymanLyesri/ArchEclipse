@@ -1,5 +1,5 @@
-import { createState, createComputed, For } from "ags";
-import { exec, execAsync } from "ags/process";
+import { createState, createComputed, For, With } from "ags";
+import { execAsync } from "ags/process";
 import { monitorFile } from "ags/file";
 import app from "ags/gtk4/app";
 import Gtk from "gi://Gtk?version=4.0";
@@ -13,27 +13,13 @@ import GLib from "gi://GLib?version=2.0";
 import { Progress } from "./Progress";
 import { timeout } from "ags/time";
 import { Gdk } from "ags/gtk4";
-import GObject from "gnim/gobject";
+
+const [selectedWorkspaceId, setSelectedWorkspaceId] = createState<number>(1);
 
 // progress status
 const [progressStatus, setProgressStatus] = createState<
   "loading" | "error" | "success" | "idle"
 >("idle");
-
-// State management
-const [selectedWorkspaceId, setSelectedWorkspaceId] = createState<number>(0);
-const [selectedWorkspaceWidget, setSelectedWorkspaceWidget] =
-  createState<Gtk.Widget>(null!);
-
-const [currentWorkspaces, setCurrentWorkspaces] = createState<Gtk.Button[]>([]);
-
-const updateSelectedWorkspaceWidget = (
-  workspaceId: number,
-  widget: Gtk.Widget,
-) => {
-  setSelectedWorkspaceId(workspaceId);
-  setSelectedWorkspaceWidget(widget);
-};
 
 const targetTypes = ["workspace", "sddm", "lockscreen"];
 const [targetType, setTargetType] = createState<string>("workspace");
@@ -60,6 +46,29 @@ const FetchWallpapers = async () => {
   }
 };
 
+const [currentWallpapers, setCurrentWallpapers] = createState<string[]>([]);
+
+const FetchCurrentWallpapers = (monitorName: string) => {
+  try {
+    execAsync(`bash ./scripts/get-wallpapers.sh --current ${monitorName}`)
+      .then((output) => {
+        const wallpapers = JSON.parse(output).map((item: string) =>
+          String(item),
+        );
+        print(wallpapers.length + " current wallpapers fetched.");
+        setCurrentWallpapers(wallpapers);
+        print(currentWallpapers.peek().length + " wallpapers set.");
+      })
+      .catch((err) => {
+        notify({ summary: "Error", body: String(err) });
+        print("Error fetching current wallpapers: " + String(err));
+      });
+  } catch (err) {
+    notify({ summary: "Error", body: String(err) });
+    print("Error fetching current wallpapers: " + String(err));
+  }
+};
+
 const [wallpaperType, setWallpaperType] = createState<boolean>(false);
 
 export function toThumbnailPath(file: string) {
@@ -69,42 +78,98 @@ export function toThumbnailPath(file: string) {
   );
 }
 
-const getCurrentWorkspaces = (monitorName: string): Gtk.Button[] => {
-  const wallpapers: string[] = JSON.parse(
-    exec(`bash ./scripts/get-wallpapers.sh --current ${monitorName}`) || "[]",
-  );
-
-  return wallpapers.map((wallpaper, key) => {
-    const workspaceId = key + 1;
-
-    return (
-      <button
-        class={focusedWorkspace((workspace) => {
-          const i = workspace?.id || 1;
-          return i === workspaceId
-            ? "wallpaper-button focused"
-            : "wallpaper-button";
-        })}
-        onClicked={(self) => {
-          setTargetType("workspace");
-          updateSelectedWorkspaceWidget(workspaceId, self);
-        }}
-        $={(self) => {
-          const i = focusedWorkspace.get()?.id || 1;
-          if (i === workspaceId) {
-            updateSelectedWorkspaceWidget(workspaceId, self);
-          }
-        }}
-        tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId}</b>`}
-      >
-        <Picture class="wallpaper" file={toThumbnailPath(wallpaper)}></Picture>
-      </button>
-    ) as Gtk.Button;
-  });
-};
-
 // Main Display Component
 function Display() {
+  const getCurrentWorkspaces = (
+    <box>
+      <With value={currentWallpapers}>
+        {(wallpapers) => {
+          return (
+            <box
+              hexpand={true}
+              vexpand={true}
+              halign={Gtk.Align.CENTER}
+              spacing={10}
+            >
+              {wallpapers.map((wallpaper, workspaceId) => (
+                <button
+                  class={focusedWorkspace((workspace) => {
+                    const i = workspace?.id || 1;
+                    return i === workspaceId + 1
+                      ? "wallpaper-button focused"
+                      : "wallpaper-button";
+                  })}
+                  css={wallpaper == "" ? "background-color: black" : ""}
+                  onClicked={(self) => {
+                    setTargetType("workspace");
+                    setSelectedWorkspaceId(workspaceId + 1);
+                  }}
+                  tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId + 1}</b>`}
+                >
+                  {wallpaper == "" ? (
+                    <label
+                      class="no-wallpaper"
+                      label="No Wallpaper"
+                      halign={Gtk.Align.CENTER}
+                      valign={Gtk.Align.CENTER}
+                    />
+                  ) : (
+                    <Picture
+                      class="wallpaper"
+                      file={toThumbnailPath(wallpaper)}
+                    ></Picture>
+                  )}
+                </button>
+              ))}
+            </box>
+          );
+        }}
+      </With>
+    </box>
+  );
+  //   <box hexpand={true} vexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
+  //     <For each={currentWallpapers}>
+  //       {(wallpaper) => {
+  //         print("Rendering workspace wallpaper:", wallpaper);
+  //         // const workspaceId = key.peek() + 1;
+  //         // random
+  //         const workspaceId = 1;
+
+  //         return (
+  //           <button
+  //             class={focusedWorkspace((workspace) => {
+  //               const i = workspace?.id || 1;
+  //               return i === workspaceId
+  //                 ? "wallpaper-button focused"
+  //                 : "wallpaper-button";
+  //             })}
+  //             css={wallpaper == "" ? "background-color: black" : ""}
+  //             onClicked={(self) => {
+  //               setTargetType("workspace");
+  //               setSelectedWorkspaceId(workspaceId);
+  //             }}
+  //             // tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId}</b>`}
+  //           >
+  //             {wallpaper == "" ? (
+  //               <label
+  //                 class="no-wallpaper"
+  //                 label="No Wallpaper"
+  //                 halign={Gtk.Align.CENTER}
+  //                 valign={Gtk.Align.CENTER}
+  //               />
+  //             ) : (
+  //               <Picture
+  //                 class="wallpaper"
+  //                 file={toThumbnailPath(wallpaper)}
+  //               ></Picture>
+  //             )}
+  //           </button>
+  //         ) as Gtk.Button;
+  //       }}
+  //     </For>
+  //   </box>
+  // );
+
   const allWallpapersDisplay = (
     <Gtk.ScrolledWindow
       hscrollbarPolicy={Gtk.PolicyType.ALWAYS}
@@ -128,12 +193,7 @@ function Display() {
 
               execAsync(command!)
                 .then(() => {
-                  const picture = (
-                    selectedWorkspaceWidget.peek() as any
-                  ).child.getPicture() as Gtk.Picture;
-                  if (target === "workspace" && picture) {
-                    picture.file = Gio.File.new_for_path(wallpaper);
-                  }
+                  FetchCurrentWallpapers((self.get_root() as any).monitorName);
                 })
                 .finally(() => {
                   setProgressStatus("success");
@@ -235,19 +295,7 @@ function Display() {
           } ${randomWallpaper}"`,
         )
           .finally(() => {
-            const newWallpaper = JSON.parse(
-              exec(
-                `bash ./scripts/get-wallpapers.sh --current ${
-                  (self.get_root() as any).monitorName
-                }`,
-              ),
-            )[selectedWorkspaceId.peek() - 1];
-            const picture = (
-              selectedWorkspaceWidget.peek() as any
-            ).child.getPicture() as Gtk.Picture;
-            if (picture) {
-              picture.file = Gio.File.new_for_path(newWallpaper);
-            }
+            FetchCurrentWallpapers((self.get_root() as any).monitorName);
             setProgressStatus("success");
           })
           .catch((err) => {
@@ -398,9 +446,7 @@ function Display() {
       orientation={Gtk.Orientation.VERTICAL}
       spacing={20}
     >
-      <box hexpand={true} vexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
-        <For each={currentWorkspaces}>{(workspace) => workspace}</For>
-      </box>
+      {getCurrentWorkspaces}
       {actions}
       {allWallpapersDisplay}
     </box>
@@ -427,14 +473,13 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       $={async (self) => {
         (self as any).monitorName = monitorName;
         FetchWallpapers();
-        setCurrentWorkspaces(getCurrentWorkspaces(monitorName));
+        FetchCurrentWallpapers(monitorName);
+
+        // Initialize selected workspace
         focusedWorkspace.subscribe(() => {
           const workspace = focusedWorkspace.peek();
           if (workspace) {
             setSelectedWorkspaceId(workspace.id);
-            setSelectedWorkspaceWidget(
-              currentWorkspaces.peek()[workspace.id - 1],
-            );
           }
         });
       }}
