@@ -90,6 +90,9 @@ stdbuf -oL -eL $XKB_CMD < "$KEYBOARD_DEVICE" 2>/dev/null | while read -r line; d
             Super_L|Super_R) echo "SUPER" ;;
             Up|Down|Left|Right) echo "${key^^}" ;;
             space) echo "󱁐" ;;
+            XF86AudioRaiseVolume) echo "󰝝" ;;
+            XF86AudioLowerVolume) echo "󰝞" ;;
+            XF86AudioMute) echo "󰝟" ;;
             *) [[ -n "$key" ]] && echo "$key" ;;
         esac
     fi

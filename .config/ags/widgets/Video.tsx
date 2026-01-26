@@ -1,7 +1,7 @@
 import { Accessor } from "ags";
-import Adw from "gi://Adw?version=1";
-import Gio from "gi://Gio?version=2.0";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
+import Adw from "gi://Adw";
+import Gio from "gi://Gio";
 
 interface VideoProps {
   class?: Accessor<string> | string;

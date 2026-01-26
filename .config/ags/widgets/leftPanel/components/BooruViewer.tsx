@@ -15,7 +15,7 @@ import Gdk from "gi://Gdk?version=4.0";
 import { Progress } from "../../Progress";
 import { connectPopoverEvents } from "../../../utils/window";
 import { booruPath } from "../../../constants/path.constants";
-import Adw from "gi://Adw?version=1";
+import Adw from "gi://Adw";
 import Pango from "gi://Pango?version=1.0";
 
 const [images, setImages] = createState<BooruImage[]>([]);
