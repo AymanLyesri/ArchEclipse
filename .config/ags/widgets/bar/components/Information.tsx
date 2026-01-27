@@ -21,7 +21,7 @@ import Pango from "gi://Pango";
 import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
-import Cava from "../../Cava";
+// import Cava from "../../Cava";
 import Weather from "./sub-components/Weather";
 import Bandwidth from "./sub-components/Bandwidth";
 
@@ -34,10 +34,10 @@ function Mpris() {
   return (
     <menubutton class={"mpris"}>
       <box spacing={5}>
-        <Cava
+        {/* <Cava
           barCount={12}
           transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-        />
+        /> */}
         <For each={players}>
           {(player) => {
             const [app] = apps.exact_query(player.entry);
