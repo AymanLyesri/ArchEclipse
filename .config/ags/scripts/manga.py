@@ -384,6 +384,10 @@ class MangaDexProvider(MangaProvider):
     # get page and download it if not exists
     def get_page(self, page_url: str) -> Page:
         """Get page and download if not exists, returns local path."""
+
+        # create the pages directory if not exists
+        self.PAGES_DIR.mkdir(parents=True, exist_ok=True)
+
         # Check if already downloaded
         import hashlib
 

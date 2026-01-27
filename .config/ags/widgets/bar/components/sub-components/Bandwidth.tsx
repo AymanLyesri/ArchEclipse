@@ -1,6 +1,7 @@
 import { createPoll } from "ags/time";
 import Gtk from "gi://Gtk?version=4.0";
 import { With } from "gnim";
+import { formatKiloBytes } from "../../../../utils/bytes";
 
 const BANDWIDTH_POLL_MS = 2000; // bandwidth poll period (increase to reduce CPU)
 
@@ -21,22 +22,8 @@ export default () => {
       } catch (e) {
         return [0, 0, 0, 0];
       }
-    }
+    },
   );
-
-  function formatKiloBytes(kb: number): string {
-    if (kb === undefined || kb === null || isNaN(kb)) {
-      return "0.0 KB";
-    }
-    const units = ["KB", "MB", "GB", "TB"];
-    let idx = 0;
-    let val = kb;
-    while (val >= 1024 && idx < units.length - 1) {
-      val /= 1024;
-      idx++;
-    }
-    return `${val.toFixed(2)} ${units[idx]}`;
-  }
 
   return (
     <menubutton class={"bandwidth"}>

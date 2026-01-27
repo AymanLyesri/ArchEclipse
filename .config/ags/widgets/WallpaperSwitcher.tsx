@@ -13,6 +13,7 @@ import GLib from "gi://GLib?version=2.0";
 import { Progress } from "./Progress";
 import { timeout } from "ags/time";
 import { Gdk } from "ags/gtk4";
+import { formatKiloBytes } from "../utils/bytes";
 
 const [selectedWorkspaceId, setSelectedWorkspaceId] = createState<number>(1);
 
@@ -229,6 +230,24 @@ function Display() {
                 });
             };
 
+            const fileSize = (path: string) => {
+              const file = Gio.File.new_for_path(path);
+
+              try {
+                const info = file.query_info(
+                  "standard::size",
+                  Gio.FileQueryInfoFlags.NONE,
+                  null,
+                );
+
+                const size = info.get_size(); // bytes
+                return formatKiloBytes(size / 1024); // convert to KB and format
+              } catch (e) {
+                logError(e);
+                return "N/A";
+              }
+            };
+
             return (
               <button
                 class="wallpaper-button preview"
@@ -248,7 +267,11 @@ function Display() {
                   (type) =>
                     "Click to set as <b>" +
                     type +
-                    "</b> wallpaper.\nRight-click to delete.",
+                    "</b> wallpaper.\nRight-click to delete." +
+                    // get filename from path
+                    `\n ${wallpaper.split("/").pop()}` +
+                    // file size
+                    `\n Size: ${fileSize(wallpaper)}`,
                 )}
               >
                 <Picture
