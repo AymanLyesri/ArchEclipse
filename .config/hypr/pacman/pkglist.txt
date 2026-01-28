@@ -124,6 +124,10 @@ ttf-jetbrains-mono-nerd
 noto-fonts-emoji
 phinger-cursors
 whitesur-gtk-theme
+kvantum
+kvantum-theme-whitesur-git
+qt5ct
+qt6ct
 
 
 ### Extra
