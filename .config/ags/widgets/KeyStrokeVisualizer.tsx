@@ -83,7 +83,7 @@ export default () => {
       margin={globalMargin}
       $={() => {
         let Timeout: Timer | null = null;
-        subprocess(`./assets/binaries/ags-keystroke-loop`, (out) => {
+        subprocess(`./assets/binaries/keystroke-loop-ags`, (out) => {
           const key = out.trim();
           if (!key) return;
 

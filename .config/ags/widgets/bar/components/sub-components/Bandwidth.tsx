@@ -7,7 +7,7 @@ import { createSubprocess } from "ags/process";
 export default () => {
   const bandwidth = createSubprocess(
     [0, 0, 0, 0],
-    ["./assets/binaries/bandwidth"],
+    ["./assets/binaries/bandwidth-loop-ags"],
     (out, prev) => {
       try {
         const parsed = JSON.parse(out);

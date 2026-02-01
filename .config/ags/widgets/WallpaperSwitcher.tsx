@@ -56,9 +56,7 @@ const FetchCurrentWallpapers = (monitorName: string) => {
         const wallpapers = JSON.parse(output).map((item: string) =>
           String(item),
         );
-        print(wallpapers.length + " current wallpapers fetched.");
         setCurrentWallpapers(wallpapers);
-        print(currentWallpapers.peek().length + " wallpapers set.");
       })
       .catch((err) => {
         notify({ summary: "Error", body: String(err) });
@@ -243,7 +241,8 @@ function Display() {
                 const size = info.get_size(); // bytes
                 return formatKiloBytes(size / 1024); // convert to KB and format
               } catch (e) {
-                logError(e);
+                // logError(e);
+                print("Error getting file size: " + String(e));
                 return "N/A";
               }
             };
