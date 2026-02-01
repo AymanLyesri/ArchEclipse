@@ -8,7 +8,7 @@ import {
   createState,
   With,
 } from "ags";
-import { execAsync } from "ags/process";
+import { createSubprocess, execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
 
@@ -318,10 +318,9 @@ function DndToggle() {
 }
 
 function ResourceMonitor() {
-  const systemResource = createPoll(
+  const systemResource = createSubprocess(
     [0, 0, 0],
-    1000,
-    "./assets/binaries/system-resources",
+    "./assets/binaries/system-resources-loop-ags",
     (out) => {
       try {
         return JSON.parse(out);

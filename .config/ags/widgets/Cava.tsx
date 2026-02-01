@@ -6,7 +6,7 @@ import Gtk from "gi://Gtk?version=4.0";
 const cava = Cava.get_default()!;
 
 // --- Tunable constants (change to lower CPU usage) ---
-const CAVA_UPDATE_MS = 60; // coalesced update interval for audio visualizer (larger => less CPU)
+const CAVA_UPDATE_MS = 100; // coalesced update interval for audio visualizer (larger => less CPU)
 
 // Small lightweight throttle/coalesce helper
 function scheduleCoalesced(fn: () => void, delayMs: number) {
@@ -110,7 +110,7 @@ export default ({
         const val = values[i];
         const idx = Math.min(
           Math.floor(val * BLOCKS_LENGTH),
-          BLOCKS_LENGTH - 1
+          BLOCKS_LENGTH - 1,
         );
         barArray[i] = BLOCKS[idx];
       }
@@ -147,7 +147,7 @@ export default ({
             if (revealerInstance) revealerInstance.reveal_child = true;
             showTimeoutId = null;
             return GLib.SOURCE_REMOVE;
-          }
+          },
         );
       } else if (visible) {
         // already visible -- ensure revealer stays revealed
@@ -172,7 +172,7 @@ export default ({
             if (revealerInstance) revealerInstance.reveal_child = false;
             hideTimeoutId = null;
             return GLib.SOURCE_REMOVE;
-          }
+          },
         );
       } else if (!visible) {
         // already hidden

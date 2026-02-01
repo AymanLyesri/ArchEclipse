@@ -31,10 +31,10 @@ export default () => {
     };
     hourly: any;
   }
-  // Poll every 10 minutes (600,000 ms)
+  // Poll every 15 minutes (900,000 ms)
   const weather = createPoll(
     null,
-    600000,
+    900000,
     [
       "bash",
       "-c",
@@ -72,7 +72,7 @@ export default () => {
         console.error("Weather parsing error:", e);
         return null;
       }
-    }
+    },
   );
 
   interface WeatherCodeMap {
@@ -213,7 +213,7 @@ export default () => {
             label={weather((w) =>
               w
                 ? `Current Weather (${formatDate(w.daily.time[0])})`
-                : "Current Weather"
+                : "Current Weather",
             )}
           />
           <With value={weather}>
@@ -393,7 +393,7 @@ export default () => {
                                     label={`${precipitation}mm`}
                                   />
                                 )}
-                              </box>
+                              </box>,
                             );
                           }
                           return hours;
@@ -405,7 +405,7 @@ export default () => {
                   <Eventbox
                     onClick={() =>
                       GLib.spawn_command_line_async(
-                        "xdg-open 'https://open-meteo.com/'"
+                        "xdg-open 'https://open-meteo.com/'",
                       )
                     }
                   >

@@ -39,12 +39,12 @@ monitors=$(hyprctl monitors | awk '/Monitor/ {print $2}')
 
 for monitor in $monitors; do
     monitor_conf=$hyprpaper_conf/$monitor/defaults.conf
-
+    
     if [ ! -s "$monitor_conf" ]; then
         touch $monitor_conf
         mkdir -p $hyprpaper_conf/$monitor
         cp $backup $monitor_conf
-
+        
         echo "Config file created! for $monitor"
     fi
 done
@@ -67,6 +67,6 @@ echo "Hyprpaper ready!"
 
 #################################################
 
-$hyprDir/hyprpaper/auto.sh & # start auto wallpaper script
+# $hyprDir/hyprpaper/auto.sh & # start auto wallpaper script
 
 echo "Auto wallpaper script started!"

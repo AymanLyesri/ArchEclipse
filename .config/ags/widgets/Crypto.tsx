@@ -10,7 +10,7 @@ import Pango from "gi://Pango";
 const BARS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
 
 // Configuration
-const POLL_INTERVAL = 60000; // Poll every 60 seconds (adjust as needed)
+const POLL_INTERVAL = 300000; // Poll every 5 minutes (adjust as needed)
 
 function updateGraph(prices: number[], maxPoints: number): string {
   if (prices.length === 0) return "▁".repeat(maxPoints);
@@ -90,7 +90,7 @@ function Crypto({
   const formattedChange = getPriceChange((change) => {
     const sign = change.change >= 0 ? "+" : "";
     return `${sign}${change.change.toFixed(2)} (${sign}${change.percent.toFixed(
-      2
+      2,
     )}%)`;
   });
 
@@ -135,7 +135,7 @@ function Crypto({
         setProgressStatus("error");
         return { price: 0, prices: [] };
       }
-    }
+    },
   );
 
   // Create the widget
@@ -144,7 +144,7 @@ function Crypto({
       onClick={() => {
         // Open a crypto-related page when clicked
         GLib.spawn_command_line_async(
-          `xdg-open https://www.coingecko.com/en/coins/${symbol}`
+          `xdg-open https://www.coingecko.com/en/coins/${symbol}`,
         );
       }}
       onHover={() => {

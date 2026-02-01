@@ -71,10 +71,15 @@ double get_gpu_usage() {
 }
 
 int main() {
-    double cpu = get_cpu_usage();
-    double ram = get_ram_usage();
-    double gpu = get_gpu_usage();
+    while (1) {
+        double cpu = get_cpu_usage();
+        double ram = get_ram_usage();
+        double gpu = get_gpu_usage();
 
-    printf("[%.1f, %.1f, %.1f]\n", cpu, ram, gpu);
+        printf("[%.1f, %.1f, %.1f]\n", cpu, ram, gpu);
+        fflush(stdout);
+        
+        sleep(3);
+    }
     return 0;
 }

@@ -2,15 +2,13 @@ import { createPoll } from "ags/time";
 import Gtk from "gi://Gtk?version=4.0";
 import { With } from "gnim";
 import { formatKiloBytes } from "../../../../utils/bytes";
-
-const BANDWIDTH_POLL_MS = 2000; // bandwidth poll period (increase to reduce CPU)
+import { createSubprocess } from "ags/process";
 
 export default () => {
-  const bandwidth = createPoll(
+  const bandwidth = createSubprocess(
     [0, 0, 0, 0],
-    BANDWIDTH_POLL_MS,
     ["./assets/binaries/bandwidth"],
-    (out) => {
+    (out, prev) => {
       try {
         const parsed = JSON.parse(out);
         return [

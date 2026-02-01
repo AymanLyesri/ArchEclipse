@@ -39,31 +39,39 @@ int main()
         handle_error("No default route found", 1);
     }
 
-    // Get today's bandwidth from log file
-    BandwidthData today = {0};
-    read_today_bandwidth(&today);
-
     // Get initial bandwidth stats
     BandwidthData old = get_interface_bytes(default_iface);
 
-    // Wait for 1 second
-    sleep(1);
+    // Run forever
+    while (1)
+    {
+        // Get today's bandwidth from log file
+        BandwidthData today = {0};
+        read_today_bandwidth(&today);
 
-    // Get new bandwidth stats
-    BandwidthData new = get_interface_bytes(default_iface);
+        // Wait for 5 seconds
+        sleep(2);
 
-    // Calculate speeds and update totals (in KB)
-    BandwidthData speed = {
-        new.rx - old.rx,
-        new.tx - old.tx};
+        // Get new bandwidth stats
+        BandwidthData new = get_interface_bytes(default_iface);
 
-    today.rx += speed.rx;
-    today.tx += speed.tx;
+        // Calculate speeds and update totals (in KB)
+        BandwidthData speed = {
+            (new.rx - old.rx) / 5,  // Average per second over 5 seconds
+            (new.tx - old.tx) / 5}; // Average per second over 5 seconds
 
-    update_today_bandwidth(&today);
+        today.rx += (new.rx - old.rx);
+        today.tx += (new.tx - old.tx);
 
-    // Output format: [tx_speed, rx_speed, today_tx, today_rx]
-    printf("[%llu,%llu,%llu,%llu]\n", speed.tx, speed.rx, today.tx, today.rx);
+        update_today_bandwidth(&today);
+
+        // Output format: [tx_speed, rx_speed, today_tx, today_rx]
+        printf("[%llu,%llu,%llu,%llu]\n", speed.tx, speed.rx, today.tx, today.rx);
+        fflush(stdout); // Ensure output is immediately visible
+
+        // Update old values for next iteration
+        old = new;
+    }
 
     free(default_iface);
     return 0;

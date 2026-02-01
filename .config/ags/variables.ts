@@ -64,12 +64,12 @@ export const globalTransition = 300;
 
 export const date_less = createPoll(
   "",
-  phi * 1000,
+  5000,
   () => GLib.DateTime.new_now_local().format(globalSettings.peek().dateFormat)!,
 );
 export const date_more = createPoll(
   "",
-  phi * 1000,
+  5000,
   () => GLib.DateTime.new_now_local().format(" %A ·%e %b %Y ")!,
 );
 

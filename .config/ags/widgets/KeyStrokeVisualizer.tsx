@@ -83,7 +83,7 @@ export default () => {
       margin={globalMargin}
       $={() => {
         let Timeout: Timer | null = null;
-        subprocess(`bash -c "./scripts/ags-keystroke-listener.sh"`, (out) => {
+        subprocess(`./assets/binaries/ags-keystroke-loop`, (out) => {
           const key = out.trim();
           if (!key) return;
 
