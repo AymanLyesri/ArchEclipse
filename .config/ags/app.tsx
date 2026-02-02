@@ -12,7 +12,7 @@ import WallpaperSwitcher from "./widgets/WallpaperSwitcher";
 import AppLauncher from "./widgets/AppLauncher";
 import UserPanel from "./widgets/UserPanel";
 import NotificationPopups from "./widgets/NotificationPopups";
-import { createBinding, For, This } from "ags";
+import { createBinding, For, onCleanup, This } from "ags";
 import Notifd from "gi://AstalNotifd";
 import KeyStrokeVisualizer from "./widgets/KeyStrokeVisualizer";
 const Notification = Notifd.get_default();
@@ -20,53 +20,60 @@ const Notification = Notifd.get_default();
 const perMonitorDisplay = () => {
   const monitors = createBinding(app, "monitors");
 
-  // const widgetInitializers = [
-  //   { name: "Bar", fn: () => Bar({ monitor: monitor }) },
-  //   { name: "BarHover", fn: () => BarHover({ monitor: monitor }) },
-  //   { name: "RightPanel", fn: () => RightPanel({ monitor: monitor }) },
-  //   {
-  //     name: "RightPanelHover",
-  //     fn: () => RightPanelHover({ monitor: monitor }),
-  //   },
-  //   { name: "LeftPanel", fn: () => LeftPanel({ monitor: monitor }) },
-  //   {
-  //     name: "LeftPanelHover",
-  //     fn: () => LeftPanelHover({ monitor: monitor }),
-  //   },
-  //   {
-  //     name: "NotificationPopups",
-  //     fn: () => NotificationPopups({ monitor: monitor }),
-  //   },
-  //   { name: "AppLauncher", fn: () => AppLauncher({ monitor: monitor }) },
-  //   { name: "UserPanel", fn: () => UserPanel({ monitor: monitor }) },
-  //   {
-  //     name: "WallpaperSwitcher",
-  //     fn: () => WallpaperSwitcher({ monitor: monitor }),
-  //   },
-  //   {
-  //     name: "KeyStrokeVisualizer",
-  //     fn: () => KeyStrokeVisualizer(),
-  //   },
-  // ];
-
   return (
-    <For each={monitors}>
-      {(monitor) => (
-        <This this={app}>
-          <Bar monitor={monitor} />
-          <BarHover monitor={monitor} />
-          <RightPanel monitor={monitor} />
-          <RightPanelHover monitor={monitor} />
-          <LeftPanel monitor={monitor} />
-          <LeftPanelHover monitor={monitor} />
-          <NotificationPopups monitor={monitor} />
-          <AppLauncher monitor={monitor} />
-          <UserPanel monitor={monitor} />
-          <WallpaperSwitcher monitor={monitor} />
-          <KeyStrokeVisualizer />
-        </This>
-      )}
-    </For>
+    <box>
+      <For each={monitors}>
+        {(monitor) => (
+          <This this={app}>
+            <Bar
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <BarHover
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <RightPanel
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <RightPanelHover
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <LeftPanel
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <LeftPanelHover
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <NotificationPopups
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <AppLauncher
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <UserPanel
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+            <WallpaperSwitcher
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+          </This>
+        )}
+      </For>
+      <This this={app}>
+        <KeyStrokeVisualizer
+          setup={(self) => onCleanup(() => self.destroy())}
+        />
+      </This>
+    </box>
   );
 };
 

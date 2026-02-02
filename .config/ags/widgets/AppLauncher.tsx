@@ -259,7 +259,7 @@ const Entry = () => (
                   app_icon: "󰋖",
                   app_launch: () =>
                     hyprland.message_async(
-                      `dispatch exec kitty 'bash -c "${text}"'`,
+                      `dispatch exec foot 'bash -c "${text}"'`,
                       () => {},
                     ),
                 },
@@ -381,7 +381,13 @@ const ResultsDisplay = () => {
   );
 };
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => (
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => (
   <Astal.Window
     gdkmonitor={monitor}
     name={`app-launcher-${getMonitorName(monitor)}`}
@@ -392,7 +398,10 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => (
     layer={Astal.Layer.TOP}
     margin={globalMargin} // top right bottom left
     visible={false}
-    $={(self) => (parentWindowRef = self)}
+    $={(self) => {
+      parentWindowRef = self;
+      setup(self);
+    }}
     resizable={false}
   >
     <Gtk.EventControllerKey

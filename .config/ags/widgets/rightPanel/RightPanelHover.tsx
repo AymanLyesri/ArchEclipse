@@ -7,7 +7,13 @@ import { globalSettings, setGlobalSetting } from "../../variables";
 import app from "ags/gtk4/app";
 import { getMonitorName } from "../../utils/monitor";
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   return (
     <window
       name="right-panel-hover"
@@ -22,6 +28,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       layer={Astal.Layer.TOP}
       visible={globalSettings(({ rightPanel }) => !rightPanel.lock)}
       $={(self) => {
+        setup(self);
         const motion = new Gtk.EventControllerMotion();
         motion.connect("enter", () => {
           app.get_window(`right-panel-${getMonitorName(monitor)}`)!.show();

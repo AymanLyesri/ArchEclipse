@@ -61,6 +61,9 @@ export class NotificationWidget {
     if (this.n.desktopEntry)
       return <image class="icon" iconName={this.n.desktopEntry} />;
 
+    if (this.n.urgency === Notifd.Urgency.CRITICAL) {
+      return <image class="icon" iconName={"dialog-warning-symbolic"} />;
+    }
     return <image class="icon" iconName={"dialog-information-symbolic"} />;
   }
 

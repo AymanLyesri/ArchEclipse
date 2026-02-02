@@ -38,7 +38,7 @@ export const customScripts = (): CustomScript[] => [
     app: "hyprmon",
     package: "hyprmon-bin",
     script: () => {
-      hyprland.dispatch("exec", "kitty hyprmon");
+      hyprland.dispatch("exec", "foot hyprmon");
     },
   },
   {
@@ -46,7 +46,7 @@ export const customScripts = (): CustomScript[] => [
     icon: "󰏗",
     description: "Update Packages (pacman)",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e sudo pacman -Syu");
+      hyprland.dispatch("exec", "foot -e sudo pacman -Syu");
     },
   },
   // Clipboard Utilities
@@ -130,7 +130,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Open system monitor",
     app: "btop",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e btop");
+      hyprland.dispatch("exec", "foot -e btop");
     },
   },
 
@@ -201,7 +201,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Pipes Animation",
     app: "pipes.sh",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e pipes.sh");
+      hyprland.dispatch("exec", "foot -e pipes.sh");
     },
   },
   // cava
@@ -211,7 +211,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Audio Visualizer",
     app: "cava",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e cava");
+      hyprland.dispatch("exec", "foot -e cava");
     },
   },
   // cmatrix
@@ -221,7 +221,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Matrix Digital Rain",
     app: "cmatrix",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e cmatrix");
+      hyprland.dispatch("exec", "foot -e cmatrix");
     },
   },
   // asciiquarium
@@ -231,7 +231,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Aquarium Animation",
     app: "asciiquarium",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e asciiquarium");
+      hyprland.dispatch("exec", "foot -e asciiquarium");
     },
   },
 ];

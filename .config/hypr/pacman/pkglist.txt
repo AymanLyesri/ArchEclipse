@@ -91,7 +91,7 @@ hyprsunset
 #|_| |_| |_|\___|\__,_|_|\__,_|
 #  
 swayimg
-kitty
+foot
 light
 grimblast-git
 wf-recorder

@@ -47,16 +47,16 @@ const WidgetActions = () => {
                   setGlobalSetting(
                     "rightPanel.widgets",
                     current.map((w) =>
-                      w.name === widget.name ? { ...w, enabled: true } : w
-                    )
+                      w.name === widget.name ? { ...w, enabled: true } : w,
+                    ),
                   );
                 }
                 if (!active) {
                   setGlobalSetting(
                     "rightPanel.widgets",
                     current.map((w) =>
-                      w.name === widget.name ? { ...w, enabled: false } : w
-                    )
+                      w.name === widget.name ? { ...w, enabled: false } : w,
+                    ),
                   );
                 }
               }}
@@ -80,7 +80,7 @@ const WidgetActions = () => {
                   const index = globalSettings
                     .peek()
                     .rightPanel.widgets.findIndex(
-                      (w) => w.name === widget.name
+                      (w) => w.name === widget.name,
                     );
 
                   if (index === -1) return null;
@@ -117,7 +117,7 @@ const WidgetActions = () => {
 
                   const widgets = globalSettings.peek().rightPanel.widgets;
                   const toIndex = widgets.findIndex(
-                    (w) => w.name === widget.name
+                    (w) => w.name === widget.name,
                   );
 
                   if (toIndex === -1 || fromIndex === toIndex) {
@@ -133,7 +133,7 @@ const WidgetActions = () => {
 
                   setGlobalSetting(
                     "rightPanel.widgets",
-                    moveItem(widgets, fromIndex, toIndex)
+                    moveItem(widgets, fromIndex, toIndex),
                   );
 
                   const windowInstance = (self.get_root() as any)
@@ -169,7 +169,7 @@ const Actions = () => (
       windowWidth={globalSettings(({ rightPanel }) => rightPanel.width)}
       windowSettingKey="rightPanel"
       windowExclusivity={globalSettings(
-        ({ rightPanel }) => rightPanel.exclusivity
+        ({ rightPanel }) => rightPanel.exclusivity,
       )}
       windowLock={globalSettings(({ rightPanel }) => rightPanel.lock)}
     />
@@ -194,7 +194,7 @@ function Panel() {
     return enabled
       .map((w) => {
         const selector = widgetSelectors.find(
-          (selector) => selector.name === w.name
+          (selector) => selector.name === w.name,
         );
         if (selector) {
           return {
@@ -220,7 +220,7 @@ function Panel() {
             try {
               return widget.widget({
                 height: globalSettings(
-                  ({ rightPanel }) => rightPanel.width - 20
+                  ({ rightPanel }) => rightPanel.width - 20,
                 ),
                 className: newWidgetsIndex.includes(index.peek())
                   ? "new-widget"
@@ -237,7 +237,13 @@ function Panel() {
     </box>
   );
 }
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   const monitorName = getMonitorName(monitor);
   return (
     <window
@@ -246,7 +252,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       namespace="right-panel"
       application={App}
       class={globalSettings(({ rightPanel }) =>
-        rightPanel.exclusivity ? "right-panel exclusive" : "right-panel normal"
+        rightPanel.exclusivity ? "right-panel exclusive" : "right-panel normal",
       )}
       anchor={
         Astal.WindowAnchor.TOP |
@@ -256,7 +262,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       exclusivity={globalSettings(({ rightPanel }) =>
         rightPanel.exclusivity
           ? Astal.Exclusivity.EXCLUSIVE
-          : Astal.Exclusivity.NORMAL
+          : Astal.Exclusivity.NORMAL,
       )}
       layer={Astal.Layer.TOP}
       marginTop={5}
@@ -264,6 +270,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       keymode={Astal.Keymode.ON_DEMAND}
       visible={false}
       $={(self) => {
+        setup(self);
         const windowInstance = new Window();
         (self as any).rightPanelWindow = windowInstance;
         (self as any).monitorName = monitorName;
@@ -309,7 +316,7 @@ export function RightPanelVisibility() {
         label={""}
         onToggled={(self) => {
           const rightPanel = app.get_window(
-            `right-panel-${(self.get_root() as any).monitorName}`
+            `right-panel-${(self.get_root() as any).monitorName}`,
           ) as Gtk.Window;
           if (self.active) {
             rightPanel.show();

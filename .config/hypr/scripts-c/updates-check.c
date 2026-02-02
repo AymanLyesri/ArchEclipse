@@ -38,7 +38,7 @@ bool check_pacman_updates()
     {
         char message[256];
         snprintf(message, sizeof(message), "There are %d updates available.", update_count);
-        send_notification("System Update", message, "kitty sudo pacman -Syu");
+        send_notification("System Update", message, "foot sudo pacman -Syu");
         return true;
     }
     return false;
@@ -66,7 +66,7 @@ bool check_git_updates()
     {
         char message[256];
         snprintf(message, sizeof(message), "We are behind by %d commits.", behind);
-        send_notification("Repository Update", message, "kitty git pull");
+        send_notification("Repository Update", message, "foot git pull");
         return true;
     }
     return false;
@@ -74,12 +74,8 @@ bool check_git_updates()
 
 int main()
 {
-    do
-    {
-        check_pacman_updates();
-        check_git_updates();
-        sleep(CHECK_INTERVAL);
-    } while (1);
+    check_pacman_updates();
+    check_git_updates();
 
     return 0;
 }

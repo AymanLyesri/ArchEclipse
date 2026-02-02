@@ -14,7 +14,9 @@
 # Include hyprland config
 !.config/hypr/
 # Include kitty config
-!.config/kitty/
+# !.config/kitty/
+# include foot config
+!.config/foot/
 # include ranger config
 !.config/ranger/
 # include btop config

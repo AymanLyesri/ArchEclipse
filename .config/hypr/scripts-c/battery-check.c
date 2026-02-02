@@ -45,25 +45,18 @@ void send_notification(const char *title, const char *message)
 
 int main()
 {
-    do
+    int percentage = get_battery_percentage();
+    bool charging = is_charging();
+
+    if (percentage > 0 &&
+        percentage <= LOW_BATTERY_THRESHOLD &&
+        !charging)
     {
-        int percentage = get_battery_percentage();
-
-        if (percentage > 0 && percentage <= LOW_BATTERY_THRESHOLD && !is_charging())
-        {
-            printf("Battery percentage: %d%%\n", percentage);
-
-            printf("Charging status: %s\n", is_charging() ? "Charging" : "Not Charging");
-            
-            while (!is_charging())
-            {
-                send_notification("Battery Low!",
-                                  "Please plug in your charger.");
-                sleep(ALERT_INTERVAL);
-            }
-        }
-        sleep(CHECK_INTERVAL);
-    } while (1);
+        send_notification(
+            "Battery Low!",
+            "Please plug in your charger."
+        );
+    }
 
     return 0;
 }

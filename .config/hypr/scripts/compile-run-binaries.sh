@@ -1,17 +1,26 @@
-RAM_DIR=/dev/shm                         # RAM directory
-scriptsDirC=$HOME/.config/hypr/scripts-c # c scripts directory
+#!/bin/bash
 
-gcc $scriptsDirC/battery-loop.c -o $RAM_DIR/battery-loop
-gcc $scriptsDirC/updates-loop.c -o $RAM_DIR/updates-loop
-gcc $scriptsDirC/posture-loop.c -o $RAM_DIR/posture-loop
-gcc $scriptsDirC/hyprpaper-loop.c -o $RAM_DIR/hyprpaper-loop
+BIN_DIR=/tmp
+SRC=$HOME/.config/hypr/scripts-c
 
-$RAM_DIR/battery-loop &
-$RAM_DIR/updates-loop &
-$RAM_DIR/posture-loop &
-$RAM_DIR/hyprpaper-loop &
+mkdir -p "$BIN_DIR"
 
-rm $RAM_DIR/battery-loop
-rm $RAM_DIR/updates-loop
-rm $RAM_DIR/posture-loop
-rm $RAM_DIR/hyprpaper-loop
+gcc "$SRC/battery-check.c"   -o "$BIN_DIR/battery-check"
+gcc "$SRC/updates-check.c"   -o "$BIN_DIR/updates-check"
+gcc "$SRC/posture-check.c"   -o "$BIN_DIR/posture-check"
+gcc "$SRC/hyprpaper-loop.c"  -o "$BIN_DIR/hyprpaper-loop"
+
+pkill -f "hyprpaper-loop"
+
+"$BIN_DIR/hyprpaper-loop" &
+
+(crontab -l 2>/dev/null | grep -v "$BIN_DIR"; \
+    echo "*/10  * * * * $BIN_DIR/battery-check"; \
+    echo "0    * * * * $BIN_DIR/updates-check"; \
+echo "0    * * * * $BIN_DIR/posture-check") | crontab -
+
+# Run immediately once
+/tmp/battery-check
+/tmp/updates-check
+/tmp/posture-check
+

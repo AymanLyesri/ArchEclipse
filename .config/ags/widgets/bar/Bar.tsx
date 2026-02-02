@@ -19,7 +19,13 @@ import { RightPanelVisibility } from "../rightPanel/RightPanel";
 import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
 import app from "ags/gtk4/app";
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   const monitorName = getMonitorName(monitor)!;
 
   return (
@@ -50,6 +56,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
         },
       )}
       $={(self) => {
+        setup(self);
         (self as any).monitorName = monitorName;
         const motion = new Gtk.EventControllerMotion();
         motion.connect("leave", () => {

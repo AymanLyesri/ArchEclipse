@@ -96,7 +96,13 @@ function Panel() {
   );
 }
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   const monitorName = getMonitorName(monitor);
   return (
     <window
@@ -123,6 +129,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       marginBottom={5}
       visible={false}
       $={(self) => {
+        setup(self);
         let hideTimeout: Timer | null = null;
         const windowInstance = new Window();
         (self as any).leftPanelWindow = windowInstance;

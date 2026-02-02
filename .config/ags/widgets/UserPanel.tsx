@@ -252,7 +252,13 @@ const UserPanel = () => {
   );
 };
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   const monitorName = getMonitorName(monitor)!;
   return (
     <window
@@ -265,6 +271,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
       $={(self) => {
+        setup(self);
         (self as any).monitorName = monitorName;
         const key = new Gtk.EventControllerKey();
         key.connect("key-pressed", (controller, keyval) => {

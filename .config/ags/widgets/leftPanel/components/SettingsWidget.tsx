@@ -58,7 +58,7 @@ const fileManagerOptions = [
   { id: "dolphin", name: "Dolphin (KDE)", command: "dolphin" },
   { id: "nemo", name: "Nemo (Cinnamon)", command: "nemo" },
   { id: "pcmanfm", name: "PCManFM", command: "pcmanfm" },
-  { id: "ranger", name: "Ranger (Terminal)", command: "kitty ranger" },
+  { id: "ranger", name: "Ranger (Terminal)", command: "foot ranger" },
 ];
 
 // Detect installed file managers

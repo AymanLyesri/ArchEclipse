@@ -475,7 +475,13 @@ function Display() {
   );
 }
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   const monitorName = getMonitorName(monitor)!;
   return (
     <window
@@ -493,6 +499,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
         Astal.WindowAnchor.RIGHT
       }
       $={async (self) => {
+        setup(self);
         (self as any).monitorName = monitorName;
         FetchWallpapers();
         FetchCurrentWallpapers(monitorName);

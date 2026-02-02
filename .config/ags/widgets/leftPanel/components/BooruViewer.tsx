@@ -26,6 +26,8 @@ const [progressStatus, setProgressStatus] = createState<
 const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 
 const [selectedTab, setSelectedTab] = createState<string>("");
+const [scrolledWindow, setScrolledWindow] =
+  createState<Gtk.ScrolledWindow | null>(null);
 
 const calculateCacheSize = async () =>
   execAsync(
@@ -251,6 +253,7 @@ const Images = () => {
       hexpand
       vexpand
       $={async (self) => {
+        setScrolledWindow(self);
         images.subscribe(() => {
           const vadjustment = self.get_vadjustment();
           vadjustment.set_value(0);
@@ -611,12 +614,7 @@ const Bottom = () => {
 
   // action box (previous, revealer, next)
   const actions = (
-    <box
-      class="actions"
-      spacing={5}
-      // halign={Gtk.Align.CENTER}
-      // orientation={Gtk.Orientation.VERTICAL}
-    >
+    <box class="actions" spacing={5}>
       <button
         label=""
         onClicked={() => {
@@ -634,9 +632,7 @@ const Bottom = () => {
         onClicked={(self) => {
           setBottomIsRevealed(!bottomIsRevealed.get());
         }}
-        tooltipText={bottomIsRevealed((revealed) =>
-          revealed ? "KEY-DOWN" : "KEY-UP",
-        )}
+        tooltipText={"SHIFT"}
       />
       <button
         label=""
@@ -671,12 +667,36 @@ export default () => {
       $={async (self) => {
         const keyController = new Gtk.EventControllerKey();
         keyController.connect("key-pressed", (_, keyval: number) => {
-          if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {
-            setBottomIsRevealed(true);
+          // shift to reveal/hide bottom
+          if (keyval === Gdk.KEY_Shift_L || keyval === Gdk.KEY_Shift_R) {
+            setBottomIsRevealed(!bottomIsRevealed.get());
             return true;
           }
-          if (keyval === Gdk.KEY_Down && bottomIsRevealed.get()) {
-            setBottomIsRevealed(false);
+          // scroll up
+          if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {
+            const sw = scrolledWindow.get();
+            if (sw) {
+              const vadjustment = sw.get_vadjustment();
+              const currentValue = vadjustment.get_value();
+              const pageSize = vadjustment.get_page_size();
+              vadjustment.set_value(
+                Math.max(0, currentValue - pageSize * 0.15),
+              );
+            }
+            return true;
+          }
+          // scroll down
+          if (keyval === Gdk.KEY_Down && !bottomIsRevealed.get()) {
+            const sw = scrolledWindow.get();
+            if (sw) {
+              const vadjustment = sw.get_vadjustment();
+              const currentValue = vadjustment.get_value();
+              const pageSize = vadjustment.get_page_size();
+              const maxValue = vadjustment.get_upper() - pageSize;
+              vadjustment.set_value(
+                Math.min(maxValue, currentValue + pageSize * 0.15),
+              );
+            }
             return true;
           }
           if (keyval === Gdk.KEY_Right) {

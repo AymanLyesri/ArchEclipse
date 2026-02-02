@@ -1,72 +1,73 @@
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
+    "type": "sixel",
     "padding": {
       "top": 1,
       "left": 1,
-      "right": 1
-    }
+      "right": 1,
+    },
   },
   "display": {
-    "separator": "  "
+    "separator": "  ",
   },
   "modules": [
     // Title
     {
       "type": "title",
-      "format": "{#1}╭───────────── {#}{user-name-colored}"
+      "format": "{#1}╭───────────── {#}{user-name-colored}",
     },
     // System Information
     {
       "type": "custom",
-      "format": "{#1}│ {#}System Information"
+      "format": "{#1}│ {#}System Information",
     },
     {
       "type": "os",
-      "key": "{#separator}│  {#keys}󰍹 OS"
+      "key": "{#separator}│  {#keys}󰍹 OS",
     },
     {
       "type": "kernel",
-      "key": "{#separator}│  {#keys}󰒋 Kernel"
+      "key": "{#separator}│  {#keys}󰒋 Kernel",
     },
     {
       "type": "uptime",
-      "key": "{#separator}│  {#keys}󰅐 Uptime"
+      "key": "{#separator}│  {#keys}󰅐 Uptime",
     },
     {
       "type": "packages",
       "key": "{#separator}│  {#keys}󰏖 Packages",
-      "format": "{all}"
+      "format": "{all}",
     },
     {
       "type": "custom",
-      "format": "{#1}│"
+      "format": "{#1}│",
     },
     // Desktop Environment
     {
       "type": "custom",
-      "format": "{#1}│ {#}Desktop Environment"
+      "format": "{#1}│ {#}Desktop Environment",
     },
     {
       "type": "de",
-      "key": "{#separator}│  {#keys}󰧨 DE"
+      "key": "{#separator}│  {#keys}󰧨 DE",
     },
     {
       "type": "custom",
       "key": "{#separator}│  {#keys}󱡓 Configuration",
-      "format": "ArchEclipse"
+      "format": "ArchEclipse",
     },
     {
       "type": "wm",
-      "key": "{#separator}│  {#keys}󱂬 WM"
+      "key": "{#separator}│  {#keys}󱂬 WM",
     },
     {
       "type": "wmtheme",
-      "key": "{#separator}│  {#keys}󰉼 Theme"
+      "key": "{#separator}│  {#keys}󰉼 Theme",
     },
     {
       "type": "display",
-      "key": "{#separator}│  {#keys}󰹑 Resolution"
+      "key": "{#separator}│  {#keys}󰹑 Resolution",
     },
     // {
     //   "type": "shell",
@@ -78,48 +79,48 @@
     // },
     {
       "type": "custom",
-      "format": "{#1}│"
+      "format": "{#1}│",
     },
     // Hardware Information
     {
       "type": "custom",
-      "format": "{#1}│ {#}Hardware Information"
+      "format": "{#1}│ {#}Hardware Information",
     },
     {
       "type": "cpu",
-      "key": "{#separator}│  {#keys}󰻠 CPU"
+      "key": "{#separator}│  {#keys}󰻠 CPU",
     },
     {
       "type": "gpu",
-      "key": "{#separator}│  {#keys}󰢮 GPU"
+      "key": "{#separator}│  {#keys}󰢮 GPU",
     },
     {
       "type": "memory",
-      "key": "{#separator}│  {#keys}󰍛 Memory"
+      "key": "{#separator}│  {#keys}󰍛 Memory",
     },
     {
       "type": "disk",
       "key": "{#separator}│  {#keys}󰋊 Disk (/)",
-      "folders": "/"
+      "folders": "/",
     },
     {
       "type": "custom",
-      "format": "{#1}│"
+      "format": "{#1}│",
     },
     {
       "type": "custom",
-      "format": "{#1}│ Ctrl + F to run fastfetch"
+      "format": "{#1}│ Ctrl + F to run fastfetch",
     },
     // Colors
     {
       "type": "colors",
       "key": "{#separator}│",
-      "symbol": "circle"
+      "symbol": "circle",
     },
     // Footer
     {
       "type": "custom",
-      "format": "{#1}╰───────────────────────────────╯"
-    }
-  ]
+      "format": "{#1}╰───────────────────────────────╯",
+    },
+  ],
 }

@@ -8,7 +8,13 @@ import app from "ags/gtk4/app";
 import { getMonitorName } from "../../utils/monitor";
 import { showWindow } from "../../utils/window";
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   return (
     <window
       name="left-panel-hover"
@@ -23,6 +29,7 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
       layer={Astal.Layer.TOP}
       visible={globalSettings(({ leftPanel }) => !leftPanel.lock)}
       $={(self) => {
+        setup(self);
         const motion = new Gtk.EventControllerMotion();
         motion.connect("enter", () => {
           showWindow(`left-panel-${getMonitorName(monitor)}`);

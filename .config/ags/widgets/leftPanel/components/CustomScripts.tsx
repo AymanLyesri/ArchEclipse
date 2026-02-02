@@ -90,7 +90,7 @@ export default () => {
                     then paru -S ${pkg}; 
                     else pacman -S ${pkg}; 
                   fi'`;
-                  execAsync(`kitty -e ${cmd}`)
+                  execAsync(`foot -e ${cmd}`)
                     .then(() => {
                       setCustomScripts(customScripts());
                     })

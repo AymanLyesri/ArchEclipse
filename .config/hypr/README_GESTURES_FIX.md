@@ -7,6 +7,7 @@ This branch (`hyprland-0.51.0-gestures-fix`) addresses compatibility issues with
 ## Problem
 
 In Hyprland 0.51.0+, the following configuration options were deprecated and removed:
+
 - `workspace_swipe`
 - `workspace_swipe_fingers`
 - `workspace_swipe_distance`
@@ -21,16 +22,18 @@ Using these options in `general.conf` causes configuration errors.
 ## Solution
 
 ### 1. Updated `configs/general.conf`
+
 - Commented out the deprecated `gestures` section
 - Added comprehensive documentation explaining the change
 - Preserved original configuration as comments for reference
 - Included links to relevant Hyprland documentation
 
 ### 2. Updated `configs/keybinds.conf`
+
 - Added new gesture binds using the updated syntax:
   ```
   gesture = 3, horizontal, workspace
-  gesture = 3, down, dispatcher, exec, kitty
+  gesture = 3, down, dispatcher, exec, foot
   gesture = 4, up, dispatcher, fullscreen
   ```
 

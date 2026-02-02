@@ -7,7 +7,13 @@ import { createComputed } from "ags";
 import app from "ags/gtk4/app";
 import { getMonitorName } from "../../utils/monitor";
 
-export default ({ monitor }: { monitor: Gdk.Monitor }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   return (
     <window
       name="bar-hover"
@@ -20,12 +26,13 @@ export default ({ monitor }: { monitor: Gdk.Monitor }) => {
             Astal.WindowAnchor.RIGHT
           : Astal.WindowAnchor.BOTTOM |
             Astal.WindowAnchor.LEFT |
-            Astal.WindowAnchor.RIGHT
+            Astal.WindowAnchor.RIGHT,
       )}
       exclusivity={Astal.Exclusivity.IGNORE}
       visible={globalSettings(({ bar }) => !bar.lock)}
       layer={Astal.Layer.TOP}
       $={(self) => {
+        setup(self);
         const motion = new Gtk.EventControllerMotion();
         motion.connect("enter", () => {
           app.get_window(`bar-${getMonitorName(monitor)}`)!.show();
