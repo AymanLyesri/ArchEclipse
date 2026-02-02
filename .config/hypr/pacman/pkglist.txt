@@ -116,6 +116,7 @@ python-pywal
 fastfetch
 starship
 gtk4
+libadwaita
 gnome-themes-extra
 gvfs
 hyprlock
