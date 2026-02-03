@@ -15,6 +15,7 @@ p7zip
 wl-clipboard
 lsd
 tgpt-git
+nautilus
 
 # ____                 _                                  _   
 #|  _ \  _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_ 
