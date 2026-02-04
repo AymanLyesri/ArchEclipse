@@ -1,6 +1,17 @@
 #!/bin/bash
 
 ################################################################
+# User confirmation
+################################################################
+
+read -p "You will begin the update process. Do you want to proceed? (y/n) " -n 1 -r
+echo    # Move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Action cancelled."
+    exit 0
+fi
+
+################################################################
 # Counter for Updates
 ################################################################
 

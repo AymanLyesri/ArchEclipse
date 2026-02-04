@@ -15,6 +15,7 @@ p7zip
 wl-clipboard
 lsd
 tgpt-git
+cron
 
 # ____                 _                                  _   
 #|  _ \  _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_ 
@@ -75,8 +76,6 @@ pipewire
 brightnessctl
 hyprcursor
 hyprland
-hypridle
-hyprsunset
 
 #    _             _ _                _     _                               _ 
 #   / \  _   _  __| (_) ___    __   _(_) __| | ___  ___      __ _ _ __   __| |
@@ -121,6 +120,7 @@ gnome-themes-extra
 gvfs
 hyprlock
 hyprpaper
+hyprpolkitagent
 ttf-jetbrains-mono-nerd
 noto-fonts-emoji
 phinger-cursors
