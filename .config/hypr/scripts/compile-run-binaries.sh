@@ -15,7 +15,7 @@ pkill -f "hyprpaper-loop"
 "$BIN_DIR/hyprpaper-loop" &
 
 (crontab -l 2>/dev/null | grep -v "$BIN_DIR"; \
-    echo "*/10  * * * * $BIN_DIR/battery-check"; \
+    echo "*/5  * * * * $BIN_DIR/battery-check"; \
     echo "0    * * * * $BIN_DIR/updates-check"; \
 echo "0    * * * * $BIN_DIR/posture-check") | crontab -
 

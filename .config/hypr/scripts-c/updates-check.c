@@ -5,16 +5,29 @@
 #include <stdbool.h>
 
 // 5 hour in seconds
-#define CHECK_INTERVAL (5 * 60 * 60)
 #define MAX_UPDATES 1000
 
-void send_notification(const char *title, const char *message, const char *action)
+void send_notification(const char *title, const char *message, const char *action_title, const char *action)
 {
     char command[512];
     snprintf(command, sizeof(command),
-             "notify-send \"%s\" \"%s\" --hint=string:actions:'[[\"%s\", \"%s\"]]'",
-             title, message, action, action);
-    system(command);
+             "notify-send \"%s\" \"%s\" --action=\"update=%s\"",
+             title, message, action_title);
+    
+    FILE *fp = popen(command, "r");
+    if (!fp)
+        return;
+    
+    char response[64];
+    if (fgets(response, sizeof(response), fp))
+    {
+        // If user clicked the action button, execute the command
+        if (strstr(response, "update"))
+        {
+            system(action);
+        }
+    }
+    pclose(fp);
 }
 
 bool check_pacman_updates()
@@ -38,7 +51,7 @@ bool check_pacman_updates()
     {
         char message[256];
         snprintf(message, sizeof(message), "There are %d updates available.", update_count);
-        send_notification("System Update", message, "foot sudo pacman -Syu");
+        send_notification("System Update", message, "Update Now", "foot sudo pacman -Syu");
         return true;
     }
     return false;
@@ -66,7 +79,7 @@ bool check_git_updates()
     {
         char message[256];
         snprintf(message, sizeof(message), "We are behind by %d commits.", behind);
-        send_notification("Repository Update", message, "foot git pull");
+        send_notification("Repository Update", message, "Pull Changes", "foot update");
         return true;
     }
     return false;
