@@ -180,6 +180,7 @@ export const customScripts = (): CustomScript[] => [
     icon: "",
     description: "Spotify Client (lightweight - downloaded music)",
     app: "spotube",
+    package: "spotube-bin",
     script: () => {
       hyprland.dispatch("exec", "spotube");
     },

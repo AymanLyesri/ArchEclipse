@@ -392,7 +392,17 @@ const Setting = ({
                   for (const key of keys) {
                     current = current[key];
                   }
-                  return current.value === choice.value;
+                  // compare current value with choice value (in case of array, compare arrays)
+                  return (
+                    current.value === choice.value ||
+                    (Array.isArray(current.value) &&
+                      Array.isArray(choice.value) &&
+                      current.value.length === choice.value.length &&
+                      current.value.every(
+                        (val: any, index: number) =>
+                          val === choice.value[index],
+                      ))
+                  );
                 })}
                 onToggled={({ active }) => {
                   if (active) {
