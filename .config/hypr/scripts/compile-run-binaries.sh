@@ -14,6 +14,22 @@ pkill -f "hyprpaper-loop"
 
 "$BIN_DIR/hyprpaper-loop" &
 
+# Check if cronie is running
+if ! systemctl is-active --quiet cronie; then
+    
+    ACTION=$(notify-send \
+        --app-name="Hypr Scripts" \
+        --action="enable:Enable Cronie" \
+        --expire-time=0 \
+        "Cronie not running" \
+    "Cron jobs will not execute")
+    
+    # If user pressed the button
+    if [ "$ACTION" = "enable" ]; then
+        pkexec systemctl enable --now cronie
+    fi
+fi
+
 (crontab -l 2>/dev/null | grep -v "$BIN_DIR"; \
     echo "*/5  * * * * $BIN_DIR/battery-check"; \
     echo "0    * * * * $BIN_DIR/updates-check"; \

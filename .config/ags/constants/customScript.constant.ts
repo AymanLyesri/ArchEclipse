@@ -174,14 +174,14 @@ export const customScripts = (): CustomScript[] => [
       hyprland.dispatch("exec", "code");
     },
   },
-  // spotify
+  // spotube
   {
-    name: "Spotify",
+    name: "Spotube",
     icon: "",
-    description: "Music Streaming",
-    app: "spotify-launcher",
+    description: "Spotify Client (lightweight - downloaded music)",
+    app: "spotube",
     script: () => {
-      hyprland.dispatch("exec", "spotify-launcher");
+      hyprland.dispatch("exec", "spotube");
     },
   },
   // steam
