@@ -4,7 +4,9 @@ import AstalApps from "gi://AstalApps";
 import { execAsync } from "ags/process";
 import { notify } from "./notification";
 import Picture from "../widgets/Picture";
-import { Accessor, createState } from "gnim";
+import { Accessor, createBinding, createState, With } from "gnim";
+import { timeout } from "ags/time";
+import { phi } from "../constants/phi.constants";
 
 const apps = new AstalApps.Apps();
 const hyprland = Hyprland.get_default();
@@ -98,35 +100,61 @@ const renderNode = (node: Node): Gtk.Widget => {
   ) as Gtk.Widget;
 };
 
+// Store layout state per client to track changes
+const layoutCache = new Map<number, string>();
+
+function getClientLayoutHash(client: Hyprland.Client): string {
+  // Create a hash of the client's geometry
+  return `${client.x},${client.y},${client.width},${client.height}`;
+}
+
 function screenshotClient(client: Hyprland.Client): Accessor<string> {
   const [screenshot, setScreenshot] = createState<string>(``);
+  const screenshotPath = `/tmp/ags_screenshot_${client.pid}.png`;
+
   // check if workspace is focused before taking screenshot, if not return placeholder
   if (client.workspace.id !== hyprland.focusedWorkspace.id) {
-    setScreenshot(`/tmp/ags_screenshot_${client.pid}.png`);
+    setScreenshot(screenshotPath);
     return screenshot;
   }
 
-  // Build geometry safely
-  const x = Math.max(0, client.x);
-  const y = Math.max(0, client.y);
-  const w = Math.max(50, client.width);
-  const h = Math.max(50, client.height);
+  // Get current layout hash
+  const currentLayout = getClientLayoutHash(client);
+  const cachedLayout = layoutCache.get(client.pid);
 
-  const geom = `${x},${y} ${w}x${h}`;
+  // Only take screenshot if layout has changed or no screenshot exists
+  if (cachedLayout === currentLayout) {
+    // Layout hasn't changed, use existing screenshot
+    setScreenshot(screenshotPath);
+    return screenshot;
+  }
 
-  execAsync(
-    // IMPORTANT: geometry must be inside quotes
-    `bash -c "sleep 0.5 && grim -g '${geom}' '/tmp/ags_screenshot_${client.pid}.png'"`,
-  )
-    .then(() => {
-      setScreenshot(`/tmp/ags_screenshot_${client.pid}.png`);
-    })
-    .catch((e) => {
-      notify({
-        summary: "Screenshot Error",
-        body: `Failed to take screenshot for ${client.class}\n${geom}\n${e}`,
-      });
-    });
+  timeout(300, () => {
+    if (client.workspace.id == hyprland.focusedWorkspace.id) {
+      // Build geometry safely
+      const x = Math.max(0, client.x);
+      const y = Math.max(0, client.y);
+      const w = Math.max(50, client.width);
+      const h = Math.max(50, client.height);
+
+      const geom = `${x},${y} ${w}x${h}`;
+      execAsync(
+        // IMPORTANT: geometry must be inside quotes
+        `bash -c "grim -g '${geom}' - | convert - -resize 35% -quality 60 -strip '${screenshotPath}'"`,
+      )
+        .then(() => {
+          setScreenshot(screenshotPath);
+          // Update cache with new layout
+          layoutCache.set(client.pid, getClientLayoutHash(client));
+        })
+        .catch((e) => {
+          notify({
+            summary: "Screenshot Error",
+            body: `Failed to take screenshot for ${client.class}\n${geom}\n${e}`,
+          });
+        });
+    }
+  });
 
   return screenshot;
 }
@@ -134,14 +162,23 @@ function screenshotClient(client: Hyprland.Client): Accessor<string> {
 export const workspaceClientLayout = (id: number): Gtk.Widget => {
   const ws = hyprland.get_workspaces().find((w) => w.id === id);
 
-  if (!ws || ws.get_clients().length === 0)
+  if (!ws)
     return (
       <label label={"empty"} class="workspace-client-layout"></label>
     ) as Gtk.Widget;
 
-  const tree = buildTree([...ws.get_clients()]);
-
   return (
-    <box class="workspace-client-layout">{renderNode(tree)}</box>
+    <box class="workspace-client-layout">
+      <With value={createBinding(ws, "clients")}>
+        {(clients: Hyprland.Client[]) => {
+          if (clients.length === 0) {
+            return (
+              <label label={"empty"} class="workspace-client-layout"></label>
+            ) as Gtk.Widget;
+          }
+          return renderNode(buildTree(clients));
+        }}
+      </With>
+    </box>
   ) as Gtk.Widget;
 };
