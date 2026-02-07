@@ -7,6 +7,7 @@ import { hideWindow, showWindow } from "../../../utils/window";
 import { For } from "ags";
 import { Accessor } from "ags";
 import app from "ags/gtk4/app";
+import { workspaceClientLayout } from "../../../utils/workspace";
 
 const hyprland = Hyprland.get_default();
 
@@ -124,8 +125,34 @@ function Workspaces() {
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
         }
-        // tooltipMarkup={`switch to workspace ${id} [${client_class}]`}
-        tooltipMarkup={`Workspace ${id} [${client_class}]\n<b>SUPER + ${id}</b>`}
+        $={(self) => {
+          // --- POPOVER ---
+          const popover = new Gtk.Popover({
+            has_arrow: true,
+            position: Gtk.PositionType.BOTTOM,
+
+            // THIS is the important part
+            autohide: false,
+          });
+
+          popover.set_child(workspaceClientLayout(id));
+
+          // popover must have a parent in GTK4
+          popover.set_parent(self);
+
+          // --- HOVER LOGIC ---
+          const motion = new Gtk.EventControllerMotion();
+
+          motion.connect("enter", () => {
+            popover.show(); // not popup()
+          });
+
+          motion.connect("leave", () => {
+            popover.hide(); // not popdown()
+          });
+
+          self.add_controller(motion);
+        }}
       />
     );
   };

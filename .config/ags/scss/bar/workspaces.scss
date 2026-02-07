@@ -1,4 +1,16 @@
 .workspaces {
+  .workspace-client-layout {
+    @include module;
+    // padding: 0px;
+    .workspace-client {
+      @include button;
+      padding: 0px;
+      .image {
+        opacity: 0.8;
+      }
+    }
+  }
+
   .special {
     &.active {
       @include button-checked;
