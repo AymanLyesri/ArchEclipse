@@ -1,4 +1,4 @@
-import { Gtk } from "ags/gtk4";
+import { Gdk, Gtk } from "ags/gtk4";
 import Hyprland from "gi://AstalHyprland";
 import AstalApps from "gi://AstalApps";
 import { execAsync } from "ags/process";
@@ -7,6 +7,7 @@ import Picture from "../widgets/Picture";
 import { Accessor, createBinding, createState, With } from "gnim";
 import { timeout } from "ags/time";
 import { phi } from "../constants/phi.constants";
+import GObject from "ags/gobject";
 
 const apps = new AstalApps.Apps();
 const hyprland = Hyprland.get_default();
@@ -74,15 +75,69 @@ const renderNode = (node: Node): Gtk.Widget => {
   if (node.type === "leaf") {
     const [app] = apps.exact_query(node.client.class);
     const icon = app?.iconName || "application-x-executable";
+    const image = (
+      <image $type="overlay" iconName={icon} hexpand vexpand />
+    ) as Gtk.Widget;
 
     return (
-      <overlay class="workspace-client">
+      <overlay
+        class="workspace-client"
+        tooltipMarkup={"<b>Hold to drag</b>\n" + node.client.class}
+        $={(self) => {
+          /* ---------- Drag source ---------- */
+          const dragSource = new Gtk.DragSource({
+            actions: Gdk.DragAction.MOVE,
+          });
+
+          dragSource.connect("drag-begin", (source) => {
+            // Get icon from theme
+            const iconTheme = Gtk.IconTheme.get_for_display(
+              self.get_display()!,
+            );
+            const iconPaintable = iconTheme.lookup_icon(
+              icon,
+              null,
+              24,
+              1,
+              Gtk.TextDirection.NONE,
+              0,
+            );
+            if (iconPaintable) {
+              source.set_icon(iconPaintable, 24, 24);
+            }
+          });
+
+          dragSource.connect("prepare", () => {
+            print("DRAG SOURCE PREPARE");
+
+            const value = new GObject.Value();
+            value.init(GObject.TYPE_INT);
+            value.set_int(node.client.pid);
+
+            print("dragging PID:", node.client.pid);
+
+            return Gdk.ContentProvider.new_for_value(value);
+          });
+
+          dragSource.connect("drag-end", () => {});
+
+          self.add_controller(dragSource);
+        }}
+      >
+        {/* <Gtk.GestureClick
+          onPressed={() => {
+            hyprland.message_async(
+              `dispatch workspace ${node.client.workspace.id}`,
+              () => {},
+            );
+          }}
+        /> */}
         <Picture
           file={screenshotClient(node.client)}
           height={node.client.height / 7}
           width={node.client.width / 7}
         />
-        <image $type="overlay" iconName={icon} hexpand vexpand />
+        {image}
       </overlay>
     ) as Gtk.Widget;
   }

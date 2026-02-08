@@ -8,6 +8,9 @@ import { For } from "ags";
 import { Accessor } from "ags";
 import app from "ags/gtk4/app";
 import { workspaceClientLayout } from "../../../utils/workspace";
+import { timeout, Timer } from "ags/time";
+import { Gdk } from "ags/gtk4";
+import GObject from "ags/gobject";
 
 const hyprland = Hyprland.get_default();
 
@@ -137,25 +140,24 @@ function Workspaces() {
           popover.set_parent(self);
 
           // --- HOVER LOGIC ---
-          let hideTimeout: number | null = null;
+          let hideTimeout: Timer;
 
           // Button hover controller
           const buttonMotion = new Gtk.EventControllerMotion();
 
           buttonMotion.connect("enter", () => {
             if (hideTimeout) {
-              clearTimeout(hideTimeout);
-              hideTimeout = null;
+              hideTimeout.cancel();
             }
             popover.show();
           });
 
           buttonMotion.connect("leave", () => {
             // Delay hiding to allow moving to popover
-            hideTimeout = setTimeout(() => {
+            hideTimeout = timeout(50, () => {
               popover.hide();
-              hideTimeout = null;
-            }, 50) as any;
+              hideTimeout.cancel();
+            });
           });
 
           self.add_controller(buttonMotion);
@@ -165,8 +167,7 @@ function Workspaces() {
 
           popoverMotion.connect("enter", () => {
             if (hideTimeout) {
-              clearTimeout(hideTimeout);
-              hideTimeout = null;
+              hideTimeout.cancel();
             }
           });
 
@@ -175,6 +176,27 @@ function Workspaces() {
           });
 
           popover.add_controller(popoverMotion);
+
+          /* ---------- Drop target ---------- */
+          const dropTarget = new Gtk.DropTarget({
+            actions: Gdk.DragAction.MOVE,
+          });
+
+          dropTarget.set_gtypes([GObject.TYPE_INT]);
+
+          dropTarget.connect("drop", (_, value: number) => {
+            print("DROP TARGET DROP");
+            const pid = value;
+            print("dropped PID:", pid);
+            hyprland.message_async(
+              `dispatch movetoworkspacesilent ${id}, pid:${pid}`,
+              () => {},
+            );
+
+            return true;
+          });
+
+          self.add_controller(dropTarget);
         }}
       />
     );
@@ -305,6 +327,28 @@ const Special = () => (
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
     }
     tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
+    $={(self) => {
+      /* ---------- Drop target ---------- */
+      const dropTarget = new Gtk.DropTarget({
+        actions: Gdk.DragAction.MOVE,
+      });
+
+      dropTarget.set_gtypes([GObject.TYPE_INT]);
+
+      dropTarget.connect("drop", (_, value: number) => {
+        print("DROP TARGET DROP");
+        const pid = value;
+        print("dropped PID:", pid);
+        hyprland.message_async(
+          `dispatch movetoworkspacesilent special, pid:${pid}`,
+          () => {},
+        );
+
+        return true;
+      });
+
+      self.add_controller(dropTarget);
+    }}
   />
 );
 

@@ -401,6 +401,13 @@ export default ({
     $={(self) => {
       parentWindowRef = self;
       setup(self);
+
+      // focus on visible
+      self.connect("notify::visible", () => {
+        if (self.visible) {
+          entryWidget.grab_focus();
+        }
+      });
     }}
     resizable={false}
   >

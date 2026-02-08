@@ -3,17 +3,42 @@
     @include module;
     // padding: 0px;
     .workspace-client {
-      @include button;
+      // @include button;
       padding: 0px;
+      &:hover {
+        animation: grab-shake 0.2s ease-out;
+      }
       .image {
         opacity: 0.8;
       }
     }
   }
 
+  @keyframes grab-shake {
+    0% {
+      transform: translate(0, 0);
+    }
+    25% {
+      transform: translate(5px, 0);
+    }
+    50% {
+      transform: translate(0, 0);
+    }
+    75% {
+      transform: translate(-5px, 0);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+
   .special {
     &.active {
       @include button-checked;
+    }
+    &:drop(active) {
+      background-color: $tertiary;
+      animation: grab-rotate infinite 0.2s ease-out;
     }
   }
   .actions {
@@ -60,6 +85,11 @@
     button {
       background: transparent;
       transition: all 0.3s ease;
+
+      &:drop(active) {
+        background-color: $tertiary;
+        animation: grab-rotate infinite 0.2s ease-out;
+      }
 
       /**
        * ===== FOCUS STATES =====
