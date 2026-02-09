@@ -3,7 +3,6 @@ source $HOME/.config/hypr/maintenance/ESSENTIALS.sh # source the essentials file
 
 # List of URLs
 urls=(
-    "https://cdn.donmai.us/original/51/25/__burnice_white_luciana_de_montefio_and_piper_wheel_zenless_zone_zero_drawn_by_hakusama233__5125aa4e807eea5df772929b2f1cd401.png"
     "https://cdn.donmai.us/original/bc/66/__dehya_genshin_impact_drawn_by_xude__bc66c4b2ab9ac2c0e4c62cb0e59e0cd0.jpg"
     "https://cdn.donmai.us/original/df/37/__eula_genshin_impact_drawn_by_swkl_d__df37376cf347fd5ba6fc397ec7a0e00b.jpg"
     "https://cdn.donmai.us/original/28/51/__eula_genshin_impact_drawn_by_the_what_sa__2851e14012f4bf512ac33fe8df2f2df1.jpg"
@@ -44,18 +43,12 @@ urls=(
     "https://cdn.donmai.us/original/e5/39/__original_drawn_by_johnblack__e5391290da53bff7203cb4f21cbc4387.jpg"
     "https://cdn.donmai.us/original/0c/b9/__oshino_shinobu_monogatari_drawn_by_mika_pikazo__0cb93c971cdc7962d2aa8e313d76e649.jpg"
     "https://cdn.donmai.us/original/b3/f3/__yamamura_sadako_the_ring_drawn_by_esmile__b3f35e1cc8af78f3df37b3f28ec459ab.jpg"
-    "https://cdn.donmai.us/original/b0/42/__chikafuji_lisa_chromashift_drawn_by_esmile__b042ce1147d0da46ce6972b2ff6d811e.jpg"
     "https://cdn.donmai.us/original/d4/0b/__original_drawn_by_themaestronoob__d40b6c46fa83cbb615ed53e26c323f3a.jpg"
     "https://cdn.donmai.us/original/9c/7b/__drawn_by_esmile__9c7baa96bf9e9c166f2b3246e67b1cbd.jpg"
-    "https://cdn.donmai.us/original/53/06/__zani_wuthering_waves_drawn_by_hezhi_go__5306109cb952508cdbbc24878493469c.jpg"
     "https://cdn.donmai.us/original/fb/e4/__kes_indie_virtual_youtuber_drawn_by_esmile__fbe4bf40812d3b36f9f8065cb186e6d6.jpg"
     "https://cdn.donmai.us/original/6a/c4/__heyimbee_indie_virtual_youtuber_drawn_by_peesh_san__6ac459163a7cc5a7434640911c9a44fc.png"
-    "https://cdn.donmai.us/original/5d/85/__degenbrecher_arknights_drawn_by_helen_zzhao__5d85d0e57e54481b1af42434e333fb56.jpg"
-    "https://cdn.donmai.us/original/74/6b/__reze_chainsaw_man_drawn_by_pitslip__746bbfd13ad874ef8ae648ebbfeff89d.jpg"
     "https://cdn.donmai.us/original/10/d3/__original_drawn_by_wangdaye__10d369ce4cc5794e673fd1fb4f076608.jpg"
     "https://cdn.donmai.us/original/88/0c/__pearl_azur_lane__880cddda6a37d061f3e40075ee54e20f.png"
-    "https://cdn.donmai.us/original/98/d8/__yelan_genshin_impact_drawn_by_kamue__98d80d10319e77ea459b9c5613c13576.jpg"
-    "https://cdn.donmai.us/original/1e/4a/__guam_azur_lane_drawn_by_suo_bu_ye_feng__1e4ae8916304051093000e8cfba62db6.jpg"
     
 )
 

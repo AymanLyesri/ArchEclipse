@@ -184,6 +184,18 @@ function Workspaces() {
 
           dropTarget.set_gtypes([GObject.TYPE_INT]);
 
+          dropTarget.connect("enter", () => {
+            if (hideTimeout) {
+              hideTimeout.cancel();
+            }
+            popover.show();
+            return Gdk.DragAction.MOVE;
+          });
+
+          dropTarget.connect("leave", () => {
+            popover.hide();
+          });
+
           dropTarget.connect("drop", (_, value: number) => {
             print("DROP TARGET DROP");
             const pid = value;
@@ -328,12 +340,72 @@ const Special = () => (
     }
     tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
     $={(self) => {
+      // --- POPOVER ---
+      const popover = new Gtk.Popover({
+        has_arrow: true,
+        position: Gtk.PositionType.BOTTOM,
+        autohide: false,
+      });
+
+      popover.set_child(workspaceClientLayout(-99)); // Special workspace ID
+      popover.set_parent(self);
+
+      // --- HOVER LOGIC ---
+      let hideTimeout: Timer;
+
+      // Button hover controller
+      const buttonMotion = new Gtk.EventControllerMotion();
+
+      buttonMotion.connect("enter", () => {
+        if (hideTimeout) {
+          hideTimeout.cancel();
+        }
+        popover.show();
+      });
+
+      buttonMotion.connect("leave", () => {
+        // Delay hiding to allow moving to popover
+        hideTimeout = timeout(50, () => {
+          popover.hide();
+          hideTimeout.cancel();
+        });
+      });
+
+      self.add_controller(buttonMotion);
+
+      // Popover hover controller
+      const popoverMotion = new Gtk.EventControllerMotion();
+
+      popoverMotion.connect("enter", () => {
+        if (hideTimeout) {
+          hideTimeout.cancel();
+        }
+      });
+
+      popoverMotion.connect("leave", () => {
+        popover.hide();
+      });
+
+      popover.add_controller(popoverMotion);
+
       /* ---------- Drop target ---------- */
       const dropTarget = new Gtk.DropTarget({
         actions: Gdk.DragAction.MOVE,
       });
 
       dropTarget.set_gtypes([GObject.TYPE_INT]);
+
+      dropTarget.connect("enter", () => {
+        if (hideTimeout) {
+          hideTimeout.cancel();
+        }
+        popover.show();
+        return Gdk.DragAction.MOVE;
+      });
+
+      dropTarget.connect("leave", () => {
+        popover.hide();
+      });
 
       dropTarget.connect("drop", (_, value: number) => {
         print("DROP TARGET DROP");

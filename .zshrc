@@ -31,11 +31,6 @@ bindkey '^[[B' history-substring-search-down
 
 ############################################################
 
-# # Informative Prompt
-# echo "Ctrl+F => fastfetch / clear"
-
-############################################################
-
 # Aliases for ls
 alias ls='lsd'
 
@@ -89,11 +84,14 @@ alias defaults="$HOME/.config/hypr/maintenance/DEFAULTS.sh"
 # Waifu Chat Bot and Assistant
 alias waifu='source $HOME/linux-chat-bot/main.sh "$(pwd)"'
 
+# Wallpapers
+alias wallpapers="$HOME/.config/hypr/maintenance/WALLPAPERS.sh"
+
 # Custom Zsh config
 [[ -f "$HOME/custom.zshrc" ]] && source "$HOME/custom.zshrc"
 
 ###REACT NATIVE SETUP (android studio) comment if u don't use react native
-export ANDROID_HOME=$HOME/Android/Sdk
-export PATH=$PATH:$ANDROID_HOME/emulator
-export PATH=$PATH:$ANDROID_HOME/platform-tools
+# export ANDROID_HOME=$HOME/Android/Sdk
+# export PATH=$PATH:$ANDROID_HOME/emulator
+# export PATH=$PATH:$ANDROID_HOME/platform-tools
 ############################################################

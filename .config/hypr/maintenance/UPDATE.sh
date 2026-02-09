@@ -51,6 +51,8 @@ for proc in "${procs[@]}"; do
     fi
 done
 
+figlet "Updating Packages"
+
 # Remove pacman lock file if it exists
 if [ -f /var/lib/pacman/db.lck ]; then
     echo "Removing pacman lock file..."
@@ -72,14 +74,14 @@ else
 fi
 
 # $MAINTENANCE_DIR/AGSV1.sh
-if pacman -Q agsv1 &>/dev/null; then
-    yay -Rns agsv1 --noconfirm
-fi
+# if pacman -Q agsv1 &>/dev/null; then
+#     yay -Rns agsv1 --noconfirm
+# fi
 
-$MAINTENANCE_DIR/WALLPAPERS.sh
+# $MAINTENANCE_DIR/WAL.sh
 
-$MAINTENANCE_DIR/WAL.sh
+figlet "Updating Plugins"
 
 $MAINTENANCE_DIR/PLUGINS.sh
 
-$MAINTENANCE_DIR/TWEAKS.sh
+# $MAINTENANCE_DIR/TWEAKS.sh
