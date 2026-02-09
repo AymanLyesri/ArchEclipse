@@ -75,9 +75,6 @@ const renderNode = (node: Node): Gtk.Widget => {
   if (node.type === "leaf") {
     const [app] = apps.exact_query(node.client.class);
     const icon = app?.iconName || "application-x-executable";
-    const image = (
-      <image $type="overlay" iconName={icon} hexpand vexpand />
-    ) as Gtk.Widget;
 
     return (
       <overlay
@@ -124,20 +121,19 @@ const renderNode = (node: Node): Gtk.Widget => {
           self.add_controller(dragSource);
         }}
       >
-        {/* <Gtk.GestureClick
-          onPressed={() => {
-            hyprland.message_async(
-              `dispatch workspace ${node.client.workspace.id}`,
-              () => {},
-            );
-          }}
-        /> */}
         <Picture
           file={screenshotClient(node.client)}
           height={node.client.height / 7}
           width={node.client.width / 7}
         />
-        {image}
+        <image $type="overlay" iconName={icon} hexpand vexpand />
+        <label
+          $type="overlay"
+          class={"move"}
+          label={"󰆾"}
+          valign={Gtk.Align.START}
+          halign={Gtk.Align.START}
+        />
       </overlay>
     ) as Gtk.Widget;
   }
@@ -178,11 +174,11 @@ function screenshotClient(client: Hyprland.Client): Accessor<string> {
   const cachedLayout = layoutCache.get(client.pid);
 
   // Only take screenshot if layout has changed or no screenshot exists
-  if (cachedLayout === currentLayout) {
-    // Layout hasn't changed, use existing screenshot
-    setScreenshot(screenshotPath);
-    return screenshot;
-  }
+  // if (cachedLayout === currentLayout) {
+  //   // Layout hasn't changed, use existing screenshot
+  //   setScreenshot(screenshotPath);
+  //   return screenshot;
+  // }
 
   timeout(300, () => {
     if (client.workspace.id == hyprland.focusedWorkspace.id) {
@@ -214,17 +210,17 @@ function screenshotClient(client: Hyprland.Client): Accessor<string> {
   return screenshot;
 }
 
-export const workspaceClientLayout = (id: number): Gtk.Widget => {
-  const ws = hyprland.get_workspaces().find((w) => w.id === id);
-
-  if (!ws)
+export const workspaceClientLayout = (
+  workspace: Hyprland.Workspace | null,
+): Gtk.Widget => {
+  if (!workspace)
     return (
       <label label={"empty"} class="workspace-client-layout"></label>
     ) as Gtk.Widget;
 
   return (
     <box class="workspace-client-layout">
-      <With value={createBinding(ws, "clients")}>
+      <With value={createBinding(workspace, "clients")}>
         {(clients: Hyprland.Client[]) => {
           if (clients.length === 0) {
             return (

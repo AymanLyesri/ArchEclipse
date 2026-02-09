@@ -83,48 +83,66 @@ function Workspaces() {
    * - "trans-becoming-inactive": Transitioning from active to inactive
    */
   const createWorkspaceButton = (
-    id: number,
-    isActive: boolean,
-    isFocused: boolean,
-    client_class: string,
+    workspace: Hyprland.Workspace | null,
+    index: number,
   ) => {
-    const classes: string[] = [];
+    // Calculate workspace properties
+    const id = index + 1;
 
-    // Get previous state for this workspace (if it existed)
-    const prevState = previousWorkspaceStates.get(id);
-
-    // ===== CURRENT STATE CLASSES =====
-    // These represent the current state only
-    classes.push(isFocused ? "is-focused" : "is-unfocused");
-    classes.push(isActive ? "is-active" : "is-inactive");
-
-    // ===== TRANSITION CLASSES =====
-    // Only add transition classes if we have previous state to compare
-    if (prevState) {
-      // Focus transitions
-      if (!prevState.isFocused && isFocused) {
-        classes.push("trans-gaining-focus");
-      } else if (prevState.isFocused && !isFocused) {
-        classes.push("trans-losing-focus");
-      }
-
-      // Active transitions
-      if (!prevState.isActive && isActive) {
-        classes.push("trans-becoming-active");
-      } else if (prevState.isActive && !isActive) {
-        classes.push("trans-becoming-inactive");
-      }
-    }
-
-    // Select appropriate icon based on workspace client class
-    const icon = isActive
-      ? workspaceIconMap[client_class] || extraWorkspaceIcon
-      : emptyIcon;
+    // Track previous state for this specific button
+    let prevState = previousWorkspaceStates.get(id);
 
     return (
       <button
-        class={classes.join(" ")}
-        label={icon}
+        class={createComputed(() => {
+          const isActive = workspace !== null;
+          const currentWorkspace = focusedWorkspace().id;
+          const isFocused = currentWorkspace === id;
+
+          // If workspace exists, listen to client changes
+          if (workspace) {
+            createBinding(workspace, "clients")();
+          }
+
+          const classes: string[] = [];
+
+          // ===== CURRENT STATE CLASSES =====
+          classes.push(isFocused ? "is-focused" : "is-unfocused");
+          classes.push(isActive ? "is-active" : "is-inactive");
+
+          // ===== TRANSITION CLASSES =====
+          if (prevState) {
+            // Focus transitions
+            if (!prevState.isFocused && isFocused) {
+              classes.push("trans-gaining-focus");
+            } else if (prevState.isFocused && !isFocused) {
+              classes.push("trans-losing-focus");
+            }
+
+            // Active transitions
+            if (!prevState.isActive && isActive) {
+              classes.push("trans-becoming-active");
+            } else if (prevState.isActive && !isActive) {
+              classes.push("trans-becoming-inactive");
+            }
+          }
+
+          // Update previous state for next render
+          prevState = { isActive, isFocused };
+          previousWorkspaceStates.set(id, { isActive, isFocused });
+
+          return classes.join(" ");
+        })}
+        label={createComputed(() => {
+          const isActive = workspace !== null;
+          if (!isActive) return emptyIcon;
+
+          const clients = createBinding(workspace!, "clients")();
+          const main_client = clients[0];
+          const client_class = main_client?.class.toLowerCase() || "empty";
+
+          return workspaceIconMap[client_class] || extraWorkspaceIcon;
+        })}
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
         }
@@ -136,7 +154,7 @@ function Workspaces() {
             autohide: false,
           });
 
-          popover.set_child(workspaceClientLayout(id));
+          popover.set_child(workspaceClientLayout(workspace));
           popover.set_parent(self);
 
           // --- HOVER LOGIC ---
@@ -216,18 +234,21 @@ function Workspaces() {
 
   // Reactive workspace state that updates when workspaces or focus changes
   const workspaces: Accessor<any[]> = createComputed(() => {
-    print("workspace");
-    const workspaces = createBinding(hyprland, "workspaces")();
+    const activeWorkspaces = createBinding(hyprland, "workspaces")();
     const currentWorkspace = focusedWorkspace().id;
 
+    // Create a map of workspace ID to workspace object for quick lookup
+    const workspaceMap = new Map(activeWorkspaces.map((w) => [w.id, w]));
+
     // Get array of active workspace IDs
-    const workspaceIds = workspaces.map((w) => w.id);
+    const workspaceIds = activeWorkspaces.map((w) => w.id);
     // Calculate total workspaces needed (active ones or maxWorkspaces, whichever is larger)
     const totalWorkspaces = Math.max(...workspaceIds, maxWorkspaces);
-    // Create array of all workspace IDs [1, 2, ..., totalWorkspaces]
+
+    // Create array of all workspaces (active or null for empty)
     const allWorkspaces = Array.from(
       { length: totalWorkspaces },
-      (_, i) => i + 1,
+      (_, i) => workspaceMap.get(i + 1) || null,
     );
 
     // Array to hold the final grouped workspace elements
@@ -267,22 +288,19 @@ function Workspaces() {
      *
      * This creates visual separation between empty and occupied workspaces.
      */
-    allWorkspaces.forEach((id) => {
-      const isActive = workspaceIds.includes(id);
-      const isFocused = currentWorkspace === id;
-
-      const main_client = workspaces.find((w) => w.id === id)?.get_clients()[0];
-      const client_class = main_client?.class.toLowerCase() || "empty";
+    allWorkspaces.forEach((workspace, index) => {
+      const isActive = workspace !== null;
 
       if (isActive) {
         // ACTIVE WORKSPACE: Add to current group
         currentGroupIsActive = true;
-        currentGroup.push(
-          createWorkspaceButton(id, isActive, isFocused, client_class),
-        );
+        currentGroup.push(createWorkspaceButton(workspace, index));
 
         // Close group if this is the last workspace or next one is inactive
-        if (id === allWorkspaces.length || !workspaceIds.includes(id + 1)) {
+        if (
+          index === allWorkspaces.length - 1 ||
+          allWorkspaces[index + 1] === null
+        ) {
           finalizeCurrentGroup();
         }
       } else {
@@ -290,7 +308,7 @@ function Workspaces() {
         finalizeCurrentGroup();
         groupElements.push(
           <box class="workspace-group inactive">
-            {createWorkspaceButton(id, isActive, isFocused, client_class)}
+            {createWorkspaceButton(workspace, index)}
           </box>,
         );
       }
@@ -307,9 +325,10 @@ function Workspaces() {
       { isActive: boolean; isFocused: boolean }
     >();
 
-    allWorkspaces.forEach((id) => {
+    allWorkspaces.forEach((workspace, index) => {
+      const id = index + 1;
       newStates.set(id, {
-        isActive: workspaceIds.includes(id),
+        isActive: workspace !== null,
         isFocused: currentWorkspace === id,
       });
     });
@@ -340,72 +359,12 @@ const Special = () => (
     }
     tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
     $={(self) => {
-      // --- POPOVER ---
-      const popover = new Gtk.Popover({
-        has_arrow: true,
-        position: Gtk.PositionType.BOTTOM,
-        autohide: false,
-      });
-
-      popover.set_child(workspaceClientLayout(-99)); // Special workspace ID
-      popover.set_parent(self);
-
-      // --- HOVER LOGIC ---
-      let hideTimeout: Timer;
-
-      // Button hover controller
-      const buttonMotion = new Gtk.EventControllerMotion();
-
-      buttonMotion.connect("enter", () => {
-        if (hideTimeout) {
-          hideTimeout.cancel();
-        }
-        popover.show();
-      });
-
-      buttonMotion.connect("leave", () => {
-        // Delay hiding to allow moving to popover
-        hideTimeout = timeout(50, () => {
-          popover.hide();
-          hideTimeout.cancel();
-        });
-      });
-
-      self.add_controller(buttonMotion);
-
-      // Popover hover controller
-      const popoverMotion = new Gtk.EventControllerMotion();
-
-      popoverMotion.connect("enter", () => {
-        if (hideTimeout) {
-          hideTimeout.cancel();
-        }
-      });
-
-      popoverMotion.connect("leave", () => {
-        popover.hide();
-      });
-
-      popover.add_controller(popoverMotion);
-
       /* ---------- Drop target ---------- */
       const dropTarget = new Gtk.DropTarget({
         actions: Gdk.DragAction.MOVE,
       });
 
       dropTarget.set_gtypes([GObject.TYPE_INT]);
-
-      dropTarget.connect("enter", () => {
-        if (hideTimeout) {
-          hideTimeout.cancel();
-        }
-        popover.show();
-        return Gdk.DragAction.MOVE;
-      });
-
-      dropTarget.connect("leave", () => {
-        popover.hide();
-      });
 
       dropTarget.connect("drop", (_, value: number) => {
         print("DROP TARGET DROP");

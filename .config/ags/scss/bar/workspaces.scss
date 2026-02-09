@@ -11,6 +11,16 @@
       .image {
         opacity: 0.8;
       }
+      .move {
+        opacity: 0;
+        border-radius: 10px;
+        padding: 10px;
+      }
+      &:hover {
+        .move {
+          opacity: 1;
+        }
+      }
     }
   }
 
