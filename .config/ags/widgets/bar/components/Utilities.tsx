@@ -340,17 +340,17 @@ function ResourceMonitor() {
         {(res) => (
           <box spacing={10}>
             <CircularProgress
-              tooltipText="CPU Usage"
+              tooltipText={`CPU Usage ${res[0]}%`}
               value={res[0] / 100}
               className="cpu-monitor"
             />
             <CircularProgress
-              tooltipText="RAM Usage"
+              tooltipText={`RAM Usage ${res[1]}%`}
               value={res[1] / 100}
               className="ram-monitor"
             />
             <CircularProgress
-              tooltipText="GPU Usage"
+              tooltipText={`GPU Usage ${res[2]}%`}
               value={res[2] / 100}
               className="gpu-monitor"
             />

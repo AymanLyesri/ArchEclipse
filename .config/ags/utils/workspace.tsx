@@ -108,8 +108,8 @@ const renderNode = (node: Node): Gtk.Widget => {
             print("DRAG SOURCE PREPARE");
 
             const value = new GObject.Value();
-            value.init(GObject.TYPE_INT);
-            value.set_int(node.client.pid);
+            value.init(GObject.TYPE_OBJECT);
+            value.set_object(node.client);
 
             print("dragging PID:", node.client.pid);
 
@@ -151,13 +151,8 @@ const renderNode = (node: Node): Gtk.Widget => {
   ) as Gtk.Widget;
 };
 
-// Store layout state per client to track changes
-const layoutCache = new Map<number, string>();
-
-function getClientLayoutHash(client: Hyprland.Client): string {
-  // Create a hash of the client's geometry
-  return `${client.x},${client.y},${client.width},${client.height}`;
-}
+// Store client title per client to track changes
+const titleCache = new Map<number, string>();
 
 function screenshotClient(client: Hyprland.Client): Accessor<string> {
   const [screenshot, setScreenshot] = createState<string>(``);
@@ -169,16 +164,16 @@ function screenshotClient(client: Hyprland.Client): Accessor<string> {
     return screenshot;
   }
 
-  // Get current layout hash
-  const currentLayout = getClientLayoutHash(client);
-  const cachedLayout = layoutCache.get(client.pid);
+  // Get current title
+  const currentTitle = client.title;
+  const cachedTitle = titleCache.get(client.pid);
 
-  // Only take screenshot if layout has changed or no screenshot exists
-  // if (cachedLayout === currentLayout) {
-  //   // Layout hasn't changed, use existing screenshot
-  //   setScreenshot(screenshotPath);
-  //   return screenshot;
-  // }
+  // Only take screenshot if title has changed or no screenshot exists
+  if (cachedTitle === currentTitle) {
+    // Title hasn't changed, use existing screenshot
+    setScreenshot(screenshotPath);
+    return screenshot;
+  }
 
   timeout(300, () => {
     if (client.workspace.id == hyprland.focusedWorkspace.id) {
@@ -195,8 +190,8 @@ function screenshotClient(client: Hyprland.Client): Accessor<string> {
       )
         .then(() => {
           setScreenshot(screenshotPath);
-          // Update cache with new layout
-          layoutCache.set(client.pid, getClientLayoutHash(client));
+          // Update cache with new title
+          titleCache.set(client.pid, client.title);
         })
         .catch((e) => {
           notify({

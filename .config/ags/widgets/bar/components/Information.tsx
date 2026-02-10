@@ -24,6 +24,7 @@ import Crypto from "../../Crypto";
 // import Cava from "../../Cava";
 import Weather from "./sub-components/Weather";
 import Bandwidth from "./sub-components/Bandwidth";
+import { timeout } from "ags/time";
 
 const mpris = AstalMpris.get_default();
 
@@ -114,22 +115,26 @@ function ClientTitle({
   focusedClient: Accessor<Hyprland.Client>;
 }) {
   return (
-    <revealer
-      transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-      revealChild={focusedClient((c) => !!c)}
-    >
-      <label
-        class="client-title"
-        ellipsize={Pango.EllipsizeMode.END}
-        maxWidthChars={50}
-        label={focusedClient((c) => {
-          if (!c) return "No focused client";
-          return c.title || "No Title";
-        })}
-      />
-    </revealer>
+    <box visible={focusedClient((c) => !!c)}>
+      <With value={focusedClient}>
+        {(client) =>
+          client && (
+            <label
+              class="client-title"
+              ellipsize={Pango.EllipsizeMode.END}
+              maxWidthChars={30}
+              label={focusedClient((client) => {
+                return client ? createBinding(client, "title") : "No Title";
+              })()}
+              tooltipMarkup={focusedClient((c) => c.class)}
+            />
+          )
+        }
+      </With>
+    </box>
   );
 }
+
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="information" spacing={5} halign={halign}>
@@ -148,30 +153,31 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
       <Clock />
       <Bandwidth />
       <ClientTitle focusedClient={focusedClient} />
-
-      <With value={globalSettings(({ crypto }) => crypto.favorite)}>
-        {(crypto: { symbol: string; timeframe: string }) =>
-          crypto.symbol != "" && (
-            <Eventbox
-              tooltipText={"click to remove"}
-              onClick={() =>
-                setGlobalSetting("crypto.favorite", {
-                  symbol: "",
-                  timeframe: "",
-                })
-              }
-            >
-              <Crypto
-                symbol={crypto.symbol}
-                timeframe={crypto.timeframe}
-                showPrice={true}
-                showGraph={true}
-                orientation={Gtk.Orientation.HORIZONTAL}
-              />
-            </Eventbox>
-          )
-        }
-      </With>
+      <box>
+        <With value={globalSettings(({ crypto }) => crypto.favorite)}>
+          {(crypto: { symbol: string; timeframe: string }) =>
+            crypto.symbol != "" && (
+              <Eventbox
+                tooltipText={"click to remove"}
+                onClick={() =>
+                  setGlobalSetting("crypto.favorite", {
+                    symbol: "",
+                    timeframe: "",
+                  })
+                }
+              >
+                <Crypto
+                  symbol={crypto.symbol}
+                  timeframe={crypto.timeframe}
+                  showPrice={true}
+                  showGraph={true}
+                  orientation={Gtk.Orientation.HORIZONTAL}
+                />
+              </Eventbox>
+            )
+          }
+        </With>
+      </box>
     </box>
   );
 };
