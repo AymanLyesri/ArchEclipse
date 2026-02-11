@@ -35,6 +35,9 @@
     padding: 0px;
   }
   .actions {
+    .color-scheme {
+      @include button;
+    }
     .selected-workspace {
       @include button;
       &.ping {

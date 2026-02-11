@@ -9,7 +9,8 @@ const tmpCss = `/tmp/tmp-style.css`;
 const tmpScss = `/tmp/tmp-style.scss`;
 const scss_dir = `./scss`;
 
-const walColors = `./../../.cache/wal/colors.scss`;
+const walScssColors = `./../../.cache/wal/colors.scss`;
+const walCssColors = `./../../.cache/wal/colors.css`;
 const defaultColors = `./scss/defaultColors.scss`;
 
 export const getCssPath = () => {
@@ -25,7 +26,7 @@ export function refreshCss() {
         $OPACITY: ${globalSettings.peek().ui.opacity.value};
         $FONT-SIZE: ${globalSettings.peek().ui.fontSize.value}px;
         $SCALE: ${globalSettings.peek().ui.scale.value}px;
-        ' | cat - ${defaultColors} ${walColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);
+        ' | cat - ${defaultColors} ${walScssColors} ${walCssColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);
 
     App.reset_css();
     App.apply_css(tmpCss);
@@ -38,11 +39,11 @@ export function refreshCss() {
 monitorFile(
   // directory that contains the scss files
   `./scss`,
-  () => refreshCss()
+  () => refreshCss(),
 );
 
 monitorFile(
   // directory that contains pywal colors
   `./../../.cache/wal/colors.scss`,
-  () => refreshCss()
+  () => refreshCss(),
 );

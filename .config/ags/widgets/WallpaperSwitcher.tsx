@@ -126,48 +126,6 @@ function Display() {
       </With>
     </box>
   );
-  //   <box hexpand={true} vexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
-  //     <For each={currentWallpapers}>
-  //       {(wallpaper) => {
-  //         print("Rendering workspace wallpaper:", wallpaper);
-  //         // const workspaceId = key.peek() + 1;
-  //         // random
-  //         const workspaceId = 1;
-
-  //         return (
-  //           <button
-  //             class={focusedWorkspace((workspace) => {
-  //               const i = workspace?.id || 1;
-  //               return i === workspaceId
-  //                 ? "wallpaper-button focused"
-  //                 : "wallpaper-button";
-  //             })}
-  //             css={wallpaper == "" ? "background-color: black" : ""}
-  //             onClicked={(self) => {
-  //               setTargetType("workspace");
-  //               setSelectedWorkspaceId(workspaceId);
-  //             }}
-  //             // tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId}</b>`}
-  //           >
-  //             {wallpaper == "" ? (
-  //               <label
-  //                 class="no-wallpaper"
-  //                 label="No Wallpaper"
-  //                 halign={Gtk.Align.CENTER}
-  //                 valign={Gtk.Align.CENTER}
-  //               />
-  //             ) : (
-  //               <Picture
-  //                 class="wallpaper"
-  //                 file={toThumbnailPath(wallpaper)}
-  //               ></Picture>
-  //             )}
-  //           </button>
-  //         ) as Gtk.Button;
-  //       }}
-  //     </For>
-  //   </box>
-  // );
 
   const allWallpapersDisplay = (
     <Gtk.ScrolledWindow
@@ -447,10 +405,30 @@ function Display() {
     />
   );
 
+  const displayColorScheme = (
+    <box
+      class="color-scheme"
+      spacing={10}
+      tooltipMarkup={`Dynamic Colors from <b>Pywal</b>`}
+    >
+      {/* from 1 to 7 */}
+      {[1, 2, 3, 4, 5, 6, 7].map((color, index) => (
+        <label
+          label={""}
+          class="color"
+          css={`
+            color: var(--color${color});
+          `}
+        ></label>
+      ))}
+    </box>
+  );
+
   const actions = (
     <box class="actions" hexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
       {targetButtons}
       {selectedWorkspaceLabel}
+      {displayColorScheme}
       {customToggle}
       {randomButton}
       {resetButton}
