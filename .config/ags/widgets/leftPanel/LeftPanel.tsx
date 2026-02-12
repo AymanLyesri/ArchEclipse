@@ -3,17 +3,13 @@ import Astal from "gi://Astal?version=4.0";
 import Gdk from "gi://Gdk?version=4.0";
 import Gtk from "gi://Gtk?version=4.0";
 import {
-  globalMargin,
   globalSettings,
   globalTransition,
   setGlobalSetting,
 } from "../../variables";
-import { createBinding, createState, Node, With } from "ags";
-import { Eventbox } from "../Custom/Eventbox";
 import { getMonitorName } from "../../utils/monitor";
-import { hideWindow, WindowActions, Window } from "../../utils/window";
+import { WindowActions, Window } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
-import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 import app from "ags/gtk4/app";
 import { timeout, Timer } from "ags/time";
 
@@ -22,8 +18,7 @@ const WidgetActions = () => {
     <box
       orientation={Gtk.Orientation.VERTICAL}
       class="widget-actions"
-      spacing={10}
-    >
+      spacing={10}>
       {leftPanelWidgetSelectors.map((widgetSelector) => {
         return (
           <togglebutton
@@ -49,8 +44,7 @@ const Actions = () => (
   <box
     class="panel-actions"
     halign={Gtk.Align.START}
-    orientation={Gtk.Orientation.VERTICAL}
-  >
+    orientation={Gtk.Orientation.VERTICAL}>
     <WidgetActions />
     <WindowActions
       windowWidth={globalSettings(({ leftPanel }) => leftPanel.width)}
@@ -65,6 +59,32 @@ const Actions = () => (
 );
 
 function Panel() {
+  const panelStack = new Gtk.Stack({
+    transition_type: Gtk.StackTransitionType.SLIDE_LEFT_RIGHT,
+    transition_duration: globalTransition,
+    hexpand: true,
+    vexpand: true,
+  });
+
+  leftPanelWidgetSelectors.forEach((selector) => {
+    let content: JSX.Element = (<box />) as JSX.Element;
+    if (selector.widget) {
+      try {
+        content = selector.widget({}) as JSX.Element;
+      } catch (error) {
+        console.error("Error rendering widget:", error);
+      }
+    }
+
+    const wrapper = (
+      <box name={selector.name} hexpand vexpand>
+        {content}
+      </box>
+    ) as Gtk.Widget;
+
+    panelStack.add_named(wrapper, selector.name);
+  });
+
   return (
     <box>
       <Actions />
@@ -74,23 +94,23 @@ function Panel() {
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
         widthRequest={globalSettings(({ leftPanel }) => leftPanel.width)}
-      >
-        <With value={globalSettings(({ leftPanel }) => leftPanel.widget)}>
-          {(widget: WidgetSelector) => {
-            const selector = leftPanelWidgetSelectors.find(
-              (ws) => ws.name === widget.name,
+        $={(self) => {
+          const updateVisibleChild = () => {
+            panelStack.set_visible_child_name(
+              globalSettings.peek().leftPanel.widget.name,
             );
-            if (selector?.widget) {
-              try {
-                return selector.widget({}) as JSX.Element;
-              } catch (error) {
-                console.error(`Error rendering widget:`, error);
-                return (<box />) as JSX.Element;
-              }
+          };
+
+          updateVisibleChild();
+
+          const unsubscribe = globalSettings.subscribe(updateVisibleChild);
+          self.connect("destroy", () => {
+            if (unsubscribe) {
+              unsubscribe();
             }
-            return (<box />) as JSX.Element;
-          }}
-        </With>
+          });
+        }}>
+        {panelStack}
       </box>
     </box>
   );
@@ -158,8 +178,7 @@ export default ({
         });
 
         self.add_controller(motion);
-      }}
-    >
+      }}>
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
@@ -179,8 +198,7 @@ export function LeftPanelVisibility() {
     <revealer
       revealChild={globalSettings(({ leftPanel }) => leftPanel.lock)}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      transitionDuration={globalTransition}
-    >
+      transitionDuration={globalTransition}>
       <togglebutton
         active={false}
         label={""}

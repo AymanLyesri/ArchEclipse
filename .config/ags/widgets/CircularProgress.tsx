@@ -9,6 +9,7 @@ interface CircularProgressProps {
   height?: number;
   width?: number;
   tooltipText?: string;
+  visible?: Accessor<boolean> | boolean;
 }
 
 export default function CircularProgress({
@@ -17,6 +18,7 @@ export default function CircularProgress({
   height = 15,
   width = 15,
   tooltipText,
+  visible = true,
 }: CircularProgressProps) {
   const drawingArea = new Gtk.DrawingArea({
     width_request: width,
@@ -46,10 +48,10 @@ export default function CircularProgress({
   // Return the drawingArea wrapped in a box if you want spacing or styling
   return (
     <box
+      visible={visible}
       class={`circular-progress ${className}`}
       spacing={5}
-      tooltip-text={tooltipText}
-    >
+      tooltip-text={tooltipText}>
       {drawingArea}
     </box>
   );

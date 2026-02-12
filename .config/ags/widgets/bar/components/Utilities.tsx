@@ -96,8 +96,7 @@ function Battery() {
       tooltipMarkup={createComputed(() => {
         const profile = powerprofiles.active_profile;
         return `Battery: ${percent.peek()} \nProfile: ${profile}`;
-      })}
-    >
+      })}>
       <box spacing={5} class="battery">
         <image iconName={createBinding(battery, "iconName")} />
         <label label={percent} />
@@ -108,8 +107,7 @@ function Battery() {
             if (self.visible) self.add_css_class("popover-open");
             else if (self.get_child()) self.remove_css_class("popover-open");
           });
-        }}
-      >
+        }}>
         <box orientation={Gtk.Orientation.VERTICAL}>
           {powerprofiles.get_profiles().map(({ profile }) => (
             <button onClicked={() => setProfile(profile)}>
@@ -186,8 +184,7 @@ function Tray() {
             <menubutton
               class="tray-icon"
               $={(self) => init(self, item)}
-              tooltipText={item.tooltip_text}
-            >
+              tooltipText={item.tooltip_text}>
               <image pixelSize={11} gicon={createBinding(item, "gicon")} />
             </menubutton>
           )}
@@ -199,8 +196,7 @@ function Tray() {
             hidden && (
               <menubutton
                 class="tray-icon tray-overflow"
-                tooltipText="More icons"
-              >
+                tooltipText="More icons">
                 <image pixelSize={11} iconName="view-more-symbolic" />
                 <popover
                   $={(self) => {
@@ -209,20 +205,17 @@ function Tray() {
                       else if (self.get_child())
                         self.remove_css_class("popover-open");
                     });
-                  }}
-                >
+                  }}>
                   <box
                     class="tray-popover"
                     orientation={Gtk.Orientation.VERTICAL}
-                    spacing={5}
-                  >
+                    spacing={5}>
                     <For each={hiddenItems}>
                       {(item) => (
                         <menubutton
                           class="tray-icon"
                           $={(self) => init(self, item)}
-                          tooltipText={item.tooltip_text}
-                        >
+                          tooltipText={item.tooltip_text}>
                           <box spacing={8}>
                             <image
                               pixelSize={11}
@@ -306,13 +299,11 @@ function DndToggle() {
       class={hasPing((ping) => (ping ? "dnd-toggle active" : "dnd-toggle"))}
       tooltipMarkup={globalSettings(({ notifications }) =>
         notifications.dnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb",
-      )}
-    >
+      )}>
       <label
         label={globalSettings(({ notifications }) =>
           notifications.dnd ? "" : "",
-        )}
-      ></label>
+        )}></label>
     </togglebutton>
   );
 }
@@ -340,16 +331,19 @@ function ResourceMonitor() {
         {(res) => (
           <box spacing={10}>
             <CircularProgress
+              visible={res[0] != 0}
               tooltipText={`CPU Usage ${res[0]}%`}
               value={res[0] / 100}
               className="cpu-monitor"
             />
             <CircularProgress
+              visible={res[1] != 0}
               tooltipText={`RAM Usage ${res[1]}%`}
               value={res[1] / 100}
               className="ram-monitor"
             />
             <CircularProgress
+              visible={res[2] != 0}
               tooltipText={`GPU Usage ${res[2]}%`}
               value={res[2] / 100}
               className="gpu-monitor"
