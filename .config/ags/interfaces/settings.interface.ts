@@ -94,4 +94,7 @@ export interface Settings {
     visibility: AGSSetting;
     anchor: AGSSetting;
   };
+  wallpaperSwitcher: {
+    category: string;
+  };
 }

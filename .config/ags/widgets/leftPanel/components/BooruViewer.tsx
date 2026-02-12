@@ -12,6 +12,7 @@ import { createState, createComputed, For, With, Accessor } from "ags";
 import { booruApis } from "../../../constants/api.constants";
 import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
+import Gio from "gi://Gio?version=2.0";
 import { Progress } from "../../Progress";
 import { connectPopoverEvents } from "../../../utils/window";
 import { booruPath } from "../../../constants/path.constants";
@@ -28,6 +29,14 @@ const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 const [selectedTab, setSelectedTab] = createState<string>("");
 const [scrolledWindow, setScrolledWindow] =
   createState<Gtk.ScrolledWindow | null>(null);
+
+const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
+
+const [page, setPage] = createState<number>(1);
+const [pageStack, setPageStack] = createState<Gtk.Stack | null>(null);
+const [pageDirection, setPageDirection] = createState<"next" | "prev">("next");
+const [tags, setTags] = createState<string[]>([]);
+const [limit, setLimit] = createState<number>(100);
 
 const calculateCacheSize = async () =>
   execAsync(
@@ -222,7 +231,25 @@ const fetchTags = async (tag: string) => {
   setFetchedTags(jsonData);
 };
 
-const Images = () => {
+const showImagesPage = (
+  imagesWidget: Gtk.Widget,
+  direction: "next" | "prev",
+) => {
+  const stack = pageStack.get();
+  if (!stack) return;
+
+  stack.set_transition_type(
+    direction === "next"
+      ? Gtk.StackTransitionType.SLIDE_LEFT
+      : Gtk.StackTransitionType.SLIDE_RIGHT,
+  );
+
+  const name = `page-${Date.now()}`;
+  stack.add_named(imagesWidget, name);
+  stack.set_visible_child_name(name);
+};
+
+const createImagesContent = () => {
   function masonry(images: BooruImage[], columnsCount: number) {
     const columns = Array.from({ length: columnsCount }, () => ({
       height: 0,
@@ -240,75 +267,122 @@ const Images = () => {
     return columns.map((c) => c.items);
   }
 
-  const imageColumns = createComputed(
-    [images, globalSettings(({ booru }) => booru.columns)],
-    (imgs, cols) => masonry(imgs, cols),
-  );
-  const columnWidth = globalSettings(
-    ({ leftPanel }) => leftPanel.width / imageColumns.peek().length - 10,
-  );
+  const currentImages = images.peek();
+  const columns = globalSettings.peek().booru.columns;
+  const imageColumns = masonry(currentImages, columns);
+  const columnWidth =
+    globalSettings.peek().leftPanel.width / imageColumns.length - 10;
 
-  return (
-    <scrolledwindow
-      hexpand
-      vexpand
-      $={async (self) => {
-        setScrolledWindow(self);
-        images.subscribe(() => {
-          const vadjustment = self.get_vadjustment();
-          vadjustment.set_value(0);
-        });
-      }}
-    >
+  // Create scrolled window element
+  const scrolled = (
+    <scrolledwindow hexpand vexpand>
       <box class={"images"} spacing={5}>
-        <For each={imageColumns}>
-          {(column) => (
-            <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
-              {column.map((image: BooruImage) => (
+        {imageColumns.map((column) => (
+          <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
+            {column.map((image: BooruImage) => {
+              const button = (
                 <menubutton
                   class="image-button"
                   hexpand
                   widthRequest={columnWidth}
-                  heightRequest={columnWidth(
-                    (w) => w * (image.height / image.width),
-                  )}
-                  $={(self) => {
-                    const gesture = new Gtk.GestureClick();
-                    gesture.set_button(3);
-                    gesture.set_propagation_phase(Gtk.PropagationPhase.BUBBLE);
-
-                    gesture.connect("released", () => {
-                      image.openInBrowser();
-                    });
-
-                    self.add_controller(gesture);
-
-                    connectPopoverEvents(self);
-                  }}
+                  heightRequest={columnWidth * (image.height / image.width)}
                   direction={Gtk.ArrowType.RIGHT}
                   tooltipMarkup={`Click to Open\nLeft Click to Open in Browser\n<b>ID:</b> ${image.id}\n<b>Dimensions:</b> ${image.width}x${image.height}`}
                 >
-                  <Picture
-                    file={`${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`}
+                  <Gtk.Picture
+                    file={Gio.File.new_for_path(
+                      `${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`,
+                    )}
+                    contentFit={Gtk.ContentFit.COVER}
+                    class="image"
                   />
-                  <popover
-                    $={(self) => {
-                      self.connect("notify::visible", () => {
-                        if (self.visible) self.add_css_class("popover-open");
-                        else if (self.get_child())
-                          self.remove_css_class("popover-open");
-                      });
-                    }}
-                  >
-                    {image.renderAsImageDialog()}
-                  </popover>
                 </menubutton>
-              ))}
-            </box>
-          )}
-        </For>
+              ) as Gtk.MenuButton;
+
+              // Create popover and defer content creation until shown
+              const popover = new Gtk.Popover();
+              popover.add_css_class("popover-open");
+
+              // Only create the dialog content when popover is first shown
+              // Wrap in a box to provide tracking context
+              let contentCreated = false;
+              const container = (
+                <box
+                  $={(self) => {
+                    popover.connect("show", () => {
+                      if (!contentCreated) {
+                        const dialogContent =
+                          image.renderAsImageDialog() as Gtk.Widget;
+                        self.append(dialogContent);
+                        contentCreated = true;
+                      }
+                    });
+                  }}
+                />
+              ) as Gtk.Box;
+
+              popover.set_child(container);
+              button.set_popover(popover);
+
+              // Set up gesture after creation
+              const gesture = new Gtk.GestureClick();
+              gesture.set_button(3);
+              gesture.set_propagation_phase(Gtk.PropagationPhase.BUBBLE);
+              gesture.connect("released", () => {
+                image.openInBrowser();
+              });
+              button.add_controller(gesture);
+              connectPopoverEvents(button);
+
+              return button;
+            })}
+          </box>
+        ))}
       </box>
     </scrolledwindow>
+  ) as Gtk.ScrolledWindow;
+
+  setScrolledWindow(scrolled);
+
+  return scrolled;
+};
+
+const Images = () => {
+  return (
+    <stack
+      transitionDuration={globalTransition}
+      hexpand
+      vexpand
+      $={(self) => {
+        setPageStack(self);
+
+        let isFirstRender = true;
+
+        images.subscribe(() => {
+          const content = createImagesContent() as Gtk.Widget;
+
+          if (isFirstRender) {
+            // First render: add without transition
+            const name = `page-${Date.now()}`;
+            self.add_named(content, name);
+            self.set_visible_child_name(name);
+            isFirstRender = false;
+          } else {
+            // Subsequent renders: use transition
+            showImagesPage(content, pageDirection.peek());
+          }
+
+          // Scroll to top after transition
+          setTimeout(() => {
+            const sw = scrolledWindow.get();
+            if (sw) {
+              const vadjustment = sw.get_vadjustment();
+              vadjustment.set_value(0);
+            }
+          }, globalTransition);
+        });
+      }}
+    />
   );
 };
 
@@ -325,7 +399,10 @@ const PageDisplay = () => (
             <button
               class="first"
               label="1"
-              onClicked={() => setGlobalSetting("booru.page", 1)}
+              onClicked={() => {
+                setPageDirection("prev");
+                setGlobalSetting("booru.page", 1);
+              }}
             />,
           );
           buttons.push(<label label={"..."}></label>);
@@ -349,11 +426,16 @@ const PageDisplay = () => (
           buttons.push(
             <button
               label={pageNum !== settings.booru.page ? String(pageNum) : ""}
-              onClicked={() =>
-                pageNum !== settings.booru.page
-                  ? setGlobalSetting("booru.page", pageNum)
-                  : fetchImages()
-              }
+              onClicked={() => {
+                if (pageNum !== settings.booru.page) {
+                  setPageDirection(
+                    pageNum > settings.booru.page ? "next" : "prev",
+                  );
+                  setGlobalSetting("booru.page", pageNum);
+                } else {
+                  fetchImages();
+                }
+              }}
             />,
           );
         }
@@ -583,8 +665,6 @@ const ClearCacheButton = () => {
   );
 };
 
-const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
-
 const Bottom = () => {
   const revealer = (
     <revealer
@@ -620,6 +700,7 @@ const Bottom = () => {
         onClicked={() => {
           const currentPage = globalSettings.peek().booru.page;
           if (currentPage > 1) {
+            setPageDirection("prev");
             setGlobalSetting("booru.page", currentPage - 1);
           }
         }}
@@ -638,6 +719,7 @@ const Bottom = () => {
         label=""
         onClicked={() => {
           const currentPage = globalSettings.peek().booru.page;
+          setPageDirection("next");
           setGlobalSetting("booru.page", currentPage + 1);
         }}
         tooltipText={"KEY-RIGHT"}
@@ -652,10 +734,6 @@ const Bottom = () => {
     </box>
   );
 };
-
-const [page, setPage] = createState<number>(1);
-const [tags, setTags] = createState<string[]>([]);
-const [limit, setLimit] = createState<number>(100);
 
 export default () => {
   return (
@@ -701,12 +779,14 @@ export default () => {
           }
           if (keyval === Gdk.KEY_Right) {
             const currentPage = globalSettings.peek().booru.page;
+            setPageDirection("next");
             setGlobalSetting("booru.page", currentPage + 1);
             return true;
           }
           if (keyval === Gdk.KEY_Left) {
             const currentPage = globalSettings.peek().booru.page;
             if (currentPage > 1) {
+              setPageDirection("prev");
               setGlobalSetting("booru.page", currentPage - 1);
             }
             return true;

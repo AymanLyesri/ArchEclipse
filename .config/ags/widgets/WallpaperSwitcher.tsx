@@ -5,7 +5,11 @@ import app from "ags/gtk4/app";
 import Gtk from "gi://Gtk?version=4.0";
 import Astal from "gi://Astal?version=4.0";
 import { notify } from "../utils/notification";
-import { focusedWorkspace, globalTransition } from "../variables";
+import {
+  focusedWorkspace,
+  globalSettings,
+  setGlobalSetting,
+} from "../variables";
 import { getMonitorName } from "../utils/monitor";
 import Picture from "./Picture";
 import Gio from "gi://Gio";
@@ -14,6 +18,7 @@ import { Progress } from "./Progress";
 import { timeout } from "ags/time";
 import { Gdk } from "ags/gtk4";
 import { formatKiloBytes } from "../utils/bytes";
+import { readJson } from "../utils/json";
 
 const [selectedWorkspaceId, setSelectedWorkspaceId] = createState<number>(1);
 
@@ -25,22 +30,27 @@ const [progressStatus, setProgressStatus] = createState<
 const targetTypes = ["workspace", "sddm", "lockscreen"];
 const [targetType, setTargetType] = createState<string>("workspace");
 
-const [allWallpapers, setAllWallpapers] = createState<string[]>([]);
+const [wallpapers, setWallpapers] = createState<Record<string, string[]>>({});
+
+const selectedWallpapers = createComputed(() => {
+  return (
+    wallpapers()[
+      globalSettings(({ wallpaperSwitcher }) => wallpaperSwitcher.category)()
+    ] || []
+  );
+});
 
 const FetchWallpapers = async () => {
   try {
-    await execAsync("bash ./scripts/wallpaper-to-thumbnail.sh");
-
-    const [defaultWalls, customWalls] = await Promise.all([
-      execAsync("bash ./scripts/get-wallpapers.sh --defaults").then(JSON.parse),
-      execAsync("bash ./scripts/get-wallpapers.sh --custom").then(JSON.parse),
-    ]);
-
-    if (wallpaperType.peek()) {
-      setAllWallpapers(customWalls);
-    } else {
-      setAllWallpapers([...defaultWalls, ...customWalls]);
-    }
+    execAsync("bash ./scripts/get-wallpapers.sh")
+      .then((output) => {
+        const wallpapers = readJson(output);
+        setWallpapers(wallpapers);
+      })
+      .catch((err) => {
+        notify({ summary: "Error", body: String(err) });
+        print("Error fetching wallpapers: " + String(err));
+      });
   } catch (err) {
     notify({ summary: "Error", body: String(err) });
     print("Error fetching wallpapers: " + String(err));
@@ -67,8 +77,6 @@ const FetchCurrentWallpapers = (monitorName: string) => {
     print("Error fetching current wallpapers: " + String(err));
   }
 };
-
-const [wallpaperType, setWallpaperType] = createState<boolean>(false);
 
 export function toThumbnailPath(file: string) {
   return file.replace(
@@ -135,8 +143,8 @@ function Display() {
       vexpand
     >
       <Gtk.Box class="all-wallpapers" spacing={5}>
-        <For each={allWallpapers}>
-          {(wallpaper, key) => {
+        <For each={selectedWallpapers}>
+          {(wallpaper) => {
             const handleLeftClick = (self: Gtk.Button) => {
               setProgressStatus("loading");
               const target = targetType.peek();
@@ -236,7 +244,7 @@ function Display() {
                   file={toThumbnailPath(wallpaper)}
                 ></Picture>
               </button>
-            );
+            ) as Gtk.Widget;
           }}
         </For>
       </Gtk.Box>
@@ -266,8 +274,8 @@ function Display() {
       onClicked={(self) => {
         setProgressStatus("loading");
         const randomWallpaper =
-          allWallpapers.peek()[
-            Math.floor(Math.random() * allWallpapers.peek().length)
+          selectedWallpapers.peek()[
+            Math.floor(Math.random() * selectedWallpapers.peek().length)
           ];
         execAsync(
           `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
@@ -282,18 +290,6 @@ function Display() {
             setProgressStatus("error");
             notify({ summary: "Error", body: String(err) });
           });
-      }}
-    />
-  );
-
-  const customToggle = (
-    <togglebutton
-      valign={Gtk.Align.CENTER}
-      class="custom-wallpaper"
-      label={wallpaperType((type) => (type ? "Custom" : "All"))}
-      onToggled={({ active }) => {
-        setWallpaperType(active);
-        FetchWallpapers();
       }}
     />
   );
@@ -424,12 +420,38 @@ function Display() {
     </box>
   );
 
+  const categorySelector = (
+    <menubutton class="category-selector" halign={Gtk.Align.CENTER}>
+      <label
+        label={globalSettings(
+          ({ wallpaperSwitcher }) => wallpaperSwitcher.category,
+        )}
+      />
+      <popover>
+        <With value={wallpapers}>
+          {(wallpapers) => (
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+              {Object.keys(wallpapers).map((category) => (
+                <button
+                  label={category}
+                  onClicked={() =>
+                    setGlobalSetting("wallpaperSwitcher.category", category)
+                  }
+                />
+              ))}
+            </box>
+          )}
+        </With>
+      </popover>
+    </menubutton>
+  );
+
   const actions = (
     <box class="actions" hexpand={true} halign={Gtk.Align.CENTER} spacing={10}>
       {targetButtons}
       {selectedWorkspaceLabel}
       {displayColorScheme}
-      {customToggle}
+      {categorySelector}
       {randomButton}
       {resetButton}
       {addWallpaper}

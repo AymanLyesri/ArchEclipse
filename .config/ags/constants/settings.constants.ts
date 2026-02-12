@@ -208,4 +208,7 @@ export const defaultSettings: Settings = {
       max: 0,
     },
   },
+  wallpaperSwitcher: {
+    category: "defaults/sfw",
+  },
 };

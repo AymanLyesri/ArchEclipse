@@ -2,7 +2,7 @@
 source $HOME/.config/hypr/maintenance/ESSENTIALS.sh # source the essentials file INSIDE the repository
 
 # List of URLs
-urls=(
+urls_NSFW=(
     "https://cdn.donmai.us/original/bc/66/__dehya_genshin_impact_drawn_by_xude__bc66c4b2ab9ac2c0e4c62cb0e59e0cd0.jpg"
     "https://cdn.donmai.us/original/df/37/__eula_genshin_impact_drawn_by_swkl_d__df37376cf347fd5ba6fc397ec7a0e00b.jpg"
     "https://cdn.donmai.us/original/28/51/__eula_genshin_impact_drawn_by_the_what_sa__2851e14012f4bf512ac33fe8df2f2df1.jpg"
@@ -53,7 +53,7 @@ urls=(
 )
 
 wallpapers_total_size() {
-    curl --parallel --parallel-immediate -sI "${urls[@]}" |
+    curl --parallel --parallel-immediate -sI "${urls_NSFW[@]}" |
     grep -ioP 'Content-Length:\s*\K\d+' |
     awk '{s+=$1} END {print int(s/1024/1024) " MB"}'
 }
@@ -62,13 +62,13 @@ download_wallpapers() {
     echo "Downloading wallpapers..."
     
     # Folder to save the images
-    folder="$HOME/.config/wallpapers/defaults"
+    folder="$HOME/.config/wallpapers/defaults/nsfw"
     mkdir -p "$folder"
     
     # Track filenames from URLs
     expected_files=()
     
-    for url in "${urls[@]}"; do
+    for url in "${urls_NSFW[@]}"; do
         filename=$(basename "$url")
         expected_files+=("$filename")
         filepath="$folder/$filename"
@@ -98,4 +98,4 @@ echo "Calculating total size of wallpapers..."
 
 size=$(wallpapers_total_size)
 
-continue_prompt "Do you want to install default wallpapers? (total size: $size)" download_wallpapers
+continue_prompt "Do you want to install default wallpapers (NSFW - Optional)? (total size: $size)" download_wallpapers

@@ -68,7 +68,7 @@ function deepMergeAuto(target: any, source: any): any {
 // Settings are stored in a json file, containing all the settings, check if it exists, if not, create it
 export function autoCreateSettings(
   globalSettings: Settings,
-  setGlobalSettings: (value: Settings) => void
+  setGlobalSettings: (value: Settings) => void,
 ) {
   print(`\n############ Auto Creating Settings ###########`);
   try {
@@ -89,29 +89,3 @@ export function autoCreateSettings(
 
   print(`\n############ Settings Loaded ###########`);
 }
-
-// export function setSetting(
-//   key: string,
-//   value: any,
-//   globalSettings: Accessor<Settings>,
-//   setGlobalSettings: (value: Settings) => void
-// ): any {
-//   let o: any = globalSettings.get();
-//   key
-//     .split(".")
-//     .reduce(
-//       (o, k, i, arr) => (o[k] = i === arr.length - 1 ? value : o[k] || {}),
-//       o
-//     );
-
-//   setGlobalSettings({ ...o });
-// }
-
-// export function getSetting(key: string, globalSettings: Settings): any {
-//   // returns the value of the key in the settings
-//   return key.split(".").reduce((o: any, k) => o?.[k], globalSettings);
-// }
-
-// export function exportSettings() {
-//   execAsync(`bash -c 'cat ${settingsPath} | wl-copy'`);
-// }
