@@ -9,6 +9,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/un.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -32,6 +34,125 @@ typedef struct {
 static MonitorState monitors[MAX_MONITORS];
 static int monitor_count = 0;
 static char hypr_dir[MAX_PATH_LEN];
+
+/* Forward declarations */
+void notify_error(const char* where, const char* message);
+char* exec_command(const char* cmd);
+
+/*
+ * Recursively create directories (mkdir -p behavior)
+ */
+static bool ensure_dir(const char* path) {
+    char tmp[MAX_PATH_LEN];
+    size_t len = strnlen(path, sizeof(tmp));
+
+    if (len == 0 || len >= sizeof(tmp)) {
+        return false;
+    }
+
+    strncpy(tmp, path, sizeof(tmp) - 1);
+    tmp[sizeof(tmp) - 1] = '\0';
+
+    if (tmp[len - 1] == '/') {
+        tmp[len - 1] = '\0';
+    }
+
+    for (char* p = tmp + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(tmp, 0755) != 0 && errno != EEXIST) {
+                return false;
+            }
+            *p = '/';
+        }
+    }
+
+    if (mkdir(tmp, 0755) != 0 && errno != EEXIST) {
+        return false;
+    }
+
+    return true;
+}
+
+/*
+ * Copy file contents from src to dst
+ */
+static bool copy_file(const char* src, const char* dst) {
+    FILE* in = fopen(src, "r");
+    if (!in) {
+        return false;
+    }
+
+    FILE* out = fopen(dst, "w");
+    if (!out) {
+        fclose(in);
+        return false;
+    }
+
+    char buf[4096];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), in)) > 0) {
+        if (fwrite(buf, 1, n, out) != n) {
+            fclose(in);
+            fclose(out);
+            return false;
+        }
+    }
+
+    fclose(in);
+    fclose(out);
+    return true;
+}
+
+/*
+ * Create monitor config structure and defaults.conf if missing or empty
+ */
+static void create_config_structure() {
+    char* output = exec_command("hyprctl monitors | awk '/Monitor/ {print $2}'");
+    if (!output) {
+        notify_error("create_config_structure", "Failed to list monitors");
+        return;
+    }
+
+    char base_dir[MAX_PATH_LEN];
+    char backup_conf[MAX_PATH_LEN];
+    snprintf(base_dir, sizeof(base_dir), "%s/hyprpaper/config", hypr_dir);
+    snprintf(backup_conf, sizeof(backup_conf), "%s/hyprpaper/config/defaults.conf", hypr_dir);
+
+    if (!ensure_dir(base_dir)) {
+        notify_error("create_config_structure", "Failed to ensure base config directory");
+        return;
+    }
+
+    char* line = strtok(output, "\n");
+    while (line) {
+        char monitor_dir[MAX_PATH_LEN];
+        char monitor_conf[MAX_PATH_LEN];
+
+        snprintf(monitor_dir, sizeof(monitor_dir), "%s/%s", base_dir, line);
+        snprintf(monitor_conf, sizeof(monitor_conf), "%s/defaults.conf", monitor_dir);
+
+        if (!ensure_dir(monitor_dir)) {
+            char error_msg[512];
+            snprintf(error_msg, sizeof(error_msg), "Failed to create dir for %s", line);
+            notify_error("create_config_structure", error_msg);
+            line = strtok(NULL, "\n");
+            continue;
+        }
+
+        struct stat st;
+        bool needs_init = (stat(monitor_conf, &st) != 0) || (st.st_size == 0);
+        if (needs_init) {
+            if (!copy_file(backup_conf, monitor_conf)) {
+                char error_msg[512];
+                snprintf(error_msg, sizeof(error_msg), "Failed to init %s", monitor_conf);
+                notify_error("create_config_structure", error_msg);
+            }
+        }
+
+        line = strtok(NULL, "\n");
+    }
+}
 
 /*
  * Error notification system
@@ -459,6 +580,8 @@ int main() {
     printf("hyprpaper detected, proceeding...\n");
     
     sleep(1);
+
+    create_config_structure();
 
     printf("Setting initial wallpapers...\n");
     change_wallpaper();
