@@ -18,7 +18,7 @@ import Picture from "../../Picture";
 import Pango from "gi://Pango?version=1.0";
 
 // Constants
-const MESSAGE_FILE_PATH = "./assets/chatbot";
+const MESSAGE_FILE_PATH = "./cache/chatbot";
 
 // State
 const [messages, setMessages] = createState<Message[]>([]);
@@ -62,7 +62,7 @@ const formatTextWithCodeBlocks = (text: string) => {
             halign={Gtk.Align.START}
             label={part}
           />
-        </Eventbox>
+        </Eventbox>,
       );
     } else if (i % 3 === 0 && part) {
       // Regular text
@@ -96,7 +96,7 @@ const saveMessages = () => {
 };
 
 const sendMessage = async (message: Message) => {
-  const imagePath = `./assets/chatbot/${
+  const imagePath = `./cache/chatbot/${
     globalSettings.peek().chatBot.api.value
   }/images/${message.id}.jpg`;
 
@@ -149,7 +149,7 @@ const ApiList = () => (
       <togglebutton
         hexpand
         active={globalSettings(
-          ({ chatBot }) => chatBot.api.name === provider.name
+          ({ chatBot }) => chatBot.api.name === provider.name,
         )}
         class="provider"
         onToggled={({ active }) => {
@@ -315,7 +315,7 @@ const ClearButton = () => (
       execAsync(
         `rm -rf ${MESSAGE_FILE_PATH}/${
           globalSettings.peek().chatBot.api.value
-        }/images`
+        }/images`,
       ).catch((err) => notify({ summary: "err", body: err }));
     }}
   />
@@ -324,7 +324,7 @@ const ClearButton = () => (
 const ImageGenerationSwitch = () => (
   <togglebutton
     sensitive={globalSettings(
-      ({ chatBot }) => chatBot.api.imageGenerationSupport ?? false
+      ({ chatBot }) => chatBot.api.imageGenerationSupport ?? false,
     )}
     active={chatBotImageGeneration}
     class="image-generation"

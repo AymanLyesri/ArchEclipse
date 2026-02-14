@@ -37,8 +37,8 @@ const [editingTask, setEditingTask] = createState<ScriptTask | null>(null);
 // Storage functions
 const saveTasksToFile = async (tasks: ScriptTask[]) => {
   try {
-    await execAsync(`mkdir -p ./assets/script-timer`);
-    writeJSONFile("./assets/script-timer/tasks.json", tasks);
+    await execAsync(`mkdir -p ./cache/script-timer`);
+    writeJSONFile("./cache/script-timer/tasks.json", tasks);
   } catch (error) {
     console.error("Failed to save tasks:", error);
   }
@@ -46,7 +46,7 @@ const saveTasksToFile = async (tasks: ScriptTask[]) => {
 
 const loadTasksFromFile = async (): Promise<ScriptTask[]> => {
   try {
-    const result = readJSONFile("./assets/script-timer/tasks.json");
+    const result = readJSONFile("./cache/script-timer/tasks.json");
     return Array.isArray(result) ? result : [];
   } catch (error) {
     console.error("Failed to load tasks:", error);
@@ -130,7 +130,7 @@ const TaskForm = ({
 
   const updateSuggestions = (input: string) => {
     const hasMatch = predefinedCommands.some((cmd) =>
-      cmd.label.toLowerCase().includes(input.toLowerCase())
+      cmd.label.toLowerCase().includes(input.toLowerCase()),
     );
     setShowSuggestions(input.trim().length > 0 && hasMatch);
   };
@@ -221,7 +221,7 @@ const TaskForm = ({
               .filter((cmd) =>
                 cmd.label
                   .toLowerCase()
-                  .includes(commandEntry.get().toLowerCase())
+                  .includes(commandEntry.get().toLowerCase()),
               )
               .map((cmd) => (
                 <button

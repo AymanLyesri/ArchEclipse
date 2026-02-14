@@ -27,8 +27,8 @@ const [editingEntry, setEditingEntry] = createState<CryptoEntry | null>(null);
 // Storage functions
 const saveEntriesToFile = async (entries: CryptoEntry[]) => {
   try {
-    await execAsync(`mkdir -p ./assets/crypto`);
-    writeJSONFile("./assets/crypto/entries.json", entries);
+    await execAsync(`mkdir -p ./cache/crypto`);
+    writeJSONFile("./cache/crypto/entries.json", entries);
   } catch (error) {
     console.error("Failed to save crypto entries:", error);
   }
@@ -36,7 +36,7 @@ const saveEntriesToFile = async (entries: CryptoEntry[]) => {
 
 const loadEntriesFromFile = async (): Promise<CryptoEntry[]> => {
   try {
-    const result = readJSONFile("./assets/crypto/entries.json");
+    const result = readJSONFile("./cache/crypto/entries.json");
     return Array.isArray(result) ? result : [];
   } catch (error) {
     console.error("Failed to load crypto entries:", error);
@@ -59,13 +59,13 @@ const CryptoForm = ({
 }) => {
   const [symbolEntry, setSymbolEntry] = createState(entry?.symbol || "btc");
   const [selectedTimeframe, setSelectedTimeframe] = createState(
-    entry?.timeframe || "7d"
+    entry?.timeframe || "7d",
   );
   const [showPriceToggle, setShowPriceToggle] = createState(
-    entry?.showPrice ?? true
+    entry?.showPrice ?? true,
   );
   const [showGraphToggle, setShowGraphToggle] = createState(
-    entry?.showGraph ?? true
+    entry?.showGraph ?? true,
   );
 
   const saveEntry = () => {

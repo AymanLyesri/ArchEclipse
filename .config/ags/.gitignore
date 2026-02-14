@@ -3,30 +3,6 @@ types
 @girs
 node_modules
 
-!assets/
-
-assets/binaries/*
-!assets/binaries/
-
-assets/thumbnails/*
-!assets/thumbnails/
-
-assets/settings/*
-!assets/settings/
-
-assets/chatbot/*
-!assets/chatbot/
-
-!assets/booru/
-assets/booru/*
-
-assets/script-timer/*
-!assets/script-timer/
-
-assets/crypto/*
-!assets/crypto/
-
-assets/manga/*
-!assets/manga/
+cache
 
 logs

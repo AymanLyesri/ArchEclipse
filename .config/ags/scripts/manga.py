@@ -130,8 +130,8 @@ class MangaDexProvider(MangaProvider):
     BASE_URL = "https://api.mangadex.org"
 
     # Default cover directory
-    COVERS_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "covers"
-    PAGES_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "pages"
+    COVERS_DIR = Path.home() / ".config" / "ags" / "cache" / "manga" / name / "covers"
+    PAGES_DIR = Path.home() / ".config" / "ags" / "cache" / "manga" / name / "pages"
 
     def __init__(self, covers_dir: Optional[str] = None):
         self.session = requests.Session()
@@ -465,8 +465,8 @@ class EHentaiProvider(MangaProvider):
     API_URL = "https://api.e-hentai.org/api.php"
     SITE_URL = "https://e-hentai.org"
 
-    PAGES_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "pages"
-    COVERS_DIR = Path.home() / ".config" / "ags" / "assets" / "manga" / name / "covers"
+    PAGES_DIR = Path.home() / ".config" / "ags" / "cache" / "manga" / name / "pages"
+    COVERS_DIR = Path.home() / ".config" / "ags" / "cache" / "manga" / name / "covers"
 
     def __init__(self, cookies: Optional[dict] = None):
         self.session = requests.Session()

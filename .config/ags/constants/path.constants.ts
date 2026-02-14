@@ -1,3 +1,3 @@
-export const booruPath: string = "./assets/booru";
+export const booruPath: string = "./cache/booru";
 
-export const gifsPath: string = "./assets/gifs";
+export const gifsPath: string = "./cache/gifs";

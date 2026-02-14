@@ -2,7 +2,7 @@ import { readJSONFile, writeJSONFile } from "./json";
 import { Settings } from "../interfaces/settings.interface";
 import { defaultSettings } from "../constants/settings.constants";
 
-export const settingsPath = "./assets/settings/settings.json";
+export const settingsPath = "./cache/settings/settings.json";
 
 function detectMergeKey(a: any[], b: any[]): string | null {
   const candidates = ["id", "name", "key", "uuid"];

@@ -222,7 +222,7 @@ export class BooruImage {
    * Pin image to terminal background
    */
   async pinToTerminal(): Promise<void> {
-    const terminalWaifuPath = `$HOME/.config/fastfetch/assets/logo.webp`;
+    const terminalWaifuPath = `$HOME/.config/fastfetch/cache/logo.webp`;
 
     try {
       const output = await execAsync(

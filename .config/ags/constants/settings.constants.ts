@@ -4,7 +4,7 @@ import {
   rightPanelWidgetSelectors,
 } from "../constants/widget.constants";
 import { booruApis, chatBotApis } from "../constants/api.constants";
-import { BooruImage } from "../classes/BooruImage";
+import { BooruImage } from "../class/BooruImage";
 import { dateFormats } from "../constants/date.constants";
 import { phi, phi_min } from "../constants/phi.constants";
 import { Settings } from "../interfaces/settings.interface";

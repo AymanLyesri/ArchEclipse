@@ -84,7 +84,7 @@ export default ({ setup }: { setup: (self: Gtk.Window) => void }) => {
       $={(self) => {
         setup(self);
         let Timeout: Timer | null = null;
-        subprocess(`./assets/binaries/keystroke-loop-ags`, (out) => {
+        subprocess(`./cache/binaries/keystroke-loop-ags`, (out) => {
           const key = out.trim();
           if (!key) return;
 

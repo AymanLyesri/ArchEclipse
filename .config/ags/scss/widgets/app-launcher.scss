@@ -1,50 +1,5 @@
 .app-launcher {
-  @include module;
-
-  min-width: 64em;
-
-  padding-top: 10px;
-  padding-bottom: 10px;
-
-  .help {
-    popover {
-      @include module;
-    }
-  }
-  .input {
-    padding-right: 10px;
-    padding-left: 10px;
-
-    entry {
-      padding: 10px;
-      background-color: transparent;
-    }
-  }
-
-  .results {
-    padding-right: 10px;
-    padding-left: 10px;
-
-    button {
-      animation: opacity-in 0.4s ease-in;
-      .description {
-        color: $foreground-tertiary;
-        font-size: 0.9em;
-      }
-      .argument {
-        color: $foreground-secondary;
-      }
-      &:focus {
-        @include button-checked;
-        .argument {
-          color: $background-secondary;
-        }
-        .description {
-          color: $background-tertiary;
-        }
-      }
-    }
-  }
+  min-width: 100em;
 
   button {
     padding: 1em;
@@ -52,5 +7,57 @@
     &:hover {
       background-color: $background-semi-transparent;
     }
+
+    animation: opacity-in 0.4s ease-in;
+    .description {
+      color: $foreground-tertiary;
+      font-size: 0.9em;
+    }
+    .argument {
+      color: $foreground-secondary;
+    }
+    &:focus {
+      @include button-checked;
+      .argument {
+        color: $background-secondary;
+      }
+      .description {
+        color: $background-tertiary;
+      }
+    }
+  }
+  .quick-apps {
+    @include module;
+    padding: 10px;
+  }
+
+  .main {
+    @include module;
+    padding: 10px;
+
+    .help {
+      font-size: 1.1em;
+      font-weight: bold;
+      animation: opacity-in 0.4s ease-in;
+
+      & > box {
+        @include module;
+        padding: 10px;
+      }
+    }
+
+    .content {
+      min-height: 500px;
+    }
+
+    entry {
+      padding: 10px;
+      background-color: transparent;
+    }
+  }
+
+  .history {
+    @include module;
+    padding: 10px;
   }
 }

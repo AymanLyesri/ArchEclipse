@@ -3,7 +3,7 @@
 # Define the file that contains the wallpaper paths
 hyprpaper_config="$HOME/.config/hypr/hyprpaper/config"
 wallpaper_folder="$HOME/.config/wallpapers"
-thumbnail_folder="$HOME/.config/ags/assets/thumbnails"
+thumbnail_folder="$HOME/.config/ags/cache/thumbnails"
 
 # Initialize an empty array for the wallpaper paths
 wallpaper_paths=()

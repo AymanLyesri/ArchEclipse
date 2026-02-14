@@ -79,10 +79,7 @@ const FetchCurrentWallpapers = (monitorName: string) => {
 };
 
 export function toThumbnailPath(file: string) {
-  return file.replace(
-    "/.config/wallpapers/",
-    "/.config/ags/assets/thumbnails/",
-  );
+  return file.replace("/.config/wallpapers/", "/.config/ags/cache/thumbnails/");
 }
 
 // Main Display Component

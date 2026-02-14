@@ -1,5 +1,5 @@
 import Gtk from "gi://Gtk?version=4.0";
-import { BooruImage } from "../../../classes/BooruImage";
+import { BooruImage } from "../../../class/BooruImage";
 import { execAsync } from "ags/process";
 import { readJson } from "../../../utils/json";
 import {

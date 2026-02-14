@@ -2,7 +2,7 @@ import { createState, createBinding, Accessor } from "ags";
 import { execAsync } from "ags/process";
 import Apps from "gi://AstalApps";
 
-import { readJson, readJSONFile } from "../utils/json";
+import { readJson, readJSONFile, writeJSONFile } from "../utils/json";
 import { arithmetic, containsOperator } from "../utils/arithmetic";
 import {
   containsProtocolOrTLD,
@@ -39,92 +39,40 @@ const MAX_ITEMS = 10;
 
 const [Results, setResults] = createState<LauncherApp[]>([]);
 
+const [history, setHistory] = createState<string[]>([]);
+
 let parentWindowRef: Gtk.Window | null = null;
 
 const QuickApps = () => {
-  const apps = (
-    <Gtk.Revealer
-      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
-      transitionDuration={globalTransition}
-      revealChild={Results((results) => results.length === 0)}
-    >
-      <scrolledwindow heightRequest={quickApps.length * 40}>
-        <box
-          class="results quick-apps"
-          spacing={5}
-          orientation={Gtk.Orientation.VERTICAL}
-        >
-          {quickApps.map((app, index) => (
-            <Gtk.Button
-              hexpand
-              class="quick-app"
-              onClicked={() => {
-                app.app_launch();
-                if (parentWindowRef) {
-                  parentWindowRef.hide();
-                }
-              }}
-            >
-              <box spacing={5}>
-                <label widthRequest={24} label={app.app_icon} />
-                <label label={app.app_name} />
-              </box>
-            </Gtk.Button>
-          ))}
-        </box>
-      </scrolledwindow>
-    </Gtk.Revealer>
-  );
-
   return (
-    <box class="quick-launcher" spacing={5}>
-      {apps}
-    </box>
+    <scrolledwindow hexpand vexpand>
+      <box
+        class="quick-apps results"
+        spacing={5}
+        orientation={Gtk.Orientation.VERTICAL}
+        valign={Gtk.Align.START}
+      >
+        {quickApps.map((app, index) => (
+          <Gtk.Button
+            hexpand
+            class="quick-app"
+            onClicked={() => {
+              app.app_launch();
+              if (parentWindowRef) {
+                parentWindowRef.hide();
+              }
+            }}
+          >
+            <box spacing={5}>
+              <label widthRequest={24} label={app.app_icon} />
+              <label label={app.app_name} />
+            </box>
+          </Gtk.Button>
+        ))}
+      </box>
+    </scrolledwindow>
   );
 };
-
-const helpCommands = {
-  "Press <Escape>": "to reset input",
-  "... ...": "open with argument",
-  "translate .. > ..": "translate into (en,fr,es,de,pt,ru,ar...)",
-  "... .com OR https://...": "open link",
-  "..*/+-..": "arithmetics",
-  "emoji ...": "search emojis",
-  "100c to f / 10kg in lb": "unit conversion (temp/weight/length/volume/speed)",
-};
-
-const Help = () => (
-  <menubutton class="help" tooltipText="Help" halign={Gtk.Align.END}>
-    <label label="" />
-    <popover
-      $={(self) => {
-        self.connect("notify::visible", () => {
-          if (self.visible) self.add_css_class("popover-open");
-          else if (self.get_child()) self.remove_css_class("popover-open");
-        });
-      }}
-    >
-      <box class="help-popover" spacing={5}>
-        <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-          {Object.entries(helpCommands).map(([command, description]) => (
-            <box spacing={10}>
-              <label
-                label={command}
-                class="command"
-                // ellipsize={Gtk.EllipsizeMode.END}
-              />
-              <label
-                label={description}
-                class="description"
-                // ellipsize={Gtk.EllipsizeMode.END}
-              />
-            </box>
-          ))}
-        </box>
-      </box>
-    </popover>
-  </menubutton>
-);
 
 let debounceTimer: any;
 let args: string[];
@@ -135,7 +83,7 @@ const Entry = () => (
     hexpand={true}
     placeholderText="Search for an app, emoji, translate, url, or do some math..."
     $={(self) => (entryWidget = self)}
-    onChanged={async (self: any) => {
+    onChanged={(self: any) => {
       const text = self.get_text();
       if (debounceTimer) {
         clearTimeout(debounceTimer);
@@ -188,7 +136,7 @@ const Entry = () => (
             ]);
           } // Handle emojis
           else if (args[0].includes("emoji")) {
-            const emojis: [] = readJSONFile("./assets/emojis/emojis.json");
+            const emojis: [] = readJSONFile("./cache/emojis/emojis.json");
             const filteredEmojis = emojis.filter(
               (emoji: { app_tags: string; app_name: string }) =>
                 emoji.app_tags
@@ -243,13 +191,16 @@ const Entry = () => (
                   app_description: app.description,
                   app_type: "app",
                   app_arg: args.join(" "),
-                  app_launch: () =>
-                    !args.join("")
-                      ? app.launch()
-                      : hyprland.message_async(
-                          `dispatch exec ${app.executable} ${args.join(" ")}`,
-                          () => {},
-                        ),
+                  app_launch: () => {
+                    app.launch();
+                    // Add to history and remove old duplicates, keep only latest 10
+                    const newHistory = [
+                      app.name,
+                      ...history.peek().filter((name) => name !== app.name),
+                    ].slice(0, 10);
+                    setHistory(newHistory);
+                    writeJSONFile("./cache/launcher/history.json", newHistory);
+                  },
                 })),
             );
             if (Results.get().length === 0) {
@@ -296,33 +247,34 @@ const launchApp = (app: LauncherApp) => {
   EmptyEntry();
 };
 
-const ResultsDisplay = () => {
-  const buttonContent = (element: LauncherApp) => (
-    <box spacing={10} hexpand>
-      {/* ICON SLOT — always present */}
-
-      <image visible={element.app_type === "app"} iconName={element.app_icon} />
-
-      {/* MAIN LABEL — expands */}
-      <label xalign={0} label={element.app_name} />
-
-      {/* ARGUMENT — fixed alignment */}
-      <label
-        class="argument"
-        hexpand
-        xalign={0}
-        label={element.app_arg || ""}
-      />
-
-      <label
-        class="description"
-        xalign={1}
-        ellipsize={Pango.EllipsizeMode.END}
-        label={element.app_description || ""}
-      />
+const Help = () => {
+  const helpCommands = {
+    "... ...": "open with argument",
+    "translate .. > ..": "translate into (en,fr,es,de,pt,ru,ar...)",
+    "... .com OR https://...": "open link",
+    "..*/+-..": "arithmetics",
+    "emoji ...": "search emojis",
+    "100c to f / 10kg in lb":
+      "unit conversion (temp/weight/length/volume/speed)",
+  };
+  return (
+    <box
+      visible={Results((results) => results.length <= 0)}
+      class={"help"}
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={10}
+    >
+      {Object.entries(helpCommands).map(([command, description]) => (
+        <box spacing={10}>
+          <label label={command} class="command" hexpand xalign={0} />
+          <label label={description} class="description" hexpand xalign={1} />
+        </box>
+      ))}
     </box>
   );
+};
 
+const ResultsDisplay = () => {
   const AppButton = ({
     element,
     className,
@@ -330,6 +282,34 @@ const ResultsDisplay = () => {
     element: LauncherApp;
     className?: string;
   }) => {
+    const buttonContent = (element: LauncherApp) => (
+      <box spacing={10} hexpand>
+        {/* ICON SLOT — always present */}
+
+        <image
+          visible={element.app_type === "app"}
+          iconName={element.app_icon}
+        />
+
+        {/* MAIN LABEL — expands */}
+        <label xalign={0} label={element.app_name} />
+
+        {/* ARGUMENT — fixed alignment */}
+        <label
+          class="argument"
+          hexpand
+          xalign={0}
+          label={element.app_arg || ""}
+        />
+
+        <label
+          class="description"
+          xalign={1}
+          ellipsize={Pango.EllipsizeMode.END}
+          label={element.app_description || ""}
+        />
+      </box>
+    );
     return (
       <Gtk.Button
         hexpand={true}
@@ -342,9 +322,6 @@ const ResultsDisplay = () => {
       </Gtk.Button>
     );
   };
-
-  // if (Results.length === 0) return <box />;
-
   const rows = (
     <box
       visible={Results((results) => results.length > 0)}
@@ -356,28 +333,74 @@ const ResultsDisplay = () => {
         {(result, i) => (
           <AppButton
             element={result}
-            className={i.get() === 0 ? "checked" : ""}
+            className={i.peek() === 0 ? "checked" : ""}
           />
         )}
       </For>
     </box>
   );
-
-  const maxHeight = 500;
   return (
-    <revealer
-      revealChild={Results((results) => results.length > 0)}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
-      transitionDuration={globalTransition}
-    >
-      <scrolledwindow
-        heightRequest={Results((results) =>
-          results.length * 45 > maxHeight ? maxHeight : results.length * 45,
-        )}
-      >
+    <scrolledwindow hexpand vexpand heightRequest={500}>
+      <box orientation={Gtk.Orientation.VERTICAL}>
+        <Help />
         {rows}
-      </scrolledwindow>
-    </revealer>
+      </box>
+    </scrolledwindow>
+  );
+};
+
+const History = () => {
+  return (
+    <scrolledwindow vexpand hexpand>
+      <box
+        valign={Gtk.Align.START}
+        class={"history"}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={5}
+        $={(self) => {
+          execAsync(`mkdir -p ./cache/launcher`).then(() => {
+            const history = readJSONFile("./cache/launcher/history.json");
+            if (Array.isArray(history)) setHistory(history);
+          });
+        }}
+      >
+        <label
+          visible={history((h) => h.length == 0)}
+          label={"Empty History"}
+        ></label>
+        <For each={history}>
+          {(appName) => {
+            const app = apps.fuzzy_query(appName)[0];
+
+            if (app) {
+              return (
+                <button
+                  onClicked={() => {
+                    launchApp({
+                      app_name: app.name,
+                      app_icon: app.iconName,
+                      app_launch: () => {
+                        app.launch();
+                        if (parentWindowRef) {
+                          parentWindowRef.hide();
+                        }
+                      },
+                    });
+                  }}
+                >
+                  <box spacing={10}>
+                    <image iconName={app.iconName} />
+                    <label xalign={0} label={app.name} />
+                  </box>
+                </button>
+              );
+            } else {
+              return <box />; // or some placeholder for missing app
+            }
+          }}
+        </For>
+      </box>
+    </scrolledwindow>
   );
 };
 
@@ -419,18 +442,13 @@ export default ({
         }
       }}
     />
-    <box
-      orientation={Gtk.Orientation.VERTICAL}
-      class="app-launcher"
-      spacing={10}
-    >
-      <box class={"input"} spacing={5}>
-        <Entry />
-        <Help />
-      </box>
-
+    <box class="app-launcher" spacing={10}>
       <QuickApps />
-      <ResultsDisplay />
+      <box class={"main"} orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+        <ResultsDisplay />
+        <Entry />
+      </box>
+      <History />
     </box>
   </Astal.Window>
 );
