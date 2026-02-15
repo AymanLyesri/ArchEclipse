@@ -42,6 +42,10 @@ class DanbooruProvider(BooruProvider):
     # EXCLUDE_TAGS = ["-animated"]
     EXCLUDE_TAGS = []
 
+    def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
+        self.user = api_user or self.USER
+        self.key = api_key or self.KEY
+
     def fetch_posts(self, tags, post_id="random", page=1, limit=6):
         if post_id == "random":
             url = (
@@ -51,7 +55,7 @@ class DanbooruProvider(BooruProvider):
         else:
             url = f"{self.BASE}/posts/{post_id}.json"
 
-        r = requests.get(url, auth=HTTPBasicAuth(self.USER, self.KEY))
+        r = requests.get(url, auth=HTTPBasicAuth(self.user, self.key))
         if r.status_code != 200:
             return None
 
@@ -87,7 +91,7 @@ class DanbooruProvider(BooruProvider):
             "limit": limit,
         }
 
-        r = requests.get(url, params=params, auth=HTTPBasicAuth(self.USER, self.KEY))
+        r = requests.get(url, params=params, auth=HTTPBasicAuth(self.user, self.key))
         if r.status_code != 200:
             return []
 
@@ -105,6 +109,10 @@ class GelbooruProvider(BooruProvider):
     KEY = "1ccd9dd7c457c2317e79bd33f47a1138ef9545b9ba7471197f477534efd1dd05"
     EXCLUDE_TAGS = ["-animated"]
 
+    def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
+        self.user = api_user or self.USER
+        self.key = api_key or self.KEY
+
     def fetch_posts(self, tags, post_id="random", page=1, limit=6):
         params = {
             "page": "dapi",
@@ -112,8 +120,8 @@ class GelbooruProvider(BooruProvider):
             "q": "index",
             "json": "1",
             "limit": limit,
-            "user_id": self.USER,
-            "api_key": self.KEY,
+            "user_id": self.user,
+            "api_key": self.key,
         }
 
         if post_id != "random":
@@ -158,8 +166,8 @@ class GelbooruProvider(BooruProvider):
             "json": "1",
             "name_pattern": f"%{tag}%",
             "limit": 1000,
-            "user_id": self.USER,
-            "api_key": self.KEY,
+            "user_id": self.user,
+            "api_key": self.key,
         }
 
         try:
@@ -257,11 +265,18 @@ class SafebooruProvider(BooruProvider):
 # Provider registry
 # ============================================================
 
-PROVIDERS = {
-    "danbooru": DanbooruProvider(),
-    "gelbooru": GelbooruProvider(),
-    "safebooru": SafebooruProvider(),
-}
+
+def get_provider(
+    api: str, api_user: Optional[str] = None, api_key: Optional[str] = None
+) -> Optional[BooruProvider]:
+    """Get a provider instance with optional custom credentials."""
+    providers = {
+        "danbooru": lambda: DanbooruProvider(api_user, api_key),
+        "gelbooru": lambda: GelbooruProvider(api_user, api_key),
+        "safebooru": lambda: SafebooruProvider(),
+    }
+    factory = providers.get(api.lower())
+    return factory() if factory else None
 
 
 # ============================================================
@@ -273,7 +288,8 @@ def main():
     if len(sys.argv) < 2:
         print(
             "Usage: search-booru.py --api [danbooru|gelbooru|safebooru] "
-            "--id [id] --tags [tag,tag] --tag [tag] --page [n] --limit [n]"
+            "--id [id] --tags [tag,tag] --tag [tag] --page [n] --limit [n] "
+            "--api-user [user] --api-key [key]"
         )
         sys.exit(1)
 
@@ -283,6 +299,8 @@ def main():
     page = 1
     limit = 6
     tag_query = None
+    api_user = None
+    api_key = None
 
     for i in range(1, len(sys.argv)):
         if sys.argv[i] == "--api":
@@ -297,14 +315,18 @@ def main():
             page = int(sys.argv[i + 1])
         elif sys.argv[i] == "--limit":
             limit = int(sys.argv[i + 1])
+        elif sys.argv[i] == "--api-user":
+            api_user = sys.argv[i + 1]
+        elif sys.argv[i] == "--api-key":
+            api_key = sys.argv[i + 1]
 
     if not api:
-        print("API source is required. Use --api [danbooru|gelbooru].")
+        print("API source is required. Use --api [danbooru|gelbooru|safebooru].")
         sys.exit(1)
 
-    provider = PROVIDERS.get(api)
+    provider = get_provider(api, api_user, api_key)
     if not provider:
-        print("Invalid API source. Use 'danbooru' or 'gelbooru'.")
+        print("Invalid API source. Use 'danbooru', 'gelbooru', or 'safebooru'.")
         sys.exit(1)
 
     if tag_query:

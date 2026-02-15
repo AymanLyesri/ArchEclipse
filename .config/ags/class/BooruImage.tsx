@@ -223,9 +223,15 @@ export class BooruImage {
    */
   async pinToTerminal(): Promise<void> {
     const terminalWaifuPath = `$HOME/.config/fastfetch/cache/logo.webp`;
+    // create the folder
+    await execAsync(`bash -c "mkdir -p $(dirname ${terminalWaifuPath})"`);
 
     try {
       const output = await execAsync(
+        `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`,
+      );
+
+      print(
         `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`,
       );
 
@@ -385,8 +391,15 @@ export class BooruImage {
     };
 
     // Get current values (non-reactive)
-    const currentlyDownloaded = this.isDownloaded();
-    const currentlyBookmarked = this.isBookmarked();
+    // const currentlyDownloaded = this.isDownloaded();
+    // const currentlyBookmarked = this.isBookmarked();
+
+    const [currentlyDownloaded, setCurrentlyDownloaded] = createState(
+      this.isDownloaded(),
+    );
+    const [currentlyBookmarked, setCurrentlyBookmarked] = createState(
+      this.isBookmarked(),
+    );
 
     const imageRatio = this.getAspectRatio();
     const displayWidth = imageRatio >= 1 ? opts.width * imageRatio : opts.width;
@@ -428,11 +441,14 @@ export class BooruImage {
           />
           <togglebutton
             class="button"
-            label={currentlyBookmarked ? "󰧌" : ""}
+            label={currentlyBookmarked((bookmarked) =>
+              bookmarked ? "󰧌" : "",
+            )}
             tooltip-text="Bookmark image"
             active={currentlyBookmarked}
             onClicked={(self) => {
               this.toggleBookmark();
+              setCurrentlyBookmarked(this.isBookmarked());
             }}
             hexpand
           />
@@ -441,11 +457,12 @@ export class BooruImage {
           <button
             label=""
             tooltip-text="Download image"
-            sensitive={!currentlyDownloaded}
+            sensitive={currentlyDownloaded((downloaded) => !downloaded)}
             onClicked={(self) =>
               this.fetchImage()
                 .then(() => {
                   self.sensitive = false;
+                  setCurrentlyDownloaded(true);
                 })
                 .catch(() => {})
             }
@@ -453,55 +470,47 @@ export class BooruImage {
           />
           <button
             label=""
-            tooltipMarkup={
-              currentlyDownloaded
-                ? "Copy image"
-                : "<b>Download</b> first to copy"
-            }
+            tooltipMarkup={currentlyDownloaded((downloaded) =>
+              downloaded ? "Copy image" : "<b>Download</b> first to copy",
+            )}
             sensitive={currentlyDownloaded}
             onClicked={() => this.copyToClipboard()}
             hexpand
           />
           <button
             label=""
-            tooltipMarkup={
-              currentlyDownloaded
+            tooltipMarkup={currentlyDownloaded((downloaded) =>
+              downloaded
                 ? "Set as current waifu"
-                : "<b>Download</b> first to set"
-            }
+                : "<b>Download</b> first to set",
+            )}
             sensitive={currentlyDownloaded}
             onClicked={() => this.setAsCurrentWaifu()}
             hexpand
           />
           <button
             label=""
-            tooltipMarkup={
-              currentlyDownloaded
-                ? "Open in viewer"
-                : "<b>Download</b> first to open"
-            }
+            tooltipMarkup={currentlyDownloaded((downloaded) =>
+              downloaded ? "Open in viewer" : "<b>Download</b> first to open",
+            )}
             sensitive={currentlyDownloaded}
             onClicked={() => this.openInViewer()}
             hexpand
           />
           <button
             label=""
-            tooltipMarkup={
-              currentlyDownloaded
-                ? "Pin to terminal"
-                : "<b>Download</b> first to pin"
-            }
+            tooltipMarkup={currentlyDownloaded((downloaded) =>
+              downloaded ? "Pin to terminal" : "<b>Download</b> first to pin",
+            )}
             sensitive={currentlyDownloaded}
             onClicked={() => this.pinToTerminal()}
             hexpand
           />
           <button
             label="󰸉"
-            tooltipMarkup={
-              currentlyDownloaded
-                ? "Add to wallpapers"
-                : "<b>Download</b> first to add"
-            }
+            tooltipMarkup={currentlyDownloaded((downloaded) =>
+              downloaded ? "Add to wallpapers" : "<b>Download</b> first to add",
+            )}
             sensitive={currentlyDownloaded}
             onClicked={() => this.addToWallpapers()}
             hexpand
@@ -518,9 +527,12 @@ export class BooruImage {
         class="booru-image"
       >
         <Gtk.Picture
-          file={Gio.File.new_for_path(
-            currentlyDownloaded ? this.getImagePath() : this.getPreviewPath(),
-          )}
+          file={currentlyDownloaded((downloaded) => {
+            const path = downloaded
+              ? this.getImagePath()
+              : this.getPreviewPath();
+            return Gio.File.new_for_path(path);
+          })}
           heightRequest={displayHeight}
           widthRequest={displayWidth}
           class="image"

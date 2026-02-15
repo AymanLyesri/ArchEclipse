@@ -45,9 +45,121 @@ const formatTextWithCodeBlocks = (text: string) => {
   const parts = text.split(/```(\w*)?\n?([\s\S]*?)```/gs);
   const elements = [];
 
+  const parseMarkdownLine = (line: string) => {
+    const lineElements = [];
+
+    // Headers (# to ######)
+    const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headerMatch) {
+      const level = headerMatch[1].length;
+      lineElements.push(
+        <label
+          class={`header header-${level}`}
+          hexpand
+          wrap
+          xalign={0}
+          label={headerMatch[2]}
+        />,
+      );
+      return lineElements;
+    }
+
+    // Unordered lists (- or * bullet points)
+    const listMatch = line.match(/^(\s*)([-*])\s+(.+)$/);
+    if (listMatch) {
+      lineElements.push(
+        <label
+          class="list-item"
+          hexpand
+          wrap
+          xalign={0}
+          label={`• ${listMatch[3]}`}
+        />,
+      );
+      return lineElements;
+    }
+
+    // Ordered lists (1. 2. 3. etc.)
+    const orderedListMatch = line.match(/^(\s*)(\d+\.)\s+(.+)$/);
+    if (orderedListMatch) {
+      lineElements.push(
+        <label
+          class="list-item-ordered"
+          hexpand
+          wrap
+          xalign={0}
+          label={`${orderedListMatch[2]} ${orderedListMatch[3]}`}
+        />,
+      );
+      return lineElements;
+    }
+
+    // Blockquotes (> text)
+    const quoteMatch = line.match(/^>\s+(.+)$/);
+    if (quoteMatch) {
+      lineElements.push(
+        <label
+          class="blockquote"
+          hexpand
+          wrap
+          xalign={0}
+          label={quoteMatch[1]}
+        />,
+      );
+      return lineElements;
+    }
+
+    // // Horizontal rule (---, ***, ___)
+    // if (line.match(/^[-*_]{3,}$/)) {
+    //   lineElements.push(<separator class="horizontal-rule" />);
+    //   return lineElements;
+    // }
+
+    // Regular text with inline formatting (bold, italic, inline code)
+    if (line.trim()) {
+      let formattedLine = line;
+
+      // Inline code (`code`)
+      formattedLine = formattedLine.replace(/`([^`]+)`/g, "<tt>$1</tt>");
+
+      // Bold (**text** or __text__)
+      formattedLine = formattedLine.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+      formattedLine = formattedLine.replace(/__([^_]+)__/g, "<b>$1</b>");
+
+      // Italic (*text* or _text_) - but not ** or __
+      formattedLine = formattedLine.replace(
+        /(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g,
+        "<i>$1</i>",
+      );
+      formattedLine = formattedLine.replace(
+        /(?<!_)_(?!_)([^_]+)_(?!_)/g,
+        "<i>$1</i>",
+      );
+
+      // Links [text](url) - just show the text
+      formattedLine = formattedLine.replace(
+        /\[([^\]]+)\]\([^)]+\)/g,
+        "<u>$1</u>",
+      );
+
+      lineElements.push(
+        <label
+          class="text"
+          hexpand
+          wrap
+          xalign={0}
+          useMarkup
+          label={formattedLine}
+        />,
+      );
+    }
+
+    return lineElements;
+  };
+
   for (let i = 0; i < parts.length; i++) {
-    const part = parts[i]?.trim();
-    if (!part) continue;
+    const part = parts[i];
+    if (!part?.trim()) continue;
 
     if (i % 3 === 2) {
       // Code content
@@ -62,13 +174,17 @@ const formatTextWithCodeBlocks = (text: string) => {
             wrap
             wrapMode={Pango.WrapMode.WORD_CHAR}
             halign={Gtk.Align.START}
-            label={part}
+            label={part.trim()}
           />
         </Eventbox>,
       );
-    } else if (i % 3 === 0 && part) {
-      // Regular text
-      elements.push(<label hexpand wrap xalign={0} label={part} />);
+    } else if (i % 3 === 0 && part.trim()) {
+      // Regular text - parse markdown line by line
+      const lines = part.split("\n");
+      for (const line of lines) {
+        const parsedElements = parseMarkdownLine(line);
+        elements.push(...parsedElements);
+      }
     }
   }
 
@@ -85,12 +201,14 @@ const formatTextWithCodeBlocks = (text: string) => {
 };
 
 const fetchMessages = () => {
-  try {
-    const fetchedMessages = readJSONFile(getMessageFilePath());
-    setMessages(Array.isArray(fetchedMessages) ? fetchedMessages : []);
-  } catch {
-    return [];
+  const fetchedMessages = readJSONFile(getMessageFilePath());
+
+  if (!Array.isArray(fetchedMessages)) {
+    setMessages([]);
+    return;
   }
+
+  setMessages(fetchedMessages);
 };
 
 const sendMessage = async (message: Message) => {
@@ -102,7 +220,7 @@ const sendMessage = async (message: Message) => {
   const escapedContent = message.content.replace(/'/g, "'\\''");
   const apiKey = globalSettings
     .peek()
-    .apiKeys.openrouter.value.replace(/\n/g, "")
+    .apiKeys.openrouter.key.value.replace(/\n/g, "")
     .trim();
   const model = globalSettings.peek().chatBot.api.value;
 
@@ -223,7 +341,7 @@ const Info = () => (
     />
     <box
       visible={globalSettings(
-        ({ apiKeys }) => apiKeys.openrouter.value.trim() == "",
+        ({ apiKeys }) => apiKeys.openrouter.key.value.trim() == "",
       )}
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
@@ -231,14 +349,14 @@ const Info = () => (
     >
       <button
         class={"step"}
-        label={"Visit openrouter and create an account "}
+        label={"1. Visit openrouter and create a FREE account "}
         onClicked={() =>
           execAsync("xdg-open https://openrouter.ai/").catch(print)
         }
       />
       <button
         class={"step"}
-        label={"Create an API key "}
+        label={"2. Create a FREE API key "}
         onClicked={() => {
           execAsync("xdg-open https://openrouter.ai/settings/keys").catch(
             print,
@@ -247,7 +365,7 @@ const Info = () => (
       />
       <button
         class={"step"}
-        label="Copy & Paste it in the settings"
+        label="3. Copy & Paste it in the settings"
         onClicked={() => {
           setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[3]);
         }}
@@ -375,12 +493,15 @@ const ClearButton = () => (
     label=""
     class="clear"
     onClicked={() => {
-      setMessages([]);
       execAsync(
         `rm -rf ${MESSAGE_FILE_PATH}/${
           globalSettings.peek().chatBot.api.value
-        }/images`,
-      ).catch((err) => notify({ summary: "err", body: err }));
+        }`,
+      )
+        .then(() => {
+          setMessages([]);
+        })
+        .catch((err) => notify({ summary: "err", body: err }));
     }}
   />
 );
@@ -435,8 +556,6 @@ const BottomBar = () => (
 );
 
 export default () => {
-  fetchMessages();
-
   return (
     <box
       class="chat-bot"
@@ -451,6 +570,8 @@ export default () => {
           }
         });
         self.add_controller(motion);
+
+        fetchMessages();
       }}
     >
       <Info />

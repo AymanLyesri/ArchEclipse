@@ -98,9 +98,21 @@ export interface Settings {
     category: string;
   };
   apiKeys: {
-    openrouter: AGSSetting;
-    // danbooru: AGSSetting;
-    // gelbooru: AGSSetting;
-    // safebooru: AGSSetting;
+    openrouter: {
+      user: AGSSetting;
+      key: AGSSetting;
+    };
+    danbooru: {
+      user: AGSSetting;
+      key: AGSSetting;
+    };
+    gelbooru: {
+      user: AGSSetting;
+      key: AGSSetting;
+    };
+    safebooru: {
+      user: AGSSetting;
+      key: AGSSetting;
+    };
   };
 }

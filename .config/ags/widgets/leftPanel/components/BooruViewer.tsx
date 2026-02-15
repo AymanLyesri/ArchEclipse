@@ -93,13 +93,19 @@ const fetchImages = async () => {
       t.replace(/'/g, "'\\''"),
     );
 
-    const res = await execAsync(`
+    const command = `
       python ./scripts/search-booru.py \
         --api ${settings.booru.api.value} \
         --tags '${escapedTags.join(",")}' \
         --limit ${settings.booru.limit} \
         --page ${settings.booru.page}
-    `);
+        --api-user ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].user.value} \
+        --api-key ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].key.value} \
+    `;
+
+    print(command);
+
+    const res = await execAsync(command);
 
     const jsonData = readJson(res);
     if (!jsonData || !Array.isArray(jsonData)) {

@@ -556,10 +556,42 @@ export default () => {
           spacing={16}
         >
           <label label={"AGS -- Api Keys"} halign={Gtk.Align.START} />
-          <Setting
-            keyChanged="apiKeys.openrouter"
-            setting={globalSettings.peek().apiKeys.openrouter}
-          />
+          <box class={"sub-category"}>
+            <Setting
+              keyChanged="apiKeys.openrouter.key"
+              setting={globalSettings.peek().apiKeys.openrouter.key}
+            />
+          </box>
+          <box class={"sub-category"} spacing={5}>
+            <Setting
+              keyChanged="apiKeys.danbooru.user"
+              setting={globalSettings.peek().apiKeys.danbooru.user}
+            />
+            <Setting
+              keyChanged="apiKeys.danbooru.key"
+              setting={globalSettings.peek().apiKeys.danbooru.key}
+            />
+          </box>
+          <box class={"sub-category"} spacing={5}>
+            <Setting
+              keyChanged="apiKeys.gelbooru.user"
+              setting={globalSettings.peek().apiKeys.gelbooru.user}
+            />
+            <Setting
+              keyChanged="apiKeys.gelbooru.key"
+              setting={globalSettings.peek().apiKeys.gelbooru.key}
+            />
+          </box>
+          <box class={"sub-category"} spacing={5}>
+            <Setting
+              keyChanged="apiKeys.safebooru.user"
+              setting={globalSettings.peek().apiKeys.safebooru.user}
+            />
+            <Setting
+              keyChanged="apiKeys.safebooru.key"
+              setting={globalSettings.peek().apiKeys.safebooru.key}
+            />
+          </box>
         </box>
         <box
           class={"category"}

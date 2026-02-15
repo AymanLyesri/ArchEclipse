@@ -12,7 +12,7 @@
     }
     .message {
       @include module;
-      padding: 0.3125em;
+      min-width: 100px;
 
       &.last {
         animation: opacityIn 0.5s ease-out;
@@ -29,7 +29,7 @@
       }
 
       .body {
-        padding: 0.625em;
+        padding: 0.4em;
 
         .code-block {
           background: $background-transparent;
@@ -41,6 +41,60 @@
             background: $background-transparent;
             box-shadow: 0em 0em 0.625em 0.125em $secondary;
           }
+        }
+
+        .header {
+          font-weight: bold;
+          margin-top: 0.5em;
+          margin-bottom: 0.3em;
+
+          &.header-1 {
+            font-size: 2em;
+          }
+
+          &.header-2 {
+            font-size: 1.75em;
+          }
+
+          &.header-3 {
+            font-size: 1.5em;
+          }
+
+          &.header-4 {
+            font-size: 1.25em;
+          }
+
+          &.header-5 {
+            font-size: 1.1em;
+          }
+
+          &.header-6 {
+            font-size: 1em;
+          }
+        }
+
+        .list-item,
+        .list-item-ordered {
+          padding-left: 0.5em;
+          margin: 0.2em 0;
+        }
+
+        .blockquote {
+          border-left: 0.25em solid $secondary;
+          padding-left: 0.75em;
+          margin: 0.5em 0;
+          opacity: 0.8;
+          font-style: italic;
+        }
+
+        .horizontal-rule {
+          margin: 0.75em 0;
+          background: $secondary;
+          opacity: 0.3;
+        }
+
+        .text {
+          margin: 0.2em 0;
         }
       }
 
