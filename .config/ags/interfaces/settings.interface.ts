@@ -97,4 +97,10 @@ export interface Settings {
   wallpaperSwitcher: {
     category: string;
   };
+  apiKeys: {
+    openrouter: AGSSetting;
+    // danbooru: AGSSetting;
+    // gelbooru: AGSSetting;
+    // safebooru: AGSSetting;
+  };
 }

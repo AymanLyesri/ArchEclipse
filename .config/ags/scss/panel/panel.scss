@@ -11,6 +11,10 @@
     .icon {
       border-radius: 0px;
       padding: $SCALE $SCALE - 10;
+
+      &:not(:checked) {
+        background-color: transparent;
+      }
     }
 
     .widget-actions,
@@ -35,6 +39,10 @@
       background: $background;
       padding: 5px;
       border-radius: 10px;
+
+      button:not(:checked) {
+        background-color: transparent;
+      }
     }
   }
 }

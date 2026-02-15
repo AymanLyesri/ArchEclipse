@@ -417,6 +417,24 @@ const Setting = ({
     );
   };
 
+  const TextWidget = () => {
+    return (
+      <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+        <Title />
+        <entry
+          hexpand
+          text={setting.value ?? ""}
+          placeholderText={`Enter ${setting.name}`}
+          onActivate={(self) => {
+            const text = self.text;
+            setGlobalSetting(keyChanged + ".value", text);
+            if (callBack) callBack(text);
+          }}
+        />
+      </box>
+    );
+  };
+
   const Widget = () => {
     switch (setting.type) {
       case "int":
@@ -427,6 +445,8 @@ const Setting = ({
         return SwitchWidget();
       case "select":
         return SelectWidget();
+      case "string":
+        return TextWidget();
       default:
         return (
           <label halign={Gtk.Align.END} label={"Unsupported setting type"} />
@@ -528,6 +548,17 @@ export default () => {
             keyChanged="ui.fontSize"
             setting={globalSettings.peek().ui.fontSize}
             callBack={refreshCss}
+          />
+        </box>
+        <box
+          class={"category"}
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={16}
+        >
+          <label label={"AGS -- Api Keys"} halign={Gtk.Align.START} />
+          <Setting
+            keyChanged="apiKeys.openrouter"
+            setting={globalSettings.peek().apiKeys.openrouter}
           />
         </box>
         <box

@@ -14,7 +14,6 @@ git
 p7zip
 wl-clipboard
 lsd
-tgpt-git
 cron
 
 # ____                 _                                  _   

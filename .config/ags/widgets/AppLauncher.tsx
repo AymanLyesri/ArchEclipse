@@ -136,7 +136,7 @@ const Entry = () => (
             ]);
           } // Handle emojis
           else if (args[0].includes("emoji")) {
-            const emojis: [] = readJSONFile("./cache/emojis/emojis.json");
+            const emojis: [] = readJSONFile("./assets/emojis/emojis.json");
             const filteredEmojis = emojis.filter(
               (emoji: { app_tags: string; app_name: string }) =>
                 emoji.app_tags

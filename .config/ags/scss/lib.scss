@@ -40,7 +40,7 @@ $BOX-SHADOW: 0px 5px 10px rgba(0, 0, 0, 0.4);
   border: none;
   min-width: 25px;
 
-  background: $background-semi-transparent;
+  background: $background-transparent;
 
   &:hover {
     background: $background;
@@ -110,10 +110,10 @@ filechooserbutton * {
 
 entry {
   all: unset;
-  padding: $SCALE / $phi;
+  padding: $SCALE;
   border-radius: 10px;
   color: $foreground;
-  background: $background-semi-transparent;
+  background: $background-transparent;
   border: unset;
   &:focus {
     box-shadow: unset;

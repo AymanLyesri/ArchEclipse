@@ -211,4 +211,13 @@ export const defaultSettings: Settings = {
   wallpaperSwitcher: {
     category: "defaults/sfw",
   },
+  apiKeys: {
+    openrouter: {
+      name: "OpenRouter API Key",
+      value: "",
+      type: "string",
+      min: 1,
+      max: 256,
+    },
+  },
 };

@@ -21,7 +21,6 @@ function WaifuDisplay() {
                   "leftPanel.widget",
                   leftPanelWidgetSelectors[1],
                 );
-                // setGlobalSetting("rightPanel.vi", "booruViewer");
               }}
             >
               <box

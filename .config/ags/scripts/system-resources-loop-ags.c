@@ -149,7 +149,7 @@ int main() {
         return 1;
 
     while (1) {
-        sleep(1);  // single sleep, no internal blocking
+        sleep(5);  // single sleep, no internal blocking
 
         if (!read_cpu_stat(&new_stat))
             continue;

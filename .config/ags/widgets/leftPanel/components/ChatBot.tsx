@@ -10,19 +10,21 @@ import {
   setGlobalSetting,
 } from "../../../variables";
 import { chatBotApis } from "../../../constants/api.constants";
-import { Api } from "../../../interfaces/api.interface";
 import { createState, With } from "ags";
 import { Eventbox } from "../../Custom/Eventbox";
 import { Progress } from "../../Progress";
 import Picture from "../../Picture";
 import Pango from "gi://Pango?version=1.0";
+import { leftPanelWidgetSelectors } from "../../../constants/widget.constants";
 
 // Constants
 const MESSAGE_FILE_PATH = "./cache/chatbot";
 
 // State
 const [messages, setMessages] = createState<Message[]>([]);
-const [chatHistory, setChatHistory] = createState<Message[]>([]);
+
+// Entry reference for autofocus
+let chatBotEntry: Gtk.Entry | null = null;
 
 // Progress State
 const [progressStatus, setProgressStatus] = createState<
@@ -91,10 +93,6 @@ const fetchMessages = () => {
   }
 };
 
-const saveMessages = () => {
-  writeJSONFile(getMessageFilePath(), messages.get());
-};
-
 const sendMessage = async (message: Message) => {
   const imagePath = `./cache/chatbot/${
     globalSettings.peek().chatBot.api.value
@@ -102,44 +100,87 @@ const sendMessage = async (message: Message) => {
 
   // Escape single quotes in message content
   const escapedContent = message.content.replace(/'/g, "'\\''");
+  const apiKey = globalSettings
+    .peek()
+    .apiKeys.openrouter.value.replace(/\n/g, "")
+    .trim();
+  const model = globalSettings.peek().chatBot.api.value;
+
+  // Validate inputs before making the request
+  if (!apiKey) {
+    notify({
+      summary: "ChatBot Error",
+      body: "OpenRouter API key is not configured. Please set it in settings.",
+    });
+    setProgressStatus("error");
+    return;
+  }
+
   const prompt =
-    `tgpt --quiet ` +
-    `${chatBotImageGeneration.peek() ? "--img" : ""} ` +
-    `${chatBotImageGeneration.peek() ? `--out ${imagePath}` : ""} ` +
-    `--provider ${globalSettings.peek().chatBot.api.value} ` +
-    `--preprompt 'short and straight forward response, 
-        ${JSON.stringify(chatHistory.peek())
-          .replace(/'/g, `'"'"'`)
-          .replace(/`/g, "\\`")}'` +
-    ` '${escapedContent}'`;
+    `python /home/ayman/.config/ags/scripts/chatbot.py ` +
+    `'${model}' ` +
+    `'${escapedContent}' ` +
+    `'${apiKey}'`;
+
   try {
     setProgressStatus("loading");
 
     const beginTime = Date.now();
 
     const response = await execAsync(prompt);
+
     const endTime = Date.now();
 
     notify({ summary: globalSettings.peek().chatBot.api.name, body: response });
 
     const newMessage: Message = {
-      id: (messages.get().length + 1).toString(),
-      sender: globalSettings.peek().chatBot.api.value,
-      receiver: "user",
+      id: (messages.peek().length + 1).toString(),
+      role: "assistant",
       content: response,
       timestamp: Date.now(),
       responseTime: endTime - beginTime,
       image: chatBotImageGeneration.peek() ? imagePath : undefined,
     };
 
-    setMessages([...messages.get(), newMessage]);
+    setMessages([...messages.peek(), newMessage]);
     setProgressStatus("success");
   } catch (error) {
     setProgressStatus("error");
+
+    // Parse error message for better display
+    const errorStr = String(error);
+    let errorMessage = errorStr;
+
+    // Extract meaningful error from Python stderr
+    if (errorStr.includes("ERROR:")) {
+      const match = errorStr.match(/ERROR: (.+)/);
+      if (match) {
+        errorMessage = match[1];
+      }
+    }
+
+    // Add context to common errors
+    if (errorStr.includes("HTTP 401")) {
+      errorMessage =
+        "Invalid API key. Check your OpenRouter API key in settings.";
+    } else if (errorStr.includes("HTTP 402")) {
+      errorMessage =
+        "Insufficient credits. Add credits to your OpenRouter account.";
+    } else if (errorStr.includes("HTTP 429")) {
+      errorMessage = "Rate limit exceeded. Please wait before trying again.";
+    } else if (errorStr.includes("Connection")) {
+      errorMessage = "Network error. Check your internet connection.";
+    } else if (errorStr.includes("timed out")) {
+      errorMessage = "Request timed out. The API took too long to respond.";
+    }
+
     notify({
-      summary: "Error",
-      body: (error instanceof Error ? error.message : String(error)) + prompt,
+      summary: "ChatBot Error",
+      body: errorMessage,
     });
+
+    // Log full error for debugging
+    print(`ChatBot error: ${errorStr}`);
   }
 };
 
@@ -159,7 +200,7 @@ const ApiList = () => (
           }
         }}
       >
-        <label label={provider.name} ellipsize={Pango.EllipsizeMode.END} />
+        <label label={provider.icon} ellipsize={Pango.EllipsizeMode.END} />
       </togglebutton>
     ))}
   </box>
@@ -180,6 +221,38 @@ const Info = () => (
       wrap
       label={globalSettings(({ chatBot }) => chatBot.api.description || "")}
     />
+    <box
+      visible={globalSettings(
+        ({ apiKeys }) => apiKeys.openrouter.value.trim() == "",
+      )}
+      orientation={Gtk.Orientation.VERTICAL}
+      spacing={5}
+      class="setup-guide"
+    >
+      <button
+        class={"step"}
+        label={"Visit openrouter and create an account "}
+        onClicked={() =>
+          execAsync("xdg-open https://openrouter.ai/").catch(print)
+        }
+      />
+      <button
+        class={"step"}
+        label={"Create an API key "}
+        onClicked={() => {
+          execAsync("xdg-open https://openrouter.ai/settings/keys").catch(
+            print,
+          );
+        }}
+      />
+      <button
+        class={"step"}
+        label="Copy & Paste it in the settings"
+        onClicked={() => {
+          setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[3]);
+        }}
+      ></button>
+    </box>
   </box>
 );
 
@@ -190,34 +263,27 @@ const MessageItem = ({
   message: Message;
   islast?: boolean;
 }) => {
-  const [revealerVisible, setRevealerVisible] = createState(false);
-  const Revealer = (
-    <revealer
-      revealChild={false}
-      transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
-    >
-      <box class={"info"} spacing={10}>
-        <label
-          wrap
-          class="time"
-          label={new Date(message.timestamp).toLocaleString(undefined, {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}
-        />
-        <label
-          wrap
-          class="response-time"
-          label={
-            message.responseTime
-              ? `Response Time: ${message.responseTime} ms`
-              : ""
-          }
-        />
-      </box>
-    </revealer>
+  const info = (
+    <box class={"info"} spacing={10}>
+      <label
+        wrap
+        class="time"
+        label={new Date(message.timestamp).toLocaleString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}
+      />
+      <label
+        wrap
+        class="response-time"
+        label={
+          message.responseTime
+            ? `Response Time: ${message.responseTime} ms`
+            : ""
+        }
+      />
+    </box>
   );
 
   const messageContent = (
@@ -239,11 +305,11 @@ const MessageItem = ({
 
   return (
     <box
-      class={`message ${message.sender} ${islast ? "last" : ""}`}
+      class={`message ${message.role} ${islast ? "last" : ""}`}
       orientation={Gtk.Orientation.VERTICAL}
       halign={
         message.image === undefined
-          ? message.sender === "user"
+          ? message.role === "user"
             ? Gtk.Align.END
             : Gtk.Align.START
           : undefined
@@ -263,11 +329,9 @@ const MessageItem = ({
           execAsync(`wl-copy "${message.content}"`).catch(print);
         }}
       >
-        {/* <Actions $type="overlay" /> */}
         {messageContent}
       </Eventbox>
-
-      {Revealer}
+      {info}
     </box>
   );
 };
@@ -340,8 +404,7 @@ const MessageEntry = () => {
 
     const newMessage: Message = {
       id: (messages.get().length + 1).toString(),
-      sender: "user",
-      receiver: globalSettings.peek().chatBot.api.value,
+      role: "user",
       content: text,
       timestamp: Date.now(),
     };
@@ -355,8 +418,9 @@ const MessageEntry = () => {
     <entry
       hexpand
       placeholderText="Ask anything..."
+      onActivate={handleSubmit}
       $={(self) => {
-        self.connect("activate", () => handleSubmit(self));
+        chatBotEntry = self;
       }}
     />
   );
@@ -370,26 +434,7 @@ const BottomBar = () => (
   </box>
 );
 
-const EnsurePaths = async () => {
-  const paths = [
-    `${MESSAGE_FILE_PATH}`,
-    `${MESSAGE_FILE_PATH}/${globalSettings.peek().chatBot.api.value}`,
-    `${MESSAGE_FILE_PATH}/${globalSettings.peek().chatBot.api.value}/images`,
-  ];
-
-  paths.forEach((path) => {
-    execAsync(`mkdir -p ${path}`);
-  });
-};
-
 export default () => {
-  messages.subscribe(() => {
-    saveMessages();
-    // set the last 50 messages to chat history
-    setChatHistory(messages.get().slice(-50));
-  });
-
-  EnsurePaths();
   fetchMessages();
 
   return (
@@ -398,6 +443,15 @@ export default () => {
       orientation={Gtk.Orientation.VERTICAL}
       hexpand
       spacing={5}
+      $={(self) => {
+        const motion = new Gtk.EventControllerMotion();
+        motion.connect("enter", () => {
+          if (chatBotEntry) {
+            chatBotEntry.grab_focus();
+          }
+        });
+        self.add_controller(motion);
+      }}
     >
       <Info />
       <Messages />

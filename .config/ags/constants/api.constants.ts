@@ -2,36 +2,30 @@ import { Api } from "../interfaces/api.interface";
 
 export const chatBotApis: Api[] = [
   {
-    name: "Phind",
-    value: "phind",
-    icon: "Ph",
-    description: "Uses Phind Model. Great for developers",
+    name: "Gpt 4o mini",
+    value: "openai/gpt-4o-mini",
+    icon: "G4o",
+    description: "OpenAI's gpt-4o-mini model, versatile and efficient",
   },
   {
-    name: "Pollinations",
-    value: "pollinations",
-    icon: "Po",
-    description: "Completely free, default model is gpt-4o",
-    imageGenerationSupport: true,
+    name: "Deepseek R1",
+    value: "deepseek/deepseek-r1",
+    icon: "DsR1",
+    description: "Deepseek's R1 model, optimized for contextual understanding",
   },
   {
-    name: "Isou",
-    value: "isou",
-    icon: "Is",
-    description: "Free provider with web search capabilities",
+    name: "Meta Llama 3.2 1B Instruct",
+    value: "meta-llama/llama-3.2-1b-instruct",
+    icon: "L3.2",
+    description:
+      "Meta's Llama 3.2 1B Instruct model, designed for instruction following",
   },
   {
-    name: "KoboldAI",
-    value: "koboldai",
-    icon: "Ko",
-    description: "Creative writing focused, answers from novels",
-  },
-  {
-    name: "Arta",
-    value: "arta",
-    icon: "Ar",
-    description: "AI image generation with various artistic styles",
-    imageGenerationSupport: true,
+    name: "Mistral 8B",
+    value: "mistralai/ministral-8b-2512",
+    icon: "M8B",
+    description:
+      "Mistral AI's Ministral 8B model, optimized for efficiency and performance",
   },
 ];
 
