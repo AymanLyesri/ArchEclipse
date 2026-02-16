@@ -168,12 +168,12 @@ function screenshotClient(client: Hyprland.Client): Accessor<string> {
   const currentTitle = client.title;
   const cachedTitle = titleCache.get(client.pid);
 
-  // Only take screenshot if title has changed or no screenshot exists
-  if (cachedTitle === currentTitle) {
-    // Title hasn't changed, use existing screenshot
-    setScreenshot(screenshotPath);
-    return screenshot;
-  }
+  // // Only take screenshot if title has changed or no screenshot exists
+  // if (cachedTitle === currentTitle) {
+  //   // Title hasn't changed, use existing screenshot
+  //   setScreenshot(screenshotPath);
+  //   return screenshot;
+  // }
 
   timeout(300, () => {
     if (client.workspace.id == hyprland.focusedWorkspace.id) {

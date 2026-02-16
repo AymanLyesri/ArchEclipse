@@ -402,7 +402,7 @@ function Display() {
     <box
       class="color-scheme"
       spacing={10}
-      tooltipMarkup={`Dynamic Colors from <b>Pywal</b>`}
+      tooltipMarkup={`Dynamic Colors using <b>Pywal</b>`}
     >
       {/* from 1 to 7 */}
       {[1, 2, 3, 4, 5, 6, 7].map((color, index) => (

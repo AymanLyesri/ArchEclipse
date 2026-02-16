@@ -90,7 +90,8 @@ const UserPanel = () => {
               body: String(err),
             });
           }
-        }}>
+        }}
+      >
         <Picture file={pfpPath} />
       </button>
     );
@@ -117,7 +118,8 @@ const UserPanel = () => {
       <revealer
         transition-duration={500}
         transition-type={Gtk.RevealerTransitionType.SLIDE_DOWN}
-        visible={true}>
+        visible={true}
+      >
         <box class={"info"} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
           {UserName}
           {DesktopEnv}
@@ -151,8 +153,8 @@ const UserPanel = () => {
         hyprland.message_async("dispatch exit", () => {});
       }}
       tooltipText={"logout from Hyprland"}
-      heightRequest={250}
-      widthRequest={250}
+      heightRequest={350}
+      widthRequest={350}
     />
   );
 
@@ -165,8 +167,8 @@ const UserPanel = () => {
         execAsync(`shutdown now`);
       }}
       tooltipText={"shutdown immediately"}
-      heightRequest={250}
-      widthRequest={250}
+      heightRequest={350}
+      widthRequest={350}
     />
   );
 
@@ -179,8 +181,8 @@ const UserPanel = () => {
         execAsync(`reboot`);
       }}
       tooltipText={"reboot immediately"}
-      heightRequest={250}
-      widthRequest={250}
+      heightRequest={350}
+      widthRequest={350}
     />
   );
 
@@ -194,8 +196,8 @@ const UserPanel = () => {
         execAsync(`bash -c "$HOME/.config/hypr/scripts/hyprlock.sh suspend"`);
       }}
       tooltipText={"put system to sleep"}
-      heightRequest={250}
-      widthRequest={250}
+      heightRequest={350}
+      widthRequest={350}
     />
   );
 
@@ -203,7 +205,8 @@ const UserPanel = () => {
     <box
       class="section date"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={5}>
+      spacing={5}
+    >
       <label
         class={"less"}
         halign={Gtk.Align.CENTER}
@@ -260,7 +263,8 @@ const UserPanel = () => {
         <box
           $type="overlay"
           halign={Gtk.Align.CENTER}
-          valign={Gtk.Align.CENTER}>
+          valign={Gtk.Align.CENTER}
+        >
           <Center />
         </box>
       </overlay>
@@ -306,7 +310,8 @@ export default ({
           return false;
         });
         self.add_controller(key);
-      }}>
+      }}
+    >
       <box class="display" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <UserPanel />
       </box>

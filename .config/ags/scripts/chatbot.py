@@ -23,15 +23,15 @@ def create_message(role: str, content: str, response_time: int = 0) -> dict:
     }
 
 
-def get_history_path(model: str) -> Path:
-    """Get the path to the history file for a given model."""
+def get_history_path(model: str, session_id: str = "default") -> Path:
+    """Get the path to the history file for a given model and session."""
     # Split model into provider and model parts (e.g., "openai/gpt-4o-mini")
-    return CACHE_DIR / model / "history.json"
+    return CACHE_DIR / model / "sessions" / session_id / "history.json"
 
 
-def load_history(model: str) -> list:
+def load_history(model: str, session_id: str = "default") -> list:
     """Load conversation history from JSON file."""
-    history_path = get_history_path(model)
+    history_path = get_history_path(model, session_id)
 
     if history_path.exists():
         try:
@@ -43,9 +43,9 @@ def load_history(model: str) -> list:
     return []
 
 
-def save_history(model: str, history: list):
+def save_history(model: str, history: list, session_id: str = "default"):
     """Save conversation history to JSON file."""
-    history_path = get_history_path(model)
+    history_path = get_history_path(model, session_id)
 
     # Create directory structure if it doesn't exist
     history_path.parent.mkdir(parents=True, exist_ok=True)
@@ -58,11 +58,11 @@ def main():
     if len(sys.argv) < 4:
         print("ERROR: Missing arguments", file=sys.stderr)
         print(
-            "Usage: python chatbot.py <provider/model> <message> <api_key>",
+            "Usage: python chatbot.py <provider/model> <message> <api_key> [session_id]",
             file=sys.stderr,
         )
         print(
-            'Example: python chatbot.py openai/gpt-4o-mini "Hello world" YOUR_API_KEY',
+            'Example: python chatbot.py openai/gpt-4o-mini "Hello world" YOUR_API_KEY session1',
             file=sys.stderr,
         )
         sys.exit(1)
@@ -70,9 +70,10 @@ def main():
     model = sys.argv[1]
     user_message = sys.argv[2]
     api_key = sys.argv[3].strip()  # Strip whitespace/newlines from API key
+    session_id = sys.argv[4] if len(sys.argv) > 4 else "default"
 
     # Load conversation history
-    history = load_history(model)
+    history = load_history(model, session_id)
 
     # Add new user message to history
     user_msg = create_message("user", user_message)
@@ -101,7 +102,7 @@ def main():
         history.append(assistant_msg)
 
         # Save updated history
-        save_history(model, history)
+        save_history(model, history, session_id)
 
         print(reply)
 

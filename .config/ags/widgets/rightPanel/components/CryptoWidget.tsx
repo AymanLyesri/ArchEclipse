@@ -138,7 +138,7 @@ const CryptoForm = ({
       <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
         <label class="form-label" label="Timeframe" halign={Gtk.Align.START} />
         <scrolledwindow hexpand vscrollbarPolicy={Gtk.PolicyType.NEVER}>
-          <box class="timeframes" spacing={4} valign={Gtk.Align.START}>
+          <box class="timeframes" spacing={4}>
             {timeframes.map((tf) => (
               <togglebutton
                 class="timeframe"

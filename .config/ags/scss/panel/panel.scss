@@ -40,8 +40,22 @@
       padding: 5px;
       border-radius: 10px;
 
-      button:not(:checked) {
-        background-color: transparent;
+      button {
+        animation: go-up 0.3s ease-out;
+        &:not(:checked) {
+          background-color: transparent;
+        }
+      }
+
+      @keyframes go-up {
+        from {
+          transform: translateY(10px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
       }
     }
   }
