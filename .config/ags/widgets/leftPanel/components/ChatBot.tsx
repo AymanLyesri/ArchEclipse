@@ -166,8 +166,7 @@ const formatTextWithCodeBlocks = (text: string) => {
       elements.push(
         <Eventbox
           onClick={() => execAsync(`wl-copy "${part}"`).catch(print)}
-          class="code-block"
-        >
+          class="code-block">
           <label
             class="code-block-text"
             hexpand
@@ -193,8 +192,7 @@ const formatTextWithCodeBlocks = (text: string) => {
       visible={text !== ""}
       class="body"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}
-    >
+      spacing={10}>
       {elements}
     </box>
   );
@@ -316,8 +314,7 @@ const ApiList = () => (
             setGlobalSetting("chatBot.api", provider);
             fetchMessages();
           }
-        }}
-      >
+        }}>
         <label label={provider.icon} ellipsize={Pango.EllipsizeMode.END} />
       </togglebutton>
     ))}
@@ -345,18 +342,17 @@ const Info = () => (
       )}
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
-      class="setup-guide"
-    >
+      class="setup-guide">
       <button
         class={"step"}
-        label={"1. Visit openrouter and create a FREE account "}
+        label={"1. Visit openrouter and Sign-up for FREE "}
         onClicked={() =>
           execAsync("xdg-open https://openrouter.ai/").catch(print)
         }
       />
       <button
         class={"step"}
-        label={"2. Create a FREE API key "}
+        label={"2. Generate a FREE API key "}
         onClicked={() => {
           execAsync("xdg-open https://openrouter.ai/settings/keys").catch(
             print,
@@ -368,8 +364,7 @@ const Info = () => (
         label="3. Copy & Paste it in the settings"
         onClicked={() => {
           setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[3]);
-        }}
-      ></button>
+        }}></button>
     </box>
   </box>
 );
@@ -408,15 +403,13 @@ const MessageItem = ({
     <box
       orientation={Gtk.Orientation.VERTICAL}
       hexpand
-      tooltipText={"Click to copy"}
-    >
+      tooltipText={"Click to copy"}>
       {formatTextWithCodeBlocks(message.content)}
       {message.image && (
         <Picture
           contentFit={Gtk.ContentFit.SCALE_DOWN}
           height={globalSettings(({ leftPanel }) => leftPanel.width)}
-          file={message.image}
-        ></Picture>
+          file={message.image}></Picture>
       )}
     </box>
   );
@@ -431,8 +424,7 @@ const MessageItem = ({
             ? Gtk.Align.END
             : Gtk.Align.START
           : undefined
-      }
-    >
+      }>
       <Eventbox
         class="message-eventbox"
         onClick={(self, n, x, y) => {
@@ -445,8 +437,7 @@ const MessageItem = ({
             return; // Don't copy message content if code block was clicked
           }
           execAsync(`wl-copy "${message.content}"`).catch(print);
-        }}
-      >
+        }}>
         {messageContent}
       </Eventbox>
       {info}
@@ -466,16 +457,14 @@ const Messages = () => {
             return false;
           });
         });
-      }}
-    >
+      }}>
       {/* {messages((msgs) => msgs.map((msg) => <MessageItem message={msg} />))} */}
       <With value={messages}>
         {(msgs) => (
           <box
             class="messages"
             orientation={Gtk.Orientation.VERTICAL}
-            spacing={10}
-          >
+            spacing={10}>
             {msgs.map((msg, index) => (
               <MessageItem message={msg} islast={index === msgs.length - 1} />
             ))}
@@ -572,8 +561,7 @@ export default () => {
         self.add_controller(motion);
 
         fetchMessages();
-      }}
-    >
+      }}>
       <Info />
       <Messages />
       <box orientation={Gtk.Orientation.VERTICAL}>

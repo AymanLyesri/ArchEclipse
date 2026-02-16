@@ -26,40 +26,88 @@
       }
     }
   }
-  .profile {
-    @include module;
-    padding: 33px;
 
+  .center {
+    border-radius: 100px 100px 10px 10px;
     .profile-picture {
       border-radius: 50%;
       background: transparent;
+      min-height: 200px;
+      min-width: 200px;
       padding: 0px;
-      box-shadow: $BOX-SHADOW;
-      .image {
-        border-radius: 50%;
-      }
-      margin-bottom: 1rem;
     }
-    .user-name,
-    .desktop-env {
-      font-size: 1.5em;
-      .secondary {
-        color: $secondary;
-      }
+    .image {
+      border-radius: 50%;
     }
-    .up-time {
-      color: $grey;
+    .info {
+      padding: 10px;
+    }
+    &:hover {
+      background-color: $background;
+      .profile-picture {
+        box-shadow: $BOX-SHADOW;
+      }
     }
   }
-  .system-actions {
-    button {
-      min-height: 69px;
-      min-width: 69px;
-      font-size: 2em;
-      background: $background-transparent;
+  .user-name,
+  .desktop-env {
+    font-size: 1.5em;
+    .secondary {
+      color: $secondary;
+    }
+  }
+  .up-time {
+    color: $grey;
+  }
+
+  .system-action {
+    font-size: 2em;
+    background: $background-transparent;
+    transition: all 0.1s;
+    border: transparent 5px solid;
+
+    &:hover {
+      background: $background;
+      text-shadow: $foreground 0 0 1px;
+      border-color: $foreground;
+    }
+
+    &.logout {
+      border-radius: 30px 10px 10px 10px;
       &:hover {
-        background: $background;
-        text-shadow: $foreground 0 0 1px;
+        // bigger in the top left corner
+        transform: matrix(1.1, 0, 0, 1.1, -30, -30);
+        border-radius: 50px;
+        border-width: 15px 5px 5px 15px;
+      }
+    }
+
+    &.shutdown {
+      border-radius: 10px 30px 10px 10px;
+      &:hover {
+        // bigger in the top right corner
+        transform: matrix(1.1, 0, 0, 1.1, 30, -30);
+        border-radius: 50px;
+        border-width: 15px 15px 5px 5px;
+      }
+    }
+    &.reboot {
+      border-radius: 10px 10px 30px 10px;
+      &:hover {
+        // bigger in the bottom right corner
+        transform: matrix(1.1, 0, 0, 1.1, 30, 30);
+        border-radius: 50px;
+        border-width: 5px 15px 15px 5px;
+      }
+    }
+
+    &.sleep {
+      border-radius: 10px 10px 10px 30px;
+      &:hover {
+        // bigger in the bottom left corner
+        transform: matrix(1.1, 0, 0, 1.1, -30, 30);
+        border-radius: 50px;
+        border-width: 5px 5px 15px 15px;
       }
     }
   }

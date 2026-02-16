@@ -1,6 +1,6 @@
 .app-launcher {
-  min-width: 100em;
-
+  min-width: 700px;
+  min-height: 400px;
   button {
     padding: 1em;
     background-color: $background-transparent;
@@ -47,7 +47,7 @@
     }
 
     .content {
-      min-height: 500px;
+      min-height: 100px;
     }
 
     entry {

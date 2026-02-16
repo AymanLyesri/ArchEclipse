@@ -45,13 +45,12 @@ let parentWindowRef: Gtk.Window | null = null;
 
 const QuickApps = () => {
   return (
-    <scrolledwindow hexpand vexpand>
+    <scrolledwindow vexpand>
       <box
         class="quick-apps results"
         spacing={5}
         orientation={Gtk.Orientation.VERTICAL}
-        valign={Gtk.Align.START}
-      >
+        valign={Gtk.Align.START}>
         {quickApps.map((app, index) => (
           <Gtk.Button
             hexpand
@@ -61,8 +60,7 @@ const QuickApps = () => {
               if (parentWindowRef) {
                 parentWindowRef.hide();
               }
-            }}
-          >
+            }}>
             <box spacing={5}>
               <label widthRequest={24} label={app.app_icon} />
               <label label={app.app_name} />
@@ -262,73 +260,81 @@ const Help = () => {
       visible={Results((results) => results.length <= 0)}
       class={"help"}
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}
-    >
+      spacing={10}>
       {Object.entries(helpCommands).map(([command, description]) => (
         <box spacing={10}>
-          <label label={command} class="command" hexpand xalign={0} />
-          <label label={description} class="description" hexpand xalign={1} />
+          <label label={command} class="command" hexpand wrap xalign={0} />
+          <label
+            label={description}
+            class="description"
+            hexpand
+            wrap
+            xalign={1}
+          />
         </box>
       ))}
     </box>
   );
 };
 
-const ResultsDisplay = () => {
-  const AppButton = ({
-    element,
-    className,
-  }: {
-    element: LauncherApp;
-    className?: string;
-  }) => {
-    const buttonContent = (element: LauncherApp) => (
-      <box spacing={10} hexpand>
-        {/* ICON SLOT — always present */}
+const AppButton = ({
+  element,
+  className,
+}: {
+  element: LauncherApp;
+  className?: string;
+}) => {
+  const buttonContent = (element: LauncherApp) => (
+    <box
+      spacing={10}
+      hexpand
+      tooltipMarkup={`${element.app_name}\n<b>${element.app_description}</b>`}>
+      {/* ICON SLOT — always present */}
 
-        <image
-          visible={element.app_type === "app"}
-          iconName={element.app_icon}
-        />
+      <image visible={element.app_type === "app"} iconName={element.app_icon} />
 
-        {/* MAIN LABEL — expands */}
-        <label xalign={0} label={element.app_name} />
+      {/* MAIN LABEL — expands */}
+      <label
+        xalign={0}
+        label={element.app_name}
+        ellipsize={Pango.EllipsizeMode.END}
+      />
 
-        {/* ARGUMENT — fixed alignment */}
-        <label
-          class="argument"
-          hexpand
-          xalign={0}
-          label={element.app_arg || ""}
-        />
+      {/* ARGUMENT — fixed alignment */}
+      <label
+        class="argument"
+        hexpand
+        xalign={0}
+        label={element.app_arg || ""}
+      />
 
-        <label
+      {/* <label
           class="description"
           xalign={1}
           ellipsize={Pango.EllipsizeMode.END}
           label={element.app_description || ""}
-        />
-      </box>
-    );
-    return (
-      <Gtk.Button
-        hexpand={true}
-        class={className}
-        onClicked={() => {
-          launchApp(element);
-        }}
-      >
-        {buttonContent(element)}
-      </Gtk.Button>
-    );
-  };
+        /> */}
+    </box>
+  );
+  return (
+    <Gtk.Button
+      hexpand={true}
+      class={className}
+      onClicked={() => {
+        launchApp(element);
+      }}>
+      {buttonContent(element)}
+    </Gtk.Button>
+  );
+};
+
+const ResultsDisplay = () => {
   const rows = (
     <box
       visible={Results((results) => results.length > 0)}
       class="results"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}
-    >
+      spacing={10}>
       <For each={Results}>
         {(result, i) => (
           <AppButton
@@ -340,7 +346,7 @@ const ResultsDisplay = () => {
     </box>
   );
   return (
-    <scrolledwindow hexpand vexpand heightRequest={500}>
+    <scrolledwindow hexpand vexpand>
       <box orientation={Gtk.Orientation.VERTICAL}>
         <Help />
         {rows}
@@ -351,7 +357,7 @@ const ResultsDisplay = () => {
 
 const History = () => {
   return (
-    <scrolledwindow vexpand hexpand>
+    <scrolledwindow hexpand>
       <box
         valign={Gtk.Align.START}
         class={"history"}
@@ -362,38 +368,25 @@ const History = () => {
             const history = readJSONFile("./cache/launcher/history.json");
             if (Array.isArray(history)) setHistory(history);
           });
-        }}
-      >
+        }}>
         <label
           visible={history((h) => h.length == 0)}
-          label={"Empty History"}
-        ></label>
+          label={"Empty History"}></label>
         <For each={history}>
           {(appName) => {
-            const app = apps.fuzzy_query(appName)[0];
+            const _app = apps.fuzzy_query(appName)[0];
 
             if (app) {
-              return (
-                <button
-                  onClicked={() => {
-                    launchApp({
-                      app_name: app.name,
-                      app_icon: app.iconName,
-                      app_launch: () => {
-                        app.launch();
-                        if (parentWindowRef) {
-                          parentWindowRef.hide();
-                        }
-                      },
-                    });
-                  }}
-                >
-                  <box spacing={10}>
-                    <image iconName={app.iconName} />
-                    <label xalign={0} label={app.name} />
-                  </box>
-                </button>
-              );
+              const app: LauncherApp = {
+                app_name: _app.name,
+                app_icon: _app.iconName,
+                app_description: _app.description,
+                app_type: "app",
+                app_launch: () => {
+                  _app.launch();
+                },
+              };
+              return <AppButton element={app} />;
             } else {
               return <box />; // or some placeholder for missing app
             }
@@ -432,8 +425,7 @@ export default ({
         }
       });
     }}
-    resizable={false}
-  >
+    resizable={false}>
     <Gtk.EventControllerKey
       onKeyPressed={({ widget }, keyval: number) => {
         if (keyval === Gdk.KEY_Escape) {

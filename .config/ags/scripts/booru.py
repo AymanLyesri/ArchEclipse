@@ -9,6 +9,23 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 
+class ErrorResponse:
+    """Structured error response."""
+    
+    def __init__(self, code: str, message: str, details: Optional[str] = None):
+        self.code = code
+        self.message = message
+        self.details = details
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "error": True,
+            "code": self.code,
+            "message": self.message,
+            "details": self.details,
+        }
+
+
 # ============================================================
 # Provider interface
 # ============================================================
@@ -37,14 +54,12 @@ class BooruProvider(ABC):
 
 class DanbooruProvider(BooruProvider):
     BASE = "https://danbooru.donmai.us"
-    USER = "publicapi"
-    KEY = "Pr5ddYN7P889AnM6nq2nhgw1"
     # EXCLUDE_TAGS = ["-animated"]
     EXCLUDE_TAGS = []
 
-    def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
-        self.user = api_user or self.USER
-        self.key = api_key or self.KEY
+    def __init__(self, api_user: str, api_key: str):
+        self.user = api_user
+        self.key = api_key
 
     def fetch_posts(self, tags, post_id="random", page=1, limit=6):
         if post_id == "random":
@@ -55,11 +70,27 @@ class DanbooruProvider(BooruProvider):
         else:
             url = f"{self.BASE}/posts/{post_id}.json"
 
-        r = requests.get(url, auth=HTTPBasicAuth(self.user, self.key))
-        if r.status_code != 200:
+        try:
+            r = requests.get(url, auth=HTTPBasicAuth(self.user, self.key), timeout=15)
+            r.raise_for_status()
+        except requests.exceptions.Timeout:
+            return None
+        except requests.exceptions.ConnectionError as e:
+            return None
+        except requests.exceptions.HTTPError as e:
+            if r.status_code == 401:
+                return None
+            elif r.status_code == 404:
+                return None
+            return None
+        except Exception as e:
             return None
 
-        posts = r.json()
+        try:
+            posts = r.json()
+        except json.JSONDecodeError:
+            return None
+            
         if not isinstance(posts, list):
             posts = [posts]
 
@@ -91,11 +122,24 @@ class DanbooruProvider(BooruProvider):
             "limit": limit,
         }
 
-        r = requests.get(url, params=params, auth=HTTPBasicAuth(self.user, self.key))
-        if r.status_code != 200:
+        try:
+            r = requests.get(url, params=params, auth=HTTPBasicAuth(self.user, self.key), timeout=15)
+            r.raise_for_status()
+        except requests.exceptions.Timeout:
+            return []
+        except requests.exceptions.ConnectionError:
+            return []
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                return []
+            return []
+        except Exception:
             return []
 
-        return [t["name"] for t in r.json()]
+        try:
+            return [t["name"] for t in r.json()]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return []
 
 
 # ============================================================
@@ -105,13 +149,11 @@ class DanbooruProvider(BooruProvider):
 
 class GelbooruProvider(BooruProvider):
     BASE = "https://gelbooru.com/index.php"
-    USER = "1667355"
-    KEY = "1ccd9dd7c457c2317e79bd33f47a1138ef9545b9ba7471197f477534efd1dd05"
     EXCLUDE_TAGS = ["-animated"]
 
-    def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
-        self.user = api_user or self.USER
-        self.key = api_key or self.KEY
+    def __init__(self, api_user: str, api_key: str):
+        self.user = api_user
+        self.key = api_key
 
     def fetch_posts(self, tags, post_id="random", page=1, limit=6):
         params = {
@@ -133,10 +175,22 @@ class GelbooruProvider(BooruProvider):
         try:
             r = requests.get(self.BASE, params=params, timeout=15)
             r.raise_for_status()
+        except requests.exceptions.Timeout:
+            return None
+        except requests.exceptions.ConnectionError:
+            return None
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                return None
+            return None
         except Exception:
             return None
 
-        posts = r.json().get("post", [])
+        try:
+            posts = r.json().get("post", [])
+        except (json.JSONDecodeError, AttributeError):
+            return None
+            
         if isinstance(posts, dict):
             posts = [posts]
 
@@ -173,12 +227,21 @@ class GelbooruProvider(BooruProvider):
         try:
             r = requests.get(self.BASE, params=params, timeout=15)
             r.raise_for_status()
+        except requests.exceptions.Timeout:
+            return []
+        except requests.exceptions.ConnectionError:
+            return []
+        except requests.exceptions.HTTPError:
+            return []
         except Exception:
             return []
 
-        tags = r.json().get("tag", []) or []
-        tags.sort(key=lambda t: int(t.get("post_count", 0)), reverse=True)
-        return [t["name"] for t in tags[:limit] if t.get("name")]
+        try:
+            tags = r.json().get("tag", []) or []
+            tags.sort(key=lambda t: int(t.get("post_count", 0)), reverse=True)
+            return [t["name"] for t in tags[:limit] if t.get("name")]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return []
 
 
 import requests
@@ -193,10 +256,16 @@ class SafebooruProvider(BooruProvider):
     """
     Safebooru (Danbooru-based) provider.
     Uses the same API schema as Danbooru, but without authentication.
+    Optionally accepts API credentials (currently unused).
     """
 
     BASE = "https://safebooru.donmai.us"
     EXCLUDE_TAGS = ["-animated"]
+
+    def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
+        # Safebooru doesn't require authentication, but accepts it for compatibility
+        self.user = api_user
+        self.key = api_key
 
     def fetch_posts(
         self,
@@ -217,10 +286,20 @@ class SafebooruProvider(BooruProvider):
         try:
             r = requests.get(url, timeout=15)
             r.raise_for_status()
+        except requests.exceptions.Timeout:
+            return None
+        except requests.exceptions.ConnectionError:
+            return None
+        except requests.exceptions.HTTPError:
+            return None
         except Exception:
             return None
 
-        posts = r.json()
+        try:
+            posts = r.json()
+        except json.JSONDecodeError:
+            return None
+            
         if not isinstance(posts, list):
             posts = [posts]
 
@@ -255,10 +334,19 @@ class SafebooruProvider(BooruProvider):
         try:
             r = requests.get(url, params=params, timeout=15)
             r.raise_for_status()
+        except requests.exceptions.Timeout:
+            return []
+        except requests.exceptions.ConnectionError:
+            return []
+        except requests.exceptions.HTTPError:
+            return []
         except Exception:
             return []
 
-        return [t["name"] for t in r.json()]
+        try:
+            return [t["name"] for t in r.json()]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return []
 
 
 # ============================================================
@@ -273,7 +361,7 @@ def get_provider(
     providers = {
         "danbooru": lambda: DanbooruProvider(api_user, api_key),
         "gelbooru": lambda: GelbooruProvider(api_user, api_key),
-        "safebooru": lambda: SafebooruProvider(),
+        "safebooru": lambda: SafebooruProvider(api_user, api_key),
     }
     factory = providers.get(api.lower())
     return factory() if factory else None
@@ -286,11 +374,14 @@ def get_provider(
 
 def main():
     if len(sys.argv) < 2:
-        print(
-            "Usage: search-booru.py --api [danbooru|gelbooru|safebooru] "
+        error = ErrorResponse(
+            "MISSING_ARGS",
+            "Missing required arguments",
+            "Usage: booru.py --api [danbooru|gelbooru|safebooru] "
             "--id [id] --tags [tag,tag] --tag [tag] --page [n] --limit [n] "
             "--api-user [user] --api-key [key]"
         )
+        print(json.dumps(error.to_dict()))
         sys.exit(1)
 
     api = None
@@ -302,40 +393,94 @@ def main():
     api_user = None
     api_key = None
 
-    for i in range(1, len(sys.argv)):
-        if sys.argv[i] == "--api":
-            api = sys.argv[i + 1].lower()
-        elif sys.argv[i] == "--id":
-            post_id = sys.argv[i + 1]
-        elif sys.argv[i] == "--tags":
-            tags = sys.argv[i + 1].split(",")
-        elif sys.argv[i] == "--tag":
-            tag_query = sys.argv[i + 1]
-        elif sys.argv[i] == "--page":
-            page = int(sys.argv[i + 1])
-        elif sys.argv[i] == "--limit":
-            limit = int(sys.argv[i + 1])
-        elif sys.argv[i] == "--api-user":
-            api_user = sys.argv[i + 1]
-        elif sys.argv[i] == "--api-key":
-            api_key = sys.argv[i + 1]
+    try:
+        for i in range(1, len(sys.argv)):
+            if sys.argv[i] == "--api":
+                api = sys.argv[i + 1].lower()
+            elif sys.argv[i] == "--id":
+                post_id = sys.argv[i + 1]
+            elif sys.argv[i] == "--tags":
+                tags = sys.argv[i + 1].split(",")
+            elif sys.argv[i] == "--tag":
+                tag_query = sys.argv[i + 1]
+            elif sys.argv[i] == "--page":
+                page = int(sys.argv[i + 1])
+            elif sys.argv[i] == "--limit":
+                limit = int(sys.argv[i + 1])
+            elif sys.argv[i] == "--api-user":
+                api_user = sys.argv[i + 1]
+            elif sys.argv[i] == "--api-key":
+                api_key = sys.argv[i + 1]
+    except (IndexError, ValueError) as e:
+        error = ErrorResponse(
+            "INVALID_ARGS",
+            "Invalid argument format",
+            str(e)
+        )
+        print(json.dumps(error.to_dict()))
+        sys.exit(1)
 
     if not api:
-        print("API source is required. Use --api [danbooru|gelbooru|safebooru].")
+        error = ErrorResponse(
+            "MISSING_API",
+            "API source is required",
+            "Use --api [danbooru|gelbooru|safebooru]"
+        )
+        print(json.dumps(error.to_dict()))
         sys.exit(1)
 
-    provider = get_provider(api, api_user, api_key)
-    if not provider:
-        print("Invalid API source. Use 'danbooru', 'gelbooru', or 'safebooru'.")
+    if api not in {"danbooru", "gelbooru", "safebooru"}:
+        error = ErrorResponse(
+            "INVALID_API",
+            "Invalid API source",
+            f"'{api}' is not supported. Use 'danbooru', 'gelbooru', or 'safebooru'"
+        )
+        print(json.dumps(error.to_dict()))
         sys.exit(1)
 
-    if tag_query:
-        data = provider.fetch_tags(tag_query)
-    else:
-        data = provider.fetch_posts(tags, post_id, page, limit)
+    if api in {"danbooru", "gelbooru"} and (not api_user or not api_key):
+        error = ErrorResponse(
+            "MISSING_CREDENTIALS",
+            "API user and key are required for danbooru/gelbooru",
+            "Provide both --api-user and --api-key arguments"
+        )
+        print(json.dumps(error.to_dict()))
+        sys.exit(1)
 
-    print(json.dumps(data) if data else "Failed to fetch data from API.")
+    try:
+        provider = get_provider(api, api_user, api_key)
+        if not provider:
+            error = ErrorResponse(
+                "PROVIDER_ERROR",
+                "Failed to initialize provider",
+                f"Could not create provider for API: {api}"
+            )
+            print(json.dumps(error.to_dict()))
+            sys.exit(1)
 
+        if tag_query:
+            data = provider.fetch_tags(tag_query)
+        else:
+            data = provider.fetch_posts(tags, post_id, page, limit)
+
+        if data is None:
+            error = ErrorResponse(
+                "FETCH_FAILED",
+                "Failed to fetch data from API",
+                "The API request failed or returned invalid data"
+            )
+            print(json.dumps(error.to_dict()))
+            sys.exit(1)
+
+        print(json.dumps(data))
+    except Exception as e:
+        error = ErrorResponse(
+            "UNEXPECTED_ERROR",
+            "An unexpected error occurred",
+            str(e)
+        )
+        print(json.dumps(error.to_dict()))
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

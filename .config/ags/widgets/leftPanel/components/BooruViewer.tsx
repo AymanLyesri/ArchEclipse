@@ -94,13 +94,13 @@ const fetchImages = async () => {
     );
 
     const command = `
-      python ./scripts/search-booru.py \
+      python ./scripts/booru.py \
         --api ${settings.booru.api.value} \
         --tags '${escapedTags.join(",")}' \
         --limit ${settings.booru.limit} \
-        --page ${settings.booru.page}
+        --page ${settings.booru.page} \
         --api-user ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].user.value} \
-        --api-key ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].key.value} \
+        --api-key ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].key.value}
     `;
 
     print(command);
@@ -108,8 +108,20 @@ const fetchImages = async () => {
     const res = await execAsync(command);
 
     const jsonData = readJson(res);
-    if (!jsonData || !Array.isArray(jsonData)) {
-      throw new Error("Invalid response from booru API");
+    if (!jsonData) {
+      throw new Error("Failed to parse response");
+    }
+
+    // Check if response is an error
+    if (jsonData.error === true) {
+      const errorMsg = jsonData.details
+        ? `${jsonData.message}: ${jsonData.details}`
+        : jsonData.message;
+      throw new Error(errorMsg);
+    }
+
+    if (!Array.isArray(jsonData)) {
+      throw new Error("Invalid response format from booru API");
     }
 
     const images: BooruImage[] = jsonData.map(
@@ -145,7 +157,11 @@ const fetchImages = async () => {
     setProgressStatus("success");
   } catch (err) {
     console.error(err);
-    notify({ summary: "Error", body: String(err) });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    notify({
+      summary: "Error fetching images",
+      body: errorMessage,
+    });
     setProgressStatus("error");
   }
 };
@@ -185,7 +201,11 @@ const fetchBookmarkImages = async () => {
     setProgressStatus("success");
   } catch (err) {
     console.error(err);
-    notify({ summary: "Error", body: String(err) });
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    notify({
+      summary: "Error loading bookmarks",
+      body: errorMessage,
+    });
     setProgressStatus("error");
   }
 };
@@ -222,19 +242,41 @@ const Tabs = () => (
 );
 
 const fetchTags = async (tag: string) => {
-  const escapedTag = tag.replace(/'/g, "'\\'''");
-  const res = await execAsync(
-    `python ./scripts/search-booru.py 
-    --api ${globalSettings.peek().booru.api.value} 
-    --tag '${escapedTag}'`,
-  );
-  const jsonData = readJson(res);
-  if (!jsonData || !Array.isArray(jsonData)) {
-    console.error("Invalid response from tag search");
+  try {
+    const settings = globalSettings.peek();
+    const escapedTag = tag.replace(/'/g, "'\\'''");
+    const res = await execAsync(
+      `python ./scripts/booru.py \
+        --api ${globalSettings.peek().booru.api.value} \
+        --tag '${escapedTag}' \
+        --api-user ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].user.value} \
+        --api-key ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].key.value}
+        `,
+    );
+    const jsonData = readJson(res);
+    if (!jsonData) {
+      console.error("Failed to parse tag response");
+      setFetchedTags([]);
+      return;
+    }
+
+    // Check if response is an error
+    if (jsonData.error === true) {
+      console.error("Tag fetch error:", jsonData.message);
+      setFetchedTags([]);
+      return;
+    }
+
+    if (!Array.isArray(jsonData)) {
+      console.error("Invalid response format from tag search");
+      setFetchedTags([]);
+      return;
+    }
+    setFetchedTags(jsonData);
+  } catch (err) {
+    console.error("Error fetching tags:", err);
     setFetchedTags([]);
-    return;
   }
-  setFetchedTags(jsonData);
 };
 
 const showImagesPage = (
@@ -293,8 +335,7 @@ const createImagesContent = () => {
                   widthRequest={columnWidth}
                   heightRequest={columnWidth * (image.height / image.width)}
                   direction={Gtk.ArrowType.RIGHT}
-                  tooltipMarkup={`Click to Open\nLeft Click to Open in Browser\n<b>ID:</b> ${image.id}\n<b>Dimensions:</b> ${image.width}x${image.height}`}
-                >
+                  tooltipMarkup={`Click to Open\nLeft Click to Open in Browser\n<b>ID:</b> ${image.id}\n<b>Dimensions:</b> ${image.width}x${image.height}`}>
                   <Gtk.Picture
                     file={Gio.File.new_for_path(
                       `${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`,
@@ -499,8 +540,7 @@ const SliderSetting = ({
         />
         <label
           label={getValue((v) => displayTransform(v))}
-          widthRequest={50}
-        ></label>
+          widthRequest={50}></label>
       </box>
     </box>
   );
@@ -532,15 +572,13 @@ const ColumnDisplay = () => (
 const TagDisplay = () => (
   <Adw.Clamp
     class={"tags"}
-    maximumSize={globalSettings((settings) => settings.leftPanel.width - 20)}
-  >
+    maximumSize={globalSettings((settings) => settings.leftPanel.width - 20)}>
     <box widthRequest={100} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <Gtk.FlowBox
         columnSpacing={5}
         rowSpacing={5}
         selectionMode={Gtk.SelectionMode.NONE}
-        homogeneous={false}
-      >
+        homogeneous={false}>
         <For each={fetchedTags}>
           {(tag) => (
             <button
@@ -550,13 +588,11 @@ const TagDisplay = () => (
                 setGlobalSetting("booru.tags", [
                   ...new Set([...globalSettings.peek().booru.tags, tag]),
                 ]);
-              }}
-            >
+              }}>
               <label
                 ellipsize={Pango.EllipsizeMode.END}
                 maxWidthChars={10}
-                label={tag}
-              ></label>
+                label={tag}></label>
             </button>
           )}
         </For>
@@ -583,13 +619,11 @@ const TagDisplay = () => (
                   newTags.unshift(newRatingTag);
                   setGlobalSetting("booru.tags", newTags);
                   console.log(globalSettings.peek().booru.tags);
-                }}
-              >
+                }}>
                 <label
                   ellipsize={Pango.EllipsizeMode.END}
                   maxWidthChars={10}
-                  label={tag}
-                ></label>
+                  label={tag}></label>
               </button>
             ) : (
               <button
@@ -600,13 +634,11 @@ const TagDisplay = () => (
                     .peek()
                     .booru.tags.filter((t) => t !== tag);
                   setGlobalSetting("booru.tags", newTags);
-                }}
-              >
+                }}>
                 <label
                   ellipsize={Pango.EllipsizeMode.END}
                   maxWidthChars={10}
-                  label={tag}
-                ></label>
+                  label={tag}></label>
               </button>
             )
           }
@@ -677,13 +709,11 @@ const Bottom = () => {
       class="bottom-revealer"
       transitionType={Gtk.RevealerTransitionType.SWING_UP}
       revealChild={bottomIsRevealed}
-      transitionDuration={globalTransition}
-    >
+      transitionDuration={globalTransition}>
       <box
         class="bottom-bar"
         orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-      >
+        spacing={10}>
         <PageDisplay />
         <LimitDisplay />
         <ColumnDisplay />
@@ -823,8 +853,7 @@ export default () => {
             fetchImages();
           }
         });
-      }}
-    >
+      }}>
       <box orientation={Gtk.Orientation.VERTICAL}>
         <Images />
         <Progress

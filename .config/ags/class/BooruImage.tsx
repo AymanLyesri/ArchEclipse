@@ -343,7 +343,7 @@ export class BooruImage {
       const { readJson } = await import("../utils/json");
 
       const res = await execAsync(
-        `python ./scripts/search-booru.py 
+        `python ./scripts/booru.py 
     --api ${api.value} 
     --id ${id}`,
       );
@@ -417,8 +417,7 @@ export class BooruImage {
               execAsync(`bash -c "echo -n '${tag}' | wl-copy"`).catch((err) =>
                 notify({ summary: "Error", body: String(err) }),
               );
-            }}
-          >
+            }}>
             <label
               ellipsize={Pango.EllipsizeMode.END}
               maxWidthChars={10}
@@ -524,8 +523,7 @@ export class BooruImage {
       <overlay
         widthRequest={displayWidth}
         heightRequest={displayHeight}
-        class="booru-image"
-      >
+        class="booru-image">
         <Gtk.Picture
           file={currentlyDownloaded((downloaded) => {
             const path = downloaded
@@ -542,8 +540,7 @@ export class BooruImage {
           $type="overlay"
           orientation={Gtk.Orientation.VERTICAL}
           widthRequest={displayWidth}
-          heightRequest={displayHeight}
-        >
+          heightRequest={displayHeight}>
           {Tags}
           <box vexpand />
           {Actions}
@@ -613,8 +610,7 @@ export class BooruImage {
         class="actions"
         valign={Gtk.Align.END}
         orientation={Gtk.Orientation.VERTICAL}
-        spacing={5}
-      >
+        spacing={5}>
         <Progress status={this._loadingState} />
         <box class="section">
           <togglebutton

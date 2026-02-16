@@ -16,6 +16,7 @@ import Gio from "gi://Gio";
 import { notify } from "../utils/notification";
 import GLib from "gi://GLib";
 import { getMonitorName } from "../utils/monitor";
+import { createBinding } from "ags";
 const hyprland = Hyprland.get_default();
 
 const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
@@ -24,29 +25,11 @@ const desktopEnv = exec(`bash -c "echo $XDG_CURRENT_DESKTOP"`);
 const uptime = createPoll("", 600000, "uptime -p"); // every 10 minutes
 
 const UserPanel = () => {
-  const Profile = () => {
-    const UserName = (
-      <box halign={Gtk.Align.CENTER} class="user-name">
-        <label label="I'm " />
-        <label class="secondary" label={username} />
-      </box>
-    );
-    const DesktopEnv = (
-      <box class="desktop-env" halign={Gtk.Align.CENTER}>
-        <label label="On " />
-        <label class="secondary" label={desktopEnv} />
-      </box>
-    );
-
-    const Uptime = (
-      <box halign={Gtk.Align.CENTER} class="up-time">
-        <label class="uptime" label={uptime} />
-      </box>
-    );
-
-    const ProfilePicture = (
+  const Center = () => {
+    const pfp = (
       <button
         class="profile-picture"
+        tooltipMarkup={"Click to set up profile picture"}
         onClicked={async (self) => {
           // setProgressStatus("loading");
           const dialog = new Gtk.FileDialog({
@@ -107,114 +90,120 @@ const UserPanel = () => {
               body: String(err),
             });
           }
-        }}
-      >
-        <Picture file={pfpPath} width={200} height={200} />
+        }}>
+        <Picture file={pfpPath} />
       </button>
-
-      // </box>
+    );
+    const UserName = (
+      <box halign={Gtk.Align.CENTER} class="user-name">
+        <label label="I'm " />
+        <label class="secondary" label={username} />
+      </box>
+    );
+    const DesktopEnv = (
+      <box class="desktop-env" halign={Gtk.Align.CENTER}>
+        <label label="On " />
+        <label class="secondary" label={desktopEnv} />
+      </box>
     );
 
+    const Uptime = (
+      <box halign={Gtk.Align.CENTER} class="up-time">
+        <label class="uptime" label={uptime} />
+      </box>
+    );
+
+    const revealer = (
+      <revealer
+        transition-duration={500}
+        transition-type={Gtk.RevealerTransitionType.SLIDE_DOWN}
+        visible={true}>
+        <box class={"info"} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+          {UserName}
+          {DesktopEnv}
+          {Uptime}
+        </box>
+      </revealer>
+    ) as Gtk.Revealer;
+
     return (
-      <box
-        class="section profile"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={5}
-      >
-        {ProfilePicture}
-        {UserName}
-        {DesktopEnv}
-        {Uptime}
+      <box class={"center"} orientation={Gtk.Orientation.VERTICAL}>
+        <Gtk.EventControllerMotion
+          onEnter={() => {
+            revealer.revealChild = true;
+          }}
+          onLeave={() => {
+            revealer.revealChild = false;
+          }}
+        />
+        {pfp}
+        {revealer}
       </box>
     );
   };
 
-  const Actions = () => {
-    const Logout = () => (
-      <button
-        hexpand={true}
-        class="logout"
-        label="󰍃"
-        onClicked={() => {
-          hyprland.message_async("dispatch exit", () => {});
-        }}
-        tooltipText={"logout from Hyprland"}
-      />
-    );
+  const Logout = () => (
+    <button
+      hexpand={true}
+      class="logout system-action"
+      label="󰍃"
+      onClicked={() => {
+        hyprland.message_async("dispatch exit", () => {});
+      }}
+      tooltipText={"logout from Hyprland"}
+      heightRequest={250}
+      widthRequest={250}
+    />
+  );
 
-    const Shutdown = () => (
-      <button
-        hexpand={true}
-        class="shutdown"
-        label=""
-        onClicked={() => {
-          execAsync(`shutdown now`);
-        }}
-        tooltipText={"shutdown immediately"}
-      />
-    );
+  const Shutdown = () => (
+    <button
+      hexpand={true}
+      class="shutdown system-action"
+      label=""
+      onClicked={() => {
+        execAsync(`shutdown now`);
+      }}
+      tooltipText={"shutdown immediately"}
+      heightRequest={250}
+      widthRequest={250}
+    />
+  );
 
-    const Restart = () => (
-      <button
-        hexpand={true}
-        class="restart"
-        label="󰜉"
-        onClicked={() => {
-          execAsync(`reboot`);
-        }}
-        tooltipText={"restart immediately"}
-      />
-    );
+  const Reboot = () => (
+    <button
+      hexpand={true}
+      class="reboot system-action"
+      label="󰜉"
+      onClicked={() => {
+        execAsync(`reboot`);
+      }}
+      tooltipText={"reboot immediately"}
+      heightRequest={250}
+      widthRequest={250}
+    />
+  );
 
-    const Sleep = () => (
-      <button
-        hexpand={true}
-        class="sleep"
-        label="󰤄"
-        onClicked={(self) => {
-          hideWindow(`user-panel-${(self.get_root() as any).monitorName}`);
-          execAsync(`bash -c "$HOME/.config/hypr/scripts/hyprlock.sh suspend"`);
-        }}
-        tooltipText={"put system to sleep"}
-      />
-    );
-
-    return (
-      <box
-        class="section system-actions"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-      >
-        <box class="action" spacing={10}>
-          <Shutdown />
-          <Restart />
-        </box>
-        <box class="action" spacing={10}>
-          <Sleep />
-          <Logout />
-        </box>
-      </box>
-    );
-  };
-
-  const right = (
-    <box
-      halign={Gtk.Align.CENTER}
-      class="bottom"
-      orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}
-    >
-      <Profile />
-      <Actions />
-    </box>
+  const Sleep = () => (
+    <button
+      hexpand={true}
+      class="sleep system-action"
+      label="󰤄"
+      onClicked={(self) => {
+        hideWindow(`user-panel-${(self.get_root() as any).monitorName}`);
+        execAsync(`bash -c "$HOME/.config/hypr/scripts/hyprlock.sh suspend"`);
+      }}
+      tooltipText={"put system to sleep"}
+      heightRequest={250}
+      widthRequest={250}
+    />
   );
 
   const Date = (
     <box
       class="section date"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={5}
-    >
+      spacing={5}>
       <label
         class={"less"}
         halign={Gtk.Align.CENTER}
@@ -230,26 +219,55 @@ const UserPanel = () => {
     </box>
   );
 
-  const middle = (
-    <box
-      class="middle"
-      orientation={Gtk.Orientation.VERTICAL}
-      hexpand={true}
-      vexpand={true}
-      spacing={10}
-    >
-      <NotificationHistory className="section" />
-      {Date}
-    </box>
-  );
+  const display = () => {
+    return (
+      <overlay>
+        <box
+          class="display"
+          halign={Gtk.Align.CENTER}
+          valign={Gtk.Align.CENTER}
+          hexpand={true}
+          vexpand={true}
+          $={(container) => {
+            // Create a 2x2 Grid with action buttons only
+            const grid = new Gtk.Grid({
+              halign: Gtk.Align.CENTER,
+              valign: Gtk.Align.CENTER,
+              rowSpacing: 10,
+              columnSpacing: 10,
+            });
+            grid.add_css_class("user-grid");
 
-  return (
-    <box class="main" spacing={10}>
-      <MediaWidget className="section" />
-      {middle}
-      {right}
-    </box>
-  );
+            // Top-left: Logout
+            const logoutBtn = Logout() as Gtk.Widget;
+            grid.attach(logoutBtn, 0, 0, 1, 1);
+
+            // Top-right: Shutdown
+            const shutdownBtn = Shutdown() as Gtk.Widget;
+            grid.attach(shutdownBtn, 1, 0, 1, 1);
+
+            // Bottom-left: Sleep
+            const sleepBtn = Sleep() as Gtk.Widget;
+            grid.attach(sleepBtn, 0, 1, 1, 1);
+
+            // Bottom-right: Reboot
+            const rebootBtn = Reboot() as Gtk.Widget;
+            grid.attach(rebootBtn, 1, 1, 1, 1);
+
+            container.append(grid);
+          }}
+        />
+        <box
+          $type="overlay"
+          halign={Gtk.Align.CENTER}
+          valign={Gtk.Align.CENTER}>
+          <Center />
+        </box>
+      </overlay>
+    );
+  };
+
+  return display();
 };
 
 export default ({
@@ -270,6 +288,12 @@ export default ({
       layer={Astal.Layer.OVERLAY}
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
+      anchor={
+        Astal.WindowAnchor.TOP |
+        Astal.WindowAnchor.RIGHT |
+        Astal.WindowAnchor.LEFT |
+        Astal.WindowAnchor.BOTTOM
+      }
       $={(self) => {
         setup(self);
         (self as any).monitorName = monitorName;
@@ -282,8 +306,7 @@ export default ({
           return false;
         });
         self.add_controller(key);
-      }}
-    >
+      }}>
       <box class="display" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <UserPanel />
       </box>

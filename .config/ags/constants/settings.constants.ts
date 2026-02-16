@@ -1,8 +1,9 @@
-import {
-  barWidgetSelectors,
-  leftPanelWidgetSelectors,
-  rightPanelWidgetSelectors,
-} from "../constants/widget.constants";
+import
+  {
+    barWidgetSelectors,
+    leftPanelWidgetSelectors,
+    rightPanelWidgetSelectors,
+  } from "../constants/widget.constants";
 import { booruApis, chatBotApis } from "../constants/api.constants";
 import { BooruImage } from "../class/BooruImage";
 import { dateFormats } from "../constants/date.constants";
@@ -264,14 +265,14 @@ export const defaultSettings: Settings = {
     safebooru: {
       user: {
         name: "Safebooru API User",
-        value: "",
+        value: "publicapi",
         type: "string",
         min: 1,
         max: 256,
       },
       key: {
         name: "Safebooru API Key",
-        value: "",
+        value: "Pr5ddYN7P889AnM6nq2nhgw1",
         type: "string",
         min: 1,
         max: 256,

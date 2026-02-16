@@ -9,9 +9,9 @@ const noPlayerFound = () => (
   <box
     halign={Gtk.Align.CENTER}
     valign={Gtk.Align.CENTER}
-    hexpand={true}
     class="module"
-  >
+    hexpand
+    heightRequest={20}>
     <label label="No player found" />
   </box>
 );
@@ -22,13 +22,15 @@ export default function ({
   width,
   height,
   className,
+  visible,
 }: {
   width?: Accessor<number> | number;
   height?: Accessor<number> | number;
   className?: string | Accessor<string>;
+  visible?: Accessor<boolean> | boolean;
 }) {
   return (
-    <box css={"border-radius: 10px;"}>
+    <box css={"border-radius: 10px;"} visible={visible}>
       <With value={players}>
         {(players) =>
           players.length > 0 ? (
