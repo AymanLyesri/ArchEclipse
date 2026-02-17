@@ -23,7 +23,7 @@ curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?work
 
 MAINTENANCE_DIR="$HOME/.config/hypr/maintenance"
 
-figlet "Updating Config"
+figlet "UPDATE" -f slant | lolcat
 
 source $HOME/.config/hypr/maintenance/ESSENTIALS.sh # source the essentials file INSIDE the repository
 

@@ -1,6 +1,8 @@
 #!/bin/bash
 source $HOME/.config/hypr/maintenance/ESSENTIALS.sh # source the essentials file INSIDE the repository
 
+figlet "WALLPAPERS" -f slant | lolcat
+
 # List of URLs
 urls_NSFW=(
     "https://cdn.donmai.us/original/bc/66/__dehya_genshin_impact_drawn_by_xude__bc66c4b2ab9ac2c0e4c62cb0e59e0cd0.jpg"
@@ -52,50 +54,176 @@ urls_NSFW=(
     
 )
 
-wallpapers_total_size() {
-    curl --parallel --parallel-immediate -sI "${urls_NSFW[@]}" |
+urls_SFW=(
+    "https://w.wallhaven.cc/full/qr/wallhaven-qrjq8l.png"
+    "https://w.wallhaven.cc/full/zp/wallhaven-zpzv7j.jpg"
+    "https://w.wallhaven.cc/full/po/wallhaven-polpoe.jpg"
+    "https://w.wallhaven.cc/full/w5/wallhaven-w51kxr.jpg"
+    "https://w.wallhaven.cc/full/5y/wallhaven-5y5dp3.jpg"
+    "https://w.wallhaven.cc/full/5y/wallhaven-5yz968.jpg"
+    "https://w.wallhaven.cc/full/d8/wallhaven-d8395l.jpg"
+    "https://w.wallhaven.cc/full/yq/wallhaven-yq56jg.jpg"
+)
+
+# Color codes
+BOLD='\033[1m'
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+MAGENTA='\033[0;35m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+get_category_size() {
+    local -n urls=$1
+    if [ ${#urls[@]} -eq 0 ]; then
+        echo "0"
+        return
+    fi
+    curl --parallel --parallel-immediate -sI "${urls[@]}" 2>/dev/null |
     grep -ioP 'Content-Length:\s*\K\d+' |
-    awk '{s+=$1} END {print int(s/1024/1024) " MB"}'
+    awk '{s+=$1} END {print int(s/1024/1024)}'
+}
+
+display_wallpaper_table() {
+    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}        ${BOLD}${MAGENTA}🖼️  WALLPAPER INSTALLATION MENU${NC}  ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    # Calculate sizes
+    echo -e "${YELLOW}⏳ Calculating wallpaper sizes...${NC}"
+    nsfw_count=${#urls_NSFW[@]}
+    sfw_count=${#urls_SFW[@]}
+    total_count=$((nsfw_count + sfw_count))
+    
+    nsfw_size=$(get_category_size urls_NSFW)
+    sfw_size=$(get_category_size urls_SFW)
+    total_size=$((nsfw_size + sfw_size))
+    
+    # Display table
+    echo ""
+    echo -e "${BOLD}${CYAN}┌──────────────┬──────────────┬─────────────────┐${NC}"
+    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}CATEGORY${NC}    ${BOLD}${CYAN}│${NC}   ${BOLD}COUNT${NC}     ${BOLD}${CYAN}│${NC}   ${BOLD}SIZE (MB)${NC}    ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}├──────────────┼──────────────┼─────────────────┤${NC}"
+    printf "${BOLD}${CYAN}│${NC} ${GREEN}%-12s${NC} ${BOLD}${CYAN}│${NC} ${YELLOW}%12s${NC} ${BOLD}${CYAN}│${NC} ${MAGENTA}%15s${NC} ${BOLD}${CYAN}│${NC}\n" "SFW" "$sfw_count" "$sfw_size MB"
+    printf "${BOLD}${CYAN}│${NC} ${RED}%-12s${NC} ${BOLD}${CYAN}│${NC} ${YELLOW}%12s${NC} ${BOLD}${CYAN}│${NC} ${MAGENTA}%15s${NC} ${BOLD}${CYAN}│${NC}\n" "NSFW" "$nsfw_count" "$nsfw_size MB"
+    echo -e "${BOLD}${CYAN}├──────────────┼──────────────┼─────────────────┤${NC}"
+    printf "${BOLD}${CYAN}│${NC} ${BOLD}%-12s${NC} ${BOLD}${CYAN}│${NC} ${BOLD}${YELLOW}%12s${NC} ${BOLD}${CYAN}│${NC} ${BOLD}${MAGENTA}%15s${NC} ${BOLD}${CYAN}│${NC}\n" "TOTAL" "$total_count" "$total_size MB"
+    echo -e "${BOLD}${CYAN}└──────────────┴──────────────┴─────────────────┘${NC}"
+    echo ""
 }
 
 download_wallpapers() {
-    echo "Downloading wallpapers..."
+    local choice=$1
+    echo -e "${GREEN}▶ Downloading wallpapers...${NC}"
     
-    # Folder to save the images
-    folder="$HOME/.config/wallpapers/defaults/nsfw"
+    case $choice in
+        sfw)
+            echo -e "${GREEN}📥 Downloading SFW wallpapers...${NC}"
+            download_category "sfw" urls_SFW
+            ;;
+        nsfw)
+            echo -e "${RED}📥 Downloading NSFW wallpapers...${NC}"
+            download_category "nsfw" urls_NSFW
+            ;;
+        all)
+            echo -e "${BLUE}📥 Downloading ALL wallpapers...${NC}"
+            download_category "sfw" urls_SFW
+            download_category "nsfw" urls_NSFW
+            ;;
+    esac
+    
+    echo -e "${GREEN}✓ Download complete!${NC}"
+}
+
+download_category() {
+    local category=$1
+    local -n urls=$2
+    
+    if [ ${#urls[@]} -eq 0 ]; then
+        echo -e "${YELLOW}⚠ No wallpapers in $category category. Skipping...${NC}"
+        return
+    fi
+    
+    local folder="$HOME/.config/wallpapers/defaults/$category"
     mkdir -p "$folder"
     
-    # Track filenames from URLs
-    expected_files=()
+    local expected_files=()
+    local downloaded=0
+    local skipped=0
     
-    for url in "${urls_NSFW[@]}"; do
+    for url in "${urls[@]}"; do
         filename=$(basename "$url")
         expected_files+=("$filename")
         filepath="$folder/$filename"
         
         if [[ -f "$filepath" ]]; then
-            echo "$filename already exists. Skipping download."
+            ((skipped++))
         else
-            echo "Downloading $filename..."
-            curl -L -o "$filepath" "$url"
+            echo -e "${CYAN}  ⬇ Downloading: ${NC}$filename"
+            if curl -L -o "$filepath" "$url" 2>/dev/null; then
+                ((downloaded++))
+            else
+                echo -e "${RED}  ✗ Failed: ${NC}$filename"
+            fi
         fi
     done
     
     # Cleanup files not in the list
-    echo "Cleaning up files not in the list..."
+    echo -e "${YELLOW}🧹 Cleaning up old files...${NC}"
+    local removed=0
     for file in "$folder"/*; do
+        [[ -f "$file" ]] || continue
         basename_file=$(basename "$file")
         if [[ ! " ${expected_files[*]} " =~ " $basename_file " ]]; then
-            echo "Removing $basename_file"
+            echo -e "${RED}  ✗ Removing: ${NC}$basename_file"
             rm "$file"
+            ((removed++))
         fi
     done
     
-    echo "Done."
+    echo -e "${BOLD}${MAGENTA}  Category: $category${NC}"
+    echo -e "${GREEN}  ✓ Downloaded: $downloaded${NC}"
+    echo -e "${YELLOW}  ⊙ Skipped: $skipped${NC}"
+    echo -e "${RED}  ✗ Removed: $removed${NC}"
+    echo ""
 }
 
-echo "Calculating total size of wallpapers..."
+show_choice_menu() {
+    echo -e "${BOLD}${YELLOW}📋 Select wallpaper category to download:${NC}"
+    echo ""
+    echo -e "${GREEN}  [1]${NC} SFW only"
+    echo -e "${RED}  [2]${NC} NSFW only"
+    echo -e "${BLUE}  [3]${NC} ALL (SFW + NSFW)"
+    echo -e "${CYAN}  [4]${NC} Cancel"
+    echo ""
+    echo -ne "${BOLD}${CYAN}Enter your choice [1-4]: ${NC}"
+    
+    read -r choice
+    
+    case $choice in
+        1)
+            download_wallpapers "sfw"
+            ;;
+        2)
+            download_wallpapers "nsfw"
+            ;;
+        3)
+            download_wallpapers "all"
+            ;;
+        4)
+            echo -e "${YELLOW}⊘ Installation cancelled.${NC}"
+            return
+            ;;
+        *)
+            echo -e "${RED}✗ Invalid choice. Installation cancelled.${NC}"
+            return
+            ;;
+    esac
+}
 
-size=$(wallpapers_total_size)
-
-continue_prompt "Do you want to install default wallpapers (NSFW - Optional)? (total size: $size)" download_wallpapers
+# Main execution
+display_wallpaper_table
+show_choice_menu

@@ -13,6 +13,15 @@ gcc "$SRC/hyprpaper-loop.c"  -o "$BIN_DIR/hyprpaper-loop"
 
 ags bundle "$CONFIG_DIR/ags/app.tsx" "$BIN_DIR/ags-bin"
 
+# Run in background
+"$BIN_DIR/hyprpaper-loop" &
+"$BIN_DIR/ags-bin" &
+
+# Run immediately once
+/tmp/battery-check &
+/tmp/updates-check &
+/tmp/posture-check &
+
 # Check if cronie is running
 if ! systemctl is-active --quiet cronie; then
     
@@ -36,11 +45,3 @@ fi
     echo "*/5  * * * * $BIN_DIR/battery-check"; \
     echo "0    * * * * $BIN_DIR/updates-check"; \
 echo "0    * * * * $BIN_DIR/posture-check") | crontab -
-
-# Run immediately once
-/tmp/battery-check
-/tmp/updates-check
-/tmp/posture-check
-
-"$BIN_DIR/hyprpaper-loop" &
-"$BIN_DIR/ags-bin" &

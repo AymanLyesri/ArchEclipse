@@ -97,8 +97,7 @@ function Display() {
               hexpand={true}
               vexpand={true}
               halign={Gtk.Align.CENTER}
-              spacing={10}
-            >
+              spacing={10}>
               {wallpapers.map((wallpaper, workspaceId) => (
                 <button
                   class={focusedWorkspace((workspace) => {
@@ -112,8 +111,7 @@ function Display() {
                     setTargetType("workspace");
                     setSelectedWorkspaceId(workspaceId + 1);
                   }}
-                  tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId + 1}</b>`}
-                >
+                  tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId + 1}</b>`}>
                   {wallpaper == "" ? (
                     <label
                       class="no-wallpaper"
@@ -124,8 +122,7 @@ function Display() {
                   ) : (
                     <Picture
                       class="wallpaper"
-                      file={toThumbnailPath(wallpaper)}
-                    ></Picture>
+                      file={toThumbnailPath(wallpaper)}></Picture>
                   )}
                 </button>
               ))}
@@ -141,8 +138,7 @@ function Display() {
       hscrollbarPolicy={Gtk.PolicyType.ALWAYS}
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       hexpand
-      vexpand
-    >
+      vexpand>
       <Gtk.Box class="all-wallpapers" spacing={5}>
         <For each={selectedWallpapers}>
           {(wallpaper) => {
@@ -238,12 +234,10 @@ function Display() {
                     `\n ${wallpaper.split("/").pop()}` +
                     // file size
                     `\n Size: ${fileSize(wallpaper)}`,
-                )}
-              >
+                )}>
                 <Picture
                   class="wallpaper"
-                  file={toThumbnailPath(wallpaper)}
-                ></Picture>
+                  file={toThumbnailPath(wallpaper)}></Picture>
               </button>
             ) as Gtk.Widget;
           }}
@@ -406,8 +400,7 @@ function Display() {
     <box
       class="color-scheme"
       spacing={10}
-      tooltipMarkup={`Dynamic Colors using <b>Pywal</b>`}
-    >
+      tooltipMarkup={`Dynamic Colors using <b>Pywal</b>`}>
       {/* from 1 to 7 */}
       {[1, 2, 3, 4, 5, 6, 7].map((color, index) => (
         <label
@@ -415,8 +408,7 @@ function Display() {
           class="color"
           css={`
             color: var(--color${color});
-          `}
-        ></label>
+          `}></label>
       ))}
     </box>
   );
@@ -467,8 +459,7 @@ function Display() {
     <box
       class="wallpaper-switcher"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={20}
-    >
+      spacing={20}>
       {getCurrentWorkspaces}
       {actions}
       {allWallpapersDisplay}
@@ -512,11 +503,10 @@ export default ({
             setSelectedWorkspaceId(workspace.id);
           }
         });
-      }}
-    >
+      }}>
       <Display />
     </window>
   );
 };
 
-monitorFile("./../wallpapers/custom", async () => FetchWallpapers());
+monitorFile("./../wallpapers", async () => FetchWallpapers());

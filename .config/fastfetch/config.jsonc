@@ -111,6 +111,14 @@
       "type": "custom",
       "format": "{#1}│ Ctrl + F to run fastfetch",
     },
+    {
+      "type": "custom",
+      "format": "{#1}│ `wallpapers` to install default wallpapers",
+    },
+    {
+      "type": "custom",
+      "format": "{#1}│ `defaults` to restore hyprland configuration",
+    },
     // Colors
     {
       "type": "colors",
