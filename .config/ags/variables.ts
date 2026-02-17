@@ -73,13 +73,7 @@ export const date_more = createPoll(
   () => GLib.DateTime.new_now_local().format(" %A ·%e %b %Y ")!,
 );
 
-const [globalTheme, _setGlobalTheme] = createState<boolean>(
-  exec([
-    "bash",
-    "-c",
-    "$HOME/.config/hypr/theme/scripts/system-theme.sh get",
-  ]).includes("light"),
-);
+const [globalTheme, _setGlobalTheme] = createState<boolean>(false);
 function setGlobalTheme(value: boolean) {
   execAsync([
     "bash",
@@ -91,4 +85,12 @@ function setGlobalTheme(value: boolean) {
     _setGlobalTheme(value);
   });
 }
+
+execAsync([
+  "bash",
+  "-c",
+  "$HOME/.config/hypr/theme/scripts/system-theme.sh get",
+]).then((output) => {
+  _setGlobalTheme(output.includes("light"));
+});
 export { globalTheme, setGlobalTheme };

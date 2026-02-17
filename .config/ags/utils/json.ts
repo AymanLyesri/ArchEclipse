@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "ags/file";
 import { notify } from "./notification";
-import { exec } from "ags/process";
+import { exec, execAsync } from "ags/process";
 
 export function readJSONFile(filePath: string): any {
   try {
@@ -50,10 +50,20 @@ export function readJson(string: string) {
 }
 export function writeJSONFile(filePath: string, data: any) {
   // Ensure directory exists before writing
-  exec(`mkdir -p ${filePath.split("/").slice(0, -1).join("/")}`);
-  try {
-    writeFile(filePath, JSON.stringify(data, null, 4));
-  } catch (e) {
-    notify({ summary: "Error", body: String(e) });
-  }
+  execAsync(`mkdir -p ${filePath.split("/").slice(0, -1).join("/")}`)
+    .then(() => {
+      try {
+        writeFile(filePath, JSON.stringify(data, null, 4));
+      } catch (e) {
+        notify({ summary: "Error", body: String(e) });
+      }
+    })
+    .catch((err) => {
+      notify({ summary: "Error", body: `Failed to create directory: ${err}` });
+    });
+  // try {
+  //   writeFile(filePath, JSON.stringify(data, null, 4));
+  // } catch (e) {
+  //   notify({ summary: "Error", body: String(e) });
+  // }
 }

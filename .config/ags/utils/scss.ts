@@ -1,4 +1,4 @@
-import { exec } from "ags/process";
+import { exec, execAsync } from "ags/process";
 import { monitorFile } from "ags/file";
 import App from "ags/gtk4/app";
 import { notify } from "./notification";
@@ -22,19 +22,22 @@ export const getCssPath = () => {
 export function refreshCss() {
   const scss = `${scss_dir}/style.scss`;
 
-  try {
-    exec(`bash -c "echo '
+  execAsync(`bash -c "echo '
         $OPACITY: ${globalSettings.peek().ui.opacity.value};
         $FONT-SIZE: ${globalSettings.peek().ui.fontSize.value}px;
         $SCALE: ${globalSettings.peek().ui.scale.value}px;
-        ' | cat - ${defaultColors} ${walScssColors} ${walCssColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);
+        ' | cat - ${defaultColors} ${walScssColors} ${walCssColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`)
+    .then(() => {
+      App.reset_css();
+      App.apply_css(tmpCss);
+    })
+    .catch((e) => {
+      notify({ summary: `Error while generating css`, body: String(e) });
+      console.error(e);
+    });
 
-    App.reset_css();
-    App.apply_css(tmpCss);
-  } catch (e) {
-    notify({ summary: `Error while generating css`, body: String(e) });
-    console.error(e);
-  }
+  // App.reset_css();
+  // App.apply_css(tmpCss);
 }
 
 monitorFile(

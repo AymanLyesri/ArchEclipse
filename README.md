@@ -29,6 +29,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
   - Dynamic Color schemes based on current wallpaper `pywal`
   - Dark/light modes `pywal`
   - Main bar `switchable widgets`
+    - Workspace Overview
     - Bandwidth speed monitor
     - Weather
     - Media Player
@@ -37,6 +38,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Crypto display
   - Application launcher ~~(Rofi replaced)~~
     - App launcher
+    - App history
     - Emojis
     - Arithmetics
     - Url forwarding to default browser
@@ -51,7 +53,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Script Timer
     - Crypto Viewer
   - Left Panel
-    - Chat Bot -- multiple APIs + image generation
+    - Chat Bot -- multiple APIs
     - Booru Viewer -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs
     - Manga Reader -- Using [MangaDex](https://mangadex.org/) API
     - Hyprland/Ags settings
@@ -88,7 +90,7 @@ KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form
 ## Required Dependencies and packages
 
 - [Arch Linux](https://archlinux.org/) (Other Arch-based distributions may work, with varying degrees of success)
-- [Hyprland](https://hyprland.org/)
+- [Hyprland](https://hyprland.org/) (Make sure hyprland works properly before installing the dots)
 - [Necessary packages](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/pacman/pkglist.txt) (do not worry they will be installed automatically)
 
 ## Installation Guide
@@ -154,6 +156,10 @@ update
 
 ![image](.github/assets/wallpaper-switcher.png)
 
+## Workspace OverView
+
+![workspace-overview](.github/assets/workspace-overview.gif)
+
 ## Keystroke Visualizer `optional`
 
 ![keystroke-visualizer](.github/assets/keystroke-visualizer.gif)
@@ -166,4 +172,4 @@ update
 
 ## User Panel
 
-![image](.github/assets/user-panel.png)
+![user-panel](.github/assets/user-panel.gif)

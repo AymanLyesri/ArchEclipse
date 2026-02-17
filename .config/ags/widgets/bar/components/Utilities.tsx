@@ -384,7 +384,7 @@ function DndToggle() {
 function ResourceMonitor() {
   const systemResource = createSubprocess(
     [0, 0, 0],
-    `${GLib.get_home_dir()}/.cache/binaries/system-resources-loop-ags`,
+    `/tmp/ags/system-resources-loop-ags`,
     (out) => {
       try {
         return JSON.parse(out);

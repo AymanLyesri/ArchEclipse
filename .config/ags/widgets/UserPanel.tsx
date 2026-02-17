@@ -1,6 +1,5 @@
 import { execAsync, exec } from "ags/process";
 import { createPoll } from "ags/time";
-import MediaWidget from "./MediaWidget";
 
 import App from "ags/gtk4/app";
 import Gtk from "gi://Gtk?version=4.0";
@@ -17,11 +16,18 @@ import { notify } from "../utils/notification";
 import GLib from "gi://GLib";
 import { getMonitorName } from "../utils/monitor";
 import { createBinding } from "ags";
+import MediaWidget from "./MediaWidget";
 const hyprland = Hyprland.get_default();
 
-const pfpPath = exec(`bash -c "echo $HOME/.face.icon"`);
-const username = exec(`whoami`);
-const desktopEnv = exec(`bash -c "echo $XDG_CURRENT_DESKTOP"`);
+// $HOME/.face.icon, if the file doesn't exist, it will return the default user picture path "./assets/userpanel/archeclipse_default_pfp.jpg"
+const homePfpPath = GLib.getenv("HOME") + "/.face.icon";
+const pfpPath = Gio.File.new_for_path(homePfpPath).query_exists(null)
+  ? homePfpPath
+  : `${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`;
+
+const username = GLib.get_user_name();
+const desktopEnv = GLib.getenv("XDG_CURRENT_DESKTOP") || "Unknown DE";
+
 const uptime = createPoll("", 600000, "uptime -p"); // every 10 minutes
 
 const UserPanel = () => {
@@ -114,7 +120,17 @@ const UserPanel = () => {
       </box>
     );
 
-    const revealer = (
+    const topRevealer = (
+      <revealer
+        transition-duration={500}
+        transition-type={Gtk.RevealerTransitionType.SLIDE_DOWN}
+        visible={true}
+      >
+        <MediaWidget />
+      </revealer>
+    ) as Gtk.Revealer;
+
+    const bottomRevealer = (
       <revealer
         transition-duration={500}
         transition-type={Gtk.RevealerTransitionType.SLIDE_DOWN}
@@ -132,14 +148,17 @@ const UserPanel = () => {
       <box class={"center"} orientation={Gtk.Orientation.VERTICAL}>
         <Gtk.EventControllerMotion
           onEnter={() => {
-            revealer.revealChild = true;
+            topRevealer.revealChild = true;
+            bottomRevealer.revealChild = true;
           }}
           onLeave={() => {
-            revealer.revealChild = false;
+            topRevealer.revealChild = false;
+            bottomRevealer.revealChild = false;
           }}
         />
+        {/* {topRevealer} */}
         {pfp}
-        {revealer}
+        {bottomRevealer}
       </box>
     );
   };
