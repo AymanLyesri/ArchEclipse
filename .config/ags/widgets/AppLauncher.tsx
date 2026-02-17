@@ -33,6 +33,7 @@ import { For } from "gnim";
 import Gdk from "gi://Gdk?version=4.0";
 import { convert, isConversionQuery } from "../utils/convert";
 import Pango from "gi://Pango?version=1.0";
+import GLib from "gi://GLib";
 const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
@@ -50,7 +51,8 @@ const QuickApps = () => {
         class="quick-apps results"
         spacing={5}
         orientation={Gtk.Orientation.VERTICAL}
-        valign={Gtk.Align.START}>
+        valign={Gtk.Align.START}
+      >
         {quickApps.map((app, index) => (
           <Gtk.Button
             hexpand
@@ -60,7 +62,8 @@ const QuickApps = () => {
               if (parentWindowRef) {
                 parentWindowRef.hide();
               }
-            }}>
+            }}
+          >
             <box spacing={5}>
               <label widthRequest={24} label={app.app_icon} />
               <label label={app.app_name} />
@@ -121,7 +124,7 @@ const Entry = () => (
               ? text.split(">")[1].trim()
               : "en";
             const translation = await execAsync(
-              `bash ./scripts/translate.sh '${text
+              `bash ${GLib.get_home_dir()}/.config/ags/scripts/translate.sh '${text
                 .split(">")[0]
                 .replace("translate", "")
                 .trim()}' '${language}'`,
@@ -134,7 +137,9 @@ const Entry = () => (
             ]);
           } // Handle emojis
           else if (args[0].includes("emoji")) {
-            const emojis: [] = readJSONFile("./assets/emojis/emojis.json");
+            const emojis: [] = readJSONFile(
+              `${GLib.get_home_dir()}/.config/ags/assets/emojis/emojis.json`,
+            );
             const filteredEmojis = emojis.filter(
               (emoji: { app_tags: string; app_name: string }) =>
                 emoji.app_tags
@@ -197,7 +202,10 @@ const Entry = () => (
                       ...history.peek().filter((name) => name !== app.name),
                     ].slice(0, 10);
                     setHistory(newHistory);
-                    writeJSONFile("./cache/launcher/history.json", newHistory);
+                    writeJSONFile(
+                      `${GLib.get_home_dir()}/.config/ags/cache/launcher/history.json`,
+                      newHistory,
+                    );
                   },
                 })),
             );
@@ -260,7 +268,8 @@ const Help = () => {
       visible={Results((results) => results.length <= 0)}
       class={"help"}
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}>
+      spacing={10}
+    >
       {Object.entries(helpCommands).map(([command, description]) => (
         <box spacing={10}>
           <label label={command} class="command" hexpand wrap xalign={0} />
@@ -288,7 +297,8 @@ const AppButton = ({
     <box
       spacing={10}
       hexpand
-      tooltipMarkup={`${element.app_name}\n<b>${element.app_description}</b>`}>
+      tooltipMarkup={`${element.app_name}\n<b>${element.app_description}</b>`}
+    >
       {/* ICON SLOT — always present */}
 
       <image visible={element.app_type === "app"} iconName={element.app_icon} />
@@ -322,7 +332,8 @@ const AppButton = ({
       class={className}
       onClicked={() => {
         launchApp(element);
-      }}>
+      }}
+    >
       {buttonContent(element)}
     </Gtk.Button>
   );
@@ -334,7 +345,8 @@ const ResultsDisplay = () => {
       visible={Results((results) => results.length > 0)}
       class="results"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}>
+      spacing={10}
+    >
       <For each={Results}>
         {(result, i) => (
           <AppButton
@@ -364,14 +376,20 @@ const History = () => {
         orientation={Gtk.Orientation.VERTICAL}
         spacing={5}
         $={(self) => {
-          execAsync(`mkdir -p ./cache/launcher`).then(() => {
-            const history = readJSONFile("./cache/launcher/history.json");
+          execAsync(
+            `mkdir -p ${GLib.get_home_dir()}/.config/ags/cache/launcher`,
+          ).then(() => {
+            const history = readJSONFile(
+              `${GLib.get_home_dir()}/.config/ags/cache/launcher/history.json`,
+            );
             if (Array.isArray(history)) setHistory(history);
           });
-        }}>
+        }}
+      >
         <label
           visible={history((h) => h.length == 0)}
-          label={"Empty History"}></label>
+          label={"Empty History"}
+        ></label>
         <For each={history}>
           {(appName) => {
             const _app = apps.fuzzy_query(appName)[0];
@@ -425,7 +443,8 @@ export default ({
         }
       });
     }}
-    resizable={false}>
+    resizable={false}
+  >
     <Gtk.EventControllerKey
       onKeyPressed={({ widget }, keyval: number) => {
         if (keyval === Gdk.KEY_Escape) {

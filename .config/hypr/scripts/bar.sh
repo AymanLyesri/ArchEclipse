@@ -4,4 +4,6 @@ ags quit
 
 killall gjs
 
-ags run --log-file /tmp/ags.log &
+ags bundle /home/ayman/.config/ags/app.tsx /tmp/ags-bin
+
+/tmp/ags-bin &

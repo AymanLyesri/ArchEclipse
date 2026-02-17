@@ -8,6 +8,7 @@ import { Progress } from "../../Progress";
 import Pango from "gi://Pango?version=1.0";
 import Gdk from "gi://Gdk?version=4.0";
 import { globalSettings, globalTransition } from "../../../variables";
+import GLib from "gi://GLib";
 
 const [mangaList, setMangaList] = createState<Manga[]>([]);
 const [selectedManga, setSelectedManga] = createState<Manga | null>(null);
@@ -23,13 +24,13 @@ const [searchQuery, setSearchQuery] = createState<string>("");
 const [initialized, setInitialized] = createState(false);
 const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
 
-const scriptPath = "./scripts/manga.py";
+const scriptPath = `${GLib.get_home_dir()}/.config/ags/scripts/manga.py`;
 
 const fetchPopular = async () => {
   setProgressStatus("loading");
   try {
     const output = await execAsync(
-      `python3 ${scriptPath} --popular --limit 10`
+      `python3 ${scriptPath} --popular --limit 10`,
     );
     const data = JSON.parse(output);
     setMangaList(data);
@@ -45,7 +46,7 @@ const searchManga = async (query: string) => {
   if (!query.trim()) return fetchPopular();
   try {
     const output = await execAsync(
-      `python3 ${scriptPath} --search "${query}" --limit 10`
+      `python3 ${scriptPath} --search "${query}" --limit 10`,
     );
     const data = JSON.parse(output);
     setMangaList(data);
@@ -60,7 +61,7 @@ const fetchChapters = async (mangaId: string) => {
   try {
     setProgressStatus("loading");
     const output = await execAsync(
-      `python3 ${scriptPath} --chapters --manga-id ${mangaId}`
+      `python3 ${scriptPath} --chapters --manga-id ${mangaId}`,
     );
     const data = JSON.parse(output);
     setChapters(data);
@@ -77,7 +78,7 @@ const fetchPages = async (chapterId: string) => {
     setProgressStatus("loading");
     print(`python3 ${scriptPath} --pages --chapter-id ${chapterId}`);
     const output = await execAsync(
-      `python3 ${scriptPath} --pages --chapter-id ${chapterId}`
+      `python3 ${scriptPath} --pages --chapter-id ${chapterId}`,
     );
     const data = JSON.parse(output);
     setPages(data);
@@ -98,7 +99,7 @@ const loadMorePages = async () => {
 
     const nextPages = allPages.slice(
       currentLoaded.length,
-      currentLoaded.length + 5
+      currentLoaded.length + 5,
     );
 
     print(allPages.length, currentLoaded.length, nextPages.length);
@@ -153,7 +154,7 @@ const MangaTab = () => (
                 height={globalSettings(({ leftPanel }) =>
                   manga.cover_width && manga.cover_height
                     ? (manga.cover_height / manga.cover_width) * leftPanel.width
-                    : leftPanel.width
+                    : leftPanel.width,
                 )}
               />
               <box
@@ -246,7 +247,7 @@ const PagesTab = () => (
               height={globalSettings(({ leftPanel }) =>
                 page.width && page.height
                   ? (page.height / page.width) * leftPanel.width
-                  : leftPanel.width
+                  : leftPanel.width,
               )}
             />
           )}

@@ -5,7 +5,8 @@ import { globalTransition } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { readJSONFile, writeJSONFile } from "../../../utils/json";
 import { Eventbox } from "../../Custom/Eventbox";
-import CryptoWidget from "../../CryptoWidget";
+import GLib from "gi://GLib";
+import CryptoWidget from "./CryptoWidget";
 
 // Interfaces
 interface CryptoEntry {
@@ -27,8 +28,13 @@ const [editingEntry, setEditingEntry] = createState<CryptoEntry | null>(null);
 // Storage functions
 const saveEntriesToFile = async (entries: CryptoEntry[]) => {
   try {
-    await execAsync(`mkdir -p ./cache/crypto`);
-    writeJSONFile("./cache/crypto/entries.json", entries);
+    await execAsync(
+      `mkdir -p  ${GLib.get_home_dir()}/.config/ags/cache/crypto`,
+    );
+    writeJSONFile(
+      `${GLib.get_home_dir()}/.config/ags/cache/crypto/entries.json`,
+      entries,
+    );
   } catch (error) {
     console.error("Failed to save crypto entries:", error);
   }
@@ -36,7 +42,9 @@ const saveEntriesToFile = async (entries: CryptoEntry[]) => {
 
 const loadEntriesFromFile = async (): Promise<CryptoEntry[]> => {
   try {
-    const result = readJSONFile("./cache/crypto/entries.json");
+    const result = readJSONFile(
+      `${GLib.get_home_dir()}/.config/ags/cache/crypto/entries.json`,
+    );
     return Array.isArray(result) ? result : [];
   } catch (error) {
     console.error("Failed to load crypto entries:", error);

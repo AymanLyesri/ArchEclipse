@@ -32,6 +32,7 @@ import CircularProgress from "../../CircularProgress";
 import { createPoll } from "ags/time";
 
 import Hyprland from "gi://AstalHyprland";
+import GLib from "gi://GLib";
 const hyprland = Hyprland.get_default();
 
 function BrightnessWidget() {
@@ -383,7 +384,7 @@ function DndToggle() {
 function ResourceMonitor() {
   const systemResource = createSubprocess(
     [0, 0, 0],
-    "./cache/binaries/system-resources-loop-ags",
+    `${GLib.get_home_dir()}/.cache/binaries/system-resources-loop-ags`,
     (out) => {
       try {
         return JSON.parse(out);

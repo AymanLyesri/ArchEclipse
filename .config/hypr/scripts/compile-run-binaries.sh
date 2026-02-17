@@ -2,6 +2,7 @@
 
 BIN_DIR=/tmp
 SRC=$HOME/.config/hypr/scripts-c
+CONFIG_DIR=$HOME/.config
 
 mkdir -p "$BIN_DIR"
 
@@ -10,9 +11,7 @@ gcc "$SRC/updates-check.c"   -o "$BIN_DIR/updates-check"
 gcc "$SRC/posture-check.c"   -o "$BIN_DIR/posture-check"
 gcc "$SRC/hyprpaper-loop.c"  -o "$BIN_DIR/hyprpaper-loop"
 
-pkill -f "hyprpaper-loop"
-
-"$BIN_DIR/hyprpaper-loop" &
+ags bundle "$CONFIG_DIR/ags/app.tsx" "$BIN_DIR/ags-bin"
 
 # Check if cronie is running
 if ! systemctl is-active --quiet cronie; then
@@ -42,3 +41,6 @@ echo "0    * * * * $BIN_DIR/posture-check") | crontab -
 /tmp/battery-check
 /tmp/updates-check
 /tmp/posture-check
+
+"$BIN_DIR/hyprpaper-loop" &
+"$BIN_DIR/ags-bin" &

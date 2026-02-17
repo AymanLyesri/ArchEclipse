@@ -3,11 +3,12 @@ import Gtk from "gi://Gtk?version=4.0";
 import { With } from "gnim";
 import { formatKiloBytes } from "../../../../utils/bytes";
 import { createSubprocess } from "ags/process";
+import GLib from "gi://GLib";
 
 export default () => {
   const bandwidth = createSubprocess(
     [0, 0, 0, 0],
-    ["./cache/binaries/bandwidth-loop-ags"],
+    [`${GLib.get_home_dir()}/.cache/binaries/bandwidth-loop-ags`],
     (out, prev) => {
       try {
         const parsed = JSON.parse(out);

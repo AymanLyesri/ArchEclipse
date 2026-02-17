@@ -56,7 +56,7 @@ export const fullscreenClient = focusedClient((client) => {
 export const emptyWorkspace = focusedClient((client) => !client);
 export const focusedWorkspace = createBinding(hyprland, "focusedWorkspace");
 export const specialWorkspace = focusedClient((client) => {
-  return client ? client.workspace.id < 0 : false;
+  return client && client.workspace ? client.workspace.id < 0 : false;
 });
 
 export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));

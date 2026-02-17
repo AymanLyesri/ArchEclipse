@@ -42,7 +42,9 @@ const selectedWallpapers = createComputed(() => {
 
 const FetchWallpapers = async () => {
   try {
-    execAsync("bash ./scripts/get-wallpapers.sh")
+    execAsync(
+      `bash ${GLib.get_home_dir()}/.config/ags/scripts/get-wallpapers.sh`,
+    )
       .then((output) => {
         const wallpapers = readJson(output);
         setWallpapers(wallpapers);
@@ -61,7 +63,9 @@ const [currentWallpapers, setCurrentWallpapers] = createState<string[]>([]);
 
 const FetchCurrentWallpapers = (monitorName: string) => {
   try {
-    execAsync(`bash ./scripts/get-wallpapers.sh --current ${monitorName}`)
+    execAsync(
+      `bash ${GLib.get_home_dir()}/.config/ags/scripts/get-wallpapers.sh --current ${monitorName}`,
+    )
       .then((output) => {
         const wallpapers = JSON.parse(output).map((item: string) =>
           String(item),

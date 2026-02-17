@@ -231,10 +231,6 @@ export class BooruImage {
         `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`,
       );
 
-      print(
-        `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`,
-      );
-
       notify({
         summary: "Waifu",
         body:
@@ -343,12 +339,10 @@ export class BooruImage {
       const { readJson } = await import("../utils/json");
 
       const res = await execAsync(
-        `python ./scripts/booru.py 
+        `python ${GLib.get_home_dir()}/.config/ags/scripts/booru.py 
     --api ${api.value} 
     --id ${id}`,
       );
-
-      print("API Response:", res);
 
       const imageData = readJson(res)[0];
       const image = new BooruImage({
@@ -417,7 +411,8 @@ export class BooruImage {
               execAsync(`bash -c "echo -n '${tag}' | wl-copy"`).catch((err) =>
                 notify({ summary: "Error", body: String(err) }),
               );
-            }}>
+            }}
+          >
             <label
               ellipsize={Pango.EllipsizeMode.END}
               maxWidthChars={10}
@@ -523,7 +518,8 @@ export class BooruImage {
       <overlay
         widthRequest={displayWidth}
         heightRequest={displayHeight}
-        class="booru-image">
+        class="booru-image"
+      >
         <Gtk.Picture
           file={currentlyDownloaded((downloaded) => {
             const path = downloaded
@@ -540,7 +536,8 @@ export class BooruImage {
           $type="overlay"
           orientation={Gtk.Orientation.VERTICAL}
           widthRequest={displayWidth}
-          heightRequest={displayHeight}>
+          heightRequest={displayHeight}
+        >
           {Tags}
           <box vexpand />
           {Actions}
@@ -610,7 +607,8 @@ export class BooruImage {
         class="actions"
         valign={Gtk.Align.END}
         orientation={Gtk.Orientation.VERTICAL}
-        spacing={5}>
+        spacing={5}
+      >
         <Progress status={this._loadingState} />
         <box class="section">
           <togglebutton

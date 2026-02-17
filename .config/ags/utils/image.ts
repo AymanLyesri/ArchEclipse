@@ -1,14 +1,17 @@
 import { exec, execAsync } from "ags/process";
 import { notify } from "./notification";
 import GdkPixbuf from "gi://GdkPixbuf";
+import GLib from "gi://GLib";
 
 export function getDominantColor(imagePath: string) {
-  return exec(`bash ./scripts/get-image-color.sh ${imagePath}`);
+  return exec(
+    `bash ${GLib.get_home_dir()}/.config/ags/scripts/get-image-color.sh ${imagePath}`,
+  );
 }
 
 export function previewFloatImage(imagePath: string) {
   execAsync(`swayimg -w 690,690 --class 'preview-image' ${imagePath}`).catch(
-    (err) => notify({ summary: "Error", body: err })
+    (err) => notify({ summary: "Error", body: err }),
   );
 }
 

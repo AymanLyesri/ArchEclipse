@@ -3,15 +3,16 @@ import { monitorFile } from "ags/file";
 import App from "ags/gtk4/app";
 import { notify } from "./notification";
 import { globalSettings } from "../variables";
+import GLib from "gi://GLib";
 
 // target css file
 const tmpCss = `/tmp/tmp-style.css`;
 const tmpScss = `/tmp/tmp-style.scss`;
-const scss_dir = `./scss`;
+const scss_dir = `${GLib.get_home_dir()}/.config/ags/scss`;
 
-const walScssColors = `./../../.cache/wal/colors.scss`;
-const walCssColors = `./../../.cache/wal/colors.css`;
-const defaultColors = `./scss/defaultColors.scss`;
+const walScssColors = `${GLib.get_home_dir()}/.cache/wal/colors.scss`;
+const walCssColors = `${GLib.get_home_dir()}/.cache/wal/colors.css`;
+const defaultColors = `${GLib.get_home_dir()}/.config/ags/scss/defaultColors.scss`;
 
 export const getCssPath = () => {
   refreshCss();
@@ -19,7 +20,7 @@ export const getCssPath = () => {
 };
 
 export function refreshCss() {
-  const scss = `./scss/style.scss`;
+  const scss = `${scss_dir}/style.scss`;
 
   try {
     exec(`bash -c "echo '
@@ -38,12 +39,12 @@ export function refreshCss() {
 
 monitorFile(
   // directory that contains the scss files
-  `./scss`,
+  `${scss_dir}`,
   () => refreshCss(),
 );
 
 monitorFile(
   // directory that contains pywal colors
-  `./../../.cache/wal/colors.scss`,
+  `${GLib.get_home_dir()}/.cache/wal/colors.scss`,
   () => refreshCss(),
 );

@@ -98,7 +98,12 @@ function Crypto({
   const cryptoPoll = createPoll(
     { price: 0, prices: [] },
     POLL_INTERVAL,
-    ["python", "./scripts/crypto.py", symbol, timeframe],
+    [
+      "python",
+      `${GLib.get_home_dir()}/.config/ags/scripts/crypto.py`,
+      symbol,
+      timeframe,
+    ],
     (out) => {
       try {
         const parsed = JSON.parse(out);

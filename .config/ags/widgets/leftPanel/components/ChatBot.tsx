@@ -46,7 +46,7 @@ interface Session {
  * Base directory path for storing chatbot data including messages and images
  * All session data is stored under this directory, organized by API model
  */
-const MESSAGE_FILE_PATH = "./cache/chatbot";
+const MESSAGE_FILE_PATH = `${GLib.get_home_dir()}/.config/ags/cache/chatbot`;
 
 // =============================================================================
 // STATE MANAGEMENT
@@ -590,7 +590,7 @@ const formatText = (text: string): JSX.Element => {
 const sendMessage = async (message: Message): Promise<void> => {
   const sessionId = activeSessionId.peek();
   const apiModel = currentApiModel.peek();
-  const imagePath = `./cache/chatbot/${apiModel}/sessions/${sessionId}/images/${message.id}.jpg`;
+  const imagePath = `${GLib.get_home_dir()}/.config/ags/cache/chatbot/${apiModel}/sessions/${sessionId}/images/${message.id}.jpg`;
 
   // Escape single quotes in message content to prevent shell injection
   // Example: "It's great" → "It'\''s great"

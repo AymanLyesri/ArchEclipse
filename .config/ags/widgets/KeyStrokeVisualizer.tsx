@@ -84,56 +84,60 @@ export default ({ setup }: { setup: (self: Gtk.Window) => void }) => {
       $={(self) => {
         setup(self);
         let Timeout: Timer | null = null;
-        subprocess(`./cache/binaries/keystroke-loop-ags`, (out) => {
-          const key = out.trim();
-          if (!key) return;
+        subprocess(
+          `${GLib.get_home_dir()}/.cache/binaries/keystroke-loop-ags`,
+          (out) => {
+            const key = out.trim();
+            if (!key) return;
 
-          const revealer = createKeystroke(key);
-          const id = `keystroke-${counter++}`;
+            const revealer = createKeystroke(key);
+            const id = `keystroke-${counter++}`;
 
-          row.append(revealer);
-          const newKeystrokes = [...keystrokes(), { revealer, id }];
-          setKeystrokes(newKeystrokes);
+            row.append(revealer);
+            const newKeystrokes = [...keystrokes(), { revealer, id }];
+            setKeystrokes(newKeystrokes);
 
-          // Animate IN (next frame ensures layout exists)
-          GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-            revealer.reveal_child = true;
-            return GLib.SOURCE_REMOVE;
-          });
-
-          // Animate OUT oldest if max exceeded
-          if (newKeystrokes.length > maxKeystrokes) {
-            const old = newKeystrokes[0];
-            old.revealer.transitionType = Gtk.RevealerTransitionType.SWING_LEFT;
-            old.revealer.reveal_child = false;
-
-            const updatedKeystrokes = newKeystrokes.slice(1);
-            setKeystrokes(updatedKeystrokes);
-
-            // Remove after animation finishes
-            setTimeout(() => {
-              row.remove(old.revealer);
-            }, 300);
-          }
-          // Reset hide timer on each keystroke
-          if (Timeout !== null) {
-            Timeout.cancel();
-            Timeout = null;
-          }
-
-          // Set timer to hide window after inactivity
-          Timeout = timeout(hideDelay, () => {
-            // Clear all keystrokes
-            const currentKeystrokes = keystrokes();
-            currentKeystrokes.forEach((ks) => {
-              ks.revealer.reveal_child = false;
-              setTimeout(() => {
-                row.remove(ks.revealer);
-              });
+            // Animate IN (next frame ensures layout exists)
+            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+              revealer.reveal_child = true;
+              return GLib.SOURCE_REMOVE;
             });
-            setKeystrokes([]);
-          });
-        });
+
+            // Animate OUT oldest if max exceeded
+            if (newKeystrokes.length > maxKeystrokes) {
+              const old = newKeystrokes[0];
+              old.revealer.transitionType =
+                Gtk.RevealerTransitionType.SWING_LEFT;
+              old.revealer.reveal_child = false;
+
+              const updatedKeystrokes = newKeystrokes.slice(1);
+              setKeystrokes(updatedKeystrokes);
+
+              // Remove after animation finishes
+              setTimeout(() => {
+                row.remove(old.revealer);
+              }, 300);
+            }
+            // Reset hide timer on each keystroke
+            if (Timeout !== null) {
+              Timeout.cancel();
+              Timeout = null;
+            }
+
+            // Set timer to hide window after inactivity
+            Timeout = timeout(hideDelay, () => {
+              // Clear all keystrokes
+              const currentKeystrokes = keystrokes();
+              currentKeystrokes.forEach((ks) => {
+                ks.revealer.reveal_child = false;
+                setTimeout(() => {
+                  row.remove(ks.revealer);
+                });
+              });
+              setKeystrokes([]);
+            });
+          },
+        );
       }}
     >
       <box hexpand vexpand heightRequest={28}>

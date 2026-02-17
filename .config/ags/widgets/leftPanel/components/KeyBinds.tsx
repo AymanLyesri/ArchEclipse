@@ -2,6 +2,7 @@ import Gtk from "gi://Gtk?version=4.0";
 import KeyBind from "../../KeyBind";
 import { execAsync } from "ags/process";
 import { createState, For, With } from "gnim";
+import GLib from "gi://GLib";
 
 interface KeyBinds {
   [category: string]: {
@@ -18,7 +19,9 @@ export default () => {
       hexpand
       vexpand
       $={(self) => {
-        execAsync(`bash -c "./scripts/get-keybinds.sh"`)
+        execAsync(
+          `bash -c "${GLib.get_home_dir()}/.config/ags/scripts/get-keybinds.sh"`,
+        )
           .then(JSON.parse)
           .then((keyBinds: KeyBinds) => {
             setKeyBinds(keyBinds);
