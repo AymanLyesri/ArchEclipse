@@ -296,6 +296,33 @@ const reloadCurrentMessages = (): void => {
   fetchMessages(apiModel, sessionId);
 };
 
+/**
+ * Gets the first message content from a specific session
+ * Used for displaying session previews in tooltips
+ *
+ * @param {string} apiModel - The API model identifier
+ * @param {string} sessionId - The unique session identifier
+ * @returns {string} The content of the first message, or empty string if no messages exist
+ *
+ * Data validation:
+ * - Returns empty string if file doesn't exist or is invalid
+ * - Returns empty string if no messages in the session
+ */
+const getFirstMessageContent = (
+  apiModel: string,
+  sessionId: string,
+): string => {
+  const filePath = getMessageFilePath(apiModel, sessionId);
+  const fetchedMessages = readJSONFile(filePath);
+
+  // Validate that we got an array with at least one message
+  if (!Array.isArray(fetchedMessages) || fetchedMessages.length === 0) {
+    return "";
+  }
+
+  return fetchedMessages[0]?.content || "";
+};
+
 // =============================================================================
 // UTILITY FUNCTIONS - TEXT FORMATTING & MARKDOWN
 // =============================================================================
@@ -720,6 +747,10 @@ const ApiList = (): JSX.Element => (
           ({ chatBot }) => chatBot.api.name === provider.name,
         )}
         class="provider"
+        tooltipMarkup={`
+<b>${provider.name}</b>
+${provider.description || ""}
+          `}
         onToggled={async ({ active }) => {
           if (active) {
             setGlobalSetting("chatBot.api", provider);
@@ -879,31 +910,47 @@ const SessionTabs = (): JSX.Element => {
       >
         <box spacing={5}>
           <For each={sessions}>
-            {(session) => (
-              <togglebutton
-                class={`tab`}
-                active={activeSessionId((id) => id === session.id)}
-                label={session.name}
-                tooltipMarkup={"Right-click to delete"}
-                vexpand={false}
-                onToggled={({ active }) => {
-                  if (active) {
-                    setActiveSessionId(session.id);
-                  }
-                }}
-                $={(self) => {
-                  const gesture = new Gtk.GestureClick({
-                    button: 3, // Right click only
-                  });
+            {(session) => {
+              const firstMessage = getFirstMessageContent(
+                currentApiModel.peek(),
+                session.id,
+              );
+              const escapedMessage = firstMessage
+                ? GLib.markup_escape_text(firstMessage, -1)
+                : "";
+              return (
+                <togglebutton
+                  class={`tab`}
+                  active={activeSessionId((id) => id === session.id)}
+                  label={session.name}
+                  // Tooltip with instructions for deleting the session, also display first message if available in the session for context
+                  tooltipMarkup={`<b>Right-click to delete</b>${
+                    escapedMessage
+                      ? `
 
-                  gesture.connect("pressed", () => {
-                    deleteSession(session.id);
-                  });
+<b>Context:</b> ${escapedMessage}`
+                      : ""
+                  }`}
+                  vexpand={false}
+                  onToggled={({ active }) => {
+                    if (active) {
+                      setActiveSessionId(session.id);
+                    }
+                  }}
+                  $={(self) => {
+                    const gesture = new Gtk.GestureClick({
+                      button: 3, // Right click only
+                    });
 
-                  self.add_controller(gesture);
-                }}
-              />
-            )}
+                    gesture.connect("pressed", () => {
+                      deleteSession(session.id);
+                    });
+
+                    self.add_controller(gesture);
+                  }}
+                />
+              );
+            }}
           </For>
         </box>
       </scrolledwindow>

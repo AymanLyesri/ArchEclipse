@@ -225,7 +225,7 @@ export default () => {
 
               return (
                 <box orientation={Gtk.Orientation.VERTICAL} spacing={12}>
-                  <box class="weather-section" spacing={12}>
+                  <box class="weather-section" spacing={25}>
                     <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
                       <label class={"weather-icon-large"} label={weatherIcon} />
                       <label
@@ -345,9 +345,8 @@ export default () => {
                     <scrolledwindow
                       hscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
                       vscrollbarPolicy={Gtk.PolicyType.NEVER}
-                      heightRequest={100}
                     >
-                      <box class="hourly-forecast" spacing={8}>
+                      <box class="hourly-forecast" spacing={10}>
                         {(() => {
                           const now = new Date();
                           const currentHour = now.getHours();

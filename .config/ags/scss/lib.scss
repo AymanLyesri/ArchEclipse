@@ -1,7 +1,5 @@
 // Define the theme variables
 
-$BOX-SHADOW: 0px 5px 10px rgba(0, 0, 0, 0.4);
-
 @mixin module {
   background: $background-transparent;
   color: $foreground;

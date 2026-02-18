@@ -10,12 +10,10 @@ import Hyprland from "gi://AstalHyprland";
 import { date_less, date_more } from "../variables";
 import { hideWindow } from "../utils/window";
 import Picture from "./Picture";
-import NotificationHistory from "./rightPanel/components/NotificationHistory";
 import Gio from "gi://Gio";
 import { notify } from "../utils/notification";
 import GLib from "gi://GLib";
 import { getMonitorName } from "../utils/monitor";
-import { createBinding } from "ags";
 import MediaWidget from "./MediaWidget";
 const hyprland = Hyprland.get_default();
 

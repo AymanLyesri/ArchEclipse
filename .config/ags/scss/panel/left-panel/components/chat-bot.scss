@@ -13,6 +13,7 @@
     .message {
       @include module;
       min-width: 100px;
+      box-shadow: $BOX-SHADOW;
 
       &.last {
         animation: opacityIn 0.5s ease-out;

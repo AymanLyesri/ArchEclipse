@@ -1,5 +1,9 @@
 # **Arch Eclipse**
 
+# Overview
+
+![overview](.github/assets/overview.png)
+
 # Description
 
 This is my daily driver configuration that I use on both my laptop and desktop for coding, gaming, trading, browsing the web, etc., with Dvorak in mind. I am constantly adding new features and improvements.
@@ -154,7 +158,7 @@ update
 
 ## Wallpaper Switcher
 
-![image](.github/assets/wallpaper-switcher.png)
+![wallpaper-switcher](.github/assets/wallpaper-switcher.png)
 
 ## Workspace OverView
 
