@@ -615,7 +615,7 @@ const sendMessage = async (message: Message): Promise<void> => {
   // Construct Python script command
   // Arguments: API model, message content, API key, session ID
   const prompt =
-    `python /home/ayman/.config/ags/scripts/chatbot.py ` +
+    `python ${GLib.get_home_dir()}/.config/ags/scripts/chatbot.py ` +
     `'${apiModel}' ` +
     `'${escapedContent}' ` +
     `'${apiKey}' ` +

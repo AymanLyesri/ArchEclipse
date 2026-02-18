@@ -369,7 +369,7 @@ const ResultsDisplay = () => {
 
 const History = () => {
   return (
-    <scrolledwindow hexpand>
+    <scrolledwindow vexpand>
       <box
         valign={Gtk.Align.START}
         class={"history"}
@@ -454,12 +454,19 @@ export default ({
       }}
     />
     <box class="app-launcher" spacing={10}>
-      <QuickApps />
-      <box class={"main"} orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+      <box
+        class={"main"}
+        hexpand
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+      >
         <ResultsDisplay />
         <Entry />
       </box>
-      <History />
+      <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+        <QuickApps />
+        <History />
+      </box>
     </box>
   </Astal.Window>
 );

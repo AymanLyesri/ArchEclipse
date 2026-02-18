@@ -430,17 +430,12 @@ const Setting = ({
             const sameValue = text === setting.value;
 
             if (!sameValue) {
-              self.set_css_classes(["unsaved"]);
-              self.set_tooltip_markup(
-                `<b>Unsaved Changes</b>\nPress Enter to save changes`,
-              );
               setGlobalSetting(keyChanged + ".value", text);
               notify({
                 summary: setting.name,
                 body: `Changed to ${text}`,
               });
               if (callBack) callBack(text);
-            } else {
               self.set_css_classes([]);
               self.set_tooltip_markup("");
             }
