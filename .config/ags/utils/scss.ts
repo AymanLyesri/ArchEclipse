@@ -26,7 +26,10 @@ export function refreshCss() {
         $OPACITY: ${globalSettings.peek().ui.opacity.value};
         $FONT-SIZE: ${globalSettings.peek().ui.fontSize.value}px;
         $SCALE: ${globalSettings.peek().ui.scale.value}px;
-        ' | cat - ${defaultColors} ${walScssColors} ${walCssColors} ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`)
+        ' | cat - ${defaultColors} \
+        $([ -f ${walScssColors} ] && echo ${walScssColors}) \
+        $([ -f ${walCssColors} ] && echo ${walCssColors}) \
+        ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`)
     .then(() => {
       App.reset_css();
       App.apply_css(tmpCss);

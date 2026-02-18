@@ -17,5 +17,12 @@
     &:hover {
       background: $background-semi-transparent;
     }
+
+    entry {
+      border-bottom: 1px solid transparent;
+      &.unsaved {
+        border-bottom: 1px solid $secondary;
+      }
+    }
   }
 }

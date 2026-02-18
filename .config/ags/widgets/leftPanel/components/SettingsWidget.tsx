@@ -271,7 +271,8 @@ const BarLayoutSetting = () => {
                   });
 
                   self.add_controller(dropTarget);
-                }}></togglebutton>
+                }}
+              ></togglebutton>
             );
           }}
         </For>
@@ -426,9 +427,36 @@ const Setting = ({
           placeholderText={`Enter ${setting.name}`}
           onActivate={(self) => {
             const text = self.text;
-            setGlobalSetting(keyChanged + ".value", text);
-            notify({ summary: setting.name, body: `Changed to ${text}` });
-            if (callBack) callBack(text);
+            const sameValue = text === setting.value;
+
+            if (!sameValue) {
+              self.set_css_classes(["unsaved"]);
+              self.set_tooltip_markup(
+                `<b>Unsaved Changes</b>\nPress Enter to save changes`,
+              );
+              setGlobalSetting(keyChanged + ".value", text);
+              notify({
+                summary: setting.name,
+                body: `Changed to ${text}`,
+              });
+              if (callBack) callBack(text);
+            } else {
+              self.set_css_classes([]);
+              self.set_tooltip_markup("");
+            }
+          }}
+          onChanged={(self: Gtk.Entry) => {
+            const sameValue = self.text === setting.value;
+            if (!sameValue) {
+              self.set_css_classes(["unsaved"]);
+              self.set_tooltip_markup(
+                `<b>Unsaved Changes</b>\nPress Enter to save changes`,
+              );
+              return;
+            } else {
+              self.set_css_classes([]);
+              self.set_tooltip_markup("");
+            }
           }}
         />
       </box>
@@ -518,12 +546,14 @@ export default () => {
       $={() =>
         // Initialize detection
         detectFileManagers()
-      }>
+      }
+    >
       <box orientation={Gtk.Orientation.VERTICAL} spacing={16} class="settings">
         <box
           class={"category"}
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}>
+          spacing={16}
+        >
           <label label="AGS -- Global" halign={Gtk.Align.START} />
 
           <BarLayoutSetting />
@@ -551,7 +581,8 @@ export default () => {
         <box
           class={"category"}
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}>
+          spacing={16}
+        >
           <label label={"AGS -- Api Keys"} halign={Gtk.Align.START} />
           <box class={"sub-category"}>
             <Setting
@@ -593,7 +624,8 @@ export default () => {
         <box
           class={"category"}
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}>
+          spacing={16}
+        >
           <label label="AGS -- KeyStrokeVisualizer" halign={Gtk.Align.START} />
           <Setting
             keyChanged="keyStrokeVisualizer.visibility"
@@ -621,14 +653,16 @@ export default () => {
         <box
           class={"category"}
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}>
+          spacing={16}
+        >
           <label label="Hyprland" halign={Gtk.Align.START} />
           {hyprlandSettings}
         </box>
         <box
           class={"category"}
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}>
+          spacing={16}
+        >
           <label label="Custom" halign={Gtk.Align.START} />
           <Setting
             keyChanged="autoWorkspaceSwitching"
