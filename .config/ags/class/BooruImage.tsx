@@ -172,7 +172,8 @@ export class BooruImage {
       this._setLoadingState("success");
     } catch (err) {
       this._setLoadingState("error");
-      notify({ summary: "Error", body: String(err) });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({ summary: "Error fetching image", body: errorMessage });
       throw err;
     }
   }
@@ -187,7 +188,8 @@ export class BooruImage {
       );
       notify({ summary: "Success", body: "Image copied to clipboard" });
     } catch (err) {
-      notify({ summary: "Error", body: String(err) });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({ summary: "Error copying to clipboard", body: errorMessage });
     }
   }
 
@@ -200,7 +202,8 @@ export class BooruImage {
         `swayimg -w 690,690 --class 'preview-image' ${this.getImagePath()}`,
       );
     } catch (err) {
-      notify({ summary: "Error", body: String(err) });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({ summary: "Error opening in viewer", body: errorMessage });
     }
   }
 
@@ -214,7 +217,8 @@ export class BooruImage {
       );
       notify({ summary: "Success", body: `Opened in ${browser}` });
     } catch (err) {
-      notify({ summary: "Error", body: String(err) });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({ summary: "Error opening in browser", body: errorMessage });
     }
   }
 
@@ -223,10 +227,11 @@ export class BooruImage {
    */
   async pinToTerminal(): Promise<void> {
     const terminalWaifuPath = `$HOME/.config/fastfetch/cache/logo.webp`;
-    // create the folder
-    await execAsync(`bash -c "mkdir -p $(dirname ${terminalWaifuPath})"`);
 
     try {
+      // create the folder
+      await execAsync(`bash -c "mkdir -p $(dirname ${terminalWaifuPath})"`);
+
       const output = await execAsync(
         `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`,
       );
@@ -239,7 +244,8 @@ export class BooruImage {
             : "UN-Pinned from Terminal",
       });
     } catch (err) {
-      notify({ summary: "Error", body: String(err) });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({ summary: "Error pinning to terminal", body: errorMessage });
     }
   }
 
@@ -277,7 +283,8 @@ export class BooruImage {
       );
       notify({ summary: "Success", body: "Image added to wallpapers" });
     } catch (err) {
-      notify({ summary: "Error", body: String(err) });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({ summary: "Error adding to wallpapers", body: errorMessage });
     }
   }
 
@@ -337,11 +344,14 @@ export class BooruImage {
     try {
       this._setLoadingState("loading");
       const { readJson } = await import("../utils/json");
+      const settings = globalSettings.peek();
 
       const res = await execAsync(
-        `python ${GLib.get_home_dir()}/.config/ags/scripts/booru.py 
-    --api ${api.value} 
-    --id ${id}`,
+        `python ${GLib.get_home_dir()}/.config/ags/scripts/booru.py ` +
+          `--api ${api.value} ` +
+          `--id ${id} ` +
+          `--api-user ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].user.value} ` +
+          `--api-key ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].key.value} `,
       );
 
       const imageData = readJson(res)[0];

@@ -10,7 +10,6 @@ import {
 import { notify } from "../../../utils/notification";
 import { createState, createComputed, For, With, Accessor } from "ags";
 import { booruApis } from "../../../constants/api.constants";
-import Picture from "../../Picture";
 import Gdk from "gi://Gdk?version=4.0";
 import Gio from "gi://Gio?version=2.0";
 import { Progress } from "../../Progress";
@@ -39,15 +38,25 @@ const [pageDirection, setPageDirection] = createState<"next" | "prev">("next");
 const [tags, setTags] = createState<string[]>([]);
 const [limit, setLimit] = createState<number>(100);
 
-const calculateCacheSize = async () =>
-  execAsync(
-    `bash -c "du -sb ${booruPath}/${
-      globalSettings.peek().booru.api.value
-    }/previews | cut -f1"`,
-  ).then((res) => {
+const calculateCacheSize = async () => {
+  try {
+    const res = await execAsync(
+      `bash -c "du -sb ${booruPath}/${
+        globalSettings.peek().booru.api.value
+      }/previews | cut -f1"`,
+    );
     // Convert bytes to megabytes
     setCacheSize(`${Math.round(Number(res) / (1024 * 1024))}mb`);
-  });
+  } catch (err) {
+    console.error("Error calculating cache size:", err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    notify({
+      summary: "Error calculating cache size",
+      body: errorMessage,
+    });
+    setCacheSize("0mb");
+  }
+};
 
 const ensureRatingTagFirst = () => {
   let tags: string[] = globalSettings.peek().booru.tags;
@@ -82,7 +91,12 @@ const cleanUp = () => {
       calculateCacheSize();
     })
     .catch((err) => {
-      notify({ summary: "Error", body: String(err) });
+      console.error("Error clearing cache:", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({
+        summary: "Error clearing cache",
+        body: `Failed to clear cache: ${errorMessage}`,
+      });
     });
 };
 const fetchImages = async () => {
@@ -254,26 +268,48 @@ const fetchTags = async (tag: string) => {
     );
     const jsonData = readJson(res);
     if (!jsonData) {
-      console.error("Failed to parse tag response");
+      const errorMsg = "Failed to parse tag response";
+      console.error(errorMsg);
+      notify({
+        summary: "Error fetching tags",
+        body: errorMsg,
+      });
       setFetchedTags([]);
       return;
     }
 
     // Check if response is an error
     if (jsonData.error === true) {
-      console.error("Tag fetch error:", jsonData.message);
+      const errorMsg = jsonData.details
+        ? `${jsonData.message}: ${jsonData.details}`
+        : jsonData.message;
+      console.error("Tag fetch error:", errorMsg);
+      notify({
+        summary: "Error fetching tags",
+        body: errorMsg,
+      });
       setFetchedTags([]);
       return;
     }
 
     if (!Array.isArray(jsonData)) {
-      console.error("Invalid response format from tag search");
+      const errorMsg = "Invalid response format from tag search";
+      console.error(errorMsg);
+      notify({
+        summary: "Error fetching tags",
+        body: errorMsg,
+      });
       setFetchedTags([]);
       return;
     }
     setFetchedTags(jsonData);
   } catch (err) {
     console.error("Error fetching tags:", err);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    notify({
+      summary: "Error fetching tags",
+      body: errorMessage,
+    });
     setFetchedTags([]);
   }
 };

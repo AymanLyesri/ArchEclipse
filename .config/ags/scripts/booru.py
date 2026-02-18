@@ -11,12 +11,12 @@ from requests.auth import HTTPBasicAuth
 
 class ErrorResponse:
     """Structured error response."""
-    
+
     def __init__(self, code: str, message: str, details: Optional[str] = None):
         self.code = code
         self.message = message
         self.details = details
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "error": True,
@@ -74,23 +74,30 @@ class DanbooruProvider(BooruProvider):
             r = requests.get(url, auth=HTTPBasicAuth(self.user, self.key), timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
-            return None
+            raise Exception(f"Request timeout after 15 seconds for {self.BASE}")
         except requests.exceptions.ConnectionError as e:
-            return None
+            raise Exception(
+                f"Connection error: Unable to reach {self.BASE}. Check your internet connection."
+            )
         except requests.exceptions.HTTPError as e:
             if r.status_code == 401:
-                return None
+                raise Exception(
+                    f"Authentication failed (401): Invalid API credentials for Danbooru"
+                )
             elif r.status_code == 404:
-                return None
-            return None
+                raise Exception(
+                    f"Post not found (404): Post ID {post_id} does not exist"
+                )
+            else:
+                raise Exception(f"HTTP error {r.status_code}: {r.reason}")
         except Exception as e:
-            return None
+            raise Exception(f"Unexpected error: {str(e)}")
 
         try:
             posts = r.json()
         except json.JSONDecodeError:
-            return None
-            
+            raise Exception(f"Invalid JSON response from {self.BASE}")
+
         if not isinstance(posts, list):
             posts = [posts]
 
@@ -123,23 +130,32 @@ class DanbooruProvider(BooruProvider):
         }
 
         try:
-            r = requests.get(url, params=params, auth=HTTPBasicAuth(self.user, self.key), timeout=15)
+            r = requests.get(
+                url, params=params, auth=HTTPBasicAuth(self.user, self.key), timeout=15
+            )
             r.raise_for_status()
         except requests.exceptions.Timeout:
-            return []
+            raise Exception(f"Request timeout after 15 seconds for {self.BASE}")
         except requests.exceptions.ConnectionError:
-            return []
+            raise Exception(
+                f"Connection error: Unable to reach {self.BASE}. Check your internet connection."
+            )
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401:
-                return []
-            return []
-        except Exception:
-            return []
+                raise Exception(
+                    f"Authentication failed (401): Invalid API credentials for Danbooru"
+                )
+            else:
+                raise Exception(
+                    f"HTTP error {e.response.status_code}: {e.response.reason}"
+                )
+        except Exception as e:
+            raise Exception(f"Unexpected error: {str(e)}")
 
         try:
             return [t["name"] for t in r.json()]
-        except (json.JSONDecodeError, KeyError, TypeError):
-            return []
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            raise Exception(f"Failed to parse tag response: {str(e)}")
 
 
 # ============================================================
@@ -176,21 +192,28 @@ class GelbooruProvider(BooruProvider):
             r = requests.get(self.BASE, params=params, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
-            return None
+            raise Exception(f"Request timeout after 15 seconds for Gelbooru")
         except requests.exceptions.ConnectionError:
-            return None
+            raise Exception(
+                f"Connection error: Unable to reach Gelbooru. Check your internet connection."
+            )
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401:
-                return None
-            return None
-        except Exception:
-            return None
+                raise Exception(
+                    f"Authentication failed (401): Invalid API credentials for Gelbooru"
+                )
+            else:
+                raise Exception(
+                    f"HTTP error {e.response.status_code}: {e.response.reason}"
+                )
+        except Exception as e:
+            raise Exception(f"Unexpected error: {str(e)}")
 
         try:
             posts = r.json().get("post", [])
-        except (json.JSONDecodeError, AttributeError):
-            return None
-            
+        except (json.JSONDecodeError, AttributeError) as e:
+            raise Exception(f"Invalid JSON response from Gelbooru: {str(e)}")
+
         if isinstance(posts, dict):
             posts = [posts]
 
@@ -228,20 +251,22 @@ class GelbooruProvider(BooruProvider):
             r = requests.get(self.BASE, params=params, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
-            return []
+            raise Exception(f"Request timeout after 15 seconds for Gelbooru")
         except requests.exceptions.ConnectionError:
-            return []
-        except requests.exceptions.HTTPError:
-            return []
-        except Exception:
-            return []
+            raise Exception(
+                f"Connection error: Unable to reach Gelbooru. Check your internet connection."
+            )
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"HTTP error {e.response.status_code}: {e.response.reason}")
+        except Exception as e:
+            raise Exception(f"Unexpected error: {str(e)}")
 
         try:
             tags = r.json().get("tag", []) or []
             tags.sort(key=lambda t: int(t.get("post_count", 0)), reverse=True)
             return [t["name"] for t in tags[:limit] if t.get("name")]
-        except (json.JSONDecodeError, KeyError, TypeError):
-            return []
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            raise Exception(f"Failed to parse tag response: {str(e)}")
 
 
 import requests
@@ -287,19 +312,28 @@ class SafebooruProvider(BooruProvider):
             r = requests.get(url, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
-            return None
+            raise Exception(f"Request timeout after 15 seconds for Safebooru")
         except requests.exceptions.ConnectionError:
-            return None
-        except requests.exceptions.HTTPError:
-            return None
-        except Exception:
-            return None
+            raise Exception(
+                f"Connection error: Unable to reach Safebooru. Check your internet connection."
+            )
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                raise Exception(
+                    f"Post not found (404): Post ID {post_id} does not exist"
+                )
+            else:
+                raise Exception(
+                    f"HTTP error {e.response.status_code}: {e.response.reason}"
+                )
+        except Exception as e:
+            raise Exception(f"Unexpected error: {str(e)}")
 
         try:
             posts = r.json()
         except json.JSONDecodeError:
-            return None
-            
+            raise Exception(f"Invalid JSON response from Safebooru")
+
         if not isinstance(posts, list):
             posts = [posts]
 
@@ -335,18 +369,20 @@ class SafebooruProvider(BooruProvider):
             r = requests.get(url, params=params, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
-            return []
+            raise Exception(f"Request timeout after 15 seconds for Safebooru")
         except requests.exceptions.ConnectionError:
-            return []
-        except requests.exceptions.HTTPError:
-            return []
-        except Exception:
-            return []
+            raise Exception(
+                f"Connection error: Unable to reach Safebooru. Check your internet connection."
+            )
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"HTTP error {e.response.status_code}: {e.response.reason}")
+        except Exception as e:
+            raise Exception(f"Unexpected error: {str(e)}")
 
         try:
             return [t["name"] for t in r.json()]
-        except (json.JSONDecodeError, KeyError, TypeError):
-            return []
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            raise Exception(f"Failed to parse tag response: {str(e)}")
 
 
 # ============================================================
@@ -379,7 +415,7 @@ def main():
             "Missing required arguments",
             "Usage: booru.py --api [danbooru|gelbooru|safebooru] "
             "--id [id] --tags [tag,tag] --tag [tag] --page [n] --limit [n] "
-            "--api-user [user] --api-key [key]"
+            "--api-user [user] --api-key [key]",
         )
         print(json.dumps(error.to_dict()))
         sys.exit(1)
@@ -412,11 +448,7 @@ def main():
             elif sys.argv[i] == "--api-key":
                 api_key = sys.argv[i + 1]
     except (IndexError, ValueError) as e:
-        error = ErrorResponse(
-            "INVALID_ARGS",
-            "Invalid argument format",
-            str(e)
-        )
+        error = ErrorResponse("INVALID_ARGS", "Invalid argument format", str(e))
         print(json.dumps(error.to_dict()))
         sys.exit(1)
 
@@ -424,7 +456,7 @@ def main():
         error = ErrorResponse(
             "MISSING_API",
             "API source is required",
-            "Use --api [danbooru|gelbooru|safebooru]"
+            "Use --api [danbooru|gelbooru|safebooru]",
         )
         print(json.dumps(error.to_dict()))
         sys.exit(1)
@@ -433,7 +465,7 @@ def main():
         error = ErrorResponse(
             "INVALID_API",
             "Invalid API source",
-            f"'{api}' is not supported. Use 'danbooru', 'gelbooru', or 'safebooru'"
+            f"'{api}' is not supported. Use 'danbooru', 'gelbooru', or 'safebooru'",
         )
         print(json.dumps(error.to_dict()))
         sys.exit(1)
@@ -442,7 +474,7 @@ def main():
         error = ErrorResponse(
             "MISSING_CREDENTIALS",
             "API user and key are required for danbooru/gelbooru",
-            "Provide both --api-user and --api-key arguments"
+            "Provide both --api-user and --api-key arguments",
         )
         print(json.dumps(error.to_dict()))
         sys.exit(1)
@@ -453,7 +485,7 @@ def main():
             error = ErrorResponse(
                 "PROVIDER_ERROR",
                 "Failed to initialize provider",
-                f"Could not create provider for API: {api}"
+                f"Could not create provider for API: {api}",
             )
             print(json.dumps(error.to_dict()))
             sys.exit(1)
@@ -463,11 +495,11 @@ def main():
         else:
             data = provider.fetch_posts(tags, post_id, page, limit)
 
-        if data is None:
+        if data is None or (isinstance(data, list) and len(data) == 0):
             error = ErrorResponse(
-                "FETCH_FAILED",
-                "Failed to fetch data from API",
-                "The API request failed or returned invalid data"
+                "NO_RESULTS",
+                "No results found",
+                "The API returned no data. Try different tags or check if the post exists.",
             )
             print(json.dumps(error.to_dict()))
             sys.exit(1)
@@ -475,12 +507,11 @@ def main():
         print(json.dumps(data))
     except Exception as e:
         error = ErrorResponse(
-            "UNEXPECTED_ERROR",
-            "An unexpected error occurred",
-            str(e)
+            "UNEXPECTED_ERROR", "An unexpected error occurred", str(e)
         )
         print(json.dumps(error.to_dict()))
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
