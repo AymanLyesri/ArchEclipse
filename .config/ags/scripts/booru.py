@@ -57,7 +57,7 @@ class DanbooruProvider(BooruProvider):
     # EXCLUDE_TAGS = ["-animated"]
     EXCLUDE_TAGS = []
 
-    def __init__(self, api_user: str, api_key: str):
+    def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
         self.user = api_user
         self.key = api_key
 
@@ -70,8 +70,12 @@ class DanbooruProvider(BooruProvider):
         else:
             url = f"{self.BASE}/posts/{post_id}.json"
 
+        r = None
         try:
-            r = requests.get(url, auth=HTTPBasicAuth(self.user, self.key), timeout=15)
+            auth = (
+                HTTPBasicAuth(self.user, self.key) if self.user and self.key else None
+            )
+            r = requests.get(url, auth=auth, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for {self.BASE}")
@@ -80,16 +84,18 @@ class DanbooruProvider(BooruProvider):
                 f"Connection error: Unable to reach {self.BASE}. Check your internet connection."
             )
         except requests.exceptions.HTTPError as e:
-            if r.status_code == 401:
+            if r and r.status_code == 401:
                 raise Exception(
                     f"Authentication failed (401): Invalid API credentials for Danbooru"
                 )
-            elif r.status_code == 404:
+            elif r and r.status_code == 404:
                 raise Exception(
                     f"Post not found (404): Post ID {post_id} does not exist"
                 )
             else:
-                raise Exception(f"HTTP error {r.status_code}: {r.reason}")
+                raise Exception(
+                    f"HTTP error {r.status_code}: {r.reason}" if r else str(e)
+                )
         except Exception as e:
             raise Exception(f"Unexpected error: {str(e)}")
 
@@ -130,9 +136,10 @@ class DanbooruProvider(BooruProvider):
         }
 
         try:
-            r = requests.get(
-                url, params=params, auth=HTTPBasicAuth(self.user, self.key), timeout=15
+            auth = (
+                HTTPBasicAuth(self.user, self.key) if self.user and self.key else None
             )
+            r = requests.get(url, params=params, auth=auth, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for {self.BASE}")
@@ -167,7 +174,7 @@ class GelbooruProvider(BooruProvider):
     BASE = "https://gelbooru.com/index.php"
     EXCLUDE_TAGS = ["-animated"]
 
-    def __init__(self, api_user: str, api_key: str):
+    def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
         self.user = api_user
         self.key = api_key
 
