@@ -263,9 +263,14 @@ function Display() {
       label="󰑐"
       tooltipMarkup={`Reload <b>HyprPaper</b>`}
       onClicked={() => {
+        setProgressStatus("loading");
         execAsync('bash -c "$HOME/.config/hypr/hyprpaper/reload.sh"')
-          .finally(FetchWallpapers)
-          .catch(notify);
+          .then(FetchWallpapers)
+          .finally(() => setProgressStatus("success"))
+          .catch((err) => {
+            setProgressStatus("error");
+            notify({ summary: "Error", body: String(err) });
+          });
       }}
     />
   );
@@ -523,6 +528,6 @@ export default ({
   );
 };
 
-monitorFile(`${GLib.get_home_dir()}/.config/wallpapers`, async () =>
-  FetchWallpapers(),
-);
+// monitorFile(`${GLib.get_home_dir()}/.config/wallpapers`, async () =>
+//   FetchWallpapers(),
+// );
