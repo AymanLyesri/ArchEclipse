@@ -101,7 +101,7 @@ install_browser() {
         ;;
     esac
     
-    yay -S --noconfirm $package
+    ${aur_helper:-yay} -S --noconfirm $package
     
     # echo config into browser.conf
     echo -e "exec-once = $app \n windowrule = workspace 2 silent, match:title ^($title)$" >$HOME/.config/hypr/configs/defaults/browser.conf
@@ -135,7 +135,7 @@ install_discord_client() {
         ;;
     esac
     
-    yay -S --noconfirm $package
+    ${aur_helper:-yay} -S --noconfirm $package
     
     echo -e "workspace = 6, gapsout:69, on-created-empty:$class \n windowrule = workspace 6 silent, match:class ^.*cord$" >$HOME/.config/hypr/configs/defaults/discord_client.conf
 }
