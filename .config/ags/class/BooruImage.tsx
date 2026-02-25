@@ -464,9 +464,16 @@ export class BooruImage {
             sensitive={currentlyDownloaded((downloaded) => !downloaded)}
             onClicked={(self) =>
               this.fetchImage()
-                .then(() => {
+                .then(async () => {
                   self.sensitive = false;
-                  setCurrentlyDownloaded(true);
+                  // Wait a bit to ensure file is fully written
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+                  // Verify file exists before updating state
+                  const imagePath = this.getImagePath();
+                  const file = Gio.File.new_for_path(imagePath);
+                  if (file.query_exists(null)) {
+                    setCurrentlyDownloaded(true);
+                  }
                 })
                 .catch(() => {})
             }
@@ -535,7 +542,11 @@ export class BooruImage {
             const path = downloaded
               ? this.getImagePath()
               : this.getPreviewPath();
-            return Gio.File.new_for_path(path);
+            const file = Gio.File.new_for_path(path);
+            // Force reload by returning a fresh file object
+            return file.query_exists(null)
+              ? file
+              : Gio.File.new_for_path(this.getPreviewPath());
           })}
           heightRequest={displayHeight}
           widthRequest={displayWidth}
