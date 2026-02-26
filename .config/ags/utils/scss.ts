@@ -4,6 +4,7 @@ import App from "ags/gtk4/app";
 import { notify } from "./notification";
 import { globalSettings } from "../variables";
 import GLib from "gi://GLib";
+import { timeout } from "ags/time";
 
 // target css file
 const tmpCss = `/tmp/tmp-style.css`;
@@ -31,8 +32,10 @@ export function refreshCss() {
         $([ -f ${walCssColors} ] && echo ${walCssColors}) \
         ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`)
     .then(() => {
-      App.reset_css();
-      App.apply_css(tmpCss);
+      timeout(100, () => {
+        App.reset_css();
+        App.apply_css(tmpCss);
+      });
     })
     .catch((e) => {
       notify({ summary: `Error while generating css`, body: String(e) });

@@ -145,25 +145,23 @@ const fetchImages = async () => {
         }),
     );
 
-    await execAsync(`
-      bash -c '
-        set -e
-        DIR="${booruPath}/${settings.booru.api.value}/previews"
-        mkdir -p "$DIR"
+    // Create preview directory
+    const previewDir = `${booruPath}/${settings.booru.api.value}/previews`;
+    await execAsync(`mkdir -p "${previewDir}"`);
 
-        for img in ${images
-          .map(
-            (i) =>
-              `"${i.id}|${i.extension}|${i.preview!.replace(/"/g, '\\"')}"`,
-          )
-          .join(" ")}
-        do
-          IFS="|" read -r id ext url <<< "$img"
-          file="$DIR/$id.$ext"
-          [ -f "$file" ] || curl -sSf -o "$file" "$url"
-        done
-      '
-    `);
+    // Download all previews in parallel
+    await Promise.all(
+      images.map(async (img) => {
+        const filePath = `${previewDir}/${img.id}.${img.extension}`;
+        try {
+          // Check if file exists
+          await execAsync(`test -f "${filePath}"`);
+        } catch {
+          // File doesn't exist, download it
+          await execAsync(`curl -sSf -o "${filePath}" "${img.preview}"`);
+        }
+      }),
+    );
 
     setImages(images);
     calculateCacheSize();
@@ -184,28 +182,24 @@ const fetchBookmarkImages = async () => {
 
     const bookmarks = globalSettings.peek().booru.bookmarks;
 
-    await execAsync(`
-      bash -c '
-        set -e
+    // Download all bookmark previews in parallel
+    await Promise.all(
+      bookmarks.map(async (bookmark) => {
+        const previewDir = `${booruPath}/${bookmark.api.value}/previews`;
+        const filePath = `${previewDir}/${bookmark.id}.${bookmark.extension}`;
 
-        for img in ${bookmarks
-          .map(
-            (i) =>
-              `"${i.api.value}|${i.id}|${i.extension}|${i.preview!.replace(
-                /"/g,
-                '\\"',
-              )}"`,
-          )
-          .join(" ")}
-        do
-          IFS="|" read -r api id ext url <<< "$img"
-          DIR="${booruPath}/$api/previews"
-          mkdir -p "$DIR"
-          file="$DIR/$id.$ext"
-          [ -f "$file" ] || curl -sSf -o "$file" "$url"
-        done
-      '
-    `);
+        // Create directory
+        await execAsync(`mkdir -p "${previewDir}"`);
+
+        try {
+          // Check if file exists
+          await execAsync(`test -f "${filePath}"`);
+        } catch {
+          // File doesn't exist, download it
+          await execAsync(`curl -sSf -o "${filePath}" "${bookmark.preview}"`);
+        }
+      }),
+    );
 
     // Convert bookmarks to BooruImage instances
     const bookmarkImages = bookmarks.map((b: any) => new BooruImage(b));
@@ -796,7 +790,7 @@ const Bottom = () => {
         onClicked={(self) => {
           setBottomIsRevealed(!bottomIsRevealed.get());
         }}
-        tooltipText={"SHIFT"}
+        tooltipText={"Toggle Settings (KEY-UP/DOWN)"}
       />
       <button
         label=""
@@ -828,36 +822,14 @@ export default () => {
       $={async (self) => {
         const keyController = new Gtk.EventControllerKey();
         keyController.connect("key-pressed", (_, keyval: number) => {
-          // shift to reveal/hide bottom
-          if (keyval === Gdk.KEY_Shift_L || keyval === Gdk.KEY_Shift_R) {
-            setBottomIsRevealed(!bottomIsRevealed.get());
-            return true;
-          }
           // scroll up
-          if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {
-            const sw = scrolledWindow.get();
-            if (sw) {
-              const vadjustment = sw.get_vadjustment();
-              const currentValue = vadjustment.get_value();
-              const pageSize = vadjustment.get_page_size();
-              vadjustment.set_value(
-                Math.max(0, currentValue - pageSize * 0.15),
-              );
-            }
+          if (keyval === Gdk.KEY_Up) {
+            setBottomIsRevealed(true);
             return true;
           }
           // scroll down
-          if (keyval === Gdk.KEY_Down && !bottomIsRevealed.get()) {
-            const sw = scrolledWindow.get();
-            if (sw) {
-              const vadjustment = sw.get_vadjustment();
-              const currentValue = vadjustment.get_value();
-              const pageSize = vadjustment.get_page_size();
-              const maxValue = vadjustment.get_upper() - pageSize;
-              vadjustment.set_value(
-                Math.min(maxValue, currentValue + pageSize * 0.15),
-              );
-            }
+          if (keyval === Gdk.KEY_Down) {
+            setBottomIsRevealed(false);
             return true;
           }
           if (keyval === Gdk.KEY_Right) {
