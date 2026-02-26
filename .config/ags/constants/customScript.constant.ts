@@ -1,7 +1,10 @@
+import { Gtk } from "ags/gtk4";
 import { CustomScript } from "../interfaces/customScript.interface";
 import { globalSettings } from "../variables";
 
 import Hyprland from "gi://AstalHyprland";
+import { execAsync } from "ags/process";
+import GLib from "gi://GLib?version=2.0";
 const hyprland = Hyprland.get_default();
 
 export const customScripts = (): CustomScript[] => [
@@ -233,6 +236,62 @@ export const customScripts = (): CustomScript[] => [
     app: "asciiquarium",
     script: () => {
       hyprland.dispatch("exec", "foot -e asciiquarium");
+    },
+  },
+  // reset ags settings
+  {
+    name: "Reset AGS Settings",
+    icon: "󰜉",
+    description: "Reset all AGS settings to default",
+    script: (self: Gtk.Button) => {
+      // create and open a confirmation popover before resetting settings
+      const parentBox = self.get_parent() as Gtk.Box;
+      if (!parentBox) return;
+
+      // Check if buttonBox already exists
+      if (!(parentBox as any).resetButtonBox) {
+        const buttonBox = new Gtk.Box({
+          orientation: Gtk.Orientation.HORIZONTAL,
+          visible: false,
+          spacing: 10,
+        });
+        const yesButton = new Gtk.Button({ 
+          label: "Yes",
+          css_classes: ["danger"]
+        });
+        const noButton = new Gtk.Button({ 
+          label: "No",
+          css_classes: ["button"]
+        });
+
+        yesButton.connect("clicked", () => {
+          print("Yes button clicked");
+          execAsync(
+            `rm -rf ${GLib.get_home_dir()}/.config/ags/cache/settings/settings.json`,
+          ).then(() => {
+            hyprland.dispatch(
+              "exec",
+              `bash -c "$HOME/.config/hypr/scripts/bar.sh"`,
+            );
+          });
+          buttonBox.visible = false;
+        });
+
+        noButton.connect("clicked", () => {
+          print("No button clicked");
+          buttonBox.visible = false;
+        });
+
+        buttonBox.append(yesButton);
+        buttonBox.append(noButton);
+        parentBox.append(buttonBox);
+
+        // Store reference to avoid re-creating
+        (parentBox as any).resetButtonBox = buttonBox;
+      }
+
+      // Toggle visibility
+      (parentBox as any).resetButtonBox.visible = true;
     },
   },
 ];
