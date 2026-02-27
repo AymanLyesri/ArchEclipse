@@ -14,6 +14,9 @@ import { Progress } from "../widgets/Progress";
 import { booruApis } from "../constants/api.constants";
 import GLib from "gi://GLib";
 
+import Hyprland from "gi://AstalHyprland";
+const hyprland = Hyprland.get_default();
+
 /**
  * Unified BooruImage class
  *
@@ -198,8 +201,9 @@ export class BooruImage {
    */
   async openInViewer(): Promise<void> {
     try {
-      await execAsync(
-        `swayimg -w 690,690 --class 'preview-image' ${this.getImagePath()}`,
+      hyprland.dispatch(
+        "exec",
+        `bash -c "swayimg -w 690,690 --class 'preview-image' ${this.getImagePath()}"`,
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
