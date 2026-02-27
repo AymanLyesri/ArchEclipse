@@ -23,27 +23,17 @@ export const getCssPath = () => {
 export function refreshCss() {
   const scss = `${scss_dir}/style.scss`;
 
-  execAsync(`bash -c "echo '
+  exec(`bash -c "echo '
         $OPACITY: ${globalSettings.peek().ui.opacity.value};
         $FONT-SIZE: ${globalSettings.peek().ui.fontSize.value}px;
         $SCALE: ${globalSettings.peek().ui.scale.value}px;
         ' | cat - ${defaultColors} \
         $([ -f ${walScssColors} ] && echo ${walScssColors}) \
         $([ -f ${walCssColors} ] && echo ${walCssColors}) \
-        ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`)
-    .then(() => {
-      timeout(100, () => {
-        App.reset_css();
-        App.apply_css(tmpCss);
-      });
-    })
-    .catch((e) => {
-      notify({ summary: `Error while generating css`, body: String(e) });
-      console.error(e);
-    });
+        ${scss} > ${tmpScss} && sassc ${tmpScss} ${tmpCss} -I ${scss_dir}"`);
 
-  // App.reset_css();
-  // App.apply_css(tmpCss);
+  App.reset_css();
+  App.apply_css(tmpCss);
 }
 
 monitorFile(
