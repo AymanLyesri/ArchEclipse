@@ -79,9 +79,15 @@ const GeneralInfo = () => {
     } catch (e) {
       console.error("Failed to update:", e);
       setUpdateStatus("Update Failed");
+      const errorMessage = (e instanceof Error ? e.message : String(e))
+        .replace(/['"\\`\n\r]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
       notify({
         summary: "Update Error",
-        body: "Failed to update ArchEclipse. Make sure git is installed.",
+        body:
+          errorMessage ||
+          "An error occurred while updating. Please try again later.",
       });
 
       // Clear status after 3 seconds
