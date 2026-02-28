@@ -9,15 +9,17 @@ interface CircularProgressProps {
   height?: number;
   width?: number;
   tooltipText?: string;
+  icon?: string; // icon name to display in the middle
   visible?: Accessor<boolean> | boolean;
 }
 
 export default function CircularProgress({
   value,
   className = "",
-  height = 15,
-  width = 15,
+  height = 22,
+  width = 22,
   tooltipText,
+  icon,
   visible = true,
 }: CircularProgressProps) {
   const drawingArea = new Gtk.DrawingArea({
@@ -31,10 +33,10 @@ export default function CircularProgress({
     const cy = height / 2;
     const radius = Math.min(width, height) / 2 - 1;
 
-    cr.setLineWidth(2);
+    cr.setLineWidth(3);
 
     // Background circle
-    cr.setSourceRGBA(0.5, 0.5, 0.5, 0.5);
+    cr.setSourceRGBA(0.5, 0.5, 0.5, 0.3);
     cr.arc(cx, cy, radius, 0, 2 * Math.PI);
     cr.stroke();
 
@@ -45,14 +47,28 @@ export default function CircularProgress({
     cr.stroke();
   });
 
-  // Return the drawingArea wrapped in a box if you want spacing or styling
+  // Return the drawingArea wrapped in an overlay with the icon in the middle
   return (
     <box
       visible={visible}
       class={`circular-progress ${className}`}
       spacing={5}
-      tooltip-text={tooltipText}>
-      {drawingArea}
+      tooltip-text={tooltipText}
+    >
+      <overlay>
+        {drawingArea}
+        {icon && (
+          <box
+            $type="overlay"
+            halign={Gtk.Align.CENTER}
+            valign={Gtk.Align.CENTER}
+            hexpand
+            vexpand
+          >
+            <label class="circular-progress-icon" label={icon}></label>
+          </box>
+        )}
+      </overlay>
     </box>
   );
 }

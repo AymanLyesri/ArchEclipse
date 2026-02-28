@@ -408,18 +408,21 @@ function ResourceMonitor() {
               tooltipText={`CPU Usage ${res[0]}%`}
               value={res[0] / 100}
               className="cpu-monitor"
+              icon="C"
             />
             <CircularProgress
               visible={res[1] != 0}
               tooltipText={`RAM Usage ${res[1]}%`}
               value={res[1] / 100}
               className="ram-monitor"
+              icon="R"
             />
             <CircularProgress
               visible={res[2] != 0}
               tooltipText={`GPU Usage ${res[2]}%`}
               value={res[2] / 100}
               className="gpu-monitor"
+              icon="G"
             />
           </box>
         )}

@@ -255,7 +255,7 @@ flowbox > flowboxchild:first-child {
 
 .circular-progress {
   color: $secondary;
-  &:hover {
-    transform: scale(1.2);
+  .circular-progress-icon {
+    color: $foreground;
   }
 }

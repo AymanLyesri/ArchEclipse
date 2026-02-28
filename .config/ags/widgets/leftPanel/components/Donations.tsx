@@ -73,6 +73,9 @@ const GeneralInfo = () => {
         body: "ArchEclipse has been updated successfully!",
       });
 
+      // Optionally, you could trigger a reload of the AGS config here if needed
+      await execAsync(`bash -c "$HOME/.config/hypr/scripts/bar.sh"`);
+
       // Clear status after 2 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
       setUpdateStatus("");
