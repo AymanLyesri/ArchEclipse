@@ -1,28 +1,12 @@
-// =============================================================================
-// DONATIONS WIDGET
-// =============================================================================
-// This widget displays donation options for crypto and PayPal
-//
-// CUSTOMIZATION:
-// 1. Replace PayPal URL with your actual PayPal.me link (line 22)
-// 2. Replace crypto addresses with your actual wallet addresses (lines 27-47)
-// 3. Add or remove donation options by modifying the donationOptions array
-// 4. Customize colors by changing the 'color' property for each option
-//
-// DEPENDENCIES:
-// - qrencode: Required for QR code generation (install: yay -S qrencode)
-// - wl-clipboard: Required for clipboard operations (install: yay -S wl-clipboard)
-// - xdg-utils: Required for opening URLs (usually pre-installed)
-// - Image viewer (feh/eog/gwenview): For displaying QR codes
-// =============================================================================
-
 import Gtk from "gi://Gtk?version=4.0";
-import { createState, For } from "ags";
-import { execAsync } from "ags/process";
+import { createState, For, With } from "ags";
+import { execAsync, exec } from "ags/process";
 import { notify } from "../../../utils/notification";
 import GLib from "gi://GLib?version=2.0";
 
 import Hyprland from "gi://AstalHyprland";
+import Picture from "../../Picture";
+import { globalSettings } from "../../../variables";
 const hyprland = Hyprland.get_default();
 
 interface DonationOption {
@@ -34,6 +18,230 @@ interface DonationOption {
   url?: string;
   color: string;
 }
+
+// General information section (version, github link, etc.)
+const GeneralInfo = () => {
+  const [currentVersion, setCurrentVersion] = createState("");
+  const [remoteVersion, setRemoteVersion] = createState("");
+  const [isCheckingVersion, setIsCheckingVersion] = createState(true);
+  const [isUpdating, setIsUpdating] = createState(false);
+  const [updateStatus, setUpdateStatus] = createState("");
+
+  const configDir = GLib.getenv("HOME") + "/.config/ags";
+
+  const checkVersions = async () => {
+    setIsCheckingVersion(true);
+    try {
+      // Get current local commit
+      const localHash = exec(
+        `git -C ${configDir} rev-parse --short HEAD`,
+      ).trim();
+      setCurrentVersion(localHash);
+
+      // Fetch and get remote commit
+      await execAsync(`git -C ${configDir} fetch origin`);
+      const remoteHash = await execAsync(
+        `git -C ${configDir} rev-parse --short origin/HEAD`,
+      );
+      setRemoteVersion(remoteHash.trim());
+      setUpdateStatus("");
+    } catch (e) {
+      console.error("Failed to check versions:", e);
+      setCurrentVersion("Unknown");
+      setRemoteVersion("Unknown");
+    } finally {
+      setIsCheckingVersion(false);
+    }
+  };
+
+  const updateVersion = async () => {
+    setIsUpdating(true);
+    setUpdateStatus("Updating...");
+    try {
+      // Pull latest changes
+      await execAsync(`git -C ${configDir} pull origin HEAD`);
+
+      // Refresh version info after update
+      const localHash = exec(
+        `git -C ${configDir} rev-parse --short HEAD`,
+      ).trim();
+      setCurrentVersion(localHash);
+
+      setUpdateStatus("Updated!");
+      notify({
+        summary: "Update Complete",
+        body: "ArchEclipse has been updated successfully!",
+      });
+
+      // Clear status after 2 seconds
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setUpdateStatus("");
+    } catch (e) {
+      console.error("Failed to update:", e);
+      setUpdateStatus("Update Failed");
+      notify({
+        summary: "Update Error",
+        body: "Failed to update ArchEclipse. Make sure git is installed.",
+      });
+
+      // Clear status after 3 seconds
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      setUpdateStatus("");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const isOutdated = () => {
+    return (
+      currentVersion() &&
+      remoteVersion() &&
+      currentVersion() !== remoteVersion() &&
+      currentVersion() !== "Unknown"
+    );
+  };
+
+  const links = [
+    {
+      description: "GitHub Repository",
+      url: "https://github.com/AymanLyesri/ArchEclipse",
+      icon: "",
+    },
+    {
+      description: "Issues Tracker",
+      url: "https://github.com/AymanLyesri/ArchEclipse/issues",
+      icon: "",
+    },
+    {
+      description: "Discord Community",
+      url: "https://discord.gg/fMGt4vH6s5",
+      icon: "",
+    },
+  ];
+
+  return (
+    <box class={"info"} orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+      <box spacing={10} halign={Gtk.Align.CENTER}>
+        <Picture
+          file={`${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`}
+          width={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
+          height={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
+        />
+      </box>
+      <box spacing={10} halign={Gtk.Align.CENTER}>
+        <label class={"config-title"} label="ArchEclipse" />
+        {/* github stars */}
+        <label
+          class={"config-stars"}
+          $={(self) => {
+            execAsync(
+              `bash -c "curl -s https://api.github.com/repos/AymanLyesri/ArchEclipse | jq '.stargazers_count'"`,
+            ).then((result) => {
+              const stars = result.trim();
+              self.label = `  ${stars}`;
+            });
+          }}
+        />
+      </box>
+      <box spacing={10} halign={Gtk.Align.CENTER}>
+        {links.map((link) => (
+          <button
+            class={"link-button"}
+            onClicked={() => execAsync(`xdg-open "${link.url}"`)}
+            tooltipText={link.description}
+          >
+            <label label={link.icon} />
+          </button>
+        ))}
+      </box>
+      <box
+        class={"section version-section"}
+        orientation={Gtk.Orientation.VERTICAL}
+        $={() => {
+          checkVersions();
+        }}
+      >
+        <With value={isCheckingVersion}>
+          {(isChecking) =>
+            isChecking ? (
+              <label
+                class={"version-status loading"}
+                label="🔄 Checking for updates..."
+              />
+            ) : (
+              <box
+                class={"version-container"}
+                orientation={Gtk.Orientation.VERTICAL}
+                spacing={8}
+              >
+                {/* Version Info Row */}
+                {remoteVersion() && (
+                  <box spacing={10} halign={Gtk.Align.CENTER}>
+                    <box
+                      orientation={Gtk.Orientation.VERTICAL}
+                      spacing={5}
+                      hexpand
+                    >
+                      <label class={"version-label"} label="Current Version" />
+                      <label
+                        class={"version-value"}
+                        label={currentVersion() || "Unknown"}
+                      />
+                    </box>
+
+                    <box
+                      orientation={Gtk.Orientation.VERTICAL}
+                      spacing={5}
+                      hexpand
+                    >
+                      <label class={"version-label"} label="Latest Version" />
+                      <label class={"version-value"} label={remoteVersion()} />
+                    </box>
+                  </box>
+                )}
+
+                {/* Status Row */}
+                <box spacing={8}>
+                  {isOutdated() ? (
+                    <box spacing={10} halign={Gtk.Align.CENTER}>
+                      <label
+                        class={"version-status outdated"}
+                        label="⚠️ Update available"
+                        hexpand
+                      />
+                      <button
+                        class={`update-button ${isUpdating() ? "updating" : ""}`}
+                        sensitive={!isUpdating()}
+                        onClicked={updateVersion}
+                        tooltipText="Click to update to the latest version"
+                      >
+                        <box spacing={5}>
+                          {isUpdating() && (
+                            <label label="⟳" class={"spinner"} />
+                          )}
+                          {!isUpdating() && <label label="⬇" />}
+                          <label
+                            label={isUpdating() ? "Updating..." : "Update"}
+                          />
+                        </box>
+                      </button>
+                    </box>
+                  ) : (
+                    <label
+                      class={"version-status uptodate"}
+                      label={`✓ Up to date${updateStatus() ? ` - ${updateStatus()}` : ""}`}
+                      hexpand
+                    />
+                  )}
+                </box>
+              </box>
+            )
+          }
+        </With>
+      </box>
+    </box>
+  );
+};
 
 export default () => {
   const [donationOptions] = createState<DonationOption[]>([
@@ -109,11 +317,6 @@ export default () => {
     // Generate QR code using qrencode
     execAsync(`qrencode -o "${qrPath}" "${address}"`)
       .then(() => {
-        // Display QR code in a notification or viewer
-        // execAsync(`bash -c "swayimg '${qrPath}' 2>/dev/null ||
-        //                   eog '${qrPath}' 2>/dev/null ||
-        //                   gwenview '${qrPath}' 2>/dev/null ||
-        //                   xdg-open '${qrPath}'"`);
         hyprland.dispatch(
           `exec`,
           `bash -c "swayimg '${qrPath}' 2>/dev/null || eog '${qrPath}' 2>/dev/null || gwenview '${qrPath}' 2>/dev/null || xdg-open '${qrPath}'"`,
@@ -140,6 +343,9 @@ export default () => {
         hexpand
         spacing={15}
       >
+        {/* Version Info */}
+        {GeneralInfo()}
+
         {/* Header */}
         <box
           orientation={Gtk.Orientation.VERTICAL}
@@ -228,17 +434,6 @@ export default () => {
                     <label label="Donate via PayPal" />
                   </box>
                 </button>
-              )}
-
-              {/* Address display for crypto (read-only) */}
-              {option.type === "crypto" && option.address && (
-                <entry
-                  class="donation-address"
-                  text={option.address}
-                  editable={false}
-                  canFocus={false}
-                  hexpand
-                />
               )}
             </box>
           )}

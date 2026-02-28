@@ -1,6 +1,44 @@
 .donations-widget {
   padding: 10px;
 
+  .info {
+    @include module;
+    padding: 2em;
+
+    .config-title {
+      font-size: 2em;
+      font-weight: bold;
+    }
+    .config-stars {
+      font-size: 1.2em;
+      color: $secondary;
+    }
+
+    .version-section {
+      .version-status {
+        color: $secondary;
+        font-weight: 700;
+      }
+
+      .version-container {
+        .version-label {
+          font-size: 0.85em;
+          color: $secondary;
+          opacity: 0.8;
+          font-weight: 500;
+        }
+
+        .version-value {
+          @include module;
+          font-size: 1em;
+          font-family: monospace;
+          font-weight: bold;
+          color: $foreground;
+        }
+      }
+    }
+  }
+
   .donation-header {
     @include module;
 
@@ -44,7 +82,7 @@
 
     .donation-button {
       @include button;
-      padding: 10px 15px;
+      padding: 10px;
       border-radius: 10px;
       transition: all 0.3s ease;
 
@@ -83,7 +121,6 @@
   .donation-footer {
     @include module;
     padding: 15px;
-    margin-top: 10px;
 
     .donation-thankyou {
       font-size: 1.1em;
