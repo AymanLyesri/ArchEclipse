@@ -1,0 +1,130 @@
+.donations-widget {
+  padding: 10px;
+
+  .info {
+    @include module;
+    padding: 2em;
+
+    .config-title {
+      font-size: 2em;
+      font-weight: bold;
+    }
+    .config-stars {
+      font-size: 1.2em;
+      color: $secondary;
+    }
+
+    .version-section {
+      .version-status {
+        color: $secondary;
+        font-weight: 700;
+      }
+
+      .version-container {
+        .version-label {
+          font-size: 0.85em;
+          color: $secondary;
+          opacity: 0.8;
+          font-weight: 500;
+        }
+
+        .version-value {
+          @include module;
+          font-size: 1em;
+          font-family: monospace;
+          font-weight: bold;
+          color: $foreground;
+        }
+      }
+    }
+  }
+
+  .donation-header {
+    @include module;
+
+    .donation-title {
+      font-size: 1.4em;
+      font-weight: bold;
+    }
+
+    .donation-subtitle {
+      font-size: 0.9em;
+      color: $secondary;
+      opacity: 0.8;
+    }
+  }
+
+  .donation-option {
+    @include module;
+    padding: 10px;
+    box-shadow: $BOX-SHADOW;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background-color: $background-secondary;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .donation-icon {
+      font-size: 1.8em;
+      min-width: 40px;
+    }
+
+    .donation-name {
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+
+    .donation-description {
+      font-size: 0.9em;
+      color: $secondary;
+    }
+
+    .donation-button {
+      @include button;
+      padding: 10px;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+
+      &.paypal {
+        background: linear-gradient(135deg, #00457c, #0070ba);
+        label {
+          color: white;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, #0070ba, #00457c);
+          box-shadow: 0 0 15px rgba(0, 112, 186, 0.4);
+        }
+      }
+
+      label {
+        color: $foreground;
+      }
+    }
+
+    .donation-address {
+      font-family: monospace;
+      font-size: 0.9em;
+      background: $background-transparent;
+      border: 1px solid $background-secondary;
+      border-radius: 5px;
+      padding: 8px;
+      color: $secondary;
+
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+
+  .donation-footer {
+    @include module;
+    padding: 15px;
+
+    .donation-thankyou {
+      font-size: 1.1em;
+      font-weight: bold;
+    }
+  }
+}

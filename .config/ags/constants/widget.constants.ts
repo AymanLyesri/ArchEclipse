@@ -2,6 +2,7 @@ import { WidgetSelector } from "../interfaces/widgetSelector.interface";
 import BooruViewer from "../widgets/leftPanel/components/BooruViewer";
 import ChatBot from "../widgets/leftPanel/components/ChatBot";
 import CustomScripts from "../widgets/leftPanel/components/CustomScripts";
+import Donations from "../widgets/leftPanel/components/Donations";
 import MediaWidget from "../widgets/MediaWidget";
 import Waifu from "../widgets/rightPanel/components/Waifu";
 
@@ -131,5 +132,11 @@ export const leftPanelWidgetSelectors: WidgetSelector[] = [
     icon: "",
     widget: () => KeyBinds(),
     enabled: false,
+  },
+  {
+    name: "Donations",
+    icon: "",
+    widget: () => Donations(),
+    enabled: true,
   },
 ];
