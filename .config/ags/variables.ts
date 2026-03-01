@@ -3,15 +3,16 @@ import { autoCreateSettings, settingsPath } from "./utils/settings";
 import Hyprland from "gi://AstalHyprland";
 const hyprland = Hyprland.get_default();
 
-import { createBinding, createState } from "ags";
+import { Accessor, createBinding, createState } from "ags";
 import { createPoll } from "ags/time";
 import GLib from "gi://GLib";
 import { writeJSONFile } from "./utils/json";
 import { Settings } from "./interfaces/settings.interface";
 import { phi, phi_min } from "./constants/phi.constants";
 import { defaultSettings } from "./constants/settings.constants";
-import { exec, execAsync } from "ags/process";
+import { createSubprocess, exec, execAsync } from "ags/process";
 import { notify } from "./utils/notification";
+import { SystemResourcesInterface } from "./interfaces/systemResources.interface";
 
 export const NOTIFICATION_DELAY = phi * 3000;
 
@@ -94,3 +95,15 @@ execAsync([
   _setGlobalTheme(output.includes("light"));
 });
 export { globalTheme, setGlobalTheme };
+
+export const systemResourcesData: Accessor<SystemResourcesInterface | null> =
+  createSubprocess(null, `/tmp/ags/system-resources-loop-ags`, (out) => {
+    try {
+      const parsed: SystemResourcesInterface = JSON.parse(out);
+      console.table(parsed);
+
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  });

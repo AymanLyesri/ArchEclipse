@@ -18,6 +18,7 @@ import SettingsWidget from "../widgets/leftPanel/components/SettingsWidget";
 import Calendar from "../widgets/rightPanel/components/Calendar";
 import NotificationHistory from "../widgets/rightPanel/components/NotificationHistory";
 import KeyBinds from "../widgets/leftPanel/components/KeyBinds";
+import SystemResources from "../widgets/rightPanel/components/SystemResources";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {
@@ -92,6 +93,13 @@ export const rightPanelWidgetSelectors: WidgetSelector[] = [
     icon: "󰃰",
     widget: ({ className }: { className?: string | Accessor<string> }) =>
       Calendar({ className }),
+    enabled: true,
+  },
+  {
+    name: "SystemResources",
+    icon: "󰍛",
+    widget: ({ className }: { className?: string | Accessor<string> }) =>
+      SystemResources({ className }),
     enabled: true,
   },
 ];

@@ -22,6 +22,7 @@ import {
   globalTransition,
   setGlobalSetting,
   setGlobalTheme,
+  systemResourcesData,
 } from "../../../variables";
 import { notify } from "../../../utils/notification";
 import { For } from "ags";
@@ -29,7 +30,8 @@ import AstalTray from "gi://AstalTray";
 import AstalBattery from "gi://AstalBattery";
 import AstalPowerProfiles from "gi://AstalPowerProfiles";
 import CircularProgress from "../../CircularProgress";
-import { createPoll } from "ags/time";
+import { timeout, Timer } from "ags/time";
+import SystemResources from "../../rightPanel/components/SystemResources";
 
 import Hyprland from "gi://AstalHyprland";
 import GLib from "gi://GLib";
@@ -166,9 +168,6 @@ function Volume() {
             return;
           }
 
-          self.reveal_child = true;
-
-          // Clear existing timeout
           if (hideTimeout) {
             clearTimeout(hideTimeout);
           }
@@ -382,47 +381,85 @@ function DndToggle() {
 }
 
 function ResourceMonitor() {
-  const systemResource = createSubprocess(
-    [0, 0, 0],
-    `/tmp/ags/system-resources-loop-ags`,
-    (out) => {
-      try {
-        return JSON.parse(out);
-      } catch (e) {
-        return [0, 0, 0];
-      }
-    },
-  );
   return (
-    <box class="resource-monitor">
+    <box
+      class="resource-monitor"
+      $={(self) => {
+        const popover = new Gtk.Popover({
+          has_arrow: true,
+          position: Gtk.PositionType.BOTTOM,
+          autohide: false,
+        });
+
+        popover.set_child(
+          SystemResources({
+            className: "resource-monitor-popover",
+            orientation: Gtk.Orientation.HORIZONTAL,
+          }) as unknown as Gtk.Widget,
+        );
+        popover.set_parent(self);
+
+        let hideTimeout: Timer;
+
+        const monitorMotion = new Gtk.EventControllerMotion();
+        monitorMotion.connect("enter", () => {
+          if (hideTimeout) {
+            hideTimeout.cancel();
+          }
+          popover.show();
+        });
+
+        monitorMotion.connect("leave", () => {
+          hideTimeout = timeout(80, () => {
+            popover.hide();
+            hideTimeout.cancel();
+          });
+        });
+
+        self.add_controller(monitorMotion);
+
+        const popoverMotion = new Gtk.EventControllerMotion();
+        popoverMotion.connect("enter", () => {
+          if (hideTimeout) {
+            hideTimeout.cancel();
+          }
+        });
+
+        popoverMotion.connect("leave", () => {
+          popover.hide();
+        });
+
+        popover.add_controller(popoverMotion);
+      }}
+    >
       <Gtk.GestureClick
         onPressed={() => {
           hyprland.dispatch("workspace", "5");
         }}
       />
-      <With value={systemResource}>
+      <With value={systemResourcesData}>
         {(res) => (
           <box spacing={10}>
             <CircularProgress
-              visible={res[0] != 0}
-              tooltipText={`CPU Usage ${res[0]}%`}
-              value={res[0] / 100}
+              visible={res?.cpuLoad !== undefined}
+              tooltipText={`CPU Usage ${res?.cpuLoad}%`}
+              value={res?.cpuLoad ? res?.cpuLoad / 100 : 0}
               className="cpu-monitor"
-              icon="C"
+              icon=""
             />
             <CircularProgress
-              visible={res[1] != 0}
-              tooltipText={`RAM Usage ${res[1]}%`}
-              value={res[1] / 100}
+              visible={res?.ramUsedGB !== undefined}
+              tooltipText={`RAM Usage ${res?.ramUsedGB}%`}
+              value={res?.ramUsedGB ? res?.ramUsedGB / 100 : 0}
               className="ram-monitor"
-              icon="R"
+              icon=""
             />
             <CircularProgress
-              visible={res[2] != 0}
-              tooltipText={`GPU Usage ${res[2]}%`}
-              value={res[2] / 100}
+              visible={res?.gpuLoad !== undefined}
+              tooltipText={`GPU Usage ${res?.gpuLoad}%`}
+              value={res?.gpuLoad ? res?.gpuLoad / 100 : 0}
               className="gpu-monitor"
-              icon="G"
+              icon="󱤟"
             />
           </box>
         )}

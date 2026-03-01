@@ -1,0 +1,63 @@
+.system-resources {
+  @include module;
+  padding: 1em;
+
+  .header {
+    .title {
+      font-weight: 700;
+      font-size: 1.05em;
+    }
+
+    .refresh {
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+  }
+
+  .resource-columns {
+    .resource-column {
+      @include button;
+
+      // border: 0px solid $secondary;
+      // border-bottom-width: 5px;
+      // border-left-width: 2px;
+      // border-right-width: 2px;
+
+      .column-title {
+        font-size: 1.05em;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+
+      .metric {
+        font-size: 0.95em;
+      }
+    }
+
+    // .resource-column.cpu {
+    //   border-left: 3px solid $blue;
+    //   .column-title {
+    //     color: $blue;
+    //   }
+    // }
+
+    // .resource-column.ram {
+    //   border-left: 3px solid $green;
+    //   .column-title {
+    //     color: $green;
+    //   }
+    // }
+
+    // .resource-column.gpu {
+    //   border-left: 3px solid $red;
+    //   .column-title {
+    //     color: $red;
+    //   }
+    // }
+  }
+
+  .updated-at {
+    color: $foreground-secondary;
+    font-size: 0.85em;
+  }
+}

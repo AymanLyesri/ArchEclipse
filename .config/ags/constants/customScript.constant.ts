@@ -255,13 +255,13 @@ export const customScripts = (): CustomScript[] => [
           visible: false,
           spacing: 10,
         });
-        const yesButton = new Gtk.Button({ 
+        const yesButton = new Gtk.Button({
           label: "Yes",
-          css_classes: ["danger"]
+          css_classes: ["danger"],
         });
-        const noButton = new Gtk.Button({ 
+        const noButton = new Gtk.Button({
           label: "No",
-          css_classes: ["button"]
+          css_classes: ["button"],
         });
 
         yesButton.connect("clicked", () => {
@@ -292,6 +292,20 @@ export const customScripts = (): CustomScript[] => [
 
       // Toggle visibility
       (parentBox as any).resetButtonBox.visible = true;
+    },
+  },
+  // pacgraph -c to sort packages by size
+  {
+    name: "Pacgraph",
+    icon: "󰏗",
+    description: "Visualize package sizes (pacgraph -c)",
+    app: "pacgraph",
+    script: () => {
+      // dispatch to foot with -e to run pacgraph -c and avoid closing immediately after execution
+      hyprland.dispatch(
+        "exec",
+        `foot -e bash -c "pacgraph -c; read -n 1 -s -r -p 'Press any key to continue...'"`,
+      );
     },
   },
 ];
