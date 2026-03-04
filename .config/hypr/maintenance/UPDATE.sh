@@ -27,6 +27,8 @@ curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?work
 ################################################################
 
 MAINTENANCE_DIR="$HOME/.config/hypr/maintenance"
+REPO_DIR="$HOME/ArchEclipse"
+REPO_URL="https://github.com/AymanLyesri/ArchEclipse.git"
 
 # Source display functions
 source "${MAINTENANCE_DIR}/PRESENTATION.sh"
@@ -44,9 +46,44 @@ run_step "⚙️" "Installing core tools" "install_core_tools"
 # Specify the repo branch
 BRANCH="${1:-master}"
 
+recover_repo_git_metadata() {
+    local temp_dir=""
+
+    if [[ ! -d "${REPO_DIR}" ]]; then
+        print_warning "Repository directory not found at ${REPO_DIR}. Cloning a fresh copy..."
+        git clone --depth 1 --single-branch --branch "${BRANCH}" "${REPO_URL}" "${REPO_DIR}"
+        return $?
+    fi
+
+    temp_dir=$(mktemp -d)
+
+    print_warning "Git repository looks inconsistent. Recovering from a fresh shallow clone..."
+
+    git clone --depth 1 --single-branch --branch "${BRANCH}" "${REPO_URL}" "${temp_dir}/ArchEclipse" || {
+        rm -rf "${temp_dir}"
+        return 1
+    }
+
+    rm -rf "${REPO_DIR}/.git"
+    cp -a "${temp_dir}/ArchEclipse/.git" "${REPO_DIR}/.git"
+    rm -rf "${temp_dir}"
+
+    git -C "${REPO_DIR}" fetch --depth 1 --prune origin "${BRANCH}" && \
+    git -C "${REPO_DIR}" checkout -B "${BRANCH}" FETCH_HEAD && \
+    git -C "${REPO_DIR}" reset --hard FETCH_HEAD
+}
+
+update_repo_latest_commit() {
+    git -C "${REPO_DIR}" fetch --depth 1 --prune origin "${BRANCH}" && \
+    git -C "${REPO_DIR}" checkout -B "${BRANCH}" FETCH_HEAD && \
+    git -C "${REPO_DIR}" reset --hard FETCH_HEAD && return 0
+
+    recover_repo_git_metadata
+}
+
 print_section_header "📦 REPOSITORY UPDATE"
 
-run_step "[1/3]" "Updating repository to '${BRANCH}' branch (latest commit only)" "git fetch --depth 1 --prune origin ${BRANCH} && git checkout -B ${BRANCH} FETCH_HEAD && git reset --hard FETCH_HEAD"
+run_step "[1/3]" "Updating repository to '${BRANCH}' branch (latest commit only)" "update_repo_latest_commit"
 
 print_section_header "🧹 PACKAGE MANAGER CLEANUP"
 
