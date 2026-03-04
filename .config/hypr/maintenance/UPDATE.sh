@@ -30,33 +30,40 @@ curl -s -o /dev/null \
 
 REPO_URL="https://github.com/AymanLyesri/ArchEclipse.git"
 BRANCH="${1:-master}"
+REPO_DIR="$HOME"
+REMOTE_MAINTENANCE_BASE="https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance"
 
-# Temporary clone directory (always fresh)
-TEMP_DIR="$(mktemp -d)"
+TEMP_DIR=""
+REMOTE_PRESENTATION_FILE="$(mktemp)"
+REMOTE_ESSENTIALS_FILE="$(mktemp)"
+
+cleanup_temp_files() {
+    [[ -n "${TEMP_DIR}" ]] && rm -rf "${TEMP_DIR}"
+    [[ -f "${REMOTE_PRESENTATION_FILE}" ]] && rm -f "${REMOTE_PRESENTATION_FILE}"
+    [[ -f "${REMOTE_ESSENTIALS_FILE}" ]] && rm -f "${REMOTE_ESSENTIALS_FILE}"
+}
+
+trap cleanup_temp_files EXIT
+
+is_repo_intact() {
+    [[ -d "${REPO_DIR}/.git" ]] || return 1
+    git -C "${REPO_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
+
+    local origin_url
+    origin_url="$(git -C "${REPO_DIR}" remote get-url origin 2>/dev/null || true)"
+    [[ "${origin_url}" == "${REPO_URL}" ]] || return 1
+
+    git -C "${REPO_DIR}" rev-parse --verify HEAD >/dev/null 2>&1 || return 1
+
+    return 0
+}
 
 ################################################################
-# Clone Latest Commit Only
+# Load UI Helpers
 ################################################################
 
-echo ""
-echo "📦 Cloning latest repository state..."
-
-git clone \
-    --depth 1 \
-    --single-branch \
-    --branch "${BRANCH}" \
-    "${REPO_URL}" \
-    "${TEMP_DIR}"
-
-################################################################
-# Enter Cloned Repo
-################################################################
-
-cd "${TEMP_DIR}"
-
-MAINTENANCE_DIR="${TEMP_DIR}/.config/hypr/maintenance"
-
-source "${MAINTENANCE_DIR}/PRESENTATION.sh"
+curl -fsSL "${REMOTE_MAINTENANCE_BASE}/PRESENTATION.sh" -o "${REMOTE_PRESENTATION_FILE}"
+source "${REMOTE_PRESENTATION_FILE}"
 
 trap 'error_exit "Error occurred at line $LINENO"' ERR
 
@@ -66,8 +73,10 @@ print_main_header "UPDATE"
 # Load Essentials
 ################################################################
 
-run_step "⬇️" "Loading essential functions" \
-"source ${MAINTENANCE_DIR}/ESSENTIALS.sh"
+run_step "⬇️" "Fetching remote essential functions" \
+"curl -fsSL ${REMOTE_MAINTENANCE_BASE}/ESSENTIALS.sh -o ${REMOTE_ESSENTIALS_FILE}"
+
+source "${REMOTE_ESSENTIALS_FILE}"
 
 run_step "⚙️" "Installing core tools" \
 "install_core_tools"
@@ -78,15 +87,28 @@ run_step "⚙️" "Installing core tools" \
 
 print_section_header "📂 DEPLOYING CONFIG FILES"
 
-print_step "[1/1]" "Overwriting home configuration..."
+if is_repo_intact; then
+    run_step "🌿" "Repository history intact, syncing with remote" \
+    "cd ${REPO_DIR} && git checkout ${BRANCH} && git fetch origin ${BRANCH} && git reset --hard origin/${BRANCH}"
+    print_success "Repository successfully updated from origin/${BRANCH}."
+else
+    print_warning "Local git history is missing/corrupt. Falling back to fresh clone deployment."
 
-# Remove .git to avoid copying it
-rm -rf "${TEMP_DIR}/.git"
+    TEMP_DIR="$(mktemp -d)"
 
-# Force copy everything to $HOME
-cp -af "${TEMP_DIR}/." "$HOME/"
+    run_step "📦" "Cloning latest repository state" \
+    "git clone --depth 1 --single-branch --branch ${BRANCH} ${REPO_URL} ${TEMP_DIR}"
 
-print_success "Configuration successfully updated."
+    print_step "[1/1]" "Overwriting home configuration..."
+
+    rm -rf "${REPO_DIR}/.git"
+
+    # Force copy everything to $HOME
+    # --remove-destination avoids failures on dangling symlinks (e.g. ~/.zshrc)
+    cp -a --remove-destination "${TEMP_DIR}/." "$HOME/"
+
+    print_success "Configuration successfully updated from fresh clone."
+fi
 
 ################################################################
 # Package Manager Cleanup
@@ -149,10 +171,8 @@ run_section_step "🔌" \
 "$HOME/.config/hypr/maintenance/PLUGINS.sh"
 
 ################################################################
-# Cleanup Temporary Clone
+# Completion
 ################################################################
-
-rm -rf "${TEMP_DIR}"
 
 print_section_header "✅ UPDATE COMPLETE"
 print_update_completion_message
