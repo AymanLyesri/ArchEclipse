@@ -46,7 +46,7 @@ BRANCH="${1:-master}"
 
 print_section_header "📦 REPOSITORY UPDATE"
 
-run_step "[1/3]" "Updating repository to '${BRANCH}' branch" "git checkout ${BRANCH} && git fetch origin ${BRANCH} && git reset --hard origin/${BRANCH}"
+run_step "[1/3]" "Updating repository to '${BRANCH}' branch (latest commit only)" "git checkout ${BRANCH} && git fetch --depth 1 origin ${BRANCH} && git reset --hard FETCH_HEAD"
 
 print_section_header "🧹 PACKAGE MANAGER CLEANUP"
 
