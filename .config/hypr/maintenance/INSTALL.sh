@@ -35,17 +35,16 @@ BRANCH="${1:-master}"
 
 print_section_header "📦 REPOSITORY SETUP"
 
-# Clone or update repository
+# Clone repository (overwrite existing directory)
 if [ -d "${CONF_DIR}" ]; then
-    print_step "[1/4]" "Repository already exists at ${CONF_DIR}"
-    print_success "Skipping clone\n"
-else
-    run_step "[1/4]" "Cloning ArchEclipse repository" "git clone https://github.com/AymanLyesri/ArchEclipse.git ${CONF_DIR}"
+    run_step "[1/4]" "Repository already exists at ${CONF_DIR}; overwriting" "rm -rf ${CONF_DIR}"
 fi
+
+run_step "[1/4]" "Cloning ArchEclipse repository (latest commit only)" "git clone --depth 1 --single-branch --branch ${BRANCH} https://github.com/AymanLyesri/ArchEclipse.git ${CONF_DIR}"
 
 cd "${CONF_DIR}" || error_exit "Failed to change directory to ${CONF_DIR}"
 
-run_step "[2/4]" "Updating repository to '${BRANCH}' branch" "git checkout ${BRANCH} && git fetch origin ${BRANCH} && git reset --hard origin/${BRANCH}"
+run_step "[2/4]" "Updating repository to '${BRANCH}' branch (latest commit only)" "git fetch --depth 1 origin ${BRANCH} && git checkout ${BRANCH} && git reset --hard FETCH_HEAD"
 
 # Source essentials from absolute path
 print_step "[3/4]" "Loading essential functions..."

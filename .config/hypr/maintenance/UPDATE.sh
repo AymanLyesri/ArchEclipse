@@ -107,5 +107,3 @@ run_section_step "🔌" "Installing plugins" "${MAINTENANCE_DIR}/PLUGINS.sh"
 print_section_header "✅ UPDATE COMPLETE"
 
 print_update_completion_message
-
-print_completion_message
