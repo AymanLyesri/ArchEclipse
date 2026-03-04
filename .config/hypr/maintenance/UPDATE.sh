@@ -46,7 +46,7 @@ BRANCH="${1:-master}"
 
 print_section_header "📦 REPOSITORY UPDATE"
 
-run_step "[1/3]" "Updating repository to '${BRANCH}' branch (latest commit only)" "git checkout ${BRANCH} && git fetch --depth 1 origin ${BRANCH} && git reset --hard FETCH_HEAD"
+run_step "[1/3]" "Updating repository to '${BRANCH}' branch (latest commit only)" "git fetch --depth 1 --prune origin ${BRANCH} && git checkout -B ${BRANCH} FETCH_HEAD && git reset --hard FETCH_HEAD"
 
 print_section_header "🧹 PACKAGE MANAGER CLEANUP"
 
@@ -80,6 +80,7 @@ fi
 echo ""
 print_step "[3/3]" "Detecting AUR helper..."
 
+aur_helper=""
 aur_helpers=("yay" "paru")
 
 for helper in "${aur_helpers[@]}"; do
