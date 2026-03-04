@@ -98,11 +98,11 @@ print_section_header "💾 CONFIGURATION FILES"
 
 run_interactive_step "📁" "Backing up dotfiles from ${BOLD}.config${NC}" "${MAINTENANCE_DIR}/BACKUP.sh"
 
-run_interactive_step "📋" "Copying configuration files to ${HOME}" "sudo cp -a . ${HOME}"
+run_interactive_step "📋" "Copying configuration files to ${HOME}" "sudo cp -af . ${HOME}"
 
-print_section_header "⌨️ KEYBOARD CONFIGURATION"
+print_section_header "⌨️ KEYBOARD CONFIGURATION (optional)"
 
-run_interactive_step "🔨" "Setting up keyboard configuration" "${MAINTENANCE_DIR}/CONFIGURE.sh"
+run_interactive_step "🔨" "Setting up keyboard configuration (optional)" "${MAINTENANCE_DIR}/CONFIGURE.sh"
 
 print_section_header "📦 PACKAGE MANAGEMENT"
 
