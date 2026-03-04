@@ -116,4 +116,4 @@ run_section_step "✨" "Applying system tweaks" "${MAINTENANCE_DIR}/TWEAKS.sh"
 
 print_section_header "✅ INSTALLATION COMPLETE"
 
-print_completion_message
+print_install_completion_message

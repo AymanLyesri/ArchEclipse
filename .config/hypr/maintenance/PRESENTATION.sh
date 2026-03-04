@@ -54,7 +54,7 @@ print_main_header() {
     echo ""
 }
 
-print_completion_message() {
+print_install_completion_message() {
     echo -e "${BOLD}${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BOLD}${GREEN}║${NC}                                                               ${BOLD}${GREEN}║${NC}"
     echo -e "${BOLD}${GREEN}║${NC}           🎉 Installation completed successfully! 🎉          ${BOLD}${GREEN}║${NC}"
@@ -62,6 +62,22 @@ print_completion_message() {
     echo -e "${BOLD}${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${YELLOW}⚠️  ${BOLD}Please reboot your system to apply all changes:${NC}"
+    echo ""
+    echo -e "${CYAN}   ${BOLD}sudo reboot${NC}"
+    echo ""
+    echo -e "${BOLD}${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
+}
+
+print_update_completion_message() {
+    echo -e "${BOLD}${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${GREEN}║${NC}                                                               ${BOLD}${GREEN}║${NC}"
+    echo -e "${BOLD}${GREEN}║${NC}            ✨ System updated successfully! ✨                 ${BOLD}${GREEN}║${NC}"
+    echo -e "${BOLD}${GREEN}║${NC}                                                               ${BOLD}${GREEN}║${NC}"
+    echo -e "${BOLD}${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${CYAN}${BOLD} All packages and configurations have been updated.${NC}"
+    echo -e "${YELLOW}⚠️  ${BOLD}A reboot is recommended to ensure all changes take effect:${NC}"
     echo ""
     echo -e "${CYAN}   ${BOLD}sudo reboot${NC}"
     echo ""

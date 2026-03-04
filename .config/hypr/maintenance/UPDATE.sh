@@ -14,6 +14,8 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
+sudo -v
+
 ################################################################
 # Counter for Updates
 ################################################################
@@ -103,5 +105,7 @@ print_section_header "🔌 PLUGINS & TWEAKS"
 run_section_step "🔌" "Installing plugins" "${MAINTENANCE_DIR}/PLUGINS.sh"
 
 print_section_header "✅ UPDATE COMPLETE"
+
+print_update_completion_message
 
 print_completion_message
