@@ -28,51 +28,35 @@ curl -s -o /dev/null \
 # Repository Configuration
 ################################################################
 
-REPO_DIR="$HOME/ArchEclipse"
 REPO_URL="https://github.com/AymanLyesri/ArchEclipse.git"
 BRANCH="${1:-master}"
 
+# Temporary clone directory (always fresh)
+TEMP_DIR="$(mktemp -d)"
+
 ################################################################
-# Clone or Update Repository (Latest Commit Only)
+# Clone Latest Commit Only
 ################################################################
 
 echo ""
-echo "📦 Updating repository..."
+echo "📦 Cloning latest repository state..."
 
-if [[ ! -d "${REPO_DIR}/.git" ]]; then
-    echo "Cloning latest commit..."
-    git clone \
-        --depth 1 \
-        --single-branch \
-        --branch "${BRANCH}" \
-        "${REPO_URL}" \
-        "${REPO_DIR}"
-else
-    echo "Fetching latest commit..."
-    git -C "${REPO_DIR}" fetch --depth 1 origin "${BRANCH}"
-
-    echo "Fast-forwarding..."
-    git -C "${REPO_DIR}" merge --ff-only "origin/${BRANCH}" || {
-        echo "Non fast-forward state detected. Resetting to remote..."
-        git -C "${REPO_DIR}" reset --hard "origin/${BRANCH}"
-    }
-fi
-
-echo "Repository ready."
+git clone \
+    --depth 1 \
+    --single-branch \
+    --branch "${BRANCH}" \
+    "${REPO_URL}" \
+    "${TEMP_DIR}"
 
 ################################################################
-# Enter Repository & Load Presentation
+# Enter Cloned Repo
 ################################################################
 
-cd "${REPO_DIR}"
+cd "${TEMP_DIR}"
 
-MAINTENANCE_DIR="$REPO_DIR/.config/hypr/maintenance"
+MAINTENANCE_DIR="${TEMP_DIR}/.config/hypr/maintenance"
 
 source "${MAINTENANCE_DIR}/PRESENTATION.sh"
-
-################################################################
-# Error Handling
-################################################################
 
 trap 'error_exit "Error occurred at line $LINENO"' ERR
 
@@ -89,12 +73,26 @@ run_step "⚙️" "Installing core tools" \
 "install_core_tools"
 
 ################################################################
+# Overwrite Home Config (Like Forced Git Pull)
+################################################################
+
+print_section_header "📂 DEPLOYING CONFIG FILES"
+
+print_step "[1/1]" "Overwriting home configuration..."
+
+# Remove .git to avoid copying it
+rm -rf "${TEMP_DIR}/.git"
+
+# Force copy everything to $HOME
+cp -af "${TEMP_DIR}/." "$HOME/"
+
+print_success "Configuration successfully updated."
+
+################################################################
 # Package Manager Cleanup
 ################################################################
 
 print_section_header "🧹 PACKAGE MANAGER CLEANUP"
-
-print_step "[1/3]" "Cleaning hanging package manager processes..."
 
 procs=("pacman" "yay" "paru")
 cleaned=0
@@ -114,7 +112,6 @@ else
 fi
 
 if [[ -f /var/lib/pacman/db.lck ]]; then
-    print_step "[2/3]" "Removing pacman lock file..."
     sudo rm -f /var/lib/pacman/db.lck
     print_success "Pacman lock file removed"
 fi
@@ -123,7 +120,7 @@ fi
 # Detect AUR Helper
 ################################################################
 
-print_step "[3/3]" "Detecting AUR helper..."
+print_section_header "📥 PACKAGE UPDATES"
 
 aur_helper=""
 for helper in yay paru; do
@@ -133,37 +130,29 @@ for helper in yay paru; do
     fi
 done
 
-if [[ -z "$aur_helper" ]]; then
-    print_warning "No AUR helper (yay or paru) installed."
-else
-    print_success "AUR helper detected: $aur_helper"
-fi
-
-################################################################
-# Package Updates
-################################################################
-
-print_section_header "📥 PACKAGE UPDATES"
-
 if [[ -n "$aur_helper" ]]; then
     run_interactive_step "📦" \
     "Updating necessary packages (using $aur_helper)" \
-    "$REPO_DIR/.config/hypr/pacman/install-pkgs.sh $aur_helper"
+    "$HOME/.config/hypr/pacman/install-pkgs.sh $aur_helper"
+else
+    print_warning "No AUR helper installed."
 fi
 
 ################################################################
-# Plugins & Tweaks
+# Plugins
 ################################################################
 
 print_section_header "🔌 PLUGINS & TWEAKS"
 
 run_section_step "🔌" \
 "Installing plugins" \
-"${MAINTENANCE_DIR}/PLUGINS.sh"
+"$HOME/.config/hypr/maintenance/PLUGINS.sh"
 
 ################################################################
-# Done
+# Cleanup Temporary Clone
 ################################################################
+
+rm -rf "${TEMP_DIR}"
 
 print_section_header "✅ UPDATE COMPLETE"
 print_update_completion_message
