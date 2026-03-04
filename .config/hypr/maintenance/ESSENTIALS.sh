@@ -5,34 +5,28 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-install_fzf() {
-    if command_exists fzf; then
-        echo "fzf is already installed."
+# Function to install core tools: git, fzf, figlet, and lolcat
+install_core_tools() {
+    local -a packages_to_install=()
+    local -a packages_names=("git" "fzf" "figlet" "lolcat")
+    
+    echo "Checking core tools installation..."
+    
+    for package in "${packages_names[@]}"; do
+        if command_exists "$package"; then
+            echo "✓ $package is already installed."
+        else
+            echo "✗ $package is not installed. Marking for installation..."
+            packages_to_install+=("$package")
+        fi
+    done
+    
+    if [[ ${#packages_to_install[@]} -gt 0 ]]; then
+        echo "Installing: ${packages_to_install[*]}"
+        sudo pacman -S --noconfirm "${packages_to_install[@]}"
+        echo "Core tools installation completed."
     else
-        echo "fzf is not installed. Installing fzf..."
-        
-        # Clone fzf repository from GitHub
-        sudo pacman -S fzf
-    fi
-}
-
-install_figlet() {
-    if command_exists figlet; then
-        echo "figlet is already installed."
-    else
-        echo "figlet is not installed. Installing figlet..."
-        # Install figlet
-        sudo pacman -S figlet
-    fi
-}
-
-install_git() {
-    if command_exists git; then
-        echo "git is already installed."
-    else
-        echo "git is not installed. Installing git..."
-        # Install git
-        sudo pacman -S git
+        echo "All core tools are already installed."
     fi
 }
 

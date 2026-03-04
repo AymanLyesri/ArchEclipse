@@ -1,5 +1,7 @@
 #!/bin/bash
 
+figlet "SDDM" -f slant | lolcat
+
 # Disable lightdm and GDM
 echo "Disabling lightdm and GDM... (dont worry about the error messages)"
 sudo systemctl disable lightdm.service

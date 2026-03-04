@@ -1,5 +1,7 @@
 #!/bin/bash
 
+figlet "PLUGINS" -f slant | lolcat
+
 # Authenticate once and keep sudo session alive
 sudo -v
 

@@ -1,87 +1,93 @@
 #!/bin/bash
+set -euo pipefail
 
 ################################################################
 # Counter for Installations
 ################################################################
 
-curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?workspace=archeclipse&counter=install"
+curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?workspace=archeclipse&counter=install" || true
 
 ################################################################
 # Hyprland ArchEclipse Installation Script
 ################################################################
 
+# Set absolute paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MAINTENANCE_DIR="${SCRIPT_DIR}/maintenance"
+CONF_DIR="${HOME}/ArchEclipse"
+
 export FZF_HEIGHT="40%"
-MAINTENANCE_DIR=".config/hypr/maintenance"
-CONF_DIR="ArchEclipse"
 
-# specify the repo branch
-if [ -z "$1" ]; then
-    BRANCH="master"
-else
-    BRANCH=$1
-fi
+# Error handler
+trap 'echo "Error occurred at line $LINENO"; exit 1' ERR
 
-if [ -d "$CONF_DIR" ]; then
-    echo "$CONF_DIR directory exists."
+# Prompt for sudo password once at the start
+sudo -v
+
+# Specify the repo branch
+BRANCH="${1:-master}"
+
+# Clone or update repository
+if [ -d "${CONF_DIR}" ]; then
+    echo "${CONF_DIR} directory exists."
 else
-    echo "$CONF_DIR directory does not exist. Cloning the repository..."
-    git clone https://github.com/AymanLyesri/ArchEclipse.git --depth 1
+    echo "${CONF_DIR} directory does not exist. Cloning the repository..."
+    git clone https://github.com/AymanLyesri/ArchEclipse.git "${CONF_DIR}"
 fi
 
 # Change branch to the specified branch
-cd $CONF_DIR
-git checkout $BRANCH
-git fetch origin $BRANCH
-git reset --hard origin/$BRANCH
+cd "${CONF_DIR}" || exit 1
+git checkout "${BRANCH}"
+git fetch origin "${BRANCH}"
+git reset --hard "origin/${BRANCH}"
 
-source $MAINTENANCE_DIR/ESSENTIALS.sh # source the essentials file INSIDE the repository
+# Source essentials from absolute path
+source "${MAINTENANCE_DIR}/ESSENTIALS.sh"
 
-install_git
+install_core_tools
 
-install_fzf
+figlet "INSTALL" -f slant | lolcat
 
-install_figlet
-
-# choose Pacman Wrapper
+# Choose Pacman Wrapper
 echo "Choose an AUR helper to install packages:"
 aur_helpers=("yay" "paru")
-aur_helper=$(echo "${aur_helpers[@]}" | tr ' ' '\n' | fzf --height $FZF_HEIGHT)
-echo "AUR helper selected: $aur_helper"
-case $aur_helper in
+aur_helper=$(printf '%s\n' "${aur_helpers[@]}" | fzf --height "${FZF_HEIGHT}") || {
+    echo "No AUR helper selected. Exiting."
+    exit 1
+}
+echo "AUR helper selected: ${aur_helper}"
+
+case "${aur_helper}" in
     yay)
         install_yay
-    ;;
+        ;;
     paru)
         install_paru
-    ;;
+        ;;
+    *)
+        echo "Invalid AUR helper selected"
+        exit 1
+        ;;
 esac
 
-continue_prompt "Backing up dotfiles from .config ..." "$MAINTENANCE_DIR/BACKUP.sh"
+continue_prompt "Backing up dotfiles from .config ..." "${MAINTENANCE_DIR}/BACKUP.sh"
 
-continue_prompt "Copying configuration files to $HOME..." "sudo cp -a . $HOME"
+continue_prompt "Copying configuration files to ${HOME}..." "sudo cp -a . ${HOME}"
 
-continue_prompt "keyboard configuration" "$MAINTENANCE_DIR/CONFIGURE.sh"
+continue_prompt "keyboard configuration" "${MAINTENANCE_DIR}/CONFIGURE.sh"
 
 continue_prompt "Do you want to remove unwanted packages?" remove_packages
 
-continue_prompt "Do you want to install necessary packages? (using $aur_helper)" "$HOME/.config/hypr/pacman/install-pkgs.sh $aur_helper"
+continue_prompt "Do you want to install necessary packages? (using ${aur_helper})" "${HOME}/.config/hypr/pacman/install-pkgs.sh ${aur_helper}"
 
-install_browser
+continue_prompt "Sddm theme setup" "${MAINTENANCE_DIR}/SDDM.sh"
 
-install_discord_client
+"${MAINTENANCE_DIR}/DEFAULTS.sh"
 
-continue_prompt "Sddm theme setup" "$MAINTENANCE_DIR/SDDM.sh"
+"${MAINTENANCE_DIR}/WALLPAPERS.sh"
 
-continue_prompt "Do you want to add the en_US locale?" "$MAINTENANCE_DIR/LOCALES.sh"
+"${MAINTENANCE_DIR}/PLUGINS.sh"
 
-$MAINTENANCE_DIR/DEFAULTS.sh
-
-$MAINTENANCE_DIR/WALLPAPERS.sh
-
-$MAINTENANCE_DIR/WAL.sh
-
-$MAINTENANCE_DIR/PLUGINS.sh
-
-$MAINTENANCE_DIR/TWEAKS.sh
+"${MAINTENANCE_DIR}/TWEAKS.sh"
 
 echo "Installation complete. Please Reboot the system."

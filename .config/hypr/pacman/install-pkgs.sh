@@ -1,5 +1,7 @@
 #!/bin/bash
 
+figlet "PACKAGES" -f slant | lolcat
+
 #check if $1 is full
 if [ -z "$1" ]; then
     echo "Usage: update.sh <package_manager> (e.g. pacman, yay)"

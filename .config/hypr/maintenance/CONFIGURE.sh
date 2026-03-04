@@ -7,7 +7,7 @@ KEYBOARD_CONF="$HYPR_DIR/configs/custom/keyboard.conf"
 FZF_HEIGHT="40%"
 
 configure_keybord() {
-    figlet "Keyboard"
+    figlet "KEYBOARD" -f slant | lolcat
     
     # List of keyboard layouts
     kb_layouts=$(localectl list-x11-keymap-layouts)

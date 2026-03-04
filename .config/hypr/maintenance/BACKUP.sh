@@ -1,6 +1,6 @@
 #!/bin/bash
 
-figlet "Backup"
+figlet "BACKUP" -f slant | lolcat
 
 backup_dotfiles() {
     local date=$(date +%Y%m%d)

@@ -1,4 +1,4 @@
-echo "Tweaking system settings..."
+figlet "TWEAKS" -f slant | lolcat
 
 # Boosting boot time
 echo -e "\tBoosting boot time..."

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+figlet "LOCALES" -f slant | lolcat
+
 # Function to add locale on Arch Linux
 add_arch_locale() {
     echo "Adding en_US.UTF-8 locale to Arch Linux system..."

@@ -1,6 +1,8 @@
 customDir="$HOME/.config/hypr/configs/custom"
 defaultsDir="$HOME/.config/hypr/configs/defaults"
 
+figlet "DEFAULTS" -f slant | lolcat
+
 # restore_defaults() {
 #     if [ ! -f "$2" ]; then
 #         cp "$1" "$2"

@@ -51,8 +51,6 @@ for proc in "${procs[@]}"; do
     fi
 done
 
-figlet "Updating Packages"
-
 # Remove pacman lock file if it exists
 if [ -f /var/lib/pacman/db.lck ]; then
     echo "Removing pacman lock file..."
@@ -79,8 +77,6 @@ fi
 # fi
 
 # $MAINTENANCE_DIR/WAL.sh
-
-figlet "Updating Plugins"
 
 $MAINTENANCE_DIR/PLUGINS.sh
 
