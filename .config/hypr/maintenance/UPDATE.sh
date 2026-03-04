@@ -35,7 +35,7 @@ source "${MAINTENANCE_DIR}/PRESENTATION.sh"
 trap 'error_exit "Error occurred at line $LINENO"' ERR
 
 # Display main header
-print_main_header
+print_main_header "UPDATE"
 
 # Source essentials from absolute path
 run_step "⬇️" "Loading essential functions" "source ${MAINTENANCE_DIR}/ESSENTIALS.sh"

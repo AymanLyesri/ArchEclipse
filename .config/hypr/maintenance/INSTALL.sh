@@ -23,7 +23,7 @@ source "${MAINTENANCE_DIR}/PRESENTATION.sh"
 trap 'error_exit "Error occurred at line $LINENO"' ERR
 
 # Display main header
-print_main_header
+print_main_header "INSTALL"
 
 # Prompt for sudo password once at the start
 echo -e "${YELLOW}🔐 Requesting sudo password...${NC}"

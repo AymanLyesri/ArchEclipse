@@ -46,10 +46,22 @@ print_warning() {
 }
 
 print_main_header() {
-    figlet "INSTALL" -f slant | lolcat
+    local mode="${1:-INSTALL & UPDATE}"
+    local subtitle="🚀 ArchEclipse Installation & Configuration"
+
+    case "${mode}" in
+        INSTALL)
+            subtitle="🚀 ArchEclipse Installation & Configuration"
+            ;;
+        UPDATE)
+            subtitle="🔄 ArchEclipse Update & Synchronization"
+            ;;
+    esac
+
+    figlet "${mode}" -f slant | lolcat
 
     echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}${MAGENTA}  🚀 ArchEclipse Installation & Configuration${NC}"
+    echo -e "${BOLD}${MAGENTA}  ${subtitle}${NC}"
     echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
 }
