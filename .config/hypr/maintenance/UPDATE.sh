@@ -39,6 +39,7 @@ print_main_header "UPDATE"
 
 # Source essentials from absolute path
 run_step "⬇️" "Loading essential functions" "source ${MAINTENANCE_DIR}/ESSENTIALS.sh"
+run_step "⚙️" "Installing core tools" "install_core_tools"
 
 # Specify the repo branch
 BRANCH="${1:-master}"

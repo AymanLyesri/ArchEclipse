@@ -12,9 +12,28 @@ curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?work
 ################################################################
 
 # Set absolute paths
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+
 MAINTENANCE_DIR="${SCRIPT_DIR}/maintenance"
 CONF_DIR="${HOME}/ArchEclipse"
+RAW_BASE_URL="https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/master/.config/hypr"
+
+bootstrap_error_exit() {
+    echo -e "\033[0;31m✗ $1\033[0m"
+    exit 1
+}
+
+if [ ! -f "${MAINTENANCE_DIR}/PRESENTATION.sh" ] || [ ! -f "${MAINTENANCE_DIR}/ESSENTIALS.sh" ]; then
+    BOOTSTRAP_DIR="$(mktemp -d)"
+    MAINTENANCE_DIR="${BOOTSTRAP_DIR}/maintenance"
+    mkdir -p "${MAINTENANCE_DIR}"
+
+    curl -fsSL "${RAW_BASE_URL}/maintenance/PRESENTATION.sh" -o "${MAINTENANCE_DIR}/PRESENTATION.sh" || bootstrap_error_exit "Failed to download PRESENTATION.sh"
+    curl -fsSL "${RAW_BASE_URL}/maintenance/ESSENTIALS.sh" -o "${MAINTENANCE_DIR}/ESSENTIALS.sh" || bootstrap_error_exit "Failed to download ESSENTIALS.sh"
+fi
 
 # Source display functions
 source "${MAINTENANCE_DIR}/PRESENTATION.sh"
@@ -47,6 +66,7 @@ cd "${CONF_DIR}" || error_exit "Failed to change directory to ${CONF_DIR}"
 run_step "[2/4]" "Updating repository to '${BRANCH}' branch (latest commit only)" "git fetch --depth 1 origin ${BRANCH} && git checkout ${BRANCH} && git reset --hard FETCH_HEAD"
 
 # Source essentials from absolute path
+MAINTENANCE_DIR="${CONF_DIR}/maintenance"
 print_step "[3/4]" "Loading essential functions..."
 source "${MAINTENANCE_DIR}/ESSENTIALS.sh"
 print_success "Essentials loaded\n"
