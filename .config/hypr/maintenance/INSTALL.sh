@@ -35,19 +35,27 @@ if [ ! -f "${MAINTENANCE_DIR}/PRESENTATION.sh" ] || [ ! -f "${MAINTENANCE_DIR}/E
     curl -fsSL "${RAW_BASE_URL}/maintenance/ESSENTIALS.sh" -o "${MAINTENANCE_DIR}/ESSENTIALS.sh" || bootstrap_error_exit "Failed to download ESSENTIALS.sh"
 fi
 
-# Source display functions
+# Source essentials FIRST (before presentation, to install core tools early)
+source "${MAINTENANCE_DIR}/ESSENTIALS.sh"
+
+# Prompt for sudo password once at the start
+echo -e "\033[1;33m🔐 Requesting sudo password...\033[0m"
+sudo -v
+echo -e "\033[0;32m✓ Sudo access granted\033[0m\n"
+
+# Install core tools early (includes lolcat and figlet needed for presentation)
+echo "Installing core tools..."
+install_core_tools
+echo ""
+
+# NOW source presentation (after lolcat is installed)
 source "${MAINTENANCE_DIR}/PRESENTATION.sh"
 
 # Error handler
 trap 'error_exit "Error occurred at line $LINENO"' ERR
 
-# Display main header
+# Display main header (now lolcat and figlet are available)
 print_main_header "INSTALL"
-
-# Prompt for sudo password once at the start
-echo -e "${YELLOW}🔐 Requesting sudo password...${NC}"
-sudo -v
-print_success "Sudo access granted\n"
 
 # Specify the repo branch
 BRANCH="${1:-master}"
@@ -67,11 +75,8 @@ run_step "[2/4]" "Updating repository to '${BRANCH}' branch (latest commit only)
 
 # Source essentials from absolute path
 MAINTENANCE_DIR="${CONF_DIR}/maintenance"
-print_step "[3/4]" "Loading essential functions..."
-source "${MAINTENANCE_DIR}/ESSENTIALS.sh"
-print_success "Essentials loaded\n"
-
-run_step "[4/4]" "Installing core tools" "install_core_tools"
+print_step "[3/4]" "Repository setup complete"
+print_success "Repository ready\n"
 
 print_section_header "🔧 AUR HELPER SELECTION"
 
