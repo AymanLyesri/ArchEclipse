@@ -11,45 +11,48 @@ curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?work
 # Hyprland ArchEclipse Installation Script
 ################################################################
 
-# Set absolute paths
-SCRIPT_DIR=""
-if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fi
-
-MAINTENANCE_DIR="${SCRIPT_DIR}/maintenance"
 CONF_DIR="${HOME}/ArchEclipse"
-RAW_BASE_URL="https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/master/.config/hypr"
 
-bootstrap_error_exit() {
+# Minimal inline functions (before any sourcing)
+error_exit() {
     echo -e "\033[0;31m✗ $1\033[0m"
     exit 1
 }
-
-if [ ! -f "${MAINTENANCE_DIR}/PRESENTATION.sh" ] || [ ! -f "${MAINTENANCE_DIR}/ESSENTIALS.sh" ]; then
-    BOOTSTRAP_DIR="$(mktemp -d)"
-    MAINTENANCE_DIR="${BOOTSTRAP_DIR}/maintenance"
-    mkdir -p "${MAINTENANCE_DIR}"
-
-    curl -fsSL "${RAW_BASE_URL}/maintenance/PRESENTATION.sh" -o "${MAINTENANCE_DIR}/PRESENTATION.sh" || bootstrap_error_exit "Failed to download PRESENTATION.sh"
-    curl -fsSL "${RAW_BASE_URL}/maintenance/ESSENTIALS.sh" -o "${MAINTENANCE_DIR}/ESSENTIALS.sh" || bootstrap_error_exit "Failed to download ESSENTIALS.sh"
-fi
-
-# Source essentials FIRST (before presentation, to install core tools early)
-source "${MAINTENANCE_DIR}/ESSENTIALS.sh"
 
 # Prompt for sudo password once at the start
 echo -e "\033[1;33m🔐 Requesting sudo password...\033[0m"
 sudo -v
 echo -e "\033[0;32m✓ Sudo access granted\033[0m\n"
 
+# Clone repository (overwrite existing directory)
+if [ -d "${CONF_DIR}" ]; then
+    echo -e "\033[1;33m🔄 Repository already exists at ${CONF_DIR}; overwriting\033[0m"
+    rm -rf "${CONF_DIR}"
+fi
+
+echo "Cloning ArchEclipse repository (latest commit only)..."
+BRANCH="${1:-master}"
+git clone --depth 1 --single-branch --branch "${BRANCH}" https://github.com/AymanLyesri/ArchEclipse.git "${CONF_DIR}" || error_exit "Failed to clone repository"
+
+cd "${CONF_DIR}" || error_exit "Failed to change directory to ${CONF_DIR}"
+
+echo "Updating repository to '${BRANCH}' branch..."
+git fetch --depth 1 origin "${BRANCH}" && git checkout "${BRANCH}" && git reset --hard FETCH_HEAD || error_exit "Failed to update repository"
+echo ""
+
+# Now set paths and source from the cloned repo
+MAINTENANCE_DIR="${CONF_DIR}/.config/hypr/maintenance"
+
+# Source essentials FIRST (before presentation, to install core tools early)
+source "${MAINTENANCE_DIR}/ESSENTIALS.sh" || error_exit "Failed to source ESSENTIALS.sh"
+
 # Install core tools early (includes lolcat and figlet needed for presentation)
 echo "Installing core tools..."
-install_core_tools
+install_core_tools || error_exit "Failed to install core tools"
 echo ""
 
 # NOW source presentation (after lolcat is installed)
-source "${MAINTENANCE_DIR}/PRESENTATION.sh"
+source "${MAINTENANCE_DIR}/PRESENTATION.sh" || error_exit "Failed to source PRESENTATION.sh"
 
 # Error handler
 trap 'error_exit "Error occurred at line $LINENO"' ERR
@@ -57,26 +60,9 @@ trap 'error_exit "Error occurred at line $LINENO"' ERR
 # Display main header (now lolcat and figlet are available)
 print_main_header "INSTALL"
 
-# Specify the repo branch
-BRANCH="${1:-master}"
-
 print_section_header "📦 REPOSITORY SETUP"
 
-# Clone repository (overwrite existing directory)
-if [ -d "${CONF_DIR}" ]; then
-    run_step "[1/4]" "Repository already exists at ${CONF_DIR}; overwriting" "rm -rf ${CONF_DIR}"
-fi
-
-run_step "[1/4]" "Cloning ArchEclipse repository (latest commit only)" "git clone --depth 1 --single-branch --branch ${BRANCH} https://github.com/AymanLyesri/ArchEclipse.git ${CONF_DIR}"
-
-cd "${CONF_DIR}" || error_exit "Failed to change directory to ${CONF_DIR}"
-
-run_step "[2/4]" "Updating repository to '${BRANCH}' branch (latest commit only)" "git fetch --depth 1 origin ${BRANCH} && git checkout ${BRANCH} && git reset --hard FETCH_HEAD"
-
-# Source essentials from absolute path
-MAINTENANCE_DIR="${CONF_DIR}/maintenance"
-print_step "[3/4]" "Repository setup complete"
-print_success "Repository ready\n"
+print_success "Repository cloned and ready\n"
 
 print_section_header "🔧 AUR HELPER SELECTION"
 
@@ -122,7 +108,7 @@ print_section_header "📦 PACKAGE MANAGEMENT"
 
 run_interactive_step "🧹" "Removing unwanted packages" "remove_packages"
 
-run_interactive_step "📥" "Installing necessary packages (using ${BOLD}${aur_helper}${NC})" "${HOME}/.config/hypr/pacman/install-pkgs.sh ${aur_helper}"
+run_interactive_step "📥" "Installing necessary packages (using ${BOLD}${aur_helper}${NC})" "${CONF_DIR}/.config/hypr/pacman/install-pkgs.sh ${aur_helper}"
 
 print_section_header "🎨 SYSTEM THEME & APPEARANCE"
 
