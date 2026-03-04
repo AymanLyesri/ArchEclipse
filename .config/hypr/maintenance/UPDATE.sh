@@ -55,6 +55,9 @@ is_repo_intact() {
 
     git -C "${REPO_DIR}" rev-parse --verify HEAD >/dev/null 2>&1 || return 1
 
+    # Check for corrupted objects
+    git -C "${REPO_DIR}" fsck --no-progress >/dev/null 2>&1 || return 1
+
     return 0
 }
 
