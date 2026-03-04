@@ -333,7 +333,7 @@ export default () => {
 
         notify({
           summary: "QR Code Generated",
-          body: `Scan the QR code to donate ${name}`,
+          body: `Scan the QR code to get ${name} address!`,
         });
       })
       .catch(() => {

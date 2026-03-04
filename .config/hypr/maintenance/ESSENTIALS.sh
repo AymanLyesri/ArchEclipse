@@ -187,27 +187,50 @@ remove_packages() {
 }
 
 continue_prompt() {
-    # Color variables
-    GREEN="\e[32m"
-    RED="\e[31m"
-    CYAN="\e[36m"
-    BOLD="\e[1m"
-    RESET="\e[0m"
+    local prompt="$1"
+    local command="$2"
+    local exit_code=0
+    
+    # Define color variables locally
+    local GREEN="\e[32m"
+    local RED="\e[31m"
+    local CYAN="\e[36m"
+    local YELLOW="\e[1;33m"
+    local BOLD="\e[1m"
+    local NC="\e[0m"
+    local RESET="\e[0m"
     
     while true; do
-        echo -e "${CYAN}${BOLD}$1${RESET} ${GREEN}[Y]${RESET}/${RED}[N]${RESET}: "
-        read -p "" choice
+        echo -e ""
+        echo -e "${CYAN}${BOLD}❓ $prompt${RESET}"
+        echo -ne "${CYAN}${BOLD}   Enter your choice ${GREEN}[Y]${RESET}/${RED}[N]${RESET}: ${NC}"
+        read -r choice
+        
         case "$choice" in
             [Yy]*)
-                echo -e "${GREEN}Great! Continuing...${RESET}"
-                $2
+                echo ""
+                eval "$command"
+                exit_code=$?
+                if [ $exit_code -eq 0 ]; then
+                    echo -e "${GREEN}✓ Step completed successfully${RESET}"
+                else
+                    echo -e "${RED}✗ Step failed with exit code $exit_code${RESET}"
+                    echo ""
+                    return $exit_code  # Return failure code only if command fails
+                fi
+                echo ""
                 break
             ;;
             [Nn]*)
-                echo -e "${RED}Okay, exiting...${RESET}"
-                break
+                echo -e "${YELLOW}⊘ Step skipped by user${RESET}"
+                echo ""
+                return 0  # Return success when user skips (not an error)
             ;;
-            *) echo -e "${RED}Please answer with Y or N.${RESET}" ;;
+            *)
+                echo -e "${RED}✗ Invalid choice. Please answer Y or N.${RESET}"
+                ;;
         esac
     done
+    
+    return 0  # Default success return
 }

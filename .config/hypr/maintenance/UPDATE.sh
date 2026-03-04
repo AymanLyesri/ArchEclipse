@@ -1,13 +1,16 @@
 #!/bin/bash
+set -euo pipefail
 
 ################################################################
-# User confirmation
+# User Confirmation
 ################################################################
 
-read -p "You will begin the update process. Do you want to proceed? (y/n) " -n 1 -r
+echo ""
+read -p "$(echo -e '\033[1;33m⚠️  You will begin the update process. Do you want to proceed? \033[0m(y/n) ')" -n 1 -r
 echo    # Move to a new line
+
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Action cancelled."
+    echo -e "\033[0;33m✗ Action cancelled.\033[0m"
     exit 0
 fi
 
@@ -15,7 +18,7 @@ fi
 # Counter for Updates
 ################################################################
 
-curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?workspace=archeclipse&counter=update"
+curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?workspace=archeclipse&counter=update" || true
 
 ################################################################
 # Hyprland ArchEclipse Update Script
@@ -23,39 +26,57 @@ curl -s -o /dev/null "https://personal-counter-two.vercel.app/api/increment?work
 
 MAINTENANCE_DIR="$HOME/.config/hypr/maintenance"
 
-figlet "UPDATE" -f slant | lolcat
+# Source display functions
+source "${MAINTENANCE_DIR}/PRESENTATION.sh"
 
-source $HOME/.config/hypr/maintenance/ESSENTIALS.sh # source the essentials file INSIDE the repository
+# Error handler
+trap 'error_exit "Error occurred at line $LINENO"' ERR
 
-# specify the repo branch
-if [ -z "$1" ]; then
-    BRANCH="master"
-else
-    BRANCH=$1
-fi
+# Display main header
+print_main_header
 
-git checkout $BRANCH
-git fetch origin $BRANCH
-git reset --hard origin/$BRANCH
+# Source essentials from absolute path
+run_step "⬇️" "Loading essential functions" "source ${MAINTENANCE_DIR}/ESSENTIALS.sh"
 
-# Kill any hanging pacman/AUR helper processes and clean lock file
-echo "Cleaning up any hanging package manager processes..."
+# Specify the repo branch
+BRANCH="${1:-master}"
+
+print_section_header "📦 REPOSITORY UPDATE"
+
+run_step "[1/3]" "Updating repository to '${BRANCH}' branch" "git checkout ${BRANCH} && git fetch origin ${BRANCH} && git reset --hard origin/${BRANCH}"
+
+print_section_header "🧹 PACKAGE MANAGER CLEANUP"
+
+print_step "[2/3]" "Cleaning up hanging package manager processes..."
 
 # List of possible package managers
 procs=("pacman" "yay" "paru")
 
+cleaned=0
 for proc in "${procs[@]}"; do
     if pgrep -x "$proc" >/dev/null; then
-        echo "Killing $proc..."
+        echo -e "  ${YELLOW}Killing${NC} $proc..."
         sudo killall -9 "$proc" 2>/dev/null || true
+        ((cleaned++))
     fi
 done
 
+if [ $cleaned -eq 0 ]; then
+    print_warning "No running package manager processes found"
+else
+    print_success "Killed $cleaned process(es)"
+fi
+
 # Remove pacman lock file if it exists
 if [ -f /var/lib/pacman/db.lck ]; then
-    echo "Removing pacman lock file..."
+    echo -e "  ${YELLOW}Removing${NC} pacman lock file..."
     sudo rm -f /var/lib/pacman/db.lck
+    print_success "Pacman lock file removed"
 fi
+
+echo ""
+print_step "[3/3]" "Detecting AUR helper..."
+
 aur_helpers=("yay" "paru")
 
 for helper in "${aur_helpers[@]}"; do
@@ -66,18 +87,21 @@ for helper in "${aur_helpers[@]}"; do
 done
 
 if [[ -z "$aur_helper" ]]; then
-    echo "No AUR helper (yay or paru) is installed."
+    print_warning "No AUR helper (yay or paru) is installed."
 else
-    continue_prompt "Do you want to update necessary packages? (using $aur_helper)" "$HOME/.config/hypr/pacman/install-pkgs.sh $aur_helper"
+    print_success "AUR helper found: ${BOLD}${MAGENTA}${aur_helper}${NC}\n"
 fi
 
-# $MAINTENANCE_DIR/AGSV1.sh
-# if pacman -Q agsv1 &>/dev/null; then
-#     yay -Rns agsv1 --noconfirm
-# fi
+print_section_header "📥 PACKAGE UPDATES"
 
-# $MAINTENANCE_DIR/WAL.sh
+if [[ ! -z "$aur_helper" ]]; then
+    run_interactive_step "📦" "Updating necessary packages (using ${BOLD}${aur_helper}${NC})" "$HOME/.config/hypr/pacman/install-pkgs.sh $aur_helper"
+fi
 
-$MAINTENANCE_DIR/PLUGINS.sh
+print_section_header "🔌 PLUGINS & TWEAKS"
 
-# $MAINTENANCE_DIR/TWEAKS.sh
+run_section_step "🔌" "Installing plugins" "${MAINTENANCE_DIR}/PLUGINS.sh"
+
+print_section_header "✅ UPDATE COMPLETE"
+
+print_completion_message

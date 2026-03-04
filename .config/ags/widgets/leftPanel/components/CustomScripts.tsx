@@ -57,7 +57,7 @@ export default () => {
                           self.tooltipText =
                             res.trim() === "true"
                               ? script.description
-                              : `${script.app} (Requires installation)`;
+                              : `${script.description} (Requires installation)`;
                         })
                         .catch(() => {
                           self.sensitive = true;

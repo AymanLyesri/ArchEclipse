@@ -16,78 +16,104 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MAINTENANCE_DIR="${SCRIPT_DIR}/maintenance"
 CONF_DIR="${HOME}/ArchEclipse"
 
-export FZF_HEIGHT="40%"
+# Source display functions
+source "${MAINTENANCE_DIR}/PRESENTATION.sh"
 
 # Error handler
-trap 'echo "Error occurred at line $LINENO"; exit 1' ERR
+trap 'error_exit "Error occurred at line $LINENO"' ERR
+
+# Display main header
+print_main_header
 
 # Prompt for sudo password once at the start
+echo -e "${YELLOW}🔐 Requesting sudo password...${NC}"
 sudo -v
+print_success "Sudo access granted\n"
 
 # Specify the repo branch
 BRANCH="${1:-master}"
 
+print_section_header "📦 REPOSITORY SETUP"
+
 # Clone or update repository
 if [ -d "${CONF_DIR}" ]; then
-    echo "${CONF_DIR} directory exists."
+    print_step "[1/4]" "Repository already exists at ${CONF_DIR}"
+    print_success "Skipping clone\n"
 else
-    echo "${CONF_DIR} directory does not exist. Cloning the repository..."
-    git clone https://github.com/AymanLyesri/ArchEclipse.git "${CONF_DIR}"
+    run_step "[1/4]" "Cloning ArchEclipse repository" "git clone https://github.com/AymanLyesri/ArchEclipse.git ${CONF_DIR}"
 fi
 
-# Change branch to the specified branch
-cd "${CONF_DIR}" || exit 1
-git checkout "${BRANCH}"
-git fetch origin "${BRANCH}"
-git reset --hard "origin/${BRANCH}"
+cd "${CONF_DIR}" || error_exit "Failed to change directory to ${CONF_DIR}"
+
+run_step "[2/4]" "Updating repository to '${BRANCH}' branch" "git checkout ${BRANCH} && git fetch origin ${BRANCH} && git reset --hard origin/${BRANCH}"
 
 # Source essentials from absolute path
+print_step "[3/4]" "Loading essential functions..."
 source "${MAINTENANCE_DIR}/ESSENTIALS.sh"
+print_success "Essentials loaded\n"
 
-install_core_tools
+run_step "[4/4]" "Installing core tools" "install_core_tools"
 
-figlet "INSTALL" -f slant | lolcat
+print_section_header "🔧 AUR HELPER SELECTION"
 
-# Choose Pacman Wrapper
-echo "Choose an AUR helper to install packages:"
+echo -e "${BOLD}${YELLOW}📋 Select an AUR helper to install packages:${NC}"
+echo ""
+echo -e "${CYAN}  [1]${NC} ${BOLD}yay${NC}  - AUR helper (Rust based)"
+echo -e "${CYAN}  [2]${NC} ${BOLD}paru${NC} - AUR helper (Rust based)"
+echo ""
+
 aur_helpers=("yay" "paru")
-aur_helper=$(printf '%s\n' "${aur_helpers[@]}" | fzf --height "${FZF_HEIGHT}") || {
-    echo "No AUR helper selected. Exiting."
-    exit 1
+aur_helper=$(printf '%s\n' "${aur_helpers[@]}" | fzf --height "25") || {
+    error_exit "No AUR helper selected. Exiting."
 }
-echo "AUR helper selected: ${aur_helper}"
+
+echo ""
+print_success "AUR helper selected: ${BOLD}${MAGENTA}${aur_helper}${NC}\n"
 
 case "${aur_helper}" in
     yay)
-        install_yay
+        run_section_step "⚙️" "Installing ${BOLD}yay${NC}" "install_yay"
         ;;
     paru)
-        install_paru
+        run_section_step "⚙️" "Installing ${BOLD}paru${NC}" "install_paru"
         ;;
     *)
-        echo "Invalid AUR helper selected"
-        exit 1
+        error_exit "Invalid AUR helper selected"
         ;;
 esac
 
-continue_prompt "Backing up dotfiles from .config ..." "${MAINTENANCE_DIR}/BACKUP.sh"
+echo ""
 
-continue_prompt "Copying configuration files to ${HOME}..." "sudo cp -a . ${HOME}"
+print_section_header "💾 CONFIGURATION FILES"
 
-continue_prompt "keyboard configuration" "${MAINTENANCE_DIR}/CONFIGURE.sh"
+run_interactive_step "📁" "Backing up dotfiles from ${BOLD}.config${NC}" "${MAINTENANCE_DIR}/BACKUP.sh"
 
-continue_prompt "Do you want to remove unwanted packages?" remove_packages
+run_interactive_step "📋" "Copying configuration files to ${HOME}" "sudo cp -a . ${HOME}"
 
-continue_prompt "Do you want to install necessary packages? (using ${aur_helper})" "${HOME}/.config/hypr/pacman/install-pkgs.sh ${aur_helper}"
+print_section_header "⌨️ KEYBOARD CONFIGURATION"
 
-continue_prompt "Sddm theme setup" "${MAINTENANCE_DIR}/SDDM.sh"
+run_interactive_step "🔨" "Setting up keyboard configuration" "${MAINTENANCE_DIR}/CONFIGURE.sh"
 
-"${MAINTENANCE_DIR}/DEFAULTS.sh"
+print_section_header "📦 PACKAGE MANAGEMENT"
 
-"${MAINTENANCE_DIR}/WALLPAPERS.sh"
+run_interactive_step "🧹" "Removing unwanted packages" "remove_packages"
 
-"${MAINTENANCE_DIR}/PLUGINS.sh"
+run_interactive_step "📥" "Installing necessary packages (using ${BOLD}${aur_helper}${NC})" "${HOME}/.config/hypr/pacman/install-pkgs.sh ${aur_helper}"
 
-"${MAINTENANCE_DIR}/TWEAKS.sh"
+print_section_header "🎨 SYSTEM THEME & APPEARANCE"
 
-echo "Installation complete. Please Reboot the system."
+run_interactive_step "🖨️" "Setting up SDDM theme" "${MAINTENANCE_DIR}/SDDM.sh"
+
+run_section_step "⚙️" "Applying default configurations" "${MAINTENANCE_DIR}/DEFAULTS.sh"
+
+run_section_step "🖼️" "Setting up wallpapers" "${MAINTENANCE_DIR}/WALLPAPERS.sh"
+
+print_section_header "🔌 PLUGINS & TWEAKS"
+
+run_section_step "🔌" "Installing plugins" "${MAINTENANCE_DIR}/PLUGINS.sh"
+
+run_section_step "✨" "Applying system tweaks" "${MAINTENANCE_DIR}/TWEAKS.sh"
+
+print_section_header "✅ INSTALLATION COMPLETE"
+
+print_completion_message
