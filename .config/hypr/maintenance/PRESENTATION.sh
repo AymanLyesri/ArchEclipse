@@ -95,6 +95,7 @@ print_update_completion_message() {
     echo ""
     echo -e "${BOLD}${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
+    prompt_for_donation
 }
 
 ################################################################
@@ -141,4 +142,18 @@ run_section_step() {
     else
         error_exit "Failed: $description"
     fi
+}
+
+prompt_for_donation() {
+    local monitor="$(hyprctl monitors | awk '/Monitor/ {monitor=$2} /focused: yes/ {print monitor}')"
+    echo ""
+    echo -e "${BOLD}${BLUE}💝 Support ArchEclipse${NC}"
+    echo ""
+    echo -e "${BLUE}ArchEclipse is maintained mainly by one person who spends a lot of time building, fixing, and improving it for the community.${NC}"
+    echo -e "${BLUE}If this project has made your system better or saved you time, even a small donation can really help keep it alive and growing.${NC}"
+    echo ""
+    echo -e "${BLUE}Your support means a lot — thank you for being part of this project. ❤️${NC}"
+    echo ""
+
+    continue_prompt "💝 Would you like to support the project?" \ "ags request donations $monitor"
 }

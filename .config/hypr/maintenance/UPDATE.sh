@@ -31,16 +31,12 @@ curl -s -o /dev/null \
 REPO_URL="https://github.com/AymanLyesri/ArchEclipse.git"
 BRANCH="${1:-master}"
 REPO_DIR="$HOME"
-REMOTE_MAINTENANCE_BASE="https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance"
+MAINTENANCE_DIR="$HOME/.config/hypr/maintenance"
 
 TEMP_DIR=""
-REMOTE_PRESENTATION_FILE="$(mktemp)"
-REMOTE_ESSENTIALS_FILE="$(mktemp)"
 
 cleanup_temp_files() {
     [[ -n "${TEMP_DIR}" ]] && rm -rf "${TEMP_DIR}"
-    [[ -f "${REMOTE_PRESENTATION_FILE}" ]] && rm -f "${REMOTE_PRESENTATION_FILE}"
-    [[ -f "${REMOTE_ESSENTIALS_FILE}" ]] && rm -f "${REMOTE_ESSENTIALS_FILE}"
 }
 
 trap cleanup_temp_files EXIT
@@ -61,48 +57,33 @@ is_repo_intact() {
     return 0
 }
 
-################################################################
-# Load UI Helpers
-################################################################
-
-curl -fsSL "${REMOTE_MAINTENANCE_BASE}/PRESENTATION.sh" -o "${REMOTE_PRESENTATION_FILE}"
-source "${REMOTE_PRESENTATION_FILE}"
-
-trap 'error_exit "Error occurred at line $LINENO"' ERR
-
-print_main_header "UPDATE"
-
-################################################################
-# Load Essentials
-################################################################
-
-run_step "⬇️" "Fetching remote essential functions" \
-"curl -fsSL ${REMOTE_MAINTENANCE_BASE}/ESSENTIALS.sh -o ${REMOTE_ESSENTIALS_FILE}"
-
-source "${REMOTE_ESSENTIALS_FILE}"
-
-run_step "⚙️" "Installing core tools" \
-"install_core_tools"
+echo ""
+echo "============================================================"
+echo "🔄 UPDATE"
+echo "============================================================"
 
 ################################################################
 # Overwrite Home Config (Like Forced Git Pull)
 ################################################################
 
-print_section_header "📂 DEPLOYING CONFIG FILES"
+echo "📂 DEPLOYING CONFIG FILES"
 
 if is_repo_intact; then
-    run_step "🌿" "Repository history intact, syncing with remote" \
-    "cd ${REPO_DIR} && git checkout ${BRANCH} && git fetch origin ${BRANCH} && git reset --hard origin/${BRANCH}"
-    print_success "Repository successfully updated from origin/${BRANCH}."
+    echo "🌿 Repository history intact, syncing with remote..."
+    cd "${REPO_DIR}"
+    git checkout "${BRANCH}"
+    git fetch origin "${BRANCH}"
+    git reset --hard "origin/${BRANCH}"
+    echo "✓ Repository successfully updated from origin/${BRANCH}."
 else
-    print_warning "Local git history is missing/corrupt. Falling back to fresh clone deployment."
+    echo "⚠️ Local git history is missing/corrupt. Falling back to fresh clone deployment."
 
     TEMP_DIR="$(mktemp -d)"
 
-    run_step "📦" "Cloning latest repository state" \
-    "git clone --depth 1 --single-branch --branch ${BRANCH} ${REPO_URL} ${TEMP_DIR}"
+    echo "📦 Cloning latest repository state..."
+    git clone --depth 1 --single-branch --branch "${BRANCH}" "${REPO_URL}" "${TEMP_DIR}"
 
-    print_step "[1/1]" "Overwriting home configuration..."
+    echo "[1/1] Overwriting home configuration..."
 
     rm -rf "${REPO_DIR}/.git"
 
@@ -110,8 +91,40 @@ else
     # --remove-destination avoids failures on dangling symlinks (e.g. ~/.zshrc)
     cp -a --remove-destination "${TEMP_DIR}/." "$HOME/"
 
-    print_success "Configuration successfully updated from fresh clone."
+    echo "✓ Configuration successfully updated from fresh clone."
 fi
+
+################################################################
+# Load Local Helpers (After Repo Update Logic)
+################################################################
+
+if [[ ! -f "${MAINTENANCE_DIR}/PRESENTATION.sh" || ! -f "${MAINTENANCE_DIR}/ESSENTIALS.sh" ]]; then
+    echo "✗ Required local maintenance scripts not found in ${MAINTENANCE_DIR}."
+    exit 1
+fi
+
+source "${MAINTENANCE_DIR}/PRESENTATION.sh"
+source "${MAINTENANCE_DIR}/ESSENTIALS.sh"
+
+print_main_header "UPDATE"
+
+run_step "⚙️" "Installing core tools" \
+"install_core_tools"
+
+################################################################
+# Reload Bar
+################################################################
+
+print_section_header "🔄 RELOADING BAR"
+
+run_step "🔄" "Reloading bar configuration" \
+"$HOME/.config/hypr/scripts/bar.sh &"
+
+# countdown to allow bar to reload before showing completion message
+# for i in {5..1}; do
+#     echo $i...
+#     sleep 1
+# done
 
 ################################################################
 # Package Manager Cleanup
@@ -167,10 +180,10 @@ fi
 # Plugins
 ################################################################
 
-print_section_header "🔌 PLUGINS & TWEAKS"
+print_section_header "🔌 PLUGINS"
 
-run_section_step "🔌" \
-"Installing plugins" \
+run_interactive_step "🔌" \
+"Updating plugins" \
 "$HOME/.config/hypr/maintenance/PLUGINS.sh"
 
 ################################################################

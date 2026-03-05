@@ -21,7 +21,7 @@ import Pango from "gi://Pango";
 import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
-// import Cava from "../../Cava";
+import Cava from "../../Cava";
 import Weather from "./sub-components/Weather";
 import Bandwidth from "./sub-components/Bandwidth";
 import { notify } from "../../../utils/notification";
