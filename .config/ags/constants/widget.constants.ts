@@ -12,7 +12,7 @@ import Utilities from "../widgets/bar/components/Utilities";
 import ScriptTimer from "../widgets/rightPanel/components/ScriptTimer";
 import Gtk from "gi://Gtk?version=4.0";
 import { Accessor } from "ags";
-import CryptoWidget from "../widgets/rightPanel/components/CryptoWidget";
+import CryptoWidget from "../widgets/rightPanel/components/CryptoViewer";
 import MangaViewer from "../widgets/leftPanel/components/MangaViewer";
 import SettingsWidget from "../widgets/leftPanel/components/SettingsWidget";
 import Calendar from "../widgets/rightPanel/components/Calendar";

@@ -8,6 +8,7 @@ import { Accessor, createBinding, createState, With } from "gnim";
 import { timeout } from "ags/time";
 import { phi } from "../constants/phi.constants";
 import GObject from "ags/gobject";
+import Pango from "gi://Pango?version=1.0";
 
 const apps = new AstalApps.Apps();
 const hyprland = Hyprland.get_default();
@@ -127,6 +128,13 @@ const renderNode = (node: Node): Gtk.Widget => {
           width={node.client.width / 7}
         />
         <image $type="overlay" iconName={icon} hexpand vexpand />
+        <label
+          $type="overlay"
+          label={createBinding(node.client, "title")}
+          class={"title"}
+          valign={Gtk.Align.END}
+          ellipsize={Pango.EllipsizeMode.END}
+        />
         <label
           $type="overlay"
           class={"move"}

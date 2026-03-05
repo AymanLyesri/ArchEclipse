@@ -63,8 +63,7 @@ function v() {
 }
 
 # Test Connection
-TEST_CONNECTION="$HOME/.config/hypr/scripts/test-connection.sh"
-alias conn=$TEST_CONNECTION
+alias testcon="$HOME/.config/hypr/scripts/test-connection.sh"
 
 # Aliases for neofetch
 alias n=$NEOFETCH
@@ -76,7 +75,7 @@ alias logout='hyprctl dispatch exit'
 source <(fzf --zsh)
 
 # Configuration Update
-alias update='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/UPDATE.sh)"'
+alias archeclipse='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/UPDATE.sh)"'
 alias 'update dev'='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/UPDATE.sh)" -- dev'
 
 alias defaults="$HOME/.config/hypr/maintenance/DEFAULTS.sh"

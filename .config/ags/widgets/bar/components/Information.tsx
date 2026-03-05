@@ -24,7 +24,8 @@ import Crypto from "../../Crypto";
 // import Cava from "../../Cava";
 import Weather from "./sub-components/Weather";
 import Bandwidth from "./sub-components/Bandwidth";
-import { timeout } from "ags/time";
+import { notify } from "../../../utils/notification";
+import GLib from "gi://GLib";
 
 const mpris = AstalMpris.get_default();
 
@@ -59,6 +60,7 @@ function Mpris() {
                 <label
                   label={createBinding(player, "title")}
                   ellipsize={Pango.EllipsizeMode.END}
+                  maxWidthChars={25}
                 />
               </box>
             );
@@ -86,7 +88,9 @@ function Mpris() {
 function Clock() {
   const revealer = <label class="revealer" label={date_more}></label>;
 
-  const trigger = <label class="clock" label={date_less}></label>;
+  const trigger = (
+    <label class="clock" label={date_less}></label>
+  ) as Gtk.Label;
 
   return (
     <Eventbox
@@ -96,7 +100,14 @@ function Clock() {
         setGlobalSetting(
           "dateFormat",
           dateFormats[(currentIndex + 1) % dateFormats.length],
-        ); // Cycle through formats
+        );
+
+        // update the date immediately without waiting for the next tick
+        trigger.set_label(
+          GLib.DateTime.new_now_local().format(
+            globalSettings.peek().dateFormat,
+          )!,
+        );
       }}
     >
       <CustomRevealer
@@ -122,7 +133,7 @@ function ClientTitle({
             <label
               class="client-title"
               ellipsize={Pango.EllipsizeMode.END}
-              maxWidthChars={30}
+              maxWidthChars={20}
               label={focusedClient((client) => {
                 return client ? createBinding(client, "title") : "No Title";
               })()}

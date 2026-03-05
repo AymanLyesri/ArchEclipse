@@ -16,8 +16,8 @@ interface CircularProgressProps {
 export default function CircularProgress({
   value,
   className = "",
-  height = 22,
-  width = 22,
+  height = 20,
+  width = 20,
   tooltipText,
   icon,
   visible = true,

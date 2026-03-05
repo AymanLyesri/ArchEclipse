@@ -110,7 +110,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/
 > To update the config and its related pkgs Simply run `update` in the terminal
 
 ```bash
-update
+archeclipse
 ```
 
 # Tips

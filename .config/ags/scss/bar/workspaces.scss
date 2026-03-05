@@ -8,6 +8,11 @@
       &:hover {
         animation: grab-shake 0.2s ease-out;
       }
+      .title {
+        font-weight: bold;
+        opacity: 0.6;
+        text-shadow: 0 0 5px $background;
+      }
       .image {
         opacity: 0.8;
       }
