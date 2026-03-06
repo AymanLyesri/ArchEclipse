@@ -4,7 +4,8 @@ import { globalSettings } from "../variables";
 
 import Hyprland from "gi://AstalHyprland";
 import { execAsync } from "ags/process";
-import GLib from "gi://GLib?version=2.0";
+import GLib from "gi://GLib";
+
 const hyprland = Hyprland.get_default();
 
 export const customScripts = (): CustomScript[] => [

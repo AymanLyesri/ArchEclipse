@@ -1,4 +1,4 @@
-import GLib from "gi://GLib?version=2.0";
+import GLib from "gi://GLib";
 import GObject from "gnim/gobject";
 
 export function time(time: number, format = "%H:%M") {

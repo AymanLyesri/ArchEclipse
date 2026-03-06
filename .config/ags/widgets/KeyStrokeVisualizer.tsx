@@ -1,7 +1,7 @@
 import { Astal } from "ags/gtk4";
 import app from "ags/gtk4/app";
 import { subprocess } from "ags/process";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import { fullscreenClient, globalMargin, globalSettings } from "../variables";
 import GLib from "gi://GLib";
 import { createState, createComputed } from "ags";

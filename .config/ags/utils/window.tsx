@@ -1,5 +1,5 @@
 import app from "ags/gtk4/app";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import { Accessor, createComputed } from "ags";
 import { setGlobalSetting } from "../variables";
@@ -76,7 +76,7 @@ export { Window };
  */
 export const connectPopoverEvents = (
   self: Gtk.MenuButton,
-  windowPropertyName: string = "leftPanelWindow"
+  windowPropertyName: string = "leftPanelWindow",
 ) => {
   // Find the window instance from parent chain
   const findWindowInstance = () => {
@@ -157,7 +157,7 @@ export function WindowActions({
           const current = windowWidth.get();
           setGlobalSetting(
             windowSettingKey + ".width",
-            current < maxPanelWidth ? current + 50 : maxPanelWidth
+            current < maxPanelWidth ? current + 50 : maxPanelWidth,
           );
           queueResize(parentWindow);
         }}
@@ -169,7 +169,7 @@ export function WindowActions({
           const current = windowWidth.get();
           setGlobalSetting(
             windowSettingKey + ".width",
-            current > minPanelWidth ? current - 50 : minPanelWidth
+            current > minPanelWidth ? current - 50 : minPanelWidth,
           );
           queueResize(parentWindow);
         }}

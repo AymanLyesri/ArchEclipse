@@ -12,7 +12,7 @@ import {
   setGlobalSetting,
 } from "../../../variables";
 import { Accessor, createBinding, For, With } from "ags";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import CustomRevealer from "../../CustomRevealer";
 import { dateFormats } from "../../../constants/date.constants";
 import AstalMpris from "gi://AstalMpris";

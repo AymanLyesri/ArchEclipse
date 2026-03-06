@@ -1,8 +1,8 @@
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import { Accessor, With } from "ags";
 import { globalTransition } from "../variables";
 import { createState } from "ags";
-import GLib from "gi://GLib?version=2.0";
+import GLib from "gi://GLib";
 import { timeout, Timer } from "ags/time";
 
 const Spinner = () => <Gtk.Spinner spinning={true} />;

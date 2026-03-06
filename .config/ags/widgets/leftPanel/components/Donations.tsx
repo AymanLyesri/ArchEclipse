@@ -1,8 +1,8 @@
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import { createState, For, With } from "ags";
 import { execAsync, exec } from "ags/process";
 import { notify } from "../../../utils/notification";
-import GLib from "gi://GLib?version=2.0";
+import GLib from "gi://GLib";
 
 import Hyprland from "gi://AstalHyprland";
 import Picture from "../../Picture";

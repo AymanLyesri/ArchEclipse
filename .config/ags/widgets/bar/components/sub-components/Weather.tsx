@@ -1,9 +1,9 @@
 import { createPoll } from "ags/time";
-import Gtk from "gi://Gtk?version=4.0";
-import GLib from "gi://GLib?version=2.0";
+import { Gtk } from "ags/gtk4";
+import GLib from "gi://GLib";
 import { With } from "gnim";
 import { Eventbox } from "../../../Custom/Eventbox";
-import Pango from "gi://Pango?version=1.0";
+import Pango from "gi://Pango";
 
 export default () => {
   interface weatherData {

@@ -8,7 +8,7 @@ import { Accessor, createBinding, createState, With } from "gnim";
 import { timeout } from "ags/time";
 import { phi } from "../constants/phi.constants";
 import GObject from "ags/gobject";
-import Pango from "gi://Pango?version=1.0";
+import Pango from "gi://Pango";
 
 const apps = new AstalApps.Apps();
 const hyprland = Hyprland.get_default();

@@ -15,7 +15,7 @@ import Wp from "gi://AstalWp";
 import Notifd from "gi://AstalNotifd";
 const notifd = Notifd.get_default();
 
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import {
   globalSettings,
   globalTheme,

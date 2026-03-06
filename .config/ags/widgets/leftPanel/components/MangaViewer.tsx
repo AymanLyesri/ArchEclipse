@@ -1,12 +1,12 @@
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import { execAsync } from "ags/process";
 import { Manga, Chapter, Page } from "../../../interfaces/manga.interface";
 import { createState, For, With } from "ags";
 import { notify } from "../../../utils/notification";
 import Picture from "../../Picture";
 import { Progress } from "../../Progress";
-import Pango from "gi://Pango?version=1.0";
-import Gdk from "gi://Gdk?version=4.0";
+import Pango from "gi://Pango";
+import { Gdk } from "ags/gtk4";
 import { globalSettings, globalTransition } from "../../../variables";
 import GLib from "gi://GLib";
 

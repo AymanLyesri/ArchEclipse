@@ -1,6 +1,6 @@
-import AstalMpris from "gi://AstalMpris?version=0.1";
+import AstalMpris from "gi://AstalMpris";
 import { getDominantColor, getImageRatio } from "../utils/image";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import {
   createBinding,
   createState,
@@ -9,10 +9,9 @@ import {
   With,
 } from "ags";
 import Picture from "./Picture";
-import Gio from "gi://Gio";
 // import Cava from "./Cava";
-import GLib from "gi://GLib?version=2.0";
-import Pango from "gi://Pango?version=1.0";
+import GLib from "gi://GLib";
+import Pango from "gi://Pango";
 import AstalApps from "gi://AstalApps";
 
 export default ({

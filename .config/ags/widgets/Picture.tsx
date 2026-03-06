@@ -1,7 +1,7 @@
 import { Accessor } from "ags";
 import Gdk from "gi://Gdk";
-import Gio from "gi://Gio?version=2.0";
-import Gtk from "gi://Gtk?version=4.0";
+import Gio from "gi://Gio";
+import { Gtk } from "ags/gtk4";
 
 interface PictureProps {
   class?: Accessor<string> | string;

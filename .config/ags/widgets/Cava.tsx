@@ -1,8 +1,8 @@
 import { createState, Accessor } from "ags";
-import GLib from "gi://GLib?version=2.0";
+import GLib from "gi://GLib";
 import Cava from "gi://AstalCava";
 import { globalTransition } from "../variables";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 const cava = Cava.get_default()!;
 
 // --- Tunable constants (change to lower CPU usage) ---

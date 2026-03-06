@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import KeyBind from "../../KeyBind";
 import { customScripts } from "../../../constants/customScript.constant";
 import { execAsync } from "ags/process";

@@ -2,8 +2,8 @@ import { createState, createComputed, For, With } from "ags";
 import { execAsync } from "ags/process";
 import { monitorFile } from "ags/file";
 import app from "ags/gtk4/app";
-import Gtk from "gi://Gtk?version=4.0";
-import Astal from "gi://Astal?version=4.0";
+import { Gtk } from "ags/gtk4";
+import { Astal } from "ags/gtk4";
 import { notify } from "../utils/notification";
 import {
   focusedWorkspace,
@@ -13,12 +13,12 @@ import {
 import { getMonitorName } from "../utils/monitor";
 import Picture from "./Picture";
 import Gio from "gi://Gio";
-import GLib from "gi://GLib?version=2.0";
 import { Progress } from "./Progress";
 import { timeout } from "ags/time";
 import { Gdk } from "ags/gtk4";
 import { formatKiloBytes } from "../utils/bytes";
 import { readJson } from "../utils/json";
+import GLib from "gi://GLib";
 
 const [selectedWorkspaceId, setSelectedWorkspaceId] = createState<number>(1);
 
@@ -501,7 +501,7 @@ export default ({
       application={app}
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
-      exclusivity={Astal.Exclusivity.NORMAL}
+      exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.OVERLAY}
       anchor={
         Astal.WindowAnchor.LEFT |

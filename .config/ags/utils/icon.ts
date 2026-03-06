@@ -1,5 +1,3 @@
-import Astal from "gi://Astal?version=4.0";
-
 export function playerToIcon(name: string) {
   let icons: {
     [key: string]: string;

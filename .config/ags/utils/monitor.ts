@@ -1,11 +1,11 @@
-import Gdk from "gi://Gdk?version=4.0";
+import { Gdk } from "ags/gtk4";
 
 import Gio from "gi://Gio";
 
 export function getConnectorFromHyprland(model: string) {
   const proc = Gio.Subprocess.new(
     ["hyprctl", "monitors", "-j"],
-    Gio.SubprocessFlags.STDOUT_PIPE
+    Gio.SubprocessFlags.STDOUT_PIPE,
   );
 
   const [, stdout] = proc.communicate_utf8(null, null);

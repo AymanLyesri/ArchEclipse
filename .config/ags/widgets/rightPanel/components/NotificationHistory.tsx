@@ -1,6 +1,6 @@
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import Notifd from "gi://AstalNotifd";
-import GLib from "gi://GLib?version=2.0";
+import GLib from "gi://GLib";
 import {
   createState,
   createComputed,
@@ -9,7 +9,7 @@ import {
   Accessor,
   Setter,
 } from "ags";
-import Pango from "gi://Pango?version=1.0";
+import Pango from "gi://Pango";
 import { NotificationWidget } from "./Notification";
 
 /* ----------------------------- Types ----------------------------- */

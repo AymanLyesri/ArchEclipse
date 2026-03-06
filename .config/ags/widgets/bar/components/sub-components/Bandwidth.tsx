@@ -1,5 +1,5 @@
 import { createPoll } from "ags/time";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import { With } from "gnim";
 import { formatKiloBytes } from "../../../../utils/bytes";
 import { createSubprocess } from "ags/process";

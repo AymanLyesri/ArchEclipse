@@ -2,9 +2,9 @@ import { execAsync, exec } from "ags/process";
 import { createPoll } from "ags/time";
 
 import App from "ags/gtk4/app";
-import Gtk from "gi://Gtk?version=4.0";
-import Gdk from "gi://Gdk?version=4.0";
-import Astal from "gi://Astal?version=4.0";
+import { Gtk } from "ags/gtk4";
+import { Gdk } from "ags/gtk4";
+import { Astal } from "ags/gtk4";
 
 import Hyprland from "gi://AstalHyprland";
 import { date_less, date_more } from "../variables";
@@ -15,6 +15,7 @@ import { notify } from "../utils/notification";
 import GLib from "gi://GLib";
 import { getMonitorName } from "../utils/monitor";
 import MediaWidget from "./MediaWidget";
+import Pango from "gi://Pango";
 const hyprland = Hyprland.get_default();
 
 // $HOME/.face.icon, if the file doesn't exist, it will return the default user picture path "./assets/userpanel/archeclipse_default_pfp.jpg"
@@ -114,7 +115,12 @@ const UserPanel = () => {
 
     const Uptime = (
       <box halign={Gtk.Align.CENTER} class="up-time">
-        <label class="uptime" label={uptime} />
+        <label
+          class="uptime"
+          label={uptime}
+          wrap={true}
+          wrapMode={Pango.WrapMode.WORD_CHAR}
+        />
       </box>
     );
 
@@ -309,6 +315,7 @@ export default ({
       layer={Astal.Layer.OVERLAY}
       visible={false}
       keymode={Astal.Keymode.ON_DEMAND}
+      exclusivity={Astal.Exclusivity.IGNORE}
       anchor={
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.RIGHT |

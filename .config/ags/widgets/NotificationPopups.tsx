@@ -1,7 +1,7 @@
 import App from "ags/gtk4/app";
-import Gtk from "gi://Gtk?version=4.0";
-import Gdk from "gi://Gdk?version=4.0";
-import Astal from "gi://Astal?version=4.0";
+import { Gtk } from "ags/gtk4";
+import { Gdk } from "ags/gtk4";
+import { Astal } from "ags/gtk4";
 import Notifd from "gi://AstalNotifd";
 import { createState, createComputed, For, Accessor } from "ags";
 import { globalMargin, globalSettings, globalTransition } from "../variables";

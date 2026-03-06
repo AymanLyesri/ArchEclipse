@@ -1,18 +1,18 @@
 import { execAsync } from "ags/process";
-import GLib from "gi://GLib?version=2.0";
+import GLib from "gi://GLib";
 import { createState } from "ags";
-import Gtk from "gi://Gtk?version=4.0";
-import Astal from "gi://Astal?version=4.0";
+import { Gtk } from "ags/gtk4";
+import { Astal } from "ags/gtk4";
 import Notifd from "gi://AstalNotifd";
 import { globalTransition } from "../../../variables";
 import hyprland from "gi://AstalHyprland";
 import { notify } from "../../../utils/notification";
 import { time } from "../../../utils/time";
 
-import Pango from "gi://Pango?version=1.0";
+import Pango from "gi://Pango";
 import Picture from "../../Picture";
-import GdkPixbuf from "gi://GdkPixbuf?version=2.0";
-import Gdk from "gi://Gdk?version=4.0";
+import GdkPixbuf from "gi://GdkPixbuf";
+import { Gdk } from "ags/gtk4";
 import { timeout } from "ags/time";
 
 interface NotificationProps {

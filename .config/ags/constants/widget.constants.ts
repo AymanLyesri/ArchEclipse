@@ -10,7 +10,6 @@ import Workspaces from "../widgets/bar/components/Workspaces";
 import Information from "../widgets/bar/components/Information";
 import Utilities from "../widgets/bar/components/Utilities";
 import ScriptTimer from "../widgets/rightPanel/components/ScriptTimer";
-import Gtk from "gi://Gtk?version=4.0";
 import { Accessor } from "ags";
 import CryptoWidget from "../widgets/rightPanel/components/CryptoViewer";
 import MangaViewer from "../widgets/leftPanel/components/MangaViewer";
@@ -19,6 +18,7 @@ import Calendar from "../widgets/rightPanel/components/Calendar";
 import NotificationHistory from "../widgets/rightPanel/components/NotificationHistory";
 import KeyBinds from "../widgets/leftPanel/components/KeyBinds";
 import SystemResources from "../widgets/rightPanel/components/SystemResources";
+import { Gtk } from "ags/gtk4";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {

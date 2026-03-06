@@ -1,4 +1,5 @@
 .user-panel {
+  background-color: rgba($color: #000000, $alpha: 0.2);
   .main {
     background: $background-transparent;
     border-radius: 20px;
@@ -32,8 +33,8 @@
     .profile-picture {
       border-radius: 50%;
       background: transparent;
-      min-height: 200px;
-      min-width: 200px;
+      min-height: 250px;
+      min-width: 250px;
       padding: 0px;
     }
     .image {

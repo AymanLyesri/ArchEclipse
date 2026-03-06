@@ -10,9 +10,8 @@ import {
   getDomainFromURL,
 } from "../utils/url";
 import app from "ags/gtk4/app";
-import Gtk from "gi://Gtk?version=4.0";
+import { Astal, Gtk } from "ags/gtk4";
 
-import Astal from "gi://Astal?version=4.0";
 import { notify } from "../utils/notification";
 import {
   emptyWorkspace,
@@ -30,17 +29,62 @@ import { LauncherApp } from "../interfaces/app.interface";
 import { customApps } from "../constants/app.constants";
 import { quickApps } from "../constants/app.constants";
 import { For } from "gnim";
-import Gdk from "gi://Gdk?version=4.0";
+import { Gdk } from "ags/gtk4";
 import { convert, isConversionQuery } from "../utils/convert";
-import Pango from "gi://Pango?version=1.0";
+import Pango from "gi://Pango";
 import GLib from "gi://GLib";
 const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
+const MAX_HISTORY_ENTRIES = 10;
+const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/history.json`;
 
 const [Results, setResults] = createState<LauncherApp[]>([]);
 
 const [history, setHistory] = createState<string[]>([]);
+
+const normalizeHistory = (entries: unknown): string[] => {
+  if (!Array.isArray(entries)) return [];
+
+  const normalized: string[] = [];
+  for (const entry of entries) {
+    if (typeof entry !== "string") continue;
+    const appName = entry.trim();
+    if (!appName || normalized.includes(appName)) continue;
+
+    normalized.push(appName);
+    if (normalized.length >= MAX_HISTORY_ENTRIES) break;
+  }
+
+  return normalized;
+};
+
+const getInstalledAppByName = (appName: string): Apps.Application | null => {
+  return (
+    apps
+      .fuzzy_query(appName)
+      .find((candidate: Apps.Application) => candidate.name === appName) || null
+  );
+};
+
+const persistHistory = (nextHistory: string[]) => {
+  writeJSONFile(LAUNCHER_HISTORY_PATH, nextHistory);
+};
+
+const touchHistory = (appName: string) => {
+  const nextHistory = normalizeHistory([
+    appName,
+    ...history.peek().filter((name) => name !== appName),
+  ]);
+
+  setHistory(nextHistory);
+  persistHistory(nextHistory);
+};
+
+const launchAndRecord = (application: Apps.Application) => {
+  application.launch();
+  touchHistory(application.name);
+};
 
 let parentWindowRef: Gtk.Window | null = null;
 
@@ -194,19 +238,7 @@ const Entry = () => (
                   app_description: app.description,
                   app_type: "app",
                   app_arg: args.join(" "),
-                  app_launch: () => {
-                    app.launch();
-                    // Add to history and remove old duplicates, keep only latest 10
-                    const newHistory = [
-                      app.name,
-                      ...history.peek().filter((name) => name !== app.name),
-                    ].slice(0, 10);
-                    setHistory(newHistory);
-                    writeJSONFile(
-                      `${GLib.get_home_dir()}/.config/ags/cache/launcher/history.json`,
-                      newHistory,
-                    );
-                  },
+                  app_launch: () => launchAndRecord(app),
                 })),
             );
             if (Results.get().length === 0) {
@@ -379,10 +411,19 @@ const History = () => {
           execAsync(
             `mkdir -p ${GLib.get_home_dir()}/.config/ags/cache/launcher`,
           ).then(() => {
-            const history = readJSONFile(
-              `${GLib.get_home_dir()}/.config/ags/cache/launcher/history.json`,
+            const loadedHistory = normalizeHistory(
+              readJSONFile(LAUNCHER_HISTORY_PATH, []),
             );
-            if (Array.isArray(history)) setHistory(history);
+
+            const validHistory = loadedHistory.filter(
+              (appName) => getInstalledAppByName(appName) !== null,
+            );
+
+            setHistory(validHistory);
+
+            if (validHistory.length !== loadedHistory.length) {
+              persistHistory(validHistory);
+            }
           });
         }}
       >
@@ -392,16 +433,16 @@ const History = () => {
         ></label>
         <For each={history}>
           {(appName) => {
-            const _app = apps.fuzzy_query(appName)[0];
+            const _app = getInstalledAppByName(appName);
 
-            if (app) {
+            if (_app) {
               const app: LauncherApp = {
                 app_name: _app.name,
                 app_icon: _app.iconName,
                 app_description: _app.description,
                 app_type: "app",
                 app_launch: () => {
-                  _app.launch();
+                  launchAndRecord(_app);
                 },
               };
               return <AppButton element={app} />;
@@ -427,7 +468,7 @@ export default ({
     name={`app-launcher-${getMonitorName(monitor)}`}
     namespace="app-launcher"
     application={app}
-    exclusivity={Astal.Exclusivity.EXCLUSIVE}
+    exclusivity={Astal.Exclusivity.IGNORE}
     keymode={Astal.Keymode.EXCLUSIVE}
     layer={Astal.Layer.TOP}
     margin={globalMargin} // top right bottom left

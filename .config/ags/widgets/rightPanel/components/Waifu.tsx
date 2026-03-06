@@ -1,6 +1,6 @@
 import { Accessor, createState, With } from "ags";
 import { globalSettings, setGlobalSetting } from "../../../variables";
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import { BooruImage } from "../../../class/BooruImage";
 import app from "ags/gtk4/app";
 import { showWindow } from "../../../utils/window";

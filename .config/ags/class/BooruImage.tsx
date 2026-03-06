@@ -1,8 +1,6 @@
 import { exec, execAsync } from "ags/process";
 import { notify } from "../utils/notification";
 import { Api, ApiClass } from "../interfaces/api.interface";
-import Gtk from "gi://Gtk?version=4.0";
-import Gio from "gi://Gio?version=2.0";
 import Pango from "gi://Pango";
 import GdkPixbuf from "gi://GdkPixbuf";
 import { booruPath } from "../constants/path.constants";
@@ -15,6 +13,8 @@ import { booruApis } from "../constants/api.constants";
 import GLib from "gi://GLib";
 
 import Hyprland from "gi://AstalHyprland";
+import { Gtk } from "ags/gtk4";
+import Gio from "gi://Gio";
 const hyprland = Hyprland.get_default();
 
 /**

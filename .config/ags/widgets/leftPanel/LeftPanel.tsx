@@ -1,7 +1,7 @@
 import App from "ags/gtk4/app";
-import Astal from "gi://Astal?version=4.0";
-import Gdk from "gi://Gdk?version=4.0";
-import Gtk from "gi://Gtk?version=4.0";
+import { Astal } from "ags/gtk4";
+import { Gdk } from "ags/gtk4";
+import { Gtk } from "ags/gtk4";
 import {
   globalSettings,
   globalTransition,
@@ -18,7 +18,8 @@ const WidgetActions = () => {
     <box
       orientation={Gtk.Orientation.VERTICAL}
       class="widget-actions"
-      spacing={10}>
+      spacing={10}
+    >
       {leftPanelWidgetSelectors.map((widgetSelector) => {
         return (
           <togglebutton
@@ -44,7 +45,8 @@ const Actions = () => (
   <box
     class="panel-actions"
     halign={Gtk.Align.START}
-    orientation={Gtk.Orientation.VERTICAL}>
+    orientation={Gtk.Orientation.VERTICAL}
+  >
     <WidgetActions />
     <WindowActions
       windowWidth={globalSettings(({ leftPanel }) => leftPanel.width)}
@@ -109,7 +111,8 @@ function Panel() {
               unsubscribe();
             }
           });
-        }}>
+        }}
+      >
         {panelStack}
       </box>
     </box>
@@ -178,7 +181,8 @@ export default ({
         });
 
         self.add_controller(motion);
-      }}>
+      }}
+    >
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
@@ -198,7 +202,8 @@ export function LeftPanelVisibility() {
     <revealer
       revealChild={globalSettings(({ leftPanel }) => leftPanel.lock)}
       transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      transitionDuration={globalTransition}>
+      transitionDuration={globalTransition}
+    >
       <togglebutton
         active={false}
         label={""}

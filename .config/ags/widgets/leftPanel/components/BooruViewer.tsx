@@ -1,4 +1,4 @@
-import Gtk from "gi://Gtk?version=4.0";
+import { Gtk } from "ags/gtk4";
 import { BooruImage } from "../../../class/BooruImage";
 import { execAsync } from "ags/process";
 import { readJson } from "../../../utils/json";
@@ -10,13 +10,13 @@ import {
 import { notify } from "../../../utils/notification";
 import { createState, createComputed, For, With, Accessor } from "ags";
 import { booruApis } from "../../../constants/api.constants";
-import Gdk from "gi://Gdk?version=4.0";
-import Gio from "gi://Gio?version=2.0";
+import { Gdk } from "ags/gtk4";
+import Gio from "gi://Gio";
 import { Progress } from "../../Progress";
 import { connectPopoverEvents } from "../../../utils/window";
 import { booruPath } from "../../../constants/path.constants";
 import Adw from "gi://Adw";
-import Pango from "gi://Pango?version=1.0";
+import Pango from "gi://Pango";
 import GLib from "gi://GLib";
 
 const [images, setImages] = createState<BooruImage[]>([]);

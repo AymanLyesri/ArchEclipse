@@ -3,9 +3,9 @@
 // =============================================================================
 
 // GTK and GLib imports for UI components and system operations
-import Gtk from "gi://Gtk?version=4.0";
-import GLib from "gi://GLib?version=2.0";
-import Pango from "gi://Pango?version=1.0";
+import { Gtk } from "ags/gtk4";
+import GLib from "gi://GLib";
+import Pango from "gi://Pango";
 
 // AGS framework imports for state management and utilities
 import { createState, For, With } from "ags";

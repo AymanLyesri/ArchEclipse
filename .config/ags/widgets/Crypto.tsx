@@ -1,7 +1,7 @@
 import { Accessor, createBinding, createState, With } from "ags";
 import { createPoll } from "ags/time";
-import Gtk from "gi://Gtk?version=4.0";
-import GLib from "gi://GLib?version=2.0";
+import { Gtk } from "ags/gtk4";
+import GLib from "gi://GLib";
 import { Eventbox } from "./Custom/Eventbox";
 import { Progress } from "./Progress";
 import Pango from "gi://Pango";
