@@ -1,7 +1,6 @@
 import { Gtk } from "ags/gtk4";
 import { BooruImage } from "../../../class/BooruImage";
 import { execAsync } from "ags/process";
-import { readJson } from "../../../utils/json";
 import {
   globalSettings,
   globalTransition,
@@ -18,6 +17,80 @@ import { booruPath } from "../../../constants/path.constants";
 import Adw from "gi://Adw";
 import Pango from "gi://Pango";
 import GLib from "gi://GLib";
+
+type BooruErrorEnvelope = {
+  error?: boolean;
+  code?: string;
+  message?: string;
+};
+
+const booruScriptPath = `${GLib.get_home_dir()}/.config/ags/scripts/booru.py`;
+
+const formatBooruError = (envelope: BooruErrorEnvelope) => {
+  return envelope.message?.trim() || "Unknown booru error";
+};
+
+const parseJson = (raw: string): unknown => {
+  return JSON.parse(raw) as unknown;
+};
+
+const parseBooruArrayResponse = <T,>(
+  raw: string,
+  invalidFormatMessage: string,
+): T[] => {
+  if (!raw?.trim()) {
+    throw new Error("Received empty response from booru script");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = parseJson(raw);
+  } catch {
+    throw new Error(`${invalidFormatMessage}: ${raw.trim()}`);
+  }
+
+  if (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    "error" in parsed &&
+    (parsed as BooruErrorEnvelope).error === true
+  ) {
+    throw new Error(formatBooruError(parsed as BooruErrorEnvelope));
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error(invalidFormatMessage);
+  }
+
+  return parsed as T[];
+};
+
+const booruErrorMessageFromUnknown = (
+  err: unknown,
+  fallback: string,
+): string => {
+  const primary =
+    err instanceof Error ? err.message?.trim() : String(err ?? "").trim();
+  const text = primary || String(err ?? "").trim();
+
+  if (!text) return fallback;
+
+  try {
+    const parsed = parseJson(text);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "error" in parsed &&
+      (parsed as BooruErrorEnvelope).error === true
+    ) {
+      return formatBooruError(parsed as BooruErrorEnvelope);
+    }
+  } catch {
+    // Non-JSON error text
+  }
+
+  return text;
+};
 
 const [images, setImages] = createState<BooruImage[]>([]);
 const [cacheSize, setCacheSize] = createState<string>("0kb");
@@ -104,38 +177,37 @@ const fetchImages = async () => {
     setProgressStatus("loading");
 
     const settings = globalSettings.peek();
-    const escapedTags = settings.booru.tags.map((t) =>
-      t.replace(/'/g, "'\\''"),
+    const apiValue = settings.booru.api.value;
+    const credentials =
+      settings.apiKeys[apiValue as keyof typeof settings.apiKeys];
+
+    const args = [
+      "python",
+      booruScriptPath,
+      "--api",
+      apiValue,
+      "--tags",
+      settings.booru.tags.join(","),
+      "--limit",
+      String(settings.booru.limit),
+      "--page",
+      String(settings.booru.page),
+    ];
+
+    if (credentials?.user.value && credentials?.key.value) {
+      args.push(
+        "--api-user",
+        credentials.user.value,
+        "--api-key",
+        credentials.key.value,
+      );
+    }
+
+    const res = await execAsync(args);
+    const jsonData = parseBooruArrayResponse<any>(
+      res,
+      "Invalid response format from booru API",
     );
-
-    const command = `
-      python ${GLib.get_home_dir()}/.config/ags/scripts/booru.py \
-        --api ${settings.booru.api.value} \
-        --tags '${escapedTags.join(",")}' \
-        --limit ${settings.booru.limit} \
-        --page ${settings.booru.page} \
-        --api-user ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].user.value} \
-        --api-key ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].key.value}
-    `;
-
-    const res = await execAsync(command);
-
-    const jsonData = readJson(res);
-    if (!jsonData) {
-      throw new Error("Failed to parse response");
-    }
-
-    // Check if response is an error
-    if (jsonData.error === true) {
-      const errorMsg = jsonData.details
-        ? `${jsonData.message}: ${jsonData.details}`
-        : jsonData.message;
-      throw new Error(errorMsg);
-    }
-
-    if (!Array.isArray(jsonData)) {
-      throw new Error("Invalid response format from booru API");
-    }
 
     const images: BooruImage[] = jsonData.map(
       (img: any) =>
@@ -168,7 +240,10 @@ const fetchImages = async () => {
     setProgressStatus("success");
   } catch (err) {
     console.error(err);
-    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorMessage = booruErrorMessageFromUnknown(
+      err,
+      "Failed to fetch images",
+    );
     notify({
       summary: "Error fetching images",
       body: errorMessage,
@@ -251,55 +326,33 @@ const Tabs = () => (
 const fetchTags = async (tag: string) => {
   try {
     const settings = globalSettings.peek();
-    const escapedTag = tag.replace(/'/g, "'\\'''");
-    const res = await execAsync(
-      `python ${GLib.get_home_dir()}/.config/ags/scripts/booru.py \
-        --api ${globalSettings.peek().booru.api.value} \
-        --tag '${escapedTag}' \
-        --api-user ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].user.value} \
-        --api-key ${settings.apiKeys[settings.booru.api.value as keyof typeof settings.apiKeys].key.value}
-        `,
+    const apiValue = settings.booru.api.value;
+    const credentials =
+      settings.apiKeys[apiValue as keyof typeof settings.apiKeys];
+
+    const args = ["python", booruScriptPath, "--api", apiValue, "--tag", tag];
+
+    if (credentials?.user.value && credentials?.key.value) {
+      args.push(
+        "--api-user",
+        credentials.user.value,
+        "--api-key",
+        credentials.key.value,
+      );
+    }
+
+    const res = await execAsync(args);
+    const jsonData = parseBooruArrayResponse<string>(
+      res,
+      "Invalid response format from tag search",
     );
-    const jsonData = readJson(res);
-    if (!jsonData) {
-      const errorMsg = "Failed to parse tag response";
-      console.error(errorMsg);
-      notify({
-        summary: "Error fetching tags",
-        body: errorMsg,
-      });
-      setFetchedTags([]);
-      return;
-    }
-
-    // Check if response is an error
-    if (jsonData.error === true) {
-      const errorMsg = jsonData.details
-        ? `${jsonData.message}: ${jsonData.details}`
-        : jsonData.message;
-      console.error("Tag fetch error:", errorMsg);
-      notify({
-        summary: "Error fetching tags",
-        body: errorMsg,
-      });
-      setFetchedTags([]);
-      return;
-    }
-
-    if (!Array.isArray(jsonData)) {
-      const errorMsg = "Invalid response format from tag search";
-      console.error(errorMsg);
-      notify({
-        summary: "Error fetching tags",
-        body: errorMsg,
-      });
-      setFetchedTags([]);
-      return;
-    }
     setFetchedTags(jsonData);
   } catch (err) {
     console.error("Error fetching tags:", err);
-    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorMessage = booruErrorMessageFromUnknown(
+      err,
+      "Failed to fetch tags",
+    );
     notify({
       summary: "Error fetching tags",
       body: errorMessage,

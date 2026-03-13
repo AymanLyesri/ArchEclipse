@@ -33,16 +33,19 @@ export const booruApis: Api[] = [
   {
     name: "Danbooru",
     value: "danbooru",
+    url: "https://danbooru.donmai.us/",
     idSearchUrl: "https://danbooru.donmai.us/posts/",
   },
   {
     name: "Gelbooru",
     value: "gelbooru",
+    url: "https://gelbooru.com/",
     idSearchUrl: "https://gelbooru.com/index.php?page=post&s=view&id=",
   },
   {
     name: "Safebooru",
     value: "safebooru",
+    url: "https://safebooru.donmai.us/",
     idSearchUrl: "https://safebooru.donmai.us/posts/",
   },
 ];

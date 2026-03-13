@@ -12,18 +12,20 @@ from requests.auth import HTTPBasicAuth
 class ErrorResponse:
     """Structured error response."""
 
-    def __init__(self, code: str, message: str, details: Optional[str] = None):
+    def __init__(self, code: str, message: str):
         self.code = code
         self.message = message
-        self.details = details
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "error": True,
             "code": self.code,
             "message": self.message,
-            "details": self.details,
         }
+
+
+def emit_error(error: "ErrorResponse") -> None:
+    print(json.dumps(error.to_dict()), file=sys.stderr)
 
 
 # ============================================================
@@ -384,7 +386,7 @@ class SafebooruProvider(BooruProvider):
         except requests.exceptions.HTTPError as e:
             raise Exception(f"HTTP error {e.response.status_code}: {e.response.reason}")
         except Exception as e:
-            raise Exception(f"Unexpected error: {str(e)}")
+            raise Exception(str(e))
 
         try:
             return [t["name"] for t in r.json()]
@@ -419,12 +421,9 @@ def main():
     if len(sys.argv) < 2:
         error = ErrorResponse(
             "MISSING_ARGS",
-            "Missing required arguments",
-            "Usage: booru.py --api [danbooru|gelbooru|safebooru] "
-            "--id [id] --tags [tag,tag] --tag [tag] --page [n] --limit [n] "
-            "--api-user [user] --api-key [key]",
+            "Missing required arguments. Use --api [danbooru|gelbooru|safebooru] and optional --id/--tags/--tag/--page/--limit/--api-user/--api-key.",
         )
-        print(json.dumps(error.to_dict()))
+        emit_error(error)
         sys.exit(1)
 
     api = None
@@ -455,35 +454,32 @@ def main():
             elif sys.argv[i] == "--api-key":
                 api_key = sys.argv[i + 1]
     except (IndexError, ValueError) as e:
-        error = ErrorResponse("INVALID_ARGS", "Invalid argument format", str(e))
-        print(json.dumps(error.to_dict()))
+        error = ErrorResponse("INVALID_ARGS", f"Invalid argument format: {str(e)}")
+        emit_error(error)
         sys.exit(1)
 
     if not api:
         error = ErrorResponse(
             "MISSING_API",
-            "API source is required",
-            "Use --api [danbooru|gelbooru|safebooru]",
+            "API source is required. Use --api [danbooru|gelbooru|safebooru].",
         )
-        print(json.dumps(error.to_dict()))
+        emit_error(error)
         sys.exit(1)
 
     if api not in {"danbooru", "gelbooru", "safebooru"}:
         error = ErrorResponse(
             "INVALID_API",
-            "Invalid API source",
-            f"'{api}' is not supported. Use 'danbooru', 'gelbooru', or 'safebooru'",
+            f"Invalid API source '{api}'. Use danbooru, gelbooru, or safebooru.",
         )
-        print(json.dumps(error.to_dict()))
+        emit_error(error)
         sys.exit(1)
 
     if api in {"danbooru", "gelbooru"} and (not api_user or not api_key):
         error = ErrorResponse(
             "MISSING_CREDENTIALS",
-            "API user and key are required for danbooru/gelbooru",
-            "Provide both --api-user and --api-key arguments",
+            "danbooru/gelbooru require both --api-user and --api-key.",
         )
-        print(json.dumps(error.to_dict()))
+        emit_error(error)
         sys.exit(1)
 
     try:
@@ -491,10 +487,9 @@ def main():
         if not provider:
             error = ErrorResponse(
                 "PROVIDER_ERROR",
-                "Failed to initialize provider",
-                f"Could not create provider for API: {api}",
+                f"Failed to initialize provider for API: {api}.",
             )
-            print(json.dumps(error.to_dict()))
+            emit_error(error)
             sys.exit(1)
 
         if tag_query:
@@ -505,18 +500,15 @@ def main():
         if data is None or (isinstance(data, list) and len(data) == 0):
             error = ErrorResponse(
                 "NO_RESULTS",
-                "No results found",
-                "The API returned no data. Try different tags or check if the post exists.",
+                "No results found. Try different tags or verify the post exists.",
             )
-            print(json.dumps(error.to_dict()))
+            emit_error(error)
             sys.exit(1)
 
         print(json.dumps(data))
     except Exception as e:
-        error = ErrorResponse(
-            "UNEXPECTED_ERROR", "An unexpected error occurred", str(e)
-        )
-        print(json.dumps(error.to_dict()))
+        error = ErrorResponse("UNEXPECTED_ERROR", str(e))
+        emit_error(error)
         sys.exit(1)
 
 

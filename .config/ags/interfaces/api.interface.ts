@@ -3,6 +3,7 @@ export interface Api {
   value: string;
   icon?: string;
   description?: string;
+  url?: string;
   idSearchUrl?: string;
   imageGenerationSupport?: boolean;
 }

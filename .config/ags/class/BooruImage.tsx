@@ -161,15 +161,38 @@ export class BooruImage {
     this._setLoadingState("loading");
 
     try {
-      await execAsync(
-        `bash -c "mkdir -p ${booruPath}/${this.api.value}/images"`,
-      );
+      const imagePath = this.getImagePath();
+      const imageUrl = this.getOriginalUrl();
 
-      await execAsync(
-        `bash -c "[ -e '${this.getImagePath()}' ] || curl -o ${this.getImagePath()} ${
-          this.url
-        }"`,
-      );
+      if (!imageUrl) {
+        throw new Error("Image URL is not available");
+      }
+
+      await execAsync(["mkdir", "-p", `${booruPath}/${this.api.value}/images`]);
+
+      if (Gio.File.new_for_path(imagePath).query_exists(null)) {
+        this._isDownloaded = true;
+        this._setLoadingState("success");
+        return;
+      }
+
+      const curlArgs = ["curl", "-f", "-o", imagePath];
+
+      if (this.api.value === "gelbooru") {
+        curlArgs.splice(
+          1,
+          0,
+          "-L",
+          "-H",
+          "Referer: https://gelbooru.com/",
+          "-A",
+          "Mozilla/5.0",
+        );
+      }
+
+      curlArgs.push(imageUrl);
+
+      await execAsync(curlArgs);
 
       this._isDownloaded = true;
       this._setLoadingState("success");
