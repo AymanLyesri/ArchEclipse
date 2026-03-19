@@ -153,7 +153,8 @@ function Volume() {
 
   let hideTimeout: any = null;
   let isHovering = false;
-  let isFirstTrigger = true;
+  let lastVolume = speaker.volume;
+  let firstRender = true;
 
   const revealer = (
     <revealer
@@ -162,11 +163,22 @@ function Volume() {
       transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
       $={(self) => {
         speaker.connect(`notify::volume`, () => {
-          // Skip the first trigger
-          if (isFirstTrigger) {
-            isFirstTrigger = false;
+          const currentVolume = speaker.volume;
+
+          // Skip the initial notification on component mount
+          if (firstRender) {
+            firstRender = false;
+            lastVolume = currentVolume;
             return;
           }
+
+          // Ignore spurious notifications where value did not change
+          if (currentVolume === lastVolume) {
+            return;
+          }
+
+          lastVolume = currentVolume;
+          self.reveal_child = true;
 
           if (hideTimeout) {
             clearTimeout(hideTimeout);

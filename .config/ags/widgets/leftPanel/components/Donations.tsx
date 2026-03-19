@@ -432,17 +432,26 @@ export default () => {
               )}
 
               {option.type === "paypal" && option.url && (
-                <button
-                  class="donation-button paypal"
-                  hexpand
-                  onClicked={() => openUrl(option.url!)}
-                  tooltipText={option.url}
-                >
-                  <box spacing={5}>
-                    <label label="" />
-                    <label label="Donate via PayPal" />
-                  </box>
-                </button>
+                <box spacing={5}>
+                  <button
+                    class="donation-button paypal"
+                    hexpand
+                    onClicked={() => openUrl(option.url!)}
+                    tooltipText={option.url}
+                  >
+                    <box spacing={5}>
+                      <label label="" />
+                      <label label="Donate via PayPal" />
+                    </box>
+                  </button>
+                  <button
+                    class="donation-button secondary"
+                    onClicked={() => showQRCode(option.url!, option.name)}
+                    tooltipText="Show QR Code"
+                  >
+                    <label label="" />
+                  </button>
+                </box>
               )}
             </box>
           )}
