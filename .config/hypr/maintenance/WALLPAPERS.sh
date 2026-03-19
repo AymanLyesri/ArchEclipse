@@ -24,7 +24,6 @@ urls_NSFW=(
     "https://cdn.donmai.us/original/7b/33/__original_drawn_by_swkl_d__7b333431520df7632406ad70186671eb.jpg"
     "https://cdn.donmai.us/original/1b/1f/__original_drawn_by_tu_er_tm__1b1fabdc9969afff10e57a00bd8be84e.jpg"
     "https://cdn.donmai.us/original/41/ae/__original_drawn_by_tuweibu__41ae2e99e1d5e2443d7582b83e05ef48.jpg"
-    "https://cdn.donmai.us/original/59/e2/__original_drawn_by_vikiye__59e227bae545a3074f8fb4128065a4d4.jpg"
     "https://cdn.donmai.us/original/0d/02/__rebecca_lucy_and_dorio_cyberpunk_and_1_more_drawn_by_feguimel__0d026f4ad56695ddb81e31f54337ea7a.jpg"
     "https://cdn.donmai.us/original/72/ae/__robin_honkai_and_1_more_drawn_by_swkl_d__72aeec3f718f00424689c5124f13563f.jpg"
     "https://cdn.donmai.us/original/19/ca/__shyrei_faolan_vedal987_pepe_the_frog_filian_layna_lazar_and_1_more_indie_virtual_youtuber_and_2_more_drawn_by_haedgie__19ca44fa28b99f7fcc265fa76a7840b5.jpg"
@@ -51,7 +50,10 @@ urls_NSFW=(
     "https://cdn.donmai.us/original/6a/c4/__heyimbee_indie_virtual_youtuber_drawn_by_peesh_san__6ac459163a7cc5a7434640911c9a44fc.png"
     "https://cdn.donmai.us/original/10/d3/__original_drawn_by_wangdaye__10d369ce4cc5794e673fd1fb4f076608.jpg"
     "https://cdn.donmai.us/original/88/0c/__pearl_azur_lane__880cddda6a37d061f3e40075ee54e20f.png"
-    
+    "https://cdn.donmai.us/original/be/1e/__kurokawa_akane_oshi_no_ko_drawn_by_esmile__be1e97721936d1b0c3e1c0a6aa749e94.jpg"
+    "https://cdn.donmai.us/original/0e/06/__original_drawn_by_obsidian117__0e060859dfc8adf7e41fc47b03ec078b.jpg"
+    "https://cdn.donmai.us/original/1e/e5/__gawr_gura_hololive_and_1_more_drawn_by_champchidi__1ee57bae47cedc57a80de43b271b9f42.jpg"
+    "https://cdn.donmai.us/original/79/e6/__original_drawn_by_bodhi_wushushenghua__79e67145283e7e11872ffbbb53036592.jpg"
 )
 
 urls_SFW=(
@@ -63,6 +65,14 @@ urls_SFW=(
     "https://w.wallhaven.cc/full/5y/wallhaven-5yz968.jpg"
     "https://w.wallhaven.cc/full/d8/wallhaven-d8395l.jpg"
     "https://w.wallhaven.cc/full/yq/wallhaven-yq56jg.jpg"
+    "https://cdn.donmai.us/original/6d/24/__cartethyia_and_fleurdelys_wuthering_waves_drawn_by_ryuutsuki_basetsu__6d24624379108e09c0746cf7b61ca09f.jpg"
+    "https://cdn.donmai.us/original/ce/79/__gigi_murin_hololive_and_1_more_drawn_by_mazo_kunn__ce79dc4353279954ee6d54f0c3fb4650.jpg"
+    "https://cdn.donmai.us/original/dd/26/__columbina_genshin_impact_drawn_by_tyhaya__dd26cadaa29efbdf29951905c1228e38.jpg"
+    "https://cdn.donmai.us/original/f5/bd/__original_drawn_by_flantia__f5bd6abd01c8e2e36a84c8599fbef06a.jpg"
+    "https://cdn.donmai.us/original/4f/76/__moonlit_reflection_and_sun_crows_descend_nikki_and_1_more_drawn_by_zangfoxzang__4f76dceceab3c4a26927d091e5f74ae0.jpg"
+    "https://cdn.donmai.us/original/81/1f/__revenant_and_page_elden_ring_and_1_more_drawn_by_kwiaty_k__811f419d96b04c39cf9ce26d45cb2118.jpg"
+    "https://cdn.donmai.us/original/59/e2/__original_drawn_by_vikiye__59e227bae545a3074f8fb4128065a4d4.jpg"
+    "https://cdn.donmai.us/original/bd/70/__original_drawn_by_bodhi_wushushenghua__bd703bafcb56eb084528952720ae5611.jpg"
 )
 
 # Color codes
@@ -123,16 +133,16 @@ download_wallpapers() {
         sfw)
             echo -e "${GREEN}📥 Downloading SFW wallpapers...${NC}"
             download_category "sfw" urls_SFW
-            ;;
+        ;;
         nsfw)
             echo -e "${RED}📥 Downloading NSFW wallpapers...${NC}"
             download_category "nsfw" urls_NSFW
-            ;;
+        ;;
         all)
             echo -e "${BLUE}📥 Downloading ALL wallpapers...${NC}"
             download_category "sfw" urls_SFW
             download_category "nsfw" urls_NSFW
-            ;;
+        ;;
     esac
     
     echo -e "${GREEN}✓ Download complete!${NC}"
@@ -206,21 +216,21 @@ show_choice_menu() {
     case $choice in
         1)
             download_wallpapers "sfw"
-            ;;
+        ;;
         2)
             download_wallpapers "nsfw"
-            ;;
+        ;;
         3)
             download_wallpapers "all"
-            ;;
+        ;;
         4)
             echo -e "${YELLOW}⊘ Installation cancelled.${NC}"
             return
-            ;;
+        ;;
         *)
             echo -e "${RED}✗ Invalid choice. Installation cancelled.${NC}"
             return
-            ;;
+        ;;
     esac
 }
 

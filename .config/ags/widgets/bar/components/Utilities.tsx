@@ -39,15 +39,6 @@ const hyprland = Hyprland.get_default();
 
 function BrightnessWidget() {
   const screen = createBinding(brightness, "screen");
-  const slider = (
-    <slider
-      widthRequest={100}
-      class="slider"
-      drawValue={false}
-      onValueChanged={(self) => (brightness.screen = self.get_value())}
-      value={screen.peek()}
-    />
-  );
 
   const label = (
     <label
@@ -69,15 +60,98 @@ function BrightnessWidget() {
   const percentage = (
     <label label={screen((v: number) => `${Math.round(v * 100)}%`)} />
   );
-  return (
-    <CustomRevealer
-      tooltipText={screen((v) => `Brightness: ${Math.round(v * 100)}%`)}
-      trigger={
-        <box class="trigger" spacing={5} children={[label, percentage]} />
-      }
-      child={slider}
-      visible={screen((s) => s != 0)}
+
+  const slider = (
+    <slider
+      widthRequest={100}
+      class="slider"
+      drawValue={false}
+      onValueChanged={({ value }) => {
+        if (value == screen.peek()) return;
+        brightness.screen = value;
+      }}
+      value={screen}
     />
+  );
+
+  const trigger = (
+    <box class="trigger" spacing={5} children={[label, percentage]} />
+  );
+
+  let hideTimeout: any = null;
+  let isHovering = false;
+  let lastScreen = brightness.screen;
+  let firstRender = true;
+
+  const revealer = (
+    <revealer
+      revealChild={false}
+      transitionDuration={globalTransition}
+      transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
+      $={(self) => {
+        brightness.connect(`notify::screen`, () => {
+          const currentScreen = brightness.screen;
+
+          // Skip the initial notification on component mount
+          if (firstRender) {
+            firstRender = false;
+            lastScreen = currentScreen;
+            return;
+          }
+
+          // Ignore spurious notifications where value did not change
+          if (currentScreen === lastScreen) {
+            return;
+          }
+
+          lastScreen = currentScreen;
+          self.reveal_child = true;
+
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+          }
+
+          // Set new timeout to hide after 2 seconds of no brightness changes
+          hideTimeout = setTimeout(() => {
+            if (!isHovering) {
+              self.reveal_child = false;
+            }
+          }, 2000);
+        });
+      }}
+    >
+      {slider}
+    </revealer>
+  );
+
+  return (
+    <box
+      tooltipText={screen((v) => `Brightness: ${Math.round(v * 100)}%`)}
+      class={"custom-revealer"}
+    >
+      <Gtk.EventControllerMotion
+        onEnter={() => {
+          isHovering = true;
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+          }
+          (revealer as Gtk.Revealer).reveal_child = true;
+        }}
+        onLeave={() => {
+          isHovering = false;
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+          }
+          hideTimeout = setTimeout(() => {
+            (revealer as Gtk.Revealer).reveal_child = false;
+          }, 2000);
+        }}
+      ></Gtk.EventControllerMotion>
+      <box class={"content"}>
+        {trigger}
+        {revealer}
+      </box>
+    </box>
   );
 }
 
