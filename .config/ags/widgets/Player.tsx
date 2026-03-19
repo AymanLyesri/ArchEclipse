@@ -9,7 +9,7 @@ import {
   With,
 } from "ags";
 import Picture from "./Picture";
-// import Cava from "./Cava";
+import Cava from "./Cava";
 import GLib from "gi://GLib";
 import Pango from "gi://Pango";
 import AstalApps from "gi://AstalApps";
@@ -35,6 +35,10 @@ export default ({
     player,
     "coverArt",
   )((path) => getDominantColor(path));
+  const isPlaying = createBinding(
+    player,
+    "playbackStatus",
+  )((status) => status === AstalMpris.PlaybackStatus.PLAYING);
 
   // Calculate bar count based on parent width
   const barCount = parentWidth((width) => {
@@ -320,16 +324,17 @@ export default ({
         orientation={Gtk.Orientation.VERTICAL}
         valign={Gtk.Align.END}
       >
-        {/* <box halign={Gtk.Align.CENTER}>
+        <box halign={Gtk.Align.CENTER}>
           <With value={barCount}>
             {(count) => (
               <Cava
                 barCount={count} // Use computed bar count
+                isPlaying={isPlaying}
                 transitionType={Gtk.RevealerTransitionType.SWING_UP}
               />
             )}
           </With>
-        </box> */}
+        </box>
         {playerStack}
       </box>
     </overlay>

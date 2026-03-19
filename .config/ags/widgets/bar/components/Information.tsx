@@ -36,15 +36,19 @@ function Mpris() {
   return (
     <menubutton class={"mpris"}>
       <box spacing={5}>
-        {/* <Cava
-          barCount={12}
-          transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-        /> */}
         <For each={players}>
           {(player) => {
             const [app] = apps.exact_query(player.entry);
             return (
               <box spacing={5}>
+                <Cava
+                  barCount={10}
+                  transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+                  isPlaying={createBinding(
+                    player,
+                    "playbackStatus",
+                  )((status) => status === AstalMpris.PlaybackStatus.PLAYING)}
+                />
                 <image
                   visible={!!app.iconName}
                   iconName={app?.iconName}

@@ -33,9 +33,11 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
 export default ({
   transitionType,
   barCount = 12, // Default to 12 if not specified
+  isPlaying = true,
 }: {
   transitionType: Gtk.RevealerTransitionType;
   barCount?: number; // Optional bar count parameter
+  isPlaying?: Accessor<boolean> | boolean;
 }) => {
   // Set the number of bars in cava to match our barCount
   cava?.set_bars(barCount);
@@ -67,6 +69,23 @@ export default ({
 
   let revealerInstance: Gtk.Revealer | null = null;
 
+  const getIsPlaying = () => {
+    if (typeof isPlaying === "function") {
+      return (isPlaying as Accessor<boolean>)();
+    }
+    return !!isPlaying;
+  };
+
+  const clearTimeoutIfSet = (timeoutId: number | null) => {
+    if (!timeoutId) return null;
+    try {
+      GLib.source_remove(timeoutId);
+    } catch (e) {}
+    return null;
+  };
+
+  let unsubscribeIsPlaying: (() => void) | null = null;
+
   const revealer = (
     <revealer
       revealChild={false}
@@ -78,17 +97,11 @@ export default ({
         class={"cava"}
         onDestroy={() => {
           // bars.drop(); // No drop in signals
-          if (showTimeoutId) {
-            try {
-              GLib.source_remove(showTimeoutId);
-            } catch (e) {}
-            showTimeoutId = null;
-          }
-          if (hideTimeoutId) {
-            try {
-              GLib.source_remove(hideTimeoutId);
-            } catch (e) {}
-            hideTimeoutId = null;
+          showTimeoutId = clearTimeoutIfSet(showTimeoutId);
+          hideTimeoutId = clearTimeoutIfSet(hideTimeoutId);
+          if (unsubscribeIsPlaying) {
+            unsubscribeIsPlaying();
+            unsubscribeIsPlaying = null;
           }
         }}
         label={getBars}
@@ -98,6 +111,18 @@ export default ({
 
   // Create coalesced updater so frequent "notify::values" calls are batched
   const doUpdate = () => {
+    if (!getIsPlaying()) {
+      showTimeoutId = clearTimeoutIfSet(showTimeoutId);
+      hideTimeoutId = clearTimeoutIfSet(hideTimeoutId);
+      visible = false;
+      if (revealerInstance) revealerInstance.reveal_child = false;
+      if (lastBarString !== EMPTY_BARS) {
+        lastBarString = EMPTY_BARS;
+        setBars(EMPTY_BARS);
+      }
+      return;
+    }
+
     const values = lastValuesCache;
     // build barArray for current values; if no values treat as empty
     if (!values || values.length === 0) {
@@ -183,6 +208,17 @@ export default ({
 
   let lastValuesCache: number[] | null = null;
   const schedule = scheduleCoalesced(doUpdate, CAVA_UPDATE_MS);
+
+  if (typeof isPlaying === "function") {
+    const playableAccessor = isPlaying as Accessor<boolean> & {
+      subscribe?: (callback: () => void) => () => void;
+    };
+    if (typeof playableAccessor.subscribe === "function") {
+      unsubscribeIsPlaying = playableAccessor.subscribe(() => {
+        schedule();
+      });
+    }
+  }
 
   cava?.connect("notify::values", () => {
     // store latest values, schedule an update if not already scheduled
