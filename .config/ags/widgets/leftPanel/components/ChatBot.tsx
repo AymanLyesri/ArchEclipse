@@ -328,6 +328,29 @@ const getFirstMessageContent = (
 // =============================================================================
 
 /**
+ * Normalizes escaped newline characters for clipboard operations
+ * Converts literal "\\n" and "\\r\\n" sequences into actual line breaks
+ *
+ * @param {string} text - The text to normalize
+ * @returns {string} Text with proper newline characters
+ */
+const normalizeClipboardText = (text: string): string =>
+  text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n");
+
+/**
+ * Copies text to clipboard without shell escaping issues
+ * Uses robust single-quote shell escaping so multiline text is passed as-is
+ *
+ * @param {string} text - The text to copy
+ * @returns {Promise<void>} Promise that resolves when copy is complete
+ */
+const copyToClipboard = async (text: string): Promise<void> => {
+  const normalizedText = normalizeClipboardText(text);
+  const shellEscapedText = `'${normalizedText.replace(/'/g, `'"'"'`)}'`;
+  await execAsync(`wl-copy -- ${shellEscapedText}`);
+};
+
+/**
  * Formats text content with markdown and code block support
  * Converts markdown syntax to GTK markup for proper rendering in the UI
  *
@@ -528,11 +551,7 @@ const formatText = (text: string): JSX.Element => {
       // Code block: Create clickable element that copies code to clipboard
       elements.push(
         <Eventbox
-          onClick={() =>
-            execAsync(
-              `bash -c 'printf "%s" "$0" | wl-copy' ${JSON.stringify(part)}`,
-            ).catch(print)
-          }
+          onClick={() => copyToClipboard(part).catch(print)}
           class="code-block"
         >
           <label
@@ -1128,9 +1147,7 @@ const MessageItem = ({
           ) {
             return; // Don't copy message content if code block was clicked
           }
-          execAsync(
-            `bash -c 'printf "%s" "$0" | wl-copy' ${JSON.stringify(message.content)}`,
-          ).catch(print);
+          copyToClipboard(message.content).catch(print);
         }}
       >
         {messageContent}

@@ -411,7 +411,7 @@ const Entry = () => (
                   app_icon: "󰋖",
                   app_launch: () =>
                     hyprland.message_async(
-                      `dispatch exec foot 'bash -c "${text}"'`,
+                      `dispatch exec kitty 'bash -c "${text}"'`,
                       () => {},
                     ),
                 },

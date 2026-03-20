@@ -24,12 +24,12 @@ else
     ARGUMENTS=""
     
     # Determine fetch arguments based on ratio
-    if (($(echo "$RATIO >= 1" | bc -l))); then
-        ARGUMENTS="--logo-width $(echo "$COLUMNS / 2.5" | bc)"
-    else
-        ARGUMENTS="--logo-height 21"
-    fi
+    # if (($(echo "$RATIO >= 1" | bc -l))); then
+    #     ARGUMENTS="--logo-width $(echo "$COLUMNS / 2" | bc)"
+    # else
+    ARGUMENTS="--logo-height 25"
+    # fi
     
     # Fetch system information with adjusted logo size
-    fastfetch --logo-recache $ARGUMENTS --logo "$IMAGE_PATH"
+    fastfetch --logo-type kitty --logo-recache $ARGUMENTS --logo "$IMAGE_PATH"
 fi

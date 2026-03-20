@@ -253,23 +253,51 @@ export class BooruImage {
    * Pin image to terminal background
    */
   async pinToTerminal(): Promise<void> {
-    const terminalWaifuPath = `$HOME/.config/fastfetch/cache/logo.webp`;
+    const CORNER_RADIUS_PERCENT = 10;
+
+    const cacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
+    const terminalWaifuPath = `${cacheDir}/logo.webp`;
 
     try {
-      // create the folder
-      await execAsync(`bash -c "mkdir -p $(dirname ${terminalWaifuPath})"`);
+      await execAsync(["mkdir", "-p", cacheDir]);
 
-      const output = await execAsync(
-        `bash -c "[ -f ${terminalWaifuPath} ] && { rm ${terminalWaifuPath}; echo 1; } || { cwebp -q 75 ${this.getImagePath()} -o ${terminalWaifuPath}; echo 0; } && pkill -SIGUSR1 zsh"`,
-      );
+      const pinnedFile = Gio.File.new_for_path(terminalWaifuPath);
 
-      notify({
-        summary: "Waifu",
-        body:
-          Number(output) === 0
-            ? "Pinned To Terminal"
-            : "UN-Pinned from Terminal",
-      });
+      if (pinnedFile.query_exists(null)) {
+        await execAsync(["rm", "-f", terminalWaifuPath]);
+        notify({ summary: "Waifu", body: "UN-Pinned from Terminal" });
+      } else {
+        const sourceImagePath = this.getImagePath();
+        const radius = `%[fx:min(w,h)*${CORNER_RADIUS_PERCENT / 100}]`;
+
+        await execAsync([
+          "magick",
+          sourceImagePath,
+          "-alpha",
+          "set",
+          "(",
+          "+clone",
+          "-alpha",
+          "transparent",
+          "-background",
+          "none",
+          "-fill",
+          "white",
+          "-draw",
+          `roundrectangle 0,0,%[fx:w-1],%[fx:h-1],${radius},${radius}`,
+          ")",
+          "-compose",
+          "Dst_In",
+          "-composite",
+          "-background",
+          "none",
+          terminalWaifuPath,
+        ]);
+
+        notify({ summary: "Waifu", body: "Pinned To Terminal" });
+      }
+
+      await execAsync(["bash", "-c", "pkill -SIGUSR1 zsh || true"]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       notify({ summary: "Error pinning to terminal", body: errorMessage });

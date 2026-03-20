@@ -89,7 +89,7 @@ hyprland
 #|_| |_| |_|\___|\__,_|_|\__,_|
 #  
 swayimg
-foot
+kitty
 light
 grimblast-git
 grim

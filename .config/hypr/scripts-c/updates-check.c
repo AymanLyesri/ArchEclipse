@@ -51,7 +51,7 @@ bool check_pacman_updates()
     {
         char message[256];
         snprintf(message, sizeof(message), "There are %d updates available.", update_count);
-        send_notification("System Update", message, "Update Now", "foot sudo pacman -Syu");
+        send_notification("System Update", message, "Update Now", "kitty $HOME/.config/hypr/maintenance/UPDATE.sh");
         return true;
     }
     return false;
@@ -79,7 +79,7 @@ bool check_git_updates()
     {
         char message[256];
         snprintf(message, sizeof(message), "We are behind by %d commits.", behind);
-        send_notification("Repository Update", message, "Pull Changes", "foot update");
+        send_notification("Repository Update", message, "Pull Changes", "kitty $HOME/.config/hypr/maintenance/UPDATE.sh");
         return true;
     }
     return false;

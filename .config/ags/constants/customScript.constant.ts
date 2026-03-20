@@ -42,7 +42,7 @@ export const customScripts = (): CustomScript[] => [
     app: "hyprmon",
     package: "hyprmon-bin",
     script: () => {
-      hyprland.dispatch("exec", "foot hyprmon");
+      hyprland.dispatch("exec", "kitty hyprmon");
     },
   },
   {
@@ -50,7 +50,7 @@ export const customScripts = (): CustomScript[] => [
     icon: "󰏗",
     description: "Update Packages (pacman)",
     script: () => {
-      hyprland.dispatch("exec", "foot -e sudo pacman -Syu");
+      hyprland.dispatch("exec", "kitty -e sudo pacman -Syu");
     },
   },
   // Clipboard Utilities
@@ -134,7 +134,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Open system monitor",
     app: "btop",
     script: () => {
-      hyprland.dispatch("exec", "foot -e btop");
+      hyprland.dispatch("exec", "kitty -e btop");
     },
   },
 
@@ -206,7 +206,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Pipes Animation",
     app: "pipes.sh",
     script: () => {
-      hyprland.dispatch("exec", "foot -e pipes.sh");
+      hyprland.dispatch("exec", "kitty -e pipes.sh");
     },
   },
   // cava
@@ -216,7 +216,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Audio Visualizer",
     app: "cava",
     script: () => {
-      hyprland.dispatch("exec", "foot -e cava");
+      hyprland.dispatch("exec", "kitty -e cava");
     },
   },
   // cmatrix
@@ -226,7 +226,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Matrix Digital Rain",
     app: "cmatrix",
     script: () => {
-      hyprland.dispatch("exec", "foot -e cmatrix");
+      hyprland.dispatch("exec", "kitty -e cmatrix");
     },
   },
   // asciiquarium
@@ -236,7 +236,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Aquarium Animation",
     app: "asciiquarium",
     script: () => {
-      hyprland.dispatch("exec", "foot -e asciiquarium");
+      hyprland.dispatch("exec", "kitty -e asciiquarium");
     },
   },
   // reset ags settings
@@ -302,10 +302,10 @@ export const customScripts = (): CustomScript[] => [
     description: "Visualize package sizes (pacgraph -c)",
     app: "pacgraph",
     script: () => {
-      // dispatch to foot with -e to run pacgraph -c and avoid closing immediately after execution
+      // dispatch to kitty with -e to run pacgraph -c and avoid closing immediately after execution
       hyprland.dispatch(
         "exec",
-        `foot -e bash -c "pacgraph -c; read -n 1 -s -r -p 'Press any key to continue...'"`,
+        `kitty -e bash -c "pacgraph -c; read -n 1 -s -r -p 'Press any key to continue...'"`,
       );
     },
   },

@@ -11,7 +11,7 @@ const fileManagerCommands: Record<string, string> = {
   dolphin: "dolphin",
   nemo: "nemo",
   pcmanfm: "pcmanfm",
-  ranger: "foot ranger",
+  ranger: "kitty ranger",
 };
 
 // Get the configured file manager command
@@ -81,7 +81,7 @@ export const quickApps: LauncherApp[] = [
   },
   {
     app_name: "Terminal",
-    app_launch: () => execAsync("foot"),
+    app_launch: () => execAsync("kitty"),
     app_icon: "",
     app_description: "Open a new terminal window",
   },
@@ -93,7 +93,7 @@ export const quickApps: LauncherApp[] = [
   },
   {
     app_name: "Calculator",
-    app_launch: () => execAsync("foot bc"),
+    app_launch: () => execAsync("kitty bc"),
     app_icon: "",
     app_description: "Open the calculator",
   },
