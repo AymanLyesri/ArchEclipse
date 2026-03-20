@@ -4,5 +4,5 @@ export interface LauncherApp {
   app_arg?: string;
   app_type?: string;
   app_icon?: string;
-  app_launch: () => void;
+  app_launch: (arg?: any) => void;
 }

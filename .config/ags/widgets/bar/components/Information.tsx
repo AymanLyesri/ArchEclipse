@@ -1,14 +1,11 @@
 import Hyprland from "gi://AstalHyprland";
 const hyprland = Hyprland.get_default();
 
-import { playerToColor } from "../../../utils/color";
-import { lookupIcon, playerToIcon } from "../../../utils/icon";
 import {
   date_less,
   date_more,
   focusedClient,
   globalSettings,
-  globalTransition,
   setGlobalSetting,
 } from "../../../variables";
 import { Accessor, createBinding, For, With } from "ags";
@@ -24,7 +21,6 @@ import Crypto from "../../Crypto";
 import Cava from "../../Cava";
 import Weather from "./sub-components/Weather";
 import Bandwidth from "./sub-components/Bandwidth";
-import { notify } from "../../../utils/notification";
 import GLib from "gi://GLib";
 
 const mpris = AstalMpris.get_default();

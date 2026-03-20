@@ -112,7 +112,7 @@ textview {
   padding: $SCALE/2;
   border-radius: 10px;
   color: $foreground;
-  background: $background-transparent;
+  background: transparent;
   border: unset;
   &:focus {
     box-shadow: unset;

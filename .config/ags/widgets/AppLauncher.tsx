@@ -32,6 +32,7 @@ import { Gdk } from "ags/gtk4";
 import { convert, isConversionQuery } from "../utils/convert";
 import Pango from "gi://Pango";
 import GLib from "gi://GLib";
+import KeyBind from "./KeyBind";
 const hyprland = Hyprland.get_default();
 
 const MAX_ITEMS = 10;
@@ -234,7 +235,7 @@ const QuickApps = () => {
             hexpand
             class="quick-app"
             onClicked={() => {
-              app.app_launch();
+              app.app_launch((parentWindowRef as any).monitorName);
               if (parentWindowRef) {
                 parentWindowRef.hide();
               }
@@ -242,7 +243,14 @@ const QuickApps = () => {
           >
             <box spacing={5}>
               <label widthRequest={24} label={app.app_icon} />
-              <label label={app.app_name} />
+              <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+                <label label={app.app_name} xalign={0} />
+                <label
+                  visible={!!app.app_description}
+                  class="description"
+                  label={app.app_description || ""}
+                />
+              </box>
             </box>
           </Gtk.Button>
         ))}
@@ -441,16 +449,54 @@ const launchApp = (app: LauncherApp) => {
 };
 
 const Help = () => {
-  const helpCommands = {
-    "... ...": "open with argument",
-    "translate .. > ..": "translate into (en,fr,es,de,pt,ru,ar...)",
-    "... .com OR https://...": "open link",
-    "..*/+-..": "arithmetics",
-    "cb / cb ...": "clipboard history (text/html/image)",
-    "emoji ...": "search emojis",
-    "100c to f / 10kg in lb":
-      "unit conversion (temp/weight/length/volume/speed)",
-  };
+  // const helpCommands: Record<string, string> = {
+  //   "... ...": "open with argument",
+  //   "translate .. > ..": "translate into (en,fr,es,de,pt,ru,ar...)",
+  //   "... .com OR https://...": "open link",
+  //   "..*/+-..": "arithmetics",
+  //   "cb / cb ...": "clipboard history (text/html/image)",
+  //   "emoji ...": "search emojis",
+  //   "100c to f / 10kg in lb":
+  //     "unit conversion (temp/weight/length/volume/speed)",
+  // };
+
+  const helpTips: {
+    command: string;
+    description: string;
+    keybind?: string[];
+  }[] = [
+    {
+      command: "... ...",
+      description: "open with argument",
+    },
+    {
+      command: "translate .. > ..",
+      description: "translate into (en,fr,es,de,pt,ru,ar...)",
+    },
+    {
+      command: "... .com OR https://...",
+      description: "open link",
+    },
+    {
+      command: "..*/+-..",
+      description: "arithmetics",
+    },
+    {
+      command: "cb / cb ...",
+      description: "clipboard history (text/html/image)",
+      keybind: ["SUPER", "SHIFT", "v"],
+    },
+    {
+      command: "emoji ...",
+      description: "search emojis",
+      keybind: ["SUPER", "."],
+    },
+    {
+      command: "100c to f / 10kg in lb",
+      description: "unit conversion (temp/weight/length/volume/speed)",
+    },
+  ];
+
   return (
     <box
       visible={Results((results) => results.length <= 0)}
@@ -458,16 +504,19 @@ const Help = () => {
       orientation={Gtk.Orientation.VERTICAL}
       spacing={10}
     >
-      {Object.entries(helpCommands).map(([command, description]) => (
+      {helpTips.map(({ command, description, keybind }) => (
         <box spacing={10}>
-          <label label={command} class="command" hexpand wrap xalign={0} />
-          <label
-            label={description}
-            class="description"
-            hexpand
-            wrap
-            xalign={1}
-          />
+          <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+            <label label={command} class="command" hexpand wrap xalign={0} />
+            <label
+              label={description}
+              class="description"
+              hexpand
+              wrap
+              xalign={0}
+            />
+          </box>
+          {keybind && <KeyBind bindings={keybind} />}
         </box>
       ))}
     </box>
@@ -491,20 +540,32 @@ const AppButton = ({
 
       <image visible={element.app_type === "app"} iconName={element.app_icon} />
 
-      {/* MAIN LABEL — expands */}
-      <label
-        xalign={0}
-        label={element.app_name}
-        ellipsize={Pango.EllipsizeMode.END}
-      />
+      <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
+        <box>
+          {/* MAIN LABEL — expands */}
+          <label
+            xalign={0}
+            label={element.app_name}
+            ellipsize={Pango.EllipsizeMode.END}
+          />
 
-      {/* ARGUMENT — fixed alignment */}
-      <label
-        class="argument"
-        hexpand
-        xalign={0}
-        label={element.app_arg || ""}
-      />
+          {/* ARGUMENT — fixed alignment */}
+          <label
+            class="argument"
+            hexpand
+            xalign={0}
+            label={element.app_arg || ""}
+          />
+        </box>
+        {/* DESCRIPTION — always at the bottom */}
+        <label
+          visible={!!element.app_description}
+          class="description"
+          xalign={0}
+          ellipsize={Pango.EllipsizeMode.END}
+          label={element.app_description || ""}
+        />
+      </box>
 
       {/* <label
           class="description"
@@ -635,6 +696,9 @@ export default ({
 
       (self as any).entry = entryWidget; // expose entry widget for external access (e.g. from notifications)
 
+      // add monitor name to window
+      (self as any).monitorName = getMonitorName(monitor);
+
       // focus on visible
       self.connect("notify::visible", () => {
         if (self.visible) {
@@ -659,8 +723,8 @@ export default ({
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
       >
-        <ResultsDisplay />
         <Entry />
+        <ResultsDisplay />
       </box>
       <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <QuickApps />

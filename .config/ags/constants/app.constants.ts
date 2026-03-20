@@ -1,6 +1,8 @@
 import { LauncherApp } from "../interfaces/app.interface";
 import { subprocess, exec, execAsync, createSubprocess } from "ags/process";
-import { setGlobalTheme, globalSettings } from "../variables";
+import { setGlobalTheme, globalSettings, setGlobalSetting } from "../variables";
+import { leftPanelWidgetSelectors } from "./widget.constants";
+import app from "ags/gtk4/app";
 
 // File manager command mapping
 const fileManagerCommands: Record<string, string> = {
@@ -59,33 +61,46 @@ export const customApps: LauncherApp[] = [
 export const quickApps: LauncherApp[] = [
   {
     app_name: "Keybinds",
-    app_launch: () =>
-      execAsync("bash -c 'xdg-open $HOME/.config/hypr/configs/keybinds.conf'"),
+    app_launch: (monitor) => {
+      const leftPanel = app.get_window(`left-panel-${monitor}`);
+      if (!leftPanel) {
+        console.error(`Left panel for monitor ${monitor} not found.`);
+        return;
+      }
+      leftPanel.show();
+      setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[6]);
+    },
     app_icon: "",
+    app_description: "View or edit your Hyprland keybinds",
   },
   {
     app_name: "Browser",
-    app_launch: () => execAsync("xdg-open https://google.com"),
+    app_launch: () => execAsync("xdg-open ."),
     app_icon: "",
+    app_description: "Open your default web browser",
   },
   {
     app_name: "Terminal",
     app_launch: () => execAsync("foot"),
     app_icon: "",
+    app_description: "Open a new terminal window",
   },
   {
     app_name: "Files",
     app_launch: () => execAsync(getFileManagerCommand()),
     app_icon: "",
+    app_description: "Open your file manager",
   },
   {
     app_name: "Calculator",
     app_launch: () => execAsync("foot bc"),
     app_icon: "",
+    app_description: "Open the calculator",
   },
   {
     app_name: "Text Editor",
     app_launch: () => execAsync("code"),
     app_icon: "",
+    app_description: "Open your default text editor",
   },
 ];

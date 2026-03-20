@@ -12,6 +12,7 @@
     .description {
       color: $foreground-tertiary;
       font-size: 0.9em;
+      opacity: 0.8;
     }
     .argument {
       color: $foreground-secondary;
@@ -40,9 +41,15 @@
       font-weight: bold;
       animation: opacity-in 0.4s ease-in;
 
-      & > box {
+      > box {
         @include module;
         padding: 10px;
+      }
+
+      .description {
+        color: $foreground-tertiary;
+        font-size: 0.9em;
+        opacity: 0.8;
       }
     }
 
