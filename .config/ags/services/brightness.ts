@@ -22,6 +22,11 @@ export default class Brightness extends GObject.Object {
     return this.#screen;
   }
 
+  @getter(Boolean)
+  get hasBacklight() {
+    return !!screen;
+  }
+
   @setter(Number)
   set screen(percent) {
     if (percent < 0) percent = 0;

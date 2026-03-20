@@ -128,6 +128,7 @@ function BrightnessWidget() {
     <box
       tooltipText={screen((v) => `Brightness: ${Math.round(v * 100)}%`)}
       class={"custom-revealer"}
+      visible={createBinding(brightness, "hasBacklight")}
     >
       <Gtk.EventControllerMotion
         onEnter={() => {

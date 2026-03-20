@@ -106,9 +106,10 @@ filechooserbutton * {
   color: $secondary;
 }
 
-entry {
+entry,
+textview {
   all: unset;
-  padding: $SCALE;
+  padding: $SCALE/2;
   border-radius: 10px;
   color: $foreground;
   background: $background-transparent;

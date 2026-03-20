@@ -3,7 +3,7 @@
 // =============================================================================
 
 // GTK and GLib imports for UI components and system operations
-import { Gtk } from "ags/gtk4";
+import { Gdk, Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import Pango from "gi://Pango";
 
@@ -99,7 +99,7 @@ const [chatBotImageGeneration, setChatBotImageGeneration] =
  * Reference to the message input entry widget for programmatic focus control
  * Allows auto-focusing the input field when the chatbot panel is activated
  */
-let chatBotEntry: Gtk.Entry | null = null;
+let chatBotEntry: Gtk.Widget | null = null;
 
 // =============================================================================
 // UTILITY FUNCTIONS - FILE SYSTEM & PATH MANAGEMENT
@@ -1260,12 +1260,13 @@ const ImageGenerationSwitch = (): JSX.Element => (
 );
 
 /**
- * Text entry field for user to type messages
+ * Text input field for user to type messages
  * Handles message submission on Enter key press
  *
  * Features:
- * - Single-line text input
+ * - Multi-line text input
  * - Submit on Enter key
+ * - Insert newline on Shift+Enter
  * - Auto-clears after submission
  * - Stores reference for programmatic focus
  * - Validates non-empty input
@@ -1277,15 +1278,15 @@ const ImageGenerationSwitch = (): JSX.Element => (
  * 4. Calls sendMessage() to get AI response
  * 5. Clears input field
  *
- * @returns {JSX.Element} Text entry widget
+ * @returns {JSX.Element} Text view widget
  */
 const MessageEntry = (): JSX.Element => {
   /**
    * Handles message submission when user presses Enter
-   * @param {Gtk.Entry} self - The entry widget
+   * @param {Gtk.TextView} self - The text view widget
    */
-  const handleSubmit = (self: Gtk.Entry): void => {
-    const text = self.get_text();
+  const handleSubmit = (self: Gtk.TextView): void => {
+    const text = self.buffer.text;
     if (!text) return;
 
     const newMessage: Message = {
@@ -1297,18 +1298,41 @@ const MessageEntry = (): JSX.Element => {
 
     setMessages([...messages.get(), newMessage]);
     sendMessage(newMessage);
-    self.set_text("");
+    self.buffer.text = "";
   };
 
   return (
-    <entry
+    <Gtk.TextView
       hexpand
-      placeholderText="Ask anything..."
-      onActivate={handleSubmit}
+      wrapMode={Gtk.WrapMode.WORD_CHAR}
+      topMargin={8}
+      bottomMargin={8}
+      leftMargin={10}
+      rightMargin={10}
       $={(self) => {
         chatBotEntry = self;
       }}
-    />
+      tooltipMarkup={"<b>Shift+Enter</b> for newline\n<b>Enter</b> to send"}
+    >
+      <Gtk.EventControllerKey
+        onKeyPressed={(
+          { widget },
+          keyval: number,
+          _keycode: number,
+          state: number,
+        ) => {
+          const isEnter =
+            keyval === Gdk.KEY_Return || keyval === Gdk.KEY_KP_Enter;
+          if (!isEnter) return false;
+
+          const isShiftPressed = (state & Gdk.ModifierType.SHIFT_MASK) !== 0;
+          if (isShiftPressed) return false;
+
+          handleSubmit(widget as Gtk.TextView);
+          return true;
+        }}
+      />
+    </Gtk.TextView>
   );
 };
 
@@ -1324,7 +1348,7 @@ const BottomBar = (): JSX.Element => (
   <box class="bottom-bar" spacing={10}>
     <MessageEntry />
     <ClearButton />
-    <ImageGenerationSwitch />
+    {/* <ImageGenerationSwitch /> */}
   </box>
 );
 

@@ -87,7 +87,6 @@ const NotificationStackView = ({
 
   const Actions = () => (
     <box class="actions" spacing={5}>
-      {ClearNotifications}
       {stack.notifications.length > 1 && (
         <button
           class="stack-expand"
@@ -101,6 +100,7 @@ const NotificationStackView = ({
           }}
         />
       )}
+      {ClearNotifications}
     </box>
   );
 
