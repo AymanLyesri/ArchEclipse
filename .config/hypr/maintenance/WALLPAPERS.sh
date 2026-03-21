@@ -49,7 +49,6 @@ urls_NSFW=(
     "https://cdn.donmai.us/original/fb/e4/__kes_indie_virtual_youtuber_drawn_by_esmile__fbe4bf40812d3b36f9f8065cb186e6d6.jpg"
     "https://cdn.donmai.us/original/6a/c4/__heyimbee_indie_virtual_youtuber_drawn_by_peesh_san__6ac459163a7cc5a7434640911c9a44fc.png"
     "https://cdn.donmai.us/original/10/d3/__original_drawn_by_wangdaye__10d369ce4cc5794e673fd1fb4f076608.jpg"
-    "https://cdn.donmai.us/original/88/0c/__pearl_azur_lane__880cddda6a37d061f3e40075ee54e20f.png"
     "https://cdn.donmai.us/original/be/1e/__kurokawa_akane_oshi_no_ko_drawn_by_esmile__be1e97721936d1b0c3e1c0a6aa749e94.jpg"
     "https://cdn.donmai.us/original/0e/06/__original_drawn_by_obsidian117__0e060859dfc8adf7e41fc47b03ec078b.jpg"
     "https://cdn.donmai.us/original/1e/e5/__gawr_gura_hololive_and_1_more_drawn_by_champchidi__1ee57bae47cedc57a80de43b271b9f42.jpg"

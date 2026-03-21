@@ -43,7 +43,8 @@
 @import "widgets/keybind.scss";
 @import "widgets/keystroke-visualizer.scss";
 
-window {
-  font-family: "JetBrainsMono";
+window,
+popover {
+  font-family: "JetBrainsMono NFP", monospace;
   background-color: transparent;
 }

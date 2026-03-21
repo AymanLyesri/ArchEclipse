@@ -30,10 +30,10 @@ interface weatherData {
   };
   hourly: any;
 }
-// Poll every 15 minutes (900,000 ms)
+// Poll every 10 minutes (600,000 ms)
 const weather = createPoll(
   null,
-  900000,
+  600000,
   [
     "bash",
     "-c",
@@ -74,40 +74,45 @@ const weather = createPoll(
   },
 );
 
-interface WeatherCodeMap {
-  [key: number]: string;
-}
-
 // Weather code to description mapping
-const weatherCodes: WeatherCodeMap = {
-  0: "Clear sky",
-  1: "Mainly clear",
-  2: "Partly cloudy",
-  3: "Overcast",
-  45: "Foggy",
-  48: "Depositing rime fog",
-  51: "Light drizzle",
-  53: "Moderate drizzle",
-  55: "Dense drizzle",
-  56: "Light freezing drizzle",
-  57: "Dense freezing drizzle",
-  61: "Slight rain",
-  63: "Moderate rain",
-  65: "Heavy rain",
-  66: "Light freezing rain",
-  67: "Heavy freezing rain",
-  71: "Slight snow fall",
-  73: "Moderate snow fall",
-  75: "Heavy snow fall",
-  77: "Snow grains",
-  80: "Slight rain showers",
-  81: "Moderate rain showers",
-  82: "Violent rain showers",
-  85: "Slight snow showers",
-  86: "Heavy snow showers",
-  95: "Thunderstorm",
-  96: "Thunderstorm with slight hail",
-  99: "Thunderstorm with heavy hail",
+const weatherCodes: Record<
+  number,
+  { description: string; background: string }
+> = {
+  0: { description: "Clear sky", background: "#0F4C81" },
+  1: { description: "Mainly clear", background: "#1F5D8A" },
+  2: { description: "Partly cloudy", background: "#2E5984" },
+  3: { description: "Overcast", background: "#4A5568" },
+  45: { description: "Foggy", background: "#4B5563" },
+  48: { description: "Depositing rime fog", background: "#4B5563" },
+  51: { description: "Light drizzle", background: "#0C4A6E" },
+  53: { description: "Moderate drizzle", background: "#0B3A67" },
+  55: { description: "Dense drizzle", background: "#1E3A8A" },
+  56: { description: "Light freezing drizzle", background: "#0C4A6E" },
+  57: { description: "Dense freezing drizzle", background: "#1E3A8A" },
+  61: { description: "Slight rain", background: "#0C4A6E" },
+  63: { description: "Moderate rain", background: "#0B3A67" },
+  65: { description: "Heavy rain", background: "#1E3A8A" },
+  66: { description: "Light freezing rain", background: "#0C4A6E" },
+  67: { description: "Heavy freezing rain", background: "#1E3A8A" },
+  71: { description: "Slight snow fall", background: "#334155" },
+  73: { description: "Moderate snow fall", background: "#1E40AF" },
+  75: { description: "Heavy snow fall", background: "#1E3A8A" },
+  77: { description: "Snow grains", background: "#334155" },
+  80: { description: "Slight rain showers", background: "#0C4A6E" },
+  81: { description: "Moderate rain showers", background: "#0B3A67" },
+  82: { description: "Violent rain showers", background: "#1E3A8A" },
+  85: { description: "Slight snow showers", background: "#334155" },
+  86: { description: "Heavy snow showers", background: "#1E3A8A" },
+  95: { description: "Thunderstorm", background: "#9A3412" },
+  96: {
+    description: "Thunderstorm with slight hail",
+    background: "#7C2D12",
+  },
+  99: {
+    description: "Thunderstorm with heavy hail",
+    background: "#7F1D1D",
+  },
 };
 
 // Wind direction mapping
@@ -139,7 +144,11 @@ const getWindDirection = (degrees: number) => {
 const formatTime = (isoTime: number) => {
   if (!isoTime) return "N/A";
   const date = new Date(isoTime);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 };
 
 const formatDate = (isoTime: number) => {
@@ -152,15 +161,23 @@ const formatDate = (isoTime: number) => {
   });
 };
 
-const currentWeatherLabel = weather((w) => {
+// const currentWeatherLabel = weather((w) => {
+//   if (!w) return "Weather N/A";
+//   const current = w.current;
+//   return `${current.temp}${current.temp_unit} ${
+//     weatherCodes[current.weather_code]?.description || "Unknown"
+//   }`;
+// });
+
+const currentWeatherLabel = (w: any) => {
   if (!w) return "Weather N/A";
   const current = w.current;
   return `${current.temp}${current.temp_unit} ${
-    weatherCodes[current.weather_code] || "Unknown"
+    weatherCodes[current.weather_code]?.description || "Unknown"
   }`;
-});
+};
 
-const weatherIcon = weather((w) => {
+const weatherIcon = (w: any) => {
   if (!w) return "";
   const code = w.current.weather_code;
   // Map weather codes to icon names (simplified)
@@ -183,7 +200,7 @@ const weatherIcon = weather((w) => {
   // thunderstorm
   if (code >= 95) return "󰖓";
   return "󰖙"; // default to clear
-});
+};
 
 export function Weather() {
   return (
@@ -195,58 +212,34 @@ export function Weather() {
           const current = w.current;
           const today = w.daily;
 
-          // Map weather codes to background colors, compatible with white text and providing good contrast
-          const backgroundColor: Record<number, string> = {
-            0: "#0F4C81", // Clear sky - deep blue
-            1: "#1F5D8A", // Mainly clear - muted blue
-            2: "#2E5984", // Partly cloudy - slate blue
-            3: "#4A5568", // Overcast - dark gray
-            45: "#4B5563", // Foggy - charcoal
-            48: "#4B5563", // Depositing rime fog - charcoal
-            51: "#0C4A6E", // Light drizzle - dark cyan-blue
-            53: "#0B3A67", // Moderate drizzle - darker blue
-            55: "#1E3A8A", // Dense drizzle - indigo blue
-            56: "#0C4A6E", // Light freezing drizzle - dark cyan-blue
-            57: "#1E3A8A", // Dense freezing drizzle - indigo blue
-            61: "#0C4A6E", // Slight rain - dark cyan-blue
-            63: "#0B3A67", // Moderate rain - darker blue
-            65: "#1E3A8A", // Heavy rain - indigo blue
-            66: "#0C4A6E", // Light freezing rain - dark cyan-blue
-            67: "#1E3A8A", // Heavy freezing rain - indigo blue
-            71: "#334155", // Slight snow fall - blue gray
-            73: "#1E40AF", // Moderate snow fall - cobalt
-            75: "#1E3A8A", // Heavy snow fall - indigo
-            77: "#334155", // Snow grains - blue gray
-            80: "#0C4A6E", // Slight rain showers - dark cyan-blue
-            81: "#0B3A67", // Moderate rain showers - darker blue
-            82: "#1E3A8A", // Violent rain showers - indigo blue
-            85: "#334155", // Slight snow showers - blue gray
-            86: "#1E3A8A", // Heavy snow showers - indigo
-            95: "#9A3412", // Thunderstorm - deep orange
-            96: "#7C2D12", // Thunderstorm with slight hail - burnt orange
-            99: "#7F1D1D", // Thunderstorm with heavy hail - deep red
-          };
-
           return (
             <box orientation={Gtk.Orientation.VERTICAL} spacing={12}>
               <box
-                class={`weather-section main`}
+                class={`weather-section`}
                 css={`
-                  background-color: ${backgroundColor[current.weather_code] ||
-                  "#000000"};
+                  background-color: ${weatherCodes[current.weather_code]
+                    ?.background || "#000000"};
                   color: white;
                 `}
                 spacing={25}
               >
-                <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
-                  <label class={"weather-icon-large"} label={weatherIcon} />
+                <box
+                  orientation={Gtk.Orientation.VERTICAL}
+                  class={"main"}
+                  halign={Gtk.Align.CENTER}
+                  spacing={4}
+                >
+                  <label class={"weather-icon-large"} label={weatherIcon(w)} />
                   <label
                     class="weather-temp-large"
                     label={`${current.temp}${current.temp_unit}`}
                   />
                   <label
                     class="weather-description"
-                    label={weatherCodes[current.weather_code] || "Unknown"}
+                    label={
+                      weatherCodes[current.weather_code]?.description ||
+                      "Unknown"
+                    }
                   />
                   <label
                     class="weather-feels-like"
@@ -260,46 +253,42 @@ export function Weather() {
 
                 <box
                   orientation={Gtk.Orientation.VERTICAL}
-                  spacing={6}
-                  // halign={Gtk.Align.END}
-                  // hexpand
+                  halign={Gtk.Align.CENTER}
+                  spacing={5}
                 >
-                  <box class="weather-detail" spacing={5} vexpand>
-                    <label label="Humidity:" />
-                    <label label={`${current.humidity}%`} xalign={1} hexpand />
+                  <box
+                    class="weather-detail sun-detail"
+                    valign={Gtk.Align.CENTER}
+                    spacing={5}
+                    vexpand
+                  >
+                    <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+                      <label class={"icon"} label="" />
+                      <label label={formatTime(today.sunrise[0])} />
+                    </box>
+                    <label class={"sun"} label="" hexpand />
+                    <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+                      <label class={"icon"} label="" />
+                      <label label={formatTime(today.sunset[0])} />
+                    </box>
                   </box>
+                  <box spacing={5} vexpand>
+                    <box class="weather-detail" spacing={5} hexpand>
+                      <label class={"icon"} label="" />
+                      <label label={`${current.humidity}%`} />
+                    </box>
+                    <box class="weather-detail" spacing={5} hexpand>
+                      <label class={"icon"} label="" />
+                      <label label={`${current.precipitation} mm`} />
+                    </box>
+                  </box>
+
                   <box class="weather-detail" spacing={5} vexpand>
-                    <label label="Wind:" />
+                    <label class={"icon"} label="" />
                     <label
                       label={`${current.wind_speed} ${
                         current.wind_unit
                       } ${getWindDirection(current.wind_direction)}`}
-                      xalign={1}
-                      hexpand
-                    />
-                  </box>
-                  <box class="weather-detail" spacing={5} vexpand>
-                    <label label="Precipitation:" />
-                    <label
-                      label={`${current.precipitation} mm`}
-                      xalign={1}
-                      hexpand
-                    />
-                  </box>
-                  <box class="weather-detail" spacing={5} vexpand>
-                    <label label="Sunrise:" />
-                    <label
-                      label={formatTime(today.sunrise[0])}
-                      xalign={1}
-                      hexpand
-                    />
-                  </box>
-                  <box class="weather-detail" spacing={5} vexpand>
-                    <label label="Sunset:" />
-                    <label
-                      label={formatTime(today.sunset[0])}
-                      xalign={1}
-                      hexpand
                     />
                   </box>
                 </box>
@@ -369,63 +358,62 @@ export function Weather() {
                 spacing={12}
               >
                 <label class="weather-subheading" label="Hourly Forecast" />
-                <scrolledwindow
-                  hscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
-                  vscrollbarPolicy={Gtk.PolicyType.NEVER}
-                >
-                  <box class="hourly-forecast" spacing={10}>
-                    {(() => {
-                      const now = new Date();
-                      const currentHour = now.getHours();
-                      const hourlyData = w.hourly;
 
-                      // Show next 12 hours
-                      const hours = [];
-                      for (let i = 0; i < 12; i++) {
-                        const hourIndex = currentHour + i;
-                        if (hourIndex >= hourlyData.time.length) break;
+                <box class="hourly-forecast">
+                  {(() => {
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const hourlyData = w.hourly;
 
-                        const time = new Date(hourlyData.time[hourIndex]);
-                        const temp = hourlyData.temperature_2m?.[hourIndex];
-                        const weatherCode =
-                          hourlyData.weather_code?.[hourIndex];
-                        const precipitation =
-                          hourlyData.precipitation?.[hourIndex] || 0;
+                    // Show next 12 hours divided by 3h (4 blocks)
+                    const hours = [];
+                    for (let i = 0; i < 4; i++) {
+                      const hourIndex = currentHour + i * 3;
+                      if (hourIndex >= hourlyData.time.length) break;
 
-                        // Get icon for this hour
-                        let hourIcon = weatherIcon;
+                      const time = new Date(hourlyData.time[hourIndex]);
+                      const temp = hourlyData.temperature_2m?.[hourIndex];
+                      const weatherCode = hourlyData.weather_code?.[hourIndex];
+                      const precipitation =
+                        hourlyData.precipitation?.[hourIndex] || 0;
 
-                        hours.push(
-                          <box
-                            class="hourly-item"
-                            orientation={Gtk.Orientation.VERTICAL}
-                            spacing={4}
-                          >
+                      hours.push(
+                        <box
+                          class="hourly-item"
+                          orientation={Gtk.Orientation.VERTICAL}
+                          halign={Gtk.Align.CENTER}
+                          spacing={4}
+                          hexpand
+                        >
+                          <label class="hourly-icon" label={weatherIcon(w)} />
+
+                          <box class={"hourly-content"} spacing={5}>
+                            <label
+                              class="hourly-temp"
+                              label={temp ? `${Math.round(temp)}°` : "N/A"}
+                            />
                             <label
                               class="hourly-time"
                               label={time.toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
+                                hour12: false,
                               })}
                             />
-                            <label class="hourly-icon" label={hourIcon} />
+                          </box>
+
+                          {precipitation > 0 && (
                             <label
-                              class="hourly-temp"
-                              label={temp ? `${Math.round(temp)}°` : "N/A"}
+                              class="hourly-precipitation"
+                              label={`${precipitation}mm`}
                             />
-                            {precipitation > 0 && (
-                              <label
-                                class="hourly-precipitation"
-                                label={`${precipitation}mm`}
-                              />
-                            )}
-                          </box>,
-                        );
-                      }
-                      return hours;
-                    })()}
-                  </box>
-                </scrolledwindow>
+                          )}
+                        </box>,
+                      );
+                    }
+                    return hours;
+                  })()}
+                </box>
               </box>
 
               {/* <Eventbox
@@ -449,25 +437,53 @@ export function Weather() {
 }
 
 export function WeatherButton() {
+  let popover: Gtk.Popover | null = null;
+
   return (
-    <menubutton>
-      <box class="weather-button" spacing={5} tooltipText={"click to open"}>
-        <label label={weatherIcon} />
+    <button
+      class="weather-button"
+      tooltipText={"click to open"}
+      css={weather((w) => {
+        if (!w) {
+          return "";
+        }
+        return `background-color: ${
+          weatherCodes[w.current.weather_code]?.background || "#000000"
+        };
+        color: white;
+      `;
+      })}
+      onClicked={() => {
+        if (!popover) return;
+        if (popover.visible) popover.hide();
+        else popover.show();
+      }}
+      $={(self) => {
+        popover = new Gtk.Popover({
+          has_arrow: true,
+          position: Gtk.PositionType.BOTTOM,
+          autohide: true,
+        });
+
+        popover.set_child((<Weather />) as unknown as Gtk.Widget);
+        popover.set_parent(self);
+
+        popover.connect("notify::visible", () => {
+          if (!popover) return;
+
+          if (popover.visible) popover.add_css_class("popover-open");
+          else if (popover.get_child())
+            popover.remove_css_class("popover-open");
+        });
+      }}
+    >
+      <box class="weather-button" spacing={5}>
+        <label label={weatherIcon(weather())} />
         <label
-          label={currentWeatherLabel}
+          label={currentWeatherLabel(weather())}
           ellipsize={Pango.EllipsizeMode.END}
         />
       </box>
-      <popover
-        $={(self) => {
-          self.connect("notify::visible", () => {
-            if (self.visible) self.add_css_class("popover-open");
-            else if (self.get_child()) self.remove_css_class("popover-open");
-          });
-        }}
-      >
-        <Weather />
-      </popover>
-    </menubutton>
+    </button>
   );
 }

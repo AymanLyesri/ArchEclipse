@@ -31,7 +31,6 @@
         .version-value {
           @include module;
           font-size: 1em;
-          font-family: monospace;
           font-weight: bold;
           color: $foreground;
         }
@@ -104,7 +103,6 @@
     }
 
     .donation-address {
-      font-family: monospace;
       font-size: 0.9em;
       background: $background-transparent;
       border: 1px solid $background-secondary;

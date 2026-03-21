@@ -29,7 +29,7 @@ export default ({
       keymode={Astal.Keymode.ON_DEMAND}
       exclusivity={Astal.Exclusivity.IGNORE}
       anchor={Astal.WindowAnchor.LEFT | Astal.WindowAnchor.BOTTOM}
-      margin={globalMargin((m) => m * 5)}
+      margin={globalMargin((m) => m * 3)}
       $={async (self) => {
         // setup(self);
       }}

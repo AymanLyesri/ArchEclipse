@@ -1,7 +1,5 @@
 .weather {
-  .weather-popover {
-    min-width: 31.25em;
-  }
+  // min-width: 300px;
 
   .weather-heading {
     @include module;
@@ -13,20 +11,22 @@
     color: $foreground;
     border-radius: 1em;
     background: $background-transparent;
-    padding: 1.25em;
+    padding: 1em;
     &:hover {
       background-color: $background-secondary;
+    }
+    .main {
+      min-width: 150px;
     }
   }
 
   .weather-subheading {
     font-weight: bold;
     font-size: 0.875em;
-    margin-top: 0.5em;
   }
 
   .weather-icon-large {
-    font-size: 3em;
+    font-size: 6em;
   }
 
   .weather-temp-large {
@@ -42,8 +42,18 @@
     font-size: 0.75em;
   }
 
-  // .weather-detail label:first-child {
-  // }
+  .weather-detail {
+    font-size: 0.875em;
+    opacity: 0.8;
+    .icon {
+      font-size: 1.5em;
+    }
+    &.sun-detail {
+      .sun {
+        font-size: 2em;
+      }
+    }
+  }
 
   .forecast-label {
     font-size: 0.6875em;
@@ -54,14 +64,15 @@
     font-weight: bold;
   }
 
-  .weather-link {
-    font-size: 0.75em;
-
-    text-decoration: underline;
-    margin-top: 0.5em;
-  }
-
-  .weather-link:hover {
-    color: $blue;
+  .hourly-item {
+    .hourly-icon {
+      font-size: 2em;
+    }
+    .hourly-time {
+      font-size: 0.7em;
+    }
+    .hourly-temp {
+      font-weight: bold;
+    }
   }
 }
