@@ -68,14 +68,14 @@ export const quickApps: LauncherApp[] = [
         return;
       }
       leftPanel.show();
-      setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[6]);
+      setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[5]);
     },
     app_icon: "",
     app_description: "View or edit your Hyprland keybinds",
   },
   {
     app_name: "Browser",
-    app_launch: () => execAsync("xdg-open ."),
+    app_launch: () => execAsync("xdg-open http://www.google.com"),
     app_icon: "",
     app_description: "Open your default web browser",
   },

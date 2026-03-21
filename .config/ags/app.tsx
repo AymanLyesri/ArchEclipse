@@ -9,7 +9,7 @@ import RightPanel from "./widgets/rightPanel/RightPanel";
 import LeftPanel from "./widgets/leftPanel/LeftPanel";
 import LeftPanelHover from "./widgets/leftPanel/LeftPanelHover";
 import WallpaperSwitcher from "./widgets/WallpaperSwitcher";
-import AppLauncher from "./widgets/AppLauncher";
+import AppLauncher from "./widgets/applauncher/AppLauncher";
 import UserPanel from "./widgets/UserPanel";
 import NotificationPopups from "./widgets/NotificationPopups";
 import { createBinding, For, onCleanup, This } from "ags";
