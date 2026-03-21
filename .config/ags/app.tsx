@@ -18,6 +18,7 @@ import KeyStrokeVisualizer from "./widgets/KeyStrokeVisualizer";
 import { leftPanelWidgetSelectors } from "./constants/widget.constants";
 import { setGlobalSetting } from "./variables";
 import { Gtk } from "ags/gtk4";
+import AlwaysOnWidget from "./widgets/AlwaysOnWidget";
 const Notification = Notifd.get_default();
 
 const perMonitorDisplay = () => {
@@ -116,6 +117,17 @@ const perMonitorDisplay = () => {
                   monitor={monitor}
                   setup={(self) => onCleanup(() => self.destroy())}
                 />
+              ),
+            )}
+            {logTimeWidget(
+              `\t AlwaysOnWidget [Monitor ${monitor.get_connector()}]`,
+              () => (
+                <This this={app}>
+                  <AlwaysOnWidget
+                    monitor={monitor}
+                    setup={(self) => onCleanup(() => self.destroy())}
+                  />
+                </This>
               ),
             )}
           </This>

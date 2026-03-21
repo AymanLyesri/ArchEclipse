@@ -48,13 +48,9 @@ export default ({
       marginTop={globalMargin}
       marginRight={globalMargin}
       marginLeft={globalMargin}
-      visible={createComputed(
-        [globalSettings, fullscreenClient],
-        ({ bar }, fullscreenClient) => {
-          const visibility: boolean = !fullscreenClient && bar.lock; // Hide when a client is fullscreen
-          return visibility;
-        },
-      )}
+      visible={createComputed(() => {
+        return !fullscreenClient() && globalSettings().bar.lock; // Hide when a client is fullscreen
+      })}
       $={(self) => {
         setup(self);
         (self as any).monitorName = monitorName;

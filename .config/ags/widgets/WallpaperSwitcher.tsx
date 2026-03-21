@@ -527,7 +527,3 @@ export default ({
     </window>
   );
 };
-
-// monitorFile(`${GLib.get_home_dir()}/.config/wallpapers`, async () =>
-//   FetchWallpapers(),
-// );

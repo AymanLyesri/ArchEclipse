@@ -19,9 +19,9 @@ import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
 import Cava from "../../Cava";
-import Weather from "./sub-components/Weather";
 import Bandwidth from "./sub-components/Bandwidth";
 import GLib from "gi://GLib";
+import { WeatherButton } from "../../Weather";
 
 const mpris = AstalMpris.get_default();
 
@@ -160,7 +160,7 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
         </With>
       </box>
 
-      <Weather />
+      {WeatherButton()}
       <Clock />
       <Bandwidth />
       <ClientTitle focusedClient={focusedClient} />

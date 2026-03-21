@@ -47,6 +47,9 @@ export interface Settings {
     scale: AGSSetting;
     fontSize: AGSSetting;
   };
+  alwaysOnWidget: {
+    visibility: AGSSetting;
+  };
   autoWorkspaceSwitching: AGSSetting;
   bar: {
     lock: boolean;

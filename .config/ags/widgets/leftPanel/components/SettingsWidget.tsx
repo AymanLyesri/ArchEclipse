@@ -555,7 +555,10 @@ export default () => {
           <Setting
             keyChanged="bar.orientation"
             setting={globalSettings.peek().bar.orientation}
-            callBack={refreshCss}
+          />
+          <Setting
+            keyChanged="alwaysOnWidget.visibility"
+            setting={globalSettings.peek().alwaysOnWidget.visibility}
           />
           <Setting
             keyChanged="ui.opacity"

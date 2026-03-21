@@ -10,9 +10,8 @@
   }
 
   .weather-section {
-    // @include module;
     color: $foreground;
-    border-radius: 0.625em;
+    border-radius: 1em;
     background: $background-transparent;
     padding: 1.25em;
     &:hover {

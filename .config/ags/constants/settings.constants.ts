@@ -1,9 +1,8 @@
-import
-  {
-    barWidgetSelectors,
-    leftPanelWidgetSelectors,
-    rightPanelWidgetSelectors,
-  } from "../constants/widget.constants";
+import {
+  barWidgetSelectors,
+  leftPanelWidgetSelectors,
+  rightPanelWidgetSelectors,
+} from "../constants/widget.constants";
 import { booruApis, chatBotApis } from "../constants/api.constants";
 import { BooruImage } from "../class/BooruImage";
 import { dateFormats } from "../constants/date.constants";
@@ -136,6 +135,15 @@ export const defaultSettings: Settings = {
       type: "int",
       min: 10,
       max: 30,
+    },
+  },
+  alwaysOnWidget: {
+    visibility: {
+      name: "Always On Widget Visibility",
+      value: true,
+      type: "bool",
+      min: 0,
+      max: 1,
     },
   },
   autoWorkspaceSwitching: {
