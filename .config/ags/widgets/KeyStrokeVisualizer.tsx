@@ -1,4 +1,4 @@
-import { Astal } from "ags/gtk4";
+import { Astal, Gdk } from "ags/gtk4";
 import app from "ags/gtk4/app";
 import { subprocess } from "ags/process";
 import { Gtk } from "ags/gtk4";
@@ -12,7 +12,13 @@ interface KeyStrokeWidget {
   id: string;
 }
 
-export default ({ setup }: { setup: (self: Gtk.Window) => void }) => {
+export default ({
+  monitor,
+  setup,
+}: {
+  monitor: Gdk.Monitor;
+  setup: (self: Gtk.Window) => void;
+}) => {
   const maxKeystrokes = 5;
   const hideDelay = 2000; // milliseconds of inactivity before hiding the window
   const [keystrokes, setKeystrokes] = createState<KeyStrokeWidget[]>([]);

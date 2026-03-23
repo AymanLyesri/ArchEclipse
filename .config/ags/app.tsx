@@ -25,122 +25,117 @@ const perMonitorDisplay = () => {
   const monitors = createBinding(app, "monitors");
 
   return (
-    <box>
-      <For each={monitors}>
-        {(monitor) => (
-          <This this={app}>
-            {logTimeWidget(
-              `\t Bar [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <Bar
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t BarHover [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <BarHover
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t RightPanel [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <RightPanel
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t RightPanelHover [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <RightPanelHover
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t LeftPanel [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <LeftPanel
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t LeftPanelHover [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <LeftPanelHover
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t NotificationPopups [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <NotificationPopups
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t AppLauncher [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <AppLauncher
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t UserPanel [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <UserPanel
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t WallpaperSwitcher [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <WallpaperSwitcher
-                  monitor={monitor}
-                  setup={(self) => onCleanup(() => self.destroy())}
-                />
-              ),
-            )}
-            {logTimeWidget(
-              `\t AlwaysOnWidget [Monitor ${monitor.get_connector()}]`,
-              () => (
-                <This this={app}>
-                  <AlwaysOnWidget
-                    monitor={monitor}
-                    setup={(self) => onCleanup(() => self.destroy())}
-                  />
-                </This>
-              ),
-            )}
-          </This>
-        )}
-      </For>
-      <This this={app}>
-        {logTimeWidget(`\t KeyStrokeVisualizer`, () => (
-          <KeyStrokeVisualizer
-            setup={(self) => onCleanup(() => self.destroy())}
-          />
-        ))}
-      </This>
-    </box>
+    <For each={monitors}>
+      {(monitor) => (
+        <This this={app}>
+          {logTimeWidget(`\t Bar [Monitor ${monitor.get_connector()}]`, () => (
+            <Bar
+              monitor={monitor}
+              setup={(self) => onCleanup(() => self.destroy())}
+            />
+          ))}
+          {logTimeWidget(
+            `\t BarHover [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <BarHover
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t RightPanel [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <RightPanel
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t RightPanelHover [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <RightPanelHover
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t LeftPanel [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <LeftPanel
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t LeftPanelHover [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <LeftPanelHover
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t NotificationPopups [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <NotificationPopups
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t AppLauncher [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <AppLauncher
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t UserPanel [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <UserPanel
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t WallpaperSwitcher [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <WallpaperSwitcher
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t AlwaysOnWidget [Monitor ${monitor.get_connector()}]`,
+            () => (
+              <AlwaysOnWidget
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+          {logTimeWidget(
+            `\t KeyStrokeVisualizer [Monitor ${monitor.get_connector()}]-`,
+            () => (
+              <KeyStrokeVisualizer
+                monitor={monitor}
+                setup={(self) => onCleanup(() => self.destroy())}
+              />
+            ),
+          )}
+        </This>
+      )}
+    </For>
   );
 };
 

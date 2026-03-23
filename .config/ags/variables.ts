@@ -100,7 +100,6 @@ export const systemResourcesData: Accessor<SystemResourcesInterface | null> =
   createSubprocess(null, `/tmp/ags/system-resources-loop-ags`, (out) => {
     try {
       const parsed: SystemResourcesInterface = JSON.parse(out);
-      console.table(parsed);
 
       return parsed;
     } catch (e) {
