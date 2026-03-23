@@ -4,75 +4,7 @@ import GLib from "gi://GLib";
 import { With } from "gnim";
 import { Eventbox } from "./Custom/Eventbox";
 import Pango from "gi://Pango";
-
-interface weatherData {
-  current: {
-    temp: number;
-    temp_unit: string;
-    humidity: number;
-    wind_speed: number;
-    wind_unit: string;
-    wind_direction: number;
-    apparent_temp: number;
-    is_day: number;
-    precipitation: number;
-    weather_code: number;
-  };
-  daily: {
-    time: number[];
-    temperature_2m_max: number[];
-    temperature_2m_min: number[];
-    sunrise: number[];
-    sunset: number[];
-    precipitation_sum: number[];
-    precipitation_hours: number[];
-    wind_speed_10m_max: number[];
-  };
-  hourly: any;
-}
-// Poll every 10 minutes (600,000 ms)
-const weather = createPoll(
-  null,
-  600000,
-  [
-    "bash",
-    "-c",
-    `
-  LOC="$(
-  curl -fsSL https://ipapi.co/latlong ||
-  curl -fsSL https://ifconfig.co/coordinates ||
-  curl -fsSL https://ipinfo.io/loc
-)" || exit 1
-  LAT=\${LOC%,*}
-  LON=\${LOC#*,}
-  curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2"
-  `,
-  ],
-  (out) => {
-    try {
-      const parsed = JSON.parse(out);
-      return {
-        current: {
-          temp: parsed.current.temperature_2m,
-          temp_unit: parsed.current_units.temperature_2m,
-          humidity: parsed.current.relative_humidity_2m,
-          wind_speed: parsed.current.wind_speed_10m,
-          wind_unit: parsed.current_units.wind_speed_10m,
-          wind_direction: parsed.current.wind_direction_10m,
-          apparent_temp: parsed.current.apparent_temperature,
-          is_day: parsed.current.is_day,
-          precipitation: parsed.current.precipitation,
-          weather_code: parsed.current.weather_code,
-        },
-        daily: parsed.daily,
-        hourly: parsed.hourly,
-      } as weatherData;
-    } catch (e) {
-      console.error("Weather parsing error:", e);
-      return null;
-    }
-  },
-);
+import { weatherData } from "../variables";
 
 // Weather code to description mapping
 const weatherCodes: Record<
@@ -205,7 +137,7 @@ const weatherIcon = (w: any) => {
 export function Weather() {
   return (
     <box class="weather" spacing={12} orientation={Gtk.Orientation.VERTICAL}>
-      <With value={weather}>
+      <With value={weatherData}>
         {(w) => {
           if (!w) return <label label="Weather data unavailable" />;
 
@@ -443,7 +375,7 @@ export function WeatherButton() {
     <button
       class="weather-button"
       tooltipText={"click to open"}
-      css={weather((w) => {
+      css={weatherData((w) => {
         if (!w) {
           return "";
         }
@@ -478,9 +410,9 @@ export function WeatherButton() {
       }}
     >
       <box class="weather-button" spacing={5}>
-        <label label={weatherIcon(weather())} />
+        <label label={weatherIcon(weatherData())} />
         <label
-          label={currentWeatherLabel(weather())}
+          label={currentWeatherLabel(weatherData())}
           ellipsize={Pango.EllipsizeMode.END}
         />
       </box>

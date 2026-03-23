@@ -9,7 +9,7 @@ import {
   With,
 } from "ags";
 import Picture from "./Picture";
-import Cava from "./Cava";
+// import Cava from "./Cava";
 import GLib from "gi://GLib";
 import Pango from "gi://Pango";
 import AstalApps from "gi://AstalApps";
@@ -324,7 +324,7 @@ export default ({
         orientation={Gtk.Orientation.VERTICAL}
         valign={Gtk.Align.END}
       >
-        <box halign={Gtk.Align.CENTER}>
+        {/* <box halign={Gtk.Align.CENTER}>
           <With value={barCount}>
             {(count) => (
               <Cava
@@ -334,7 +334,7 @@ export default ({
               />
             )}
           </With>
-        </box>
+        </box> */}
         {playerStack}
       </box>
     </overlay>

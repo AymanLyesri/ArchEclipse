@@ -13,6 +13,7 @@ import { defaultSettings } from "./constants/settings.constants";
 import { createSubprocess, exec, execAsync } from "ags/process";
 import { notify } from "./utils/notification";
 import { SystemResourcesInterface } from "./interfaces/systemResources.interface";
+import { weatherInterface } from "./interfaces/weather.interface";
 
 export const NOTIFICATION_DELAY = phi * 3000;
 
@@ -106,3 +107,46 @@ export const systemResourcesData: Accessor<SystemResourcesInterface | null> =
       return null;
     }
   });
+
+export const weatherData = createPoll(
+  null,
+  600000,
+  [
+    "bash",
+    "-c",
+    `
+  LOC="$(
+  curl -fsSL https://ipapi.co/latlong ||
+  curl -fsSL https://ifconfig.co/coordinates ||
+  curl -fsSL https://ipinfo.io/loc
+)" || exit 1
+  LAT=\${LOC%,*}
+  LON=\${LOC#*,}
+  curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2"
+  `,
+  ],
+  (out) => {
+    try {
+      const parsed = JSON.parse(out);
+      return {
+        current: {
+          temp: parsed.current.temperature_2m,
+          temp_unit: parsed.current_units.temperature_2m,
+          humidity: parsed.current.relative_humidity_2m,
+          wind_speed: parsed.current.wind_speed_10m,
+          wind_unit: parsed.current_units.wind_speed_10m,
+          wind_direction: parsed.current.wind_direction_10m,
+          apparent_temp: parsed.current.apparent_temperature,
+          is_day: parsed.current.is_day,
+          precipitation: parsed.current.precipitation,
+          weather_code: parsed.current.weather_code,
+        },
+        daily: parsed.daily,
+        hourly: parsed.hourly,
+      } as weatherInterface;
+    } catch (e) {
+      console.error("Weather parsing error:", e);
+      return null;
+    }
+  },
+);

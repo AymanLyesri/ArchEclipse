@@ -18,10 +18,11 @@ import Pango from "gi://Pango";
 import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
-import Cava from "../../Cava";
+// import Cava from "../../Cava";
 import Bandwidth from "./sub-components/Bandwidth";
 import GLib from "gi://GLib";
 import { WeatherButton } from "../../Weather";
+import { timeout } from "ags/time";
 
 const mpris = AstalMpris.get_default();
 
@@ -37,16 +38,16 @@ function Mpris() {
             const [app] = apps.exact_query(player.entry);
             return (
               <box spacing={5}>
-                <Cava
+                {/* <Cava
                   barCount={10}
                   transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
                   isPlaying={createBinding(
                     player,
                     "playbackStatus",
                   )((status) => status === AstalMpris.PlaybackStatus.PLAYING)}
-                />
+                /> */}
                 <image
-                  visible={!!app.iconName}
+                  visible={!!app?.iconName}
                   iconName={app?.iconName}
                   class={createBinding(
                     player,
@@ -57,6 +58,31 @@ function Mpris() {
                       : "mpris-icon paused",
                   )}
                 />
+                <revealer
+                  transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+                  $={(self) => {
+                    player.connect("notify::playback-status", (s) => {
+                      print("playback status changed:", s);
+                      const revealSequence = () => {
+                        self.reveal_child = true;
+                        timeout(5000, () => {
+                          self.reveal_child = false;
+                        });
+                      };
+                      revealSequence();
+                    });
+                  }}
+                >
+                  <label
+                    class="playback-status-icon icon"
+                    label={createBinding(
+                      player,
+                      "playbackStatus",
+                    )((s) =>
+                      s === AstalMpris.PlaybackStatus.PLAYING ? "" : "",
+                    )}
+                  />
+                </revealer>
                 <label
                   label={createBinding(player, "title")}
                   ellipsize={Pango.EllipsizeMode.END}

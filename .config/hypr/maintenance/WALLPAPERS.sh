@@ -53,6 +53,14 @@ urls_NSFW=(
     "https://cdn.donmai.us/original/0e/06/__original_drawn_by_obsidian117__0e060859dfc8adf7e41fc47b03ec078b.jpg"
     "https://cdn.donmai.us/original/1e/e5/__gawr_gura_hololive_and_1_more_drawn_by_champchidi__1ee57bae47cedc57a80de43b271b9f42.jpg"
     "https://cdn.donmai.us/original/79/e6/__original_drawn_by_bodhi_wushushenghua__79e67145283e7e11872ffbbb53036592.jpg"
+    "https://cdn.donmai.us/original/99/60/__nagant_revolver_girls_frontline_drawn_by_shenqi_xiaohuang__99608b5d084e879c9d9d0bb33aec55f3.jpg"
+    "https://cdn.donmai.us/original/4f/b8/__spas_12_tmp_sabrina_and_harpsy_girls_frontline_and_1_more_drawn_by_spencer_sais__4fb8aa4c1d9c037fc8d055424e6363e7.png"
+    "https://cdn.donmai.us/original/95/a8/__koseki_bijou_hololive_and_1_more_drawn_by_albreo__95a8b13bf7db1177b516f526698b740a.png"
+    "https://cdn.donmai.us/original/d4/a3/__sonetto_reverse_1999_drawn_by_alvin2017uk__d4a3e0b75823127775ffe655fdfb4de4.jpg"
+    "https://cdn.donmai.us/original/09/04/__mirko_and_shihouin_yoruichi_boku_no_hero_academia_and_2_more_drawn_by_themaestronoob__0904bb8f56b8e75629b23ac31e2f6246.jpg"
+    "https://cdn.donmai.us/original/fb/ab/__nerissa_ravencroft_and_elizabeth_rose_bloodflame_hololive_and_1_more_drawn_by_daaku_koizumi_arata__fbab2a6ec8d5fdbbe438ee399bb6cd34.jpg"
+    "https://cdn.donmai.us/original/b0/a1/__psylocke_luna_snow_and_jeff_the_land_shark_marvel_and_2_more_drawn_by_sciamano240__b0a1ae6b6a61ab051cbee96752e2ff92.png"
+    
 )
 
 urls_SFW=(
@@ -72,6 +80,8 @@ urls_SFW=(
     "https://cdn.donmai.us/original/81/1f/__revenant_and_page_elden_ring_and_1_more_drawn_by_kwiaty_k__811f419d96b04c39cf9ce26d45cb2118.jpg"
     "https://cdn.donmai.us/original/59/e2/__original_drawn_by_vikiye__59e227bae545a3074f8fb4128065a4d4.jpg"
     "https://cdn.donmai.us/original/bd/70/__original_drawn_by_bodhi_wushushenghua__bd703bafcb56eb084528952720ae5611.jpg"
+    "https://cdn.donmai.us/original/5f/94/__world_is_fleeting_as_foam_nikki_and_1_more_drawn_by_xxyt_xx__5f9486e7eac9a0da590f13a6cf45dab6.jpg"
+    "https://cdn.donmai.us/original/2a/39/__guts_griffith_and_casca_neon_genesis_evangelion_and_2_more_drawn_by_spencer_sais__2a39d1e593cc0925ab32f4cca63854e7.png"
 )
 
 # Color codes

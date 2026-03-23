@@ -253,7 +253,7 @@ export class BooruImage {
    * Pin image to terminal background
    */
   async pinToTerminal(): Promise<void> {
-    const CORNER_RADIUS_PERCENT = 10;
+    const CORNER_RADIUS_PERCENT = 5;
 
     const cacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
     const terminalWaifuPath = `${cacheDir}/logo.webp`;

@@ -86,8 +86,19 @@ const detectFileManagers = async () => {
 };
 
 function moveItem<T>(array: T[], from: number, to: number): T[] {
+  if (
+    from < 0 ||
+    to < 0 ||
+    from >= array.length ||
+    to >= array.length ||
+    from === to
+  ) {
+    return [...array];
+  }
+
   const copy = [...array];
   const [item] = copy.splice(from, 1);
+  if (item === undefined) return [...array];
   copy.splice(to, 0, item);
   return copy;
 }
