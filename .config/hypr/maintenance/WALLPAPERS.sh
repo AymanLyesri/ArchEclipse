@@ -1,10 +1,49 @@
 #!/bin/bash
-source $HOME/.config/hypr/maintenance/ESSENTIALS.sh # source the essentials file INSIDE the repository
+
+source "$HOME/.config/hypr/maintenance/ESSENTIALS.sh"
 
 figlet "WALLPAPERS" -f slant | lolcat
 
-# List of URLs
-urls_NSFW=(
+# ==============================
+# 📦 CATEGORY SYSTEM (EXTENDABLE)
+# ==============================
+
+declare -A CATEGORIES
+
+CATEGORIES=(
+    [images_sfw]="urls_images_sfw"
+    [images_nsfw]="urls_images_nsfw"
+    [animated_sfw]="urls_animated_sfw"
+    [animated_nsfw]="urls_animated_nsfw"
+)
+
+# ==============================
+# 🔗 URL ARRAYS (EMPTY TEMPLATES)
+# ==============================
+
+urls_images_sfw=(
+    "https://w.wallhaven.cc/full/qr/wallhaven-qrjq8l.png"
+    "https://w.wallhaven.cc/full/zp/wallhaven-zpzv7j.jpg"
+    "https://w.wallhaven.cc/full/po/wallhaven-polpoe.jpg"
+    "https://w.wallhaven.cc/full/w5/wallhaven-w51kxr.jpg"
+    "https://w.wallhaven.cc/full/5y/wallhaven-5y5dp3.jpg"
+    "https://w.wallhaven.cc/full/5y/wallhaven-5yz968.jpg"
+    "https://w.wallhaven.cc/full/d8/wallhaven-d8395l.jpg"
+    "https://w.wallhaven.cc/full/yq/wallhaven-yq56jg.jpg"
+    "https://cdn.donmai.us/original/6d/24/__cartethyia_and_fleurdelys_wuthering_waves_drawn_by_ryuutsuki_basetsu__6d24624379108e09c0746cf7b61ca09f.jpg"
+    "https://cdn.donmai.us/original/ce/79/__gigi_murin_hololive_and_1_more_drawn_by_mazo_kunn__ce79dc4353279954ee6d54f0c3fb4650.jpg"
+    "https://cdn.donmai.us/original/dd/26/__columbina_genshin_impact_drawn_by_tyhaya__dd26cadaa29efbdf29951905c1228e38.jpg"
+    "https://cdn.donmai.us/original/f5/bd/__original_drawn_by_flantia__f5bd6abd01c8e2e36a84c8599fbef06a.jpg"
+    "https://cdn.donmai.us/original/4f/76/__moonlit_reflection_and_sun_crows_descend_nikki_and_1_more_drawn_by_zangfoxzang__4f76dceceab3c4a26927d091e5f74ae0.jpg"
+    "https://cdn.donmai.us/original/81/1f/__revenant_and_page_elden_ring_and_1_more_drawn_by_kwiaty_k__811f419d96b04c39cf9ce26d45cb2118.jpg"
+    "https://cdn.donmai.us/original/59/e2/__original_drawn_by_vikiye__59e227bae545a3074f8fb4128065a4d4.jpg"
+    "https://cdn.donmai.us/original/bd/70/__original_drawn_by_bodhi_wushushenghua__bd703bafcb56eb084528952720ae5611.jpg"
+    "https://cdn.donmai.us/original/5f/94/__world_is_fleeting_as_foam_nikki_and_1_more_drawn_by_xxyt_xx__5f9486e7eac9a0da590f13a6cf45dab6.jpg"
+    "https://cdn.donmai.us/original/2a/39/__guts_griffith_and_casca_neon_genesis_evangelion_and_2_more_drawn_by_spencer_sais__2a39d1e593cc0925ab32f4cca63854e7.png"
+    
+)
+
+urls_images_nsfw=(
     "https://cdn.donmai.us/original/bc/66/__dehya_genshin_impact_drawn_by_xude__bc66c4b2ab9ac2c0e4c62cb0e59e0cd0.jpg"
     "https://cdn.donmai.us/original/df/37/__eula_genshin_impact_drawn_by_swkl_d__df37376cf347fd5ba6fc397ec7a0e00b.jpg"
     "https://cdn.donmai.us/original/28/51/__eula_genshin_impact_drawn_by_the_what_sa__2851e14012f4bf512ac33fe8df2f2df1.jpg"
@@ -63,28 +102,28 @@ urls_NSFW=(
     
 )
 
-urls_SFW=(
-    "https://w.wallhaven.cc/full/qr/wallhaven-qrjq8l.png"
-    "https://w.wallhaven.cc/full/zp/wallhaven-zpzv7j.jpg"
-    "https://w.wallhaven.cc/full/po/wallhaven-polpoe.jpg"
-    "https://w.wallhaven.cc/full/w5/wallhaven-w51kxr.jpg"
-    "https://w.wallhaven.cc/full/5y/wallhaven-5y5dp3.jpg"
-    "https://w.wallhaven.cc/full/5y/wallhaven-5yz968.jpg"
-    "https://w.wallhaven.cc/full/d8/wallhaven-d8395l.jpg"
-    "https://w.wallhaven.cc/full/yq/wallhaven-yq56jg.jpg"
-    "https://cdn.donmai.us/original/6d/24/__cartethyia_and_fleurdelys_wuthering_waves_drawn_by_ryuutsuki_basetsu__6d24624379108e09c0746cf7b61ca09f.jpg"
-    "https://cdn.donmai.us/original/ce/79/__gigi_murin_hololive_and_1_more_drawn_by_mazo_kunn__ce79dc4353279954ee6d54f0c3fb4650.jpg"
-    "https://cdn.donmai.us/original/dd/26/__columbina_genshin_impact_drawn_by_tyhaya__dd26cadaa29efbdf29951905c1228e38.jpg"
-    "https://cdn.donmai.us/original/f5/bd/__original_drawn_by_flantia__f5bd6abd01c8e2e36a84c8599fbef06a.jpg"
-    "https://cdn.donmai.us/original/4f/76/__moonlit_reflection_and_sun_crows_descend_nikki_and_1_more_drawn_by_zangfoxzang__4f76dceceab3c4a26927d091e5f74ae0.jpg"
-    "https://cdn.donmai.us/original/81/1f/__revenant_and_page_elden_ring_and_1_more_drawn_by_kwiaty_k__811f419d96b04c39cf9ce26d45cb2118.jpg"
-    "https://cdn.donmai.us/original/59/e2/__original_drawn_by_vikiye__59e227bae545a3074f8fb4128065a4d4.jpg"
-    "https://cdn.donmai.us/original/bd/70/__original_drawn_by_bodhi_wushushenghua__bd703bafcb56eb084528952720ae5611.jpg"
-    "https://cdn.donmai.us/original/5f/94/__world_is_fleeting_as_foam_nikki_and_1_more_drawn_by_xxyt_xx__5f9486e7eac9a0da590f13a6cf45dab6.jpg"
-    "https://cdn.donmai.us/original/2a/39/__guts_griffith_and_casca_neon_genesis_evangelion_and_2_more_drawn_by_spencer_sais__2a39d1e593cc0925ab32f4cca63854e7.png"
+urls_animated_sfw=(
+    
 )
 
-# Color codes
+urls_animated_nsfw=(
+    https://cdn.donmai.us/original/e9/5a/__meruccubus_original_drawn_by_merunyaa__e95a03b52164fbeac6ade8f075520b99.gif
+    https://cdn.donmai.us/original/bc/c5/bcc54570d44b85514de5913bc650519c.mp4
+    https://cdn.donmai.us/original/d9/a7/d9a7c2d2f4b3b1c602d29f713d9555a2.mp4
+    https://cdn.donmai.us/original/66/90/__stella_original_drawn_by_flou_flou_art__6690ab6d2a4e25e034b23a1829241223.gif
+    https://cdn.donmai.us/original/93/ed/93ed26b84107365858a27f7a6e3c0ac1.mp4
+    https://cdn.donmai.us/original/b1/8c/b18c660894886bde34d177bd3d1ed750.mp4
+    https://cdn.donmai.us/original/3d/2b/3d2b67b02cb2646a93fbac625c779534.mp4
+    https://cdn.donmai.us/original/cd/4d/cd4d33655b41919813b1cf9db1bebca2.mp4
+    https://cdn.donmai.us/original/f1/8f/f18f81e79e8793eb1b0eae8162aebfc5.mp4
+    https://cdn.donmai.us/sample/fb/f0/sample-fbf078a12eac875e2f6192754019a35f.webm
+    https://cdn.donmai.us/sample/1d/a0/sample-1da07743622c41e353d1e610c487e711.webm
+)
+
+# ==============================
+# 🎨 COLORS
+# ==============================
+
 BOLD='\033[1m'
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
@@ -92,18 +131,29 @@ YELLOW='\033[1;33m'
 MAGENTA='\033[0;35m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
+
+# ==============================
+# 📊 SIZE CALCULATION
+# ==============================
 
 get_category_size() {
-    local -n urls=$1
+    local var_name=$1
+    local -n urls=$var_name
+    
     if [ ${#urls[@]} -eq 0 ]; then
         echo "0"
         return
     fi
+    
     curl --parallel --parallel-immediate -sI "${urls[@]}" 2>/dev/null |
     grep -ioP 'Content-Length:\s*\K\d+' |
     awk '{s+=$1} END {print int(s/1024/1024)}'
 }
+
+# ==============================
+# 📋 TABLE DISPLAY
+# ==============================
 
 display_wallpaper_table() {
     echo -e "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
@@ -111,58 +161,96 @@ display_wallpaper_table() {
     echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
-    # Calculate sizes
     echo -e "${YELLOW}⏳ Calculating wallpaper sizes...${NC}"
-    nsfw_count=${#urls_NSFW[@]}
-    sfw_count=${#urls_SFW[@]}
-    total_count=$((nsfw_count + sfw_count))
     
-    nsfw_size=$(get_category_size urls_NSFW)
-    sfw_size=$(get_category_size urls_SFW)
-    total_size=$((nsfw_size + sfw_size))
+    local total_count=0
+    local total_size=0
     
-    # Display table
     echo ""
     echo -e "${BOLD}${CYAN}┌──────────────┬──────────────┬─────────────────┐${NC}"
-    echo -e "${BOLD}${CYAN}│${NC}  ${BOLD}CATEGORY${NC}    ${BOLD}${CYAN}│${NC}   ${BOLD}COUNT${NC}     ${BOLD}${CYAN}│${NC}   ${BOLD}SIZE (MB)${NC}    ${BOLD}${CYAN}│${NC}"
+    echo -e "${BOLD}${CYAN}│CATEGORY      │     COUNT    │    SIZE (MB)    │${NC}"
     echo -e "${BOLD}${CYAN}├──────────────┼──────────────┼─────────────────┤${NC}"
-    printf "${BOLD}${CYAN}│${NC} ${GREEN}%-12s${NC} ${BOLD}${CYAN}│${NC} ${YELLOW}%12s${NC} ${BOLD}${CYAN}│${NC} ${MAGENTA}%15s${NC} ${BOLD}${CYAN}│${NC}\n" "SFW" "$sfw_count" "$sfw_size MB"
-    printf "${BOLD}${CYAN}│${NC} ${RED}%-12s${NC} ${BOLD}${CYAN}│${NC} ${YELLOW}%12s${NC} ${BOLD}${CYAN}│${NC} ${MAGENTA}%15s${NC} ${BOLD}${CYAN}│${NC}\n" "NSFW" "$nsfw_count" "$nsfw_size MB"
+    
+    for category in "${!CATEGORIES[@]}"; do
+        local var_name=${CATEGORIES[$category]}
+        local -n urls=$var_name
+        
+        local count=${#urls[@]}
+        local size=$(get_category_size "$var_name")
+        
+        total_count=$((total_count + count))
+        total_size=$((total_size + size))
+        
+        printf "${BOLD}${CYAN}│${NC} %-12s ${BOLD}${CYAN}│${NC} %12s ${BOLD}${CYAN}│${NC} %15s ${BOLD}${CYAN}│${NC}\n" \
+        "$category" "$count" "$size MB"
+    done
+    
     echo -e "${BOLD}${CYAN}├──────────────┼──────────────┼─────────────────┤${NC}"
-    printf "${BOLD}${CYAN}│${NC} ${BOLD}%-12s${NC} ${BOLD}${CYAN}│${NC} ${BOLD}${YELLOW}%12s${NC} ${BOLD}${CYAN}│${NC} ${BOLD}${MAGENTA}%15s${NC} ${BOLD}${CYAN}│${NC}\n" "TOTAL" "$total_count" "$total_size MB"
+    printf "${BOLD}${CYAN}│${NC} %-12s ${BOLD}${CYAN}│${NC} %12s ${BOLD}${CYAN}│${NC} %15s ${BOLD}${CYAN}│${NC}\n" \
+    "TOTAL" "$total_count" "$total_size MB"
     echo -e "${BOLD}${CYAN}└──────────────┴──────────────┴─────────────────┘${NC}"
     echo ""
 }
 
+# ==============================
+# 📥 DOWNLOAD LOGIC
+# ==============================
+
+convert_gif_to_mp4() {
+    local input="$1"
+    local output="${input%.*}.mp4"
+    
+    # Skip only if a valid converted file already exists.
+    if [[ -f "$output" ]] && ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$output" >/dev/null 2>&1; then
+        # Keep storage clean when both GIF and MP4 exist.
+        [[ -f "$input" ]] && rm -f "$input"
+        return
+    fi
+    
+    if [[ ! -f "$input" ]]; then
+        echo -e "${YELLOW}  ⚠ Missing source GIF:${NC} $(basename "$input")"
+        return
+    fi
+    
+    echo -e "${CYAN}  🔄 Converting GIF → MP4:${NC} $(basename "$input")"
+    
+    ffmpeg -y -loglevel error \
+    -i "$input" \
+    -map 0:v:0 \
+    -an \
+    -movflags faststart \
+    -pix_fmt yuv444p \
+    -c:v libx264 -crf 16 -preset slow -tune animation \
+    "$output"
+    
+    if [[ -f "$output" ]] && ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$output" >/dev/null 2>&1; then
+        rm "$input"  # remove original gif
+    else
+        rm -f "$output"
+        echo -e "${RED}  ✗ Conversion failed:${NC} $(basename "$input")"
+    fi
+}
+
 download_wallpapers() {
-    local choice=$1
+    local selected=("$@")
+    
     echo -e "${GREEN}▶ Downloading wallpapers...${NC}"
     
-    case $choice in
-        sfw)
-            echo -e "${GREEN}📥 Downloading SFW wallpapers...${NC}"
-            download_category "sfw" urls_SFW
-        ;;
-        nsfw)
-            echo -e "${RED}📥 Downloading NSFW wallpapers...${NC}"
-            download_category "nsfw" urls_NSFW
-        ;;
-        all)
-            echo -e "${BLUE}📥 Downloading ALL wallpapers...${NC}"
-            download_category "sfw" urls_SFW
-            download_category "nsfw" urls_NSFW
-        ;;
-    esac
+    for category in "${selected[@]}"; do
+        local var_name=${CATEGORIES[$category]}
+        download_category "$category" "$var_name"
+    done
     
     echo -e "${GREEN}✓ Download complete!${NC}"
 }
 
 download_category() {
     local category=$1
-    local -n urls=$2
+    local var_name=$2
+    local -n urls=$var_name
     
     if [ ${#urls[@]} -eq 0 ]; then
-        echo -e "${YELLOW}⚠ No wallpapers in $category category. Skipping...${NC}"
+        echo -e "${YELLOW}⚠ No wallpapers in $category. Skipping...${NC}"
         return
     fi
     
@@ -175,27 +263,48 @@ download_category() {
     
     for url in "${urls[@]}"; do
         filename=$(basename "$url")
-        expected_files+=("$filename")
         filepath="$folder/$filename"
+        
+        if [[ "${filename,,}" == *.gif ]]; then
+            local converted_filename="${filename%.*}.mp4"
+            local converted_filepath="$folder/$converted_filename"
+            expected_files+=("$filename" "$converted_filename")
+            
+            if ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$converted_filepath" >/dev/null 2>&1; then
+                [[ -f "$filepath" ]] && rm -f "$filepath"
+                ((skipped++))
+                continue
+            fi
+        else
+            expected_files+=("$filename")
+        fi
         
         if [[ -f "$filepath" ]]; then
             ((skipped++))
+            if [[ "${filepath,,}" == *.gif ]]; then
+                convert_gif_to_mp4 "$filepath"
+            fi
         else
             echo -e "${CYAN}  ⬇ Downloading: ${NC}$filename"
             if curl -L -o "$filepath" "$url" 2>/dev/null; then
                 ((downloaded++))
+                # Convert GIFs automatically
+                if [[ "$filepath" == *.gif ]]; then
+                    convert_gif_to_mp4 "$filepath"
+                fi
             else
                 echo -e "${RED}  ✗ Failed: ${NC}$filename"
             fi
         fi
     done
     
-    # Cleanup files not in the list
     echo -e "${YELLOW}🧹 Cleaning up old files...${NC}"
     local removed=0
+    
     for file in "$folder"/*; do
         [[ -f "$file" ]] || continue
         basename_file=$(basename "$file")
+        
         if [[ ! " ${expected_files[*]} " =~ " $basename_file " ]]; then
             echo -e "${RED}  ✗ Removing: ${NC}$basename_file"
             rm "$file"
@@ -210,39 +319,46 @@ download_category() {
     echo ""
 }
 
+# ==============================
+# 📋 MENU
+# ==============================
+
 show_choice_menu() {
-    echo -e "${BOLD}${YELLOW}📋 Select wallpaper category to download:${NC}"
+    echo -e "${BOLD}${YELLOW}📋 Select category:${NC}"
     echo ""
-    echo -e "${GREEN}  [1]${NC} SFW only"
-    echo -e "${RED}  [2]${NC} NSFW only"
-    echo -e "${BLUE}  [3]${NC} ALL (SFW + NSFW)"
-    echo -e "${CYAN}  [4]${NC} Cancel"
-    echo ""
-    echo -ne "${BOLD}${CYAN}Enter your choice [1-4]: ${NC}"
     
+    local i=1
+    local options=()
+    
+    for category in "${!CATEGORIES[@]}"; do
+        echo -e "${GREEN}  [$i]${NC} $category"
+        options+=("$category")
+        ((i++))
+    done
+    
+    echo -e "${BLUE}  [$i]${NC} ALL"
+    local all_option=$i
+    ((i++))
+    
+    echo -e "${CYAN}  [$i]${NC} Cancel"
+    local cancel_option=$i
+    
+    echo ""
+    echo -ne "${BOLD}${CYAN}Enter your choice: ${NC}"
     read -r choice
     
-    case $choice in
-        1)
-            download_wallpapers "sfw"
-        ;;
-        2)
-            download_wallpapers "nsfw"
-        ;;
-        3)
-            download_wallpapers "all"
-        ;;
-        4)
-            echo -e "${YELLOW}⊘ Installation cancelled.${NC}"
-            return
-        ;;
-        *)
-            echo -e "${RED}✗ Invalid choice. Installation cancelled.${NC}"
-            return
-        ;;
-    esac
+    if [[ "$choice" -ge 1 && "$choice" -le ${#options[@]} ]]; then
+        download_wallpapers "${options[$((choice-1))]}"
+        elif [[ "$choice" -eq $all_option ]]; then
+        download_wallpapers "${options[@]}"
+    else
+        echo -e "${YELLOW}⊘ Cancelled.${NC}"
+    fi
 }
 
-# Main execution
+# ==============================
+# 🚀 MAIN
+# ==============================
+
 display_wallpaper_table
 show_choice_menu

@@ -83,7 +83,9 @@ const FetchCurrentWallpapers = (monitorName: string) => {
 };
 
 export function toThumbnailPath(file: string) {
-  return file.replace("/.config/wallpapers/", "/.config/ags/cache/thumbnails/");
+  return file
+    .replace("/.config/wallpapers/", "/.config/ags/cache/thumbnails/")
+    .replace(/\.[^/.]+$/, ".jpg");
 }
 
 // Main Display Component
@@ -153,7 +155,7 @@ function Display() {
                 const command = {
                   sddm: `pkexec bash -c 'sed -i "s|^background=.*|background=${wallpaper}|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
                   lockscreen: `bash -c "mkdir -p $HOME/.config/wallpapers/lockscreen && cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
-                  workspace: `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
+                  workspace: `bash -c "$HOME/.config/hypr/wallpaper-daemon/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
                     (self.get_root() as any).monitorName
                   } ${wallpaper}"`,
                 }[target];
@@ -261,10 +263,10 @@ function Display() {
       valign={Gtk.Align.CENTER}
       class="reload-wallpapers"
       label="󰑐"
-      tooltipMarkup={`Reload <b>HyprPaper</b>`}
+      tooltipMarkup={`Reload <b>Wallpaper Daemon</b>`}
       onClicked={() => {
         setProgressStatus("loading");
-        execAsync('bash -c "$HOME/.config/hypr/hyprpaper/reload.sh"')
+        execAsync('bash -c "$HOME/.config/hypr/wallpaper-daemon/reload.sh"')
           .then(FetchWallpapers)
           .finally(() => setProgressStatus("success"))
           .catch((err) => {
@@ -288,7 +290,7 @@ function Display() {
             Math.floor(Math.random() * selectedWallpapers.peek().length)
           ];
         execAsync(
-          `bash -c "$HOME/.config/hypr/hyprpaper/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
+          `bash -c "$HOME/.config/hypr/wallpaper-daemon/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
             (self.get_root() as any).monitorName
           } ${randomWallpaper}"`,
         )
@@ -348,7 +350,7 @@ function Display() {
       onClicked={async (self) => {
         setProgressStatus("loading");
         const dialog = new Gtk.FileDialog({
-          title: "Open Image",
+          title: "Open Wallpaper",
           modal: true,
         });
 
@@ -359,6 +361,7 @@ function Display() {
         filter.add_mime_type("image/jpeg");
         filter.add_mime_type("image/webp");
         filter.add_mime_type("image/gif");
+        filter.add_mime_type("video/mp4");
 
         dialog.set_default_filter(filter);
 

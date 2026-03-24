@@ -4,7 +4,7 @@ set -euo pipefail
 
 readonly HYPR_DIR="${HOME}/.config/hypr"
 readonly THEME_SCRIPT="${HYPR_DIR}/theme/scripts/system-theme.sh"
-readonly CURRENT_WALLPAPER_FILE="${HYPR_DIR}/hyprpaper/config/current.conf"
+readonly CURRENT_WALLPAPER_FILE="${HYPR_DIR}/wallpaper-daemon/config/current.conf"
 
 # Get current theme from system
 current_theme="$("${THEME_SCRIPT}" get)"

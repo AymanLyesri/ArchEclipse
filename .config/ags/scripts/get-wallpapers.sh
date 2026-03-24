@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the file that contains the wallpaper paths
-hyprpaper_config="$HOME/.config/hypr/hyprpaper/config"
+wallpaper_config="$HOME/.config/hypr/wallpaper-daemon/config"
 wallpaper_folder="$HOME/.config/wallpapers"
 thumbnail_folder="$HOME/.config/ags/cache/thumbnails"
 
@@ -16,17 +16,30 @@ generate_thumbnails() {
     mkdir -p "$thumb_dir"
     
     # Generate missing thumbnails in parallel, preserving folder structure
-    find "$source_dir" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" -o -iname "*.svg" \) | while read -r wallpaper; do
+    find "$source_dir" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" -o -iname "*.svg" -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.mkv" -o -iname "*.mov" \) | while read -r wallpaper; do
         # Get relative path from source_dir to preserve folder structure
         relative_path="${wallpaper#$source_dir/}"
-        thumbnail="$thumb_dir/$relative_path"
+        relative_no_ext="${relative_path%.*}"
+        thumbnail="$thumb_dir/$relative_no_ext.jpg"
+        ext="${wallpaper##*.}"
+        ext="${ext,,}"
         
         # Create subdirectory if needed
         mkdir -p "$(dirname "$thumbnail")"
         
         # Skip if thumbnail already exists
         if [ ! -f "$thumbnail" ]; then
-            magick "$wallpaper" -resize 256x256 -quality 85 -strip "$thumbnail" &
+            case "$ext" in
+                mp4|webm|mkv|mov)
+                    ffmpeg -y -loglevel error -i "$wallpaper" -vf "thumbnail,scale=256:-1" -frames:v 1 "$thumbnail" >/dev/null 2>&1 &
+                    ;;
+                gif)
+                    magick "${wallpaper}[0]" -resize 256x256 -quality 85 -strip "$thumbnail" >/dev/null 2>&1 &
+                    ;;
+                *)
+                    magick "$wallpaper" -resize 256x256 -quality 85 -strip "$thumbnail" >/dev/null 2>&1 &
+                    ;;
+            esac
         fi
     done
     
@@ -36,10 +49,18 @@ generate_thumbnails() {
     find "$thumb_dir" -type f | while read -r thumb; do
         # Get relative path from thumb_dir to match with source structure
         relative_path="${thumb#$thumb_dir/}"
-        original="$source_dir/$relative_path"
-        
+        relative_no_ext="${relative_path%.*}"
+
+        original_exists=false
+        for ext in jpg jpeg png webp bmp gif svg mp4 webm mkv mov; do
+            if [ -f "$source_dir/$relative_no_ext.$ext" ]; then
+                original_exists=true
+                break
+            fi
+        done
+
         # Delete thumbnail if original wallpaper is missing
-        if [ ! -f "$original" ]; then
+        if [ "$original_exists" = false ]; then
             rm "$thumb"
         fi
     done
@@ -59,7 +80,7 @@ if [ "$1" == "--current" ]; then
         # Trim any whitespace from the path and add to the array
         path=$(echo "$path" | sed "s~^\$HOME~$HOME~" | xargs)
         wallpaper_paths+=("\"$path\"")
-    done <"$hyprpaper_config/$monitor/defaults.conf"
+    done <"$wallpaper_config/$monitor/defaults.conf"
 
 else
 
@@ -70,7 +91,7 @@ else
         paths=()
         while IFS= read -r -d '' file; do
             paths+=("\"$file\"")
-        done < <(find "$dir" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" -o -iname "*.svg" \) -print0)
+        done < <(find "$dir" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" -o -iname "*.svg" -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.mkv" -o -iname "*.mov" \) -print0)
         
         # Only add category if it has images
         if [ ${#paths[@]} -gt 0 ]; then

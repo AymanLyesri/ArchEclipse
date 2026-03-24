@@ -2,5 +2,5 @@ configs/custom/*
 !configs/custom/.gitkeep
 
 theme/theme.conf
-hyprpaper/config/*
-!hyprpaper/config/defaults.conf
+wallpaper-daemon/config/*
+!wallpaper-daemon/config/defaults.conf

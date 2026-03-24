@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -116,8 +117,8 @@ static void create_config_structure() {
 
     char base_dir[MAX_PATH_LEN];
     char backup_conf[MAX_PATH_LEN];
-    snprintf(base_dir, sizeof(base_dir), "%s/hyprpaper/config", hypr_dir);
-    snprintf(backup_conf, sizeof(backup_conf), "%s/hyprpaper/config/defaults.conf", hypr_dir);
+    snprintf(base_dir, sizeof(base_dir), "%s/wallpaper-daemon/config", hypr_dir);
+    snprintf(backup_conf, sizeof(backup_conf), "%s/wallpaper-daemon/config/defaults.conf", hypr_dir);
 
     if (!ensure_dir(base_dir)) {
         notify_error("create_config_structure", "Failed to ensure base config directory");
@@ -248,7 +249,7 @@ void expand_path(const char* input, char* output, size_t output_size) {
  */
 bool get_wallpaper_for_workspace(const char* monitor, int workspace_id, char* wallpaper, size_t size) {
     char config_path[MAX_PATH_LEN];
-    snprintf(config_path, sizeof(config_path), "%s/hyprpaper/config/%s/defaults.conf", hypr_dir, monitor);
+    snprintf(config_path, sizeof(config_path), "%s/wallpaper-daemon/config/%s/defaults.conf", hypr_dir, monitor);
     
     FILE* fp = fopen(config_path, "r");
     if (!fp) {
@@ -429,12 +430,27 @@ bool is_hyprpaper_running() {
     return system("pgrep -x hyprpaper >/dev/null 2>&1") == 0;
 }
 
+/* Check if wallpaper should be rendered via mpvpaper */
+bool is_media_wallpaper(const char* wallpaper) {
+    if (!wallpaper) {
+        return false;
+    }
+
+    const char* dot = strrchr(wallpaper, '.');
+    if (!dot || *(dot + 1) == '\0') {
+        return false;
+    }
+
+    const char* ext = dot + 1;
+    return strcasecmp(ext, "gif") == 0 || strcasecmp(ext, "mp4") == 0 || strcasecmp(ext, "webm") == 0;
+}
+
 /* Kill any running wallpaper script instances */
 void kill_wallpaper_script() {
     char cmd[MAX_PATH_LEN];
-    snprintf(cmd, sizeof(cmd), "pgrep -f '%s/hyprpaper/w.sh' >/dev/null 2>&1", hypr_dir);
+    snprintf(cmd, sizeof(cmd), "pgrep -f '%s/wallpaper-daemon/hyprpaper.sh' >/dev/null 2>&1", hypr_dir);
     if (system(cmd) == 0) {
-        system("killall w.sh 2>/dev/null");
+        system("killall hyprpaper.sh 2>/dev/null");
     }
 }
 
@@ -490,7 +506,7 @@ void change_wallpaper() {
         
         /* Write current wallpaper to tracking file */
         char current_conf[MAX_PATH_LEN];
-        snprintf(current_conf, sizeof(current_conf), "%s/hyprpaper/config/current.conf", hypr_dir);
+        snprintf(current_conf, sizeof(current_conf), "%s/wallpaper-daemon/config/current.conf", hypr_dir);
         FILE* fp = fopen(current_conf, "w");
         if (fp) {
             fprintf(fp, "%s\n", expanded_wallpaper);
@@ -505,7 +521,11 @@ void change_wallpaper() {
         
         /* Execute wallpaper change script */
         char cmd[MAX_PATH_LEN * 2];
-        snprintf(cmd, sizeof(cmd), "%s/hyprpaper/w.sh '%s' '%s' &", hypr_dir, monitor, expanded_wallpaper);
+        if (is_media_wallpaper(expanded_wallpaper)) {
+            snprintf(cmd, sizeof(cmd), "%s/wallpaper-daemon/mpvpaper.sh '%s' '%s' &", hypr_dir, monitor, expanded_wallpaper);
+        } else {
+            snprintf(cmd, sizeof(cmd), "%s/wallpaper-daemon/hyprpaper.sh '%s' '%s' &", hypr_dir, monitor, expanded_wallpaper);
+        }
         system(cmd);
         
         /* Update monitor state */
