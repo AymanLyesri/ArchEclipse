@@ -1,35 +1,15 @@
 #!/bin/bash
-# Path to the image file
-IMAGE_PATH="$HOME/.config/fastfetch/cache/logo.webp"
+# Path to cache directory
+CACHE_DIR="$HOME/.config/fastfetch/cache"
 
-# Check if the image exists
-if [ ! -f "$IMAGE_PATH" ]; then
+# Pick a random file from cache directory
+IMAGE_PATH=$(find "$CACHE_DIR" -maxdepth 1 -type f 2>/dev/null | shuf -n 1)
+
+if [ -z "$IMAGE_PATH" ]; then
     # Fetch system information without logo
     fastfetch
     exit 0
-else
-    # Get the image dimensions
-    DIMENSIONS=$(identify -format "%wx%h" "$IMAGE_PATH")
-    
-    # Extract width and height
-    WIDTH=$(echo "$DIMENSIONS" | cut -d'x' -f1)
-    HEIGHT=$(echo "$DIMENSIONS" | cut -d'x' -f2)
-    
-    # Calculate the aspect ratio
-    RATIO=$(echo "scale=2; $WIDTH/$HEIGHT" | bc)
-    
-    # Ensure COLUMNS is set
-    COLUMNS=${COLUMNS:-$(tput cols)}
-    
-    ARGUMENTS=""
-    
-    # Determine fetch arguments based on ratio
-    # if (($(echo "$RATIO >= 1" | bc -l))); then
-    #     ARGUMENTS="--logo-width $(echo "$COLUMNS / 2" | bc)"
-    # else
-    ARGUMENTS="--logo-height 25"
-    # fi
-    
-    # Fetch system information with adjusted logo size
-    fastfetch --logo-type kitty --logo-recache $ARGUMENTS --logo "$IMAGE_PATH"
 fi
+
+# Fetch system information with fixed logo size
+fastfetch --logo-type kitty --logo-recache --logo-height 25 --logo "$IMAGE_PATH"

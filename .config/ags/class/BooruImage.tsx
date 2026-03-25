@@ -250,24 +250,62 @@ export class BooruImage {
   }
 
   /**
+   * Build cache path for terminal pinning.
+    * Always store as WebP to reduce size while keeping transparent corners.
+   */
+  private getTerminalPinnedPath(): string | null {
+    const sourceImagePath = this.getImagePath();
+    const sourceFile = Gio.File.new_for_path(sourceImagePath);
+    const sourceBasename = sourceFile.get_basename();
+
+    if (!sourceBasename) return null;
+
+    const cacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
+    const stem = sourceBasename.replace(/\.[^.]+$/, "");
+    return `${cacheDir}/${stem}.webp`;
+  }
+
+  /**
+   * Check if this image is currently pinned for fastfetch
+   */
+  isPinnedToTerminal(): boolean {
+    const pinnedPath = this.getTerminalPinnedPath();
+    return !!pinnedPath && Gio.File.new_for_path(pinnedPath).query_exists(null);
+  }
+
+  /**
    * Pin image to terminal background
    */
   async pinToTerminal(): Promise<void> {
     const CORNER_RADIUS_PERCENT = 5;
-
     const cacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
-    const terminalWaifuPath = `${cacheDir}/logo.webp`;
+    const sourceImagePath = this.getImagePath();
+    const sourceFile = Gio.File.new_for_path(sourceImagePath);
+    const terminalWaifuPath = this.getTerminalPinnedPath();
+
+    if (!terminalWaifuPath) {
+      notify({
+        summary: "Error pinning to terminal",
+        body: "Invalid image path",
+      });
+      return;
+    }
 
     try {
       await execAsync(["mkdir", "-p", cacheDir]);
 
-      const pinnedFile = Gio.File.new_for_path(terminalWaifuPath);
+      if (!sourceFile.query_exists(null)) {
+        throw new Error("Image file does not exist locally");
+      }
 
-      if (pinnedFile.query_exists(null)) {
+      const pinnedFileExists =
+        Gio.File.new_for_path(terminalWaifuPath).query_exists(null);
+
+      if (pinnedFileExists) {
         await execAsync(["rm", "-f", terminalWaifuPath]);
+
         notify({ summary: "Waifu", body: "UN-Pinned from Terminal" });
       } else {
-        const sourceImagePath = this.getImagePath();
         const radius = `%[fx:min(w,h)*${CORNER_RADIUS_PERCENT / 100}]`;
 
         await execAsync([
@@ -289,6 +327,13 @@ export class BooruImage {
           "-compose",
           "Dst_In",
           "-composite",
+          "-strip",
+          "-quality",
+          "82",
+          "-define",
+          "webp:method=6",
+          "-define",
+          "webp:alpha-quality=90",
           "-background",
           "none",
           terminalWaifuPath,
@@ -459,6 +504,9 @@ export class BooruImage {
     const [currentlyBookmarked, setCurrentlyBookmarked] = createState(
       this.isBookmarked(),
     );
+    const [currentlyPinned, setCurrentlyPinned] = createState(
+      this.isPinnedToTerminal(),
+    );
 
     const imageRatio = this.getAspectRatio();
     const displayWidth = imageRatio >= 1 ? opts.width * imageRatio : opts.width;
@@ -563,13 +611,22 @@ export class BooruImage {
             onClicked={() => this.openInViewer()}
             hexpand
           />
-          <button
-            label=""
-            tooltipMarkup={currentlyDownloaded((downloaded) =>
-              downloaded ? "Pin to terminal" : "<b>Download</b> first to pin",
+          <togglebutton
+            label={currentlyPinned((pinned) => (pinned ? "󰐃" : ""))}
+            tooltipMarkup={currentlyPinned((pinned) =>
+              currentlyDownloaded.peek()
+                ? pinned
+                  ? "Unpin from terminal"
+                  : "Pin to terminal"
+                : "<b>Download</b> first to pin",
             )}
             sensitive={currentlyDownloaded}
-            onClicked={() => this.pinToTerminal()}
+            active={currentlyPinned}
+            onClicked={() =>
+              this.pinToTerminal()
+                .then(() => setCurrentlyPinned(this.isPinnedToTerminal()))
+                .catch(() => {})
+            }
             hexpand
           />
           <button
@@ -644,6 +701,9 @@ export class BooruImage {
       progressStatus: "idle" as const,
       ...options,
     };
+    const [currentlyPinned, setCurrentlyPinned] = createState(
+      this.isPinnedToTerminal(),
+    );
 
     // Calculate height based on aspect ratio
     const imageHeight =
@@ -697,13 +757,20 @@ export class BooruImage {
             }}
             hexpand
           />
-          <button
-            label=""
+          <togglebutton
+            label={currentlyPinned((pinned) => (pinned ? "󰐃" : ""))}
             hexpand
             class="pin"
             sensitive={!this.isVideo()}
-            tooltip-text="Pin image to terminal"
-            onClicked={() => this.pinToTerminal()}
+            active={currentlyPinned}
+            tooltip-text={currentlyPinned((pinned) =>
+              pinned ? "Unpin image from terminal" : "Pin image to terminal",
+            )}
+            onClicked={() =>
+              this.pinToTerminal()
+                .then(() => setCurrentlyPinned(this.isPinnedToTerminal()))
+                .catch(() => {})
+            }
           />
         </box>
         <box class="section">
