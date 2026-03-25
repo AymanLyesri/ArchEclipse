@@ -10,6 +10,7 @@ interface PictureProps {
   file?: Accessor<string> | string;
   paintable?: Accessor<Gdk.Texture> | Gdk.Texture;
   contentFit?: Gtk.ContentFit;
+  extention?: string;
   $?: (self: Gtk.Picture) => void;
 }
 export default function Picture({
@@ -19,6 +20,7 @@ export default function Picture({
   file,
   contentFit = Gtk.ContentFit.COVER,
   paintable,
+  extention,
   $,
 }: PictureProps) {
   let pictureRef: Gtk.Picture | undefined;
@@ -76,6 +78,16 @@ export default function Picture({
           }
         }}
       />
+
+      <box
+        $type="overlay"
+        class="image-info"
+        halign={Gtk.Align.END}
+        valign={Gtk.Align.END}
+        visible={extention != undefined}
+      >
+        <label class={"image-extension"} label={extention} />
+      </box>
     </overlay>
   );
 }

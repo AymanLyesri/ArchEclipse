@@ -1,0 +1,9 @@
+.image {
+  .image-extension {
+    @include module;
+    font-size: 0.9em;
+    padding: 2px;
+    margin: 5px;
+    border-radius: 5px;
+  }
+}

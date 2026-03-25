@@ -26,7 +26,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 
 # Features
 
-- **Dynamic wallpapers** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper)
+- **Dynamic wallpapers (static/animated)** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper)
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
 - **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 / Gtk 3 replaced)~~: _these are just some of the features_
@@ -47,7 +47,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Arithmetics
     - Url forwarding to default browser
     - Custom commands
-  - Wallpaper switcher for each workspace
+  - Wallpaper switcher for each workspace (static/animated)
   - Keystroke Visualizer `optional`
   - Right Panel `optional & switchable widgets`
     - Waifu display -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs & Custom Images/Gifs
@@ -64,7 +64,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Custom Scripts
     - Keybinds display
   - User Panel (logout etc...)
-- **High-quality wallpapers** from [Danbooru](https://danbooru.donmai.us), [Yandere](https://yande.re), & [Gelbooru](https://gelbooru.com)
+- **High-quality wallpapers (static/animated)** from [Danbooru](https://danbooru.donmai.us), [Yandere](https://yande.re), & [Gelbooru](https://gelbooru.com)
 
 # Current Workflow
 
