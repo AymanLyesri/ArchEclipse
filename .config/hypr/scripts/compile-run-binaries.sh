@@ -51,33 +51,3 @@ fi
     echo "0 * * * * XDG_RUNTIME_DIR=/run/user/$(id -u) $BIN_DIR/posture-check" # Check posture every hour
 } | crontab - || notify-send "Error" "Failed to update crontab"
 
-/tmp/updates-check &
-
-# Check if cronie is running
-if ! systemctl is-active --quiet cronie; then
-    
-    action=$(notify-send \
-        --app-name="Hypr Scripts" \
-        --expire-time=0 \
-        --action=enable:"Enable Cronie" \
-        "Cronie not running" \
-    "Cron jobs will not execute")
-    
-    # FIRST action = index 0
-    case "$action" in
-        0)
-            echo "Enabling Cronie..."
-            pkexec systemctl enable --now cronie && systemctl start cronie
-        ;;
-    esac
-fi
-
-# Update crontab with session variables
-{
-    crontab -l 2>/dev/null | grep -v "$BIN_DIR"
-    # Added XDG_RUNTIME_DIR so notify-send can reach your desktop
-    echo "*/5 * * * * XDG_RUNTIME_DIR=/run/user/$(id -u) $BIN_DIR/battery-check" # Check battery every 5 minutes
-    echo "0 */6 * * * XDG_RUNTIME_DIR=/run/user/$(id -u) $BIN_DIR/updates-check" # Check for updates every 6 hours
-    echo "0 * * * * XDG_RUNTIME_DIR=/run/user/$(id -u) $BIN_DIR/posture-check" # Check posture every hour
-} | crontab - || notify-send "Error" "Failed to update crontab"
-

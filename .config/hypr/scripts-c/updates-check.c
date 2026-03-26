@@ -30,33 +30,6 @@ void send_notification(const char *title, const char *message, const char *actio
     pclose(fp);
 }
 
-bool check_pacman_updates()
-{
-    FILE *fp = popen("yay -Qu 2>/dev/null", "r");
-    if (!fp)
-        return false;
-
-    char buffer[256];
-    int update_count = 0;
-
-    while (fgets(buffer, sizeof(buffer), fp))
-    {
-        update_count++;
-        if (update_count >= MAX_UPDATES)
-            break;
-    }
-    pclose(fp);
-
-    if (update_count > 0)
-    {
-        char message[256];
-        snprintf(message, sizeof(message), "There are %d updates available.", update_count);
-        send_notification("System Update", message, "Update Now", "kitty $HOME/.config/hypr/maintenance/UPDATE.sh");
-        return true;
-    }
-    return false;
-}
-
 bool check_git_updates()
 {
     // First check if we're in a git repo
@@ -87,7 +60,6 @@ bool check_git_updates()
 
 int main()
 {
-    check_pacman_updates();
     check_git_updates();
 
     return 0;

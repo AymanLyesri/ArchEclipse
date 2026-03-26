@@ -21,6 +21,7 @@ const workspaceIconMap: { [name: string]: string } = {
   firefox: "󰈹",
   code: "",
   foot: "",
+  kitty: "",
   ranger: "󰉋",
   thunar: "󰉋",
   nautilus: "󰉋",
