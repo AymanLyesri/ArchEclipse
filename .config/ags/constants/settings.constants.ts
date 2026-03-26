@@ -153,6 +153,13 @@ export const defaultSettings: Settings = {
     min: 0,
     max: 1,
   },
+  dynamicTheme: {
+    name: "Dynamic Theme",
+    value: true,
+    type: "bool",
+    min: 0,
+    max: 1,
+  },
   bar: {
     lock: true,
     orientation: {

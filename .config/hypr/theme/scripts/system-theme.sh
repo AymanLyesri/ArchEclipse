@@ -4,6 +4,22 @@ set -euo pipefail
 
 readonly HYPR_DIR="${HOME}/.config/hypr"
 readonly SCRIPTS_DIR="${HYPR_DIR}/theme/scripts"
+readonly THEME_CONF_FILE="${HYPR_DIR}/theme/theme.conf"
+
+# Theme switching is enabled by default unless theme.conf is explicitly set to false.
+is_theme_enabled() {
+    local conf_value
+    
+    if [[ ! -f "$THEME_CONF_FILE" ]]; then
+        return 0
+    fi
+    
+    conf_value="$(<"$THEME_CONF_FILE")"
+    conf_value="${conf_value//[[:space:]]/}"
+    conf_value="${conf_value,,}"
+    
+    [[ "$conf_value" != "false" ]]
+}
 
 # Get current theme from system color scheme preference
 get_current_theme() {
@@ -84,9 +100,17 @@ main() {
             get_current_theme
         ;;
         switch)
+            if ! is_theme_enabled; then
+                echo "Theme switching disabled in ${THEME_CONF_FILE}"
+                exit 0
+            fi
             switch_theme "${2:-}"
         ;;
         apply)
+            if ! is_theme_enabled; then
+                echo "Theme switching disabled in ${THEME_CONF_FILE}"
+                exit 0
+            fi
             apply_theme_components
         ;;
         *)

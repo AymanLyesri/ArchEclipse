@@ -51,6 +51,7 @@ export interface Settings {
     visibility: AGSSetting;
   };
   autoWorkspaceSwitching: AGSSetting;
+  dynamicTheme: AGSSetting;
   bar: {
     lock: boolean;
     orientation: AGSSetting;

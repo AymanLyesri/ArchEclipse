@@ -4,8 +4,28 @@ set -euo pipefail
 
 readonly HYPR_DIR="${HOME}/.config/hypr"
 readonly THEME_SCRIPT="${HYPR_DIR}/theme/scripts/system-theme.sh"
+readonly THEME_CONF_FILE="${HYPR_DIR}/theme/theme.conf"
 readonly CURRENT_WALLPAPER_FILE="${HYPR_DIR}/wallpaper-daemon/config/current.conf"
 tmp_img=""
+
+is_theme_enabled() {
+    local conf_value
+    
+    if [[ ! -f "$THEME_CONF_FILE" ]]; then
+        return 0
+    fi
+    
+    conf_value="$(<"$THEME_CONF_FILE")"
+    conf_value="${conf_value//[[:space:]]/}"
+    conf_value="${conf_value,,}"
+    
+    [[ "$conf_value" != "false" ]]
+}
+
+if ! is_theme_enabled; then
+    echo "Theme switching disabled in ${THEME_CONF_FILE}"
+    exit 0
+fi
 
 # Get current theme from system
 current_theme="$("${THEME_SCRIPT}" get)"

@@ -5,7 +5,7 @@ import Pango from "gi://Pango";
 import GdkPixbuf from "gi://GdkPixbuf";
 import { booruPath } from "../constants/path.constants";
 import { globalSettings, setGlobalSetting } from "../variables";
-import { Accessor, createState, Setter } from "ags";
+import { Accessor, createRoot, createState, Setter } from "ags";
 import Picture from "../widgets/Picture";
 import Video from "../widgets/Video";
 import { Progress } from "../widgets/Progress";
@@ -615,191 +615,6 @@ export class BooruImage {
       ...options,
     };
 
-    // Get current values (non-reactive)
-    // const currentlyDownloaded = this.isDownloaded();
-    // const currentlyBookmarked = this.isBookmarked();
-
-    const [currentlyDownloaded, setCurrentlyDownloaded] = createState(
-      this.isDownloaded(),
-    );
-    const [currentlyBookmarked, setCurrentlyBookmarked] = createState(
-      this.isBookmarked(),
-    );
-    const [currentlyPinned, setCurrentlyPinned] = createState(
-      this.isPinnedToTerminal(),
-    );
-
-    const imageRatio = this.getAspectRatio();
-    const displayWidth = imageRatio >= 1 ? opts.width * imageRatio : opts.width;
-    const displayHeight =
-      imageRatio >= 1 ? opts.height : opts.height / imageRatio;
-
-    // Tags component
-    const Tags = (
-      <Gtk.FlowBox class="tags" rowSpacing={5} columnSpacing={5}>
-        {this.getFormattedTags(opts.maxTags).map((tag) => (
-          <button
-            class="tag"
-            tooltipText={tag}
-            onClicked={() => {
-              execAsync(`bash -c "echo -n '${tag}' | wl-copy"`).catch((err) =>
-                notify({ summary: "Error", body: String(err) }),
-              );
-            }}
-          >
-            <label
-              ellipsize={Pango.EllipsizeMode.END}
-              maxWidthChars={10}
-              label={tag}
-            />
-          </button>
-        ))}
-      </Gtk.FlowBox>
-    );
-
-    // Actions component
-    const Actions = (
-      <box class="actions" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
-        <box class="section">
-          <button
-            label=""
-            tooltip-text="Open in browser"
-            onClicked={() => this.openInBrowser()}
-            hexpand
-          />
-          <togglebutton
-            class="button"
-            label={currentlyBookmarked((bookmarked) =>
-              bookmarked ? "󰧌" : "",
-            )}
-            tooltip-text="Bookmark image"
-            active={currentlyBookmarked}
-            onClicked={(self) => {
-              this.toggleBookmark()
-                .then((bookmarked) => setCurrentlyBookmarked(bookmarked))
-                .catch(() => {});
-            }}
-            hexpand
-          />
-        </box>
-        <box class="section">
-          <button
-            label=""
-            tooltip-text="Download image"
-            sensitive={currentlyDownloaded((downloaded) => !downloaded)}
-            onClicked={(self) =>
-              this.fetchImage()
-                .then(async () => {
-                  self.sensitive = false;
-                  // Wait a bit to ensure file is fully written
-                  await new Promise((resolve) => setTimeout(resolve, 100));
-                  // Verify file exists before updating state
-                  const imagePath = this.getImagePath();
-                  const file = Gio.File.new_for_path(imagePath);
-                  if (file.query_exists(null)) {
-                    setCurrentlyDownloaded(true);
-                  }
-                })
-                .catch(() => {})
-            }
-            hexpand
-          />
-          <button
-            label=""
-            tooltipMarkup={currentlyDownloaded((downloaded) =>
-              downloaded ? "Copy image" : "<b>Download</b> first to copy",
-            )}
-            sensitive={currentlyDownloaded}
-            onClicked={() => this.copyToClipboard()}
-            hexpand
-          />
-          <button
-            label=""
-            tooltipMarkup={currentlyDownloaded((downloaded) =>
-              downloaded
-                ? "Set as current waifu"
-                : "<b>Download</b> first to set",
-            )}
-            sensitive={currentlyDownloaded}
-            onClicked={() => this.setAsCurrentWaifu()}
-            hexpand
-          />
-          <button
-            label=""
-            tooltipMarkup={currentlyDownloaded((downloaded) =>
-              downloaded ? "Open in viewer" : "<b>Download</b> first to open",
-            )}
-            sensitive={currentlyDownloaded}
-            onClicked={() => this.openInViewer()}
-            hexpand
-          />
-          <togglebutton
-            label={currentlyPinned((pinned) => (pinned ? "󰐃" : ""))}
-            tooltipMarkup={currentlyPinned((pinned) =>
-              currentlyDownloaded.peek()
-                ? pinned
-                  ? "Unpin from terminal"
-                  : "Pin to terminal"
-                : "<b>Download</b> first to pin",
-            )}
-            sensitive={currentlyDownloaded}
-            active={currentlyPinned}
-            onClicked={() =>
-              this.pinToTerminal()
-                .then(() => setCurrentlyPinned(this.isPinnedToTerminal()))
-                .catch(() => {})
-            }
-            hexpand
-          />
-          <button
-            label="󰸉"
-            tooltipMarkup={currentlyDownloaded((downloaded) =>
-              downloaded ? "Add to wallpapers" : "<b>Download</b> first to add",
-            )}
-            sensitive={currentlyDownloaded}
-            onClicked={() => this.addToWallpapers()}
-            hexpand
-          />
-        </box>
-      </box>
-    );
-
-    // Create the dialog content overlay
-    const dialogContent = (
-      <overlay
-        widthRequest={displayWidth}
-        heightRequest={displayHeight}
-        class="booru-image"
-      >
-        <Gtk.Picture
-          file={currentlyDownloaded((downloaded) => {
-            const path = downloaded
-              ? this.getImagePath()
-              : this.getPreviewPath();
-            const file = Gio.File.new_for_path(path);
-            // Force reload by returning a fresh file object
-            return file.query_exists(null)
-              ? file
-              : Gio.File.new_for_path(this.getPreviewPath());
-          })}
-          heightRequest={displayHeight}
-          widthRequest={displayWidth}
-          class="image"
-          contentFit={Gtk.ContentFit.COVER}
-        />
-        <box
-          $type="overlay"
-          orientation={Gtk.Orientation.VERTICAL}
-          widthRequest={displayWidth}
-          heightRequest={displayHeight}
-        >
-          {Tags}
-          <box vexpand />
-          {Actions}
-        </box>
-      </overlay>
-    ) as Gtk.Widget;
-
     // Create the button
     const button = (
       <menubutton
@@ -825,18 +640,206 @@ export class BooruImage {
 
     // Only create the dialog content when popover is first shown
     let contentCreated = false;
-    const container = (
-      <box
-        $={(self) => {
-          popover.connect("show", () => {
-            if (!contentCreated) {
-              self.append(dialogContent);
-              contentCreated = true;
-            }
-          });
-        }}
-      />
-    ) as Gtk.Box;
+    const container = new Gtk.Box();
+
+    popover.connect("show", () => {
+      if (contentCreated) return;
+
+      const dialogContent = createRoot(() => {
+        const [currentlyDownloaded, setCurrentlyDownloaded] = createState(
+          this.isDownloaded(),
+        );
+        const [currentlyBookmarked, setCurrentlyBookmarked] = createState(
+          this.isBookmarked(),
+        );
+        const [currentlyPinned, setCurrentlyPinned] = createState(
+          this.isPinnedToTerminal(),
+        );
+
+        const imageRatio = this.getAspectRatio();
+        const displayWidth =
+          imageRatio >= 1 ? opts.width * imageRatio : opts.width;
+        const displayHeight =
+          imageRatio >= 1 ? opts.height : opts.height / imageRatio;
+
+        // Tags component
+        const Tags = (
+          <Gtk.FlowBox class="tags" rowSpacing={5} columnSpacing={5}>
+            {this.getFormattedTags(opts.maxTags).map((tag) => (
+              <button
+                class="tag"
+                tooltipText={tag}
+                onClicked={() => {
+                  execAsync(`bash -c "echo -n '${tag}' | wl-copy"`).catch(
+                    (err) => notify({ summary: "Error", body: String(err) }),
+                  );
+                }}
+              >
+                <label
+                  ellipsize={Pango.EllipsizeMode.END}
+                  maxWidthChars={10}
+                  label={tag}
+                />
+              </button>
+            ))}
+          </Gtk.FlowBox>
+        );
+
+        // Actions component
+        const Actions = (
+          <box
+            class="actions"
+            spacing={10}
+            orientation={Gtk.Orientation.VERTICAL}
+          >
+            <box class="section">
+              <button
+                label=""
+                tooltip-text="Open in browser"
+                onClicked={() => this.openInBrowser()}
+                hexpand
+              />
+              <togglebutton
+                class="button"
+                label={currentlyBookmarked((bookmarked) =>
+                  bookmarked ? "󰧌" : "",
+                )}
+                tooltip-text="Bookmark image"
+                active={currentlyBookmarked}
+                onClicked={(self) => {
+                  this.toggleBookmark()
+                    .then((bookmarked) => setCurrentlyBookmarked(bookmarked))
+                    .catch(() => {});
+                }}
+                hexpand
+              />
+            </box>
+            <box class="section">
+              <button
+                label=""
+                tooltip-text="Download image"
+                sensitive={currentlyDownloaded((downloaded) => !downloaded)}
+                onClicked={(self) =>
+                  this.fetchImage()
+                    .then(async () => {
+                      self.sensitive = false;
+                      // Wait a bit to ensure file is fully written
+                      await new Promise((resolve) => setTimeout(resolve, 100));
+                      // Verify file exists before updating state
+                      const imagePath = this.getImagePath();
+                      const file = Gio.File.new_for_path(imagePath);
+                      if (file.query_exists(null)) {
+                        setCurrentlyDownloaded(true);
+                      }
+                    })
+                    .catch(() => {})
+                }
+                hexpand
+              />
+              <button
+                label=""
+                tooltipMarkup={currentlyDownloaded((downloaded) =>
+                  downloaded ? "Copy image" : "<b>Download</b> first to copy",
+                )}
+                sensitive={currentlyDownloaded}
+                onClicked={() => this.copyToClipboard()}
+                hexpand
+              />
+              <button
+                label=""
+                tooltipMarkup={currentlyDownloaded((downloaded) =>
+                  downloaded
+                    ? "Set as current waifu"
+                    : "<b>Download</b> first to set",
+                )}
+                sensitive={currentlyDownloaded}
+                onClicked={() => this.setAsCurrentWaifu()}
+                hexpand
+              />
+              <button
+                label=""
+                tooltipMarkup={currentlyDownloaded((downloaded) =>
+                  downloaded
+                    ? "Open in viewer"
+                    : "<b>Download</b> first to open",
+                )}
+                sensitive={currentlyDownloaded}
+                onClicked={() => this.openInViewer()}
+                hexpand
+              />
+              <togglebutton
+                label={currentlyPinned((pinned) => (pinned ? "󰐃" : ""))}
+                tooltipMarkup={currentlyPinned((pinned) =>
+                  currentlyDownloaded.peek()
+                    ? pinned
+                      ? "Unpin from terminal"
+                      : "Pin to terminal"
+                    : "<b>Download</b> first to pin",
+                )}
+                sensitive={currentlyDownloaded}
+                active={currentlyPinned}
+                onClicked={() =>
+                  this.pinToTerminal()
+                    .then(() => setCurrentlyPinned(this.isPinnedToTerminal()))
+                    .catch(() => {})
+                }
+                hexpand
+              />
+              <button
+                label="󰸉"
+                tooltipMarkup={currentlyDownloaded((downloaded) =>
+                  downloaded
+                    ? "Add to wallpapers"
+                    : "<b>Download</b> first to add",
+                )}
+                sensitive={currentlyDownloaded}
+                onClicked={() => this.addToWallpapers()}
+                hexpand
+              />
+            </box>
+          </box>
+        );
+
+        // Create the dialog content overlay
+        return (
+          <overlay
+            widthRequest={displayWidth}
+            heightRequest={displayHeight}
+            class="booru-image"
+          >
+            <Gtk.Picture
+              file={currentlyDownloaded((downloaded) => {
+                const path = downloaded
+                  ? this.getImagePath()
+                  : this.getPreviewPath();
+                const file = Gio.File.new_for_path(path);
+                // Force reload by returning a fresh file object
+                return file.query_exists(null)
+                  ? file
+                  : Gio.File.new_for_path(this.getPreviewPath());
+              })}
+              heightRequest={displayHeight}
+              widthRequest={displayWidth}
+              class="image"
+              contentFit={Gtk.ContentFit.COVER}
+            />
+            <box
+              $type="overlay"
+              orientation={Gtk.Orientation.VERTICAL}
+              widthRequest={displayWidth}
+              heightRequest={displayHeight}
+            >
+              {Tags}
+              <box vexpand />
+              {Actions}
+            </box>
+          </overlay>
+        ) as Gtk.Widget;
+      });
+
+      container.append(dialogContent);
+      contentCreated = true;
+    });
 
     popover.set_child(container);
     button.set_popover(popover);

@@ -19,9 +19,18 @@ import {
 import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
 import { refreshCss } from "../../../utils/scss";
 import { timeout } from "ags/time";
+import { hyprThemeConfPath } from "../../../constants/path.constants";
 const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
+
+const setDynamicThemeInConf = (enabled: boolean) => {
+  execAsync([
+    "bash",
+    "-c",
+    `printf '%s\n' '${enabled ? "true" : "false"}' > "${hyprThemeConfPath}"`,
+  ]).catch((err) => notify({ summary: "Error", body: err.toString() }));
+};
 
 // Add User to input group for key stroke visualizer
 function addUserToInputGroup() {
@@ -161,6 +170,7 @@ const resetButton = () => {
   const resetSettings = () => {
     //global settings
     setGlobalSettings(defaultSettings);
+    setDynamicThemeInConf(Boolean(defaultSettings.dynamicTheme.value));
 
     // hyprland settings
     applyHyprlandSettings(defaultSettings.hyprland);
@@ -673,6 +683,11 @@ export default () => {
           spacing={16}
         >
           <label label="Custom" halign={Gtk.Align.START} />
+          <Setting
+            keyChanged="dynamicTheme"
+            setting={globalSettings.peek().dynamicTheme}
+            callBack={(enabled) => setDynamicThemeInConf(Boolean(enabled))}
+          />
           <Setting
             keyChanged="autoWorkspaceSwitching"
             setting={globalSettings.peek().autoWorkspaceSwitching}

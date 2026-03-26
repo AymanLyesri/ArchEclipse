@@ -41,8 +41,8 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
     - Notification Popups
     - Crypto display
   - Application launcher ~~(Rofi replaced)~~
+    - Clipboard History
     - App launcher
-    - App history
     - Emojis
     - Arithmetics
     - Url forwarding to default browser
@@ -52,7 +52,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
   - Right Panel `optional & switchable widgets`
     - Waifu display -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs & Custom Images/Gifs
     - Media Player
-    - Notification history - filter
+    - Notification history
     - Calendar
     - Script Timer
     - Crypto Viewer
