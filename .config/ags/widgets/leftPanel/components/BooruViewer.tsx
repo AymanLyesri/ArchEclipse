@@ -196,6 +196,7 @@ const fetchImages = async () => {
         "Invalid response format from bookmark list",
       );
       BooruImage.syncBookmarkCache(bookmarks);
+      setGlobalSetting("booru.bookmarks", bookmarks);
 
       // Apply pagination
       const pagedBookmarks =

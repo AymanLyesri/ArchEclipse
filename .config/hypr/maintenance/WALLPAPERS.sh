@@ -118,6 +118,7 @@ urls_animated_nsfw=(
     https://cdn.donmai.us/original/f1/8f/f18f81e79e8793eb1b0eae8162aebfc5.mp4
     https://cdn.donmai.us/sample/fb/f0/sample-fbf078a12eac875e2f6192754019a35f.webm
     https://cdn.donmai.us/sample/1d/a0/sample-1da07743622c41e353d1e610c487e711.webm
+    https://cdn.donmai.us/original/87/94/879487139dcab2234a7e1cc95bfe3669.mp4
 )
 
 # ==============================

@@ -5,6 +5,7 @@ set -euo pipefail
 readonly HYPR_DIR="${HOME}/.config/hypr"
 readonly THEME_SCRIPT="${HYPR_DIR}/theme/scripts/system-theme.sh"
 readonly CURRENT_WALLPAPER_FILE="${HYPR_DIR}/wallpaper-daemon/config/current.conf"
+tmp_img=""
 
 # Get current theme from system
 current_theme="$("${THEME_SCRIPT}" get)"
@@ -21,6 +22,27 @@ fi
 
 # Expand $HOME variable if present
 wallpaper="${wallpaper/\$HOME/${HOME}}"
+
+# check if wallpaper is an animation/video (mp4, gif, etc.)
+if [[ "${wallpaper,,}" =~ \.(mp4|gif|webm|mkv|avi|flv|mpeg|mp3|ogg|wav)$ ]]; then
+    echo "Detected animated wallpaper: ${wallpaper}"
+    
+    if ! command -v ffmpeg >/dev/null 2>&1; then
+        echo "Error: ffmpeg is required to extract a frame from animated wallpapers" >&2
+        exit 1
+    fi
+    
+    tmp_img="$(mktemp --suffix=.jpg)"
+    trap '[[ -n "${tmp_img}" && -f "${tmp_img}" ]] && rm -f "${tmp_img}"' EXIT
+    
+    # Extract a representative frame for pywal color generation.
+    if ! ffmpeg -y -ss 00:00:01 -i "$wallpaper" -frames:v 1 -q:v 2 "$tmp_img" >/dev/null 2>&1; then
+        echo "Error: Failed to extract frame from animated wallpaper: ${wallpaper}" >&2
+        exit 1
+    fi
+    
+    wallpaper="$tmp_img"
+fi
 
 # Validate wallpaper file exists
 if [[ ! -f "${wallpaper}" ]]; then

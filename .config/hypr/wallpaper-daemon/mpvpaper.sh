@@ -19,5 +19,9 @@ killall mpvpaper 2>/dev/null
 # Start mpvpaper in background for animated/video wallpapers
 nohup mpvpaper -o "no-audio --loop --fs --panscan=1.0" "$monitor" "$wallpaper" >/dev/null 2>&1 &
 
+sleep 1 # Wait for wallpaper to be set (removes stuttering)
+
+"$hyprdir/theme/scripts/wal-theme.sh" "$wallpaper" >/dev/null 2>&1
+
 exit 0
 

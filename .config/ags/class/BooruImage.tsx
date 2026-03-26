@@ -91,10 +91,14 @@ export class BooruImage {
   // ═══════════════════════════════════════════════════════════════
 
   constructor(data: Partial<BooruImage> = {}) {
-    this.id = data.id ?? 0;
-    this.width = data.width ?? 0;
-    this.height = data.height ?? 0;
-    this.api = data.api ?? new ApiClass();
+    const parsedId = Number(data.id);
+    const parsedWidth = Number(data.width);
+    const parsedHeight = Number(data.height);
+
+    this.id = Number.isFinite(parsedId) ? parsedId : 0;
+    this.width = Number.isFinite(parsedWidth) ? parsedWidth : 0;
+    this.height = Number.isFinite(parsedHeight) ? parsedHeight : 0;
+    this.api = data.api ? new ApiClass(data.api) : new ApiClass();
     this.tags = data.tags ?? [];
     this.extension = data.extension;
     this.url = data.url;
@@ -436,12 +440,32 @@ export class BooruImage {
 
       if (Array.isArray(parsed.bookmarks)) {
         BooruImage.syncBookmarkCache(parsed.bookmarks);
+        setGlobalSetting("booru.bookmarks", parsed.bookmarks);
       } else {
         BooruImage._bookmarkCacheHydrated = true;
         if (isBookmarked) {
           BooruImage._bookmarkKeys.add(this.getBookmarkKey());
+          const currentBookmarks = globalSettings.peek().booru.bookmarks;
+          const exists = currentBookmarks.some(
+            (img) => img.id === this.id && img.api.value === this.api.value,
+          );
+          if (!exists) {
+            setGlobalSetting("booru.bookmarks", [
+              ...currentBookmarks,
+              this.toJSON(),
+            ]);
+          }
         } else {
           BooruImage._bookmarkKeys.delete(this.getBookmarkKey());
+          setGlobalSetting(
+            "booru.bookmarks",
+            globalSettings
+              .peek()
+              .booru.bookmarks.filter(
+                (img) =>
+                  !(img.id === this.id && img.api.value === this.api.value),
+              ),
+          );
         }
       }
 
@@ -506,7 +530,14 @@ export class BooruImage {
       id: this.id,
       width: this.width,
       height: this.height,
-      api: this.api,
+      api: {
+        name: this.api.name,
+        value: this.api.value,
+        icon: this.api.icon,
+        description: this.api.description,
+        idSearchUrl: this.api.idSearchUrl,
+        imageGenerationSupport: this.api.imageGenerationSupport,
+      },
       tags: this.tags,
       extension: this.extension,
       url: this.url,
