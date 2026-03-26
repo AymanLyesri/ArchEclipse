@@ -1,8 +1,9 @@
 .image {
-  .image-extension {
-    @include module;
+  .image-info-item {
+    // @include module;
+    background-color: $background;
     font-size: 0.9em;
-    padding: 2px;
+    padding: 2px 5px;
     margin: 5px;
     border-radius: 5px;
   }

@@ -11,11 +11,46 @@ import Video from "../widgets/Video";
 import { Progress } from "../widgets/Progress";
 import { booruApis } from "../constants/api.constants";
 import GLib from "gi://GLib";
+import { connectPopoverEvents } from "../utils/window";
 
 import Hyprland from "gi://AstalHyprland";
 import { Gtk } from "ags/gtk4";
 import Gio from "gi://Gio";
 const hyprland = Hyprland.get_default();
+
+const booruScriptPath = `${GLib.get_home_dir()}/.config/ags/scripts/booru.py`;
+
+type BookmarkActionResponse = {
+  bookmarked?: boolean;
+  bookmarks?: Array<Partial<BooruImage>>;
+};
+
+const parseBookmarkActionResponse = (raw: string): BookmarkActionResponse => {
+  if (!raw?.trim()) {
+    throw new Error("Received empty response from booru bookmark action");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new Error(`Invalid bookmark response: ${raw.trim()}`);
+  }
+
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error("Invalid bookmark response format");
+  }
+
+  const envelope = parsed as {
+    error?: boolean;
+    message?: string;
+  };
+  if (envelope.error === true) {
+    throw new Error(envelope.message?.trim() || "Bookmark action failed");
+  }
+
+  return parsed as BookmarkActionResponse;
+};
 
 /**
  * Unified BooruImage class
@@ -48,6 +83,8 @@ export class BooruImage {
 
   private _loadingState: Accessor<"loading" | "error" | "success" | "idle">;
   private _setLoadingState: Setter<"loading" | "error" | "success" | "idle">;
+  private static _bookmarkKeys = new Set<string>();
+  private static _bookmarkCacheHydrated = false;
 
   // ═══════════════════════════════════════════════════════════════
   // Constructor
@@ -131,13 +168,43 @@ export class BooruImage {
    * Check if image is bookmarked
    */
   isBookmarked(): boolean {
+    const key = this.getBookmarkKey();
+    if (BooruImage._bookmarkCacheHydrated) {
+      this._isBookmarked = BooruImage._bookmarkKeys.has(key);
+      return this._isBookmarked;
+    }
+
     if (this._isBookmarked !== undefined) return this._isBookmarked;
 
     const currentBookmarks = globalSettings.peek().booru.bookmarks;
     this._isBookmarked = currentBookmarks.some(
       (img) => img.id === this.id && img.api.value === this.api.value,
     );
+
+    if (this._isBookmarked) {
+      BooruImage._bookmarkKeys.add(key);
+    }
+
     return this._isBookmarked;
+  }
+
+  private getBookmarkKey(): string {
+    return `${this.id}:${this.api.value}`;
+  }
+
+  static syncBookmarkCache(bookmarks: Array<Partial<BooruImage>>): void {
+    const next = new Set<string>();
+
+    for (const bookmark of bookmarks) {
+      const bookmarkId = bookmark?.id;
+      const apiValue = bookmark?.api?.value;
+      if (typeof bookmarkId === "number" && typeof apiValue === "string") {
+        next.add(`${bookmarkId}:${apiValue}`);
+      }
+    }
+
+    BooruImage._bookmarkKeys = next;
+    BooruImage._bookmarkCacheHydrated = true;
   }
 
   /**
@@ -251,7 +318,7 @@ export class BooruImage {
 
   /**
    * Build cache path for terminal pinning.
-    * Always store as WebP to reduce size while keeping transparent corners.
+   * Always store as WebP to reduce size while keeping transparent corners.
    */
   private getTerminalPinnedPath(): string | null {
     const sourceImagePath = this.getImagePath();
@@ -352,22 +419,43 @@ export class BooruImage {
   /**
    * Add/remove bookmark
    */
-  toggleBookmark(): void {
-    const currentBookmarks = globalSettings.peek().booru.bookmarks;
-    const exists = this.isBookmarked();
+  async toggleBookmark(): Promise<boolean> {
+    try {
+      const payload = JSON.stringify({ bookmark: this.toJSON() });
+      const response = await execAsync([
+        "python",
+        booruScriptPath,
+        "--action",
+        "toggle-bookmark",
+        "--payload-json",
+        payload,
+      ]);
 
-    if (exists) {
-      const updatedBookmarks = currentBookmarks.filter(
-        (img) => !(img.id === this.id && img.api.value === this.api.value),
-      );
-      setGlobalSetting("booru.bookmarks", updatedBookmarks);
-      notify({ summary: "Success", body: "Bookmark removed" });
-      this._isBookmarked = false;
-    } else {
-      const updatedBookmarks = [...currentBookmarks, this.toJSON()];
-      setGlobalSetting("booru.bookmarks", updatedBookmarks);
-      notify({ summary: "Success", body: "Image bookmarked" });
-      this._isBookmarked = true;
+      const parsed = parseBookmarkActionResponse(response);
+      const isBookmarked = parsed.bookmarked === true;
+
+      if (Array.isArray(parsed.bookmarks)) {
+        BooruImage.syncBookmarkCache(parsed.bookmarks);
+      } else {
+        BooruImage._bookmarkCacheHydrated = true;
+        if (isBookmarked) {
+          BooruImage._bookmarkKeys.add(this.getBookmarkKey());
+        } else {
+          BooruImage._bookmarkKeys.delete(this.getBookmarkKey());
+        }
+      }
+
+      this._isBookmarked = isBookmarked;
+      notify({
+        summary: "Success",
+        body: isBookmarked ? "Image bookmarked" : "Bookmark removed",
+      });
+
+      return isBookmarked;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      notify({ summary: "Error updating bookmark", body: errorMessage });
+      throw err;
     }
   }
 
@@ -486,11 +574,13 @@ export class BooruImage {
     width?: number;
     height?: number;
     maxTags?: number;
+    columnWidth?: number;
   }): any {
     const opts = {
       width: 300,
       height: 300,
       maxTags: 10,
+      columnWidth: 100,
       ...options,
     };
 
@@ -554,8 +644,9 @@ export class BooruImage {
             tooltip-text="Bookmark image"
             active={currentlyBookmarked}
             onClicked={(self) => {
-              this.toggleBookmark();
-              setCurrentlyBookmarked(this.isBookmarked());
+              this.toggleBookmark()
+                .then((bookmarked) => setCurrentlyBookmarked(bookmarked))
+                .catch(() => {});
             }}
             hexpand
           />
@@ -642,8 +733,8 @@ export class BooruImage {
       </box>
     );
 
-    // Main dialog layout
-    return (
+    // Create the dialog content overlay
+    const dialogContent = (
       <overlay
         widthRequest={displayWidth}
         heightRequest={displayHeight}
@@ -676,7 +767,62 @@ export class BooruImage {
           {Actions}
         </box>
       </overlay>
-    );
+    ) as Gtk.Widget;
+
+    // Create the button
+    const button = (
+      <menubutton
+        class="image-button"
+        hexpand
+        widthRequest={opts.columnWidth}
+        heightRequest={opts.columnWidth * (this.height / this.width)}
+        direction={Gtk.ArrowType.RIGHT}
+        tooltipMarkup={`Click to Open\nLeft Click to Open in Browser\n<b>ID:</b> ${this.id}\n<b>Dimensions:</b> ${this.width}x${this.height}`}
+      >
+        <Picture
+          file={this.getPreviewPath()}
+          contentFit={Gtk.ContentFit.COVER}
+          class="image"
+          info={this.isPinnedToTerminal() ? [""] : undefined}
+        />
+      </menubutton>
+    ) as Gtk.MenuButton;
+
+    // Create popover with deferred content creation
+    const popover = new Gtk.Popover();
+    popover.add_css_class("popover-open");
+
+    // Only create the dialog content when popover is first shown
+    let contentCreated = false;
+    const container = (
+      <box
+        $={(self) => {
+          popover.connect("show", () => {
+            if (!contentCreated) {
+              self.append(dialogContent);
+              contentCreated = true;
+            }
+          });
+        }}
+      />
+    ) as Gtk.Box;
+
+    popover.set_child(container);
+    button.set_popover(popover);
+
+    // Set up right-click gesture to open in browser
+    const gesture = new Gtk.GestureClick();
+    gesture.set_button(3);
+    gesture.set_propagation_phase(Gtk.PropagationPhase.BUBBLE);
+    gesture.connect("released", () => {
+      this.openInBrowser();
+    });
+    button.add_controller(gesture);
+
+    // Connect popover events for window property tracking
+    connectPopoverEvents(button);
+
+    return button;
   }
 
   /**
@@ -703,6 +849,9 @@ export class BooruImage {
     };
     const [currentlyPinned, setCurrentlyPinned] = createState(
       this.isPinnedToTerminal(),
+    );
+    const [currentlyBookmarked, setCurrentlyBookmarked] = createState(
+      this.isBookmarked(),
     );
 
     // Calculate height based on aspect ratio
@@ -749,11 +898,15 @@ export class BooruImage {
         <box class="section">
           <togglebutton
             class="button"
-            label={this.isBookmarked() ? "󰧌" : ""}
+            label={currentlyBookmarked((bookmarked) =>
+              bookmarked ? "󰧌" : "",
+            )}
             tooltip-text="Bookmark image"
-            active={this.isBookmarked()}
+            active={currentlyBookmarked}
             onClicked={(self) => {
-              this.toggleBookmark();
+              this.toggleBookmark()
+                .then((bookmarked) => setCurrentlyBookmarked(bookmarked))
+                .catch(() => {});
             }}
             hexpand
           />

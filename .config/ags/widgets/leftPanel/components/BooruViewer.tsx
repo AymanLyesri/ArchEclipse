@@ -12,7 +12,6 @@ import { booruApis } from "../../../constants/api.constants";
 import { Gdk } from "ags/gtk4";
 import Gio from "gi://Gio";
 import { Progress } from "../../Progress";
-import { connectPopoverEvents } from "../../../utils/window";
 import { booruPath } from "../../../constants/path.constants";
 import Adw from "gi://Adw";
 import Pango from "gi://Pango";
@@ -177,115 +176,104 @@ const fetchImages = async () => {
     setProgressStatus("loading");
 
     const settings = globalSettings.peek();
-    const apiValue = settings.booru.api.value;
-    const credentials =
-      settings.apiKeys[apiValue as keyof typeof settings.apiKeys];
+    const limit = settings.booru.limit;
+    const currentPage = Math.max(1, settings.booru.page);
+    const startIndex = limit > 0 ? (currentPage - 1) * limit : 0;
 
-    const args = [
-      "python",
-      booruScriptPath,
-      "--api",
-      apiValue,
-      "--tags",
-      settings.booru.tags.join(","),
-      "--limit",
-      String(settings.booru.limit),
-      "--page",
-      String(settings.booru.page),
-    ];
+    let imagesToDisplay: BooruImage[] = [];
 
-    if (credentials?.user.value && credentials?.key.value) {
-      args.push(
-        "--api-user",
-        credentials.user.value,
-        "--api-key",
-        credentials.key.value,
+    // Determine source: bookmarks or API
+    if (selectedTab.peek() === "Bookmarks") {
+      // Fetch bookmarks from backend
+      const response = await execAsync([
+        "python",
+        booruScriptPath,
+        "--action",
+        "list-bookmarks",
+      ]);
+      const bookmarks = parseBooruArrayResponse<any>(
+        response,
+        "Invalid response format from bookmark list",
+      );
+      BooruImage.syncBookmarkCache(bookmarks);
+
+      // Apply pagination
+      const pagedBookmarks =
+        limit > 0 ? bookmarks.slice(startIndex, startIndex + limit) : bookmarks;
+      imagesToDisplay = pagedBookmarks.map((b: any) => new BooruImage(b));
+    } else {
+      // Fetch from API
+      const apiValue = settings.booru.api.value;
+      const credentials =
+        settings.apiKeys[apiValue as keyof typeof settings.apiKeys];
+
+      const args = [
+        "python",
+        booruScriptPath,
+        "--api",
+        apiValue,
+        "--tags",
+        settings.booru.tags.join(","),
+        "--limit",
+        String(settings.booru.limit),
+        "--page",
+        String(settings.booru.page),
+      ];
+
+      if (credentials?.user.value && credentials?.key.value) {
+        args.push(
+          "--api-user",
+          credentials.user.value,
+          "--api-key",
+          credentials.key.value,
+        );
+      }
+
+      const res = await execAsync(args);
+      const jsonData = parseBooruArrayResponse<any>(
+        res,
+        "Invalid response format from booru API",
+      );
+
+      imagesToDisplay = jsonData.map(
+        (img: any) =>
+          new BooruImage({
+            ...img,
+            api: settings.booru.api,
+          }),
       );
     }
 
-    const res = await execAsync(args);
-    const jsonData = parseBooruArrayResponse<any>(
-      res,
-      "Invalid response format from booru API",
-    );
-
-    const images: BooruImage[] = jsonData.map(
-      (img: any) =>
-        new BooruImage({
-          ...img,
-          api: settings.booru.api,
-        }),
-    );
-
-    // Create preview directory
-    const previewDir = `${booruPath}/${settings.booru.api.value}/previews`;
-    await execAsync(`mkdir -p "${previewDir}"`);
-
-    // Download all previews in parallel
+    // Download all previews in parallel (unified for both sources)
     await Promise.all(
-      images.map(async (img) => {
+      imagesToDisplay.map(async (img) => {
+        const previewDir = `${booruPath}/${img.api.value}/previews`;
         const filePath = `${previewDir}/${img.id}.${img.extension}`;
+
+        await execAsync(`mkdir -p "${previewDir}"`);
+
         try {
-          // Check if file exists
           await execAsync(`test -f "${filePath}"`);
         } catch {
-          // File doesn't exist, download it
           await execAsync(`curl -sSf -o "${filePath}" "${img.preview}"`);
         }
       }),
     );
 
-    setImages(images);
+    setImages(imagesToDisplay);
     calculateCacheSize();
     setProgressStatus("success");
   } catch (err) {
     console.error(err);
-    const errorMessage = booruErrorMessageFromUnknown(
-      err,
-      "Failed to fetch images",
-    );
+    const errorMessage =
+      selectedTab.peek() === "Bookmarks"
+        ? booruErrorMessageFromUnknown(err, "Failed to load bookmarks")
+        : booruErrorMessageFromUnknown(err, "Failed to fetch images");
     notify({
-      summary: "Error fetching images",
-      body: errorMessage,
-    });
-    setProgressStatus("error");
-  }
-};
-const fetchBookmarkImages = async () => {
-  try {
-    setProgressStatus("loading");
-
-    const bookmarks = globalSettings.peek().booru.bookmarks;
-
-    // Download all bookmark previews in parallel
-    await Promise.all(
-      bookmarks.map(async (bookmark) => {
-        const previewDir = `${booruPath}/${bookmark.api.value}/previews`;
-        const filePath = `${previewDir}/${bookmark.id}.${bookmark.extension}`;
-
-        // Create directory
-        await execAsync(`mkdir -p "${previewDir}"`);
-
-        try {
-          // Check if file exists
-          await execAsync(`test -f "${filePath}"`);
-        } catch {
-          // File doesn't exist, download it
-          await execAsync(`curl -sSf -o "${filePath}" "${bookmark.preview}"`);
-        }
-      }),
-    );
-
-    // Convert bookmarks to BooruImage instances
-    const bookmarkImages = bookmarks.map((b: any) => new BooruImage(b));
-    setImages(bookmarkImages);
-    calculateCacheSize();
-    setProgressStatus("success");
-  } catch (err) {
-    console.error(err);
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    notify({
-      summary: "Error loading bookmarks",
+      summary:
+        selectedTab.peek() === "Bookmarks"
+          ? "Error loading bookmarks"
+          : "Error fetching images",
       body: errorMessage,
     });
     setProgressStatus("error");
@@ -304,6 +292,7 @@ const Tabs = () => (
           if (active) {
             setGlobalSetting("booru.api", api);
             setSelectedTab(api.name);
+            setGlobalSetting("booru.selectedTab", api.name);
             fetchImages();
           }
         }}
@@ -316,7 +305,8 @@ const Tabs = () => (
       onToggled={({ active }) => {
         if (active) {
           setSelectedTab("Bookmarks");
-          fetchBookmarkImages();
+          setGlobalSetting("booru.selectedTab", "Bookmarks");
+          fetchImages();
         }
       }}
     />
@@ -410,61 +400,9 @@ const createImagesContent = () => {
         {imageColumns.map((column) => (
           <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
             {column.map((image: BooruImage) => {
-              const button = (
-                <menubutton
-                  class="image-button"
-                  hexpand
-                  widthRequest={columnWidth}
-                  heightRequest={columnWidth * (image.height / image.width)}
-                  direction={Gtk.ArrowType.RIGHT}
-                  tooltipMarkup={`Click to Open\nLeft Click to Open in Browser\n<b>ID:</b> ${image.id}\n<b>Dimensions:</b> ${image.width}x${image.height}`}
-                >
-                  <Gtk.Picture
-                    file={Gio.File.new_for_path(
-                      `${booruPath}/${image.api.value}/previews/${image.id}.${image.extension}`,
-                    )}
-                    contentFit={Gtk.ContentFit.COVER}
-                    class="image"
-                  />
-                </menubutton>
-              ) as Gtk.MenuButton;
-
-              // Create popover and defer content creation until shown
-              const popover = new Gtk.Popover();
-              popover.add_css_class("popover-open");
-
-              // Only create the dialog content when popover is first shown
-              // Wrap in a box to provide tracking context
-              let contentCreated = false;
-              const container = (
-                <box
-                  $={(self) => {
-                    popover.connect("show", () => {
-                      if (!contentCreated) {
-                        const dialogContent =
-                          image.renderAsImageDialog() as Gtk.Widget;
-                        self.append(dialogContent);
-                        contentCreated = true;
-                      }
-                    });
-                  }}
-                />
-              ) as Gtk.Box;
-
-              popover.set_child(container);
-              button.set_popover(popover);
-
-              // Set up gesture after creation
-              const gesture = new Gtk.GestureClick();
-              gesture.set_button(3);
-              gesture.set_propagation_phase(Gtk.PropagationPhase.BUBBLE);
-              gesture.connect("released", () => {
-                image.openInBrowser();
+              return image.renderAsImageDialog({
+                columnWidth,
               });
-              button.add_controller(gesture);
-              connectPopoverEvents(button);
-
-              return button;
             })}
           </box>
         ))}
@@ -905,7 +843,9 @@ export default () => {
 
         // Initial fetch
         ensureRatingTagFirst();
-        setSelectedTab(globalSettings.peek().booru.api.name);
+        // Restore selected tab from global settings, or default to API name
+        const savedTab = globalSettings.peek().booru.selectedTab;
+        setSelectedTab(savedTab || globalSettings.peek().booru.api.name);
         fetchImages();
 
         globalSettings.subscribe(() => {
@@ -922,6 +862,12 @@ export default () => {
             tags.peek().toString()
           ) {
             setTags(globalSettings.peek().booru.tags);
+            if (selectedTab.peek() !== "Bookmarks") {
+              fetchImages();
+            }
+          }
+          if (globalSettings.peek().booru.selectedTab !== selectedTab.peek()) {
+            setSelectedTab(globalSettings.peek().booru.selectedTab);
             fetchImages();
           }
         });

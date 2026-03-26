@@ -193,6 +193,7 @@ export const defaultSettings: Settings = {
     page: 1,
     columns: 2,
     bookmarks: [],
+    selectedTab: booruApis[0].name,
   },
   crypto: {
     favorite: {

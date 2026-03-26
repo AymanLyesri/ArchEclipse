@@ -127,7 +127,7 @@ function Display() {
                     <Picture
                       class="wallpaper"
                       file={toThumbnailPath(wallpaper)}
-                      extention={wallpaper.split(".").pop()}
+                      info={[wallpaper.split(".").pop() || "unknown"]}
                     ></Picture>
                   )}
                 </button>
@@ -249,7 +249,7 @@ function Display() {
                   <Picture
                     class="wallpaper"
                     file={toThumbnailPath(wallpaper)}
-                    extention={wallpaper.split(".").pop()}
+                    info={[wallpaper.split(".").pop() || "unknown"]}
                   ></Picture>
                 </button>
               ) as Gtk.Widget;
