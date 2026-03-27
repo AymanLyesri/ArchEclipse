@@ -1,10 +1,13 @@
 .image {
-  .image-info-item {
-    // @include module;
-    background-color: $background;
-    font-size: 0.9em;
-    padding: 2px 5px;
+  .image-info {
     margin: 5px;
-    border-radius: 5px;
+
+    .image-info-item {
+      // @include module;
+      background-color: $background;
+      font-size: 0.9em;
+      padding: 2px 5px;
+      border-radius: 5px;
+    }
   }
 }

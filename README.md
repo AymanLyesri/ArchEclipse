@@ -26,7 +26,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 
 # Features
 
-- **Dynamic wallpapers (static/animated)** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper)
+- **Dynamic wallpapers (static/animated)** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper) / [Mpvpaper](https://github.com/GhostNaN/mpvpaper)
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
 - **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 / Gtk 3 replaced)~~: _these are just some of the features_
@@ -107,7 +107,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/
 
 ## Update Guide
 
-> To update the config and its related pkgs Simply run `update` in the terminal
+> To update the config and its related pkgs Simply run `archeclipse` in the terminal
 
 ```bash
 archeclipse

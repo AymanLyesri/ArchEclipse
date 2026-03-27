@@ -72,4 +72,8 @@
   .no-wallpaper {
     background-color: $background;
   }
+
+  .category-selector .popover {
+    @include module;
+  }
 }

@@ -127,7 +127,10 @@ function Display() {
                     <Picture
                       class="wallpaper"
                       file={toThumbnailPath(wallpaper)}
-                      info={[wallpaper.split(".").pop() || "unknown"]}
+                      info={[
+                        String(workspaceId + 1),
+                        wallpaper.split(".").pop() || "unknown",
+                      ]}
                     ></Picture>
                   )}
                 </button>
@@ -445,9 +448,14 @@ function Display() {
       <popover>
         <With value={wallpapers}>
           {(wallpapers) => (
-            <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+            <box
+              orientation={Gtk.Orientation.VERTICAL}
+              spacing={5}
+              class={"popover"}
+            >
               {Object.keys(wallpapers).map((category) => (
                 <button
+                  class={"category"}
                   label={category}
                   onClicked={() =>
                     setGlobalSetting("wallpaperSwitcher.category", category)

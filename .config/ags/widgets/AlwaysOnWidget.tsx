@@ -34,7 +34,7 @@ export default ({
         // setup(self);
       }}
     >
-      <box>{Weather()}</box>
+      <Weather />
     </window>
   );
 };

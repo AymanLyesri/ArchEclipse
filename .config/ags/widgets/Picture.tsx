@@ -85,6 +85,7 @@ export default function Picture({
         halign={Gtk.Align.END}
         valign={Gtk.Align.END}
         visible={info != undefined}
+        spacing={5}
       >
         {info?.map((i) => (
           <label class={"image-info-item"} label={i} />

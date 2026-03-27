@@ -134,7 +134,7 @@ const weatherIcon = (w: any) => {
   return "󰖙"; // default to clear
 };
 
-export function Weather() {
+export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
   return (
     <box class="weather" spacing={12} orientation={Gtk.Orientation.VERTICAL}>
       <With value={weatherData}>
@@ -230,6 +230,7 @@ export function Weather() {
                 class={"weather-section"}
                 orientation={Gtk.Orientation.VERTICAL}
                 spacing={12}
+                visible={moreDetails}
               >
                 <label class="weather-subheading" label="Today's Forecast" />
                 <box class="daily-forecast" spacing={8}>
@@ -288,6 +289,7 @@ export function Weather() {
                 class={"weather-section"}
                 orientation={Gtk.Orientation.VERTICAL}
                 spacing={12}
+                visible={moreDetails}
               >
                 <label class="weather-subheading" label="Hourly Forecast" />
 
@@ -397,7 +399,7 @@ export function WeatherButton() {
           autohide: true,
         });
 
-        popover.set_child((<Weather />) as unknown as Gtk.Widget);
+        popover.set_child((<Weather moreDetails />) as unknown as Gtk.Widget);
         popover.set_parent(self);
 
         popover.connect("notify::visible", () => {
