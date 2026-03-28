@@ -24,6 +24,10 @@ if pgrep -x "wf-recorder" > /dev/null; then
     ags request delete-notification $(cat "$notification_id") 2>/dev/null
     # copy
     wl-copy --type text/uri-list "file://$(cat $file_name)" 2>/dev/null
+    notify-send \
+    -a "Recorder" \
+    -i "media-record" \
+    "Recording Stopped" "File copied to clipboard."
     exit 0
 fi
 
@@ -40,7 +44,7 @@ if [[ "$1" == "--now" ]]; then
     wf-recorder \
     -a "$audio_source" \
     -p crf=35 \
-    -F fps=24 \
+    -F fps=60 \
     -f "$file" &
     rec_pid=$!
     
@@ -50,7 +54,7 @@ if [[ "$1" == "--now" ]]; then
     wf-recorder -g "$(slurp)" \
     -a "$audio_source" \
     -p crf=35 \
-    -F fps=24 \
+    -F fps=60 \
     -f "$file" &
     rec_pid=$!
     

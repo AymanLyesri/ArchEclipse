@@ -615,6 +615,10 @@ export class BooruImage {
       ...options,
     };
 
+    let info: string[] = [];
+    this.isPinnedToTerminal() && info.push("");
+    this.tags.includes("animated") && info.push("");
+
     // Create the button
     const button = (
       <menubutton
@@ -629,7 +633,7 @@ export class BooruImage {
           file={this.getPreviewPath()}
           contentFit={Gtk.ContentFit.COVER}
           class="image"
-          info={this.isPinnedToTerminal() ? [""] : undefined}
+          info={info}
         />
       </menubutton>
     ) as Gtk.MenuButton;

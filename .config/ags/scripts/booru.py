@@ -228,8 +228,6 @@ class BooruProvider(ABC):
 
 class DanbooruProvider(BooruProvider):
     BASE = "https://danbooru.donmai.us"
-    # EXCLUDE_TAGS = ["-animated"]
-    EXCLUDE_TAGS = []
 
     def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
         self.user = api_user
@@ -239,7 +237,7 @@ class DanbooruProvider(BooruProvider):
         if post_id == "random":
             url = (
                 f"{self.BASE}/posts.json?"
-                f"limit={limit}&page={page}&tags=+{'+'.join(tags) + '+' + '+'.join(self.EXCLUDE_TAGS)}"
+                f"limit={limit}&page={page}&tags=+{'+'.join(tags)}"
             )
         else:
             url = f"{self.BASE}/posts/{post_id}.json"
@@ -346,7 +344,6 @@ class DanbooruProvider(BooruProvider):
 
 class GelbooruProvider(BooruProvider):
     BASE = "https://gelbooru.com/index.php"
-    EXCLUDE_TAGS = ["-animated"]
 
     def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
         self.user = api_user
@@ -367,7 +364,7 @@ class GelbooruProvider(BooruProvider):
             params["id"] = post_id
         else:
             params["pid"] = max(0, page - 1)
-            params["tags"] = " ".join(tags + self.EXCLUDE_TAGS)
+            params["tags"] = " ".join(tags)
 
         try:
             r = requests.get(self.BASE, params=params, timeout=15)
@@ -466,7 +463,7 @@ class SafebooruProvider(BooruProvider):
     """
 
     BASE = "https://safebooru.donmai.us"
-    EXCLUDE_TAGS = ["-animated"]
+    # EXCLUDE_TAGS = ["-animated"]
 
     def __init__(self, api_user: Optional[str] = None, api_key: Optional[str] = None):
         # Safebooru doesn't require authentication, but accepts it for compatibility
@@ -484,7 +481,7 @@ class SafebooruProvider(BooruProvider):
         if post_id == "random":
             url = (
                 f"{self.BASE}/posts.json?"
-                f"limit={limit}&page={page}&tags=+{'+'.join(tags) + '+' + '+'.join(self.EXCLUDE_TAGS)}"
+                f"limit={limit}&page={page}&tags=+{'+'.join(tags)}"
             )
         else:
             url = f"{self.BASE}/posts/{post_id}.json"

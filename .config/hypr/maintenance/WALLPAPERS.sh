@@ -10,6 +10,12 @@ figlet "WALLPAPERS" -f slant | lolcat
 
 declare -A CATEGORIES
 
+# Host-specific extension hints for URLs without file extensions.
+# Extend this map as new providers are added.
+declare -A HOST_DEFAULT_EXT=(
+    [motionbgs.com]="mp4"
+)
+
 CATEGORIES=(
     [images_sfw]="urls_images_sfw"
     [images_nsfw]="urls_images_nsfw"
@@ -103,7 +109,15 @@ urls_images_nsfw=(
 )
 
 urls_animated_sfw=(
-    
+    https://cdn.donmai.us/original/3e/1b/3e1b4d5d9c6cfb1dc6c623e15027852f.mp4
+    https://motionbgs.com/dl/hd/8944
+    https://motionbgs.com/dl/hd/9360
+    https://motionbgs.com/dl/hd/9226
+    https://motionbgs.com/dl/hd/9091
+    https://motionbgs.com/dl/hd/8014
+    https://motionbgs.com/dl/hd/8603
+    https://motionbgs.com/dl/hd/7661
+    https://motionbgs.com/dl/hd/7417
 )
 
 urls_animated_nsfw=(
@@ -112,13 +126,14 @@ urls_animated_nsfw=(
     https://cdn.donmai.us/original/d9/a7/d9a7c2d2f4b3b1c602d29f713d9555a2.mp4
     https://cdn.donmai.us/original/66/90/__stella_original_drawn_by_flou_flou_art__6690ab6d2a4e25e034b23a1829241223.gif
     https://cdn.donmai.us/original/93/ed/93ed26b84107365858a27f7a6e3c0ac1.mp4
-    https://cdn.donmai.us/original/b1/8c/b18c660894886bde34d177bd3d1ed750.mp4
-    https://cdn.donmai.us/original/3d/2b/3d2b67b02cb2646a93fbac625c779534.mp4
     https://cdn.donmai.us/original/cd/4d/cd4d33655b41919813b1cf9db1bebca2.mp4
     https://cdn.donmai.us/original/f1/8f/f18f81e79e8793eb1b0eae8162aebfc5.mp4
     https://cdn.donmai.us/sample/fb/f0/sample-fbf078a12eac875e2f6192754019a35f.webm
     https://cdn.donmai.us/sample/1d/a0/sample-1da07743622c41e353d1e610c487e711.webm
     https://cdn.donmai.us/original/87/94/879487139dcab2234a7e1cc95bfe3669.mp4
+    https://cdn.donmai.us/original/d7/2f/d72f558193a787e698945493d76255fb.mp4
+    https://cdn.donmai.us/sample/e7/2b/sample-e72b9cc52491048bc676f86653ea313e.webm
+    https://cdn.donmai.us/original/44/6f/446f5828a683141696dccaedb777803a.mp4
 )
 
 # ==============================
@@ -133,6 +148,92 @@ MAGENTA='\033[0;35m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+
+# ==============================
+# 🧠 FILENAME NORMALIZATION
+# ==============================
+
+get_basename_from_url() {
+    local url="$1"
+    local without_query="${url%%\?*}"
+    basename "$without_query"
+}
+
+get_host_from_url() {
+    local url="$1"
+    local host
+    host=$(echo "$url" | sed -E 's#^[a-zA-Z]+://([^/]+).*#\1#')
+    echo "${host,,}"
+}
+
+get_extension_hint_for_url() {
+    local url="$1"
+    local category="$2"
+    local host
+    host=$(get_host_from_url "$url")
+    
+    if [[ -n "${HOST_DEFAULT_EXT[$host]}" ]]; then
+        echo "${HOST_DEFAULT_EXT[$host]}"
+        return
+    fi
+    
+    # Generic fallback: extension-less animated URLs are treated as mp4.
+    if [[ "$category" == animated_* ]]; then
+        echo "mp4"
+        return
+    fi
+    
+    echo ""
+}
+
+resolve_download_filename() {
+    local url="$1"
+    local category="$2"
+    local filename
+    filename=$(get_basename_from_url "$url")
+    
+    if [[ "$filename" == *.* ]]; then
+        echo "$filename"
+        return
+    fi
+    
+    local hint_ext
+    hint_ext=$(get_extension_hint_for_url "$url" "$category")
+    if [[ -n "$hint_ext" ]]; then
+        echo "${filename}.${hint_ext}"
+    else
+        echo "$filename"
+    fi
+}
+
+normalize_existing_animated_files() {
+    local folder="$1"
+    local category="$2"
+    
+    [[ "$category" == animated_* ]] || return
+    
+    shopt -s nullglob
+    for file in "$folder"/*; do
+        [[ -f "$file" ]] || continue
+        local base
+        base=$(basename "$file")
+        
+        # Skip files that already have an extension.
+        if [[ "$base" == *.* ]]; then
+            continue
+        fi
+        
+        # Add .mp4 only for files that ffprobe recognizes as video.
+        if ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$file" >/dev/null 2>&1; then
+            local renamed="${file}.mp4"
+            if [[ ! -f "$renamed" ]]; then
+                mv "$file" "$renamed"
+                echo -e "${CYAN}  ↻ Renamed extension-less video:${NC} ${base} -> $(basename "$renamed")"
+            fi
+        fi
+    done
+    shopt -u nullglob
+}
 
 # ==============================
 # 📊 SIZE CALCULATION
@@ -257,13 +358,14 @@ download_category() {
     
     local folder="$HOME/.config/wallpapers/defaults/$category"
     mkdir -p "$folder"
+    normalize_existing_animated_files "$folder" "$category"
     
     local expected_files=()
     local downloaded=0
     local skipped=0
     
     for url in "${urls[@]}"; do
-        filename=$(basename "$url")
+        filename=$(resolve_download_filename "$url" "$category")
         filepath="$folder/$filename"
         
         if [[ "${filename,,}" == *.gif ]]; then
