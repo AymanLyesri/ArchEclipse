@@ -67,12 +67,13 @@
     .content {
       min-height: 100px;
     }
+  }
 
-    entry {
-      padding: 10px;
-      background-color: transparent;
+  .app-row {
+    .app-actions {
     }
   }
+
   .quick-apps {
     @include module;
     padding: 10px;

@@ -7,7 +7,7 @@ import { For } from "gnim";
 
 import { readJSONFile } from "../../utils/json";
 import { LauncherApp } from "../../interfaces/app.interface";
-import { AppButton } from "./Apps";
+import { AppButton } from "./AppLauncher";
 
 const MAX_HISTORY_ENTRIES = 10;
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;

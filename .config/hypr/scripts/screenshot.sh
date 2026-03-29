@@ -34,3 +34,6 @@ magick convert "$img" -define webp:method=6 -quality 90 "$img"
 
 # Send optimized image to clipboard
 wl-copy --type image/png < "$img"
+
+# Notify user
+notify-send -i $img "Screenshot saved" "Saved and copied to clipboard"

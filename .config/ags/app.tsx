@@ -148,6 +148,32 @@ app.start({
   requestHandler(argv: string[], response: (response: string) => void) {
     const [cmd, arg, ...rest] = argv;
     const monitor = arg;
+
+    const prefillLauncherInput = (window: any, value: string) => {
+      const input = window?.entry as Gtk.TextView | Gtk.Entry | undefined;
+      if (!input) return;
+
+      if (
+        "buffer" in input &&
+        input.buffer &&
+        "get_end_iter" in input.buffer &&
+        "place_cursor" in input.buffer
+      ) {
+        const buffer = input.buffer as Gtk.TextBuffer;
+        buffer.text = value;
+        const iter = buffer.get_end_iter();
+        buffer.place_cursor(iter);
+        input.grab_focus();
+        return;
+      }
+
+      if ("set_text" in input) {
+        (input as Gtk.Entry).set_text(value);
+        (input as Gtk.Entry).set_position(-1);
+        (input as Gtk.Entry).grab_focus();
+      }
+    };
+
     if (cmd == "delete-notification") {
       const id = parseInt(arg);
       const notification = Notification.notifications.find((n) => n.id === id);
@@ -170,8 +196,7 @@ app.start({
       const appLauncher = app.get_window(`app-launcher-${monitor}`);
       if (appLauncher) {
         appLauncher.show();
-        ((appLauncher as any).entry as Gtk.Entry)?.set_text("cb ");
-        ((appLauncher as any).entry as Gtk.Entry)?.set_position(-1);
+        prefillLauncherInput(appLauncher as any, "cb ");
       }
       response("Clipboard widget opened.");
       return;
@@ -179,10 +204,17 @@ app.start({
       const appLauncher = app.get_window(`app-launcher-${monitor}`);
       if (appLauncher) {
         appLauncher.show();
-        ((appLauncher as any).entry as Gtk.Entry)?.set_text("emojis ");
-        ((appLauncher as any).entry as Gtk.Entry)?.set_position(-1);
+        prefillLauncherInput(appLauncher as any, "emojis ");
       }
       response("Emoji picker opened.");
+      return;
+    } else if (cmd == "notes") {
+      const appLauncher = app.get_window(`app-launcher-${monitor}`);
+      if (appLauncher) {
+        appLauncher.show();
+        prefillLauncherInput(appLauncher as any, "note ");
+      }
+      response("Notes widget opened.");
       return;
     }
     response("unknown command");

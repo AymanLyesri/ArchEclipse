@@ -49,14 +49,15 @@ export class NotificationWidget {
   private getNotificationIcon() {
     if (this.n.app_icon)
       if (this.n.app_icon.startsWith("/")) {
-        // check if app_icon is a path to an image
-        if (this.n.image.endsWith(".webp")) {
-          const texture = this.textureFromFile(this.n.image);
-          return <Picture paintable={texture} />;
-        }
         const texture = this.textureFromFile(this.n.app_icon);
         if (texture) return <Picture paintable={texture} />;
       } else return <image class="icon" iconName={this.n.app_icon} />;
+
+    if (this.n.image)
+      if (this.n.image.startsWith("/")) {
+        const texture = this.textureFromFile(this.n.image);
+        if (texture) return <Picture paintable={texture} />;
+      } else return <image class="icon" iconName={this.n.image} />;
 
     if (this.n.desktopEntry)
       return <image class="icon" iconName={this.n.desktopEntry} />;
