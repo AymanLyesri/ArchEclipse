@@ -24,11 +24,19 @@ const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
 
-const setDynamicThemeInConf = (enabled: boolean) => {
+const setThemeFlagInConf = (
+  flag: "autocolor" | "autovariant",
+  enabled: boolean,
+) => {
   execAsync([
     "bash",
     "-c",
-    `printf '%s\n' '${enabled ? "true" : "false"}' > "${hyprThemeConfPath}"`,
+    `if [[ -f "${hyprThemeConfPath}" ]]; then
+      sed -i 's/^${flag}=.*/${flag}=${enabled ? "true" : "false"}/' "${hyprThemeConfPath}"
+      grep -q '^${flag}=' "${hyprThemeConfPath}" || printf '%s\n' '${flag}=${enabled ? "true" : "false"}' >> "${hyprThemeConfPath}"
+    else
+      printf '%s\n' '${flag}=${enabled ? "true" : "false"}' > "${hyprThemeConfPath}"
+    fi`,
   ]).catch((err) => notify({ summary: "Error", body: err.toString() }));
 };
 
@@ -170,7 +178,14 @@ const resetButton = () => {
   const resetSettings = () => {
     //global settings
     setGlobalSettings(defaultSettings);
-    setDynamicThemeInConf(Boolean(defaultSettings.dynamicTheme.value));
+    setThemeFlagInConf(
+      "autocolor",
+      Boolean(defaultSettings.dynamicThemeColors.value),
+    );
+    setThemeFlagInConf(
+      "autovariant",
+      Boolean(defaultSettings.dynamicThemeVariants.value),
+    );
 
     // hyprland settings
     applyHyprlandSettings(defaultSettings.hyprland);
@@ -499,7 +514,7 @@ const Setting = ({
   };
 
   return (
-    <box class="setting" spacing={5}>
+    <box class="setting" spacing={5} tooltipMarkup={setting.tooltip ?? ""}>
       <Widget />
     </box>
   );
@@ -684,14 +699,23 @@ export default () => {
         >
           <label label="Custom" halign={Gtk.Align.START} />
           <Setting
-            keyChanged="dynamicTheme"
-            setting={globalSettings.peek().dynamicTheme}
-            callBack={(enabled) => setDynamicThemeInConf(Boolean(enabled))}
+            keyChanged="dynamicThemeColors"
+            setting={globalSettings.peek().dynamicThemeColors}
+            callBack={(enabled) =>
+              setThemeFlagInConf("autocolor", Boolean(enabled))
+            }
           />
           <Setting
+            keyChanged="dynamicThemeVariants"
+            setting={globalSettings.peek().dynamicThemeVariants}
+            callBack={(enabled) =>
+              setThemeFlagInConf("autovariant", Boolean(enabled))
+            }
+          />
+          {/* <Setting
             keyChanged="autoWorkspaceSwitching"
             setting={globalSettings.peek().autoWorkspaceSwitching}
-          />
+          /> */}
           <FileManagerSelector />
         </box>
         {resetButton()}

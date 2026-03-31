@@ -9,6 +9,7 @@ export interface AGSSetting {
   type: "int" | "float" | "string" | "bool" | "select";
   min: number;
   max: number;
+  tooltip?: string;
 }
 
 export interface Settings {
@@ -51,7 +52,8 @@ export interface Settings {
     visibility: AGSSetting;
   };
   autoWorkspaceSwitching: AGSSetting;
-  dynamicTheme: AGSSetting;
+  dynamicThemeColors: AGSSetting;
+  dynamicThemeVariants: AGSSetting;
   bar: {
     lock: boolean;
     orientation: AGSSetting;

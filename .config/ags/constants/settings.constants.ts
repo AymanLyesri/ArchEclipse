@@ -153,12 +153,22 @@ export const defaultSettings: Settings = {
     min: 0,
     max: 1,
   },
-  dynamicTheme: {
-    name: "Dynamic Theme",
+  dynamicThemeColors: {
+    name: "Dynamic Theme Colors",
     value: true,
     type: "bool",
     min: 0,
     max: 1,
+    tooltip: "Enable dynamic theme colors based on the current wallpaper",
+  },
+  dynamicThemeVariants: {
+    name: "Dynamic Theme Variants",
+    value: true,
+    type: "bool",
+    min: 0,
+    max: 1,
+    tooltip:
+      "Enable dynamic theme variants (light/dark) based on the current wallpaper",
   },
   bar: {
     lock: true,
