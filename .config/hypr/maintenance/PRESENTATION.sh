@@ -48,18 +48,18 @@ print_warning() {
 print_main_header() {
     local mode="${1:-INSTALL & UPDATE}"
     local subtitle="🚀 ArchEclipse Installation & Configuration"
-
+    
     case "${mode}" in
         INSTALL)
             subtitle="🚀 ArchEclipse Installation & Configuration"
-            ;;
+        ;;
         UPDATE)
             subtitle="🔄 ArchEclipse Update & Synchronization"
-            ;;
+        ;;
     esac
-
+    
     figlet "${mode}" -f slant | lolcat
-
+    
     echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${BOLD}${MAGENTA}  ${subtitle}${NC}"
     echo -e "${BOLD}${CYAN}═══════════════════════════════════════════════════════════════${NC}"
@@ -121,8 +121,9 @@ run_interactive_step() {
     local icon=$1
     local description=$2
     local command=$3
+    local default_choice="${4:-none}"
     
-    continue_prompt "$icon $description" "$command"
+    continue_prompt "$icon $description" "$command" "$default_choice"
     local exit_code=$?
     
     if [ $exit_code -ne 0 ]; then
@@ -152,8 +153,8 @@ prompt_for_donation() {
     echo -e "${BLUE}ArchEclipse is maintained mainly by one person who spends a lot of time building, fixing, and improving it for the community.${NC}"
     echo -e "${BLUE}If this project has made your system better or saved you time, even a small donation can really help keep it alive and growing.${NC}"
     echo ""
-    echo -e "${BLUE}Your support means a lot — thank you for being part of this project. ❤️${NC}"
+    echo -e "${BLUE}Your support means a lot - thank you for being part of this project. ❤️${NC}"
     echo ""
-
-    continue_prompt "💝 Would you like to support the project?" \ "ags request donations $monitor"
+    
+    continue_prompt "💝 Would you like to support the project?" "ags request donations $monitor"
 }

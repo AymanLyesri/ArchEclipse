@@ -6,8 +6,12 @@ set -euo pipefail
 ################################################################
 
 echo ""
-read -p "$(echo -e '\033[1;33m⚠️  You will begin the update process. Do you want to proceed? \033[0m(y/n) ')" -n 1 -r
+read -p "$(echo -e '\033[1;33m⚠️  You will begin the update process. Do you want to proceed? \033[0m(Y/n) ')" -n 1 -r
 echo
+
+if [[ -z "${REPLY}" ]]; then
+    REPLY="y"
+fi
 
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo -e "\033[0;33m✗ Action cancelled.\033[0m"
@@ -44,16 +48,16 @@ trap cleanup_temp_files EXIT
 is_repo_intact() {
     [[ -d "${REPO_DIR}/.git" ]] || return 1
     git -C "${REPO_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
-
+    
     local origin_url
     origin_url="$(git -C "${REPO_DIR}" remote get-url origin 2>/dev/null || true)"
     [[ "${origin_url}" == "${REPO_URL}" ]] || return 1
-
+    
     git -C "${REPO_DIR}" rev-parse --verify HEAD >/dev/null 2>&1 || return 1
-
+    
     # Check for corrupted objects
     git -C "${REPO_DIR}" fsck --no-progress >/dev/null 2>&1 || return 1
-
+    
     return 0
 }
 
@@ -77,20 +81,20 @@ if is_repo_intact; then
     echo "✓ Repository successfully updated from origin/${BRANCH}."
 else
     echo "⚠️ Local git history is missing/corrupt. Falling back to fresh clone deployment."
-
+    
     TEMP_DIR="$(mktemp -d)"
-
+    
     echo "📦 Cloning latest repository state..."
     git clone --depth 1 --single-branch --branch "${BRANCH}" "${REPO_URL}" "${TEMP_DIR}"
-
+    
     echo "[1/1] Overwriting home configuration..."
-
+    
     rm -rf "${REPO_DIR}/.git"
-
+    
     # Force copy everything to $HOME
     # --remove-destination avoids failures on dangling symlinks (e.g. ~/.zshrc)
     cp -a --remove-destination "${TEMP_DIR}/." "$HOME/"
-
+    
     echo "✓ Configuration successfully updated from fresh clone."
 fi
 
@@ -171,7 +175,8 @@ done
 if [[ -n "$aur_helper" ]]; then
     run_interactive_step "📦" \
     "Updating necessary packages (using $aur_helper)" \
-    "$HOME/.config/hypr/pacman/install-pkgs.sh $aur_helper"
+    "$HOME/.config/hypr/pacman/install-pkgs.sh $aur_helper" \
+    "y"
 else
     print_warning "No AUR helper installed."
 fi
@@ -184,7 +189,8 @@ print_section_header "🔌 PLUGINS"
 
 run_interactive_step "🔌" \
 "Updating plugins" \
-"$HOME/.config/hypr/maintenance/PLUGINS.sh"
+"$HOME/.config/hypr/maintenance/PLUGINS.sh" \
+"y"
 
 ################################################################
 # Completion

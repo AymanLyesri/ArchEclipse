@@ -189,6 +189,7 @@ remove_packages() {
 continue_prompt() {
     local prompt="$1"
     local command="$2"
+    local default_choice="${3:-none}"
     local exit_code=0
     
     # Define color variables locally
@@ -200,14 +201,40 @@ continue_prompt() {
     local NC="\e[0m"
     local RESET="\e[0m"
     
+    local choice_label="${GREEN}[Y]${RESET}/${RED}[N]${RESET}"
+    case "$default_choice" in
+        y|Y|yes|YES)
+            default_choice="y"
+            choice_label="${GREEN}[Y]${RESET}/${RED}n${RESET}"
+        ;;
+        n|N|no|NO)
+            default_choice="n"
+            choice_label="${GREEN}y${RESET}/${RED}[N]${RESET}"
+        ;;
+        *)
+            default_choice="none"
+            choice_label="${GREEN}y${RESET}/${RED}n${RESET}"
+        ;;
+    esac
+    
     while true; do
         echo -e ""
         echo -e "${CYAN}${BOLD}❓ $prompt${RESET}"
-        echo -ne "${CYAN}${BOLD}   Enter your choice ${GREEN}[Y]${RESET}/${RED}[N]${RESET}: ${NC}"
-        read -r choice
+        echo -ne "${CYAN}${BOLD}   Enter your choice ${choice_label}${RESET}: ${NC}"
+        IFS= read -r -n 1 choice
+        echo ""
+        
+        # Apply default when Enter is pressed with no explicit answer.
+        if [[ -z "$choice" ]]; then
+            if [[ "$default_choice" == "none" ]]; then
+                echo -e "${RED}✗ Invalid choice. Please answer Y or N.${RESET}"
+                continue
+            fi
+            choice="$default_choice"
+        fi
         
         case "$choice" in
-            [Yy]*)
+            [Yy])
                 echo ""
                 eval "$command"
                 exit_code=$?
@@ -221,14 +248,14 @@ continue_prompt() {
                 echo ""
                 break
             ;;
-            [Nn]*)
+            [Nn])
                 echo -e "${YELLOW}⊘ Step skipped by user${RESET}"
                 echo ""
                 return 0  # Return success when user skips (not an error)
             ;;
             *)
                 echo -e "${RED}✗ Invalid choice. Please answer Y or N.${RESET}"
-                ;;
+            ;;
         esac
     done
     
