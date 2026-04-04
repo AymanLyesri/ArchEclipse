@@ -15,8 +15,7 @@ import GObject from "ags/gobject";
 const hyprland = Hyprland.get_default();
 
 const workspaceIconMap: { [name: string]: string } = {
-  special: "",
-  overview: "󱗼",
+  overview: "󰕬",
   zen: "󰖟",
   firefox: "󰈹",
   code: "",
@@ -355,41 +354,6 @@ function Workspaces() {
   );
 }
 
-const Special = () => (
-  <button
-    class={specialWorkspace((special) =>
-      special ? "special active" : "special inactive",
-    )}
-    label={workspaceIconMap["special"]}
-    onClicked={() =>
-      hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
-    }
-    tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
-    $={(self) => {
-      /* ---------- Drop target ---------- */
-      const dropTarget = new Gtk.DropTarget({
-        actions: Gdk.DragAction.MOVE,
-      });
-
-      dropTarget.set_gtypes([GObject.TYPE_INT]);
-
-      dropTarget.connect("drop", (_, value: Hyprland.Client) => {
-        print("DROP TARGET DROP");
-        const pid = value.pid;
-        print("dropped PID:", pid);
-        hyprland.message_async(
-          `dispatch movetoworkspacesilent special, pid:${pid}`,
-          () => {},
-        );
-
-        return true;
-      });
-
-      self.add_controller(dropTarget);
-    }}
-  />
-);
-
 const OverView = () => (
   <button
     class="overview"
@@ -401,79 +365,10 @@ const OverView = () => (
   />
 );
 
-function WallpaperSwitcher() {
-  return (
-    <button
-      class="wallpaper-switcher"
-      label="󰸉"
-      onClicked={(self) => {
-        const window = app.get_window(
-          `wallpaper-switcher-${(self.get_root() as any).monitorName}`,
-        );
-        if (window)
-          window.is_visible()
-            ? (window.visible = false)
-            : (window.visible = true);
-      }}
-      tooltipMarkup={`Wallpaper Switcher\n<b>SUPER + W</b>`}
-    />
-  );
-}
-
-function AppLauncher() {
-  return (
-    <button
-      // class="app-launcher"
-      label=""
-      onClicked={(self) => {
-        const window = app.get_window(
-          `app-launcher-${(self.get_root() as any).monitorName}`,
-        );
-        if (window)
-          window.is_visible()
-            ? (window.visible = false)
-            : (window.visible = true);
-      }}
-      tooltipMarkup={`App Launcher\n<b>SUPER</b>`}
-    />
-  );
-}
-
-function UserPanel() {
-  return (
-    <button
-      class="user-panel"
-      label=""
-      onClicked={(self) => {
-        const window = app.get_window(
-          `user-panel-${(self.get_root() as any).monitorName}`,
-        );
-        if (window)
-          window.is_visible()
-            ? (window.visible = false)
-            : (window.visible = true);
-      }}
-      tooltipMarkup={`User Panel\n<b>SUPER + ESC</b>`}
-    />
-  );
-}
-
-const Actions = () => {
-  return (
-    <box class="actions">
-      <UserPanel />
-      <AppLauncher />
-      <WallpaperSwitcher />
-    </box>
-  );
-};
-
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="workspaces" spacing={5} halign={halign} hexpand>
-      <Actions />
       <OverView />
-      <Special />
       <Workspaces />
     </box>
   );

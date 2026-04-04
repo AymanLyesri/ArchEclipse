@@ -50,6 +50,15 @@ apply_theme_components() {
 switch_theme() {
     local target_theme="$1"
     local current_theme
+    
+    if is_autovariant_enabled; then
+        echo "Manual theme switching is disabled because autovariant is enabled in ${THEME_CONF_FILE}."
+        if command -v notify-send &>/dev/null; then
+            notify-send -u normal "Theme Switch Disabled" "Manual switching is disabled while auto variant is enabled"
+        fi
+        return 0
+    fi
+    
     current_theme=$(get_current_theme)
     
     # If no theme specified, toggle current theme

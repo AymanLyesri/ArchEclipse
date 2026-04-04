@@ -7,9 +7,10 @@ import {
   focusedClient,
   globalSettings,
   setGlobalSetting,
+  specialWorkspace,
 } from "../../../variables";
 import { Accessor, createBinding, For, With } from "ags";
-import { Gtk } from "ags/gtk4";
+import { Gdk, Gtk } from "ags/gtk4";
 import CustomRevealer from "../../CustomRevealer";
 import { dateFormats } from "../../../constants/date.constants";
 import AstalMpris from "gi://AstalMpris";
@@ -23,6 +24,7 @@ import Bandwidth from "./sub-components/Bandwidth";
 import GLib from "gi://GLib";
 import { WeatherButton } from "../../Weather";
 import { timeout } from "ags/time";
+import GObject from "ags/gobject";
 
 const mpris = AstalMpris.get_default();
 
@@ -172,6 +174,41 @@ function ClientTitle({
   );
 }
 
+const Special = () => (
+  <button
+    class={specialWorkspace((special) =>
+      special ? "special active" : "special inactive",
+    )}
+    label={""}
+    onClicked={() =>
+      hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
+    }
+    tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
+    $={(self) => {
+      /* ---------- Drop target ---------- */
+      const dropTarget = new Gtk.DropTarget({
+        actions: Gdk.DragAction.MOVE,
+      });
+
+      dropTarget.set_gtypes([GObject.TYPE_INT]);
+
+      dropTarget.connect("drop", (_, value: Hyprland.Client) => {
+        print("DROP TARGET DROP");
+        const pid = value.pid;
+        print("dropped PID:", pid);
+        hyprland.message_async(
+          `dispatch movetoworkspacesilent special, pid:${pid}`,
+          () => {},
+        );
+
+        return true;
+      });
+
+      self.add_controller(dropTarget);
+    }}
+  />
+);
+
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="information" spacing={5} halign={halign}>
@@ -187,9 +224,9 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
       </box>
 
       {WeatherButton()}
+      <Special />
       <Clock />
       <Bandwidth />
-      <ClientTitle focusedClient={focusedClient} />
       <box>
         <With value={globalSettings(({ crypto }) => crypto.favorite)}>
           {(crypto: { symbol: string; timeframe: string }) =>

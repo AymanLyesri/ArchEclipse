@@ -18,6 +18,8 @@ import { Gtk } from "ags/gtk4";
 import { RightPanelVisibility } from "../rightPanel/RightPanel";
 import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
 import app from "ags/gtk4/app";
+import { timeout, Timer } from "ags/time";
+import { Window } from "../../utils/window";
 
 export default ({
   monitor,
@@ -54,10 +56,30 @@ export default ({
       $={(self) => {
         setup(self);
         (self as any).monitorName = monitorName;
+        const windowInstance = new Window();
+        (self as any).barWindow = windowInstance;
+        let hideTimeout: Timer | null = null;
+
         const motion = new Gtk.EventControllerMotion();
         motion.connect("leave", () => {
-          if (!globalSettings.peek().bar.lock)
-            app.get_window(`bar-${monitorName}`)!.hide();
+          if (globalSettings.peek().bar.lock) return;
+
+          hideTimeout = timeout(100, () => {
+            hideTimeout = null;
+            if (
+              !globalSettings.peek().bar.lock &&
+              !windowInstance.popupIsOpen()
+            ) {
+              app.get_window(`bar-${monitorName}`)?.hide();
+            }
+          });
+        });
+
+        motion.connect("enter", () => {
+          if (hideTimeout !== null) {
+            hideTimeout.cancel();
+            hideTimeout = null;
+          }
         });
         self.add_controller(motion);
       }}

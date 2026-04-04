@@ -12,9 +12,6 @@ import { createSubprocess, execAsync } from "ags/process";
 
 import Wp from "gi://AstalWp";
 
-import Notifd from "gi://AstalNotifd";
-const notifd = Notifd.get_default();
-
 import { Gtk } from "ags/gtk4";
 import {
   globalSettings,
@@ -32,9 +29,10 @@ import AstalPowerProfiles from "gi://AstalPowerProfiles";
 import CircularProgress from "../../CircularProgress";
 import { timeout, Timer } from "ags/time";
 import SystemResources from "../../rightPanel/components/SystemResources";
+import { connectPopoverEvents } from "../../../utils/window";
 
 import Hyprland from "gi://AstalHyprland";
-import GLib from "gi://GLib";
+import ControlPanel from "../../ControlPanel";
 const hyprland = Hyprland.get_default();
 
 function BrightnessWidget() {
@@ -394,79 +392,6 @@ function Tray() {
   );
 }
 
-function Theme() {
-  return (
-    <togglebutton
-      active={globalTheme}
-      onToggled={({ active }) =>
-        globalTheme.peek() !== active && setGlobalTheme(active)
-      }
-      label={globalTheme((theme) => (theme ? "" : ""))}
-      class="theme icon"
-      tooltipMarkup={globalTheme((theme) =>
-        theme ? `Switch to Dark Theme` : `Switch to Light Theme`,
-      )}
-    />
-  );
-}
-
-function PinBar() {
-  return (
-    <togglebutton
-      active={globalSettings(({ bar }) => bar.lock)}
-      onToggled={({ active }) => {
-        setGlobalSetting("bar.lock", active);
-      }}
-      class="panel-lock icon"
-      label={globalSettings(({ bar }) => (bar.lock ? "" : ""))}
-      tooltipMarkup={globalSettings(({ bar }) =>
-        bar.lock ? `Unlock Bar` : `Lock Bar`,
-      )}
-    />
-  );
-}
-
-function DndToggle() {
-  const [hasPing, setHasPing] = createState(false);
-
-  // Listen for new notifications when DND is on
-  notifd.connect("notified", () => {
-    if (globalSettings.peek().notifications.dnd) {
-      setHasPing(true);
-      // Reset ping after animation completes
-      setTimeout(() => setHasPing(false), 600);
-    }
-  });
-
-  // Reset ping when DND is turned off
-  const dndActive = globalSettings(({ notifications }) => {
-    if (!notifications.dnd) {
-      setHasPing(false);
-    }
-    return notifications.dnd;
-  });
-
-  return (
-    <togglebutton
-      active={dndActive}
-      onToggled={({ active }) => {
-        setGlobalSetting("notifications.dnd", active);
-      }}
-      // class="dnd-toggle icon"
-      class={hasPing((ping) => (ping ? "dnd-toggle active" : "dnd-toggle"))}
-      tooltipMarkup={globalSettings(({ notifications }) =>
-        notifications.dnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb",
-      )}
-    >
-      <label
-        label={globalSettings(({ notifications }) =>
-          notifications.dnd ? "" : "",
-        )}
-      ></label>
-    </togglebutton>
-  );
-}
-
 function ResourceMonitor() {
   return (
     <box
@@ -555,6 +480,17 @@ function ResourceMonitor() {
   );
 }
 
+function ControlPanelButton() {
+  return (
+    <menubutton $={(self) => connectPopoverEvents(self, "barWindow")}>
+      <label label="󱗼" />
+      <popover>
+        <ControlPanel />
+      </popover>
+    </menubutton>
+  );
+}
+
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="utilities" spacing={5} halign={halign} hexpand>
@@ -563,9 +499,7 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
       <Volume />
       <Tray />
       <ResourceMonitor />
-      <Theme />
-      <PinBar />
-      <DndToggle />
+      <ControlPanelButton />
     </box>
   );
 };
