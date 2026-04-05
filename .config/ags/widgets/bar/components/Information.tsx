@@ -174,41 +174,6 @@ function ClientTitle({
   );
 }
 
-const Special = () => (
-  <button
-    class={specialWorkspace((special) =>
-      special ? "special active" : "special inactive",
-    )}
-    label={""}
-    onClicked={() =>
-      hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
-    }
-    tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
-    $={(self) => {
-      /* ---------- Drop target ---------- */
-      const dropTarget = new Gtk.DropTarget({
-        actions: Gdk.DragAction.MOVE,
-      });
-
-      dropTarget.set_gtypes([GObject.TYPE_INT]);
-
-      dropTarget.connect("drop", (_, value: Hyprland.Client) => {
-        print("DROP TARGET DROP");
-        const pid = value.pid;
-        print("dropped PID:", pid);
-        hyprland.message_async(
-          `dispatch movetoworkspacesilent special, pid:${pid}`,
-          () => {},
-        );
-
-        return true;
-      });
-
-      self.add_controller(dropTarget);
-    }}
-  />
-);
-
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="information" spacing={5} halign={halign}>
@@ -224,7 +189,6 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
       </box>
 
       {WeatherButton()}
-      <Special />
       <Clock />
       <Bandwidth />
       <box>

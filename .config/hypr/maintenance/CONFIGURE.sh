@@ -30,7 +30,7 @@ configure_keybord() {
         fi
         selected_layouts="$selected_layouts$new_layout,"
         # Variant selection
-        echo "Configuring keyboard variant for Hyprland... (eg: qwerty, intl, dvorak, etc) or leave it empty (.)"
+        echo "OPTIONAL (tip: leave empty for qwerty): Configuring Custom keyboard variant for Hyprland... (eg: intl, dvorak, etc) or leave it empty (.) "
         new_variant=$(echo "$kb_variants" | fzf --height $FZF_HEIGHT)
         
         # Ensure variant is selected

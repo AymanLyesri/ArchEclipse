@@ -5,11 +5,62 @@ import {
   setGlobalSetting,
   setGlobalTheme,
 } from "../variables";
-import { createState } from "ags";
+import { Accessor, createBinding, createState } from "ags";
 
 import Notifd from "gi://AstalNotifd";
 import { Gtk } from "ags/gtk4";
 const notifd = Notifd.get_default();
+
+import Wp from "gi://AstalWp";
+
+function CustomSlider(props: {
+  value: Accessor<number>;
+  onChange: (val: number) => void;
+  iconWidget: Gtk.Widget;
+}) {
+  return (
+    <box class="control-panel-slider" spacing={5}>
+      {props.iconWidget}
+      <slider
+        class="slider"
+        onValueChanged={(self) => props.onChange(self.get_value())}
+        value={props.value}
+        hexpand
+      />
+    </box>
+  );
+}
+
+function Volume() {
+  const speaker = Wp.get_default()?.audio.defaultSpeaker!;
+  const volumeIcon = createBinding(speaker, "volumeIcon");
+  const volume = createBinding(speaker, "volume");
+
+  const icon = (<image pixelSize={20} iconName={volumeIcon} />) as Gtk.Widget;
+
+  const slider = (
+    <CustomSlider
+      iconWidget={icon}
+      value={volume((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
+      onChange={(val: number) => (speaker.volume = val)}
+    />
+  );
+
+  const percentage = (
+    <label label={volume((v: number) => `${Math.round(v * 100)}%`)} />
+  );
+
+  const trigger = (
+    <box class="trigger" spacing={5} children={[icon, percentage]} />
+  );
+
+  let hideTimeout: any = null;
+  let isHovering = false;
+  let lastVolume = speaker.volume;
+  let firstRender = true;
+
+  return slider;
+}
 
 function Theme() {
   return (
@@ -141,29 +192,24 @@ function UserPanel() {
   );
 }
 
-const Actions = () => {
-  return (
-    <box class="actions" spacing={5}>
-      <UserPanel />
-      <AppLauncher />
-      <WallpaperSwitcher />
-    </box>
-  );
-};
-
 export default () => {
   return (
     <box
       class="control-panel"
-      spacing={5}
+      spacing={10}
       orientation={Gtk.Orientation.VERTICAL}
     >
-      <box spacing={5}>
+      <box class="sliders" spacing={5}>
+        <Volume />
+      </box>
+      <box spacing={5} halign={Gtk.Align.CENTER}>
         <Theme />
         <PinBar />
         <DndToggle />
+        <UserPanel />
+        <AppLauncher />
+        <WallpaperSwitcher />
       </box>
-      <Actions />
     </box>
   );
 };
