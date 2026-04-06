@@ -12,14 +12,21 @@ import { Gtk } from "ags/gtk4";
 const notifd = Notifd.get_default();
 
 import Wp from "gi://AstalWp";
+import brightness from "../services/brightness";
+import Brightness from "../services/brightness";
 
 function CustomSlider(props: {
   value: Accessor<number>;
   onChange: (val: number) => void;
   iconWidget: Gtk.Widget;
+  visible?: Accessor<boolean> | boolean;
 }) {
   return (
-    <box class="control-panel-slider" spacing={5}>
+    <box
+      class="control-panel-slider"
+      spacing={5}
+      visible={props.visible ?? true}
+    >
       {props.iconWidget}
       <slider
         class="slider"
@@ -36,7 +43,9 @@ function Volume() {
   const volumeIcon = createBinding(speaker, "volumeIcon");
   const volume = createBinding(speaker, "volume");
 
-  const icon = (<image pixelSize={20} iconName={volumeIcon} />) as Gtk.Widget;
+  const icon = (
+    <image class={"icon"} pixelSize={15} iconName={volumeIcon} />
+  ) as Gtk.Widget;
 
   const slider = (
     <CustomSlider
@@ -45,21 +54,40 @@ function Volume() {
       onChange={(val: number) => (speaker.volume = val)}
     />
   );
-
-  const percentage = (
-    <label label={volume((v: number) => `${Math.round(v * 100)}%`)} />
-  );
-
-  const trigger = (
-    <box class="trigger" spacing={5} children={[icon, percentage]} />
-  );
-
-  let hideTimeout: any = null;
-  let isHovering = false;
-  let lastVolume = speaker.volume;
-  let firstRender = true;
-
   return slider;
+}
+
+function BrightnessWidget() {
+  const brightness = Brightness.get_default();
+  const screen = createBinding(brightness, "screen");
+
+  const icon = (
+    <label
+      class={"icon"}
+      css={"font-size: 15px;"}
+      label={screen((v) => {
+        switch (true) {
+          case v > 0.75:
+            return "󰃠";
+          case v > 0.5:
+            return "󰃟";
+          case v > 0:
+            return "󰃞";
+          default:
+            return "󰃞";
+        }
+      })}
+    />
+  ) as Gtk.Widget;
+
+  return (
+    <CustomSlider
+      iconWidget={icon}
+      value={screen((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
+      onChange={(val: number) => (brightness.screen = val)}
+      visible={createBinding(brightness, "hasBacklight")}
+    />
+  );
 }
 
 function Theme() {
@@ -196,11 +224,12 @@ export default () => {
   return (
     <box
       class="control-panel"
-      spacing={10}
+      spacing={15}
       orientation={Gtk.Orientation.VERTICAL}
     >
-      <box class="sliders" spacing={5}>
+      <box class="sliders" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
         <Volume />
+        <BrightnessWidget />
       </box>
       <box spacing={5} halign={Gtk.Align.CENTER}>
         <Theme />

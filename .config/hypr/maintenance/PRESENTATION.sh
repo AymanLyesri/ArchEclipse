@@ -146,7 +146,7 @@ run_section_step() {
 }
 
 prompt_for_donation() {
-    local monitor="$(hyprctl monitors | awk '/Monitor/ {monitor=$2} /focused: yes/ {print monitor}')"
+    local monitor="$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name')"
     echo ""
     echo -e "${BOLD}${BLUE}💝 Support ArchEclipse${NC}"
     echo ""

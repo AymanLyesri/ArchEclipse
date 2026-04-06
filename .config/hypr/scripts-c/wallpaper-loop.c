@@ -109,7 +109,7 @@ static bool copy_file(const char* src, const char* dst) {
  * Create monitor config structure and defaults.conf if missing or empty
  */
 static void create_config_structure() {
-    char* output = exec_command("hyprctl monitors | awk '/Monitor/ {print $2}'");
+    char* output = exec_command("hyprctl monitors -j | jq -r '.[].name'");
     if (!output) {
         notify_error("create_config_structure", "Failed to list monitors");
         return;

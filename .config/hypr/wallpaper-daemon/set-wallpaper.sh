@@ -24,7 +24,7 @@ if [ ! -f "$current_config" ]; then
     exit 1
 fi
 
-current_workspace="$(hyprctl monitors | awk -v monitor="$monitor" '/Monitor/ {m=$2} /active workspace/ && m == monitor {print $3}')"
+current_workspace="$(hyprctl monitors -j | jq -r --arg monitor "$monitor" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 
 if ! grep -q "^w-${workspace_id}=" "$current_config"; then
     echo "w-${workspace_id}=" >> "$current_config"

@@ -1,5 +1,4 @@
 import Brightness from "../../../services/brightness";
-const brightness = Brightness.get_default();
 import CustomRevealer from "../../CustomRevealer";
 import {
   Accessor,
@@ -36,6 +35,7 @@ import ControlPanel from "../../ControlPanel";
 const hyprland = Hyprland.get_default();
 
 function BrightnessWidget() {
+  const brightness = Brightness.get_default();
   const screen = createBinding(brightness, "screen");
 
   const label = (
