@@ -1,35 +1,8 @@
 .user-panel {
   background-color: rgba($color: #000000, $alpha: 0.2);
-  .main {
-    background: $background-transparent;
-    border-radius: 20px;
-    padding: 1rem;
-  }
-
-  .player {
-    min-width: 300px;
-  }
-  .middle {
-    min-width: 400px;
-  }
-  .date {
-    @include module;
-    padding: 20px;
-
-    .less {
-      font-size: 3em;
-    }
-
-    .more {
-      font-size: 1.5em;
-      .secondary {
-        color: $secondary;
-      }
-    }
-  }
 
   .center {
-    border-radius: 100px 100px 10px 10px;
+    border-radius: 200px 200px 20px 20px;
     .profile-picture {
       border-radius: 50%;
       background: transparent;
@@ -42,23 +15,30 @@
     }
     .info {
       padding: 10px;
+      opacity: 0;
+
+      .user-name,
+      .desktop-env {
+        font-size: 1.5em;
+        color: $foreground;
+
+        .secondary {
+          color: $secondary;
+        }
+      }
+      .up-time {
+        color: $grey;
+      }
     }
     &:hover {
       background-color: $background;
       .profile-picture {
         box-shadow: $BOX-SHADOW;
       }
+      .info {
+        opacity: 1;
+      }
     }
-  }
-  .user-name,
-  .desktop-env {
-    font-size: 1.5em;
-    .secondary {
-      color: $secondary;
-    }
-  }
-  .up-time {
-    color: $grey;
   }
 
   .system-action {

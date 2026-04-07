@@ -77,12 +77,11 @@ const QuickApps = ({ onAfterLaunch }: { onAfterLaunch: () => void }) => {
   };
 
   return (
-    <scrolledwindow vexpand>
+    <scrolledwindow vexpand hexpand>
       <box
         class="quick-apps results"
         spacing={5}
         orientation={Gtk.Orientation.VERTICAL}
-        valign={Gtk.Align.START}
         $={() => {
           const rawHistory = readJSONFile(QUICK_APP_HISTORY_PATH, []);
           const loadedHistory = normalizeQuickAppHistory(rawHistory);

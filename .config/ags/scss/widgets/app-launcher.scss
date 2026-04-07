@@ -1,5 +1,5 @@
 .app-launcher-visible {
-  .main {
+  .center {
     animation: opacity-in 0.2s ease-in forwards;
   }
 
@@ -13,7 +13,6 @@
 }
 
 .app-launcher {
-  min-width: 1000px;
   min-height: 600px;
   button {
     padding: 1em;
@@ -42,7 +41,7 @@
     }
   }
 
-  .main {
+  .center {
     @include module;
     padding: 10px;
     opacity: 0;
@@ -66,11 +65,6 @@
 
     .content {
       min-height: 100px;
-    }
-  }
-
-  .app-row {
-    .app-actions {
     }
   }
 

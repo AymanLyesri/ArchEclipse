@@ -6,7 +6,7 @@ import app from "ags/gtk4/app";
 import { Astal, Gtk } from "ags/gtk4";
 import Hyprland from "gi://AstalHyprland";
 import Pango from "gi://Pango";
-import { For } from "gnim";
+import { createBinding, For, With } from "gnim";
 
 import { globalMargin } from "../../variables";
 import KeyBind from "../KeyBind";
@@ -41,6 +41,10 @@ import { Gdk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import QuickApps from "./QuickApps";
 import AppHistory, { normalizeHistory } from "./AppHistory";
+
+import Mpris from "gi://AstalMpris";
+import Player from "../Player";
+const mpris = Mpris.get_default();
 
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;
 const MAX_ITEMS = 10;
@@ -396,6 +400,8 @@ export default ({
     }, 100);
   };
 
+  const players = createBinding(mpris, "players");
+
   return (
     <Astal.Window
       gdkmonitor={monitor}
@@ -438,11 +444,31 @@ export default ({
         }}
       />
       <box class="app-launcher" spacing={10}>
+        <box class={"left"}>
+          <With value={players}>
+            {(players) =>
+              players.length > 0 ? (
+                <Player
+                  width={300}
+                  player={
+                    mpris.players.find(
+                      (player) =>
+                        player.playbackStatus === Mpris.PlaybackStatus.PLAYING,
+                    ) || mpris.players[0]
+                  }
+                />
+              ) : (
+                <box></box>
+              )
+            }
+          </With>
+        </box>
         <box
-          class={"main"}
+          class={"center"}
           hexpand
           orientation={Gtk.Orientation.VERTICAL}
           spacing={10}
+          widthRequest={500}
         >
           <Gtk.TextView
             hexpand={true}
@@ -488,7 +514,12 @@ export default ({
             <ResultsList results={Results} onLaunch={launchApp} />
           </scrolledwindow>
         </box>
-        <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+        <box
+          class={"right"}
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={10}
+          widthRequest={300}
+        >
           <QuickApps
             onAfterLaunch={() => {
               if (parentWindowRef) {

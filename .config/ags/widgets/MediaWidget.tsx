@@ -2,8 +2,8 @@ import Player from "./Player";
 import { Gtk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
 import Mpris from "gi://AstalMpris";
-import { Accessor, createBinding, createComputed, With } from "ags";
 const mpris = Mpris.get_default();
+import { Accessor, createBinding, createComputed, With } from "ags";
 
 const noPlayerFound = () => (
   <box
@@ -17,8 +17,6 @@ const noPlayerFound = () => (
   </box>
 );
 
-const players = createBinding(mpris, "players");
-
 export default function ({
   width,
   height,
@@ -30,6 +28,7 @@ export default function ({
   className?: string | Accessor<string>;
   visible?: Accessor<boolean> | boolean;
 }) {
+  const players = createBinding(mpris, "players");
   return (
     <box css={"border-radius: 10px;"} visible={visible}>
       <With value={players}>
