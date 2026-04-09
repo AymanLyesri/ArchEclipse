@@ -16,14 +16,6 @@ I use Arch BTW.. :)
 
 Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 
-# Design Philosophy
-
-- Enhanced productivity
-- Faster execution
-- Smooth animations
-- Vibrant color schemes
-- It just works
-
 # Features
 
 - **Dynamic wallpapers (static/animated)** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper) / [Mpvpaper](https://github.com/GhostNaN/mpvpaper)
@@ -99,7 +91,7 @@ KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form
 
 ## Installation Guide
 
-> Run this one liner in the terminal -- Say `Yes` to everything
+> Run this one liner in the terminal
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/refs/heads/master/.config/hypr/maintenance/INSTALL.sh)"
@@ -134,9 +126,7 @@ archeclipse
 
 ## Application Launcher
 
-| Apps                                           | Emojis                                           | Arithmetics                                           | URLs                                           |
-| ---------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------- |
-| ![image](.github/assets/app-launcher-apps.png) | ![image](.github/assets/app-launcher-emojis.png) | ![image](.github/assets/app-launcher-arithmetics.png) | ![image](.github/assets/app-launcher-urls.png) |
+![image](.github/assets/app-launcher.png)
 
 ## Right Panel
 

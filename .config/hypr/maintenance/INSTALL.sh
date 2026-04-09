@@ -19,6 +19,43 @@ error_exit() {
     exit 1
 }
 
+sync_configuration_files() {
+    local scanned_paths=0
+    local resolved_conflicts=0
+    
+    [ -d "${HOME}" ] || error_exit "HOME directory not found: ${HOME}"
+    
+    echo "Preparing copy operation from ${CONF_DIR} to ${HOME}..."
+    echo "Step 1/3: Scanning for file/directory type conflicts..."
+    
+    # Remove type conflicts first, then copy everything.
+    while IFS= read -r -d '' rel_path; do
+        local src_path="./${rel_path}"
+        local dst_path="${HOME}/${rel_path}"
+        
+        scanned_paths=$((scanned_paths + 1))
+        
+        [ -e "${dst_path}" ] || continue
+        
+        if [ -d "${src_path}" ] && [ ! -d "${dst_path}" ]; then
+            echo "  - Replacing file with directory target: ${dst_path}"
+            sudo rm -f "${dst_path}"
+            resolved_conflicts=$((resolved_conflicts + 1))
+            elif [ ! -d "${src_path}" ] && [ -d "${dst_path}" ]; then
+            echo "  - Replacing directory with file target: ${dst_path}"
+            sudo rm -rf "${dst_path}"
+            resolved_conflicts=$((resolved_conflicts + 1))
+        fi
+    done < <(find . -mindepth 1 -printf '%P\0')
+    
+    echo "Step 2/3: Scan complete (${scanned_paths} paths checked, ${resolved_conflicts} conflicts resolved)."
+    echo "Step 3/3: Copying ArchEclipse content into ${HOME}..."
+    
+    sudo cp -a --remove-destination . "${HOME}"
+    
+    echo "Copy completed successfully."
+}
+
 # Prompt for sudo password once at the start
 echo -e "\033[1;33m🔐 Requesting sudo password...\033[0m"
 sudo -v
@@ -98,7 +135,7 @@ print_section_header "💾 CONFIGURATION FILES"
 
 run_interactive_step "📁" "Backing up dotfiles from ${BOLD}.config${NC}" "${MAINTENANCE_DIR}/BACKUP.sh"
 
-run_interactive_step "📋" "Copying configuration files to ${HOME}" "sudo cp -a --remove-destination . \"${HOME}\""
+run_interactive_step "📋" "Copying configuration files to ${HOME}" "sync_configuration_files"
 
 print_section_header "⌨️ KEYBOARD CONFIGURATION (optional)"
 
