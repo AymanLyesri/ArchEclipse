@@ -83,13 +83,13 @@ print_success "AUR helper selected: ${BOLD}${MAGENTA}${aur_helper}${NC}\n"
 case "${aur_helper}" in
     yay)
         run_section_step "⚙️" "Installing ${BOLD}yay${NC}" "install_yay"
-        ;;
+    ;;
     paru)
         run_section_step "⚙️" "Installing ${BOLD}paru${NC}" "install_paru"
-        ;;
+    ;;
     *)
         error_exit "Invalid AUR helper selected"
-        ;;
+    ;;
 esac
 
 echo ""
@@ -98,7 +98,7 @@ print_section_header "💾 CONFIGURATION FILES"
 
 run_interactive_step "📁" "Backing up dotfiles from ${BOLD}.config${NC}" "${MAINTENANCE_DIR}/BACKUP.sh"
 
-run_interactive_step "📋" "Copying configuration files to ${HOME}" "sudo cp -af . ${HOME}"
+run_interactive_step "📋" "Copying configuration files to ${HOME}" "sudo cp -a --remove-destination . \"${HOME}\""
 
 print_section_header "⌨️ KEYBOARD CONFIGURATION (optional)"
 
