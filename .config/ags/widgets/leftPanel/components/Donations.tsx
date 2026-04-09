@@ -369,10 +369,8 @@ export default () => {
           />
           <label
             class="donation-subtitle"
-            label="Your donations help keep this project alive and maintained"
+            label="Your donations help keep this project alive"
             halign={Gtk.Align.CENTER}
-            wrap
-            wrapMode={Gtk.WrapMode.WORD_CHAR}
           />
         </box>
 

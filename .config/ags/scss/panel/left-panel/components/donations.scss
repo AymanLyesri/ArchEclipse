@@ -40,6 +40,7 @@
 
   .donation-header {
     @include module;
+    padding: 15px;
 
     .donation-title {
       font-size: 1.4em;
@@ -47,9 +48,7 @@
     }
 
     .donation-subtitle {
-      font-size: 0.9em;
       color: $secondary;
-      opacity: 0.8;
     }
   }
 

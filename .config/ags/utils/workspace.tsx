@@ -5,13 +5,16 @@ import { execAsync } from "ags/process";
 import { notify } from "./notification";
 import Picture from "../widgets/Picture";
 import { Accessor, createBinding, createState, With } from "gnim";
-import { timeout } from "ags/time";
+import { timeout, Timer } from "ags/time";
 import { phi } from "../constants/phi.constants";
 import GObject from "ags/gobject";
 import Pango from "gi://Pango";
+import Gio from "gi://Gio";
 
 const apps = new AstalApps.Apps();
 const hyprland = Hyprland.get_default();
+const capturedClientScreenshots = new Set<number>();
+const screenshotInFlight = new Map<number, Promise<string>>();
 
 type Node =
   | { type: "leaf"; client: Hyprland.Client }
@@ -72,6 +75,8 @@ const buildTree = (clients: Hyprland.Client[]): Node => {
   return { type: "leaf", client: main };
 };
 
+let Timeout: Timer = null as any;
+
 const renderNode = (node: Node): Gtk.Widget => {
   if (node.type === "leaf") {
     const [app] = apps.exact_query(node.client.class);
@@ -123,9 +128,37 @@ const renderNode = (node: Node): Gtk.Widget => {
         }}
       >
         <Picture
-          file={screenshotClient(node.client)}
           height={node.client.height / 7}
           width={node.client.width / 7}
+          $={(self) => {
+            if (node.client.workspace.id == hyprland.focusedWorkspace.id) {
+              if (!capturedClientScreenshots.has(node.client.pid)) {
+                Timeout?.cancel();
+                Timeout = timeout(300, () => {
+                  ensureClientScreenshot(node.client)
+                    .then((path) => {
+                      if (!path) return;
+                      print("screenshot saved to", path);
+                      (self as any).getPicture().file =
+                        Gio.File.new_for_path(path);
+                    })
+                    .catch((e) => {
+                      notify({
+                        summary: "Error",
+                        body: `Failed to load screenshot for ${node.client.class}\n${e}`,
+                      });
+                    });
+                });
+              }
+            }
+
+            const existingPath = `/tmp/ags_screenshot_${node.client.pid}.png`;
+            if (Gio.File.new_for_path(existingPath).query_exists(null)) {
+              capturedClientScreenshots.add(node.client.pid);
+              (self as any).getPicture().file =
+                Gio.File.new_for_path(existingPath);
+            }
+          }}
         />
         <image $type="overlay" iconName={icon} hexpand vexpand />
         <label
@@ -159,58 +192,60 @@ const renderNode = (node: Node): Gtk.Widget => {
   ) as Gtk.Widget;
 };
 
-// Store client title per client to track changes
-const titleCache = new Map<number, string>();
-
-function screenshotClient(client: Hyprland.Client): Accessor<string> {
-  const [screenshot, setScreenshot] = createState<string>(``);
+function screenshotClient(client: Hyprland.Client): Promise<string> {
   const screenshotPath = `/tmp/ags_screenshot_${client.pid}.png`;
 
-  // check if workspace is focused before taking screenshot, if not return placeholder
-  if (client.workspace.id !== hyprland.focusedWorkspace.id) {
-    setScreenshot(screenshotPath);
-    return screenshot;
+  // Build geometry safely
+  const x = Math.max(0, client.x);
+  const y = Math.max(0, client.y);
+  const w = Math.max(50, client.width);
+  const h = Math.max(50, client.height);
+
+  const geom = `${x},${y} ${w}x${h}`;
+  return execAsync(
+    // IMPORTANT: geometry must be inside quotes
+    `bash -c "grim -g '${geom}' - | convert - -resize 35% -quality 60 -strip '${screenshotPath}'"`,
+  )
+    .then(() => {
+      return screenshotPath;
+    })
+    .catch((e) => {
+      notify({
+        summary: "Screenshot Error",
+        body: `Failed to take screenshot for ${client.class}\n${geom}\n${e}`,
+      });
+      throw e; // reject the promise on error
+    });
+}
+
+function ensureClientScreenshot(client: Hyprland.Client): Promise<string> {
+  const screenshotPath = `/tmp/ags_screenshot_${client.pid}.png`;
+
+  if (capturedClientScreenshots.has(client.pid)) {
+    return Promise.resolve(screenshotPath);
   }
 
-  // Get current title
-  const currentTitle = client.title;
-  const cachedTitle = titleCache.get(client.pid);
+  if (Gio.File.new_for_path(screenshotPath).query_exists(null)) {
+    capturedClientScreenshots.add(client.pid);
+    return Promise.resolve(screenshotPath);
+  }
 
-  // // Only take screenshot if title has changed or no screenshot exists
-  // if (cachedTitle === currentTitle) {
-  //   // Title hasn't changed, use existing screenshot
-  //   setScreenshot(screenshotPath);
-  //   return screenshot;
-  // }
+  const inFlight = screenshotInFlight.get(client.pid);
+  if (inFlight) return inFlight;
 
-  timeout(300, () => {
-    if (client.workspace.id == hyprland.focusedWorkspace.id) {
-      // Build geometry safely
-      const x = Math.max(0, client.x);
-      const y = Math.max(0, client.y);
-      const w = Math.max(50, client.width);
-      const h = Math.max(50, client.height);
+  const pending = screenshotClient(client)
+    .then((path) => {
+      capturedClientScreenshots.add(client.pid);
+      return path;
+    })
+    .catch((e) => {
+      // Error already handled in screenshotClient, just re-throw
+      throw e;
+    })
+    .finally(() => screenshotInFlight.delete(client.pid));
 
-      const geom = `${x},${y} ${w}x${h}`;
-      execAsync(
-        // IMPORTANT: geometry must be inside quotes
-        `bash -c "grim -g '${geom}' - | convert - -resize 35% -quality 60 -strip '${screenshotPath}'"`,
-      )
-        .then(() => {
-          setScreenshot(screenshotPath);
-          // Update cache with new title
-          titleCache.set(client.pid, client.title);
-        })
-        .catch((e) => {
-          notify({
-            summary: "Screenshot Error",
-            body: `Failed to take screenshot for ${client.class}\n${geom}\n${e}`,
-          });
-        });
-    }
-  });
-
-  return screenshot;
+  screenshotInFlight.set(client.pid, pending);
+  return pending;
 }
 
 export const workspaceClientLayout = (

@@ -113,15 +113,6 @@ const checkTasks = () => {
   });
 };
 
-// Start timer check
-setInterval(checkTasks, 10000); // Check every 10 seconds
-
-// Initialize tasks on load
-loadTasksFromFile().then((tasks) => {
-  const updatedTasks = tasks.map(updateNextRun);
-  setScriptTasks(updatedTasks);
-});
-
 // Task form component
 const TaskForm = ({
   task,
@@ -395,6 +386,18 @@ const ScriptTimer = ({
       class={`script-timer module ${className ?? ""}`}
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
+      $={(self) => {
+        const intervalId = setInterval(checkTasks, 10000);
+
+        loadTasksFromFile().then((tasks) => {
+          const updatedTasks = tasks.map(updateNextRun);
+          setScriptTasks(updatedTasks);
+        });
+
+        self.connect("destroy", () => {
+          clearInterval(intervalId);
+        });
+      }}
     >
       <box class="header">
         <label

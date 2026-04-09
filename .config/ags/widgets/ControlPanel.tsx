@@ -124,15 +124,7 @@ function PinBar() {
 
 function DndToggle() {
   const [hasPing, setHasPing] = createState(false);
-
-  // Listen for new notifications when DND is on
-  notifd.connect("notified", () => {
-    if (globalSettings.peek().notifications.dnd) {
-      setHasPing(true);
-      // Reset ping after animation completes
-      setTimeout(() => setHasPing(false), 600);
-    }
-  });
+  let pingTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Reset ping when DND is turned off
   const dndActive = globalSettings(({ notifications }) => {
@@ -147,6 +139,21 @@ function DndToggle() {
       active={dndActive}
       onToggled={({ active }) => {
         setGlobalSetting("notifications.dnd", active);
+      }}
+      $={(self) => {
+        const handlerId = notifd.connect("notified", () => {
+          if (globalSettings.peek().notifications.dnd) {
+            setHasPing(true);
+
+            if (pingTimeout) clearTimeout(pingTimeout);
+            pingTimeout = setTimeout(() => setHasPing(false), 600);
+          }
+        });
+
+        self.connect("destroy", () => {
+          notifd.disconnect(handlerId);
+          if (pingTimeout) clearTimeout(pingTimeout);
+        });
       }}
       // class="dnd-toggle icon"
       class={hasPing((ping) => (ping ? "dnd-toggle active" : "dnd-toggle"))}

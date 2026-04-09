@@ -150,10 +150,10 @@ prompt_for_donation() {
     echo ""
     echo -e "${BOLD}${BLUE}💝 Support ArchEclipse${NC}"
     echo ""
-    echo -e "${BLUE}ArchEclipse is maintained mainly by one person who spends a lot of time building, fixing, and improving it for the community.${NC}"
-    echo -e "${BLUE}If this project has made your system better or saved you time, even a small donation can really help keep it alive and growing.${NC}"
+    echo -e "${BLUE}ArchEclipse is lovingly maintained by a single person who puts a lot of time and care into building, fixing, and improving it for the community.${NC}"
+    echo -e "${BLUE}If ArchEclipse has made your setup better, saved you time, or just brought you joy, a small donation would go a long way in helping keep the project alive and growing.${NC}"
     echo ""
-    echo -e "${BLUE}Your support means a lot - thank you for being part of this project. ❤️${NC}"
+    echo -e "${BLUE}Every bit of support means a lot. Thank you for being part of the ArchEclipse community ❤️${NC}"
     echo ""
     
     continue_prompt "💝 Would you like to support the project?" "ags request donations $monitor"

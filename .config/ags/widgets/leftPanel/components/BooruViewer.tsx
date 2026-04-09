@@ -368,6 +368,16 @@ const showImagesPage = (
   const name = `page-${Date.now()}`;
   stack.add_named(imagesWidget, name);
   stack.set_visible_child_name(name);
+
+  const visible = stack.get_visible_child();
+  let child = stack.get_first_child();
+  while (child) {
+    const next = child.get_next_sibling();
+    if (visible && child !== visible) {
+      stack.remove(child);
+    }
+    child = next;
+  }
 };
 
 const createImagesContent = () => {
@@ -427,7 +437,7 @@ const Images = () => {
 
         let isFirstRender = true;
 
-        images.subscribe(() => {
+        const unsubscribe = images.subscribe(() => {
           const content = createImagesContent() as Gtk.Widget;
 
           if (isFirstRender) {
@@ -449,6 +459,12 @@ const Images = () => {
               vadjustment.set_value(0);
             }
           }, globalTransition);
+        });
+
+        self.connect("destroy", () => {
+          if (typeof unsubscribe === "function") {
+            unsubscribe();
+          }
         });
       }}
     />
