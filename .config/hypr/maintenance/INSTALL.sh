@@ -20,38 +20,19 @@ error_exit() {
 }
 
 sync_configuration_files() {
-    local scanned_paths=0
-    local resolved_conflicts=0
-    
     [ -d "${HOME}" ] || error_exit "HOME directory not found: ${HOME}"
+    [ -d "${CONF_DIR}" ] || error_exit "Source directory not found: ${CONF_DIR}"
     
     echo "Preparing copy operation from ${CONF_DIR} to ${HOME}..."
-    echo "Step 1/3: Scanning for file/directory type conflicts..."
+    echo "Step 1/2: Removing existing ${HOME}/.config..."
     
-    # Remove type conflicts first, then copy everything.
-    while IFS= read -r -d '' rel_path; do
-        local src_path="./${rel_path}"
-        local dst_path="${HOME}/${rel_path}"
-        
-        scanned_paths=$((scanned_paths + 1))
-        
-        [ -e "${dst_path}" ] || continue
-        
-        if [ -d "${src_path}" ] && [ ! -d "${dst_path}" ]; then
-            echo "  - Replacing file with directory target: ${dst_path}"
-            sudo rm -f "${dst_path}"
-            resolved_conflicts=$((resolved_conflicts + 1))
-            elif [ ! -d "${src_path}" ] && [ -d "${dst_path}" ]; then
-            echo "  - Replacing directory with file target: ${dst_path}"
-            sudo rm -rf "${dst_path}"
-            resolved_conflicts=$((resolved_conflicts + 1))
-        fi
-    done < <(find . -mindepth 1 -printf '%P\0')
+    if [ -e "${HOME}/.config" ] || [ -L "${HOME}/.config" ]; then
+        sudo rm -rf "${HOME}/.config"
+    fi
     
-    echo "Step 2/3: Scan complete (${scanned_paths} paths checked, ${resolved_conflicts} conflicts resolved)."
-    echo "Step 3/3: Copying ArchEclipse content into ${HOME}..."
+    echo "Step 2/2: Copying ArchEclipse content into ${HOME}..."
     
-    sudo cp -a --remove-destination . "${HOME}"
+    sudo cp -a --remove-destination "${CONF_DIR}/." "${HOME}/"
     
     echo "Copy completed successfully."
 }
