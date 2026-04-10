@@ -7,7 +7,7 @@ import { hideWindow, showWindow } from "../../../utils/window";
 import { For } from "ags";
 import { Accessor } from "ags";
 import app from "ags/gtk4/app";
-import { workspaceClientLayout } from "../../../utils/workspace";
+import { workspaceClientLayoutById } from "../../../utils/workspace";
 import { timeout, Timer } from "ags/time";
 import { Gdk } from "ags/gtk4";
 import GObject from "ags/gobject";
@@ -62,6 +62,13 @@ function Workspaces() {
   const emptyIcon = ""; // Icon for empty workspaces
   const extraWorkspaceIcon = ""; // Icon for workspaces beyond maxWorkspaces
   const maxWorkspaces = 10; // Maximum number of workspaces with custom icons
+  const hyprlandWorkspaces = createBinding(hyprland, "workspaces");
+  const hyprlandClients = createBinding(hyprland as any, "clients");
+
+  const getWorkspaceById = (id: number): Hyprland.Workspace | null => {
+    const workspaces = hyprlandWorkspaces();
+    return workspaces.find((w) => w.id === id) || null;
+  };
 
   /**
    * WORKSPACE BUTTON CREATOR
@@ -83,27 +90,16 @@ function Workspaces() {
    * - "trans-becoming-active": Transitioning from inactive to active
    * - "trans-becoming-inactive": Transitioning from active to inactive
    */
-  const createWorkspaceButton = (
-    workspace: Hyprland.Workspace | null,
-    index: number,
-  ) => {
-    // Calculate workspace properties
-    const id = index + 1;
-
+  const createWorkspaceButton = (id: number) => {
     // Track previous state for this specific button
     let prevState = previousWorkspaceStates.get(id);
 
     return (
       <button
         class={createComputed(() => {
-          const isActive = workspace !== null;
+          const isActive = getWorkspaceById(id) !== null;
           const currentWorkspace = focusedWorkspace().id;
           const isFocused = currentWorkspace === id;
-
-          // If workspace exists, listen to client changes
-          if (workspace) {
-            createBinding(workspace, "clients")();
-          }
 
           const classes: string[] = [];
 
@@ -135,11 +131,15 @@ function Workspaces() {
           return classes.join(" ");
         })}
         label={createComputed(() => {
+          const workspace = getWorkspaceById(id);
           const isActive = workspace !== null;
           if (!isActive) return emptyIcon;
 
-          const clients = createBinding(workspace!, "clients")();
-          const main_client = clients[0];
+          const clients = (hyprlandClients() || []) as Hyprland.Client[];
+          const workspaceClients = clients.filter(
+            (client) => client.workspace?.id === id,
+          );
+          const main_client = workspaceClients[0];
           const client_class = main_client?.class.toLowerCase() || "empty";
 
           return workspaceIconMap[client_class] || extraWorkspaceIcon;
@@ -148,34 +148,40 @@ function Workspaces() {
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
         }
         $={(self) => {
+          const hasPreview = () => getWorkspaceById(id) !== null;
+
           // --- POPOVER ---
           const popover = new Gtk.Popover({
             has_arrow: true,
             position: Gtk.PositionType.BOTTOM,
             autohide: false,
           });
-
-          popover.set_child(workspaceClientLayout(workspace));
           popover.set_parent(self);
+          popover.set_child(workspaceClientLayoutById(id));
 
           // --- HOVER LOGIC ---
-          let hideTimeout: Timer;
+          let hideTimeout: Timer | null = null;
 
           // Button hover controller
           const buttonMotion = new Gtk.EventControllerMotion();
 
           buttonMotion.connect("enter", () => {
+            if (!hasPreview()) return;
+
             if (hideTimeout) {
               hideTimeout.cancel();
+              hideTimeout = null;
             }
-            popover.show();
+            popover.popup();
           });
 
           buttonMotion.connect("leave", () => {
+            if (!hasPreview()) return;
+
             // Delay hiding to allow moving to popover
-            hideTimeout = timeout(50, () => {
-              popover.hide();
-              hideTimeout.cancel();
+            hideTimeout = timeout(180, () => {
+              popover.popdown();
+              hideTimeout = null;
             });
           });
 
@@ -187,11 +193,12 @@ function Workspaces() {
           popoverMotion.connect("enter", () => {
             if (hideTimeout) {
               hideTimeout.cancel();
+              hideTimeout = null;
             }
           });
 
           popoverMotion.connect("leave", () => {
-            popover.hide();
+            popover.popdown();
           });
 
           popover.add_controller(popoverMotion);
@@ -207,10 +214,15 @@ function Workspaces() {
             // Tooltip
             self.set_tooltip_markup(`Move to <b>Workspace ${id}</b>`);
 
+            if (!hasPreview()) {
+              return Gdk.DragAction.MOVE;
+            }
+
             if (hideTimeout) {
               hideTimeout.cancel();
+              hideTimeout = null;
             }
-            popover.show();
+            popover.popup();
             return Gdk.DragAction.MOVE;
           });
 
@@ -218,7 +230,7 @@ function Workspaces() {
             // Disable Tooltip
             self.set_tooltip_markup("");
 
-            popover.hide();
+            popover.popdown();
           });
 
           dropTarget.connect("drop", (_, value: Hyprland.Client) => {
@@ -234,113 +246,79 @@ function Workspaces() {
           });
 
           self.add_controller(dropTarget);
+
+          self.connect("destroy", () => {
+            if (hideTimeout) {
+              hideTimeout.cancel();
+              hideTimeout = null;
+            }
+
+            popover.popdown();
+            popover.set_child(null);
+            popover.unparent();
+          });
         }}
       />
     );
   };
 
-  // Reactive workspace state that updates when workspaces or focus changes
-  const workspaces: Accessor<any[]> = createComputed(() => {
-    const activeWorkspaces = createBinding(hyprland, "workspaces")();
-    const currentWorkspace = focusedWorkspace().id;
+  const workspaceIds: Accessor<number[]> = createComputed(() => {
+    const activeWorkspaces = hyprlandWorkspaces();
+    const visibleIds = new Set<number>();
 
-    // Create a map of workspace ID to workspace object for quick lookup
-    const workspaceMap = new Map(activeWorkspaces.map((w) => [w.id, w]));
+    for (let id = 1; id <= maxWorkspaces; id++) {
+      visibleIds.add(id);
+    }
 
-    // Get array of active workspace IDs
-    const workspaceIds = activeWorkspaces.map((w) => w.id);
-    // Calculate total workspaces needed (active ones or maxWorkspaces, whichever is larger)
-    const totalWorkspaces = Math.max(...workspaceIds, maxWorkspaces);
+    for (const workspace of activeWorkspaces) {
+      if (workspace.id > maxWorkspaces) {
+        visibleIds.add(workspace.id);
+      }
+    }
 
-    // Create array of all workspaces (active or null for empty)
-    const allWorkspaces = Array.from(
-      { length: totalWorkspaces },
-      (_, i) => workspaceMap.get(i + 1) || null,
-    );
+    return Array.from(visibleIds).sort((a, b) => a - b);
+  });
 
-    // Array to hold the final grouped workspace elements
-    let groupElements: any[] = [];
-    // Current group of adjacent active workspaces being built
+  const workspaceGroups: Accessor<any[]> = createComputed(() => {
+    const orderedIds = workspaceIds();
+    const groupElements: any[] = [];
     let currentGroup: any[] = [];
-    // Flag indicating if current group contains active workspaces
     let currentGroupIsActive = false;
 
-    /**
-     * Finalizes the current workspace group by adding it to groupElements
-     * with proper classes and resetting group state
-     */
     const finalizeCurrentGroup = () => {
-      if (currentGroup.length > 0) {
-        groupElements.push(
-          <box
-            class={`workspace-group ${
-              currentGroupIsActive ? "active" : "inactive"
-            }`}
-          >
-            {currentGroup}
-          </box>,
-        );
-        // Reset group state
-        currentGroup = [];
-        currentGroupIsActive = false;
-      }
+      if (currentGroup.length === 0) return;
+
+      groupElements.push(
+        <box
+          class={`workspace-group ${
+            currentGroupIsActive ? "active" : "inactive"
+          }`}
+        >
+          {currentGroup}
+        </box>,
+      );
+
+      currentGroup = [];
+      currentGroupIsActive = false;
     };
 
-    /**
-     * WORKSPACE PROCESSING LOOP
-     *
-     * Process each workspace and group them:
-     * - Active workspaces (with windows) are grouped together
-     * - Inactive workspaces (empty) are shown individually
-     *
-     * This creates visual separation between empty and occupied workspaces.
-     */
-    allWorkspaces.forEach((workspace, index) => {
-      const isActive = workspace !== null;
+    for (const id of orderedIds) {
+      const isActive = getWorkspaceById(id) !== null;
 
       if (isActive) {
-        // ACTIVE WORKSPACE: Add to current group
         currentGroupIsActive = true;
-        currentGroup.push(createWorkspaceButton(workspace, index));
-
-        // Close group if this is the last workspace or next one is inactive
-        if (
-          index === allWorkspaces.length - 1 ||
-          allWorkspaces[index + 1] === null
-        ) {
-          finalizeCurrentGroup();
-        }
+        currentGroup.push(createWorkspaceButton(id));
       } else {
-        // INACTIVE WORKSPACE: Close any active group and add as standalone
         finalizeCurrentGroup();
         groupElements.push(
           <box class="workspace-group inactive">
-            {createWorkspaceButton(workspace, index)}
+            {createWorkspaceButton(id)}
           </box>,
         );
       }
-    });
+    }
 
-    /**
-     * STATE PERSISTENCE FOR NEXT RENDER
-     *
-     * Store current workspace states so we can detect transitions
-     * in the next render cycle. This is crucial for animations.
-     */
-    const newStates = new Map<
-      number,
-      { isActive: boolean; isFocused: boolean }
-    >();
-
-    allWorkspaces.forEach((workspace, index) => {
-      const id = index + 1;
-      newStates.set(id, {
-        isActive: workspace !== null,
-        isFocused: currentWorkspace === id,
-      });
-    });
-
-    previousWorkspaceStates = newStates;
+    finalizeCurrentGroup();
 
     return groupElements;
   });
@@ -348,9 +326,7 @@ function Workspaces() {
   // Render the workspaces container with bound workspace elements
   return (
     <box class="workspaces-display">
-      <For each={workspaces}>
-        {(workspace, index: Accessor<number>) => workspace}
-      </For>
+      <For each={workspaceGroups}>{(group) => group}</For>
     </box>
   );
 }

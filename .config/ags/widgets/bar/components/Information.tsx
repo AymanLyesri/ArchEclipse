@@ -25,6 +25,7 @@ import GLib from "gi://GLib";
 import { WeatherButton } from "../../Weather";
 import { timeout } from "ags/time";
 import GObject from "ags/gobject";
+import Picture from "../../Picture";
 
 const mpris = AstalMpris.get_default();
 
@@ -33,14 +34,18 @@ function Mpris() {
   const players = createBinding(mpris, "players");
 
   return (
-    <menubutton class={"mpris"}>
-      <box spacing={5}>
-        <For each={players}>
-          {(player) => {
-            const [app] = apps.exact_query(player.entry);
-            return (
-              <box spacing={5}>
-                {/* <Cava
+    <box class={"mpris"} spacing={5}>
+      <For each={players}>
+        {(player) => {
+          const [app] = apps.exact_query(player.entry);
+          return (
+            <menubutton>
+              <overlay
+                widthRequest={Math.min(player.title.length * 10 + 50, 200)}
+              >
+                <Picture class={"cover-art"} file={player.coverArt} />
+                <box class={"content"} $type="overlay" spacing={3}>
+                  {/* <Cava
                   barCount={10}
                   transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
                   isPlaying={createBinding(
@@ -48,68 +53,66 @@ function Mpris() {
                     "playbackStatus",
                   )((status) => status === AstalMpris.PlaybackStatus.PLAYING)}
                 /> */}
-                <image
-                  visible={!!app?.iconName}
-                  iconName={app?.iconName}
-                  class={createBinding(
-                    player,
-                    "playbackStatus",
-                  )((s) =>
-                    s === AstalMpris.PlaybackStatus.PLAYING
-                      ? "mpris-icon playing"
-                      : "mpris-icon paused",
-                  )}
-                />
-                <revealer
-                  transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-                  $={(self) => {
-                    player.connect("notify::playback-status", (s) => {
-                      print("playback status changed:", s);
-                      const revealSequence = () => {
-                        self.reveal_child = true;
-                        timeout(5000, () => {
-                          self.reveal_child = false;
-                        });
-                      };
-                      revealSequence();
-                    });
-                  }}
-                >
-                  <label
-                    class="playback-status-icon icon"
-                    label={createBinding(
+                  <image
+                    visible={!!app?.iconName}
+                    iconName={app?.iconName}
+                    class={createBinding(
                       player,
                       "playbackStatus",
                     )((s) =>
-                      s === AstalMpris.PlaybackStatus.PLAYING ? "" : "",
+                      s === AstalMpris.PlaybackStatus.PLAYING
+                        ? "mpris-icon playing"
+                        : "mpris-icon paused",
                     )}
                   />
-                </revealer>
-                <label
-                  label={createBinding(player, "title")}
-                  ellipsize={Pango.EllipsizeMode.END}
-                  maxWidthChars={25}
-                />
-              </box>
-            );
-          }}
-        </For>
-      </box>
-      <popover
-        $={(self) => {
-          self.connect("notify::visible", () => {
-            if (self.visible) self.add_css_class("popover-open");
-            else if (self.get_child()) self.remove_css_class("popover-open");
-          });
+                  <revealer
+                    transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
+                    $={(self) => {
+                      player.connect("notify::playback-status", (s) => {
+                        print("playback status changed:", s);
+                        const revealSequence = () => {
+                          self.reveal_child = true;
+                          timeout(5000, () => {
+                            self.reveal_child = false;
+                          });
+                        };
+                        revealSequence();
+                      });
+                    }}
+                  >
+                    <label
+                      class="playback-status-icon icon"
+                      label={createBinding(
+                        player,
+                        "playbackStatus",
+                      )((s) =>
+                        s === AstalMpris.PlaybackStatus.PLAYING ? "" : "",
+                      )}
+                    />
+                  </revealer>
+                  <label
+                    label={createBinding(player, "title")}
+                    ellipsize={Pango.EllipsizeMode.END}
+                    maxWidthChars={25}
+                  />
+                </box>
+              </overlay>
+              <popover
+                $={(self) => {
+                  self.connect("notify::visible", () => {
+                    if (self.visible) self.add_css_class("popover-open");
+                    else if (self.get_child())
+                      self.remove_css_class("popover-open");
+                  });
+                }}
+              >
+                <Player height={200} width={300} player={player} />
+              </popover>
+            </menubutton>
+          );
         }}
-      >
-        <box spacing={4} orientation={Gtk.Orientation.VERTICAL}>
-          <For each={players}>
-            {(player) => <Player height={200} width={300} player={player} />}
-          </For>
-        </box>
-      </popover>
-    </menubutton>
+      </For>
+    </box>
   );
 }
 

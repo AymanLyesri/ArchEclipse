@@ -35,11 +35,4 @@ general {
 }
 EOF
 
-# Optional: Shadow configuration
-# cat > "${SHADOW_CONF}" <<EOF
-# decoration {
-# 	col.shadow = rgb(${colors[5]})
-# }
-# EOF
-
 echo "Border theme updated with pywal colors"

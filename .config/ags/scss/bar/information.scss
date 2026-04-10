@@ -4,20 +4,35 @@
   }
 
   .mpris {
-    .mpris-icon {
-      border-radius: 50%;
-      animation: spin 10s linear infinite;
-
-      &.paused {
-        animation-play-state: paused;
+    menubutton button {
+      padding: 0;
+      background-color: black;
+      label {
+        color: white;
+        font-weight: 700;
       }
+      .cover-art {
+        opacity: 0.4;
+      }
+      .content {
+        padding: 5px;
 
-      @keyframes spin {
-        from {
-          transform: rotate(0deg);
-        }
-        to {
-          transform: rotate(360deg);
+        .mpris-icon {
+          border-radius: 50%;
+          animation: spin 10s linear infinite;
+
+          &.paused {
+            animation-play-state: paused;
+          }
+
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
         }
       }
     }

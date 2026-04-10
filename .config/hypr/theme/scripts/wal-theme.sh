@@ -100,6 +100,7 @@ if [[ "${target_theme}" != "${current_theme}" ]]; then
     "${SCRIPTS_DIR}/cursor-theme.sh" || true
     "${SCRIPTS_DIR}/gtk-theme.sh" || true
     "${SCRIPTS_DIR}/qt-theme.sh" || true
+    "${SCRIPTS_DIR}/icon-theme.sh" || true
 fi
 
 # Update pywalfox if available

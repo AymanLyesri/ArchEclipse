@@ -40,6 +40,7 @@ apply_theme_components() {
         "${SCRIPTS_DIR}/gtk-theme.sh" &
         "${SCRIPTS_DIR}/wal-theme.sh" &
         "${SCRIPTS_DIR}/qt-theme.sh" &
+        "${SCRIPTS_DIR}/icon-theme.sh" &
         wait
     } 2>/dev/null
     

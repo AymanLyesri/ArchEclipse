@@ -13,8 +13,6 @@ import Gio from "gi://Gio";
 
 const apps = new AstalApps.Apps();
 const hyprland = Hyprland.get_default();
-const capturedClientScreenshots = new Set<number>();
-const screenshotInFlight = new Map<number, Promise<string>>();
 
 type Node =
   | { type: "leaf"; client: Hyprland.Client }
@@ -75,8 +73,6 @@ const buildTree = (clients: Hyprland.Client[]): Node => {
   return { type: "leaf", client: main };
 };
 
-let Timeout: Timer = null as any;
-
 const renderNode = (node: Node): Gtk.Widget => {
   if (node.type === "leaf") {
     const [app] = apps.exact_query(node.client.class);
@@ -131,33 +127,53 @@ const renderNode = (node: Node): Gtk.Widget => {
           height={node.client.height / 7}
           width={node.client.width / 7}
           $={(self) => {
-            if (node.client.workspace.id == hyprland.focusedWorkspace.id) {
-              if (!capturedClientScreenshots.has(node.client.pid)) {
-                Timeout?.cancel();
-                Timeout = timeout(300, () => {
-                  ensureClientScreenshot(node.client)
-                    .then((path) => {
-                      if (!path) return;
-                      print("screenshot saved to", path);
-                      (self as any).getPicture().file =
-                        Gio.File.new_for_path(path);
-                    })
-                    .catch((e) => {
-                      notify({
-                        summary: "Error",
-                        body: `Failed to load screenshot for ${node.client.class}\n${e}`,
-                      });
-                    });
-                });
-              }
-            }
+            let screenshotTimeout: Timer = null as any;
+            let focusSignalId: number | null = null;
 
-            const existingPath = `/tmp/ags_screenshot_${node.client.pid}.png`;
-            if (Gio.File.new_for_path(existingPath).query_exists(null)) {
-              capturedClientScreenshots.add(node.client.pid);
-              (self as any).getPicture().file =
-                Gio.File.new_for_path(existingPath);
-            }
+            const queueScreenshot = () => {
+              screenshotTimeout?.cancel();
+              screenshotTimeout = timeout(300, () => {
+                if (node.client.workspace.id !== hyprland.focusedWorkspace.id) {
+                  return;
+                }
+
+                screenshotClient(node.client)
+                  .then((path) => {
+                    if (!path) return;
+                    print("screenshot saved to", path);
+                    (self as any).getPicture().file =
+                      Gio.File.new_for_path(path);
+                  })
+                  .catch((e) => {
+                    notify({
+                      summary: "Error",
+                      body: `Failed to load screenshot for ${node.client.class}\n${e}`,
+                    });
+                  });
+              });
+            };
+
+            focusSignalId = hyprland.connect(
+              "notify::focused-workspace",
+              () => {
+                queueScreenshot();
+              },
+            );
+
+            self.connect("destroy", () => {
+              screenshotTimeout?.cancel();
+              screenshotTimeout = null as any;
+              if (focusSignalId !== null) {
+                hyprland.disconnect(focusSignalId);
+                focusSignalId = null;
+              }
+              const picture = (self as any).getPicture?.();
+              if (picture) {
+                picture.file = null;
+              }
+            });
+
+            queueScreenshot();
           }}
         />
         <image $type="overlay" iconName={icon} hexpand vexpand />
@@ -218,36 +234,6 @@ function screenshotClient(client: Hyprland.Client): Promise<string> {
     });
 }
 
-function ensureClientScreenshot(client: Hyprland.Client): Promise<string> {
-  const screenshotPath = `/tmp/ags_screenshot_${client.pid}.png`;
-
-  if (capturedClientScreenshots.has(client.pid)) {
-    return Promise.resolve(screenshotPath);
-  }
-
-  if (Gio.File.new_for_path(screenshotPath).query_exists(null)) {
-    capturedClientScreenshots.add(client.pid);
-    return Promise.resolve(screenshotPath);
-  }
-
-  const inFlight = screenshotInFlight.get(client.pid);
-  if (inFlight) return inFlight;
-
-  const pending = screenshotClient(client)
-    .then((path) => {
-      capturedClientScreenshots.add(client.pid);
-      return path;
-    })
-    .catch((e) => {
-      // Error already handled in screenshotClient, just re-throw
-      throw e;
-    })
-    .finally(() => screenshotInFlight.delete(client.pid));
-
-  screenshotInFlight.set(client.pid, pending);
-  return pending;
-}
-
 export const workspaceClientLayout = (
   workspace: Hyprland.Workspace | null,
 ): Gtk.Widget => {
@@ -266,6 +252,28 @@ export const workspaceClientLayout = (
             ) as Gtk.Widget;
           }
           return renderNode(buildTree(clients));
+        }}
+      </With>
+    </box>
+  ) as Gtk.Widget;
+};
+
+export const workspaceClientLayoutById = (workspaceId: number): Gtk.Widget => {
+  return (
+    <box class="workspace-client-layout">
+      <With value={createBinding(hyprland as any, "clients")}>
+        {(clients: Hyprland.Client[]) => {
+          const workspaceClients = (clients || []).filter(
+            (client) => client.workspace?.id === workspaceId,
+          );
+
+          if (workspaceClients.length === 0) {
+            return (
+              <label label={"empty"} class="workspace-client-layout"></label>
+            ) as Gtk.Widget;
+          }
+
+          return renderNode(buildTree(workspaceClients));
         }}
       </With>
     </box>

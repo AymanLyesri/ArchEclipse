@@ -127,6 +127,7 @@ ttf-jetbrains-mono-nerd
 noto-fonts-emoji
 phinger-cursors
 whitesur-gtk-theme
+whitesur-icon-theme
 kvantum
 kvantum-theme-whitesur-git
 qt5ct
