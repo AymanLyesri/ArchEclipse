@@ -147,117 +147,117 @@ function Workspaces() {
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
         }
-        $={(self) => {
-          const hasPreview = () => getWorkspaceById(id) !== null;
+        // $={(self) => {
+        //   const hasPreview = () => getWorkspaceById(id) !== null;
 
-          // --- POPOVER ---
-          const popover = new Gtk.Popover({
-            has_arrow: true,
-            position: Gtk.PositionType.BOTTOM,
-            autohide: false,
-          });
-          popover.set_parent(self);
-          popover.set_child(workspaceClientLayoutById(id));
+        //   // --- POPOVER ---
+        //   const popover = new Gtk.Popover({
+        //     has_arrow: true,
+        //     position: Gtk.PositionType.BOTTOM,
+        //     autohide: false,
+        //   });
+        //   popover.set_parent(self);
+        //   popover.set_child(workspaceClientLayoutById(id));
 
-          // --- HOVER LOGIC ---
-          let hideTimeout: Timer | null = null;
+        //   // --- HOVER LOGIC ---
+        //   let hideTimeout: Timer | null = null;
 
-          // Button hover controller
-          const buttonMotion = new Gtk.EventControllerMotion();
+        //   // Button hover controller
+        //   const buttonMotion = new Gtk.EventControllerMotion();
 
-          buttonMotion.connect("enter", () => {
-            if (!hasPreview()) return;
+        //   buttonMotion.connect("enter", () => {
+        //     if (!hasPreview()) return;
 
-            if (hideTimeout) {
-              hideTimeout.cancel();
-              hideTimeout = null;
-            }
-            popover.popup();
-          });
+        //     if (hideTimeout) {
+        //       hideTimeout.cancel();
+        //       hideTimeout = null;
+        //     }
+        //     popover.popup();
+        //   });
 
-          buttonMotion.connect("leave", () => {
-            if (!hasPreview()) return;
+        //   buttonMotion.connect("leave", () => {
+        //     if (!hasPreview()) return;
 
-            // Delay hiding to allow moving to popover
-            hideTimeout = timeout(180, () => {
-              popover.popdown();
-              hideTimeout = null;
-            });
-          });
+        //     // Delay hiding to allow moving to popover
+        //     hideTimeout = timeout(180, () => {
+        //       popover.popdown();
+        //       hideTimeout = null;
+        //     });
+        //   });
 
-          self.add_controller(buttonMotion);
+        //   self.add_controller(buttonMotion);
 
-          // Popover hover controller
-          const popoverMotion = new Gtk.EventControllerMotion();
+        //   // Popover hover controller
+        //   const popoverMotion = new Gtk.EventControllerMotion();
 
-          popoverMotion.connect("enter", () => {
-            if (hideTimeout) {
-              hideTimeout.cancel();
-              hideTimeout = null;
-            }
-          });
+        //   popoverMotion.connect("enter", () => {
+        //     if (hideTimeout) {
+        //       hideTimeout.cancel();
+        //       hideTimeout = null;
+        //     }
+        //   });
 
-          popoverMotion.connect("leave", () => {
-            popover.popdown();
-          });
+        //   popoverMotion.connect("leave", () => {
+        //     popover.popdown();
+        //   });
 
-          popover.add_controller(popoverMotion);
+        //   popover.add_controller(popoverMotion);
 
-          /* ---------- Drop target ---------- */
-          const dropTarget = new Gtk.DropTarget({
-            actions: Gdk.DragAction.MOVE,
-          });
+        //   /* ---------- Drop target ---------- */
+        //   const dropTarget = new Gtk.DropTarget({
+        //     actions: Gdk.DragAction.MOVE,
+        //   });
 
-          dropTarget.set_gtypes([GObject.TYPE_OBJECT]);
+        //   dropTarget.set_gtypes([GObject.TYPE_OBJECT]);
 
-          dropTarget.connect("enter", () => {
-            // Tooltip
-            self.set_tooltip_markup(`Move to <b>Workspace ${id}</b>`);
+        //   dropTarget.connect("enter", () => {
+        //     // Tooltip
+        //     self.set_tooltip_markup(`Move to <b>Workspace ${id}</b>`);
 
-            if (!hasPreview()) {
-              return Gdk.DragAction.MOVE;
-            }
+        //     if (!hasPreview()) {
+        //       return Gdk.DragAction.MOVE;
+        //     }
 
-            if (hideTimeout) {
-              hideTimeout.cancel();
-              hideTimeout = null;
-            }
-            popover.popup();
-            return Gdk.DragAction.MOVE;
-          });
+        //     if (hideTimeout) {
+        //       hideTimeout.cancel();
+        //       hideTimeout = null;
+        //     }
+        //     popover.popup();
+        //     return Gdk.DragAction.MOVE;
+        //   });
 
-          dropTarget.connect("leave", () => {
-            // Disable Tooltip
-            self.set_tooltip_markup("");
+        //   dropTarget.connect("leave", () => {
+        //     // Disable Tooltip
+        //     self.set_tooltip_markup("");
 
-            popover.popdown();
-          });
+        //     popover.popdown();
+        //   });
 
-          dropTarget.connect("drop", (_, value: Hyprland.Client) => {
-            print("DROP TARGET DROP");
-            const pid = value.pid;
-            print("dropped PID:", pid);
-            hyprland.message_async(
-              `dispatch movetoworkspacesilent ${id}, pid:${pid}`,
-              () => {},
-            );
+        //   dropTarget.connect("drop", (_, value: Hyprland.Client) => {
+        //     print("DROP TARGET DROP");
+        //     const pid = value.pid;
+        //     print("dropped PID:", pid);
+        //     hyprland.message_async(
+        //       `dispatch movetoworkspacesilent ${id}, pid:${pid}`,
+        //       () => {},
+        //     );
 
-            return true;
-          });
+        //     return true;
+        //   });
 
-          self.add_controller(dropTarget);
+        //   self.add_controller(dropTarget);
 
-          self.connect("destroy", () => {
-            if (hideTimeout) {
-              hideTimeout.cancel();
-              hideTimeout = null;
-            }
+        //   self.connect("destroy", () => {
+        //     if (hideTimeout) {
+        //       hideTimeout.cancel();
+        //       hideTimeout = null;
+        //     }
 
-            popover.popdown();
-            popover.set_child(null);
-            popover.unparent();
-          });
-        }}
+        //     popover.popdown();
+        //     popover.set_child(null);
+        //     popover.unparent();
+        //   });
+        // }}
       />
     );
   };
