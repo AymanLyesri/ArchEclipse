@@ -73,7 +73,7 @@ const buildTree = (clients: Hyprland.Client[]): Node => {
   return { type: "leaf", client: main };
 };
 
-const renderNode = (node: Node): Gtk.Widget => {
+const renderNode = (node: Node, shouldCapture: () => boolean): Gtk.Widget => {
   if (node.type === "leaf") {
     const [app] = apps.exact_query(node.client.class);
     const icon = app?.iconName || "application-x-executable";
@@ -129,22 +129,40 @@ const renderNode = (node: Node): Gtk.Widget => {
           $={(self) => {
             let screenshotTimeout: Timer = null as any;
             let focusSignalId: number | null = null;
+            let requestId = 0;
 
             const queueScreenshot = () => {
-              screenshotTimeout?.cancel();
-              screenshotTimeout = timeout(300, () => {
-                if (node.client.workspace.id !== hyprland.focusedWorkspace.id) {
-                  return;
-                }
+              requestId += 1;
+              const currentRequestId = requestId;
 
+              screenshotTimeout?.cancel();
+              if (!shouldCapture()) {
+                print("Skipping screenshot for", node.client.class);
+                (self as any).getPicture().file = Gio.File.new_for_path(
+                  `/tmp/ags_screenshot_${node.client.pid}.png`,
+                );
+                return;
+              }
+
+              screenshotTimeout = timeout(1000, () => {
+                if (currentRequestId !== requestId || !shouldCapture()) return;
+
+                print("Taking screenshot for", node.client.class);
                 screenshotClient(node.client)
                   .then((path) => {
-                    if (!path) return;
+                    if (
+                      !path ||
+                      currentRequestId !== requestId ||
+                      !shouldCapture()
+                    )
+                      return;
                     print("screenshot saved to", path);
                     (self as any).getPicture().file =
                       Gio.File.new_for_path(path);
                   })
                   .catch((e) => {
+                    if (currentRequestId !== requestId) return;
+
                     notify({
                       summary: "Error",
                       body: `Failed to load screenshot for ${node.client.class}\n${e}`,
@@ -161,6 +179,7 @@ const renderNode = (node: Node): Gtk.Widget => {
             );
 
             self.connect("destroy", () => {
+              requestId += 1;
               screenshotTimeout?.cancel();
               screenshotTimeout = null as any;
               if (focusSignalId !== null) {
@@ -202,8 +221,8 @@ const renderNode = (node: Node): Gtk.Widget => {
 
   return (
     <box orientation={orient} spacing={5} homogeneous>
-      {renderNode(node.a)}
-      {renderNode(node.b)}
+      {renderNode(node.a, shouldCapture)}
+      {renderNode(node.b, shouldCapture)}
     </box>
   ) as Gtk.Widget;
 };
@@ -216,6 +235,10 @@ function screenshotClient(client: Hyprland.Client): Promise<string> {
   const y = Math.max(0, client.y);
   const w = Math.max(50, client.width);
   const h = Math.max(50, client.height);
+
+  print(
+    `Capturing screenshot for ${client.class} at geometry ${x},${y} ${w}x${h}`,
+  );
 
   const geom = `${x},${y} ${w}x${h}`;
   return execAsync(
@@ -251,7 +274,9 @@ export const workspaceClientLayout = (
               <label label={"empty"} class="workspace-client-layout"></label>
             ) as Gtk.Widget;
           }
-          return renderNode(buildTree(clients));
+          return renderNode(buildTree(clients), () => {
+            return workspace.id === hyprland.focusedWorkspace.id;
+          });
         }}
       </With>
     </box>
@@ -273,7 +298,9 @@ export const workspaceClientLayoutById = (workspaceId: number): Gtk.Widget => {
             ) as Gtk.Widget;
           }
 
-          return renderNode(buildTree(workspaceClients));
+          return renderNode(buildTree(workspaceClients), () => {
+            return workspaceId === hyprland.focusedWorkspace.id;
+          });
         }}
       </With>
     </box>

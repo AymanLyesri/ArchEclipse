@@ -33,6 +33,9 @@ export default class Brightness extends GObject.Object {
 
     if (percent > 1) percent = 1;
 
+    // return if its the same value to avoid unnecessary writes and notifications
+    if (this.#screen === percent) return;
+
     execAsync(`brightnessctl set ${Math.floor(percent * 100)}% -q`).then(() => {
       this.#screen = percent;
       this.notify("screen");
