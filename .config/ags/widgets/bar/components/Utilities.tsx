@@ -418,12 +418,12 @@ function ResourceMonitor() {
           if (hideTimeout) {
             hideTimeout.cancel();
           }
-          popover.show();
+          popover.popup();
         });
 
         monitorMotion.connect("leave", () => {
           hideTimeout = timeout(80, () => {
-            popover.hide();
+            popover.popdown();
             hideTimeout.cancel();
           });
         });
@@ -438,7 +438,7 @@ function ResourceMonitor() {
         });
 
         popoverMotion.connect("leave", () => {
-          popover.hide();
+          popover.popdown();
         });
 
         popover.add_controller(popoverMotion);

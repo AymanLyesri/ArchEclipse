@@ -12,7 +12,7 @@
     @include module;
     // padding: 0px;
     .workspace-client {
-      // @include button;
+      @include button;
       padding: 0px;
       &:hover {
         animation: grab-shake 0.2s ease-out;

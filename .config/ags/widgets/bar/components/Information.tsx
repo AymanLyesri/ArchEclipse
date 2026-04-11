@@ -41,9 +41,15 @@ function Mpris() {
           return (
             <menubutton>
               <overlay
-                widthRequest={Math.min(player.title.length * 10 + 50, 200)}
+                widthRequest={createBinding(
+                  player,
+                  "title",
+                )((title) => Math.min(title.length * 10 + 25, 200))}
               >
-                <Picture class={"cover-art"} file={player.coverArt} />
+                <Picture
+                  class={"cover-art"}
+                  file={createBinding(player, "coverArt")}
+                />
                 <box class={"content"} $type="overlay" spacing={3}>
                   {/* <Cava
                   barCount={10}

@@ -389,8 +389,8 @@ export function WeatherButton() {
       })}
       onClicked={() => {
         if (!popover) return;
-        if (popover.visible) popover.hide();
-        else popover.show();
+        if (popover.visible) popover.popdown();
+        else popover.popup();
       }}
       $={(self) => {
         popover = new Gtk.Popover({

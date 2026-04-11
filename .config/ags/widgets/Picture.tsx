@@ -23,27 +23,27 @@ export default function Picture({
   info,
   $,
 }: PictureProps) {
-  let pictureRef: Gtk.Picture | undefined;
-
   return (
     <overlay
       class="image"
       heightRequest={height}
       widthRequest={width}
       $={(self) => {
-        const children = self.observe_children();
-        const count = children.get_n_items();
+        // Expose a lookup helper without holding a long-lived strong reference.
+        (self as any).getPicture = () => {
+          const children = self.observe_children();
+          const count = children.get_n_items();
 
-        for (let i = 0; i < count; i++) {
-          const child = children.get_item(i);
+          for (let i = 0; i < count; i++) {
+            const child = children.get_item(i);
 
-          if (child instanceof Gtk.Picture) {
-            pictureRef = child;
+            if (child instanceof Gtk.Picture) {
+              return child;
+            }
           }
-        }
 
-        // ⚡ expose helper method
-        (self as any).getPicture = () => pictureRef;
+          return undefined;
+        };
       }}
     >
       <Gtk.Picture
@@ -71,8 +71,6 @@ export default function Picture({
         }
         contentFit={contentFit}
         $={(self) => {
-          // also capture directly (more reliable)
-          pictureRef = self;
           if ($) {
             $.call(undefined, self);
           }
