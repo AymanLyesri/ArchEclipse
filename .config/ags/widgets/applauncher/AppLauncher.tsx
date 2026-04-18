@@ -81,6 +81,7 @@ const launchAndRecord = (application: Apps.Application) => {
 };
 
 let parentWindowRef: Gtk.Window | null = null;
+let launcherContainerRef: Gtk.Box | null = null;
 
 let entryWidget: Gtk.TextView | null = null;
 
@@ -435,6 +436,37 @@ export default ({
       }}
       resizable={false}
     >
+      <Gtk.GestureClick
+        onPressed={(_, _nPress, x: number, y: number) => {
+          const isWidgetInsideLauncher = (
+            widget: Gtk.Widget | null,
+          ): boolean => {
+            let current = widget;
+
+            while (current) {
+              if (current === launcherContainerRef) {
+                return true;
+              }
+              current = current.get_parent();
+            }
+
+            return false;
+          };
+
+          if (!parentWindowRef || !launcherContainerRef) {
+            return;
+          }
+
+          const picked = parentWindowRef.pick(x, y, Gtk.PickFlags.DEFAULT);
+
+          if (isWidgetInsideLauncher(picked)) {
+            return;
+          }
+
+          parentWindowRef.hide();
+          EmptyEntry();
+        }}
+      />
       <Gtk.EventControllerKey
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
@@ -443,7 +475,13 @@ export default ({
           }
         }}
       />
-      <box class="app-launcher" spacing={10}>
+      <box
+        class="app-launcher"
+        spacing={10}
+        $={(self) => {
+          launcherContainerRef = self;
+        }}
+      >
         <box class={"left"}>
           <With value={players}>
             {(players) =>

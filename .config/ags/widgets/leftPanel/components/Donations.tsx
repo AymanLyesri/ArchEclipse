@@ -13,7 +13,8 @@ interface DonationOption {
   name: string;
   description?: string;
   icon: string;
-  type: "crypto" | "paypal";
+  type: "crypto" | "third-party";
+  class?: string;
   address?: string;
   url?: string;
   color: string;
@@ -255,9 +256,18 @@ const GeneralInfo = () => {
 export default () => {
   const [donationOptions] = createState<DonationOption[]>([
     {
+      name: "Ko-fi",
+      icon: "",
+      class: "kofi",
+      type: "third-party",
+      url: "https://ko-fi.com/aymanlyesri", // Replace with actual Ko-fi link
+      color: "#29ABE0",
+    },
+    {
       name: "PayPal",
       icon: "",
-      type: "paypal",
+      type: "third-party",
+      class: "paypal",
       url: "https://paypal.me/LyesriAyman", // Replace with actual PayPal link
       color: "#00457C",
     },
@@ -429,17 +439,17 @@ export default () => {
                 </box>
               )}
 
-              {option.type === "paypal" && option.url && (
+              {option.type === "third-party" && option.url && (
                 <box spacing={5}>
                   <button
-                    class="donation-button paypal"
+                    class={`donation-button ${option.class || "third-party"}`}
                     hexpand
                     onClicked={() => openUrl(option.url!)}
                     tooltipText={option.url}
                   >
                     <box spacing={5}>
                       <label label="" />
-                      <label label="Donate via PayPal" />
+                      <label label={`Donate via ${option.name}`} />
                     </box>
                   </button>
                   <button

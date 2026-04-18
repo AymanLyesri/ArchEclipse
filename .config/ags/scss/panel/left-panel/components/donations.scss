@@ -95,6 +95,17 @@
           box-shadow: 0 0 15px rgba(0, 112, 186, 0.4);
         }
       }
+      &.kofi {
+        background: linear-gradient(135deg, #29abe0, #ff5e5b);
+        label {
+          color: white;
+        }
+
+        &:hover {
+          background: linear-gradient(135deg, #ff5e5b, #29abe0);
+          box-shadow: 0 0 15px rgba(255, 94, 91, 0.4);
+        }
+      }
 
       label {
         color: $foreground;
