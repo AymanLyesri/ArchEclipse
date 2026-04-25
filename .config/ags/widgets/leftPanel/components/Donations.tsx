@@ -56,49 +56,18 @@ const GeneralInfo = () => {
   };
 
   const updateVersion = async () => {
-    setIsUpdating(true);
-    setUpdateStatus("Updating...");
     try {
-      // Pull latest changes
-      await execAsync(`git -C ${configDir} pull origin HEAD`);
-
-      // Refresh version info after update
-      const localHash = exec(
-        `git -C ${configDir} rev-parse --short HEAD`,
-      ).trim();
-      setCurrentVersion(localHash);
-
-      setUpdateStatus("Updated!");
-      notify({
-        summary: "Update Complete",
-        body: "ArchEclipse has been updated successfully!",
-      });
-
-      // Optionally, you could trigger a reload of the AGS config here if needed
-      await execAsync(`bash -c "$HOME/.config/hypr/scripts/bar.sh"`);
-
-      // Clear status after 2 seconds
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setUpdateStatus("");
+      hyprland.dispatch("exec", "kitty zsh -ic 'clear; archeclipse'");
     } catch (e) {
-      console.error("Failed to update:", e);
-      setUpdateStatus("Update Failed");
+      console.error("Failed to launch update command:", e);
       const errorMessage = (e instanceof Error ? e.message : String(e))
         .replace(/['"\\`\n\r]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
       notify({
-        summary: "Update Error",
-        body:
-          errorMessage ||
-          "An error occurred while updating. Please try again later.",
+        summary: "Launch Error",
+        body: errorMessage || "Could not open kitty with archeclipse.",
       });
-
-      // Clear status after 3 seconds
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      setUpdateStatus("");
-    } finally {
-      setIsUpdating(false);
     }
   };
 

@@ -243,11 +243,14 @@ class DanbooruProvider(BooruProvider):
             url = f"{self.BASE}/posts/{post_id}.json"
 
         r = None
+
+        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
+
         try:
             auth = (
                 HTTPBasicAuth(self.user, self.key) if self.user and self.key else None
             )
-            r = requests.get(url, auth=auth, timeout=15)
+            r = requests.get(url, auth=auth, headers=headers, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for {self.BASE}")
@@ -306,12 +309,12 @@ class DanbooruProvider(BooruProvider):
             "search[order]": "count",
             "limit": limit,
         }
-
+        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
         try:
             auth = (
                 HTTPBasicAuth(self.user, self.key) if self.user and self.key else None
             )
-            r = requests.get(url, params=params, auth=auth, timeout=15)
+            r = requests.get(url, params=params, auth=auth, headers=headers, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for {self.BASE}")
@@ -359,7 +362,7 @@ class GelbooruProvider(BooruProvider):
             "user_id": self.user,
             "api_key": self.key,
         }
-
+        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
         if post_id != "random":
             params["id"] = post_id
         else:
@@ -367,7 +370,7 @@ class GelbooruProvider(BooruProvider):
             params["tags"] = " ".join(tags)
 
         try:
-            r = requests.get(self.BASE, params=params, timeout=15)
+            r = requests.get(self.BASE, params=params, headers=headers, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for Gelbooru")
@@ -424,9 +427,9 @@ class GelbooruProvider(BooruProvider):
             "user_id": self.user,
             "api_key": self.key,
         }
-
+        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
         try:
-            r = requests.get(self.BASE, params=params, timeout=15)
+            r = requests.get(self.BASE, params=params, headers=headers, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for Gelbooru")
@@ -485,9 +488,9 @@ class SafebooruProvider(BooruProvider):
             )
         else:
             url = f"{self.BASE}/posts/{post_id}.json"
-
+        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
         try:
-            r = requests.get(url, timeout=15)
+            r = requests.get(url, headers=headers, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for Safebooru")
@@ -542,9 +545,9 @@ class SafebooruProvider(BooruProvider):
             "search[order]": "count",
             "limit": limit,
         }
-
+        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
         try:
-            r = requests.get(url, params=params, timeout=15)
+            r = requests.get(url, params=params, headers=headers, timeout=15)
             r.raise_for_status()
         except requests.exceptions.Timeout:
             raise Exception(f"Request timeout after 15 seconds for Safebooru")
