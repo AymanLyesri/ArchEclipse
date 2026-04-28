@@ -1,5 +1,6 @@
 #!/bin/bash
 
+echo -e "\e[3m ArchEclipse \e[0m" | lolcat
 figlet "PLUGINS" -f slant | lolcat
 
 sudo -v

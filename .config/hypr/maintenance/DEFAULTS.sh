@@ -1,6 +1,7 @@
 customDir="$HOME/.config/hypr/configs/custom"
 defaultsDir="$HOME/.config/hypr/configs/defaults"
 
+echo -e "\e[3m ArchEclipse \e[0m" | lolcat
 figlet "DEFAULTS" -f slant | lolcat
 
 # restore_defaults() {

@@ -2,6 +2,7 @@
 
 source "$HOME/.config/hypr/maintenance/ESSENTIALS.sh"
 
+echo -e "\e[3m ArchEclipse \e[0m" | lolcat
 figlet "WALLPAPERS" -f slant | lolcat
 
 # ==============================

@@ -426,8 +426,27 @@ export default ({
 
         // focus on visible
         self.connect("notify::visible", () => {
-          if (self.visible && entryWidget) {
-            entryWidget.grab_focus();
+          if (self.visible) {
+            // Updating the application database
+            apps.reload();
+
+            // History Update: Remove entries that no longer exist
+            // Take the current list of names from history
+            const currentHistory = history.get();
+
+            // Filter, leaving only those that actually exist after reload
+            const validHistory = currentHistory.filter(
+              (appName) => apps.fuzzy_query(appName).length > 0,
+            );
+
+            // If something is deleted, update the state and save it to a file
+            if (validHistory.length !== currentHistory.length) {
+              setHistory(validHistory);
+              persistHistory(validHistory);
+            }
+            if (entryWidget) {
+              entryWidget.grab_focus();
+            }
             self.add_css_class("app-launcher-visible");
           } else {
             self.remove_css_class("app-launcher-visible");

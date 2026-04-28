@@ -88,6 +88,8 @@ source <(fzf --zsh)
 alias archeclipse='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/UPDATE.sh)"'
 alias 'update dev'='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/UPDATE.sh)" -- dev'
 
+alias plugins="$HOME/.config/hypr/maintenance/PLUGINS.sh"
+
 alias defaults="$HOME/.config/hypr/maintenance/DEFAULTS.sh"
 
 # Waifu Chat Bot and Assistant
