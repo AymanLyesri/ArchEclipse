@@ -1,6 +1,9 @@
 .app-launcher-visible {
-  .center {
+  .left {
     animation: opacity-in 0.2s ease-in forwards;
+  }
+  .center {
+    animation: opacity-in 0.2s ease-in 0.1s forwards;
   }
 
   .quick-apps {
@@ -8,7 +11,7 @@
   }
 
   .history {
-    animation: opacity-in 0.2s ease-in 0.4s forwards;
+    animation: opacity-in 0.2s ease-in 0.3s forwards;
   }
 }
 

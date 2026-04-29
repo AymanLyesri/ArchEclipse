@@ -1,13 +1,7 @@
 import AstalMpris from "gi://AstalMpris";
-import { getDominantColor, getImageRatio } from "../utils/image";
+import { getDominantColor } from "../utils/image";
 import { Gtk } from "ags/gtk4";
-import {
-  createBinding,
-  createState,
-  createComputed,
-  Accessor,
-  With,
-} from "ags";
+import { createBinding, createState, Accessor } from "ags";
 import Picture from "./Picture";
 // import Cava from "./Cava";
 import GLib from "gi://GLib";
@@ -26,28 +20,22 @@ export default ({
   className?: string;
 }) => {
   const apps = new AstalApps.Apps();
+
   const [isDragging, setIsDragging] = createState(false);
   const [parentWidth, setParentWidth] = createState(0);
   const [slideDirection, setSlideDirection] = createState<"next" | "prev">(
     "next",
   );
+
   const dominantColor = createBinding(
     player,
     "coverArt",
   )((path) => getDominantColor(path));
+
   const isPlaying = createBinding(
     player,
     "playbackStatus",
   )((status) => status === AstalMpris.PlaybackStatus.PLAYING);
-
-  // Calculate bar count based on parent width
-  const barCount = parentWidth((width) => {
-    // Calculate bar count based on width
-    // You might want to adjust this formula based on your needs
-    // Example: 1 bar per 10 pixels, but ensure minimum of 8 bars
-    const calculated = Math.floor(width / 10);
-    return Math.max(8, Math.min(calculated, 50)); // Clamp between 8 and 50 bars
-  });
 
   function lengthStr(length: number) {
     const min = Math.floor(length / 60);
@@ -56,24 +44,9 @@ export default ({
     return `${min}:${sec0}${sec}`;
   }
 
-  const playerStack = new Gtk.Stack({
-    transition_duration: 250,
-    hexpand: true,
-    vexpand: true,
-  });
-
-  function showPlayer(widget: Gtk.Widget, direction: "next" | "prev") {
-    playerStack.set_transition_type(
-      direction === "next"
-        ? Gtk.StackTransitionType.SLIDE_LEFT
-        : Gtk.StackTransitionType.SLIDE_RIGHT,
-    );
-
-    const name = `player-${Date.now()}`;
-    playerStack.add_named(widget, name);
-    playerStack.set_visible_child_name(name);
-  }
-
+  // =========================
+  // Bottom bar (unchanged logic)
+  // =========================
   const bottomBar = () => {
     const title = (
       <label
@@ -81,7 +54,7 @@ export default ({
         ellipsize={Pango.EllipsizeMode.END}
         halign={Gtk.Align.START}
         label={createBinding(player, "title")((t) => t || "Unknown Track")}
-      ></label>
+      />
     );
 
     const artist = (
@@ -91,13 +64,12 @@ export default ({
         halign={Gtk.Align.START}
         ellipsize={Pango.EllipsizeMode.END}
         label={createBinding(player, "artist")((a) => a || "Unknown Artist")}
-      ></label>
+      />
     );
 
     const positionSlider = (
       <slider
         class="slider"
-        // css={dominantColor((c) => `highlight{background: ${c}00};`)}
         $={(self) => {
           let unsubscribe: (() => void) | null = null;
 
@@ -113,10 +85,8 @@ export default ({
 
           gestureClick.connect("drag-begin", () => {
             setIsDragging(true);
-            if (unsubscribe) {
-              unsubscribe();
-              unsubscribe = null;
-            }
+            unsubscribe?.();
+            unsubscribe = null;
           });
 
           gestureClick.connect("drag-update", () => {
@@ -139,21 +109,23 @@ export default ({
         visible={createBinding(player, "length")((l) => l > 0)}
       />
     );
+
     const positionLabel = (
       <label
         class="position time"
         halign={Gtk.Align.START}
         label={createBinding(player, "position")(lengthStr)}
         visible={createBinding(player, "length")((l) => l > 0)}
-      ></label>
+      />
     );
+
     const lengthLabel = (
       <label
         class="length time"
         halign={Gtk.Align.END}
         visible={createBinding(player, "length")((l) => l > 0)}
         label={createBinding(player, "length")(lengthStr)}
-      ></label>
+      />
     );
 
     const Icon = () => (
@@ -216,6 +188,7 @@ export default ({
         <label label="󰒭" />
       </button>
     );
+
     return (
       <box
         class="bottom-bar"
@@ -235,7 +208,14 @@ export default ({
             )}
             height={40}
             width={40}
-            file={createBinding(player, "coverArt")}
+            file={createBinding(
+              player,
+              "coverArt",
+            )(
+              (c) =>
+                c ||
+                `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`,
+            )}
           />
           <box class="info" orientation={Gtk.Orientation.VERTICAL}>
             {title}
@@ -244,7 +224,7 @@ export default ({
           <Icon />
         </box>
 
-        <box class={"separator"} vexpand></box>
+        <box class="separator" vexpand />
 
         <centerbox>
           <box $type="start">{positionLabel}</box>
@@ -255,60 +235,81 @@ export default ({
           </box>
           <box $type="end">{lengthLabel}</box>
         </centerbox>
+
         {positionSlider}
       </box>
     );
   };
 
+  // =========================
+  // Stack animation (FIXED)
+  // =========================
+  const playerStack = new Gtk.Stack({
+    transition_duration: 250,
+    hexpand: true,
+    vexpand: true,
+  });
+
+  const bar1 = bottomBar() as Gtk.Widget;
+  const bar2 = bottomBar() as Gtk.Widget;
+
+  let currentIndex = 0;
+  const names = ["bar1", "bar2"];
+
+  playerStack.add_named(bar1, names[0]);
+  playerStack.add_named(bar2, names[1]);
+  playerStack.set_visible_child_name(names[0]);
+
+  function switchBar(direction: "next" | "prev") {
+    playerStack.set_transition_type(
+      direction === "next"
+        ? Gtk.StackTransitionType.SLIDE_LEFT
+        : Gtk.StackTransitionType.SLIDE_RIGHT,
+    );
+
+    currentIndex = currentIndex === 0 ? 1 : 0;
+    playerStack.set_visible_child_name(names[currentIndex]);
+  }
+
+  // =========================
+  // Main overlay
+  // =========================
   const overlay = (
     <overlay
       class={`player ${className || ""}`}
       hexpand
       $={(self) => {
-        // Create a controller to monitor size changes
         const controller = new Gtk.EventControllerMotion();
 
         controller.connect("enter", () => {
-          // Get the allocation when mouse enters
           const alloc = self.get_allocation();
-          if (alloc) {
-            setParentWidth(alloc.width);
-          }
+          if (alloc) setParentWidth(alloc.width);
         });
 
-        // Also check on allocation changes using a custom approach
         const checkWidth = () => {
           const alloc = self.get_allocation();
           if (alloc && alloc.width > 0 && alloc.width !== parentWidth.get()) {
             setParentWidth(alloc.width);
           }
-          return true; // Continue timeout
+          return true;
         };
 
-        // Start checking width periodically
         const timeoutId = GLib.timeout_add(
           GLib.PRIORITY_DEFAULT,
-          100, // Check every 100ms
+          100,
           checkWidth,
         );
 
-        // Clean up on destroy
         self.connect("destroy", () => {
-          if (timeoutId) {
-            GLib.source_remove(timeoutId);
-          }
+          if (timeoutId) GLib.source_remove(timeoutId);
         });
 
         self.add_controller(controller);
-
-        // Initial width check
         checkWidth();
 
-        playerStack.add_named(bottomBar() as Gtk.Widget, "bottom-bar");
-        playerStack.set_visible_child_name("bottom-bar");
-
+        // ✅ SAFE: only switching, not recreating widgets
         createBinding(player, "title").subscribe(() => {
-          showPlayer(bottomBar() as Gtk.Widget, slideDirection.get() || "next");
+          switchBar(slideDirection.get() || "next");
         });
       }}
     >
@@ -316,7 +317,14 @@ export default ({
         class="img"
         height={height}
         width={width}
-        file={createBinding(player, "coverArt")}
+        file={createBinding(
+          player,
+          "coverArt",
+        )(
+          (c) =>
+            c ||
+            `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`,
+        )}
       />
 
       <box
@@ -324,17 +332,6 @@ export default ({
         orientation={Gtk.Orientation.VERTICAL}
         valign={Gtk.Align.END}
       >
-        {/* <box halign={Gtk.Align.CENTER}>
-          <With value={barCount}>
-            {(count) => (
-              <Cava
-                barCount={count} // Use computed bar count
-                isPlaying={isPlaying}
-                transitionType={Gtk.RevealerTransitionType.SWING_UP}
-              />
-            )}
-          </With>
-        </box> */}
         {playerStack}
       </box>
     </overlay>
