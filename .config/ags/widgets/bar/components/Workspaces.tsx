@@ -11,38 +11,21 @@ import { timeout, Timer } from "ags/time";
 import { Gdk } from "ags/gtk4";
 import GObject from "ags/gobject";
 import { workspaceClientLayout } from "./sub-components/WorkspaceOverview";
+import { workspaceRegexIconMap } from "../../../constants/workspace.constants";
 
 const hyprland = Hyprland.get_default();
 
-const workspaceIconMap: { [name: string]: string } = {
-  special: "",
-  overview: "󰕬",
-  zen: "󰖟",
-  firefox: "󰈹",
-  code: "",
-  foot: "",
-  kitty: "",
-  ranger: "󰉋",
-  thunar: "󰉋",
-  nautilus: "󰉋",
-  vlc: "󰕾",
-  "spotify-launcher": "",
-  spotify: "",
-  spotube: "",
-  systemmonitor: "",
-  discord: "󰙯",
-  vencord: "󰙯",
-  legcord: "󰙯",
-  vesktop: "󰙯",
-  steam: "󰓓",
-  lutris: "",
-  game: "",
-};
+const overviewIcon = "󰕬";
+const specialIcon = "";
 
-// const workspaceRegexIconMap: { [regex: RegExp]: string } = {
-//   // all that ends with "cord"
-//   "/cord$/": "󰙯",
-// };
+const getWorkspaceIcon = (clientClass: string, fallbackIcon: string) => {
+  const normalizedClass = clientClass.toLowerCase();
+
+  return (
+    workspaceRegexIconMap.find(({ pattern }) => pattern.test(normalizedClass))
+      ?.icon || fallbackIcon
+  );
+};
 
 function Workspaces() {
   /**
@@ -140,9 +123,9 @@ function Workspaces() {
 
           const clients = createBinding(workspace!, "clients")();
           const main_client = clients[0];
-          const client_class = main_client?.class.toLowerCase() || "empty";
+          const client_class = main_client?.class || "empty";
 
-          return workspaceIconMap[client_class] || extraWorkspaceIcon;
+          return getWorkspaceIcon(client_class, extraWorkspaceIcon);
         })}
         onClicked={() =>
           hyprland.message_async(`dispatch workspace ${id}`, () => {})
@@ -358,7 +341,7 @@ function Workspaces() {
 const OverView = () => (
   <button
     class="overview"
-    label={workspaceIconMap["overview"]}
+    label={overviewIcon}
     onClicked={() =>
       hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
     }
@@ -371,7 +354,7 @@ const Special = () => (
     class={specialWorkspace((special) =>
       special ? "special active" : "special inactive",
     )}
-    label={workspaceIconMap["special"]}
+    label={specialIcon}
     onClicked={() =>
       hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
     }

@@ -299,11 +299,19 @@ export default () => {
   };
 
   // Generate QR code for crypto address
-  const showQRCode = (address: string, name: string) => {
+  const showQRCode = ({
+    url,
+    address,
+    name,
+  }: {
+    address?: string;
+    url?: string;
+    name: string;
+  }) => {
     const qrPath = `/tmp/donation_qr_${name.toLowerCase()}.png`;
 
     // Generate QR code using qrencode
-    execAsync(`qrencode -o "${qrPath}" "${address}"`)
+    execAsync(`qrencode -o "${qrPath}" "${address || url}"`)
       .then(() => {
         hyprland.dispatch(
           `exec`,
@@ -312,7 +320,7 @@ export default () => {
 
         notify({
           summary: "QR Code Generated",
-          body: `Scan the QR code to get ${name} address!`,
+          body: `Scan the QR code to get ${name} ${address ? "address" : "link"}!`,
         });
       })
       .catch(() => {
@@ -400,7 +408,12 @@ export default () => {
                   </button>
                   <button
                     class="donation-button secondary"
-                    onClicked={() => showQRCode(option.address!, option.name)}
+                    onClicked={() =>
+                      showQRCode({
+                        address: option.address!,
+                        name: option.name,
+                      })
+                    }
                     tooltipText="Show QR Code"
                   >
                     <label label="" />
@@ -423,7 +436,12 @@ export default () => {
                   </button>
                   <button
                     class="donation-button secondary"
-                    onClicked={() => showQRCode(option.url!, option.name)}
+                    onClicked={() =>
+                      showQRCode({
+                        url: option.url,
+                        name: option.name,
+                      })
+                    }
                     tooltipText="Show QR Code"
                   >
                     <label label="" />

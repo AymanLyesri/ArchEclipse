@@ -14,7 +14,11 @@ fi
 hyprctl hyprpaper unload "$monitor" >/dev/null 2>&1
 
 # Stop any existing mpvpaper instance on this monitor
-killall mpvpaper 2>/dev/null
+for pid in $(pgrep -x mpvpaper); do
+    if tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q "$monitor"; then
+        kill "$pid" 2>/dev/null
+    fi
+done
 
 # Start mpvpaper in background for animated/video wallpapers
 nohup mpvpaper -o "no-audio --loop --fs --panscan=1.0" "$monitor" "$wallpaper" >/dev/null 2>&1 &
