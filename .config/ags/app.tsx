@@ -204,7 +204,7 @@ app.start({
       const appLauncher = app.get_window(`app-launcher-${monitor}`);
       if (appLauncher) {
         appLauncher.show();
-        prefillLauncherInput(appLauncher as any, "emojis ");
+        prefillLauncherInput(appLauncher as any, "emoji ");
       }
       response("Emoji picker opened.");
       return;

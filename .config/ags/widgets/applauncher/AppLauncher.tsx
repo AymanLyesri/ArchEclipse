@@ -49,43 +49,7 @@ const mpris = Mpris.get_default();
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;
 const MAX_ITEMS = 10;
 
-const [Results, setResults] = createState<LauncherApp[]>([]);
-
-const [history, setHistory] = createState<string[]>([]);
-
-const getInstalledAppByName = (appName: string): Apps.Application | null => {
-  return (
-    apps
-      .fuzzy_query(appName)
-      .find((candidate: Apps.Application) => candidate.name === appName) || null
-  );
-};
-
-const persistHistory = (nextHistory: string[]) => {
-  writeJSONFile(LAUNCHER_HISTORY_PATH, nextHistory);
-};
-
-const touchHistory = (appName: string) => {
-  const nextHistory = normalizeHistory([
-    appName,
-    ...history.peek().filter((name) => name !== appName),
-  ]);
-
-  setHistory(nextHistory);
-  persistHistory(nextHistory);
-};
-
-const launchAndRecord = (application: Apps.Application) => {
-  application.launch();
-  touchHistory(application.name);
-};
-
-let parentWindowRef: Gtk.Window | null = null;
-let launcherContainerRef: Gtk.Box | null = null;
-
-let entryWidget: Gtk.TextView | null = null;
-
-export const AppButton = ({
+export function AppButton({
   element,
   className,
   onLaunch,
@@ -93,7 +57,7 @@ export const AppButton = ({
   element: LauncherApp;
   className?: string;
   onLaunch: (app: LauncherApp) => void;
-}) => {
+}) {
   const buttonContent = (appElement: LauncherApp) => (
     <box
       spacing={10}
@@ -161,128 +125,7 @@ export const AppButton = ({
       </box>
     </box>
   );
-};
-
-const Help = ({ results }: { results: Accessor<LauncherApp[]> }) => {
-  const helpTips: {
-    command: string;
-    description: string;
-    keybind?: string[];
-  }[] = [
-    {
-      command: "cb ...",
-      description: "clipboard history (text/html/image)",
-      keybind: ["SUPER", "SHIFT", "v"],
-    },
-    {
-      command: "note ...",
-      description: "add/list/edit/remove notes",
-      keybind: ["SUPER", "SHIFT", "n"],
-    },
-    {
-      command: "emoji ...",
-      description: "search emojis",
-      keybind: ["SUPER", "."],
-    },
-    {
-      command: "... ...",
-      description: "open with argument",
-    },
-    {
-      command: "translate .. > ..",
-      description: "translate into (en,fr,es,de,pt,ru,ar...)",
-    },
-    {
-      command: "... .com OR https://...",
-      description: "open link",
-    },
-    {
-      command: "..*/+-..",
-      description: "arithmetics",
-    },
-    {
-      command: "100c to f / 10kg in lb",
-      description: "unit conversion (temp/weight/length/volume/speed)",
-    },
-  ];
-
-  return (
-    <box
-      visible={results((entries) => entries.length <= 0)}
-      class={"help"}
-      orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}
-    >
-      {helpTips.map(({ command, description, keybind }) => (
-        <box spacing={10}>
-          <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-            <label label={command} class="command" hexpand wrap xalign={0} />
-            <label
-              label={description}
-              class="description"
-              hexpand
-              wrap
-              xalign={0}
-            />
-          </box>
-          {keybind && <KeyBind bindings={keybind} />}
-        </box>
-      ))}
-    </box>
-  );
-};
-
-const ResultsList = ({
-  results,
-  onLaunch,
-}: {
-  results: Accessor<LauncherApp[]>;
-  onLaunch: (app: LauncherApp) => void;
-}) => {
-  return (
-    <box orientation={Gtk.Orientation.VERTICAL}>
-      <Help results={results} />
-      <box
-        visible={results((entries) => entries.length > 0)}
-        class="results"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-      >
-        <For each={results}>
-          {(result, index) => (
-            <AppButton
-              element={result}
-              className={index.peek() === 0 ? "checked" : ""}
-              onLaunch={onLaunch}
-            />
-          )}
-        </For>
-      </box>
-    </box>
-  );
-};
-
-const EmptyEntry = () => {
-  if (entryWidget) {
-    entryWidget.buffer.text = "";
-  }
-  setResults([]);
-};
-
-const launchApp = (app: LauncherApp) => {
-  app.app_launch();
-  const shouldCloseOnLaunch = app.app_close_on_launch ?? true;
-
-  if (!shouldCloseOnLaunch) {
-    return;
-  }
-
-  // hideWindow(`app-launcher-${monitorName.get()}`);
-  if (parentWindowRef) {
-    parentWindowRef.hide();
-  }
-  EmptyEntry();
-};
+}
 
 export default ({
   monitor,
@@ -291,8 +134,166 @@ export default ({
   monitor: Gdk.Monitor;
   setup: (self: Gtk.Window) => void;
 }) => {
+  const [Results, setResults] = createState<LauncherApp[]>([]);
+
+  const [history, setHistory] = createState<string[]>([]);
+
+  function getInstalledAppByName(appName: string): Apps.Application | null {
+    return (
+      apps
+        .fuzzy_query(appName)
+        .find((candidate: Apps.Application) => candidate.name === appName) ||
+      null
+    );
+  }
+
+  function persistHistory(nextHistory: string[]) {
+    writeJSONFile(LAUNCHER_HISTORY_PATH, nextHistory);
+  }
+
+  function touchHistory(appName: string) {
+    const nextHistory = normalizeHistory([
+      appName,
+      ...history.peek().filter((name) => name !== appName),
+    ]);
+
+    setHistory(nextHistory);
+    persistHistory(nextHistory);
+  }
+
+  function launchAndRecord(application: Apps.Application) {
+    application.launch();
+    touchHistory(application.name);
+  }
+
+  let parentWindowRef: Gtk.Window | null = null;
+  let launcherContainerRef: Gtk.Box | null = null;
+
+  let entryWidget: Gtk.TextView | null = null;
+
   let debounceTimer: any;
   let args: string[];
+
+  function EmptyEntry() {
+    if (entryWidget) {
+      entryWidget.buffer.text = "";
+    }
+    setResults([]);
+  }
+
+  function launchApp(app: LauncherApp) {
+    app.app_launch();
+    const shouldCloseOnLaunch = app.app_close_on_launch ?? true;
+
+    if (!shouldCloseOnLaunch) {
+      return;
+    }
+
+    // hideWindow(`app-launcher-${monitorName.get()}`);
+    if (parentWindowRef) {
+      parentWindowRef.hide();
+    }
+    EmptyEntry();
+  }
+
+  function Help({ results }: { results: Accessor<LauncherApp[]> }) {
+    const helpTips: {
+      command: string;
+      description: string;
+      keybind?: string[];
+    }[] = [
+      {
+        command: "cb ...",
+        description: "clipboard history (text/html/image)",
+        keybind: ["SUPER", "SHIFT", "v"],
+      },
+      {
+        command: "note ...",
+        description: "add/list/edit/remove notes",
+        keybind: ["SUPER", "SHIFT", "n"],
+      },
+      {
+        command: "emoji ...",
+        description: "search emojis",
+        keybind: ["SUPER", "."],
+      },
+      {
+        command: "... ...",
+        description: "open with argument",
+      },
+      {
+        command: "translate .. > ..",
+        description: "translate into (en,fr,es,de,pt,ru,ar...)",
+      },
+      {
+        command: "... .com OR https://...",
+        description: "open link",
+      },
+      {
+        command: "..*/+-..",
+        description: "arithmetics",
+      },
+      {
+        command: "100c to f / 10kg in lb",
+        description: "unit conversion (temp/weight/length/volume/speed)",
+      },
+    ];
+
+    return (
+      <box
+        visible={results((entries) => entries.length <= 0)}
+        class={"help"}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+      >
+        {helpTips.map(({ command, description, keybind }) => (
+          <box spacing={10}>
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+              <label label={command} class="command" hexpand wrap xalign={0} />
+              <label
+                label={description}
+                class="description"
+                hexpand
+                wrap
+                xalign={0}
+              />
+            </box>
+            {keybind && <KeyBind bindings={keybind} />}
+          </box>
+        ))}
+      </box>
+    );
+  }
+
+  function ResultsList({
+    results,
+    onLaunch,
+  }: {
+    results: Accessor<LauncherApp[]>;
+    onLaunch: (app: LauncherApp) => void;
+  }) {
+    return (
+      <box orientation={Gtk.Orientation.VERTICAL}>
+        <Help results={results} />
+        <box
+          visible={results((entries) => entries.length > 0)}
+          class="results"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={10}
+        >
+          <For each={results}>
+            {(result, index) => (
+              <AppButton
+                element={result}
+                className={index.peek() === 0 ? "checked" : ""}
+                onLaunch={onLaunch}
+              />
+            )}
+          </For>
+        </box>
+      </box>
+    );
+  }
 
   const getInputText = () => entryWidget?.buffer.text || "";
 

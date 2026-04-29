@@ -12,7 +12,7 @@ import { AppButton } from "./AppLauncher";
 const MAX_HISTORY_ENTRIES = 10;
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;
 
-export const normalizeHistory = (entries: unknown): string[] => {
+export function normalizeHistory(entries: unknown): string[] {
   if (!Array.isArray(entries)) return [];
 
   const normalized: string[] = [];
@@ -26,9 +26,9 @@ export const normalizeHistory = (entries: unknown): string[] => {
   }
 
   return normalized;
-};
+}
 
-const AppHistory = ({
+export default function AppHistory({
   history,
   setHistory,
   persistHistory,
@@ -42,7 +42,7 @@ const AppHistory = ({
   getInstalledAppByName: (appName: string) => Apps.Application | null;
   launchAndRecord: (application: Apps.Application) => void;
   onLaunch: (app: LauncherApp) => void;
-}) => {
+}) {
   return (
     <scrolledwindow vexpand>
       <box
@@ -95,6 +95,4 @@ const AppHistory = ({
       </box>
     </scrolledwindow>
   );
-};
-
-export default AppHistory;
+}

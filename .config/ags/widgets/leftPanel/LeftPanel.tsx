@@ -13,8 +13,8 @@ import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 import app from "ags/gtk4/app";
 import { timeout, Timer } from "ags/time";
 
-const WidgetActions = () => {
-  return (
+function Panel() {
+  const WidgetActions = () => (
     <box
       orientation={Gtk.Orientation.VERTICAL}
       class="widget-actions"
@@ -39,28 +39,26 @@ const WidgetActions = () => {
       })}
     </box>
   );
-};
 
-const Actions = () => (
-  <box
-    class="panel-actions"
-    halign={Gtk.Align.START}
-    orientation={Gtk.Orientation.VERTICAL}
-  >
-    <WidgetActions />
-    <WindowActions
-      windowWidth={globalSettings(({ leftPanel }) => leftPanel.width)}
-      windowSettingKey="leftPanel"
-      windowExclusivity={globalSettings(
-        ({ leftPanel }) => leftPanel.exclusivity,
-      )}
-      windowLock={globalSettings(({ leftPanel }) => leftPanel.lock)}
-      minPanelWidth={400}
-    />
-  </box>
-);
+  const Actions = () => (
+    <box
+      class="panel-actions"
+      halign={Gtk.Align.START}
+      orientation={Gtk.Orientation.VERTICAL}
+    >
+      <WidgetActions />
+      <WindowActions
+        windowWidth={globalSettings(({ leftPanel }) => leftPanel.width)}
+        windowSettingKey="leftPanel"
+        windowExclusivity={globalSettings(
+          ({ leftPanel }) => leftPanel.exclusivity,
+        )}
+        windowLock={globalSettings(({ leftPanel }) => leftPanel.lock)}
+        minPanelWidth={400}
+      />
+    </box>
+  );
 
-function Panel() {
   const panelStack = new Gtk.Stack({
     transition_type: Gtk.StackTransitionType.SLIDE_LEFT_RIGHT,
     transition_duration: globalTransition,
