@@ -206,11 +206,26 @@ const GeneralInfo = () => {
                       </button>
                     </box>
                   ) : (
-                    <label
-                      class={"version-status uptodate"}
-                      label={`✓ Up to date${updateStatus() ? ` - ${updateStatus()}` : ""}`}
-                      hexpand
-                    />
+                    <box spacing={10} halign={Gtk.Align.CENTER} hexpand>
+                      <label
+                        class={"version-status uptodate"}
+                        label={`✓ Up to date${updateStatus() ? ` - ${updateStatus()}` : ""}`}
+                        hexpand
+                      />
+                      {/* Manual update check button */}
+                      {!isUpdating() && (
+                        <button
+                          class="update-button secondary"
+                          onClicked={checkVersions}
+                          tooltipText="Manually check for updates"
+                        >
+                          <box spacing={5}>
+                            <label label="" />
+                            <label label="Check Update" />
+                          </box>
+                        </button>
+                      )}
+                    </box>
                   )}
                 </box>
               </box>

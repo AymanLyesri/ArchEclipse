@@ -1,6 +1,23 @@
 .weather {
   // min-width: 300px;
+  .weather-city-input {
+    background: transparent;
+    color: $foreground;
+    border-radius: 1em;
+    padding: 0.5em 1em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
 
+  .weather-city-apply,
+  .weather-city-clear {
+    background: transparent;
+    color: $foreground;
+    border-radius: 1em;
+    padding: 0.5em 0.8em;
+    &:hover {
+      background-color: $background-secondary;
+    }
+  }
   .weather-heading {
     @include module;
     font-weight: bold;

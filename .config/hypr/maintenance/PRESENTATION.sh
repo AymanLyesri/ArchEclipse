@@ -147,14 +147,15 @@ run_section_step() {
 
 prompt_for_donation() {
     local monitor="$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name')"
-    echo ""
-    echo -e "${BOLD}${BLUE}💝 Support ArchEclipse${NC}"
-    echo ""
-    echo -e "${BLUE}ArchEclipse is lovingly maintained by a single person who puts a lot of time and care into building, fixing, and improving it for the community.${NC}"
-    echo -e "${BLUE}If ArchEclipse has made your setup better, saved you time, or just brought you joy, a small donation would go a long way in helping keep the project alive and growing.${NC}"
-    echo ""
-    echo -e "${BLUE}Every bit of support means a lot. Thank you for being part of the ArchEclipse community ❤️${NC}"
-    echo ""
+    {
+        echo ""
+        echo ",d88b.d88b,  |  💝 Support the project"
+        echo "88888888888  |  ArchEclipse is lovingly maintained by a single person"
+        echo "'Y8888888Y'  |  If it improved your setup or saved you time, consider supporting it"
+        echo "  'Y888Y'    |  Thank you for being part of the ArchEclipse community ❤️"
+        echo "    'Y'      |  \e[3m --Ayman, the maintainer of ArchEclipse \e[0m"
+        echo ""
+    } | lolcat
     
     continue_prompt "💝 Would you like to support the project?" "ags request donations $monitor"
 }

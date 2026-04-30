@@ -4,7 +4,7 @@ import GLib from "gi://GLib";
 import { With } from "gnim";
 import { Eventbox } from "./Custom/Eventbox";
 import Pango from "gi://Pango";
-import { weatherData } from "../variables";
+import { weatherData, setWeatherCity, globalSettings } from "../variables";
 
 // Weather code to description mapping
 const weatherCodes: Record<
@@ -135,6 +135,9 @@ const weatherIcon = (w: any) => {
 };
 
 export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
+  // Create a variable to store a reference to the input field
+  let cityEntry: Gtk.Entry;
+
   return (
     <box class="weather" spacing={12} orientation={Gtk.Orientation.VERTICAL}>
       <With value={weatherData}>
@@ -153,76 +156,119 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                     ?.background || "#000000"};
                   color: white;
                 `}
-                spacing={25}
+                orientation={Gtk.Orientation.VERTICAL}
+                spacing={10}
               >
-                <box
-                  orientation={Gtk.Orientation.VERTICAL}
-                  class={"main"}
-                  halign={Gtk.Align.CENTER}
-                  spacing={4}
-                >
-                  <label class={"weather-icon-large"} label={weatherIcon(w)} />
-                  <label
-                    class="weather-temp-large"
-                    label={`${current.temp}${current.temp_unit}`}
-                  />
-                  <label
-                    class="weather-description"
-                    label={
-                      weatherCodes[current.weather_code]?.description ||
-                      "Unknown"
-                    }
-                  />
-                  <label
-                    class="weather-feels-like"
-                    label={`Feels like: ${current.apparent_temp}${current.temp_unit}`}
-                  />
-                  <label
-                    class="weather-date"
-                    label={`${formatDate(w.daily.time[0])}`}
-                  />
-                </box>
-
-                <box
-                  orientation={Gtk.Orientation.VERTICAL}
-                  halign={Gtk.Align.CENTER}
-                  spacing={5}
-                >
+                <box spacing={25}>
                   <box
-                    class="weather-detail sun-detail"
-                    valign={Gtk.Align.CENTER}
-                    spacing={5}
-                    vexpand
+                    orientation={Gtk.Orientation.VERTICAL}
+                    class={"main"}
+                    halign={Gtk.Align.CENTER}
+                    spacing={4}
                   >
-                    <box orientation={Gtk.Orientation.VERTICAL} hexpand>
-                      <label class={"icon"} label="" />
-                      <label label={formatTime(today.sunrise[0])} />
-                    </box>
-                    <label class={"sun"} label="" hexpand />
-                    <box orientation={Gtk.Orientation.VERTICAL} hexpand>
-                      <label class={"icon"} label="" />
-                      <label label={formatTime(today.sunset[0])} />
-                    </box>
-                  </box>
-                  <box spacing={5} vexpand>
-                    <box class="weather-detail" spacing={5} hexpand>
-                      <label class={"icon"} label="" />
-                      <label label={`${current.humidity}%`} />
-                    </box>
-                    <box class="weather-detail" spacing={5} hexpand>
-                      <label class={"icon"} label="" />
-                      <label label={`${current.precipitation} mm`} />
-                    </box>
-                  </box>
-
-                  <box class="weather-detail" spacing={5} vexpand>
-                    <label class={"icon"} label="" />
                     <label
-                      label={`${current.wind_speed} ${
-                        current.wind_unit
-                      } ${getWindDirection(current.wind_direction)}`}
+                      class={"weather-icon-large"}
+                      label={weatherIcon(w)}
+                    />
+                    <label
+                      class="weather-temp-large"
+                      label={`${current.temp}${current.temp_unit}`}
+                    />
+                    <label
+                      class="weather-description"
+                      label={
+                        weatherCodes[current.weather_code]?.description ||
+                        "Unknown"
+                      }
+                    />
+                    <label
+                      class="weather-feels-like"
+                      label={`Feels like: ${current.apparent_temp}${current.temp_unit}`}
+                    />
+                    <label
+                      class="weather-date"
+                      label={`${formatDate(w.daily.time[0])}`}
                     />
                   </box>
+
+                  <box
+                    orientation={Gtk.Orientation.VERTICAL}
+                    halign={Gtk.Align.CENTER}
+                    spacing={5}
+                  >
+                    <box
+                      class="weather-detail sun-detail"
+                      valign={Gtk.Align.CENTER}
+                      spacing={5}
+                      vexpand
+                    >
+                      <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+                        <label class={"icon"} label="" />
+                        <label label={formatTime(today.sunrise[0])} />
+                      </box>
+                      <label class={"sun"} label="" hexpand />
+                      <box orientation={Gtk.Orientation.VERTICAL} hexpand>
+                        <label class={"icon"} label="" />
+                        <label label={formatTime(today.sunset[0])} />
+                      </box>
+                    </box>
+                    <box spacing={5} vexpand>
+                      <box class="weather-detail" spacing={5} hexpand>
+                        <label class={"icon"} label="" />
+                        <label label={`${current.humidity}%`} />
+                      </box>
+                      <box class="weather-detail" spacing={5} hexpand>
+                        <label class={"icon"} label="" />
+                        <label label={`${current.precipitation} mm`} />
+                      </box>
+                    </box>
+
+                    <box class="weather-detail" spacing={5} vexpand>
+                      <label class={"icon"} label="" />
+                      <label
+                        label={`${current.wind_speed} ${
+                          current.wind_unit
+                        } ${getWindDirection(current.wind_direction)}`}
+                      />
+                    </box>
+                  </box>
+                </box>
+                <box
+                  orientation={Gtk.Orientation.HORIZONTAL}
+                  spacing={8}
+                  halign={Gtk.Align.CENTER}
+                >
+                  <entry
+                    class="weather-city-input"
+                    placeholderText="Enter city..."
+                    text={globalSettings((s: any) => s.weather?.city || "")}
+                    // We save a link to this entry when creating it.
+                    $={(self) => {
+                      cityEntry = self;
+                    }}
+                    onActivate={(self) => {
+                      setWeatherCity(self.get_text());
+                    }}
+                    hexpand
+                  />
+
+                  <button
+                    class="weather-city-apply"
+                    tooltipText="Search city"
+                    onClicked={() => {
+                      if (cityEntry) setWeatherCity(cityEntry.get_text());
+                    }}
+                  >
+                    <label label="✔" />
+                  </button>
+
+                  <button
+                    class="weather-city-clear"
+                    tooltipText="Auto (IP)"
+                    onClicked={() => setWeatherCity("")}
+                  >
+                    <label label="󰦛" />
+                  </button>
                 </box>
               </box>
 

@@ -122,4 +122,9 @@ export interface Settings {
       key: AGSSetting;
     };
   };
+  weather?: {
+    city: string;
+    lat: number | null;
+    lon: number | null;
+  };
 }

@@ -108,45 +108,101 @@ export const systemResourcesData: Accessor<SystemResourcesInterface | null> =
     }
   });
 
-export const weatherData = createPoll(
+const [weatherData, setWeatherData] = createState<weatherInterface | null>(
   null,
-  600000,
-  [
-    "bash",
-    "-c",
-    `
-  LOC="$(
-  curl -fsSL https://ipapi.co/latlong ||
-  curl -fsSL https://ifconfig.co/coordinates ||
-  curl -fsSL https://ipinfo.io/loc
-)" || exit 1
-  LAT=\${LOC%,*}
-  LON=\${LOC#*,}
-  curl -fsSL "https://api.open-meteo.com/v1/forecast?latitude=$LAT&longitude=$LON&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2"
-  `,
-  ],
-  (out) => {
-    try {
-      const parsed = JSON.parse(out);
-      return {
-        current: {
-          temp: parsed.current.temperature_2m,
-          temp_unit: parsed.current_units.temperature_2m,
-          humidity: parsed.current.relative_humidity_2m,
-          wind_speed: parsed.current.wind_speed_10m,
-          wind_unit: parsed.current_units.wind_speed_10m,
-          wind_direction: parsed.current.wind_direction_10m,
-          apparent_temp: parsed.current.apparent_temperature,
-          is_day: parsed.current.is_day,
-          precipitation: parsed.current.precipitation,
-          weather_code: parsed.current.weather_code,
-        },
-        daily: parsed.daily,
-        hourly: parsed.hourly,
-      } as weatherInterface;
-    } catch (e) {
-      console.error("Weather parsing error:", e);
-      return null;
-    }
-  },
 );
+
+export const updateWeather = async () => {
+  try {
+    // We read from the global settings (we use any so that TypeScript doesn't complain about the lack of an interface)
+    const settings = globalSettings.peek() as any;
+    let lat = settings.weather?.lat;
+    let lon = settings.weather?.lon;
+
+    // If the coordinates are not specified, we determine by IP
+    if (!lat || !lon) {
+      const locOut = await execAsync([
+        "bash",
+        "-c",
+        `curl -fsSL https://ipapi.co/latlong || curl -fsSL https://ifconfig.co/coordinates || curl -fsSL https://ipinfo.io/loc`,
+      ]);
+      const loc = locOut.trim().split(",");
+      if (loc.length >= 2) {
+        lat = loc[0];
+        lon = loc[1];
+      }
+    }
+
+    if (!lat || !lon) return;
+
+    const out = await execAsync([
+      "curl",
+      "-fsSL",
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2`,
+    ]);
+
+    const parsed = JSON.parse(out);
+    setWeatherData({
+      current: {
+        temp: parsed.current.temperature_2m,
+        temp_unit: parsed.current_units.temperature_2m,
+        humidity: parsed.current.relative_humidity_2m,
+        wind_speed: parsed.current.wind_speed_10m,
+        wind_unit: parsed.current_units.wind_speed_10m,
+        wind_direction: parsed.current.wind_direction_10m,
+        apparent_temp: parsed.current.apparent_temperature,
+        is_day: parsed.current.is_day,
+        precipitation: parsed.current.precipitation,
+        weather_code: parsed.current.weather_code,
+      },
+      daily: parsed.daily,
+      hourly: parsed.hourly,
+    } as weatherInterface);
+  } catch (e) {
+    console.error("Weather parsing error:", e);
+  }
+};
+
+// Initial boot and interval start (every 10 minutes)
+updateWeather();
+createPoll(null, 600000, updateWeather);
+
+export const setWeatherCity = async (cityName: string) => {
+  if (!cityName || cityName.trim() === "") {
+    print("Weather City is empty");
+    setGlobalSetting("weather.city", "");
+    setGlobalSetting("weather.lat", null);
+    setGlobalSetting("weather.lon", null);
+    await updateWeather();
+    return;
+  }
+
+  try {
+    print("Searching Weather City");
+    const geoOut = await execAsync([
+      "curl",
+      "-fsSL",
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&format=json`,
+    ]);
+    const geo = JSON.parse(geoOut);
+
+    if (geo.results && geo.results.length > 0) {
+      const { latitude, longitude, name } = geo.results[0];
+      setGlobalSetting("weather.city", name);
+      setGlobalSetting("weather.lat", latitude);
+      setGlobalSetting("weather.lon", longitude);
+      await updateWeather();
+    } else {
+      notify({ summary: "Weather", body: `City '${cityName}' not found` });
+    }
+  } catch (e) {
+    notify({
+      summary: "Weather",
+      body: `Error fetching weather for '${cityName}'`,
+    });
+    console.error("Geocoding error:", e);
+  }
+};
+
+// IMPORTANT: Export Accessor directly
+export { weatherData };

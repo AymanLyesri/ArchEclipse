@@ -305,4 +305,9 @@ export const defaultSettings: Settings = {
       },
     },
   },
+  weather: {
+    city: "",
+    lat: null,
+    lon: null,
+  },
 };
