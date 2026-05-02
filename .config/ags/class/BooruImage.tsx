@@ -5,7 +5,7 @@ import Pango from "gi://Pango";
 import GdkPixbuf from "gi://GdkPixbuf";
 import { booruPath } from "../constants/path.constants";
 import { globalSettings, setGlobalSetting } from "../variables";
-import { Accessor, createRoot, createState, Setter } from "ags";
+import { Accessor, createRoot, createState, onCleanup, Setter } from "ags";
 import Picture from "../widgets/Picture";
 import Video from "../widgets/Video";
 import { Progress } from "../widgets/Progress";
@@ -14,7 +14,7 @@ import GLib from "gi://GLib";
 import { connectPopoverEvents } from "../utils/window";
 
 import Hyprland from "gi://AstalHyprland";
-import { Gtk } from "ags/gtk4";
+import { Gdk, Gtk } from "ags/gtk4";
 import Gio from "gi://Gio";
 const hyprland = Hyprland.get_default();
 
@@ -53,6 +53,52 @@ const parseBookmarkActionResponse = (raw: string): BookmarkActionResponse => {
 };
 
 /**
+ * Pause any playing Gtk.Video in the subtree without destroying the pipeline.
+ * Safe to call on popover close when the widget tree will be reused on reopen.
+ */
+function pauseVideoInWidget(widget: Gtk.Widget): void {
+  if (widget instanceof Gtk.Video) {
+    widget.get_media_stream()?.set_playing(false);
+    return;
+  }
+  let child = widget.get_first_child();
+  while (child) {
+    pauseVideoInWidget(child);
+    child = child.get_next_sibling();
+  }
+}
+
+/**
+ * Fully tear down any Gtk.Video GStreamer pipeline in the subtree.
+ * Only call this when the widget tree is being permanently destroyed
+ * (e.g. button "destroy"), not on a simple popover close.
+ *
+ * Full teardown sequence required to prevent crashes when a new Gtk.Video
+ * is later created on the same GL display (confirmed by crash logs):
+ *   1. set_playing(false)   – pause the pipeline
+ *   2. MediaFile.clear()    – calls stream_unprepared(), releases GstGLContext
+ *   3. set_media_stream(null) – detaches dead GL texture from the widget
+ */
+function teardownVideoInWidget(widget: Gtk.Widget): void {
+  if (widget instanceof Gtk.Video) {
+    const stream = widget.get_media_stream();
+    if (stream) {
+      stream.set_playing(false);
+      if (stream instanceof Gtk.MediaFile) {
+        stream.clear();
+      }
+    }
+    widget.set_media_stream(null);
+    return;
+  }
+  let child = widget.get_first_child();
+  while (child) {
+    teardownVideoInWidget(child);
+    child = child.get_next_sibling();
+  }
+}
+
+/**
  * Unified BooruImage class
  *
  * This class serves as the single source of truth for:
@@ -81,8 +127,8 @@ export class BooruImage {
   private _isDownloaded?: boolean;
   private _isBookmarked?: boolean;
 
-  private _loadingState: Accessor<"loading" | "error" | "success" | "idle">;
-  private _setLoadingState: Setter<"loading" | "error" | "success" | "idle">;
+  private _loadingState!: Accessor<"loading" | "error" | "success" | "idle">;
+  private _setLoadingState!: Setter<"loading" | "error" | "success" | "idle">;
   private static _bookmarkKeys = new Set<string>();
   private static _bookmarkCacheHydrated = false;
 
@@ -103,9 +149,13 @@ export class BooruImage {
     this.extension = data.extension;
     this.url = data.url;
     this.preview = data.preview;
-    [this._loadingState, this._setLoadingState] = createState<
-      "loading" | "error" | "success" | "idle"
-    >("idle");
+    // createState must be called inside a reactive root — wrap in createRoot
+    // to give it a proper owner so AGS never crashes with "out of tracking context".
+    createRoot(() => {
+      [this._loadingState, this._setLoadingState] = createState<
+        "loading" | "error" | "success" | "idle"
+      >("idle");
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -148,28 +198,80 @@ export class BooruImage {
   }
 
   /**
-   * Check if the image is a video format
+   * Check if the media is a video/animated format
    */
   isVideo(): boolean {
-    const videoExtensions = ["mp4", "webm", "mkv", "gif", "zip"];
-    return this.extension ? videoExtensions.includes(this.extension) : false;
+    const videoExtensions = ["mp4", "webm", "mkv", "gif"];
+    return this.extension
+      ? videoExtensions.includes(this.extension.toLowerCase())
+      : false;
   }
 
   /**
-   * Check if image file exists locally
+   * Check if the media is a zip/ugoira archive (Pixiv animated format).
+   * These cannot be rendered by Gtk.Video — always show a placeholder.
+   */
+  isZip(): boolean {
+    return this.extension?.toLowerCase() === "zip";
+  }
+
+  /**
+   * Probes the first bytes of a file to check if it is really a video/animation.
+   *
+   * Booru preview files for video content are often JPEG stills with video
+   * extensions (.webm, .mp4, .gif, .zip). Passing a JPEG to Gtk.Video causes
+   * a GStreamer GL pipeline crash (EGL/nvidia segfault). This probe detects
+   * the mismatch before the widget is created.
+   *
+   * Returns false (treat as image) when:
+   *   - file does not exist
+   *   - file starts with FF D8 (JPEG magic)
+   *   - file starts with 89 50 4E 47 (PNG magic)
+   *   - xxd is not available
+   * Returns true (treat as video) only when a known video magic is detected.
+   */
+  static probeFileIsRealVideo(path: string): boolean {
+    try {
+      const hex = exec(`xxd -p -l 12 "${path}"`).trim().toLowerCase();
+      if (!hex || hex.length < 8) return false;
+      // JPEG: FF D8 FF
+      if (hex.startsWith("ffd8ff")) return false;
+      // PNG: 89 50 4E 47
+      if (hex.startsWith("89504e47")) return false;
+      // WebM / MKV: starts with 1A 45 DF A3 (EBML)
+      if (hex.startsWith("1a45dfa3")) return true;
+      // MP4 / MOV: bytes 4-7 are "ftyp" (66 74 79 70)
+      if (hex.slice(8, 16) === "66747970") return true;
+      // GIF: 47 49 46 38 (GIF8)
+      if (hex.startsWith("47494638")) return true;
+      // RIFF/AVI: 52 49 46 46
+      if (hex.startsWith("52494646")) return true;
+      // Not a recognized video — treat as image to be safe
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Check if media file exists locally
    */
   isDownloaded(): boolean {
-    if (this._isDownloaded !== undefined) return this._isDownloaded;
+    // Only cache a positive result — caching "false" would leave the flag
+    // permanently stale after the file is downloaded during this session.
+    if (this._isDownloaded === true) return true;
 
     const result = exec(
       `bash -c "[ -e '${this.getImagePath()}' ] && echo 'exists' || echo 'not-exists'"`,
     );
-    this._isDownloaded = result.trim() === "exists";
-    return this._isDownloaded;
+    if (result.trim() === "exists") {
+      this._isDownloaded = true;
+    }
+    return this._isDownloaded ?? false;
   }
 
   /**
-   * Check if image is bookmarked
+   * Check if media is bookmarked
    */
   isBookmarked(): boolean {
     const key = this.getBookmarkKey();
@@ -181,15 +283,17 @@ export class BooruImage {
     if (this._isBookmarked !== undefined) return this._isBookmarked;
 
     const currentBookmarks = globalSettings.peek().booru.bookmarks;
-    this._isBookmarked = currentBookmarks.some(
-      (img) => img.id === this.id && img.api.value === this.api.value,
+    // .some() always returns boolean, so the assignment is always boolean.
+    const bookmarked = currentBookmarks.some(
+      (img: any) => img.id === this.id && img.api?.value === this.api.value,
     );
+    this._isBookmarked = bookmarked;
 
-    if (this._isBookmarked) {
+    if (bookmarked) {
       BooruImage._bookmarkKeys.add(key);
     }
 
-    return this._isBookmarked;
+    return bookmarked;
   }
 
   private getBookmarkKey(): string {
@@ -212,9 +316,14 @@ export class BooruImage {
   }
 
   /**
-   * Get image ratio for proper display sizing
+   * Get media ratio for proper display sizing
    */
   getImageRatio(path?: string): number {
+    // Prefer the already-known metadata dimensions — loading a full GdkPixbuf
+    // just to read size is expensive and can OOM with many images in a grid.
+    if (!path && this.width && this.height) {
+      return this.height / this.width;
+    }
     try {
       const pixbuf = GdkPixbuf.Pixbuf.new_from_file(
         path ?? this.getImagePath(),
@@ -226,7 +335,7 @@ export class BooruImage {
   }
 
   /**
-   * Download/fetch the image to local cache
+   * Download/fetch the media to local cache
    */
   async fetchImage(): Promise<void> {
     this._setLoadingState("loading");
@@ -236,7 +345,7 @@ export class BooruImage {
       const imageUrl = this.getOriginalUrl();
 
       if (!imageUrl) {
-        throw new Error("Image URL is not available");
+        throw new Error("Media URL is not available");
       }
 
       await execAsync(["mkdir", "-p", `${booruPath}/${this.api.value}/images`]);
@@ -270,19 +379,24 @@ export class BooruImage {
     } catch (err) {
       this._setLoadingState("error");
       const errorMessage = err instanceof Error ? err.message : String(err);
-      notify({ summary: "Error fetching image", body: errorMessage });
+      notify({ summary: "Error fetching media", body: errorMessage });
       throw err;
     }
   }
 
   /**
-   * Copy image to clipboard
+   * Copy media to clipboard (images only)
    */
   async copyToClipboard(): Promise<void> {
     try {
-      await execAsync(
-        `bash -c "wl-copy --type image/png < ${this.getImagePath()}"`,
-      );
+      if (this.isVideo()) {
+        throw new Error("Cannot copy video to clipboard");
+      }
+      await execAsync([
+        "bash",
+        "-c",
+        `wl-copy --type image/png < '${this.getImagePath()}'`,
+      ]);
       notify({ summary: "Success", body: "Image copied to clipboard" });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -291,14 +405,22 @@ export class BooruImage {
   }
 
   /**
-   * Open image in external viewer
+   * Open media in external viewer
    */
-  async openInViewer(): Promise<void> {
+  async openInViewer(isVideo?: boolean): Promise<void> {
     try {
-      hyprland.dispatch(
-        "exec",
-        `bash -c "swayimg -w 690,690 --class 'preview-image' ${this.getImagePath()}"`,
-      );
+      if (isVideo) {
+        const videoPath = this.getImagePath();
+        hyprland.dispatch(
+          "exec",
+          `bash -c "mpv --force-window=immediate --no-terminal --title='${this.id}' '${videoPath}'"`,
+        );
+      } else {
+        hyprland.dispatch(
+          "exec",
+          `bash -c "swayimg -w 690,690 --class 'preview-image' ${this.getImagePath()}"`,
+        );
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       notify({ summary: "Error opening in viewer", body: errorMessage });
@@ -306,7 +428,7 @@ export class BooruImage {
   }
 
   /**
-   * Open image's source page in browser
+   * Open media's source page in browser
    */
   async openInBrowser(): Promise<void> {
     try {
@@ -337,7 +459,7 @@ export class BooruImage {
   }
 
   /**
-   * Check if this image is currently pinned for fastfetch
+   * Check if this media is currently pinned for fastfetch
    */
   isPinnedToTerminal(): boolean {
     const pinnedPath = this.getTerminalPinnedPath();
@@ -345,9 +467,17 @@ export class BooruImage {
   }
 
   /**
-   * Pin image to terminal background
+   * Pin image to terminal background (images only)
    */
   async pinToTerminal(): Promise<void> {
+    if (this.isVideo()) {
+      notify({
+        summary: "Error pinning to terminal",
+        body: "Cannot pin videos to terminal",
+      });
+      return;
+    }
+
     const CORNER_RADIUS_PERCENT = 5;
     const cacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
     const sourceImagePath = this.getImagePath();
@@ -484,16 +614,16 @@ export class BooruImage {
   }
 
   /**
-   * Add image to wallpapers folder
+   * Add media to wallpapers folder
    */
   async addToWallpapers(): Promise<void> {
     try {
-      await execAsync(
-        `bash -c "cp ${this.getImagePath()} ~/.config/wallpapers/custom/${
-          this.id
-        }.${this.extension}"`,
-      );
-      notify({ summary: "Success", body: "Image added to wallpapers" });
+      await execAsync([
+        "cp",
+        this.getImagePath(),
+        `${GLib.get_home_dir()}/.config/wallpapers/custom/${this.id}.${this.extension}`,
+      ]);
+      notify({ summary: "Success", body: "Media added to wallpapers" });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       notify({ summary: "Error adding to wallpapers", body: errorMessage });
@@ -501,7 +631,7 @@ export class BooruImage {
   }
 
   /**
-   * Set this image as the current waifu
+   * Set this media as the current waifu
    */
   setAsCurrentWaifu(): void {
     setGlobalSetting("waifuWidget.current", this.toJSON());
@@ -553,11 +683,11 @@ export class BooruImage {
   }
 
   /**
-   * Fetch image by ID from booru API
+   * Fetch media by ID from booru API
    *
-   * @param id - The image ID to fetch
+   * @param id - The media ID to fetch
    * @param api - The booru API to use
-   * @returns Promise resolving to BooruImage instance with downloaded image
+   * @returns Promise resolving to BooruImage instance with downloaded media
    */
   async fetchById(id: number, api: Api): Promise<BooruImage> {
     try {
@@ -579,7 +709,7 @@ export class BooruImage {
         api: api,
       });
 
-      // Automatically fetch the image file
+      // Automatically fetch the media file
       await image.fetchImage();
       this._setLoadingState("success");
 
@@ -617,7 +747,7 @@ export class BooruImage {
 
     let info: string[] = [];
     this.isPinnedToTerminal() && info.push("");
-    this.tags.includes("animated") && info.push("");
+    (this.tags.includes("animated") || this.isVideo()) && info.push("");
 
     // Create the button
     const button = (
@@ -642,14 +772,21 @@ export class BooruImage {
     const popover = new Gtk.Popover();
     popover.add_css_class("popover-open");
 
-    // Only create the dialog content when popover is first shown
+    // Only create the dialog content when popover is first shown.
+    // The dispose function from createRoot is saved so we can clean up all
+    // reactive subscriptions when the popover closes, preventing memory leaks.
     let contentCreated = false;
+    let disposeRoot: (() => void) | null = null;
+    // videoWidget is declared here (outside createRoot) so the keyboard
+    // controller, which also lives outside createRoot, can close over it.
+    let videoWidget: Gtk.Video | null = null;
     const container = new Gtk.Box();
 
     popover.connect("show", () => {
       if (contentCreated) return;
 
-      const dialogContent = createRoot(() => {
+      const dialogContent = createRoot((dispose: () => void) => {
+        disposeRoot = dispose;
         const [currentlyDownloaded, setCurrentlyDownloaded] = createState(
           this.isDownloaded(),
         );
@@ -689,6 +826,161 @@ export class BooruImage {
           </Gtk.FlowBox>
         );
 
+        // ─────────────────────────────────
+
+        // Media display component (handles both images and videos)
+        const MediaDisplay = () => {
+          // Zip/ugoira archives cannot be rendered — show a placeholder.
+          if (this.isZip()) {
+            return (
+              <box
+                class="media zip-placeholder"
+                widthRequest={displayWidth}
+                heightRequest={displayHeight}
+                orientation={Gtk.Orientation.VERTICAL}
+                halign={Gtk.Align.FILL}
+                valign={Gtk.Align.FILL}
+              >
+                <box vexpand />
+                <label label="󰗄" class="zip-icon" halign={Gtk.Align.CENTER} />
+                <label
+                  class="zip-label"
+                  label="This type of video file cannot be played."
+                  halign={Gtk.Align.CENTER}
+                  justify={Gtk.Justification.CENTER}
+                  wrap={true}
+                />
+                <label
+                  class="zip-hint"
+                  label="Open in browser to view media."
+                  halign={Gtk.Align.CENTER}
+                  justify={Gtk.Justification.CENTER}
+                  wrap={true}
+                />
+                <box vexpand />
+              </box>
+            );
+          }
+
+          if (this.isVideo()) {
+            // Booru video previews are always JPEG stubs — the real video only
+            // exists once the user downloads it. We cannot switch widget types
+            // reactively (GTK widget type is fixed at construction), so we
+            // render BOTH widgets up front and toggle visibility:
+            //   • Gtk.Picture (preview JPEG) shown while not yet downloaded
+            //   • Gtk.Video   (full file)    shown once downloaded
+            const previewPath = this.getPreviewPath();
+            const imagePath = this.getImagePath();
+
+            // The video frame — used as the overlay base.
+            // State (isPlaying, videoTimestamp, videoDuration, isSeeking, videoWidget)
+            // is hoisted above MediaDisplay so VideoControls can share it.
+            const VideoFrame = (
+              <box
+                heightRequest={displayHeight}
+                widthRequest={displayWidth}
+                class="media video-container"
+              >
+                <Gtk.Picture
+                  visible={currentlyDownloaded((d) => !d)}
+                  file={Gio.File.new_for_path(previewPath)}
+                  heightRequest={displayHeight}
+                  widthRequest={displayWidth}
+                  hexpand={true}
+                  vexpand={true}
+                  class="image"
+                  contentFit={Gtk.ContentFit.COVER}
+                />
+                <Gtk.Video
+                  class="media"
+                  widthRequest={displayWidth}
+                  heightRequest={displayHeight}
+                  hexpand={true}
+                  vexpand={true}
+                  visible={currentlyDownloaded}
+                  file={Gio.File.new_for_path(imagePath)}
+                  autoplay={true}
+                  loop={true}
+                  $={(self: Gtk.Video) => {
+                    videoWidget = self;
+
+                    const attachStream = (stream: Gtk.MediaStream | null) => {
+                      if (!stream) return;
+
+                      // Force looping and playback directly in the stream
+                      stream.set_loop(true);
+                      stream.set_playing(true);
+
+                      // Insurance for ultra-short videos: we guarantee a start immediately after GStreamer "prepares" the file
+                      stream.connect("notify::prepared", () => {
+                        if ((stream as any).get_prepared()) {
+                          stream.set_loop(true);
+                          stream.set_playing(true);
+                        }
+                      });
+                    };
+
+                    attachStream(self.get_media_stream());
+                    const hStream = self.connect("notify::media-stream", () =>
+                      attachStream(self.get_media_stream()),
+                    );
+
+                    // Click on the video frame to toggle play/pause (YouTube-style).
+                    // Must use CAPTURE phase — Gtk.Video's internal GL sink widget
+                    // consumes pointer events in the BUBBLE phase before they reach
+                    // a controller added to the outer Gtk.Video widget. CAPTURE
+                    // intercepts the event on the way DOWN (before any child sees it).
+                    const clickGesture = new Gtk.GestureClick();
+                    clickGesture.set_button(1); // left click only
+                    clickGesture.set_propagation_phase(
+                      Gtk.PropagationPhase.CAPTURE,
+                    );
+                    clickGesture.connect("pressed", () => {
+                      const stream = self.get_media_stream();
+                      if (stream) stream.set_playing(!stream.get_playing());
+                    });
+                    self.add_controller(clickGesture);
+
+                    self.connect("unrealize", () => {
+                      const stream = self.get_media_stream();
+                      if (stream) {
+                        stream.set_playing(false);
+                        if (stream instanceof Gtk.MediaFile) stream.clear();
+                      }
+                      self.set_media_stream(null);
+                      videoWidget = null;
+                    });
+
+                    onCleanup(() => self.disconnect(hStream));
+                  }}
+                />
+              </box>
+            );
+
+            // MediaDisplay returns only the video frame (no controls).
+            // VideoControls is the hoisted widget placed outside the overlay.
+            return VideoFrame;
+          }
+
+          return (
+            <Gtk.Picture
+              file={currentlyDownloaded((downloaded) => {
+                const path = downloaded
+                  ? this.getImagePath()
+                  : this.getPreviewPath();
+                const file = Gio.File.new_for_path(path);
+                return file.query_exists(null)
+                  ? file
+                  : Gio.File.new_for_path(this.getPreviewPath());
+              })}
+              heightRequest={displayHeight}
+              widthRequest={displayWidth}
+              class="image"
+              contentFit={Gtk.ContentFit.COVER}
+            />
+          );
+        };
+
         // Actions component
         const Actions = (
           <box
@@ -708,7 +1000,7 @@ export class BooruImage {
                 label={currentlyBookmarked((bookmarked) =>
                   bookmarked ? "󰧌" : "",
                 )}
-                tooltip-text="Bookmark image"
+                tooltip-text="Bookmark media"
                 active={currentlyBookmarked}
                 onClicked={(self) => {
                   this.toggleBookmark()
@@ -721,14 +1013,20 @@ export class BooruImage {
             <box class="section">
               <button
                 label=""
-                tooltip-text="Download image"
+                tooltip-text="Download media"
                 sensitive={currentlyDownloaded((downloaded) => !downloaded)}
                 onClicked={(self) =>
                   this.fetchImage()
                     .then(async () => {
                       self.sensitive = false;
-                      // Wait a bit to ensure file is fully written
-                      await new Promise((resolve) => setTimeout(resolve, 100));
+                      // Wait a bit to ensure file is fully written.
+                      // GJS does not have setTimeout — use GLib.timeout_add instead.
+                      await new Promise<void>((resolve) =>
+                        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                          resolve();
+                          return GLib.SOURCE_REMOVE;
+                        }),
+                      );
                       // Verify file exists before updating state
                       const imagePath = this.getImagePath();
                       const file = Gio.File.new_for_path(imagePath);
@@ -743,9 +1041,13 @@ export class BooruImage {
               <button
                 label=""
                 tooltipMarkup={currentlyDownloaded((downloaded) =>
-                  downloaded ? "Copy image" : "<b>Download</b> first to copy",
+                  downloaded
+                    ? this.isVideo()
+                      ? "Cannot copy video"
+                      : "Copy image"
+                    : "<b>Download</b> first to copy",
                 )}
-                sensitive={currentlyDownloaded}
+                sensitive={currentlyDownloaded((d) => d && !this.isVideo())}
                 onClicked={() => this.copyToClipboard()}
                 hexpand
               />
@@ -753,10 +1055,12 @@ export class BooruImage {
                 label=""
                 tooltipMarkup={currentlyDownloaded((downloaded) =>
                   downloaded
-                    ? "Set as current waifu"
+                    ? this.isVideo()
+                      ? "Cannot Waifu video (for now)"
+                      : "Set as current waifu"
                     : "<b>Download</b> first to set",
                 )}
-                sensitive={currentlyDownloaded}
+                sensitive={currentlyDownloaded((d) => d && !this.isVideo())}
                 onClicked={() => this.setAsCurrentWaifu()}
                 hexpand
               />
@@ -768,19 +1072,21 @@ export class BooruImage {
                     : "<b>Download</b> first to open",
                 )}
                 sensitive={currentlyDownloaded}
-                onClicked={() => this.openInViewer()}
+                onClicked={() => this.openInViewer(this.isVideo())}
                 hexpand
               />
               <togglebutton
                 label={currentlyPinned((pinned) => (pinned ? "󰐃" : ""))}
                 tooltipMarkup={currentlyPinned((pinned) =>
-                  currentlyDownloaded.peek()
-                    ? pinned
-                      ? "Unpin from terminal"
-                      : "Pin to terminal"
-                    : "<b>Download</b> first to pin",
+                  this.isVideo()
+                    ? "Cannot pin videos"
+                    : currentlyDownloaded.peek()
+                      ? pinned
+                        ? "Unpin from terminal"
+                        : "Pin to terminal"
+                      : "<b>Download</b> first to pin",
                 )}
-                sensitive={currentlyDownloaded}
+                sensitive={currentlyDownloaded((d) => d && !this.isVideo())}
                 active={currentlyPinned}
                 onClicked={() =>
                   this.pinToTerminal()
@@ -804,29 +1110,39 @@ export class BooruImage {
           </box>
         );
 
-        // Create the dialog content overlay
+        // For video: Tags and action buttons are always visible (not just on hover).
+        // Tags sit above the video, and all controls/buttons stack naturally below.
+        // No overlay layer covers the video, so clicks reach the video widget.
+        if (this.isVideo()) {
+          return (
+            <box
+              orientation={Gtk.Orientation.VERTICAL}
+              class="booru-image"
+              widthRequest={displayWidth}
+            >
+              {/* Tags always visible above the video */}
+              {Tags}
+              {/* Video frame with no overlay children blocking clicks */}
+              <box
+                widthRequest={displayWidth}
+                heightRequest={displayHeight}
+                class="video-frame-container"
+              >
+                <MediaDisplay />
+              </box>
+              {/* Action buttons below the video */}
+              {Actions}
+            </box>
+          ) as Gtk.Widget;
+        }
+
         return (
           <overlay
             widthRequest={displayWidth}
             heightRequest={displayHeight}
             class="booru-image"
           >
-            <Gtk.Picture
-              file={currentlyDownloaded((downloaded) => {
-                const path = downloaded
-                  ? this.getImagePath()
-                  : this.getPreviewPath();
-                const file = Gio.File.new_for_path(path);
-                // Force reload by returning a fresh file object
-                return file.query_exists(null)
-                  ? file
-                  : Gio.File.new_for_path(this.getPreviewPath());
-              })}
-              heightRequest={displayHeight}
-              widthRequest={displayWidth}
-              class="image"
-              contentFit={Gtk.ContentFit.COVER}
-            />
+            <MediaDisplay />
             <box
               $type="overlay"
               orientation={Gtk.Orientation.VERTICAL}
@@ -843,6 +1159,90 @@ export class BooruImage {
 
       container.append(dialogContent);
       contentCreated = true;
+
+      // Keyboard controls for video — attached to the popover so they fire
+      // whenever the popover has focus, regardless of which child is focused.
+      // Only installed once (guarded by the contentCreated flag above).
+      // videoWidget is a mutable let in the createRoot scope; the closure
+      // always reads the current value so it works after the widget realizes.
+      if (this.isVideo()) {
+        const keyController = new Gtk.EventControllerKey();
+        keyController.connect(
+          "key-pressed",
+          (_ctrl: Gtk.EventControllerKey, keyval: number): boolean => {
+            const stream = videoWidget?.get_media_stream();
+            if (!stream) return false;
+
+            switch (keyval) {
+              // Space / k — play ⁄ pause
+              case Gdk.KEY_space:
+              case Gdk.KEY_k:
+                stream.set_playing(!stream.get_playing());
+                return true;
+
+              // ← / j — rewind 5 s
+              case Gdk.KEY_Left:
+              case Gdk.KEY_j:
+                if (stream.is_seekable())
+                  stream.seek(Math.max(0, stream.get_timestamp() - 5_000_000));
+                return true;
+
+              // → / l — skip 5 s
+              case Gdk.KEY_Right:
+              case Gdk.KEY_l:
+                if (stream.is_seekable())
+                  stream.seek(
+                    Math.min(
+                      stream.get_duration(),
+                      stream.get_timestamp() + 5_000_000,
+                    ),
+                  );
+                return true;
+
+              // ↑ — volume +10 %
+              case Gdk.KEY_Up:
+                stream.set_volume(Math.min(1, stream.get_volume() + 0.1));
+                return true;
+
+              // ↓ — volume −10 %
+              case Gdk.KEY_Down:
+                stream.set_volume(Math.max(0, stream.get_volume() - 0.1));
+                return true;
+
+              // m — mute toggle
+              case Gdk.KEY_m:
+                stream.set_muted(!stream.get_muted());
+                return true;
+
+              default:
+                return false;
+            }
+          },
+        );
+        popover.add_controller(keyController);
+      }
+    });
+
+    // Stop any playing video when the popover closes, but keep the reactive
+    // tree alive. Disposing and re-creating the root on every open/close cycle
+    // caused container.append() to add a new child each time (the old child
+    // was never removed), resulting in one extra popover per open/close cycle.
+    //
+    // The reactive tree is built once (contentCreated stays true after the
+    // first show) and reused for every subsequent open. The root is only
+    // disposed when the button widget itself is destroyed.
+    popover.connect("closed", () => {
+      // Only pause — do NOT clear() or set_media_stream(null) here.
+      // Full teardown on close permanently destroys the media stream, so
+      // when the popover reopens the Gtk.Video has no stream and stays blank.
+      pauseVideoInWidget(container);
+    });
+
+    button.connect("destroy", () => {
+      // Full teardown only when the button is permanently removed from the grid.
+      teardownVideoInWidget(container);
+      disposeRoot?.();
+      disposeRoot = null;
     });
 
     popover.set_child(container);
@@ -867,7 +1267,7 @@ export class BooruImage {
    * Render as waifu widget (compact display in right panel)
    *
    * Used in: Right panel waifu widget
-   * Shows: Large image, minimal controls
+   * Shows: Large media (image or video), minimal controls
    */
   renderAsWaifuWidget(options?: {
     width?: number;
@@ -939,7 +1339,7 @@ export class BooruImage {
             label={currentlyBookmarked((bookmarked) =>
               bookmarked ? "󰧌" : "",
             )}
-            tooltip-text="Bookmark image"
+            tooltip-text="Bookmark media"
             active={currentlyBookmarked}
             onClicked={(self) => {
               this.toggleBookmark()
@@ -955,7 +1355,11 @@ export class BooruImage {
             sensitive={!this.isVideo()}
             active={currentlyPinned}
             tooltip-text={currentlyPinned((pinned) =>
-              pinned ? "Unpin image from terminal" : "Pin image to terminal",
+              this.isVideo()
+                ? "Cannot pin videos"
+                : pinned
+                  ? "Unpin media from terminal"
+                  : "Pin media to terminal",
             )}
             onClicked={() =>
               this.pinToTerminal()
@@ -981,6 +1385,7 @@ export class BooruImage {
             label=""
             hexpand
             class="copy"
+            sensitive={!this.isVideo()}
             onClicked={() => this.copyToClipboard()}
           />
         </box>
@@ -1085,28 +1490,83 @@ export class BooruImage {
       </box>
     );
 
-    // Image or video display
-    const ImageDisplay = () => {
-      if (this.isVideo()) {
+    // Media display component (handles both images and videos)
+    const MediaDisplay = () => {
+      // Zip/ugoira archives cannot be rendered — show a placeholder.
+      if (this.isZip()) {
         return (
-          <Video class="image" width={opts.width} file={this.getImagePath()} />
+          <box
+            class="image zip-placeholder"
+            widthRequest={opts.width}
+            heightRequest={imageHeight}
+            orientation={Gtk.Orientation.VERTICAL}
+            halign={Gtk.Align.FILL}
+            valign={Gtk.Align.FILL}
+          >
+            <box vexpand />
+            <label label="󰗄" class="zip-icon" halign={Gtk.Align.CENTER} />
+            <label
+              class="zip-label"
+              label="This type of video file cannot be played."
+              halign={Gtk.Align.CENTER}
+              justify={Gtk.Justification.CENTER}
+              wrap={true}
+            />
+            <label
+              class="zip-hint"
+              label="Open in browser to view media."
+              halign={Gtk.Align.CENTER}
+              justify={Gtk.Justification.CENTER}
+              wrap={true}
+            />
+            <box vexpand />
+          </box>
         );
-      } else {
+      }
+
+      if (this.isVideo()) {
+        // Probe the preview file, not the image file — the image may not exist
+        // yet if the waifu was set before downloading. The preview and the
+        // full-size file are always the same content type, so this is stable.
+        const previewIsRealVideo = BooruImage.probeFileIsRealVideo(
+          this.getPreviewPath(),
+        );
+        if (!previewIsRealVideo) {
+          return (
+            <Picture
+              class="image"
+              height={imageHeight}
+              width={opts.width}
+              file={this.getImagePath()}
+              contentFit={Gtk.ContentFit.COVER}
+            />
+          );
+        }
         return (
-          <Picture
+          <Video
             class="image"
+            width={opts.width}
             height={imageHeight}
             file={this.getImagePath()}
-            contentFit={Gtk.ContentFit.COVER}
           />
         );
       }
+
+      return (
+        <Picture
+          class="image"
+          height={imageHeight}
+          width={opts.width}
+          file={this.getImagePath()}
+          contentFit={Gtk.ContentFit.COVER}
+        />
+      );
     };
 
     // Main widget layout
     return (
       <overlay class="booru-image">
-        <ImageDisplay />
+        <MediaDisplay />
 
         <Actions $type="overlay" />
       </overlay>

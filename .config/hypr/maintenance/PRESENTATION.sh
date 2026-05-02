@@ -87,14 +87,6 @@ print_update_completion_message() {
     echo -e "${BOLD}${GREEN}║${NC}            ✨ System updated successfully! ✨                 ${BOLD}${GREEN}║${NC}"
     echo -e "${BOLD}${GREEN}║${NC}                                                               ${BOLD}${GREEN}║${NC}"
     echo -e "${BOLD}${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo -e "${CYAN}${BOLD} All packages and configurations have been updated.${NC}"
-    echo -e "${YELLOW}⚠️  ${BOLD}A reboot is recommended to ensure all changes take effect:${NC}"
-    echo ""
-    echo -e "${CYAN}   ${BOLD}sudo reboot${NC}"
-    echo ""
-    echo -e "${BOLD}${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-    echo ""
     prompt_for_donation
 }
 
@@ -155,7 +147,7 @@ prompt_for_donation() {
         echo "  'Y888Y'    |  Thank you for being part of the ArchEclipse community ❤️"
         echo "    'Y'      |  \e[3m --Ayman, the maintainer of ArchEclipse \e[0m"
         echo ""
-    } | lolcat
+    } | lolcat -p
     
     continue_prompt "💝 Would you like to support the project?" "ags request donations $monitor"
 }

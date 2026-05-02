@@ -42,8 +42,9 @@ if [[ "$1" == "--now" ]]; then
     file="$screenshot_dir/screenrecord_$timestamp.mp4"
     # Record full screen
     wf-recorder \
-    -a "$audio_source" \
-    -p crf=35 \
+    -a"$audio_source" \
+    -p crf=24 \
+    -p preset=medium \
     -F fps=60 \
     -f "$file" &
     rec_pid=$!
@@ -52,8 +53,9 @@ if [[ "$1" == "--now" ]]; then
     file="$screenshot_dir/screenrecord_area_$timestamp.mp4"
     # Record selected area
     wf-recorder -g "$(slurp)" \
-    -a "$audio_source" \
-    -p crf=35 \
+    -a"$audio_source" \
+    -p crf=24 \
+    -p preset=medium \
     -F fps=60 \
     -f "$file" &
     rec_pid=$!
