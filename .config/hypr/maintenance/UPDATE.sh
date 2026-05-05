@@ -5,18 +5,7 @@ set -euo pipefail
 # User Confirmation
 ################################################################
 
-echo ""
-read -p "$(echo -e '\033[1;33m⚠️  You will begin the update process. Do you want to proceed? \033[0m(Y/n) ')" -n 1 -r
-echo
 
-if [[ -z "${REPLY}" ]]; then
-    REPLY="y"
-fi
-
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "\033[0;33m✗ Action cancelled.\033[0m"
-    exit 0
-fi
 
 sudo -v
 
@@ -70,32 +59,44 @@ echo "============================================================"
 # Overwrite Home Config (Like Forced Git Pull)
 ################################################################
 
-echo "📂 DEPLOYING CONFIG FILES"
+# Wrap the deploy logic in a function so it can be invoked interactively.
+deploy_configs() {
+    if is_repo_intact; then
+        echo "🌿 Repository history intact, syncing with remote..."
+        cd "${REPO_DIR}"
+        git checkout "${BRANCH}"
+        git fetch origin "${BRANCH}"
+        git reset --hard "origin/${BRANCH}"
+        echo "✓ Repository successfully updated from origin/${BRANCH}."
+    else
+        echo "⚠️ Local git history is missing/corrupt. Falling back to fresh clone deployment."
+        
+        TEMP_DIR="$(mktemp -d)"
+        
+        echo "📦 Cloning latest repository state..."
+        git clone --depth 1 --single-branch --branch "${BRANCH}" "${REPO_URL}" "${TEMP_DIR}"
+        
+        echo "[1/1] Overwriting home configuration..."
+        
+        rm -rf "${REPO_DIR}/.git"
+        
+        # Force copy everything to $HOME
+        # --remove-destination avoids failures on dangling symlinks (e.g. ~/.zshrc)
+        cp -a --remove-destination "${TEMP_DIR}/." "$HOME/"
+        
+        echo "✓ Configuration successfully updated from fresh clone."
+    fi
+}
 
-if is_repo_intact; then
-    echo "🌿 Repository history intact, syncing with remote..."
-    cd "${REPO_DIR}"
-    git checkout "${BRANCH}"
-    git fetch origin "${BRANCH}"
-    git reset --hard "origin/${BRANCH}"
-    echo "✓ Repository successfully updated from origin/${BRANCH}."
+echo ""
+read -p "$(echo -e '\033[1;33m⚠️ Deploy configuration files \033[0m(Y/n) ')" -n 1 -r
+echo
+
+# check if user says yes
+if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+    deploy_configs
 else
-    echo "⚠️ Local git history is missing/corrupt. Falling back to fresh clone deployment."
-    
-    TEMP_DIR="$(mktemp -d)"
-    
-    echo "📦 Cloning latest repository state..."
-    git clone --depth 1 --single-branch --branch "${BRANCH}" "${REPO_URL}" "${TEMP_DIR}"
-    
-    echo "[1/1] Overwriting home configuration..."
-    
-    rm -rf "${REPO_DIR}/.git"
-    
-    # Force copy everything to $HOME
-    # --remove-destination avoids failures on dangling symlinks (e.g. ~/.zshrc)
-    cp -a --remove-destination "${TEMP_DIR}/." "$HOME/"
-    
-    echo "✓ Configuration successfully updated from fresh clone."
+    echo "✗ Skipping configuration deployment."
 fi
 
 ################################################################

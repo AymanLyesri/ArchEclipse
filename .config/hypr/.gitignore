@@ -4,3 +4,5 @@ configs/custom/*
 theme/theme.conf
 wallpaper-daemon/config/*
 !wallpaper-daemon/config/defaults.conf
+
+__pycache__
