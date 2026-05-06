@@ -112,8 +112,7 @@ mpvpaper
 #      
 sddm
 where-is-my-sddm-theme-git
-python-colorthief
-python-pywal
+cwal
 fastfetch
 starship
 gtk4

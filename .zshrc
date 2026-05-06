@@ -1,4 +1,4 @@
-(cat ~/.cache/wal/sequences &)
+(cat ~/.cache/cwal/sequences &)
 
 eval "$(starship init zsh)"
 

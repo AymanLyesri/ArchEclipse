@@ -3,7 +3,7 @@
 set -euo pipefail
 
 readonly HYPR_DIR="${HOME}/.config/hypr"
-readonly WAL_CSS="${HOME}/.cache/wal/colors.css"
+readonly WAL_CSS="${HOME}/.cache/cwal/colors.css"
 readonly BORDER_CONF="${HYPR_DIR}/configs/custom/border.conf"
 # readonly SHADOW_CONF="${HYPR_DIR}/configs/custom/shadow.conf"
 

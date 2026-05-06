@@ -76,13 +76,13 @@ if is_autovariant_enabled; then
 fi
 
 # Kill existing wal process if running
-killall -q wal 2>/dev/null || true
+killall -q cwal 2>/dev/null || true
 
 # Generate color scheme based on theme
-wal_args=(--backend colorthief -e -n -i "${wallpaper}")
-[[ "${target_theme}" == "light" ]] && wal_args+=(-l)
+wal_args=(-i "${wallpaper}")
+[[ "${target_theme}" == "light" ]] && wal_args+=(--mode light) || wal_args+=(--mode dark)
 
-if wal "${wal_args[@]}" >/dev/null 2>&1; then
+if cwal "${wal_args[@]}" >/dev/null 2>&1; then
     echo "Color scheme generated for ${target_theme} theme"
 else
     echo "Error: Failed to generate color scheme" >&2

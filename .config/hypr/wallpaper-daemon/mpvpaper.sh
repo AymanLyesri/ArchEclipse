@@ -11,7 +11,7 @@ if [ -z "$monitor" ] || [ -z "$wallpaper" ]; then
 fi
 
 # unload any existing wallpaper on this monitor (hyprpaper 0.8+ no longer requires unload)
-hyprctl hyprpaper unload "$monitor" >/dev/null 2>&1
+# hyprctl hyprpaper unload "$monitor" >/dev/null 2>&1
 
 # Stop any existing mpvpaper instance on this monitor
 for pid in $(pgrep -x mpvpaper); do

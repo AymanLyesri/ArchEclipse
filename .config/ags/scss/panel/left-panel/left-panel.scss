@@ -9,4 +9,15 @@
   .bottom-eventbox:hover .bottom-bar {
     background-color: $background-secondary;
   }
+
+  .widget-actions .Donations {
+    &:not(:checked) {
+      color: #052d49;
+      background: #f96854;
+    }
+
+    // &:checked {
+    //   box-shadow: 0 0 6px rgba(60, 167, 244, 0.4);
+    // }
+  }
 }

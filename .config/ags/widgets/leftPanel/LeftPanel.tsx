@@ -23,7 +23,7 @@ function Panel() {
       {leftPanelWidgetSelectors.map((widgetSelector) => {
         return (
           <togglebutton
-            class="widget-selector"
+            class={`${widgetSelector.name}`}
             label={widgetSelector.icon}
             active={globalSettings(
               ({ leftPanel }) => leftPanel.widget.name === widgetSelector.name,
@@ -33,7 +33,15 @@ function Panel() {
                 setGlobalSetting("leftPanel.widget", widgetSelector);
               }
             }}
-            tooltipMarkup={`Click to select\n<b>${widgetSelector.name}</b>`}
+            tooltipMarkup={`Click to open\n<b>${widgetSelector.name}</b>`}
+            $={(self) => {
+              // if its the donations widget, show a custom tooltip with
+              if (widgetSelector.name === "Donations") {
+                self.set_tooltip_markup(
+                  "<b>Support this project if it helped you ❤️</b>\n\nClick to open\n<b>Donations</b>",
+                );
+              }
+            }}
           />
         );
       })}

@@ -40,9 +40,9 @@ const GeneralInfo = () => {
       setCurrentVersion(localHash);
 
       // Fetch and get remote commit
-      await execAsync(`git -C ${configDir} fetch origin`);
+      await execAsync(`git -C ${configDir} fetch origin master`);
       const remoteHash = await execAsync(
-        `git -C ${configDir} rev-parse --short origin/HEAD`,
+        `git -C ${configDir} rev-parse --short origin/master`,
       );
       setRemoteVersion(remoteHash.trim());
       setUpdateStatus("");

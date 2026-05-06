@@ -11,8 +11,8 @@ const tmpCss = `/tmp/tmp-style.css`;
 const tmpScss = `/tmp/tmp-style.scss`;
 const scss_dir = `${GLib.get_home_dir()}/.config/ags/scss`;
 
-const walScssColors = `${GLib.get_home_dir()}/.cache/wal/colors.scss`;
-const walCssColors = `${GLib.get_home_dir()}/.cache/wal/colors.css`;
+const walScssColors = `${GLib.get_home_dir()}/.cache/cwal/colors.scss`;
+const walCssColors = `${GLib.get_home_dir()}/.cache/cwal/colors.css`;
 const defaultColors = `${GLib.get_home_dir()}/.config/ags/scss/defaultColors.scss`;
 
 export const getCssPath = () => {
@@ -44,6 +44,6 @@ monitorFile(
 
 monitorFile(
   // directory that contains pywal colors
-  `${GLib.get_home_dir()}/.cache/wal/colors.scss`,
+  `${GLib.get_home_dir()}/.cache/cwal/colors.scss`,
   () => refreshCss(),
 );
