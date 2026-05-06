@@ -23,8 +23,10 @@
 
   .resource-monitor {
     @include button;
-    padding-top: 0px;
-    padding-bottom: 0px;
+    padding: 0;
+    padding-right: 3px;
+    padding-left: 3px;
+    border-radius: 50px;
   }
 }
 

@@ -26,26 +26,31 @@ export default () => {
 
   return (
     <menubutton class={"bandwidth"}>
-      <box class="bandwidth-button" tooltipText={"click to open"}>
-        <label
-          class="packet upload"
-          label={bandwidth((b) => `${b[0]?.toFixed(0)}`)}
-          css={bandwidth((b) => {
-            // min-width based on bandwidth numbers 1 11 111 1111
-            const len = b[0]?.toFixed(0).length || 1;
-            return `min-width: ${len * 10}px;`;
-          })}
-        />
-        <label class="separator" label={"-"} />
-        <label
-          class="packet download"
-          label={bandwidth((b) => `${b[1]?.toFixed(0)}`)}
-          css={bandwidth((b) => {
-            // min-width based on bandwidth numbers 1 11 111 1111
-            const len = b[1]?.toFixed(0).length || 1;
-            return `min-width: ${len * 10}px;`;
-          })}
-        />
+      <box class="bandwidth-button" tooltipText={"click to open"} spacing={5}>
+        <box>
+          <label
+            class="packet upload"
+            label={bandwidth((b) => `${b[0]?.toFixed(0)}`)}
+            css={bandwidth((b) => {
+              // min-width based on bandwidth numbers 1 11 111 1111
+              const len = b[0]?.toFixed(0).length || 1;
+              return `min-width: ${len * 10}px;`;
+            })}
+          />
+          <label class={"secondary"} label={""}></label>
+        </box>
+        <box>
+          <label
+            class="packet download"
+            label={bandwidth((b) => `${b[1]?.toFixed(0)}`)}
+            css={bandwidth((b) => {
+              // min-width based on bandwidth numbers 1 11 111 1111
+              const len = b[1]?.toFixed(0).length || 1;
+              return `min-width: ${len * 10}px;`;
+            })}
+          />
+          <label class={"secondary"} label={""}></label>
+        </box>
       </box>
       <popover
         $={(self) => {
