@@ -1,3 +1,4 @@
+import { Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import GObject from "gnim/gobject";
 
@@ -27,9 +28,9 @@ export function logTime(label: string, fn: () => void) {
   print(`${label}: ${color}${duration} ms\x1b[0m`);
 }
 
-export function logTimeWidget(label: string, fn: () => GObject.Object) {
+export function logTimeWidget(monitor: string, fn: () => any) {
   const start = GLib.get_monotonic_time();
-  const widgetInstance = fn();
+  const widgetInstance = fn() as Gtk.Window;
   const end = GLib.get_monotonic_time();
   const duration = (end - start) / 1000;
 
@@ -42,6 +43,6 @@ export function logTimeWidget(label: string, fn: () => GObject.Object) {
   const color =
     duration > 100 ? colors.slow : duration > 10 ? colors.medium : colors.fast;
 
-  print(`${label}: ${color}${duration} ms\x1b[0m`);
+  print(`\t\t${widgetInstance.name} ${monitor}: ${color}${duration} ms\x1b[0m`);
   return widgetInstance;
 }

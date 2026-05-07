@@ -9,7 +9,7 @@ import {
   setGlobalSetting,
   specialWorkspace,
 } from "../../../variables";
-import { Accessor, createBinding, For, With } from "ags";
+import { Accessor, createBinding, createComputed, For, With } from "ags";
 import { Gdk, Gtk } from "ags/gtk4";
 import CustomRevealer from "../../CustomRevealer";
 import { dateFormats } from "../../../constants/date.constants";
@@ -19,7 +19,7 @@ import Pango from "gi://Pango";
 import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
-// import Cava from "../../Cava";
+import Cava from "../../Cava";
 import Bandwidth from "./sub-components/Bandwidth";
 import GLib from "gi://GLib";
 import { WeatherButton } from "../../Weather";
@@ -41,24 +41,32 @@ function Mpris() {
           return (
             <menubutton>
               <overlay
-                widthRequest={createBinding(
-                  player,
-                  "title",
-                )((title) => Math.min(title.length * 10 + 25, 200))}
+                css={createComputed(() => {
+                  const title_width = createBinding(
+                    player,
+                    "title",
+                  )((title) => Math.min(title.length * 10 + 50, 200));
+                  const is_playing = createBinding(
+                    player,
+                    "playbackStatus",
+                  )((status) => status === AstalMpris.PlaybackStatus.PLAYING);
+                  // return min-width
+                  return `min-width: ${is_playing() ? title_width() + 25 : title_width()}px;`;
+                })}
               >
                 <Picture
                   class={"cover-art"}
                   file={createBinding(player, "coverArt")}
                 />
                 <box class={"content"} $type="overlay" spacing={3}>
-                  {/* <Cava
-                  barCount={10}
-                  transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-                  isPlaying={createBinding(
-                    player,
-                    "playbackStatus",
-                  )((status) => status === AstalMpris.PlaybackStatus.PLAYING)}
-                /> */}
+                  <Cava
+                    barCount={10}
+                    transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
+                    isPlaying={createBinding(
+                      player,
+                      "playbackStatus",
+                    )((status) => status === AstalMpris.PlaybackStatus.PLAYING)}
+                  />
                   <image
                     visible={!!app?.iconName}
                     iconName={app?.iconName}

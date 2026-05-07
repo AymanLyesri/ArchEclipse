@@ -3,10 +3,10 @@ import { getDominantColor } from "../utils/image";
 import { Gtk } from "ags/gtk4";
 import { createBinding, createState, Accessor } from "ags";
 import Picture from "./Picture";
-// import Cava from "./Cava";
 import GLib from "gi://GLib";
 import Pango from "gi://Pango";
 import AstalApps from "gi://AstalApps";
+import Cava from "./Cava";
 
 export default ({
   player,
@@ -332,6 +332,10 @@ export default ({
         orientation={Gtk.Orientation.VERTICAL}
         valign={Gtk.Align.END}
       >
+        <Cava
+          transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
+          barCount={50}
+        />
         {playerStack}
       </box>
     </overlay>
