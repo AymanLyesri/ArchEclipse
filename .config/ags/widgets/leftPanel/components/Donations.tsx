@@ -240,6 +240,14 @@ const GeneralInfo = () => {
 export default () => {
   const [donationOptions] = createState<DonationOption[]>([
     {
+      name: "Buy Me a Coffee",
+      icon: "",
+      class: "buymeacoffee",
+      type: "third-party",
+      url: "https://www.buymeacoffee.com/aymanlyesri", // Replace with actual Buy Me a Coffee link
+      color: "#FFDD00",
+    },
+    {
       name: "Ko-fi",
       icon: "",
       class: "kofi",

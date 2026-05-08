@@ -83,6 +83,7 @@
       padding: 10px;
       border-radius: 10px;
       transition: all 0.3s ease;
+      font-weight: 900;
 
       &.paypal {
         background: linear-gradient(135deg, #00457c, #0070ba);
@@ -96,14 +97,24 @@
         }
       }
       &.kofi {
-        background: linear-gradient(135deg, #29abe0, #ff5e5b);
+        background: linear-gradient(135deg, #72a5f2, #ff6433);
         label {
           color: white;
         }
 
         &:hover {
-          background: linear-gradient(135deg, #ff5e5b, #29abe0);
+          background: linear-gradient(135deg, #ff6433, #72a5f2);
           box-shadow: 0 0 15px rgba(255, 94, 91, 0.4);
+        }
+      }
+      &.buymeacoffee {
+        background: linear-gradient(135deg, #ffdd00, #ffffff);
+        label {
+          color: #333;
+        }
+        &:hover {
+          background: linear-gradient(135deg, #ffffff, #ffdd00);
+          box-shadow: 0 0 15px rgba(255, 221, 0, 0.4);
         }
       }
 
