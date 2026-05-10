@@ -19,7 +19,7 @@ import Pango from "gi://Pango";
 import { Eventbox } from "../../Custom/Eventbox";
 import Player from "../../Player";
 import Crypto from "../../Crypto";
-import Cava from "../../Cava";
+// import Cava from "../../Cava";
 import Bandwidth from "./sub-components/Bandwidth";
 import GLib from "gi://GLib";
 import { WeatherButton } from "../../Weather";
@@ -59,14 +59,14 @@ function Mpris() {
                   file={createBinding(player, "coverArt")}
                 />
                 <box class={"content"} $type="overlay" spacing={3}>
-                  <Cava
+                  {/* <Cava
                     barCount={10}
                     transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
                     isPlaying={createBinding(
                       player,
                       "playbackStatus",
                     )((status) => status === AstalMpris.PlaybackStatus.PLAYING)}
-                  />
+                  /> */}
                   <image
                     visible={!!app?.iconName}
                     iconName={app?.iconName}
