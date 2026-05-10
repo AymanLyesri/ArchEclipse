@@ -35,6 +35,8 @@
 !.config/wallpapers/
 # include starship config
 !.config/starship.toml
+# include cava config
+!.config/cava/
 
 # include icons (cursort theme)
 !.icons/
