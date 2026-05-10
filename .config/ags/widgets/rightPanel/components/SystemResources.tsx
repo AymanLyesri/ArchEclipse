@@ -2,6 +2,7 @@ import { Gtk } from "ags/gtk4";
 import { Accessor, createState, With } from "ags";
 import { execAsync } from "ags/process";
 import { globalSettings, systemResourcesData } from "../../../variables";
+import GLib from "gi://GLib";
 
 interface SystemResourcesData {
   cpuLoad: number;
@@ -19,7 +20,7 @@ interface SystemResourcesData {
 }
 
 const POLL_MS = 5000;
-const SCRIPT_PATH = "/tmp/ags/system-resources-loop-ags";
+const SCRIPT_PATH = `/tmp/ags-${GLib.get_user_name()}/system-resources-loop-ags`;
 
 function formatOptionalNumber(
   value: number | null | undefined,

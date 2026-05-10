@@ -8,7 +8,7 @@ import GLib from "gi://GLib";
 export default () => {
   const bandwidth = createSubprocess(
     [0, 0, 0, 0],
-    [`/tmp/ags/bandwidth-loop-ags`],
+    [`/tmp/ags-${GLib.get_user_name()}/bandwidth-loop-ags`],
     (out, prev) => {
       try {
         const parsed = JSON.parse(out);

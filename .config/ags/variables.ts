@@ -98,15 +98,19 @@ execAsync([
 export { globalTheme, setGlobalTheme };
 
 export const systemResourcesData: Accessor<SystemResourcesInterface | null> =
-  createSubprocess(null, `/tmp/ags/system-resources-loop-ags`, (out) => {
-    try {
-      const parsed: SystemResourcesInterface = JSON.parse(out);
+  createSubprocess(
+    null,
+    `/tmp/ags-${GLib.get_user_name()}/system-resources-loop-ags`,
+    (out) => {
+      try {
+        const parsed: SystemResourcesInterface = JSON.parse(out);
 
-      return parsed;
-    } catch (e) {
-      return null;
-    }
-  });
+        return parsed;
+      } catch (e) {
+        return null;
+      }
+    },
+  );
 
 const [weatherData, setWeatherData] = createState<weatherInterface | null>(
   null,

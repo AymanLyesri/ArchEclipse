@@ -3,7 +3,7 @@ import GLib from "gi://GLib";
 
 export function compileBinaries() {
   const homeDir = GLib.get_home_dir();
-  const tmpDir = `/tmp/ags`;
+  const tmpDir = `/tmp/ags-${GLib.get_user_name()}`;
   const scriptsDir = `${homeDir}/.config/ags/scripts`;
 
   exec(`bash -c "mkdir -p ${tmpDir}"`);

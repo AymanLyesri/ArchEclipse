@@ -7,8 +7,9 @@ import GLib from "gi://GLib";
 import { timeout } from "ags/time";
 
 // target css file
-const tmpCss = `/tmp/tmp-style.css`;
-const tmpScss = `/tmp/tmp-style.scss`;
+const tmpDir = `/tmp/ags-${GLib.get_user_name()}`;
+const tmpCss = `${tmpDir}/tmp-style.css`;
+const tmpScss = `${tmpDir}/tmp-style.scss`;
 const scss_dir = `${GLib.get_home_dir()}/.config/ags/scss`;
 
 const walScssColors = `${GLib.get_home_dir()}/.cache/cwal/colors.scss`;
@@ -23,7 +24,7 @@ export const getCssPath = () => {
 export function refreshCss() {
   const scss = `${scss_dir}/style.scss`;
 
-  exec(`bash -c "echo '
+  exec(`bash -c "mkdir -p ${tmpDir} && echo '
         $OPACITY: ${globalSettings.peek().ui.opacity.value};
         $FONT-SIZE: ${globalSettings.peek().ui.fontSize.value}px;
         $SCALE: ${globalSettings.peek().ui.scale.value}px;
