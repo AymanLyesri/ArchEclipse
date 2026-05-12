@@ -6,7 +6,7 @@ import Picture from "./Picture";
 import GLib from "gi://GLib";
 import Pango from "gi://Pango";
 import AstalApps from "gi://AstalApps";
-// import Cava from "./Cava";
+import Cava from "./Cava";
 
 export default ({
   player,
@@ -332,10 +332,10 @@ export default ({
         orientation={Gtk.Orientation.VERTICAL}
         valign={Gtk.Align.END}
       >
-        {/* <Cava
+        <Cava
           transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
           barCount={50}
-        /> */}
+        />
         {playerStack}
       </box>
     </overlay>

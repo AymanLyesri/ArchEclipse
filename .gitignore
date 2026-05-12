@@ -15,14 +15,8 @@
 !.config/hypr/
 # Include kitty config
 !.config/kitty/
-# include foot config
-# !.config/foot/
-# include ranger config
-!.config/ranger/
 # include btop config
 !.config/btop/
-# include aria2c config
-!.config/aria2/
 # include pipwire config
 !.config/pipewire/
 # include ags

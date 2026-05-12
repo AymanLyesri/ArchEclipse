@@ -6,7 +6,8 @@ import { readJSONFile } from "../../../utils/json";
 import { notify } from "../../../utils/notification";
 
 const CLIPBOARD_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/clipboard-history.json`;
-const CLIPBOARD_PREVIEW_MAX_LENGTH = 120;
+const CLIPBOARD_PREVIEW_MAX_LENGTH = 128;
+const CLIPBOARD_MAX_ITEMS = 128;
 
 type ClipboardHistoryEntry = {
   id?: number;
@@ -138,13 +139,10 @@ const copyClipboardEntry = (entry: NormalizedClipboardEntry) => {
   );
 };
 
-export const getClipboardResults = (
-  clipboardQuery: string,
-  maxItems: number,
-): LauncherApp[] => {
+export const getClipboardResults = (clipboardQuery: string): LauncherApp[] => {
   const clipboardEntries = normalizeClipboardEntries(
     readJSONFile(CLIPBOARD_HISTORY_PATH, []),
-    maxItems,
+    CLIPBOARD_MAX_ITEMS,
   );
   const searchTerm = clipboardQuery.toLowerCase();
   const filteredEntries = searchTerm

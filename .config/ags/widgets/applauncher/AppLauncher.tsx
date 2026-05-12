@@ -319,7 +319,7 @@ export default ({
 
         const clipboardQuery = parseClipboardQuery(text);
         if (clipboardQuery !== null) {
-          setResults(getClipboardResults(clipboardQuery, MAX_ITEMS));
+          setResults(getClipboardResults(clipboardQuery));
           return;
         }
 
