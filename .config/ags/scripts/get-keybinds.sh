@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-file="$HOME/.config/hypr/configs/keybinds.conf"
+file="$HOME/.config/hypr/configs/bind.conf"
 
 json_escape() {
   sed 's/\\/\\\\/g; s/"/\\"/g'
