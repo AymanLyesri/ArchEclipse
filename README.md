@@ -21,7 +21,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
 - **Dynamic wallpapers (static/animated)** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper) / [Mpvpaper](https://github.com/GhostNaN/mpvpaper)
 - **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
 - **Global Theme switcher (Light/Dark)**: Custom scripts
-- **Ags V3 - GTK 4 widgets** ~~(Eww replaced & Ags V2 / Gtk 3 replaced)~~: _these are just some of the features_
+- **Ags `GTK4-V3` widgets** ~~(Eww replaced & Ags `GTK3-V2` replaced)~~: _these are just some of the features_
   - Dynamic Color schemes based on current wallpaper `pywal`
   - Dark/light modes `pywal`
   - Main bar `switchable widgets`
@@ -51,7 +51,7 @@ Official [Discord](https://discord.gg/fMGt4vH6s5) server.
   - Left Panel
     - Chat Bot -- multiple APIs
     - Booru Viewer -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs
-    - Manga Reader -- Using [MangaDex](https://mangadex.org/) API
+    - Manga Reader -- Using [MangaDex](https://mangadex.org/) API `WIP`
     - Hyprland/Ags settings
     - Custom Scripts
     - Keybinds display

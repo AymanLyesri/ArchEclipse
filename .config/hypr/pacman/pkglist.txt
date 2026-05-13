@@ -131,7 +131,7 @@ kvantum
 kvantum-theme-whitesur-git
 qt5ct
 qt6ct-kde
-lolcat
+c-lolcat
 
 
 ### Extra
