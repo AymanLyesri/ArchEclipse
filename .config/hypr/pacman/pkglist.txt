@@ -140,6 +140,5 @@ meson
 cpio
 pkg-config
 git
-g++
 gcc
 libwebp-utils

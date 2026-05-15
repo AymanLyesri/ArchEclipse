@@ -15,14 +15,10 @@
 !.config/hypr/
 # Include kitty config
 !.config/kitty/
-# include btop config
-!.config/btop/
 # include pipwire config
 !.config/pipewire/
 # include ags
 !.config/ags/
-# include wayvnc config
-!.config/wayvnc/
 # include fastfetch config
 !.config/fastfetch/
 # wallpapers
