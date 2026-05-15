@@ -32,7 +32,8 @@ extract_keys() {
   printf ']'
 }
 
-current_category=""
+pending_category=""
+category_open=false
 current_comment=""
 first_item=true
 
@@ -41,14 +42,22 @@ echo "{"
 while IFS= read -r line; do
   # Category
   if [[ "$line" =~ ^##[[:space:]]*(.+)$ ]]; then
-    if [[ -n "$current_category" ]]; then
+    # If a previous category with binds was opened, close its array
+    if [[ "$category_open" == true ]]; then
       echo
       echo "  ],"
+      category_open=false
     fi
 
-    current_category="$(printf '%s' "${BASH_REMATCH[1]}" | json_escape)"
-    echo "  \"$current_category\": ["
+    # We remember the new category, but do NOT output it to JSON yet.
+    pending_category="$(printf '%s' "${BASH_REMATCH[1]}" | json_escape)"
     first_item=true
+    continue
+  fi
+
+  # Ignore commented out binds and reset the description
+  if [[ "$line" =~ ^[[:space:]]*#[[:space:]]*bind ]]; then
+    current_comment=""
     continue
   fi
 
@@ -58,24 +67,36 @@ while IFS= read -r line; do
     continue
   fi
 
-  # Capture next line
-  if [[ -n "$current_comment" && -n "$current_category" ]]; then
-    keys="$(extract_keys "$line")"
+  # Capturing a string with a bind
+  if [[ "$line" =~ ^[[:space:]]*bind && -n "$current_comment" ]]; then
 
-    [[ "$first_item" = false ]] && echo "    ,"
+    # If this is the first bind for a pending category, we display its title!
+    if [[ -n "$pending_category" ]]; then
+      echo "  \"$pending_category\": ["
+      pending_category="" # Reset the wait
+      category_open=true  # Note that the category array is open
+      first_item=true
+    fi
 
-    echo "    {"
-    echo "      \"description\": \"$current_comment\","
-    echo "      \"keys\": $keys"
-    echo "    }"
+    # We write the bind itself only if the category was successfully opened.
+    if [[ "$category_open" == true ]]; then
+      keys="$(extract_keys "$line")"
 
-    first_item=false
-    current_comment=""
+      [[ "$first_item" = false ]] && echo "    ,"
+
+      echo "    {"
+      echo "      \"description\": \"$current_comment\","
+      echo "      \"keys\": $keys"
+      echo "    }"
+
+      first_item=false
+      current_comment=""
+    fi
   fi
 done < "$file"
 
-# close last category
-if [[ -n "$current_category" ]]; then
+# We close the array of the last category only if it contained binds
+if [[ "$category_open" == true ]]; then
   echo
   echo "  ]"
 fi

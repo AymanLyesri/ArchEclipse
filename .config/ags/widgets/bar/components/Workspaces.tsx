@@ -338,16 +338,16 @@ function Workspaces() {
   );
 }
 
-const OverView = () => (
-  <button
-    class="overview"
-    label={overviewIcon}
-    onClicked={() =>
-      hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
-    }
-    tooltipMarkup={`Overview Mode\n<b>SUPER + SHIFT + TAB</b>`}
-  />
-);
+// const OverView = () => (
+//   <button
+//     class="overview"
+//     label={overviewIcon}
+//     onClicked={() =>
+//       hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
+//     }
+//     tooltipMarkup={`Overview Mode\n<b>SUPER + SHIFT + TAB</b>`}
+//   />
+// );
 
 const Special = () => (
   <button
@@ -387,7 +387,7 @@ const Special = () => (
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="workspaces" spacing={5} halign={halign} hexpand>
-      <OverView />
+      {/* <OverView /> */}
       <Special />
       <Workspaces />
     </box>
