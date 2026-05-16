@@ -147,7 +147,7 @@ prompt_for_donation() {
         echo "  'Y888Y'    |  Thank you for being part of the ArchEclipse community ❤️"
         echo "    'Y'      |  \e[3m --Ayman, the maintainer of ArchEclipse \e[0m"
         echo ""
-    } | lolcat -p
+    } | lolcat
     
     continue_prompt "💝 Would you like to support the project?" "ags request donations $monitor"
 }

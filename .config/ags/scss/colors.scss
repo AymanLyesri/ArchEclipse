@@ -23,7 +23,7 @@ $green: mix($background, $green, $phi-percentage);
 $secondary: mix($secondary, $foreground, $phi-percentage);
 
 $background-mix: mix($background, $color1, $phi-percentage);
-$background-transparent: rgba($background-mix, $OPACITY);
+$background-transparent: rgba($background, $OPACITY);
 
 $background-secondary: mix($background, $secondary, $phi-percentage);
 $foreground-secondary: mix($foreground, $secondary, $phi-percentage);
