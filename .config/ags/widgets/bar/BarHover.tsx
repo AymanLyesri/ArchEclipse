@@ -20,7 +20,7 @@ export default ({
       application={App}
       gdkmonitor={monitor}
       anchor={globalSettings(({ bar }) =>
-        bar.orientation
+        bar.orientation.value
           ? Astal.WindowAnchor.TOP |
             Astal.WindowAnchor.LEFT |
             Astal.WindowAnchor.RIGHT

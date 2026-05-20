@@ -1,6 +1,9 @@
 configs/custom/*
 !configs/custom/.gitkeep
 
+config/custom/*
+!config/custom/.gitkeep
+
 theme/theme.conf
 wallpaper-daemon/config/*
 !wallpaper-daemon/config/defaults.conf

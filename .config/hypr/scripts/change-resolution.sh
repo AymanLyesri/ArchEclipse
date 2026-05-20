@@ -44,9 +44,17 @@ update_resolution_config() {
         exit 1
     fi
 
-    local configPath="${HOME}/.config/hypr/configs/custom/monitors.conf"
+    local configPath="${HOME}/.config/hypr/config/custom/monitors.lua"
     local newConfigContent
-    newConfigContent="monitor=, $resolution@$rate, auto, 1"
+    newConfigContent=$(cat <<EOF
+hl.monitor({
+    output = "",
+    mode = "${resolution}@${rate}",
+    position = "auto",
+    scale = 1,
+})
+EOF
+)
 
     echo "$newConfigContent" >"$configPath"
 }

@@ -1,47 +1,61 @@
 #!/usr/bin/env bash
 
-file="$HOME/.config/hypr/configs/bind.conf"
+file="$HOME/.config/hypr/config/bind.lua"
 
 json_escape() {
   sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
 extract_keys() {
-  # example input:
-  # bind = SUPER CTRL, 1, movetoworkspace, 1
-  local line="$1"
+  local combo="$1"
+  local part
+  local first
 
-  # strip everything before =
-  line="${line#*=}"
-
-  # take first two comma-separated fields
-  local mods key
-  mods="$(echo "$line" | cut -d',' -f1 | xargs)"
-  key="$(echo "$line" | cut -d',' -f2 | xargs)"
-
-  # split modifiers into array + append key
-  read -ra mod_arr <<< "$mods"
+  combo=$(echo "$combo" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
 
   printf '['
   first=true
-  for m in "${mod_arr[@]}" "$key"; do
+  while IFS= read -r part; do
+    part=$(echo "$part" | xargs)
+    [[ -z "$part" ]] && continue
     [[ "$first" = false ]] && printf ', '
-    printf '"%s"' "$m"
+    printf '"%s"' "$part"
     first=false
-  done
+  done <<< "$(echo "$combo" | tr '+' '\n')"
   printf ']'
+}
+
+extract_bind_expr() {
+  # Get the first argument of hl.bind(...) (non-greedy up to first comma)
+  echo "$1" | sed -n 's/^[[:space:]]*hl\.bind(\([^,]*\),.*/\1/p'
+}
+
+normalize_combo() {
+  local expr="$1"
+  expr=${expr//mainMod/$main_mod}
+  expr=${expr//\"/}
+  expr=${expr//../ }
+  expr=$(echo "$expr" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//; s/\+\s*\+/+/g; s/\+\s*\+/+/g; s/\+/ + /g; s/[[:space:]]\+/ /g')
+  echo "$expr"
 }
 
 pending_category=""
 category_open=false
 current_comment=""
 first_item=true
+main_mod="SUPER"
 
 echo "{"
 
 while IFS= read -r line; do
+  # Track main modifier
+  if [[ "$line" =~ ^[[:space:]]*local[[:space:]]+mainMod[[:space:]]*=[[:space:]]*\"(.+)\" ]]; then
+    main_mod="${BASH_REMATCH[1]}"
+    continue
+  fi
+
   # Category
-  if [[ "$line" =~ ^##[[:space:]]*(.+)$ ]]; then
+  if [[ "$line" =~ ^[[:space:]]*--[[:space:]]*##[[:space:]]*(.+)$ ]]; then
     # If a previous category with binds was opened, close its array
     if [[ "$category_open" == true ]]; then
       echo
@@ -55,20 +69,14 @@ while IFS= read -r line; do
     continue
   fi
 
-  # Ignore commented out binds and reset the description
-  if [[ "$line" =~ ^[[:space:]]*#[[:space:]]*bind ]]; then
-    current_comment=""
-    continue
-  fi
-
   # Description
-  if [[ "$line" =~ ^#[^#][[:space:]]*(.+)$ ]]; then
+  if [[ "$line" =~ ^[[:space:]]*--[[:space:]]*#[[:space:]]*(.+)$ ]]; then
     current_comment="$(printf '%s' "${BASH_REMATCH[1]}" | json_escape)"
     continue
   fi
 
   # Capturing a string with a bind
-  if [[ "$line" =~ ^[[:space:]]*bind && -n "$current_comment" ]]; then
+  if [[ "$line" =~ ^[[:space:]]*hl\.bind && -n "$current_comment" ]]; then
 
     # If this is the first bind for a pending category, we display its title!
     if [[ -n "$pending_category" ]]; then
@@ -80,16 +88,17 @@ while IFS= read -r line; do
 
     # We write the bind itself only if the category was successfully opened.
     if [[ "$category_open" == true ]]; then
-      keys="$(extract_keys "$line")"
+      bind_expr="$(extract_bind_expr "$line")"
+      combo="$(normalize_combo "$bind_expr")"
 
+      keys_json="$(extract_keys "$combo")"
       [[ "$first_item" = false ]] && echo "    ,"
-
       echo "    {"
       echo "      \"description\": \"$current_comment\","
-      echo "      \"keys\": $keys"
+      echo "      \"keys\": $keys_json"
       echo "    }"
-
       first_item=false
+
       current_comment=""
     fi
   fi

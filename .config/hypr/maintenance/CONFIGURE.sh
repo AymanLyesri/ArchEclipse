@@ -1,8 +1,7 @@
 # #!/bin/bash
 
 HYPR_DIR="$HOME/.config/hypr"
-GENERAL_CONF_FILE="$HYPR_DIR/configs/general.conf"
-KEYBOARD_CONF="$HYPR_DIR/configs/custom/keyboard.conf"
+KEYBOARD_CONF="$HYPR_DIR/config/custom/keyboard.lua"
 
 FZF_HEIGHT="40%"
 
@@ -52,7 +51,14 @@ configure_keybord() {
     selected_variants=$(echo "$selected_variants" | sed 's/,$//')
     
     # Apply the changes to the config file
-    echo -e "input { \n\tkb_layout=$selected_layouts \n\tkb_variant=$selected_variants \n}" >$KEYBOARD_CONF
+    cat >"$KEYBOARD_CONF" <<EOF
+hl.config({
+    input = {
+        kb_layout = "${selected_layouts}",
+        kb_variant = "${selected_variants}",
+    },
+})
+EOF
     
     echo "Keyboard layouts have been configured to: $selected_layouts"
     echo "Keyboard variants have been configured to: $selected_variants"
@@ -85,6 +91,14 @@ continue_prompt() {
 }
 
 configure_keybord
+
+
+
+
+
+
+
+
 
 
 

@@ -109,6 +109,8 @@ const renderNode = (node: Node): Gtk.Widget => {
             value.set_object(node.client);
 
             print("dragging PID:", node.client.pid);
+            print("dragging class:", node.client.class);
+            print("dragging title:", node.client.title);
 
             return Gdk.ContentProvider.new_for_value(value);
           });

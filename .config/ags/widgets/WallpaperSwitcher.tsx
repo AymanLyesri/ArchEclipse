@@ -56,17 +56,12 @@ export default ({
 
   async function FetchWallpapers() {
     try {
-      execAsync(
+      // Added await so that the function actually waits for the bash script to complete.
+      const output = await execAsync(
         `bash ${GLib.get_home_dir()}/.config/ags/scripts/get-wallpapers.sh`,
-      )
-        .then((output) => {
-          const wallpapers = readJson(output);
-          setWallpapers(wallpapers);
-        })
-        .catch((err) => {
-          notify({ summary: "Error", body: String(err) });
-          print("Error fetching wallpapers: " + String(err));
-        });
+      );
+      const wallpapers = readJson(output);
+      setWallpapers(wallpapers);
     } catch (err) {
       notify({ summary: "Error", body: String(err) });
       print("Error fetching wallpapers: " + String(err));
@@ -360,68 +355,89 @@ export default ({
         label=""
         class="upload"
         tooltipMarkup={`Add a <b>New Custom Wallpaper</b>`}
-        onClicked={async (self) => {
+        onClicked={async () => {
           setProgressStatus("loading");
-          const dialog = new Gtk.FileDialog({
-            title: "Open Wallpaper",
-            modal: true,
-          });
-
-          // Image filter
-          const filter = new Gtk.FileFilter();
-          filter.set_name("Images");
-          filter.add_mime_type("image/png");
-          filter.add_mime_type("image/jpeg");
-          filter.add_mime_type("image/webp");
-          filter.add_mime_type("image/gif");
-          filter.add_mime_type("video/mp4");
-
-          dialog.set_default_filter(filter);
-
           try {
-            const root = self.get_root();
-            if (!(root instanceof Gtk.Window)) return;
-
-            const file: Gio.File = await new Promise((resolve, reject) => {
-              dialog.open(root, null, (dlg, res) => {
-                try {
-                  resolve(dlg!.open_finish(res));
-                } catch (e) {
-                  reject(e);
-                }
-              });
-            });
-
-            if (!file) return;
-
-            const filename = file.get_path();
-            if (!filename) return;
-
-            await execAsync(
-              `bash -c "cp '${filename}' $HOME/.config/wallpapers/custom"`,
+            const filename = await execAsync(
+              'zenity --file-selection --title="Select Wallpaper" --file-filter="Images (png, jpg, webp, gif, mp4) | *.png *.jpg *.jpeg *.webp *.gif *.mp4"',
             );
+
+            if (!filename || filename.trim() === "") {
+              setProgressStatus("idle");
+              return;
+            }
+
+            const cleanPath = filename.trim();
+
+            print(`Selected file path: ${cleanPath}`);
+
+            const homeDir = GLib.get_home_dir();
+            const targetDir = homeDir + "/.config/wallpapers/custom";
+            const basename = cleanPath.split("/").pop() || "wallpaper";
+            const targetPath = targetDir + "/" + basename;
+
+            print(`Target directory: ${targetDir}`);
+            print(`Target path: ${targetPath}`);
+
+            await execAsync(`mkdir -p ${JSON.stringify(targetDir)}`);
+
+            print(
+              `About to copy ${JSON.stringify(cleanPath)} to ${JSON.stringify(targetPath)}`,
+            );
+            await execAsync(
+              `cp -- ${JSON.stringify(cleanPath)} ${JSON.stringify(targetPath)}`,
+            );
+            print(`File copy completed`);
+
+            // --- ADDED BLOCK: Force preview generation ---
+            try {
+              const thumbDir = homeDir + "/.config/ags/cache/thumbnails/custom";
+              const thumbPath =
+                thumbDir + "/" + basename.replace(/\.[^/.]+$/, ".jpg");
+              await execAsync(`mkdir -p ${JSON.stringify(thumbDir)}`);
+
+              // If it's a video, extract the first frame using ffmpeg. If it's an image, extract it using magick.
+              if (cleanPath.toLowerCase().match(/\.(mp4|webm)$/)) {
+                await execAsync(
+                  `ffmpeg -i ${JSON.stringify(targetPath)} -vframes 1 -vf "scale=500:-1" -y ${JSON.stringify(thumbPath)}`,
+                );
+              } else {
+                await execAsync(
+                  `magick ${JSON.stringify(targetPath)} -resize "500x500^" -gravity center -extent 500x500 ${JSON.stringify(thumbPath)}`,
+                );
+              }
+              print(`Thumbnail generated successfully at: ${thumbPath}`);
+            } catch (thumbErr) {
+              print(
+                `Warning: Failed to generate thumbnail: ${String(thumbErr)}`,
+              );
+            }
+            // --- END OF ADDED BLOCK ---
 
             notify({
               summary: "Success",
               body: "Wallpaper added successfully!",
             });
+
             setProgressStatus("success");
 
-            // FetchWallpapers();
-          } catch (err) {
-            // Gtk.FileDialog throws on cancel — ignore silently
-            if (
-              err instanceof GLib.Error &&
-              err.matches(Gtk.dialog_error_quark(), Gtk.DialogError.CANCELLED)
-            )
-              return;
+            await FetchWallpapers();
 
-            setProgressStatus("error");
-
-            notify({
-              summary: "Error",
-              body: String(err),
+            timeout(2000, () => {
+              setProgressStatus("idle");
             });
+          } catch (err) {
+            setProgressStatus("idle");
+
+            const errorStr = String(err);
+            if (!errorStr.includes("exit status 1")) {
+              setProgressStatus("error");
+              print(`Error adding wallpaper: ${errorStr}`);
+              notify({
+                summary: "Error",
+                body: errorStr,
+              });
+            }
           }
         }}
       />

@@ -61,7 +61,8 @@ export const specialWorkspace = focusedClient((client) => {
   return client && client.workspace ? client.workspace.id < 0 : false;
 });
 
-export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));
+// export const globalMargin = emptyWorkspace((empty) => (empty ? 20 : 5));
+export const globalMargin = 5;
 export const globalTransition = 300;
 
 export const date_less = createPoll(

@@ -3,7 +3,6 @@ import { Astal } from "ags/gtk4";
 import { Gdk } from "ags/gtk4";
 import { Gtk } from "ags/gtk4";
 import {
-  globalMargin,
   globalSettings,
   globalTransition,
   setGlobalSetting,

@@ -22,7 +22,7 @@ import { timeout } from "ags/time";
 import { hyprThemeConfPath } from "../../../constants/path.constants";
 const hyprland = Hyprland.get_default();
 
-const hyprCustomDir: string = "$HOME/.config/hypr/configs/custom";
+const hyprCustomDir: string = "$HOME/.config/hypr/config/custom";
 
 const setThemeFlagInConf = (
   flag: "autocolor" | "autovariant",
@@ -524,10 +524,41 @@ interface NestedSettings {
   [key: string]: AGSSetting | NestedSettings;
 }
 
+const toLuaValue = (value: any): string => {
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) {
+    const items = value.map((item) => toLuaValue(item)).join(", ");
+    return `{ ${items} }`;
+  }
+  const escaped = String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `"${escaped}"`;
+};
+
+const toLuaKey = (key: string): string => {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ? key : `["${key}"]`;
+};
+
+const buildLuaConfig = (fullKey: string, value: any): string => {
+  const parts = fullKey.split(":");
+  let expr = toLuaValue(value);
+
+  for (let i = parts.length - 1; i >= 0; i -= 1) {
+    expr = `{ ${toLuaKey(parts[i])} = ${expr} }`;
+  }
+
+  return `hl.config(${expr})`;
+};
+
 const applyHyprlandSetting = (fullKey: string, value: any) => {
-  execAsync(
-    `bash -c "echo -e '${fullKey} = ${value}' > ${hyprCustomDir}/${fullKey}.conf && hyprctl keyword ${fullKey} ${value}"`,
-  ).catch((err) => notify(err));
+  const luaConfig = buildLuaConfig(fullKey, value);
+  const configPath = `${hyprCustomDir}/${fullKey}.lua`;
+
+  execAsync([
+    "bash",
+    "-c",
+    `cat > "${configPath}" <<'EOF'\n${luaConfig}\nEOF\nhyprctl keyword ${fullKey} ${value}`,
+  ]).catch((err) => notify(err));
 };
 
 const createHyprlandSettings = (

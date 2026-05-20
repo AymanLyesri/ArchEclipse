@@ -47,7 +47,12 @@ export default ({
               Astal.WindowAnchor.LEFT |
               Astal.WindowAnchor.RIGHT;
       })}
-      marginTop={globalMargin}
+      marginTop={globalSettings(({ bar }) => {
+        return bar.orientation.value ? globalMargin : 0;
+      })}
+      marginBottom={globalSettings(({ bar }) => {
+        return !bar.orientation.value ? globalMargin : 0;
+      })}
       marginRight={globalMargin}
       marginLeft={globalMargin}
       visible={createComputed(() => {

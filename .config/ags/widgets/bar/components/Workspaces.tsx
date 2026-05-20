@@ -128,7 +128,7 @@ function Workspaces() {
           return getWorkspaceIcon(client_class, extraWorkspaceIcon);
         })}
         onClicked={() =>
-          hyprland.message_async(`dispatch workspace ${id}`, () => {})
+          hyprland.dispatch(`hl.dsp.focus({workspace = ${id}})`, "")
         }
         $={(self) => {
           // --- POPOVER ---
@@ -208,9 +208,9 @@ function Workspaces() {
             print("DROP TARGET DROP");
             const pid = value.pid;
             print("dropped PID:", pid);
-            hyprland.message_async(
-              `dispatch movetoworkspacesilent ${id}, pid:${pid}`,
-              () => {},
+            hyprland.dispatch(
+              `hl.dsp.window.move({ workspace = ${id}, window = "pid:${pid}" })`,
+              ``,
             );
 
             return true;
@@ -355,9 +355,7 @@ const Special = () => (
       special ? "special active" : "special inactive",
     )}
     label={specialIcon}
-    onClicked={() =>
-      hyprland.message_async(`dispatch togglespecialworkspace`, (res) => {})
-    }
+    onClicked={() => hyprland.dispatch(`hl.dsp.workspace.toggle_special()`, "")}
     tooltipMarkup={`Special Workspace\n<b>SUPER + S</b>`}
     $={(self) => {
       /* ---------- Drop target ---------- */
@@ -371,9 +369,9 @@ const Special = () => (
         print("DROP TARGET DROP");
         const pid = value.pid;
         print("dropped PID:", pid);
-        hyprland.message_async(
-          `dispatch movetoworkspacesilent special, pid:${pid}`,
-          () => {},
+        hyprland.dispatch(
+          `hl.dsp.window.move({ workspace = "special", window = "pid:${pid}" })`,
+          ``,
         );
 
         return true;
