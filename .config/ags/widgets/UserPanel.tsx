@@ -36,63 +36,33 @@ const UserPanel = () => {
         class="profile-picture"
         tooltipMarkup={"Click to set up profile picture"}
         onClicked={async (self) => {
-          // setProgressStatus("loading");
-          const dialog = new Gtk.FileDialog({
-            title: "Open Image",
-            modal: true,
-          });
-
-          // Image filter
-          const filter = new Gtk.FileFilter();
-          filter.set_name("Images");
-          filter.add_mime_type("image/png");
-          filter.add_mime_type("image/jpeg");
-          filter.add_mime_type("image/webp");
-
-          dialog.set_default_filter(filter);
-
           try {
-            const root = self.get_root();
-            if (!(root instanceof Gtk.Window)) return;
+            const filename = await execAsync(
+              'zenity --file-selection --title="Select Profile Picture" --file-filter="Images (png, jpg, webp) | *.png *.jpg *.jpeg *.webp"',
+            );
 
-            const file: Gio.File = await new Promise((resolve, reject) => {
-              dialog.open(root, null, (dlg, res) => {
-                try {
-                  resolve(dlg!.open_finish(res));
-                } catch (e) {
-                  reject(e);
-                }
-              });
-            });
+            if (!filename || filename.trim() === "") return;
 
-            if (!file) return;
+            const cleanPath = filename.trim();
 
-            const filename = file.get_path();
-            if (!filename) return;
-
-            await execAsync(`bash -c "cp '${filename}' $HOME/.face.icon"`);
+            await execAsync(
+              `cp -- ${JSON.stringify(cleanPath)} ${JSON.stringify(`${GLib.get_home_dir()}/.face.icon`)}`,
+            );
 
             notify({
               summary: "Success",
               body: "User picture updated!",
             });
-            // refresh picture
-            const picture = (self.child as any).getPicture() as Gtk.Picture;
-            picture.set_file(Gio.File.new_for_path(filename));
-            // setProgressStatus("success");
-          } catch (err) {
-            // Gtk.FileDialog throws on cancel — ignore silently
-            if (
-              err instanceof GLib.Error &&
-              err.matches(Gtk.dialog_error_quark(), Gtk.DialogError.CANCELLED)
-            )
-              return;
 
-            // setProgressStatus("error");
+            const picture = (self.child as any).getPicture() as Gtk.Picture;
+            picture.set_file(Gio.File.new_for_path(cleanPath));
+          } catch (err) {
+            const errorStr = String(err);
+            if (errorStr.includes("exit status 1")) return;
 
             notify({
               summary: "Error",
-              body: String(err),
+              body: errorStr,
             });
           }
         }}
@@ -173,7 +143,8 @@ const UserPanel = () => {
       class="logout system-action"
       label="󰍃"
       onClicked={() => {
-        hyprland.message_async("dispatch exit", () => {});
+        // hyprland.message_async("dispatch exit", () => {});
+        hyprland.dispatch("hl.dsp.exit()", "");
       }}
       tooltipText={"logout from Hyprland"}
       heightRequest={350}

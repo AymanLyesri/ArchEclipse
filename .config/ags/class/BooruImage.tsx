@@ -1402,49 +1402,26 @@ export class BooruImage {
             label=""
             class="upload"
             onClicked={async (self) => {
-              const dialog = new Gtk.FileDialog({
-                title: "Open Image",
-                modal: true,
-              });
-
-              const filter = new Gtk.FileFilter();
-              filter.set_name("Images");
-              filter.add_mime_type("image/png");
-              filter.add_mime_type("image/jpeg");
-              filter.add_mime_type("image/webp");
-              filter.add_mime_type("image/gif");
-              dialog.set_default_filter(filter);
-
               try {
-                const root = self.get_root();
-                if (!(root instanceof Gtk.Window)) return;
+                const filename = await execAsync(
+                  'zenity --file-selection --title="Select Image" --file-filter="Images (png, jpg, webp, gif) | *.png *.jpg *.jpeg *.webp *.gif"',
+                );
 
-                const file: Gio.File = await new Promise((resolve, reject) => {
-                  dialog.open(root, null, (dlg, res) => {
-                    try {
-                      resolve(dlg!.open_finish(res));
-                    } catch (e) {
-                      reject(e);
-                    }
-                  });
-                });
+                if (!filename || filename.trim() === "") return;
 
-                if (!file) return;
-
-                const filename = file.get_path();
-                if (!filename) return;
+                const cleanPath = filename.trim();
 
                 const [height, width] = exec(
-                  `identify -format "%h %w" "${filename}"`,
+                  `identify -format "%h %w" ${JSON.stringify(cleanPath)}`,
                 ).split(" ");
 
                 await execAsync(`mkdir -p "${booruPath}/custom/images"`).catch(
                   (err) => notify({ summary: "Error", body: String(err) }),
                 );
                 await execAsync(
-                  `cp "${filename}" "${booruPath}/custom/images/-1.${filename
-                    .split(".")
-                    .pop()!}"`,
+                  `cp -- ${JSON.stringify(cleanPath)} ${JSON.stringify(
+                    `${booruPath}/custom/images/-1.${cleanPath.split(".").pop()!}`,
+                  )}`,
                 ).catch((err) =>
                   notify({ summary: "Error", body: String(err) }),
                 );
@@ -1454,22 +1431,16 @@ export class BooruImage {
                   height: Number(height) || 0,
                   width: Number(width) || 0,
                   api: { name: "Custom", value: "custom" } as Api,
-                  extension: filename.split(".").pop()!,
+                  extension: cleanPath.split(".").pop()!,
                   tags: ["custom"],
                 });
 
                 setGlobalSetting("waifuWidget.current", customImage.toJSON());
                 notify({ summary: "Waifu", body: "Custom image set" });
               } catch (err) {
-                if (
-                  err instanceof GLib.Error &&
-                  err.matches(
-                    Gtk.dialog_error_quark(),
-                    Gtk.DialogError.CANCELLED,
-                  )
-                )
-                  return;
-                notify({ summary: "Error", body: String(err) });
+                const errorStr = String(err);
+                if (errorStr.includes("exit status 1")) return;
+                notify({ summary: "Error", body: errorStr });
               }
             }}
           />

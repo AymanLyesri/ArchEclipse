@@ -59,7 +59,7 @@ function addUserToInputGroup() {
               body: "Will be Logging out to apply changes. in 5 seconds...",
             });
             timeout(5000, () => {
-              hyprland.message_async("dispatch exit", () => {});
+              hyprland.dispatch("hl.dsp.exit()", "");
             });
           })
           .catch((err) => notify({ summary: "Error", body: err.toString() }));
@@ -558,7 +558,11 @@ const applyHyprlandSetting = (fullKey: string, value: any) => {
     "bash",
     "-c",
     `cat > "${configPath}" <<'EOF'\n${luaConfig}\nEOF\nhyprctl keyword ${fullKey} ${value}`,
-  ]).catch((err) => notify(err));
+  ])
+    .then(() => {
+      hyprland.dispatch("hl.dsp.exec_cmd('hyprctl reload')", "");
+    })
+    .catch((err) => notify(err));
 };
 
 const createHyprlandSettings = (

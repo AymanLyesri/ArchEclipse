@@ -15,10 +15,11 @@ export const customScripts = (): CustomScript[] => [
     description: "Restart the AGS bar",
     keybind: ["SUPER", "B"],
     script: () => {
-      // execAsync(`bash -c "$HOME/.config/hypr/scripts/bar.sh"`).catch((err) =>
-      //   notify({ summary: "AGS Bar", body: err }),
-      // );
-      hyprland.dispatch("exec", `bash -c "$HOME/.config/hypr/scripts/bar.sh"`);
+      // hyprland.dispatch("exec", `bash -c "$HOME/.config/hypr/scripts/bar.sh"`);
+      hyprland.dispatch(
+        "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/bar.sh\"')",
+        "",
+      );
     },
   },
   {
@@ -27,12 +28,8 @@ export const customScripts = (): CustomScript[] => [
     description: "Color Picker for Hyprland",
     app: "hyprpicker",
     script: () => {
-      // execAsync("hyprpicker")
-      //   .then((res) => {
-      //     execAsync(`wl-copy "${res}"`);
-      //   })
-      //   .catch((err) => notify({ summary: "HyprPicker", body: err }));
-      hyprland.dispatch("exec", "hyprpicker");
+      // hyprland.dispatch("exec", "hyprpicker");
+      hyprland.dispatch("hl.dsp.exec_cmd('hyprpicker')", "");
     },
   },
   {
@@ -42,7 +39,8 @@ export const customScripts = (): CustomScript[] => [
     app: "hyprmon",
     package: "hyprmon-bin",
     script: () => {
-      hyprland.dispatch("exec", "kitty hyprmon");
+      // hyprland.dispatch("exec", "kitty hyprmon");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty hyprmon')", "");
     },
   },
   {
@@ -50,7 +48,7 @@ export const customScripts = (): CustomScript[] => [
     icon: "󰏗",
     description: "Update Packages (pacman)",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e sudo pacman -Syu");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty -e sudo pacman -Syu')", "");
     },
   },
   // Clipboard Utilities
@@ -61,7 +59,7 @@ export const customScripts = (): CustomScript[] => [
     app: "wl-copy",
     package: "wl-clipboard",
     script: () => {
-      hyprland.dispatch("exec", "wl-copy --clear");
+      hyprland.dispatch("hl.dsp.exec_cmd('wl-copy --clear')", "");
     },
   },
   {
@@ -73,8 +71,8 @@ export const customScripts = (): CustomScript[] => [
     package: "grimblast-git",
     script: () => {
       hyprland.dispatch(
-        "exec",
-        `bash -c "$HOME/.config/hypr/scripts/screenshot.sh --now"`,
+        "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/screenshot.sh --now\"')",
+        "",
       );
     },
   },
@@ -87,8 +85,8 @@ export const customScripts = (): CustomScript[] => [
     package: "grimblast-git",
     script: () => {
       hyprland.dispatch(
-        "exec",
-        `bash -c "$HOME/.config/hypr/scripts/screenshot.sh --area"`,
+        "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/screenshot.sh --area\"')",
+        "",
       );
     },
   },
@@ -101,8 +99,8 @@ export const customScripts = (): CustomScript[] => [
     app: "wf-recorder",
     script: () => {
       hyprland.dispatch(
-        "exec",
-        `bash -c "$HOME/.config/hypr/scripts/screenrecord.sh --now"`,
+        "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/screenrecord.sh --now\"')",
+        "",
       );
     },
   },
@@ -114,18 +112,18 @@ export const customScripts = (): CustomScript[] => [
     app: "wf-recorder",
     script: () => {
       hyprland.dispatch(
-        "exec",
-        `bash -c "$HOME/.config/hypr/scripts/screenrecord.sh --area"`,
+        "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/screenrecord.sh --area\"')",
+        "",
       );
     },
   },
   // System Utilities
   {
-    name: "Restart Hyprland",
+    name: "Refresh Hyprland",
     icon: "󰑓",
-    description: "Restart Hyprland session",
+    description: "Refresh Hyprland (reload config)",
     script: () => {
-      hyprland.dispatch("dispatch", "exit");
+      hyprland.dispatch("hl.dsp.exec_cmd('hyprctl reload')", "");
     },
   },
   {
@@ -134,7 +132,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Open system monitor",
     app: "btop",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e btop");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty -e btop')", "");
     },
   },
 
@@ -145,7 +143,8 @@ export const customScripts = (): CustomScript[] => [
     description: "Adjust volume",
     app: "pavucontrol",
     script: () => {
-      hyprland.dispatch("exec", "pavucontrol");
+      // hyprland.dispatch("exec", "pavucontrol");
+      hyprland.dispatch("hl.dsp.exec_cmd('pavucontrol')", "");
     },
   },
 
@@ -155,7 +154,7 @@ export const customScripts = (): CustomScript[] => [
     description: `Open ${globalSettings.peek().fileManager}`,
     script: () => {
       const fileManager = globalSettings.peek().fileManager;
-      hyprland.dispatch("exec", fileManager);
+      hyprland.dispatch("hl.dsp.exec_cmd('" + fileManager + "')", "");
     },
   },
   // Development Tools
@@ -165,7 +164,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Git Manager",
     app: "lazygit",
     script: () => {
-      hyprland.dispatch("exec", `bash -c "lazygit"`);
+      hyprland.dispatch("hl.dsp.exec_cmd('bash -c \"lazygit\"')", "");
     },
   },
   {
@@ -175,7 +174,7 @@ export const customScripts = (): CustomScript[] => [
     app: "code",
     package: "visual-studio-code-bin",
     script: () => {
-      hyprland.dispatch("exec", "code");
+      hyprland.dispatch("hl.dsp.exec_cmd('code')", "");
     },
   },
   // spotube
@@ -186,7 +185,7 @@ export const customScripts = (): CustomScript[] => [
     app: "spotube",
     package: "spotube-bin",
     script: () => {
-      hyprland.dispatch("exec", "spotube");
+      hyprland.dispatch("hl.dsp.exec_cmd('spotube')", "");
     },
   },
   // steam
@@ -196,7 +195,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Game Launcher",
     app: "steam",
     script: () => {
-      hyprland.dispatch("exec", "steam");
+      hyprland.dispatch("hl.dsp.exec_cmd('steam')", "");
     },
   },
   // pipes
@@ -206,7 +205,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Pipes Animation",
     app: "pipes.sh",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e pipes.sh");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty -e pipes.sh')", "");
     },
   },
   // cava
@@ -216,7 +215,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Audio Visualizer",
     app: "cava",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e cava");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty -e cava')", "");
     },
   },
   // cmatrix
@@ -226,7 +225,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Matrix Digital Rain",
     app: "cmatrix",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e cmatrix");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty -e cmatrix')", "");
     },
   },
   // asciiquarium
@@ -236,7 +235,7 @@ export const customScripts = (): CustomScript[] => [
     description: "Aquarium Animation",
     app: "asciiquarium",
     script: () => {
-      hyprland.dispatch("exec", "kitty -e asciiquarium");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty -e asciiquarium')", "");
     },
   },
   // reset ags settings
@@ -270,9 +269,13 @@ export const customScripts = (): CustomScript[] => [
           execAsync(
             `rm -rf ${GLib.get_home_dir()}/.config/ags/cache/settings/settings.json`,
           ).then(() => {
+            // hyprland.dispatch(
+            //   "exec",
+            //   `bash -c "$HOME/.config/hypr/scripts/bar.sh"`,
+            // );
             hyprland.dispatch(
-              "exec",
-              `bash -c "$HOME/.config/hypr/scripts/bar.sh"`,
+              "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/bar.sh\"')",
+              "",
             );
           });
           buttonBox.visible = false;
@@ -304,8 +307,8 @@ export const customScripts = (): CustomScript[] => [
     script: () => {
       // dispatch to kitty with -e to run pacgraph -c and avoid closing immediately after execution
       hyprland.dispatch(
-        "exec",
-        `kitty -e bash -c "pacgraph -c; read -n 1 -s -r -p 'Press any key to continue...'"`,
+        "hl.dsp.exec_cmd('kitty -e bash -c \"pacgraph -c; read -n 1 -s -r -p \\'Press any key to continue...\\'\"')",
+        "",
       );
     },
   },
