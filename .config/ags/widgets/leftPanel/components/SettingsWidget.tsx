@@ -174,6 +174,19 @@ const applyHyprlandSettings = (
   });
 };
 
+const applyButton = () => {
+  return (
+    <button
+      class="apply-button"
+      label="Apply Hyprland Settings"
+      halign={Gtk.Align.END}
+      onClicked={() => {
+        hyprland.dispatch("hl.dsp.exec_cmd('hyprctl reload')", "");
+      }}
+    />
+  );
+};
+
 const resetButton = () => {
   const resetSettings = () => {
     //global settings
@@ -558,11 +571,7 @@ const applyHyprlandSetting = (fullKey: string, value: any) => {
     "bash",
     "-c",
     `cat > "${configPath}" <<'EOF'\n${luaConfig}\nEOF\nhyprctl keyword ${fullKey} ${value}`,
-  ])
-    .then(() => {
-      hyprland.dispatch("hl.dsp.exec_cmd('hyprctl reload')", "");
-    })
-    .catch((err) => notify(err));
+  ]).catch((err) => notify(err));
 };
 
 const createHyprlandSettings = (
@@ -607,154 +616,162 @@ export default () => {
   );
 
   return (
-    <scrolledwindow
-      vexpand
-      $={() =>
-        // Initialize detection
-        detectFileManagers()
-      }
-    >
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={16} class="settings">
-        <box
-          class={"category"}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}
-        >
-          <label label="AGS -- Global" halign={Gtk.Align.START} />
+    <box class="settings" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+      <scrolledwindow
+        vexpand
+        $={() =>
+          // Initialize detection
+          detectFileManagers()
+        }
+      >
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={16}>
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={16}
+          >
+            <label label="AGS -- Global" halign={Gtk.Align.START} />
 
-          <BarLayoutSetting />
-          <Setting
-            keyChanged="bar.orientation"
-            setting={globalSettings.peek().bar.orientation}
-          />
-          <Setting
-            keyChanged="alwaysOnWidget.visibility"
-            setting={globalSettings.peek().alwaysOnWidget.visibility}
-          />
-          <Setting
-            keyChanged="ui.opacity"
-            setting={globalSettings.peek().ui.opacity}
-            callBack={refreshCss}
-          />
-          <Setting
-            keyChanged="ui.scale"
-            setting={globalSettings.peek().ui.scale}
-            callBack={refreshCss}
-          />
-          <Setting
-            keyChanged="ui.fontSize"
-            setting={globalSettings.peek().ui.fontSize}
-            callBack={refreshCss}
-          />
-        </box>
-        <box
-          class={"category"}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}
-        >
-          <label label={"AGS -- Api Keys"} halign={Gtk.Align.START} />
-          <box class={"sub-category"}>
+            <BarLayoutSetting />
             <Setting
-              keyChanged="apiKeys.openrouter.key"
-              setting={globalSettings.peek().apiKeys.openrouter.key}
+              keyChanged="bar.orientation"
+              setting={globalSettings.peek().bar.orientation}
+            />
+            <Setting
+              keyChanged="alwaysOnWidget.visibility"
+              setting={globalSettings.peek().alwaysOnWidget.visibility}
+            />
+            <Setting
+              keyChanged="ui.opacity"
+              setting={globalSettings.peek().ui.opacity}
+              callBack={refreshCss}
+            />
+            <Setting
+              keyChanged="ui.scale"
+              setting={globalSettings.peek().ui.scale}
+              callBack={refreshCss}
+            />
+            <Setting
+              keyChanged="ui.fontSize"
+              setting={globalSettings.peek().ui.fontSize}
+              callBack={refreshCss}
             />
           </box>
-          <box class={"sub-category"} spacing={5}>
-            <Setting
-              keyChanged="apiKeys.danbooru.user"
-              setting={globalSettings.peek().apiKeys.danbooru.user}
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={16}
+          >
+            <label label={"AGS -- Api Keys"} halign={Gtk.Align.START} />
+            <box class={"sub-category"}>
+              <Setting
+                keyChanged="apiKeys.openrouter.key"
+                setting={globalSettings.peek().apiKeys.openrouter.key}
+              />
+            </box>
+            <box class={"sub-category"} spacing={5}>
+              <Setting
+                keyChanged="apiKeys.danbooru.user"
+                setting={globalSettings.peek().apiKeys.danbooru.user}
+              />
+              <Setting
+                keyChanged="apiKeys.danbooru.key"
+                setting={globalSettings.peek().apiKeys.danbooru.key}
+              />
+            </box>
+            <box class={"sub-category"} spacing={5}>
+              <Setting
+                keyChanged="apiKeys.gelbooru.user"
+                setting={globalSettings.peek().apiKeys.gelbooru.user}
+              />
+              <Setting
+                keyChanged="apiKeys.gelbooru.key"
+                setting={globalSettings.peek().apiKeys.gelbooru.key}
+              />
+            </box>
+            <box class={"sub-category"} spacing={5}>
+              <Setting
+                keyChanged="apiKeys.safebooru.user"
+                setting={globalSettings.peek().apiKeys.safebooru.user}
+              />
+              <Setting
+                keyChanged="apiKeys.safebooru.key"
+                setting={globalSettings.peek().apiKeys.safebooru.key}
+              />
+            </box>
+          </box>
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={16}
+          >
+            <label
+              label="AGS -- KeyStrokeVisualizer"
+              halign={Gtk.Align.START}
             />
             <Setting
-              keyChanged="apiKeys.danbooru.key"
-              setting={globalSettings.peek().apiKeys.danbooru.key}
+              keyChanged="keyStrokeVisualizer.visibility"
+              setting={globalSettings.peek().keyStrokeVisualizer.visibility}
+              callBack={(visibility) => {
+                if (visibility) addUserToInputGroup();
+              }}
+            />
+            <Setting
+              keyChanged="keyStrokeVisualizer.anchor"
+              setting={globalSettings.peek().keyStrokeVisualizer.anchor}
+              choices={[
+                {
+                  label: "Bottom Left",
+                  value: ["bottom", "left"],
+                },
+                { label: "Bottom", value: ["bottom"] },
+                {
+                  label: "Bottom Right",
+                  value: ["bottom", "right"],
+                },
+              ]}
             />
           </box>
-          <box class={"sub-category"} spacing={5}>
-            <Setting
-              keyChanged="apiKeys.gelbooru.user"
-              setting={globalSettings.peek().apiKeys.gelbooru.user}
-            />
-            <Setting
-              keyChanged="apiKeys.gelbooru.key"
-              setting={globalSettings.peek().apiKeys.gelbooru.key}
-            />
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={16}
+          >
+            <label label="Hyprland" halign={Gtk.Align.START} />
+            {hyprlandSettings}
           </box>
-          <box class={"sub-category"} spacing={5}>
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={16}
+          >
+            <label label="Custom" halign={Gtk.Align.START} />
             <Setting
-              keyChanged="apiKeys.safebooru.user"
-              setting={globalSettings.peek().apiKeys.safebooru.user}
+              keyChanged="dynamicThemeColors"
+              setting={globalSettings.peek().dynamicThemeColors}
+              callBack={(enabled) =>
+                setThemeFlagInConf("autocolor", Boolean(enabled))
+              }
             />
             <Setting
-              keyChanged="apiKeys.safebooru.key"
-              setting={globalSettings.peek().apiKeys.safebooru.key}
+              keyChanged="dynamicThemeVariants"
+              setting={globalSettings.peek().dynamicThemeVariants}
+              callBack={(enabled) =>
+                setThemeFlagInConf("autovariant", Boolean(enabled))
+              }
             />
-          </box>
-        </box>
-        <box
-          class={"category"}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}
-        >
-          <label label="AGS -- KeyStrokeVisualizer" halign={Gtk.Align.START} />
-          <Setting
-            keyChanged="keyStrokeVisualizer.visibility"
-            setting={globalSettings.peek().keyStrokeVisualizer.visibility}
-            callBack={(visibility) => {
-              if (visibility) addUserToInputGroup();
-            }}
-          />
-          <Setting
-            keyChanged="keyStrokeVisualizer.anchor"
-            setting={globalSettings.peek().keyStrokeVisualizer.anchor}
-            choices={[
-              {
-                label: "Bottom Left",
-                value: ["bottom", "left"],
-              },
-              { label: "Bottom", value: ["bottom"] },
-              {
-                label: "Bottom Right",
-                value: ["bottom", "right"],
-              },
-            ]}
-          />
-        </box>
-        <box
-          class={"category"}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}
-        >
-          <label label="Hyprland" halign={Gtk.Align.START} />
-          {hyprlandSettings}
-        </box>
-        <box
-          class={"category"}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={16}
-        >
-          <label label="Custom" halign={Gtk.Align.START} />
-          <Setting
-            keyChanged="dynamicThemeColors"
-            setting={globalSettings.peek().dynamicThemeColors}
-            callBack={(enabled) =>
-              setThemeFlagInConf("autocolor", Boolean(enabled))
-            }
-          />
-          <Setting
-            keyChanged="dynamicThemeVariants"
-            setting={globalSettings.peek().dynamicThemeVariants}
-            callBack={(enabled) =>
-              setThemeFlagInConf("autovariant", Boolean(enabled))
-            }
-          />
-          {/* <Setting
+            {/* <Setting
             keyChanged="autoWorkspaceSwitching"
             setting={globalSettings.peek().autoWorkspaceSwitching}
           /> */}
-          <FileManagerSelector />
+            <FileManagerSelector />
+          </box>
         </box>
+      </scrolledwindow>
+      <box spacing={5} halign={Gtk.Align.END}>
+        {applyButton()}
         {resetButton()}
       </box>
-    </scrolledwindow>
+    </box>
   );
 };

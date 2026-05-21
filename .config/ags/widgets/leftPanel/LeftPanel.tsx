@@ -67,6 +67,9 @@ function Panel() {
     </box>
   );
 
+  const widgetCache = new Map<string, Gtk.Widget>();
+  const addedWidgets = new Set<string>();
+
   const panelStack = new Gtk.Stack({
     transition_type: Gtk.StackTransitionType.SLIDE_LEFT_RIGHT,
     transition_duration: globalTransition,
@@ -74,24 +77,33 @@ function Panel() {
     vexpand: true,
   });
 
+  // PRECREATE INSIDE JSX CONTEXT
   leftPanelWidgetSelectors.forEach((selector) => {
-    let content: JSX.Element = (<box />) as JSX.Element;
-    if (selector.widget) {
-      try {
-        content = selector.widget({}) as JSX.Element;
-      } catch (error) {
-        console.error("Error rendering widget:", error);
-      }
+    try {
+      const widget = (
+        <box hexpand vexpand>
+          {selector.widget?.({}) as JSX.Element}
+        </box>
+      ) as Gtk.Widget;
+
+      widgetCache.set(selector.name, widget);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  const showWidget = (name: string) => {
+    const widget = widgetCache.get(name);
+
+    if (!widget) return;
+
+    if (!addedWidgets.has(name)) {
+      panelStack.add_child(widget);
+      addedWidgets.add(name);
     }
 
-    const wrapper = (
-      <box name={selector.name} hexpand vexpand>
-        {content}
-      </box>
-    ) as Gtk.Widget;
-
-    panelStack.add_named(wrapper, selector.name);
-  });
+    panelStack.set_visible_child(widget);
+  };
 
   return (
     <box>
@@ -104,9 +116,7 @@ function Panel() {
         widthRequest={globalSettings(({ leftPanel }) => leftPanel.width)}
         $={(self) => {
           const updateVisibleChild = () => {
-            panelStack.set_visible_child_name(
-              globalSettings.peek().leftPanel.widget.name,
-            );
+            showWidget(globalSettings.peek().leftPanel.widget.name);
           };
 
           updateVisibleChild();
