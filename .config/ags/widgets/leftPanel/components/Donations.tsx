@@ -57,7 +57,10 @@ const GeneralInfo = () => {
 
   const updateVersion = async () => {
     try {
-      hyprland.dispatch("exec", "kitty zsh -ic 'clear; archeclipse'");
+      hyprland.dispatch(
+        "hl.dsp.exec_cmd('kitty zsh -ic \"clear; archeclipse\"')",
+        "",
+      );
     } catch (e) {
       console.error("Failed to launch update command:", e);
       const errorMessage = (e instanceof Error ? e.message : String(e))
@@ -337,8 +340,8 @@ export default () => {
     execAsync(`qrencode -o "${qrPath}" "${address || url}"`)
       .then(() => {
         hyprland.dispatch(
-          `exec`,
-          `bash -c "swayimg '${qrPath}' 2>/dev/null || eog '${qrPath}' 2>/dev/null || gwenview '${qrPath}' 2>/dev/null || xdg-open '${qrPath}'"`,
+          `hl.dsp.exec_cmd('bash -c "swayimg \\'${qrPath}\\' 2>/dev/null || eog \\'${qrPath}\\' 2>/dev/null || gwenview \\'${qrPath}\\' 2>/dev/null || xdg-open \\'${qrPath}\\'"')`,
+          "",
         );
 
         notify({
