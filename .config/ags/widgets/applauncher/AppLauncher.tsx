@@ -448,9 +448,6 @@ export default ({
             if (entryWidget) {
               entryWidget.grab_focus();
             }
-            self.add_css_class("app-launcher-visible");
-          } else {
-            self.remove_css_class("app-launcher-visible");
           }
         });
       }}
