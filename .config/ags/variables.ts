@@ -14,6 +14,8 @@ import { createSubprocess, exec, execAsync } from "ags/process";
 import { notify } from "./utils/notification";
 import { SystemResourcesInterface } from "./interfaces/systemResources.interface";
 import { weatherInterface } from "./interfaces/weather.interface";
+import Gio from "gi://Gio";
+import { monitorFile } from "ags/file";
 
 export const NOTIFICATION_DELAY = phi * 3000;
 
@@ -211,3 +213,20 @@ export const setWeatherCity = async (cityName: string) => {
 
 // IMPORTANT: Export Accessor directly
 export { weatherData };
+
+export const [profilePicturePath, setProfilePicturePath] = createState<string>(
+  Gio.File.new_for_path(`${GLib.get_home_dir()}/.face.icon`).query_exists(null)
+    ? `${GLib.get_home_dir()}/.face.icon`
+    : `${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`,
+);
+
+monitorFile(`${GLib.get_home_dir()}/.face.icon`, () => {
+  setProfilePicturePath("");
+  setProfilePicturePath(
+    Gio.File.new_for_path(`${GLib.get_home_dir()}/.face.icon`).query_exists(
+      null,
+    )
+      ? `${GLib.get_home_dir()}/.face.icon`
+      : `${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`,
+  );
+});

@@ -1,5 +1,5 @@
 import { Astal } from "ags/gtk4";
-import { Waifu } from "../class/BooruImage";
+import { Waifu } from "../class/BooruImage.class";
 import { Api } from "./api.interface";
 import { WidgetSelector } from "./widgetSelector.interface";
 

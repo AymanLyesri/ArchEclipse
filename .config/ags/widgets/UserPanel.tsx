@@ -7,7 +7,7 @@ import { Gdk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
 
 import Hyprland from "gi://AstalHyprland";
-import { date_less, date_more } from "../variables";
+import { date_less, date_more, profilePicturePath } from "../variables";
 import { hideWindow } from "../utils/window";
 import Picture from "./Picture";
 import Gio from "gi://Gio";
@@ -17,12 +17,6 @@ import { getMonitorName } from "../utils/monitor";
 import MediaWidget from "./MediaWidget";
 import Pango from "gi://Pango";
 const hyprland = Hyprland.get_default();
-
-// $HOME/.face.icon, if the file doesn't exist, it will return the default user picture path "./assets/userpanel/archeclipse_default_pfp.jpg"
-const homePfpPath = GLib.getenv("HOME") + "/.face.icon";
-const pfpPath = Gio.File.new_for_path(homePfpPath).query_exists(null)
-  ? homePfpPath
-  : `${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`;
 
 const username = GLib.get_user_name();
 const desktopEnv = GLib.getenv("XDG_CURRENT_DESKTOP") || "Unknown DE";
@@ -67,7 +61,7 @@ const UserPanel = () => {
           }
         }}
       >
-        <Picture file={pfpPath} />
+        <Picture file={profilePicturePath} />
       </button>
     );
     const UserName = (

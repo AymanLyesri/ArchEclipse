@@ -19,6 +19,7 @@ import { leftPanelWidgetSelectors } from "./constants/widget.constants";
 import { setGlobalSetting } from "./variables";
 import { Gtk } from "ags/gtk4";
 import AlwaysOnWidget from "./widgets/AlwaysOnWidget";
+import { ensureAuthServerRunning } from "./utils/auth-session";
 const Notification = Notifd.get_default();
 
 const perMonitorDisplay = () => {
@@ -63,6 +64,7 @@ const perMonitorDisplay = () => {
 app.start({
   css: getCssPath(),
   main: () => {
+    ensureAuthServerRunning();
     logTime("Compiling Binaries", () => compileBinaries());
     logTime("\tInitializing Per-Monitor Display", () => perMonitorDisplay());
   },

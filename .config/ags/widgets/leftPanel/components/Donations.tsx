@@ -1,5 +1,5 @@
 import { Gtk } from "ags/gtk4";
-import { createState, For, With } from "ags";
+import { createState, For, With, onCleanup } from "ags";
 import { execAsync, exec } from "ags/process";
 import { notify } from "../../../utils/notification";
 import GLib from "gi://GLib";
@@ -7,6 +7,7 @@ import GLib from "gi://GLib";
 import Hyprland from "gi://AstalHyprland";
 import Picture from "../../Picture";
 import { globalSettings } from "../../../variables";
+import { UserProfile } from "./UserProfile";
 const hyprland = Hyprland.get_default();
 
 interface DonationOption {
@@ -103,7 +104,7 @@ const GeneralInfo = () => {
 
   return (
     <box class={"info"} orientation={Gtk.Orientation.VERTICAL} spacing={10}>
-      <box spacing={10} halign={Gtk.Align.CENTER}>
+      <box halign={Gtk.Align.CENTER}>
         <Picture
           file={`${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`}
           width={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
@@ -243,14 +244,6 @@ const GeneralInfo = () => {
 export default () => {
   const [donationOptions] = createState<DonationOption[]>([
     {
-      name: "Buy Me a Coffee",
-      icon: "",
-      class: "buymeacoffee",
-      type: "third-party",
-      url: "https://www.buymeacoffee.com/aymanlyesri", // Replace with actual Buy Me a Coffee link
-      color: "#FFDD00",
-    },
-    {
       name: "Ko-fi",
       icon: "",
       class: "kofi",
@@ -308,11 +301,11 @@ export default () => {
   };
 
   // Open URL in default browser
-  const openUrl = (url: string) => {
-    execAsync(`xdg-open "${url}"`)
+  const openUrl = (option: DonationOption) => {
+    execAsync(`xdg-open "${option.url}"`)
       .then(() => {
         notify({
-          summary: "Opening PayPal",
+          summary: `Opening ${option.name}`,
           body: "Opening donation page in browser...",
         });
       })
@@ -365,7 +358,7 @@ export default () => {
         hexpand
         spacing={15}
       >
-        {/* Version Info */}
+        {UserProfile()}
         {GeneralInfo()}
 
         {/* Header */}
@@ -387,77 +380,41 @@ export default () => {
           />
         </box>
 
-        {/* Donation Options */}
-        <For each={donationOptions}>
-          {(option) => (
-            <box
-              class="donation-option"
-              orientation={Gtk.Orientation.VERTICAL}
-              spacing={8}
-            >
-              {/* Option Header */}
-              <box spacing={10} halign={Gtk.Align.START}>
-                <label
-                  class="donation-icon"
-                  label={option.icon}
-                  halign={Gtk.Align.START}
-                />
-                <label
-                  class="donation-name"
-                  label={option.name}
-                  halign={Gtk.Align.START}
-                  hexpand
-                />
-                <label
-                  class="donation-description"
-                  label={option.description}
-                  halign={Gtk.Align.START}
-                  hexpand
-                />
-              </box>
+        {/* Render donation options two-by-two */}
+        {(() => {
+          const arr = donationOptions();
+          const pairs: DonationOption[][] = [];
+          for (let i = 0; i < arr.length; i += 2) {
+            pairs.push(arr.slice(i, i + 2));
+          }
 
-              {/* Action Buttons */}
-              {option.type === "crypto" && option.address && (
-                <box spacing={5}>
-                  <button
-                    class="donation-button primary"
-                    hexpand
-                    onClicked={() =>
-                      copyToClipboard(option.address!, option.name)
-                    }
-                    tooltipText={option.address}
-                  >
-                    <box spacing={5}>
-                      <label label="" />
-                      <label label="Copy Address" />
-                    </box>
-                  </button>
-                  <button
-                    class="donation-button secondary"
-                    onClicked={() =>
-                      showQRCode({
-                        address: option.address!,
-                        name: option.name,
-                      })
-                    }
-                    tooltipText="Show QR Code"
-                  >
-                    <label label="" />
-                  </button>
-                </box>
-              )}
-
-              {option.type === "third-party" && option.url && (
-                <box spacing={5}>
+          return pairs.map((pair) => (
+            <box class="donation-row" spacing={10} hexpand>
+              {pair.map((option) => (
+                <box class="donation-option" hexpand spacing={5}>
                   <button
                     class={`donation-button ${option.class || "third-party"}`}
+                    onClicked={() => {
+                      if (option.type === "crypto" && option.address) {
+                        copyToClipboard(option.address, option.name);
+                      } else if (option.url) {
+                        openUrl(option);
+                      }
+                    }}
+                    tooltipMarkup={
+                      option.type === "crypto"
+                        ? `<b>Copy ${option.name} address</b>\n${option.address}`
+                        : `<b>Donate via ${option.name}</b>\n${option.url}`
+                    }
                     hexpand
-                    onClicked={() => openUrl(option.url!)}
-                    tooltipText={option.url}
                   >
                     <box spacing={5}>
-                      <label label="" />
-                      <label label={`Donate via ${option.name}`} />
+                      <label
+                        class="donation-icon"
+                        label={option.icon}
+                        halign={Gtk.Align.START}
+                      />
+                      <label label={option.name} />
                     </box>
                   </button>
                   <button
@@ -473,10 +430,10 @@ export default () => {
                     <label label="" />
                   </button>
                 </box>
-              )}
+              ))}
             </box>
-          )}
-        </For>
+          ));
+        })()}
 
         {/* Footer Message */}
         <box class="donation-footer" orientation={Gtk.Orientation.VERTICAL}>

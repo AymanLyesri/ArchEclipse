@@ -54,7 +54,8 @@
 
   .donation-option {
     @include module;
-    padding: 10px;
+    // padding: 10px;
+    margin: 0px;
     box-shadow: $BOX-SHADOW;
     transition: all 0.3s ease;
 
@@ -64,7 +65,7 @@
     }
 
     .donation-icon {
-      font-size: 1.8em;
+      font-size: 1.5em;
       min-width: 40px;
     }
 
@@ -80,7 +81,7 @@
 
     .donation-button {
       @include button;
-      padding: 10px;
+      // padding: 10px;
       border-radius: 10px;
       transition: all 0.3s ease;
       font-weight: 900;
@@ -122,28 +123,13 @@
         color: $foreground;
       }
     }
-
-    .donation-address {
-      font-size: 0.9em;
-      background: $background-transparent;
-      border: 1px solid $background-secondary;
-      border-radius: 5px;
-      padding: 8px;
-      color: $secondary;
-
-      &:focus {
-        outline: none;
-      }
-    }
   }
 
   .donation-footer {
     @include module;
     padding: 15px;
 
-    .donation-thankyou {
-      font-size: 1.1em;
-      font-weight: bold;
-    }
+    font-size: 1.1em;
+    font-weight: bold;
   }
 }

@@ -1,5 +1,5 @@
 import { Gtk } from "ags/gtk4";
-import { BooruImage } from "../../../class/BooruImage";
+import { BooruImage } from "../../../class/BooruImage.class";
 import { execAsync } from "ags/process";
 import {
   globalSettings,

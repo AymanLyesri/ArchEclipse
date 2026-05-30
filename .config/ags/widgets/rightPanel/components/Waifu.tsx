@@ -1,7 +1,7 @@
 import { Accessor, createState, With } from "ags";
 import { globalSettings, setGlobalSetting } from "../../../variables";
 import { Gtk } from "ags/gtk4";
-import { BooruImage } from "../../../class/BooruImage";
+import { BooruImage } from "../../../class/BooruImage.class";
 import app from "ags/gtk4/app";
 import { showWindow } from "../../../utils/window";
 import { leftPanelWidgetSelectors } from "../../../constants/widget.constants";

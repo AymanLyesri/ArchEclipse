@@ -8,12 +8,16 @@ import { timeout, Timer } from "ags/time";
 const Spinner = () => <Gtk.Spinner spinning={true} />;
 export const Progress = ({
   status,
+  text,
   custom_class = "",
   transitionType = Gtk.RevealerTransitionType.SLIDE_DOWN,
+  showWhenIdle = false,
 }: {
   status: Accessor<"loading" | "error" | "success" | "idle">;
+  text?: Accessor<string>;
   custom_class?: string;
   transitionType?: Gtk.RevealerTransitionType;
+  showWhenIdle?: boolean;
 }) => {
   //calculate the latency between the start of the loading and the success status
   const displayLatency = () => {
@@ -65,7 +69,7 @@ export const Progress = ({
             }
             self.revealChild = true;
           } else {
-            self.revealChild = false;
+            self.revealChild = showWhenIdle;
           }
         });
       }}
@@ -85,7 +89,7 @@ export const Progress = ({
           </With>
         </box>
         <box class="progress-content">
-          <label class="progress-text" label={status} />
+          <label class="progress-text" label={text ?? status} />
         </box>
         <box class="progress-latency" halign={Gtk.Align.END} hexpand>
           {displayLatency()}
@@ -94,60 +98,3 @@ export const Progress = ({
     </revealer>
   );
 };
-// const BLOCKS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
-
-// const LoadingBarsLabel = ({
-//   barCount = 10,
-//   maxLevel = 5, // numeric "5"
-//   interval = 50,
-//   className = "loading-bars",
-// }: {
-//   barCount?: number;
-//   maxLevel?: number;
-//   interval?: number;
-//   className?: string;
-// }) => {
-//   const [getText, setText] = createState("");
-
-//   let pos = 0;
-//   let dir = 1; // 1 → right, -1 → left
-//   let timeoutId: number | null = null;
-
-//   const tick = () => {
-//     const bars = new Array(barCount);
-
-//     for (let i = 0; i < barCount; i++) {
-//       const dist = Math.abs(i - pos);
-//       const level = Math.max(0, maxLevel - dist);
-//       const idx = Math.min(level, BLOCKS.length - 1);
-//       bars[i] = BLOCKS[idx];
-//     }
-
-//     setText(bars.join(""));
-
-//     // ping-pong movement
-//     if (pos === barCount - 1) dir = -1;
-//     else if (pos === 0) dir = 1;
-//     pos += dir;
-
-//     return GLib.SOURCE_CONTINUE;
-//   };
-
-//   return (
-//     <label
-//       class={className}
-//       label={getText}
-//       $={() => {
-//         timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval, tick);
-//       }}
-//       onDestroy={() => {
-//         if (timeoutId) {
-//           try {
-//             GLib.source_remove(timeoutId);
-//           } catch {}
-//           timeoutId = null;
-//         }
-//       }}
-//     />
-//   );
-// };

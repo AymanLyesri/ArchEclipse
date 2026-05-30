@@ -1,0 +1,76 @@
+.user-profile {
+  @include module;
+  padding: 16px;
+  margin: 0 auto;
+  text-align: center;
+  box-shadow: $BOX-SHADOW;
+
+  .profile-picture {
+    padding: 8px;
+    margin: 0 auto 8px auto;
+    border-radius: 999px;
+    background: $background-transparent;
+  }
+
+  box {
+    margin: 0 auto;
+  }
+
+  entry {
+    background: $background-transparent;
+    border-radius: 10px;
+    padding: 6px 10px;
+    margin: 4px 0;
+  }
+
+  .update {
+    @include button;
+    margin: 6px auto 0 auto;
+    min-width: 140px;
+    font-weight: 700;
+  }
+
+  .version-status {
+    color: $secondary;
+    font-weight: 600;
+  }
+
+  .auth-section {
+    margin-top: 6px;
+    padding: 10px 12px;
+    background: $background-transparent;
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+
+  .auth-info {
+    text-align: left;
+  }
+
+  .auth-title {
+    font-weight: 700;
+    color: $foreground;
+  }
+
+  .auth-list {
+    padding-left: 2px;
+  }
+
+  .auth-item {
+    color: $secondary;
+    font-weight: 600;
+  }
+
+  .auth-note {
+    color: $secondary;
+    opacity: 0.8;
+  }
+
+  .auth-cta {
+    margin-top: 4px;
+  }
+
+  .auth-submit {
+    min-width: 130px;
+  }
+}
