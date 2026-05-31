@@ -5,7 +5,12 @@ import { Gtk } from "ags/gtk4";
 import { Supabase, User } from "../../../class/Supabase.class";
 import { notify } from "../../../utils/notification";
 import { refreshAuthSession } from "../../../utils/auth-session";
-import { syncSettingsWithSupabase } from "../../../utils/settings-sync";
+import {
+  readSettingsSyncMeta,
+  settingsSyncMetaPath,
+  SettingsSyncDirection,
+  syncSettingsWithSupabase,
+} from "../../../utils/settings-sync";
 import { execAsync } from "ags/process";
 import { timeout } from "ags/time";
 import { globalSettings, profilePicturePath } from "../../../variables";
@@ -14,6 +19,10 @@ import { Progress } from "../../Progress";
 import GLib from "gi://GLib";
 import { booruApis } from "../../../constants/api.constants";
 import Gio from "gi://Gio";
+import {
+  clearUserProfile,
+  updateUserProfile,
+} from "../../../utils/user-profile";
 
 const avatarContentTypeByPath = (path: string) => {
   const extension = path.split(".").pop()?.toLowerCase();
@@ -129,6 +138,12 @@ export const UserProfile = () => {
   const [progressText, setProgressText] = createState("Not signed in");
   const [isSyncing, setIsSyncing] = createState(false);
   const [pinnedCount, setPinnedCount] = createState(0);
+  const [lastSyncAt, setLastSyncAt] = createState<string | null>(null);
+  const [lastSyncDirection, setLastSyncDirection] =
+    createState<SettingsSyncDirection | null>(null);
+  const [lastRemoteUpdatedAt, setLastRemoteUpdatedAt] = createState<
+    string | null
+  >(null);
 
   const fastfetchCacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
 
@@ -168,6 +183,7 @@ export const UserProfile = () => {
 
     if (!session?.access_token) {
       setProfile(null);
+      clearUserProfile();
       setProgressStatus("idle");
       setProgressText("Not signed in");
       return;
@@ -182,6 +198,7 @@ export const UserProfile = () => {
       );
 
       setProfile(fetchedProfile);
+      updateUserProfile(fetchedProfile);
 
       if (!fetchedProfile) {
         setProgressStatus("error");
@@ -229,6 +246,35 @@ export const UserProfile = () => {
     return counts;
   });
 
+  const formatTimestamp = (value: string | null) => {
+    if (!value) return "Never";
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) return "Never";
+    const timestamp = Math.floor(parsed / 1000);
+    const dateTime = GLib.DateTime.new_from_unix_local(timestamp);
+    return dateTime.format("%Y-%m-%d %H:%M");
+  };
+
+  const applySettingsSyncMeta = () => {
+    const meta = readSettingsSyncMeta();
+    setLastSyncAt(meta?.lastSyncAt ?? null);
+    setLastSyncDirection(meta?.lastDirection ?? null);
+    setLastRemoteUpdatedAt(meta?.lastRemoteUpdatedAt ?? null);
+  };
+
+  const lastSyncLabel = lastSyncAt(
+    (value) => `Last sync: ${formatTimestamp(value)}`,
+  );
+  const lastSyncResult = lastSyncDirection((direction) => {
+    if (!direction) return "Last result: -";
+    if (direction === "noop") return "Last result: Up to date";
+    if (direction === "download") return "Last result: Downloaded";
+    return "Last result: Uploaded";
+  });
+  const lastRemoteUpdatedLabel = lastRemoteUpdatedAt(
+    (value) => `Remote updated: ${formatTimestamp(value)}`,
+  );
+
   return (
     <box
       spacing={10}
@@ -237,12 +283,16 @@ export const UserProfile = () => {
       $={() => {
         loadProfile();
         updatePinnedCount();
+        applySettingsSyncMeta();
 
         monitorFile(`${GLib.get_home_dir()}/.config/ags/cache/auth`, () => {
           loadProfile();
         });
         monitorFile(fastfetchCacheDir, () => {
           updatePinnedCount();
+        });
+        monitorFile(settingsSyncMetaPath, () => {
+          applySettingsSyncMeta();
         });
       }}
     >
@@ -406,8 +456,52 @@ export const UserProfile = () => {
                 }
               }}
             />
+          </box>
+          <button
+            class="update danger"
+            label="Logout"
+            onClicked={async () => {
+              await execAsync(["rm", "-f", authSessionPath]);
+              setProfile(null);
+              clearUserProfile();
+              setProgressStatus("idle");
+              setProgressText("Signed out");
+              notify({
+                summary: "Signed out",
+                body: "Your session has been cleared.",
+              });
+            }}
+          />
+        </box>
+      </box>
+
+      <box
+        class="profile-info"
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+        sensitive={profile((p) => !!p)}
+      >
+        <box
+          class="section settings-sync"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={5}
+        >
+          <label class="settings-sync-header" label="Settings Sync" />
+          <box
+            class="settings-sync-info"
+            spacing={5}
+            orientation={Gtk.Orientation.VERTICAL}
+          >
+            <label class="settings-sync-meta" label={lastSyncLabel} />
+            <label class="settings-sync-result" label={lastSyncResult} />
+            <label
+              class="settings-sync-remote"
+              label={lastRemoteUpdatedLabel}
+            />
+          </box>
+          <box class="settings-sync-actions" spacing={6}>
             <button
-              class="update"
+              class="sync"
               hexpand
               label={isSyncing() ? "Syncing settings..." : "Sync Settings"}
               onClicked={async () => {
@@ -437,6 +531,7 @@ export const UserProfile = () => {
                       ? "Uploaded to cloud"
                       : "Already up to date";
 
+                applySettingsSyncMeta();
                 setProgressStatus("success");
                 setProgressText(`Settings sync: ${directionText}`);
                 notify({
@@ -446,30 +541,11 @@ export const UserProfile = () => {
               }}
             />
           </box>
-          <button
-            class="update danger"
-            label="Logout"
-            onClicked={async () => {
-              await execAsync(["rm", "-f", authSessionPath]);
-              setProfile(null);
-              setProgressStatus("idle");
-              setProgressText("Signed out");
-              notify({
-                summary: "Signed out",
-                body: "Your session has been cleared.",
-              });
-            }}
-          />
         </box>
-      </box>
-
-      <box
-        class="profile-info"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-        sensitive={profile((p) => !!p)}
-      >
-        <box class="booru-favorites" orientation={Gtk.Orientation.VERTICAL}>
+        <box
+          class="section booru-favorites"
+          orientation={Gtk.Orientation.VERTICAL}
+        >
           <label class="booru-favorites-title" label="Booru Favorites" />
           <box class="booru-favorites-list" spacing={5}>
             {booruApis.map((api) => (
@@ -485,7 +561,10 @@ export const UserProfile = () => {
             ))}
           </box>
         </box>
-        <box class="pinned-images" orientation={Gtk.Orientation.VERTICAL}>
+        <box
+          class="section pinned-images"
+          orientation={Gtk.Orientation.VERTICAL}
+        >
           <label class="pinned-images-title" label="Pinned Images" />
           <box class="pinned-images-row" spacing={6}>
             <label class="pinned-images-label" label="Fastfetch cache" />

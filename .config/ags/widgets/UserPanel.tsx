@@ -16,9 +16,12 @@ import GLib from "gi://GLib";
 import { getMonitorName } from "../utils/monitor";
 import MediaWidget from "./MediaWidget";
 import Pango from "gi://Pango";
+import { userProfile } from "../utils/user-profile";
 const hyprland = Hyprland.get_default();
 
-const username = GLib.get_user_name();
+const username = userProfile(
+  (profile) => profile?.username?.trim() || GLib.get_user_name(),
+);
 const desktopEnv = GLib.getenv("XDG_CURRENT_DESKTOP") || "Unknown DE";
 
 const uptime = createPoll("", 600000, "uptime -p"); // every 10 minutes

@@ -28,73 +28,108 @@
   }
 
   .profile-info {
-    .booru-favorites {
+    .section {
       margin-top: 6px;
       padding: 8px 10px;
       background: $background-transparent;
       border-radius: 12px;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+
+      .section-header {
+        margin-bottom: 6px;
+      }
     }
 
-    .booru-favorites-title {
-      font-weight: 700;
-      color: $foreground;
-    }
+    .settings-sync {
+      .settings-sync-title {
+        font-weight: 700;
+        color: $foreground;
+      }
 
-    .booru-favorites-list {
-      margin-top: 6px;
-    }
+      .settings-sync-meta {
+        font-size: 0.85em;
+        color: $secondary;
+        opacity: 0.9;
+      }
 
-    .booru-favorite-item {
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.05);
-    }
+      .settings-sync-info {
+        margin-top: 2px;
+      }
 
-    .booru-favorite-name {
-      font-weight: 600;
-      color: $secondary;
-    }
+      .settings-sync-result,
+      .settings-sync-remote {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        color: $secondary;
+        font-weight: 600;
+      }
 
-    .booru-favorite-badge {
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      color: $foreground;
-      font-weight: 700;
+      .settings-sync-actions {
+        margin-top: 6px;
+      }
+
+      .sync {
+        @include button;
+        min-width: 160px;
+        font-weight: 700;
+      }
+    }
+    .booru-favorites {
+      .booru-favorites-title {
+        font-weight: 700;
+        color: $foreground;
+      }
+
+      .booru-favorites-list {
+        margin-top: 6px;
+      }
+
+      .booru-favorite-item {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .booru-favorite-name {
+        font-weight: 600;
+        color: $secondary;
+      }
+
+      .booru-favorite-badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        color: $foreground;
+        font-weight: 700;
+      }
     }
 
     .pinned-images {
-      margin-top: 6px;
-      padding: 8px 10px;
-      background: $background-transparent;
-      border-radius: 12px;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-    }
+      .pinned-images-title {
+        font-weight: 700;
+        color: $foreground;
+      }
 
-    .pinned-images-title {
-      font-weight: 700;
-      color: $foreground;
-    }
+      .pinned-images-row {
+        margin-top: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+      }
 
-    .pinned-images-row {
-      margin-top: 6px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.05);
-    }
+      .pinned-images-label {
+        font-weight: 600;
+        color: $secondary;
+      }
 
-    .pinned-images-label {
-      font-weight: 600;
-      color: $secondary;
-    }
-
-    .pinned-images-badge {
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      color: $foreground;
-      font-weight: 700;
+      .pinned-images-badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        color: $foreground;
+        font-weight: 700;
+      }
     }
   }
 

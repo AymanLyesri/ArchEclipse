@@ -16,13 +16,13 @@ export interface SettingsSyncResult {
   error?: string;
 }
 
-interface SettingsSyncMeta {
+export interface SettingsSyncMeta {
   lastSyncAt?: string;
   lastDirection?: SettingsSyncDirection;
   lastRemoteUpdatedAt?: string;
 }
 
-const settingsSyncMetaPath = `${GLib.get_home_dir()}/.config/ags/cache/settings/settings-sync.json`;
+export const settingsSyncMetaPath = `${GLib.get_home_dir()}/.config/ags/cache/settings/settings-sync.json`;
 
 const sanitizeSettings = (settings: Settings): Settings => {
   const cloned = JSON.parse(JSON.stringify(settings)) as Settings;
@@ -62,6 +62,12 @@ const getLocalSettingsModifiedAt = (): Date | null => {
 
 const persistSyncMeta = (meta: SettingsSyncMeta) => {
   writeJSONFile(settingsSyncMetaPath, meta);
+};
+
+export const readSettingsSyncMeta = (): SettingsSyncMeta | null => {
+  const meta = readJSONFile<SettingsSyncMeta>(settingsSyncMetaPath, {});
+  if (!meta || Object.keys(meta).length === 0) return null;
+  return meta;
 };
 
 const applyRemoteSettings = (remote: Settings) => {
