@@ -204,7 +204,8 @@ export class Supabase {
     const updateData: Record<string, unknown> = {};
 
     if (data.username !== undefined) {
-      updateData.username = data.username;
+      const trimmedUsername = data.username.trim();
+      updateData.username = trimmedUsername || GLib.get_user_name();
     }
     if (data.avatar !== undefined) {
       updateData.avatar = data.avatar;

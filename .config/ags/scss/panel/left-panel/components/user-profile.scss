@@ -1,38 +1,101 @@
 .user-profile {
-  @include module;
-  padding: 16px;
-  margin: 0 auto;
-  text-align: center;
-  box-shadow: $BOX-SHADOW;
+  padding: 1em;
 
-  .profile-picture {
-    padding: 8px;
-    margin: 0 auto 8px auto;
-    border-radius: 999px;
-    background: $background-transparent;
+  .main {
+    @include module;
+    padding: 1em;
+
+    .profile-picture {
+      padding: 8px;
+      margin: 0 auto 8px auto;
+      border-radius: 999px;
+      background: $background-transparent;
+    }
+
+    .profile-card {
+      entry {
+        font-size: 2em;
+        padding: 6px 10px;
+      }
+
+      .update {
+        @include button;
+        margin: 6px auto 0 auto;
+        min-width: 140px;
+        font-weight: 700;
+      }
+    }
   }
 
-  box {
-    margin: 0 auto;
-  }
+  .profile-info {
+    .booru-favorites {
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: $background-transparent;
+      border-radius: 12px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
 
-  entry {
-    background: $background-transparent;
-    border-radius: 10px;
-    padding: 6px 10px;
-    margin: 4px 0;
-  }
+    .booru-favorites-title {
+      font-weight: 700;
+      color: $foreground;
+    }
 
-  .update {
-    @include button;
-    margin: 6px auto 0 auto;
-    min-width: 140px;
-    font-weight: 700;
-  }
+    .booru-favorites-list {
+      margin-top: 6px;
+    }
 
-  .version-status {
-    color: $secondary;
-    font-weight: 600;
+    .booru-favorite-item {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .booru-favorite-name {
+      font-weight: 600;
+      color: $secondary;
+    }
+
+    .booru-favorite-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: $foreground;
+      font-weight: 700;
+    }
+
+    .pinned-images {
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: $background-transparent;
+      border-radius: 12px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .pinned-images-title {
+      font-weight: 700;
+      color: $foreground;
+    }
+
+    .pinned-images-row {
+      margin-top: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .pinned-images-label {
+      font-weight: 600;
+      color: $secondary;
+    }
+
+    .pinned-images-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      color: $foreground;
+      font-weight: 700;
+    }
   }
 
   .auth-section {
@@ -41,36 +104,36 @@
     background: $background-transparent;
     border-radius: 12px;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  }
 
-  .auth-info {
-    text-align: left;
-  }
+    .auth-info {
+      text-align: left;
+    }
 
-  .auth-title {
-    font-weight: 700;
-    color: $foreground;
-  }
+    .auth-title {
+      font-weight: 700;
+      color: $foreground;
+    }
 
-  .auth-list {
-    padding-left: 2px;
-  }
+    .auth-list {
+      padding-left: 2px;
+    }
 
-  .auth-item {
-    color: $secondary;
-    font-weight: 600;
-  }
+    .auth-item {
+      color: $secondary;
+      font-weight: 600;
+    }
 
-  .auth-note {
-    color: $secondary;
-    opacity: 0.8;
-  }
+    .auth-note {
+      color: $secondary;
+      opacity: 0.8;
+    }
 
-  .auth-cta {
-    margin-top: 4px;
-  }
+    .auth-cta {
+      margin-top: 4px;
+    }
 
-  .auth-submit {
-    min-width: 130px;
+    .auth-submit {
+      min-width: 130px;
+    }
   }
 }
