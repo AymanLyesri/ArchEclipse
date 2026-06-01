@@ -101,8 +101,18 @@ def is_repo_intact(repo_dir: Path, repo_url: str) -> bool:
 def update_repo(repo_dir: Path, branch: str) -> None:
     if is_repo_intact(repo_dir, REPO_URL):
         print("Repository history intact, syncing with remote...")
-        run_cmd(["git", "-C", str(repo_dir), "checkout", branch])
         run_cmd(["git", "-C", str(repo_dir), "fetch", "origin", branch])
+        run_cmd(
+            [
+                "git",
+                "-C",
+                str(repo_dir),
+                "checkout",
+                "-B",
+                branch,
+                f"origin/{branch}",
+            ]
+        )
         run_cmd(["git", "-C", str(repo_dir), "reset", "--hard", f"origin/{branch}"])
         print(f"Repository successfully updated from origin/{branch}.")
         return
