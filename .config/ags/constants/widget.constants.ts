@@ -19,8 +19,7 @@ import NotificationHistory from "../widgets/rightPanel/components/NotificationHi
 import KeyBinds from "../widgets/leftPanel/components/KeyBinds";
 import SystemResources from "../widgets/rightPanel/components/SystemResources";
 import { Gtk } from "ags/gtk4";
-import General from "../widgets/leftPanel/components/sub-components/General";
-import { UserProfile } from "../widgets/leftPanel/components/UserProfile";
+import UserProfile from "../widgets/leftPanel/components/UserProfile";
 
 export const barWidgetSelectors: WidgetSelector[] = [
   {

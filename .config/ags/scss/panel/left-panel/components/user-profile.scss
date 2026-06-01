@@ -6,38 +6,24 @@
     padding: 1em;
 
     .profile-picture {
-      padding: 8px;
-      margin: 0 auto 8px auto;
-      border-radius: 999px;
-      background: $background-transparent;
+      .image {
+        border-radius: 50%;
+      }
+      background: transparent;
     }
 
     .profile-card {
-      entry {
+      .profile-username {
         font-size: 2em;
         padding: 6px 10px;
-      }
-
-      .update {
-        @include button;
-        margin: 6px auto 0 auto;
-        min-width: 140px;
-        font-weight: 700;
       }
     }
   }
 
   .profile-info {
     .section {
-      margin-top: 6px;
-      padding: 8px 10px;
-      background: $background-transparent;
-      border-radius: 12px;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-
-      .section-header {
-        margin-bottom: 6px;
-      }
+      @include module;
+      padding: 1em;
     }
 
     .settings-sync {

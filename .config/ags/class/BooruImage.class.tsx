@@ -12,6 +12,7 @@ import { Progress } from "../widgets/Progress";
 import { booruApis } from "../constants/api.constants";
 import GLib from "gi://GLib";
 import { connectPopoverEvents } from "../utils/window";
+import { setProfileAvatarFromPath } from "../utils/profile-avatar";
 
 import Hyprland from "gi://AstalHyprland";
 import { Gdk, Gtk } from "ags/gtk4";
@@ -1062,6 +1063,25 @@ export class BooruImage {
                 )}
                 sensitive={currentlyDownloaded((d) => d && !this.isVideo())}
                 onClicked={() => this.setAsCurrentWaifu()}
+                hexpand
+              />
+              <button
+                label=""
+                tooltipMarkup={currentlyDownloaded((downloaded) =>
+                  downloaded
+                    ? this.isVideo() || this.isZip()
+                      ? "Cannot use videos as avatar"
+                      : "Set as profile avatar"
+                    : "<b>Download</b> first to set",
+                )}
+                sensitive={currentlyDownloaded(
+                  (d) => d && !this.isVideo() && !this.isZip(),
+                )}
+                onClicked={() =>
+                  setProfileAvatarFromPath(this.getImagePath(), {
+                    thumbnailPath: this.getPreviewPath(),
+                  }).catch(() => {})
+                }
                 hexpand
               />
               <button

@@ -12,7 +12,6 @@ import {
   syncSettingsWithSupabase,
 } from "../../../utils/settings-sync";
 import { execAsync } from "ags/process";
-import { timeout } from "ags/time";
 import { globalSettings, profilePicturePath } from "../../../variables";
 import { monitorFile } from "ags/file";
 import { Progress } from "../../Progress";
@@ -23,113 +22,9 @@ import {
   clearUserProfile,
   updateUserProfile,
 } from "../../../utils/user-profile";
+import { setProfileAvatarFromPath } from "../../../utils/profile-avatar";
 
-const avatarContentTypeByPath = (path: string) => {
-  const extension = path.split(".").pop()?.toLowerCase();
-
-  switch (extension) {
-    case "png":
-      return "image/png";
-    case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    case "webp":
-      return "image/webp";
-    default:
-      return null;
-  }
-};
-
-const MagicLinkEmail = () => {
-  const emailEntry = (
-    <entry
-      placeholderText="you@example.com"
-      hexpand
-      $={(self) => {
-        self.text = "";
-      }}
-      onActivate={(self) => {
-        const entryText = self.text.trim();
-        sendMagicLink(entryText);
-      }}
-    />
-  ) as Gtk.Entry;
-
-  const sendButton = (
-    <button
-      class="donation-button primary auth-submit"
-      label="Sign up / Login"
-      onClicked={() => {
-        const entryText = emailEntry.text.trim();
-        sendMagicLink(entryText);
-      }}
-    />
-  ) as Gtk.Button;
-
-  const sendMagicLink = async (email: string) => {
-    if (!email) {
-      notify({ summary: "Email", body: "Enter a valid email" });
-      return;
-    }
-
-    const supabaseClient = new Supabase();
-
-    const result = await supabaseClient.sendMagicLinkEmail(
-      email,
-      "http://127.0.0.1:53100/callback",
-    );
-    if (result.ok) {
-      notify({
-        summary: "Magic link sent",
-        body: `Check ${email} and open the link to complete sign-in.`,
-      });
-      sendButton.label = "Check email...";
-    } else {
-      notify({
-        summary: "Error",
-        body:
-          result.error ||
-          "Failed to send magic link. Check network and API key.",
-      });
-    }
-  };
-
-  const box = (
-    <box
-      class="auth-section"
-      orientation={Gtk.Orientation.VERTICAL}
-      spacing={10}
-      hexpand
-    >
-      <box
-        class="auth-info"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={6}
-        halign={Gtk.Align.START}
-      >
-        <label class="auth-title" label="Login to sync:" xalign={0} />
-        <box
-          class="auth-list"
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={4}
-        >
-          <label class="auth-item" label="- Profile picture" xalign={0} />
-          <label class="auth-item" label="- Settings" xalign={0} />
-          <label class="auth-note" label="More to come" xalign={0} />
-        </box>
-      </box>
-      <box class="auth-cta" spacing={6} hexpand>
-        {emailEntry}
-
-        {sendButton}
-      </box>
-    </box>
-  );
-
-  return box;
-};
-
-export const UserProfile = () => {
+export default (minimal?: boolean) => {
   const supabaseClient = new Supabase();
   const [profile, setProfile] = createState<User | null>(null);
   const [progressStatus, setProgressStatus] = createState<
@@ -137,6 +32,7 @@ export const UserProfile = () => {
   >("idle");
   const [progressText, setProgressText] = createState("Not signed in");
   const [isSyncing, setIsSyncing] = createState(false);
+  const [isRefreshing, setIsRefreshing] = createState(false);
   const [pinnedCount, setPinnedCount] = createState(0);
   const [lastSyncAt, setLastSyncAt] = createState<string | null>(null);
   const [lastSyncDirection, setLastSyncDirection] =
@@ -275,6 +171,100 @@ export const UserProfile = () => {
     (value) => `Remote updated: ${formatTimestamp(value)}`,
   );
 
+  const MagicLinkEmail = () => {
+    const emailEntry = (
+      <entry
+        placeholderText="you@example.com"
+        hexpand
+        $={(self) => {
+          self.text = "";
+        }}
+        onActivate={(self) => {
+          const entryText = self.text.trim();
+          sendMagicLink(entryText);
+        }}
+      />
+    ) as Gtk.Entry;
+
+    const sendButton = (
+      <button
+        class="donation-button primary auth-submit"
+        label="Sign up / Login"
+        onClicked={() => {
+          const entryText = emailEntry.text.trim();
+          sendMagicLink(entryText);
+        }}
+      />
+    ) as Gtk.Button;
+
+    const sendMagicLink = async (email: string) => {
+      if (!email) {
+        notify({ summary: "Email", body: "Enter a valid email" });
+        return;
+      }
+
+      const supabaseClient = new Supabase();
+
+      const result = await supabaseClient.sendMagicLinkEmail(
+        email,
+        "http://127.0.0.1:53100/callback",
+      );
+      if (result.ok) {
+        notify({
+          summary: "Magic link sent",
+          body: `Check ${email} and open the link to complete sign-in.`,
+        });
+        sendButton.label = "Check email...";
+      } else {
+        notify({
+          summary: "Error",
+          body:
+            result.error ||
+            "Failed to send magic link. Check network and API key.",
+        });
+      }
+    };
+
+    const box = (
+      <box
+        class="auth-section"
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+        hexpand
+        visible={!minimal}
+      >
+        <box
+          class="auth-info"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={6}
+          halign={Gtk.Align.START}
+        >
+          <label class="auth-title" label="Login to sync:" xalign={0} />
+          <box
+            class="auth-list"
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={4}
+          >
+            <label class="auth-item" label="- Profile picture" xalign={0} />
+            <label class="auth-item" label="- Settings" xalign={0} />
+            <label class="auth-note" label="More to come" xalign={0} />
+          </box>
+        </box>
+        <box
+          class="auth-cta"
+          spacing={6}
+          hexpand
+          orientation={Gtk.Orientation.VERTICAL}
+        >
+          {emailEntry}
+          {sendButton}
+        </box>
+      </box>
+    );
+
+    return box;
+  };
+
   return (
     <box
       spacing={10}
@@ -311,57 +301,12 @@ export const UserProfile = () => {
 
                 const cleanPath = filename.trim();
 
-                const contentType = avatarContentTypeByPath(cleanPath);
-
-                if (!contentType) {
-                  notify({
-                    summary: "Invalid image",
-                    body: "Pick a PNG, JPG, or WebP file.",
-                  });
-                  return;
-                }
-
-                const session = await refreshAuthSession();
-
-                if (!session?.access_token) {
-                  notify({
-                    summary: "Not signed in",
-                    body: "Please sign in to update your profile picture.",
-                  });
-                  return;
-                }
-
-                setProgressStatus("loading");
-                setProgressText("Uploading avatar...");
-
-                const result = await supabaseClient.uploadCurrentUserAvatar(
-                  session.access_token,
-                  cleanPath,
-                  contentType,
-                );
-
-                if (result.ok) {
-                  setProgressStatus("success");
-                  setProgressText("Avatar updated");
-                  notify({
-                    summary: "Avatar updated",
-                    body: "Your profile picture has been uploaded.",
-                  });
-                  notify({
-                    summary: "Syncing avatar",
-                    body: "Updating your profile picture. This may take a few seconds.",
-                  });
-                  timeout(5000, () => {
-                    supabaseClient.syncAvatarToFaceIcon(result.avatarUrl!);
-                  });
-                } else {
-                  setProgressStatus("error");
-                  setProgressText("Upload failed");
-                  notify({
-                    summary: "Upload failed",
-                    body: result.error || "Failed to upload profile picture.",
-                  });
-                }
+                await setProfileAvatarFromPath(cleanPath, {
+                  onProgress: (status, text) => {
+                    setProgressStatus(status);
+                    setProgressText(text);
+                  },
+                });
               } catch (err) {
                 const errorStr = String(err);
                 if (errorStr.includes("exit status 1")) return;
@@ -383,15 +328,17 @@ export const UserProfile = () => {
         <box
           class="profile-card"
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={8}
+          spacing={5}
           halign={Gtk.Align.CENTER}
           sensitive={profile((p) => !!p)}
         >
           <box class="profile-form" orientation={Gtk.Orientation.VERTICAL}>
             <entry
+              class="profile-username"
               placeholderText={GLib.get_user_name()}
               hexpand
               xalign={0.5}
+              tooltipMarkup={"Click to edit username"}
               text={profile((p) => p?.username ?? "")}
               $={(self: Gtk.Entry) => {
                 self.connect("changed", () => {
@@ -456,6 +403,24 @@ export const UserProfile = () => {
                 }
               }}
             />
+            <button
+              class="update"
+              label={""}
+              tooltipMarkup={"Refresh profile"}
+              sensitive={isRefreshing((refreshing) => !refreshing)}
+              onClicked={async () => {
+                if (isRefreshing()) return;
+                setIsRefreshing(true);
+                setProgressStatus("loading");
+                setProgressText("Refreshing profile...");
+
+                try {
+                  await loadProfile();
+                } finally {
+                  setIsRefreshing(false);
+                }
+              }}
+            />
           </box>
           <button
             class="update danger"
@@ -479,6 +444,7 @@ export const UserProfile = () => {
         class="profile-info"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
+        visible={!minimal}
         sensitive={profile((p) => !!p)}
       >
         <box
@@ -574,6 +540,12 @@ export const UserProfile = () => {
             />
           </box>
         </box>
+        <Progress
+          status={progressStatus}
+          text={progressText}
+          custom_class="profile-progress"
+          showWhenIdle
+        />
       </box>
 
       <With value={profile}>
@@ -582,13 +554,6 @@ export const UserProfile = () => {
           return null;
         }}
       </With>
-
-      <Progress
-        status={progressStatus}
-        text={progressText}
-        custom_class="profile-progress"
-        showWhenIdle
-      />
     </box>
   );
 };

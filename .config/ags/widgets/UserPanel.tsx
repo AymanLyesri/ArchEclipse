@@ -17,6 +17,7 @@ import { getMonitorName } from "../utils/monitor";
 import MediaWidget from "./MediaWidget";
 import Pango from "gi://Pango";
 import { userProfile } from "../utils/user-profile";
+import UserProfile from "./leftPanel/components/UserProfile";
 const hyprland = Hyprland.get_default();
 
 const username = userProfile(
@@ -27,113 +28,6 @@ const desktopEnv = GLib.getenv("XDG_CURRENT_DESKTOP") || "Unknown DE";
 const uptime = createPoll("", 600000, "uptime -p"); // every 10 minutes
 
 const UserPanel = () => {
-  const Center = () => {
-    const pfp = (
-      <button
-        class="profile-picture"
-        tooltipMarkup={"Click to set up profile picture"}
-        onClicked={async (self) => {
-          try {
-            const filename = await execAsync(
-              'zenity --file-selection --title="Select Profile Picture" --file-filter="Images (png, jpg, webp) | *.png *.jpg *.jpeg *.webp"',
-            );
-
-            if (!filename || filename.trim() === "") return;
-
-            const cleanPath = filename.trim();
-
-            await execAsync(
-              `cp -- ${JSON.stringify(cleanPath)} ${JSON.stringify(`${GLib.get_home_dir()}/.face.icon`)}`,
-            );
-
-            notify({
-              summary: "Success",
-              body: "User picture updated!",
-            });
-
-            const picture = (self.child as any).getPicture() as Gtk.Picture;
-            picture.set_file(Gio.File.new_for_path(cleanPath));
-          } catch (err) {
-            const errorStr = String(err);
-            if (errorStr.includes("exit status 1")) return;
-
-            notify({
-              summary: "Error",
-              body: errorStr,
-            });
-          }
-        }}
-      >
-        <Picture file={profilePicturePath} />
-      </button>
-    );
-    const UserName = (
-      <box halign={Gtk.Align.CENTER} class="user-name">
-        <label label="I'm " />
-        <label class="secondary" label={username} />
-      </box>
-    );
-    const DesktopEnv = (
-      <box class="desktop-env" halign={Gtk.Align.CENTER}>
-        <label label="On " />
-        <label class="secondary" label={desktopEnv} />
-      </box>
-    );
-
-    const Uptime = (
-      <box halign={Gtk.Align.CENTER} class="up-time">
-        <label
-          class="uptime"
-          label={uptime}
-          wrap={true}
-          wrapMode={Pango.WrapMode.WORD_CHAR}
-        />
-      </box>
-    );
-
-    const topRevealer = (
-      <revealer
-        transition-duration={500}
-        transition-type={Gtk.RevealerTransitionType.SLIDE_DOWN}
-        visible={true}
-      >
-        <MediaWidget />
-      </revealer>
-    ) as Gtk.Revealer;
-
-    const bottomRevealer = (
-      <revealer
-        transition-duration={500}
-        transition-type={Gtk.RevealerTransitionType.SLIDE_DOWN}
-        visible={true}
-      >
-        <box class={"info"} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-          {UserName}
-          {DesktopEnv}
-          {Uptime}
-        </box>
-      </revealer>
-    ) as Gtk.Revealer;
-
-    return (
-      <box class={"center"} orientation={Gtk.Orientation.VERTICAL}>
-        <Gtk.EventControllerMotion
-          onEnter={() => {
-            topRevealer.revealChild = true;
-            bottomRevealer.revealChild = true;
-          }}
-          onLeave={() => {
-            topRevealer.revealChild = false;
-            bottomRevealer.revealChild = false;
-          }}
-        />
-        {/* {topRevealer} */}
-        {pfp}
-        {bottomRevealer}
-      </box>
-    );
-  };
-
   const Logout = () => (
     <button
       hexpand={true}
@@ -192,27 +86,6 @@ const UserPanel = () => {
     />
   );
 
-  const Date = (
-    <box
-      class="section date"
-      orientation={Gtk.Orientation.VERTICAL}
-      spacing={5}
-    >
-      <label
-        class={"less"}
-        halign={Gtk.Align.CENTER}
-        hexpand={true}
-        label={date_less}
-      />
-      <label
-        class={"more"}
-        halign={Gtk.Align.CENTER}
-        hexpand={true}
-        label={date_more}
-      />
-    </box>
-  );
-
   const display = () => {
     return (
       <overlay>
@@ -256,7 +129,8 @@ const UserPanel = () => {
           halign={Gtk.Align.CENTER}
           valign={Gtk.Align.CENTER}
         >
-          <Center />
+          {/* <Center /> */}
+          {UserProfile(true)}
         </box>
       </overlay>
     );

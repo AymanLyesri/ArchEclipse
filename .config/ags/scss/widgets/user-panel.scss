@@ -1,43 +1,13 @@
 .user-panel {
   background-color: rgba($color: #000000, $alpha: 0.2);
 
-  .center {
-    border-radius: 200px 200px 20px 20px;
-    .profile-picture {
-      border-radius: 50%;
-      background: transparent;
-      min-height: 250px;
-      min-width: 250px;
-      padding: 0px;
-    }
-    .image {
-      border-radius: 50%;
-    }
-    .info {
-      padding: 10px;
-      opacity: 0;
-
-      .user-name,
-      .desktop-env {
-        font-size: 1.5em;
-        color: $foreground;
-
-        .secondary {
-          color: $secondary;
-        }
-      }
-      .up-time {
-        color: $grey;
-      }
-    }
-    &:hover {
-      background-color: $background;
-      .profile-picture {
-        box-shadow: $BOX-SHADOW;
-      }
-      .info {
-        opacity: 1;
-      }
+  overlay {
+    background: transparent;
+  }
+  .user-profile {
+    .main {
+      border-radius: 50px;
+      background: $background;
     }
   }
 
