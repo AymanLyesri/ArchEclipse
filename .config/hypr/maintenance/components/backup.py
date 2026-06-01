@@ -5,9 +5,14 @@ from __future__ import annotations
 
 import datetime
 import shutil
+import sys
 from pathlib import Path
 
-from .utils import run_cmd, run_shell
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from components.utils import run_cmd, run_shell
+else:
+    from .utils import run_cmd, run_shell
 
 
 def backup_dotfiles() -> None:

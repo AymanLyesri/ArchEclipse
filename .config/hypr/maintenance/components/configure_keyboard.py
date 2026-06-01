@@ -3,10 +3,16 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-from .essentials import FZF_HEIGHT
-from .utils import run_cmd, run_shell, fzf_select
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from components.essentials import FZF_HEIGHT
+    from components.utils import run_cmd, run_shell, fzf_select
+else:
+    from .essentials import FZF_HEIGHT
+    from .utils import run_cmd, run_shell, fzf_select
 
 
 def configure_keyboard() -> None:

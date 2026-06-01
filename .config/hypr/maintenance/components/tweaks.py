@@ -3,7 +3,14 @@
 
 from __future__ import annotations
 
-from .utils import run_cmd, run_shell
+import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from components.utils import run_cmd, run_shell
+else:
+    from .utils import run_cmd, run_shell
 
 
 def apply_tweaks() -> None:

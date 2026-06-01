@@ -6,10 +6,15 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 from typing import Iterable
 
-from .utils import run_cmd, run_shell
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from components.utils import run_cmd, run_shell
+else:
+    from .utils import run_cmd, run_shell
 
 BOLD = "\033[1m"
 CYAN = "\033[0;36m"

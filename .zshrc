@@ -85,18 +85,18 @@ alias logout='hyprctl dispatch exit'
 source <(fzf --zsh)
 
 # Configuration Update
-alias archeclipse='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/UPDATE.sh)"'
-alias 'update dev'='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/UPDATE.sh)" -- dev'
+alias archeclipse='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/update.py)"'
+alias 'archeclipse dev'='bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/update.py)" -- dev'
 
-alias plugins="$HOME/.config/hypr/maintenance/PLUGINS.sh"
+alias plugins="$HOME/.config/hypr/maintenance/components/plugins.py"
 
-alias defaults="$HOME/.config/hypr/maintenance/DEFAULTS.sh"
+alias defaults="$HOME/.config/hypr/maintenance/components/defaults.py"
 
 # Waifu Chat Bot and Assistant
 alias waifu='source $HOME/linux-chat-bot/main.sh "$(pwd)"'
 
 # Wallpapers
-alias wallpapers="$HOME/.config/hypr/maintenance/WALLPAPERS.sh"
+alias wallpapers="$HOME/.config/hypr/maintenance/components/wallpapers.py"
 
 # Custom Zsh config
 [[ -f "$HOME/custom.zshrc" ]] && source "$HOME/custom.zshrc"

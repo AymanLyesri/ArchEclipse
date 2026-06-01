@@ -5,10 +5,15 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 from pathlib import Path
 from typing import Callable, Optional
 
-from .utils import command_exists, run_cmd, run_shell, fzf_select
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+    from components.utils import command_exists, run_cmd, run_shell, fzf_select
+else:
+    from .utils import command_exists, run_cmd, run_shell, fzf_select
 
 FZF_HEIGHT = "40%"
 
