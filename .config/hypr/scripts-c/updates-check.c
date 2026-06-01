@@ -52,7 +52,7 @@ bool check_git_updates()
     {
         char message[256];
         snprintf(message, sizeof(message), "We are behind by %d commits.", behind);
-        send_notification("Repository Update", message, "Pull Changes", "kitty $HOME/.config/hypr/maintenance/UPDATE.sh");
+        send_notification("Repository Update", message, "Pull Changes", "kitty $HOME/.config/hypr/maintenance/update.py");
         return true;
     }
     return false;
