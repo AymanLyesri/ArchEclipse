@@ -87,9 +87,9 @@ source <(fzf --zsh)
 # Configuration Update
 archeclipse() {
     if [[ "$1" == "dev" ]]; then
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/update.py)" -- dev
+        python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/update.py) dev
     else
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/update.py)"
+        python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/update.py)
     fi
 }
 
