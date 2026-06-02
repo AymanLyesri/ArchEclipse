@@ -7,3 +7,6 @@ config/custom/*
 theme/theme.conf
 wallpaper-daemon/config/*
 !wallpaper-daemon/config/defaults.conf
+
+# ignore all pycache files
+__pycache__/
