@@ -79,7 +79,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "essentials": importlib.import_module("components.essentials"),
         "presentation": importlib.import_module("components.presentation"),
         "backup": importlib.import_module("components.backup"),
-        "configure_keyboard": importlib.import_module("components.configure_keyboard"),
+        "keyboard": importlib.import_module("components.keyboard"),
         "defaults": importlib.import_module("components.defaults"),
         "sddm": importlib.import_module("components.sddm"),
         "wallpapers": importlib.import_module("components.wallpapers"),
@@ -216,7 +216,7 @@ def main() -> None:
     presentation.run_interactive_step(
         "*",
         "Setting up keyboard configuration (optional)",
-        modules["configure_keyboard"].configure_keyboard,
+        modules["keyboard"].configure_keyboard,
     )
 
     presentation.print_section_header("PACKAGE MANAGEMENT")
