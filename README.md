@@ -87,6 +87,7 @@ KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form
 
 - [Arch Linux](https://archlinux.org/) (Other Arch-based distributions may work, with varying degrees of success)
 - [Hyprland](https://hyprland.org/) (Make sure hyprland works properly before installing the dots)
+- [Python](https://wiki.archlinux.org/title/Python) (Python3 for the install script to work)
 - [Necessary packages](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/pacman/pkglist.txt) (do not worry they will be installed automatically)
 
 ## Installation Guide
@@ -94,7 +95,7 @@ KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form
 > Run this one liner in the terminal
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/refs/heads/master/.config/hypr/maintenance/INSTALL.sh)"
+python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/install.py)
 ```
 
 ## Update Guide

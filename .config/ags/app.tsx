@@ -111,7 +111,11 @@ app.start({
       const leftPanel = app.get_window(`left-panel-${monitor}`);
       if (leftPanel) {
         leftPanel.show();
-        setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[6]);
+        // set where the widget name is "donations" in leftPanelWidgetSelectors
+        setGlobalSetting(
+          "leftPanel.widget",
+          leftPanelWidgetSelectors.findIndex((w) => w.name === "Donations"),
+        );
       }
       response("Donations widget opened.");
       return;
