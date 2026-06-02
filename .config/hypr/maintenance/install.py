@@ -178,6 +178,43 @@ def main() -> None:
     presentation.print_section_header("REPOSITORY SETUP")
     presentation.print_success("Repository cloned and ready\n")
 
+    plan = presentation.collect_section_choices(
+        "INSTALLATION PLAN",
+        [
+            presentation.PlannedStep(
+                "backup", "Backing up dotfiles from .config"
+            ),
+            presentation.PlannedStep(
+                "config", "Copying configuration files to HOME"
+            ),
+            presentation.PlannedStep(
+                "keyboard",
+                "Setting up keyboard configuration (optional)",
+                default_choice="n",
+            ),
+            presentation.PlannedStep(
+                "remove_packages", "Removing unwanted packages"
+            ),
+            presentation.PlannedStep(
+                "install_packages",
+                "Installing necessary packages (requires AUR helper)",
+            ),
+            presentation.PlannedStep("sddm", "Setting up SDDM theme"),
+            presentation.PlannedStep(
+                "defaults", "Applying default configurations", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "wallpapers", "Setting up wallpapers", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "plugins", "Installing plugins", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "tweaks", "Applying system tweaks", default_choice="y"
+            ),
+        ],
+    )
+
     presentation.print_section_header("AUR HELPER SELECTION")
     print("Select an AUR helper to install packages:")
     print("  [1] yay  - AUR helper")
@@ -193,60 +230,86 @@ def main() -> None:
     presentation.print_success(f"AUR helper selected: {aur_helper}\n")
 
     if aur_helper == "yay":
-        presentation.run_section_step("*", "Installing yay", essentials.install_yay)
+        presentation.execute_planned_step(
+            "*", "Installing yay", essentials.install_yay, run=True
+        )
     elif aur_helper == "paru":
-        presentation.run_section_step("*", "Installing paru", essentials.install_paru)
+        presentation.execute_planned_step(
+            "*", "Installing paru", essentials.install_paru, run=True
+        )
     else:
         presentation.error_exit("Invalid AUR helper selected")
 
     print("")
 
     presentation.print_section_header("CONFIGURATION FILES")
-    presentation.run_interactive_step(
+    presentation.execute_planned_step(
         "*",
         "Backing up dotfiles from .config",
         modules["backup"].backup_dotfiles,
+        run=plan["backup"],
     )
-    presentation.run_interactive_step(
+    presentation.execute_planned_step(
         "*",
         "Copying configuration files to HOME",
         lambda: sync_configuration_files(conf_dir),
+        run=plan["config"],
     )
 
     presentation.print_section_header("KEYBOARD CONFIGURATION (optional)")
-    presentation.run_interactive_step(
+    presentation.execute_planned_step(
         "*",
         "Setting up keyboard configuration (optional)",
         modules["keyboard"].configure_keyboard,
+        run=plan["keyboard"],
     )
 
     presentation.print_section_header("PACKAGE MANAGEMENT")
-    presentation.run_interactive_step(
-        "*", "Removing unwanted packages", essentials.remove_packages
+    presentation.execute_planned_step(
+        "*",
+        "Removing unwanted packages",
+        essentials.remove_packages,
+        run=plan["remove_packages"],
     )
-    presentation.run_interactive_step(
+    presentation.execute_planned_step(
         "*",
         f"Installing necessary packages (using {aur_helper})",
-        lambda: modules["packages"].install_packages(aur_helper),
+        lambda helper=aur_helper: modules["packages"].install_packages(helper),
+        run=plan["install_packages"],
     )
 
     presentation.print_section_header("SYSTEM THEME & APPEARANCE")
-    presentation.run_interactive_step(
-        "*", "Setting up SDDM theme", modules["sddm"].configure_sddm
+    presentation.execute_planned_step(
+        "*",
+        "Setting up SDDM theme",
+        modules["sddm"].configure_sddm,
+        run=plan["sddm"],
     )
-    presentation.run_section_step(
-        "*", "Applying default configurations", modules["defaults"].apply_defaults
+    presentation.execute_planned_step(
+        "*",
+        "Applying default configurations",
+        modules["defaults"].apply_defaults,
+        run=plan["defaults"],
     )
-    presentation.run_section_step(
-        "*", "Setting up wallpapers", modules["wallpapers"].main
+    presentation.execute_planned_step(
+        "*",
+        "Setting up wallpapers",
+        modules["wallpapers"].main,
+        run=plan["wallpapers"],
     )
 
     presentation.print_section_header("PLUGINS & TWEAKS")
-    presentation.run_section_step(
-        "*", "Installing plugins", modules["plugins"].install_plugins
+    presentation.execute_planned_step(
+        "*",
+        "Installing plugins",
+        modules["plugins"].install_plugins,
+        run=plan["plugins"],
     )
-    presentation.run_section_step(
-        "*", "Applying system tweaks", modules["tweaks"].apply_tweaks
+    presentation.execute_planned_step(
+        "*",
+        "Applying system tweaks",
+        modules["tweaks"].apply_tweaks,
+        run=plan["tweaks"],
     )
 
     presentation.print_section_header("INSTALLATION COMPLETE")

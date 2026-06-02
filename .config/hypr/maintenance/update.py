@@ -47,18 +47,6 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
     }
 
 
-def prompt_to_continue() -> None:
-    print("")
-    choice = input(
-        "You will begin the update process. Do you want to proceed? (Y/n) "
-    ).strip()
-    if not choice:
-        choice = "y"
-    if choice.lower() != "y":
-        print("Action cancelled.")
-        raise SystemExit(0)
-
-
 def is_repo_intact(repo_dir: Path, repo_url: str) -> bool:
     if not (repo_dir / ".git").exists():
         return False
@@ -187,15 +175,52 @@ def detect_aur_helper() -> str:
 
 
 def main() -> None:
-    prompt_to_continue()
+    maintenance_dir = Path.home() / ".config/hypr/maintenance"
+    if not maintenance_dir.exists():
+        print(f"Required local maintenance scripts not found in {maintenance_dir}.")
+        raise SystemExit(1)
+
+    modules = load_components(maintenance_dir)
+    presentation = modules["presentation"]
+    essentials = modules["essentials"]
+
+    aur_helper = detect_aur_helper()
+    package_description = (
+        f"Updating necessary packages (using {aur_helper})"
+        if aur_helper
+        else "Updating necessary packages"
+    )
+
+    plan = presentation.collect_section_choices(
+        "UPDATE PLAN",
+        [
+            presentation.PlannedStep(
+                "proceed", "Begin update process", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "core_tools", "Installing core tools", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "reload_bar", "Reloading bar configuration", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "packages", package_description, default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "plugins", "Updating plugins", default_choice="y"
+            ),
+        ],
+    )
+
+    if not plan["proceed"]:
+        print("Action cancelled.")
+        raise SystemExit(0)
 
     run_cmd(["sudo", "-v"])
     run_cmd(["curl", "-s", "-o", "/dev/null", COUNTER_URL], check=False)
 
     branch = sys.argv[1] if len(sys.argv) > 1 else "master"
-
     repo_dir = Path.home()
-    maintenance_dir = Path.home() / ".config/hypr/maintenance"
 
     print("")
     print("============================================================")
@@ -205,39 +230,51 @@ def main() -> None:
     print("Deploying config files")
     update_repo(repo_dir, branch)
 
-    if not maintenance_dir.exists():
-        print(f"Required local maintenance scripts not found in {maintenance_dir}.")
-        raise SystemExit(1)
-
-    modules = load_components(maintenance_dir)
-    presentation = modules["presentation"]
-    essentials = modules["essentials"]
-
     presentation.print_main_header("UPDATE")
-    presentation.run_step("*", "Installing core tools", essentials.install_core_tools)
-
-    presentation.print_section_header("RELOADING BAR")
-    presentation.run_step(
-        "*", "Reloading bar configuration", "~/.config/hypr/scripts/bar.sh &"
+    presentation.execute_planned_step(
+        "*",
+        "Installing core tools",
+        essentials.install_core_tools,
+        run=plan["core_tools"],
     )
 
-    cleanup_package_manager(presentation)
+    presentation.print_section_header("RELOADING BAR")
+    presentation.execute_planned_step(
+        "*",
+        "Reloading bar configuration",
+        "~/.config/hypr/scripts/bar.sh &",
+        run=plan["reload_bar"],
+    )
+
+    if plan["packages"]:
+        cleanup_package_manager(presentation)
 
     presentation.print_section_header("PACKAGE UPDATES")
-    aur_helper = detect_aur_helper()
-    if aur_helper:
-        presentation.run_interactive_step(
+    if plan["packages"] and aur_helper:
+        presentation.execute_planned_step(
             "*",
-            f"Updating necessary packages (using {aur_helper})",
+            package_description,
             lambda: modules["packages"].install_packages(aur_helper),
-            "y",
+            run=True,
         )
+    elif plan["packages"]:
+        presentation.print_step("*", package_description)
+        presentation.print_warning("No AUR helper installed — skipping packages.")
+        print("")
     else:
-        presentation.print_warning("No AUR helper installed.")
+        presentation.execute_planned_step(
+            "*",
+            package_description,
+            lambda: modules["packages"].install_packages(aur_helper),
+            run=False,
+        )
 
     presentation.print_section_header("PLUGINS")
-    presentation.run_interactive_step(
-        "*", "Updating plugins", modules["plugins"].install_plugins, "y"
+    presentation.execute_planned_step(
+        "*",
+        "Updating plugins",
+        modules["plugins"].install_plugins,
+        run=plan["plugins"],
     )
 
     presentation.print_section_header("UPDATE COMPLETE")

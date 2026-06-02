@@ -4,15 +4,16 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parent.parent))
-    from components.essentials import Colors, continue_prompt
+    from components.essentials import Colors, continue_prompt, prompt_yes_no
     from components.utils import read_json_output, run_shell
 else:
-    from .essentials import Colors, continue_prompt
+    from .essentials import Colors, continue_prompt, prompt_yes_no
     from .utils import read_json_output, run_shell
 
 BOLD = "\033[1m"
@@ -48,6 +49,51 @@ def print_success(message: str) -> None:
 
 def print_warning(message: str) -> None:
     print(f"{YELLOW}WARN{NC} {message}")
+
+
+@dataclass(frozen=True)
+class PlannedStep:
+    key: str
+    description: str
+    default_choice: str = "none"
+
+
+def collect_section_choices(title: str, steps: list[PlannedStep]) -> dict[str, bool]:
+    """Prompt Y/n for every step upfront; return which steps to run."""
+    print_section_header(title)
+    choices: dict[str, bool] = {}
+    for step in steps:
+        choices[step.key] = prompt_yes_no(step.description, step.default_choice)
+    print("")
+    print_success("Plan saved — running selected steps automatically")
+    print("")
+    return choices
+
+
+def execute_planned_step(
+    icon: str,
+    description: str,
+    command: Optional[Callable[[], None] | str],
+    *,
+    run: bool,
+) -> None:
+    """Run a step when selected in the upfront plan, otherwise skip."""
+    print_step(icon, description)
+    if not run:
+        print_warning("Skipped (not selected in plan)")
+        print("")
+        return
+    try:
+        if command is None:
+            return
+        if callable(command):
+            command()
+        else:
+            run_shell(command)
+        print_success(description)
+        print("")
+    except Exception as exc:  # noqa: BLE001
+        error_exit(f"Failed: {description} ({exc})")
 
 
 def print_main_header(mode: str = "INSTALL & UPDATE") -> None:

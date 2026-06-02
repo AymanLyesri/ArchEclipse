@@ -165,11 +165,8 @@ def remove_packages() -> None:
         print("No specified packages are installed.")
 
 
-def continue_prompt(
-    prompt: str,
-    action: Optional[Callable[[], None] | str] = None,
-    default_choice: str = "none",
-) -> int:
+def prompt_yes_no(prompt: str, default_choice: str = "none") -> bool:
+    """Ask once whether to run a step. Returns True to run, False to skip."""
     default_choice = default_choice.lower()
     if default_choice not in {"y", "n", "none"}:
         default_choice = "none"
@@ -198,26 +195,37 @@ def continue_prompt(
             choice = default_choice
 
         if choice.lower().startswith("y"):
-            if action is None:
-                return 0
-            try:
-                if callable(action):
-                    action()
-                else:
-                    run_shell(action)
-                print(f"{Colors.GREEN}Step completed successfully{Colors.RESET}")
-                print("")
-                return 0
-            except Exception as exc:  # noqa: BLE001 - report action failures
-                print(f"{Colors.RED}Step failed: {exc}{Colors.RESET}")
-                print("")
-                return 1
+            return True
         if choice.lower().startswith("n"):
-            print(f"{Colors.YELLOW}Step skipped by user{Colors.RESET}")
-            print("")
-            return 0
+            return False
 
         print(f"{Colors.RED}Invalid choice. Please answer Y or N.{Colors.RESET}")
+
+
+def continue_prompt(
+    prompt: str,
+    action: Optional[Callable[[], None] | str] = None,
+    default_choice: str = "none",
+) -> int:
+    if not prompt_yes_no(prompt, default_choice):
+        print(f"{Colors.YELLOW}Step skipped by user{Colors.RESET}")
+        print("")
+        return 0
+
+    if action is None:
+        return 0
+    try:
+        if callable(action):
+            action()
+        else:
+            run_shell(action)
+        print(f"{Colors.GREEN}Step completed successfully{Colors.RESET}")
+        print("")
+        return 0
+    except Exception as exc:  # noqa: BLE001 - report action failures
+        print(f"{Colors.RED}Step failed: {exc}{Colors.RESET}")
+        print("")
+        return 1
 
 
 __all__ = [
@@ -228,6 +236,7 @@ __all__ = [
     "install_discord_client",
     "remove_packages",
     "continue_prompt",
+    "prompt_yes_no",
     "fzf_select",
     "FZF_HEIGHT",
     "Colors",
