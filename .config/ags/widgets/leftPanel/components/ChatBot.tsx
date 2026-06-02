@@ -943,13 +943,12 @@ const SessionTabs = (): JSX.Element => {
                   active={activeSessionId((id) => id === session.id)}
                   label={session.name}
                   // Tooltip with instructions for deleting the session, also display first message if available in the session for context
-                  tooltipMarkup={`<b>Right-click to delete</b>${
-                    escapedMessage
-                      ? `
+                  tooltipMarkup={`<b>Right-click to delete</b>${escapedMessage
+                    ? `
 
 <b>Context:</b> ${escapedMessage}`
-                      : ""
-                  }`}
+                    : ""
+                    }`}
                   vexpand={false}
                   onToggled={({ active }) => {
                     if (active) {
@@ -1362,10 +1361,17 @@ const MessageEntry = (): JSX.Element => {
  * @returns {JSX.Element} Horizontal box with input controls
  */
 const BottomBar = (): JSX.Element => (
-  <box class="bottom-bar" spacing={10}>
-    <MessageEntry />
-    <ClearButton />
-    {/* <ImageGenerationSwitch /> */}
+  <box class="bottom-bar" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
+    <box class="input" spacing={10}>
+      <MessageEntry />
+      <ClearButton />
+    </box>
+
+    {/* Session management tabs */}
+    <SessionTabs />
+
+    {/* API provider selection */}
+    <ApiList />
   </box>
 );
 
@@ -1427,7 +1433,7 @@ export default (): JSX.Element => {
       class="chat-bot"
       orientation={Gtk.Orientation.VERTICAL}
       hexpand
-      spacing={5}
+      spacing={10}
       $={async (self) => {
         // Setup auto-focus on mouse enter
         const motion = new Gtk.EventControllerMotion();
@@ -1461,21 +1467,13 @@ export default (): JSX.Element => {
       {/* Scrollable message history */}
       <Messages />
 
-      {/* Input controls with loading indicator */}
-      <box orientation={Gtk.Orientation.VERTICAL}>
-        <Progress
-          status={progressStatus}
-          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
-          custom_class="booru-progress"
-        />
-        <BottomBar />
-      </box>
+      <BottomBar />
 
-      {/* Session management tabs */}
-      <SessionTabs />
-
-      {/* API provider selection */}
-      <ApiList />
+      <Progress
+        status={progressStatus}
+        transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+        custom_class="booru-progress"
+      />
     </box>
   );
 };

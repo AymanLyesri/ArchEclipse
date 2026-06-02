@@ -37,7 +37,7 @@ export default () => {
             class="keybinds"
             orientation={Gtk.Orientation.VERTICAL}
             hexpand
-            spacing={15}
+            spacing={10}
           >
             {Object.entries(keybinds).map(([category, binds]) => (
               <box

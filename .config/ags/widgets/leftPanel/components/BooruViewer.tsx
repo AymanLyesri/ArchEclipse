@@ -113,8 +113,7 @@ const [limit, setLimit] = createState<number>(100);
 const calculateCacheSize = async () => {
   try {
     const res = await execAsync(
-      `bash -c "du -sb ${booruPath}/${
-        globalSettings.peek().booru.api.value
+      `bash -c "du -sb ${booruPath}/${globalSettings.peek().booru.api.value
       }/previews | cut -f1"`,
     );
     // Convert bytes to megabytes
@@ -146,13 +145,11 @@ const ensureRatingTagFirst = () => {
 const cleanUp = () => {
   const promises = [
     execAsync(
-      `bash -c "rm -rf ${booruPath}/${
-        globalSettings.peek().booru.api.value
+      `bash -c "rm -rf ${booruPath}/${globalSettings.peek().booru.api.value
       }/previews/*"`,
     ),
     execAsync(
-      `bash -c "rm -rf ${booruPath}/${
-        globalSettings.peek().booru.api.value
+      `bash -c "rm -rf ${booruPath}/${globalSettings.peek().booru.api.value
       }/images/*"`,
     ),
   ];
@@ -750,16 +747,16 @@ const ClearCacheButton = () => {
   );
 };
 
-const Bottom = () => {
+const Actions = () => {
   const revealer = (
     <revealer
-      class="bottom-revealer"
+      class="revealer"
       transitionType={Gtk.RevealerTransitionType.SWING_UP}
       revealChild={bottomIsRevealed}
       transitionDuration={globalTransition}
     >
       <box
-        class="bottom-bar"
+        class="options"
         orientation={Gtk.Orientation.VERTICAL}
         spacing={10}
       >
@@ -779,7 +776,7 @@ const Bottom = () => {
 
   // action box (previous, revealer, next)
   const actions = (
-    <box class="actions" spacing={5}>
+    <box class="navigation" spacing={10}>
       <button
         label=""
         onClicked={() => {
@@ -813,7 +810,7 @@ const Bottom = () => {
   );
 
   return (
-    <box class={"bottom"} orientation={Gtk.Orientation.VERTICAL}>
+    <box class={"actions"} orientation={Gtk.Orientation.VERTICAL}>
       {actions}
       {revealer}
     </box>
@@ -826,7 +823,7 @@ export default () => {
       class="booru"
       orientation={Gtk.Orientation.VERTICAL}
       hexpand
-      spacing={5}
+      spacing={10}
       $={async (self) => {
         const keyController = new Gtk.EventControllerKey();
         keyController.connect("key-pressed", (_, keyval: number) => {
@@ -890,16 +887,16 @@ export default () => {
         });
       }}
     >
-      <box orientation={Gtk.Orientation.VERTICAL}>
-        <Images />
-        <Progress
-          status={progressStatus}
-          transitionType={Gtk.RevealerTransitionType.SWING_UP}
-          custom_class="booru-progress"
-        />
+      <Images />
+      <box class={"bottom-bar"} orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+        <Actions />
+        <Tabs />
       </box>
-      <Bottom />
-      <Tabs />
+      <Progress
+        status={progressStatus}
+        transitionType={Gtk.RevealerTransitionType.SWING_UP}
+        custom_class="booru-progress"
+      />
     </box>
   );
 };

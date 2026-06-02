@@ -19,9 +19,7 @@ function WaifuDisplay() {
                 );
                 setGlobalSetting(
                   "leftPanel.widget",
-                  leftPanelWidgetSelectors.findIndex(
-                    (w) => w.name === "BooruViewer",
-                  ),
+                  leftPanelWidgetSelectors.find((w) => w.name === "BooruViewer"),
                 );
               }}
             >

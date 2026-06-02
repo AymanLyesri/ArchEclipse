@@ -1,5 +1,5 @@
 .donations-widget {
-  padding: 1em;
+  padding: 0.5em;
 
   .donation-header {
     @include module;
@@ -17,8 +17,6 @@
 
   .donation-option {
     @include module;
-    // padding: 10px;
-    margin: 0px;
     box-shadow: $BOX-SHADOW;
     transition: all 0.3s ease;
 

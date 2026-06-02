@@ -4,7 +4,6 @@ import { execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
 
 import Hyprland from "gi://AstalHyprland";
-import { UserProfile } from "./UserProfile";
 import General from "./sub-components/General";
 const hyprland = Hyprland.get_default();
 
@@ -134,14 +133,14 @@ export default () => {
         class="donations-widget"
         orientation={Gtk.Orientation.VERTICAL}
         hexpand
-        spacing={15}
+        spacing={10}
       >
         {General()}
 
         {/* Header */}
         <box
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={10}
+          spacing={5}
           class="donation-header"
         >
           <label
