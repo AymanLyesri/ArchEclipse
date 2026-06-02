@@ -80,6 +80,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "presentation": importlib.import_module("components.presentation"),
         "backup": importlib.import_module("components.backup"),
         "keyboard": importlib.import_module("components.keyboard"),
+        "packages": importlib.import_module("components.packages"),
         "defaults": importlib.import_module("components.defaults"),
         "sddm": importlib.import_module("components.sddm"),
         "wallpapers": importlib.import_module("components.wallpapers"),
@@ -226,7 +227,7 @@ def main() -> None:
     presentation.run_interactive_step(
         "*",
         f"Installing necessary packages (using {aur_helper})",
-        f"{conf_dir}/.config/hypr/pacman/install-pkgs.sh {aur_helper}",
+        lambda: modules["packages"].install_packages(aur_helper),
     )
 
     presentation.print_section_header("SYSTEM THEME & APPEARANCE")

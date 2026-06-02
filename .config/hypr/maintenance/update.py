@@ -42,6 +42,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
     return {
         "essentials": importlib.import_module("components.essentials"),
         "presentation": importlib.import_module("components.presentation"),
+        "packages": importlib.import_module("components.packages"),
         "plugins": importlib.import_module("components.plugins"),
     }
 
@@ -228,7 +229,7 @@ def main() -> None:
         presentation.run_interactive_step(
             "*",
             f"Updating necessary packages (using {aur_helper})",
-            f"~/.config/hypr/pacman/install-pkgs.sh {aur_helper}",
+            lambda: modules["packages"].install_packages(aur_helper),
             "y",
         )
     else:
