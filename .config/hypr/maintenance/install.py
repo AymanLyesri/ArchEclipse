@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib
+import os
 import shutil
 import subprocess
 import sys
@@ -74,6 +76,39 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
     return components
 
 
+def parse_branch(argv: list[str]) -> str:
+    """
+    Branch precedence:
+    - `--branch/-b <name>`
+    - legacy positional `<branch>` (argv[1])
+    - env `ARCHECLIPSE_BRANCH`
+    - default: `master`
+    """
+    parser = argparse.ArgumentParser(add_help=True)
+    parser.add_argument(
+        "-b",
+        "--branch",
+        default=None,
+        help="ArchEclipse git branch to clone (default: master)",
+    )
+    parser.add_argument(
+        "legacy_branch",
+        nargs="?",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+
+    args = parser.parse_args(argv[1:])
+
+    if args.branch:
+        return str(args.branch)
+    if args.legacy_branch:
+        return str(args.legacy_branch)
+    if os.environ.get("ARCHECLIPSE_BRANCH"):
+        return str(os.environ["ARCHECLIPSE_BRANCH"])
+    return "master"
+
+
 def main() -> None:
     conf_dir = Path.home() / "ArchEclipse"
 
@@ -90,7 +125,7 @@ def main() -> None:
         print(f"Repository already exists at {conf_dir}; overwriting")
         shutil.rmtree(conf_dir)
 
-    branch = sys.argv[1] if len(sys.argv) > 1 else "master"
+    branch = parse_branch(sys.argv)
 
     print("Cloning ArchEclipse repository (latest commit only)...")
     run_cmd(
