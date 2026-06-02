@@ -15,6 +15,16 @@ else:
     from .utils import run_cmd, run_shell, fzf_select
 
 
+def _prompt_yes_no(prompt: str) -> bool:
+    while True:
+        choice = input(f"{prompt} [Y/N]: ").strip().lower()
+        if choice in {"y", "yes"}:
+            return True
+        if choice in {"n", "no"}:
+            return False
+        print("Please answer Y or N.")
+
+
 def configure_keyboard() -> None:
     run_shell("figlet 'KEYBOARD' -f slant | lolcat", check=False)
 
@@ -85,13 +95,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-def _prompt_yes_no(prompt: str) -> bool:
-    while True:
-        choice = input(f"{prompt} [Y/N]: ").strip().lower()
-        if choice in {"y", "yes"}:
-            return True
-        if choice in {"n", "no"}:
-            return False
-        print("Please answer Y or N.")

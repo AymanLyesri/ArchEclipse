@@ -46,16 +46,29 @@ def sync_configuration_files(conf_dir: Path) -> None:
         error_exit(f"Source directory not found: {conf_dir}")
 
     print(f"Preparing copy operation from {conf_dir} to {home_dir}...")
-    print(f"Step 1/2: Removing existing {home_dir}/.config...")
 
-    target = home_dir / ".config"
-    if target.exists() or target.is_symlink():
-        run_cmd(["sudo", "rm", "-rf", str(target)])
+    src_config_root = conf_dir / ".config"
+    dst_config_root = home_dir / ".config"
 
-    print("Step 2/2: Copying ArchEclipse content into HOME...")
-    run_cmd(
-        ["sudo", "cp", "-a", "--remove-destination", f"{conf_dir}/.", str(home_dir)]
-    )
+    if not src_config_root.exists():
+        error_exit(f"Source .config directory not found: {src_config_root}")
+
+    # Never delete the user's entire ~/.config. Only replace what this repo ships.
+    print("Step 1/2: Preparing ~/.config...")
+    if not dst_config_root.exists():
+        run_cmd(["sudo", "mkdir", "-p", str(dst_config_root)])
+
+    # Copy each top-level entry under repo's .config into ~/.config, overwriting
+    # only that entry.
+    print("Step 2/2: Syncing repo .config entries into ~/.config...")
+    entries = sorted(src_config_root.iterdir(), key=lambda p: p.name)
+    for src in entries:
+        dst = dst_config_root / src.name
+        if dst.exists() or dst.is_symlink():
+            print(f"Removing {dst}...")
+            run_cmd(["sudo", "rm", "-rf", str(dst)])
+        print(f"Copying {src} to {dst}...")
+        run_cmd(["sudo", "cp", "-a", str(src), str(dst)])
 
     print("Copy completed successfully.")
 
