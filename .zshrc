@@ -97,6 +97,8 @@ alias plugins="$HOME/.config/hypr/maintenance/components/plugins.py"
 
 alias defaults="$HOME/.config/hypr/maintenance/components/defaults.py"
 
+alias keyboard="$HOME/.config/hypr/maintenance/components/keyboard.py"
+
 # Waifu Chat Bot and Assistant
 alias waifu='source $HOME/linux-chat-bot/main.sh "$(pwd)"'
 

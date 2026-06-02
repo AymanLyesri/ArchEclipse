@@ -102,6 +102,8 @@ export const syncSettingsWithSupabase =
     const remoteUpdatedAt = remoteRow?.updated_at
       ? new Date(remoteRow.updated_at)
       : null;
+    const syncMeta = readSettingsSyncMeta();
+    const isFirstLocalSync = !syncMeta;
 
     if (!remoteRow?.settings) {
       const upload = await supabase.upsertCurrentUserSettings(
@@ -125,6 +127,22 @@ export const syncSettingsWithSupabase =
       return {
         ok: true,
         direction: "upload",
+      };
+    }
+
+    // If we don't have any local sync metadata yet, prefer the user's
+    // actual cloud settings over "fresh defaults" created locally.
+    // This avoids overwriting remote custom settings with defaults.
+    if (isFirstLocalSync) {
+      applyRemoteSettings(remoteRow.settings as any as Settings);
+      persistSyncMeta({
+        lastSyncAt: new Date().toISOString(),
+        lastDirection: "download",
+        lastRemoteUpdatedAt: remoteRow.updated_at || undefined,
+      });
+      return {
+        ok: true,
+        direction: "download",
       };
     }
 
