@@ -191,7 +191,7 @@ export default ({
 
     return (
       <box
-        class="bottom-bar"
+        class={"main"}
         spacing={5}
         orientation={Gtk.Orientation.VERTICAL}
         hexpand

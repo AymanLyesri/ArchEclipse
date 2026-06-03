@@ -181,11 +181,9 @@ def main() -> None:
     plan = presentation.collect_section_choices(
         "INSTALLATION PLAN",
         [
+            presentation.PlannedStep("backup", "Backing up old dotfiles from .config"),
             presentation.PlannedStep(
-                "backup", "Backing up dotfiles from .config"
-            ),
-            presentation.PlannedStep(
-                "config", "Copying configuration files to HOME"
+                "config", "Applying ArchEclipse Configuration", default_choice="y"
             ),
             presentation.PlannedStep(
                 "keyboard",
@@ -193,11 +191,12 @@ def main() -> None:
                 default_choice="n",
             ),
             presentation.PlannedStep(
-                "remove_packages", "Removing unwanted packages"
+                "remove_packages", "Removing unwanted packages", default_choice="n"
             ),
             presentation.PlannedStep(
                 "install_packages",
                 "Installing necessary packages (requires AUR helper)",
+                default_choice="y",
             ),
             presentation.PlannedStep("sddm", "Setting up SDDM theme"),
             presentation.PlannedStep(
