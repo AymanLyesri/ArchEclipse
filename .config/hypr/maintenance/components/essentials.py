@@ -92,7 +92,7 @@ def install_browser(aur_helper: str = "yay") -> None:
         package = "zen-browser-bin"
         app = "zen-browser"
     elif selection == "firefox":
-        title = "Firefox"
+        title = "Mozilla Firefox"
         package = "firefox"
         app = "firefox"
     elif selection == "chromium":
@@ -106,11 +106,19 @@ def install_browser(aur_helper: str = "yay") -> None:
 
     run_cmd([aur_helper, "-S", "--noconfirm", package])
 
-    config_path = Path.home() / ".config/hypr/configs/defaults/browser.conf"
-    config_path.write_text(
-        f"exec-once = {app} \n windowrule = workspace 2 silent, match:title ^({title})$",
-        encoding="utf-8",
+    config_path = Path.home() / ".config/hypr/config/defaults/browser.lua"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    lua_content = (
+        f'hl.on("hyprland.start", function()\n'
+        f'    hl.exec_cmd("{app}")\n'
+        f'end)\n\n'
+        f'hl.window_rule({{\n'
+        f'    match = {{ title = "^({title})$" }},\n'
+        f'    workspace = "2 silent",\n'
+        f'}})\n'
     )
+    config_path.write_text(lua_content, encoding="utf-8")
 
 
 def install_discord_client(aur_helper: str = "yay") -> None:
@@ -119,7 +127,7 @@ def install_discord_client(aur_helper: str = "yay") -> None:
     app = ""
 
     print("Choose a Discord client to install (recommended: legcord)")
-    cords = ["legcord", "discord", "betterdiscord"]
+    cords = ["legcord", "discord", "betterdiscord", "vesktop"]
     selection = fzf_select(cords, height=FZF_HEIGHT)
     if not selection:
         print("No Discord client selected.")
@@ -138,15 +146,43 @@ def install_discord_client(aur_helper: str = "yay") -> None:
         class_name = "BetterDiscord"
         package = "betterdiscord"
         app = "betterdiscord"
+    elif selection == "vesktop":
+        class_name = "vesktop"
+        package = "vesktop"
+        app = "vesktop"
 
     run_cmd([aur_helper, "-S", "--noconfirm", package])
 
-    config_path = Path.home() / ".config/hypr/configs/defaults/discord_client.conf"
-    config_path.write_text(
-        f"workspace = 6, gapsout:69, on-created-empty:{class_name} \n "
-        "windowrule = workspace 6 silent, match:class ^.*cord$",
-        encoding="utf-8",
+    config_path = Path.home() / ".config/hypr/config/defaults/discord_client.lua"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    lua_content = (
+        f'hl.on("hyprland.start", function()\n'
+        f'    hl.exec_cmd("{app}")\n'
+        f'end)\n\n'
+        f'hl.window_rule({{\n'
+        f'    match = {{ class = "{class_name}" }},\n'
+        f'    workspace = "6 silent",\n'
+        f'}})\n'
     )
+    config_path.write_text(lua_content, encoding="utf-8")
+
+
+def create_exec_config() -> None:
+    """Creates the exec.lua file for starting btop in kitty on workspace 5."""
+    print("Creating autostart configuration for btop...")
+    
+    config_path = Path.home() / ".config/hypr/config/defaults/exec.lua"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    lua_content = (
+        'local terminal = "kitty"\n\n'
+        'hl.on("hyprland.start", function()\n'
+        '    hl.exec_cmd(terminal .. " btop", { workspace = "5 silent" })\n'
+        'end)\n'
+    )
+    config_path.write_text(lua_content, encoding="utf-8")
+    print(f"Configuration written to {config_path}")
 
 
 def remove_packages() -> None:
@@ -234,6 +270,7 @@ __all__ = [
     "install_paru",
     "install_browser",
     "install_discord_client",
+    "create_exec_config",
     "remove_packages",
     "continue_prompt",
     "prompt_yes_no",

@@ -42,7 +42,6 @@ urls_images_sfw = [
     "https://w.wallhaven.cc/full/zp/wallhaven-zpzv7j.jpg",
     "https://w.wallhaven.cc/full/po/wallhaven-polpoe.jpg",
     "https://w.wallhaven.cc/full/w5/wallhaven-w51kxr.jpg",
-    "https://w.wallhaven.cc/full/5y/wallhaven-5y5dp3.jpg",
     "https://w.wallhaven.cc/full/5y/wallhaven-5yz968.jpg",
     "https://w.wallhaven.cc/full/d8/wallhaven-d8395l.jpg",
     "https://w.wallhaven.cc/full/yq/wallhaven-yq56jg.jpg",
