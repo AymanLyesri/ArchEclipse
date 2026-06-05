@@ -95,7 +95,7 @@ KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form
 > Run this one liner in the terminal
 
 ```bash
-python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/dev/.config/hypr/maintenance/install.py)
+python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/install.py)
 ```
 
 ## Update Guide
