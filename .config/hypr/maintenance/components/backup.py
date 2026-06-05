@@ -16,41 +16,53 @@ else:
 def backup_dotfiles(conf_dir: Path) -> None:
     run_shell("figlet 'BACKUP' -f slant | lolcat", check=False)
 
-    repo_config = conf_dir / ".config"
-    if not repo_config.exists():
-        print(f"Warning: no .config found in cloned repo ({repo_config}); nothing to back up.")
+    if not conf_dir.exists():
+        print(f"Warning: cloned repo not found ({conf_dir}); nothing to back up.")
         return
 
     date_stamp = datetime.datetime.now().strftime("%Y%m%d")
     backup_dir = Path.home() / f"dotfiles_backup_{date_stamp}"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
-    source_config = Path.home() / ".config"
-    dest_config = backup_dir / ".config"
-    dest_config.mkdir(parents=True, exist_ok=True)
-
-    entries = sorted(repo_config.iterdir(), key=lambda p: p.name)
-    if not entries:
-        print(f"Warning: repo .config ({repo_config}) is empty; nothing to back up.")
-        return
+    home_dir = Path.home()
+    entries = sorted(conf_dir.iterdir(), key=lambda p: p.name)
 
     for repo_entry in entries:
-        src = source_config / repo_entry.name
-        dst = dest_config / repo_entry.name
+        src = home_dir / repo_entry.name
+        dst = backup_dir / repo_entry.name
 
         if not src.exists() and not src.is_symlink():
-            print(f"Skipping {src} (not present in ~/.config).")
+            print(f"Skipping {src} (not present in ~/).")
             continue
 
-        if dst.exists() or dst.is_symlink():
-            shutil.rmtree(dst) if dst.is_dir() else dst.unlink()
+        if repo_entry.is_dir():
+            dst.mkdir(parents=True, exist_ok=True)
+            for child in sorted(repo_entry.iterdir(), key=lambda p: p.name):
+                child_src = src / child.name
+                child_dst = dst / child.name
 
-        if src.is_dir():
-            shutil.copytree(src, dst)
+                if not child_src.exists() and not child_src.is_symlink():
+                    print(f"Skipping {child_src} (not present in ~/).")
+                    continue
+
+                if child_dst.exists() or child_dst.is_symlink():
+                    (
+                        shutil.rmtree(child_dst)
+                        if child_dst.is_dir()
+                        else child_dst.unlink()
+                    )
+
+                if child_src.is_dir():
+                    shutil.copytree(child_src, child_dst)
+                else:
+                    shutil.copy2(child_src, child_dst)
+
+                print(f"Backed up {child_src} -> {child_dst}")
         else:
+            if dst.exists() or dst.is_symlink():
+                dst.unlink()
             shutil.copy2(src, dst)
-
-        print(f"Backed up {src} -> {dst}")
+            print(f"Backed up {src} -> {dst}")
 
     print(f"Dotfiles have been backed up to {backup_dir}.")
 

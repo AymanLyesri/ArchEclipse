@@ -37,6 +37,7 @@ def error_exit(message: str) -> None:
     print(f"ERROR {message}")
     raise SystemExit(1)
 
+
 def sync_configuration_files(conf_dir: Path) -> None:
     home_dir = Path.home()
     if not home_dir.exists():
@@ -46,36 +47,35 @@ def sync_configuration_files(conf_dir: Path) -> None:
 
     print(f"Preparing copy operation from {conf_dir} to {home_dir}...")
 
-    src_config_root = conf_dir / ".config"
-    dst_config_root = home_dir / ".config"
+    entries = sorted(conf_dir.iterdir(), key=lambda p: p.name)
 
-    if not src_config_root.exists():
-        error_exit(f"Source .config directory not found: {src_config_root}")
-
-    # Never delete the user's entire ~/.config. Only replace what this repo ships.
-    print("Step 1/2: Preparing ~/.config...")
-    if not dst_config_root.exists():
-        run_cmd(["sudo", "mkdir", "-p", str(dst_config_root)])
-
-    # Copy each top-level entry under repo's .config into ~/.config, overwriting
-    # only that entry.
-    print("Step 2/2: Syncing repo .config entries into ~/.config...")
-    entries = sorted(src_config_root.iterdir(), key=lambda p: p.name)
     for src in entries:
-        dst = dst_config_root / src.name
-        if dst.exists() or dst.is_symlink():
-            print(f"Removing {dst}...")
-            # Strip immutable bits before removal to avoid EPERM on ext4
-            run_cmd(["sudo", "chattr", "-R", "-i", str(dst)], check=False)
-            result = run_cmd(["sudo", "rm", "-rf", str(dst)], check=False)
-            if result.returncode != 0:
-                error_exit(
-                    f"Failed to remove {dst}. "
-                    "It may be a mount point or owned by a process. "
-                    f"Try: sudo umount {dst} or sudo rm -rf {dst}"
-                )
-        print(f"Copying {src} to {dst}...")
-        run_cmd(["sudo", "cp", "-a", str(src), str(dst)])
+        dst = home_dir / src.name
+
+        if src.is_dir():
+            dst.mkdir(parents=True, exist_ok=True)
+            for child in sorted(src.iterdir(), key=lambda p: p.name):
+                child_dst = dst / child.name
+                if child_dst.exists() or child_dst.is_symlink():
+                    print(f"Removing {child_dst}...")
+                    run_cmd(["sudo", "chattr", "-R", "-i", str(child_dst)], check=False)
+                    result = run_cmd(["sudo", "rm", "-rf", str(child_dst)], check=False)
+                    if result.returncode != 0:
+                        error_exit(
+                            f"Failed to remove {child_dst}. "
+                            "It may be a mount point or owned by a process. "
+                            f"Try: sudo umount {child_dst} or sudo rm -rf {child_dst}"
+                        )
+                print(f"Copying {child} -> {child_dst}...")
+                run_cmd(["sudo", "cp", "-a", str(child), str(child_dst)])
+        else:
+            if dst.exists() or dst.is_symlink():
+                print(f"Removing {dst}...")
+                result = run_cmd(["sudo", "rm", "-f", str(dst)], check=False)
+                if result.returncode != 0:
+                    error_exit(f"Failed to remove {dst}.")
+            print(f"Copying {src} -> {dst}...")
+            run_cmd(["sudo", "cp", "-a", str(src), str(dst)])
 
     print("Copy completed successfully.")
 
@@ -188,7 +188,9 @@ def main() -> None:
     plan = presentation.collect_section_choices(
         "INSTALLATION PLAN",
         [
-            presentation.PlannedStep("backup", "Backing up old dotfiles from .config"),
+            presentation.PlannedStep(
+                "backup", "Backing up old dotfiles from .config", default_choice="n"
+            ),
             presentation.PlannedStep(
                 "config", "Applying ArchEclipse Configuration", default_choice="y"
             ),
@@ -205,7 +207,9 @@ def main() -> None:
                 "Installing necessary packages (requires AUR helper)",
                 default_choice="y",
             ),
-            presentation.PlannedStep("sddm", "Setting up SDDM theme"),
+            presentation.PlannedStep(
+                "sddm", "Setting up SDDM theme", default_choice="n"
+            ),
             presentation.PlannedStep(
                 "defaults", "Applying default configurations", default_choice="y"
             ),
