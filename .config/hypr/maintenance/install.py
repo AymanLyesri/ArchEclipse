@@ -36,49 +36,30 @@ def error_exit(message: str) -> None:
     raise SystemExit(1)
 
 def sync_configuration_files(conf_dir: Path) -> None:
+    """
+    Deploy dotfiles by checking out the repo directly into HOME.
+    Uses a bare-repo worktree approach — no sudo cp needed.
+    """
     home_dir = Path.home()
-    if not home_dir.exists():
-        error_exit(f"HOME directory not found: {home_dir}")
-    if not conf_dir.exists():
-        error_exit(f"Source directory not found: {conf_dir}")
 
-    print(f"Preparing copy operation from {conf_dir} to {home_dir}...")
+    # Convert conf_dir clone into a bare-style setup
+    # by pointing its worktree at HOME
+    run_cmd(["git", "config", "core.worktree", str(home_dir)], cwd=conf_dir)
+    run_cmd(["git", "config", "core.bare", "false"], cwd=conf_dir)
 
-    entries = sorted(conf_dir.iterdir(), key=lambda p: p.name)
+    # Don't let git complain about untracked files in HOME
+    run_cmd(
+        ["git", "config", "status.showUntrackedFiles", "no"],
+        cwd=conf_dir,
+    )
 
-    for src in entries:
-        dst = home_dir / src.name
+    # Force checkout — overwrites existing files without needing sudo
+    run_cmd(
+        ["git", "checkout", "--force", "HEAD", "--", "."],
+        cwd=conf_dir,
+    )
 
-        if src.is_dir():
-            dst.mkdir(parents=True, exist_ok=True)
-            for child in sorted(src.iterdir(), key=lambda p: p.name):
-                child_dst = dst / child.name
-                if child_dst.exists() or child_dst.is_symlink():
-                    print(f"Removing {child_dst}...")
-                    run_cmd(["sudo", "chattr", "-R", "-i", str(child_dst)], check=False)
-                    result = run_cmd(["sudo", "rm", "-rf", str(child_dst)], check=False)
-                    if result.returncode != 0:
-                        error_exit(
-                            f"Failed to remove {child_dst}. "
-                            "It may be a mount point or owned by a process. "
-                            f"Try: sudo umount {child_dst} or sudo rm -rf {child_dst}"
-                        )
-                print(f"Copying {child} -> {child_dst}...")
-                run_cmd(["sudo", "cp", "-a", str(child), str(child_dst)])
-        else:
-            if dst.exists() or dst.is_symlink():
-                print(f"Removing {dst}...")
-                result = run_cmd(["sudo", "rm", "-f", str(dst)], check=False)
-                if result.returncode != 0:
-                    error_exit(f"Failed to remove {dst}.")
-            print(f"Copying {src} -> {dst}...")
-            run_cmd(["sudo", "cp", "-a", str(src), str(dst)])
-
-    # Reload Hyprland configuration
-    print("Reloading Hyprland configuration...")
-    run_cmd(["hyprctl", "reload"], check=False)
-    
-    print("Copy completed successfully.")
+    print("Configuration files deployed successfully.")
 
 
 def load_components(maintenance_dir: Path) -> dict[str, Any]:
@@ -325,6 +306,10 @@ def main() -> None:
 
     presentation.print_section_header("INSTALLATION COMPLETE")
     presentation.print_install_completion_message()
+
+    # Reload Hyprland configuration
+    print("Reloading Hyprland configuration...")
+    run_cmd(["hyprctl", "reload"], check=False)
 
 
 if __name__ == "__main__":
