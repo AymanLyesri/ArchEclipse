@@ -36,27 +36,17 @@ def error_exit(message: str) -> None:
     raise SystemExit(1)
 
 def sync_configuration_files(conf_dir: Path) -> None:
-    """
-    Deploy dotfiles by checking out the repo directly into HOME.
-    Uses a bare-repo worktree approach — no sudo cp needed.
-    """
     home_dir = Path.home()
 
-    # Convert conf_dir clone into a bare-style setup
-    # by pointing its worktree at HOME
     run_cmd(["git", "config", "core.worktree", str(home_dir)], cwd=conf_dir)
-    run_cmd(["git", "config", "core.bare", "false"], cwd=conf_dir)
+    run_cmd(["git", "config", "status.showUntrackedFiles", "no"], cwd=conf_dir)
 
-    # Don't let git complain about untracked files in HOME
+    # Checkout using the repo dir explicitly, not relative '.'
     run_cmd(
-        ["git", "config", "status.showUntrackedFiles", "no"],
-        cwd=conf_dir,
-    )
-
-    # Force checkout — overwrites existing files without needing sudo
-    run_cmd(
-        ["git", "checkout", "--force", "HEAD", "--", "."],
-        cwd=conf_dir,
+        ["git", "--git-dir", str(conf_dir / ".git"),
+         "--work-tree", str(home_dir),
+         "checkout", "--force", "HEAD"],
+        cwd=home_dir,
     )
 
     print("Configuration files deployed successfully.")
