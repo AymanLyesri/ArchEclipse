@@ -14,7 +14,6 @@ from typing import Any
 
 COUNTER_URL = "https://personal-counter-two.vercel.app/api/increment?workspace=archeclipse&counter=install"
 
-
 def run_cmd(
     args: list[str],
     *,
@@ -32,11 +31,9 @@ def run_cmd(
         input=input_text,
     )
 
-
 def error_exit(message: str) -> None:
     print(f"ERROR {message}")
     raise SystemExit(1)
-
 
 def sync_configuration_files(conf_dir: Path) -> None:
     home_dir = Path.home()
@@ -77,6 +74,10 @@ def sync_configuration_files(conf_dir: Path) -> None:
             print(f"Copying {src} -> {dst}...")
             run_cmd(["sudo", "cp", "-a", str(src), str(dst)])
 
+    # Reload Hyprland configuration
+    print("Reloading Hyprland configuration...")
+    run_cmd(["hyprctl", "reload"], check=False)
+    
     print("Copy completed successfully.")
 
 
