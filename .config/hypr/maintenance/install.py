@@ -37,7 +37,6 @@ def error_exit(message: str) -> None:
     print(f"ERROR {message}")
     raise SystemExit(1)
 
-
 def sync_configuration_files(conf_dir: Path) -> None:
     home_dir = Path.home()
     if not home_dir.exists():
@@ -66,7 +65,15 @@ def sync_configuration_files(conf_dir: Path) -> None:
         dst = dst_config_root / src.name
         if dst.exists() or dst.is_symlink():
             print(f"Removing {dst}...")
-            run_cmd(["sudo", "rm", "-rf", str(dst)])
+            # Strip immutable bits before removal to avoid EPERM on ext4
+            run_cmd(["sudo", "chattr", "-R", "-i", str(dst)], check=False)
+            result = run_cmd(["sudo", "rm", "-rf", str(dst)], check=False)
+            if result.returncode != 0:
+                error_exit(
+                    f"Failed to remove {dst}. "
+                    "It may be a mount point or owned by a process. "
+                    f"Try: sudo umount {dst} or sudo rm -rf {dst}"
+                )
         print(f"Copying {src} to {dst}...")
         run_cmd(["sudo", "cp", "-a", str(src), str(dst)])
 
@@ -245,7 +252,7 @@ def main() -> None:
     presentation.execute_planned_step(
         "*",
         "Backing up dotfiles from .config",
-        modules["backup"].backup_dotfiles,
+        lambda: modules["backup"].backup_dotfiles(conf_dir),  # pass conf_dir here
         run=plan["backup"],
     )
     presentation.execute_planned_step(

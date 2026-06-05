@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Backup and restore dotfiles."""
-
 from __future__ import annotations
-
 import datetime
 import shutil
 import sys
@@ -15,20 +13,46 @@ else:
     from .utils import run_cmd, run_shell
 
 
-def backup_dotfiles() -> None:
+def backup_dotfiles(conf_dir: Path) -> None:
     run_shell("figlet 'BACKUP' -f slant | lolcat", check=False)
+
+    repo_config = conf_dir / ".config"
+    if not repo_config.exists():
+        print(f"Warning: no .config found in cloned repo ({repo_config}); nothing to back up.")
+        return
 
     date_stamp = datetime.datetime.now().strftime("%Y%m%d")
     backup_dir = Path.home() / f"dotfiles_backup_{date_stamp}"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
-    source = Path.home() / ".config"
-    dest = backup_dir / ".config"
-    if dest.exists():
-        shutil.rmtree(dest)
-    shutil.copytree(source, dest)
+    source_config = Path.home() / ".config"
+    dest_config = backup_dir / ".config"
+    dest_config.mkdir(parents=True, exist_ok=True)
 
-    print(f"Dotfiles have been copied to {backup_dir}.")
+    entries = sorted(repo_config.iterdir(), key=lambda p: p.name)
+    if not entries:
+        print(f"Warning: repo .config ({repo_config}) is empty; nothing to back up.")
+        return
+
+    for repo_entry in entries:
+        src = source_config / repo_entry.name
+        dst = dest_config / repo_entry.name
+
+        if not src.exists() and not src.is_symlink():
+            print(f"Skipping {src} (not present in ~/.config).")
+            continue
+
+        if dst.exists() or dst.is_symlink():
+            shutil.rmtree(dst) if dst.is_dir() else dst.unlink()
+
+        if src.is_dir():
+            shutil.copytree(src, dst)
+        else:
+            shutil.copy2(src, dst)
+
+        print(f"Backed up {src} -> {dst}")
+
+    print(f"Dotfiles have been backed up to {backup_dir}.")
 
 
 def restore_dotfiles() -> None:
@@ -38,7 +62,6 @@ def restore_dotfiles() -> None:
         raise SystemExit(1)
 
     backup_dir = backup_dirs[-1]
-
     run_cmd(
         [
             "rsync",
@@ -64,12 +87,18 @@ def main() -> None:
     parser.add_argument(
         "--restore", action="store_true", help="Restore the latest backup"
     )
+    parser.add_argument(
+        "--conf-dir",
+        type=Path,
+        default=Path.home() / "ArchEclipse",
+        help="Path to the cloned ArchEclipse repo (default: ~/ArchEclipse)",
+    )
     args = parser.parse_args()
 
     if args.restore:
         restore_dotfiles()
     else:
-        backup_dotfiles()
+        backup_dotfiles(args.conf_dir)
 
 
 if __name__ == "__main__":
