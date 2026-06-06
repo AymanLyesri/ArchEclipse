@@ -384,7 +384,64 @@ export class BooruImage {
       throw err;
     }
   }
+  /**
+   * Ensure one or both media files exist locally, downloading if missing.
+   *
+   * @param target
+   *   "preview"  — only the preview thumbnail
+   *   "original" — only the full-size image
+   *   "both"     — preview first, then full-size (default)
+   *
+   * Safe to call multiple times — skips any file that already exists on disk.
+   */
+  async ensureFilesExist(
+    target: "preview" | "original" | "both" = "both",
+  ): Promise<void> {
+    const checkPreview = target === "preview" || target === "both";
+    const checkOriginal = target === "original" || target === "both";
 
+    const previewPath = this.getPreviewPath();
+    const imagePath = this.getImagePath();
+
+    const previewExists =
+      checkPreview && Gio.File.new_for_path(previewPath).query_exists(null);
+    const imageExists =
+      checkOriginal && Gio.File.new_for_path(imagePath).query_exists(null);
+
+    // Download preview if needed
+    if (checkPreview && !previewExists && this.preview) {
+      try {
+        await execAsync([
+          "mkdir",
+          "-p",
+          `${booruPath}/${this.api.value}/previews`,
+        ]);
+        const curlArgs = ["curl", "-f", "-L", "-o", previewPath];
+        if (this.api.value === "gelbooru") {
+          curlArgs.splice(
+            2,
+            0,
+            "-H",
+            "Referer: https://gelbooru.com/",
+            "-A",
+            "Mozilla/5.0",
+          );
+        }
+        curlArgs.push(this.preview);
+        await execAsync(curlArgs);
+      } catch (err) {
+        console.warn(
+          `[BooruImage] Preview download failed for ${this.id}:`,
+          err,
+        );
+      }
+    }
+
+    // Download full image if needed
+    if (checkOriginal && !imageExists) {
+      await this.fetchImage();
+    }
+  }
   /**
    * Copy media to clipboard (images only)
    */
@@ -745,6 +802,8 @@ export class BooruImage {
       columnWidth: 100,
       ...options,
     };
+
+    this.ensureFilesExist("preview").catch(() => {});
 
     let info: string[] = [];
     this.isPinnedToTerminal() && info.push("");
@@ -1305,6 +1364,9 @@ export class BooruImage {
       progressStatus: "idle" as const,
       ...options,
     };
+    // Ensure preview and image are present; download silently if not.
+    this.ensureFilesExist("both").catch(() => {});
+
     const [currentlyPinned, setCurrentlyPinned] = createState(
       this.isPinnedToTerminal(),
     );

@@ -8,10 +8,11 @@ export const chatBotApis: Api[] = [
     description: "OpenAI's gpt-4o-mini model, versatile and efficient",
   },
   {
-    name: "Deepseek R1",
-    value: "deepseek/deepseek-r1",
-    icon: "DsR1",
-    description: "Deepseek's R1 model, optimized for contextual understanding",
+    name: "Qwen3.5 9B",
+    icon: "Q3.5",
+    description:
+      "Qwen's 3.5 9B model, designed for a wide range of applications with strong performance",
+    value: "qwen/qwen3.5-9b",
   },
   {
     name: "Meta Llama 3.2 1B Instruct",

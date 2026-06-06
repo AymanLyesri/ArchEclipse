@@ -24,19 +24,19 @@ export interface SettingsSyncMeta {
 
 export const settingsSyncMetaPath = `${GLib.get_home_dir()}/.config/ags/cache/settings/settings-sync.json`;
 
-const sanitizeSettings = (settings: Settings): Settings => {
-  const cloned = JSON.parse(JSON.stringify(settings)) as Settings;
+// const sanitizeSettings = (settings: Settings): Settings => {
+//   const cloned = JSON.parse(JSON.stringify(settings)) as Settings;
 
-  if (cloned.apiKeys) {
-    for (const provider of Object.keys(cloned.apiKeys)) {
-      const entry = (cloned.apiKeys as any)[provider];
-      if (entry?.user) entry.user.value = "";
-      if (entry?.key) entry.key.value = "";
-    }
-  }
+//   if (cloned.apiKeys) {
+//     for (const provider of Object.keys(cloned.apiKeys)) {
+//       const entry = (cloned.apiKeys as any)[provider];
+//       if (entry?.user) entry.user.value = "";
+//       if (entry?.key) entry.key.value = "";
+//     }
+//   }
 
-  return cloned;
-};
+//   return cloned;
+// };
 
 const readLocalSettings = (): Settings =>
   readJSONFile<Settings>(settingsPath, defaultSettings);
@@ -108,7 +108,7 @@ export const syncSettingsWithSupabase =
     if (!remoteRow?.settings) {
       const upload = await supabase.upsertCurrentUserSettings(
         session.access_token,
-        sanitizeSettings(localSettings) as any as Record<string, unknown>,
+        localSettings as any as Record<string, unknown>,
       );
 
       if (!upload.ok) {
@@ -167,7 +167,7 @@ export const syncSettingsWithSupabase =
 
     const upload = await supabase.upsertCurrentUserSettings(
       session.access_token,
-      sanitizeSettings(localSettings) as any as Record<string, unknown>,
+      localSettings as any as Record<string, unknown>,
     );
 
     if (!upload.ok) {
