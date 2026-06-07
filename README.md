@@ -1,125 +1,151 @@
-# **Arch Eclipse**
+<div align="center">
 
-# Overview
+<img src=".github/assets/overview.png" alt="ArchEclipse Overview" width="100%"/>
 
-![overview](.github/assets/overview.png)
+<br/>
 
-# Description
+# ArchEclipse
 
-This is my daily driver configuration that I use on both my laptop and desktop for coding, gaming, trading, browsing the web, etc., with Dvorak in mind. I am constantly adding new features and improvements.
+**A production-grade Hyprland desktop environment — built from scratch, engineered for daily use.**
 
-I use Arch BTW.. :)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/fMGt4vH6s5)
 
-> **Feel free to open an issue ♡ (anything you can think of)!**
+[![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=flat-square&logo=arch-linux&logoColor=white)](https://archlinux.org/)
+[![Hyprland](https://img.shields.io/badge/Hyprland-blue?style=flat-square)](https://hyprland.org/)
+[![GTK4](https://img.shields.io/badge/GTK4-4A86CF?style=flat-square&logo=gtk&logoColor=white)](https://gtk.org/)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org/)
+[![Stars](https://img.shields.io/github/stars/AymanLyesri/archeclipse?style=social)](https://github.com/AymanLyesri/ArchEclipse/stargazers)
+[![Issues](https://img.shields.io/github/issues/AymanLyesri/ArchEclipse?style=flat-square)](https://github.com/AymanLyesri/ArchEclipse/issues)
 
-# Discord
+</div>
 
-Official [Discord](https://discord.gg/fMGt4vH6s5) server.
+---
 
-# Features
+## What Is This?
 
-- **Dynamic wallpapers (static/animated)** based on each workspace: Custom scripts & [Hyprpaper](https://github.com/hyprwm/hyprpaper) / [Mpvpaper](https://github.com/GhostNaN/mpvpaper)
-- **Dynamic color schemes** based on current wallpaper: Custom scripts & [PyWal](https://github.com/dylanaraps/pywal)
-- **Global Theme switcher (Light/Dark)**: Custom scripts
-- **Ags `GTK4-V3` widgets** ~~(Eww replaced & Ags `GTK3-V2` replaced)~~: _these are just some of the features_
-  - Dynamic Color schemes based on current wallpaper `pywal`
-  - Dark/light modes `pywal`
-  - Main bar `switchable widgets`
-    - Workspace Overview
-    - Bandwidth speed monitor
-    - Weather
-    - Media Player
-    - Tray System
-    - Notification Popups
-    - Crypto display
-  - Application launcher ~~(Rofi replaced)~~
-    - Clipboard History
-    - App launcher
-    - Emojis
-    - Arithmetics
-    - Url forwarding to default browser
-    - Custom commands
-  - Wallpaper switcher for each workspace (static/animated)
-  - Keystroke Visualizer `optional`
-  - Right Panel `optional & switchable widgets`
-    - Waifu display -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs & Custom Images/Gifs
-    - Media Player
-    - Notification history
-    - Calendar
-    - Script Timer
-    - Crypto Viewer
-  - Left Panel
-    - Chat Bot -- multiple APIs
-    - Booru Viewer -- using [Danbooru](https://danbooru.donmai.us) & [Gelbooru](https://gelbooru.com) APIs
-    - Manga Reader -- Using [MangaDex](https://mangadex.org/) API `WIP`
-    - Hyprland/Ags settings
-    - Custom Scripts
-    - Keybinds display
-  - User Panel (logout etc...)
-- **High-quality wallpapers (static/animated)** from [Danbooru](https://danbooru.donmai.us), [Yandere](https://yande.re), & [Gelbooru](https://gelbooru.com)
+ArchEclipse is my personal, battle-tested desktop configuration for Arch Linux + Hyprland. It's a **fully integrated system** that I use daily for coding, trading, gaming, and general productivity.
 
-# Current Workflow
+Every component was written, tuned, and iterated on over real-world use. The result is a cohesive environment where the UI, system utilities, automation scripts, and visual theming all work as a single product — not a patchwork of borrowed configs.
 
-> **Important:** Screenshots below ⊽
+The project spans multiple languages and layers of the stack:
 
-| W1  | W2      | W3  | W4                                                  | W5                                           | W6                                                  | W7                                                                            | W8  | W9  | W10   |
-| --- | ------- | --- | --------------------------------------------------- | -------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- | --- | --- | ----- |
-| --- | Browser | --- | [Spotify](https://wiki.archlinux.org/title/spotify) | [Btop](https://github.com/aristocratos/btop) | [Discord](https://wiki.archlinux.org/title/Discord) | [Steam](https://wiki.archlinux.org/title/steam)/[Lutris](https://lutris.net/) | --- | --- | Games |
+| Layer                              | Technologies                          |
+| ---------------------------------- | ------------------------------------- |
+| **UI / Widgets**                   | GTK4, TypeScript, TSX (Ags framework) |
+| **Automation & Tooling**           | Python 3, Bash                        |
+| **Performance-Critical Utilities** | C                                     |
+| **Compositor**                     | Hyprland (Wayland)                    |
 
-- **W`id`**: Workspace with corresponding ID.
-- **`---`**: Placeholder, any app can go here.
-- **`name`**: Application that opens automatically in its designated workspace.
+---
 
-# To-Do List
+## Architecture & Technical Highlights
 
-- **Users: Any suggestions or issues?**
-- Add tutorials for each part of the dot-files **(WIP)**
-- Optimizing performance to squeeze more FPS out of games **(WIP)**
-- Continuous improvements and polishing **(INDEFINITELY)**
+### Dynamic Theming Engine
 
-# KeyBinds
+A custom pipeline generates a full system color scheme from the active wallpaper at runtime using [PyWal](https://github.com/dylanaraps/pywal). Colors propagate automatically to GTK4 widgets, terminal, and all UI components. No manual color editing required — ever.
 
-KeyBinds are displayed and organized in the [Left Panel](#left-panel) or in form of text [Here](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/configs/keybinds.conf), be sure to check them out!
+- Per-workspace wallpaper assignment with both static and animated (video) support
+- Global light/dark mode toggle with instant application across the entire environment
+- Color changes hot-reload without restarting any component
 
-# Installation and Update
+### GTK4 Widget System (TypeScript/TSX)
 
-## Required Dependencies and packages
+All shell UI is built with the **Ags GTK4 v3** framework — replacing prior Eww and Ags GTK3 implementations. Widgets are written in TypeScript with TSX, enabling type-safe, component-based UI development that mirrors modern web frontend workflows.
 
-- [Arch Linux](https://archlinux.org/) (Other Arch-based distributions may work, with varying degrees of success)
-- [Hyprland](https://hyprland.org/) (Make sure hyprland works properly before installing the dots)
-- [Python](https://wiki.archlinux.org/title/Python) (Python3 for the install script to work)
-- [Necessary packages](https://github.com/AymanLyesri/hyprland-conf/blob/master/.config/hypr/pacman/pkglist.txt) (do not worry they will be installed automatically)
+The bar is fully modular — widgets are swappable at runtime. Current slots include:
 
-## Installation Guide
+- Workspace overview with live thumbnails
+- Network bandwidth monitor
+- Weather integration
+- Media player (MPRIS)
+- System tray
+- Notification popups
+- Live crypto price display
 
-> Run this one liner in the terminal
+### Application Launcher (Rofi Replacement)
+
+A custom-built launcher written in GTK4/TS replacing Rofi entirely, with built-in support for:
+
+- App launching with fuzzy search
+- Clipboard history browser
+- Emoji picker
+- Inline arithmetic evaluation
+- URL forwarding to default browser
+- Arbitrary custom command execution
+
+### Panels
+
+**Right Panel** — Configurable layout with swappable widgets: media player, notification history, calendar, script runner, crypto portfolio viewer, and an anime image viewer powered by the [Danbooru](https://danbooru.donmai.us) and [Gelbooru](https://gelbooru.com) APIs.
+
+**Left Panel** — Power-user tools: an integrated chatbot (multi-API), a booru image browser, a manga reader ([MangaDex](https://mangadex.org/) API, WIP), live keybinds reference, and a Hyprland/Ags settings panel.
+
+### Installer & Updater
+
+The entire configuration deploys via a single command using a Python-based installer that handles dependency resolution, git-based dotfile deployment, and package management automatically. Post-install, the environment stays up to date with a single `archeclipse` command.
+
+---
+
+## Workspace Layout
+
+| Workspace      | Assigned Application |
+| -------------- | -------------------- |
+| W2             | Browser              |
+| W4             | Spotify              |
+| W5             | Btop                 |
+| W6             | Discord              |
+| W7             | Steam / Lutris       |
+| W10            | Games                |
+| W1, W3, W8, W9 | General purpose      |
+
+Applications launch automatically into their designated workspaces at login.
+
+---
+
+## Installation
+
+**Requirements:** Arch Linux (or Arch-based), Hyprland configured and working, Python 3.
+
+> All other dependencies are installed automatically by the installer.
+
+### One-line Install
 
 ```bash
-python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/hyprland-conf/refs/heads/master/.config/hypr/maintenance/install.py)
+python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/refs/heads/master/.config/hypr/maintenance/install.py)
 ```
 
-## Update Guide
-
-> To update the config and its related pkgs Simply run `archeclipse` in the terminal
+### Update
 
 ```bash
 archeclipse
 ```
 
-# Tips
+---
 
-- User Icon is stored in `$HOME/.face.icon`
-- Press `SUPER + w` to select the wallpaper you like
-- Custom wallpapers should be added in `$HOME/.config/wallpapers/custom`
-- Custom hyprland configuration should be put in `$HOME/.config/hypr/configs/custom`
+## Configuration Tips
 
-> **Important**: If you encounter any problems, no matter how small, please feel free to open an issue. I’m happy to help! :)
+- **User avatar:** `$HOME/.face.icon`
+- **Wallpaper picker:** `SUPER + W`
+- **Custom wallpapers:** `$HOME/.config/wallpapers/custom`
+- **Custom Hyprland config:** `$HOME/.config/hypr/configs/custom`
+- **Laptop users:** Install `upower` for battery monitoring
+- **Full keybinds reference:** [keybinds.conf](https://github.com/AymanLyesri/ArchEclipse/blob/master/.config/hypr/configs/keybinds.conf) or via the Left Panel in-environment
 
-# Additional Notes
+---
 
-- Machines with batteries (aka: laptops) require `upower` to be installed for battery monitoring to work properly.
+## Roadmap
 
-<br><br>
+- [ ] Per-component tutorials and documentation _(in progress)_
+- [ ] Gaming performance optimization _(in progress)_
+- [ ] MangaDex manga reader _(in progress)_
+- [ ] Continuous polish and refinement _(ongoing)_
+
+Issues, suggestions, and feature requests are always welcome — [open one here](https://github.com/AymanLyesri/ArchEclipse/issues).
+
+---
+
+## Support
+
+If this project saved you time or you just enjoy it, a coffee helps keep development going.
 
 <div align="center">
 
@@ -160,58 +186,54 @@ archeclipse
 </tr>
 </table>
 
-⭐ Add a Star if you enjoy the project
+---
 
-</div>
+## Star History
 
-<br><br>
+[![Star History Chart](https://api.star-history.com/svg?repos=aymanlyesri/ArchEclipse&type=Date)](https://star-history.com/#aymanlyesri/ArchEclipse&Date)
 
-# Star History
+---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=aymanlyesri/hyprland-conf&type=Date)](https://star-history.com/#aymanlyesri/hyprland-conf&Date)
+## Visuals
 
-# Visuals
+### Application Launcher
 
-## Application Launcher
+![Application Launcher](.github/assets/app-launcher.png)
 
-![image](.github/assets/app-launcher.png)
+### Right Panel — Configurable Layouts
 
-## Right Panel
+| Layout A                                                  | Layout B                                                  |
+| --------------------------------------------------------- | --------------------------------------------------------- |
+| ![Right Panel 1](.github/assets/right-panel-layout-1.png) | ![Right Panel 2](.github/assets/right-panel-layout-2.png) |
 
-> You can customize the widget layout however you want!
+### Left Panel
 
-| Example Layout                                    | Example Layout                                    |
-| ------------------------------------------------- | ------------------------------------------------- |
-| ![image](.github/assets/right-panel-layout-1.png) | ![image](.github/assets/right-panel-layout-2.png) |
+| Chatbot                                           | Booru Viewer                                    |
+| ------------------------------------------------- | ----------------------------------------------- |
+| ![Chatbot](.github/assets/left-panel-chatbot.png) | ![Booru](.github/assets/left-panel-booru-1.png) |
 
-## Left Panel
+| Settings                                            | Keybinds                                            |
+| --------------------------------------------------- | --------------------------------------------------- |
+| ![Settings](.github/assets/left-panel-settings.png) | ![Keybinds](.github/assets/left-panel-keybinds.png) |
 
-| Chat Bot                                        | Booru Viewer                                                                                    |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| ![image](.github/assets/left-panel-chatbot.png) | ![image](.github/assets/left-panel-booru-1.png) ![image](.github/assets/left-panel-booru-2.png) |
+### Wallpaper Switcher
 
-| Hyprland & Panel settings                        | KeyBinds Display                                 |
-| ------------------------------------------------ | ------------------------------------------------ |
-| ![image](.github/assets/left-panel-settings.png) | ![image](.github/assets/left-panel-keybinds.png) |
+![Wallpaper Switcher](.github/assets/wallpaper-switcher.png)
 
-## Wallpaper Switcher
+### Workspace Overview
 
-![wallpaper-switcher](.github/assets/wallpaper-switcher.png)
+![Workspace Overview](.github/assets/workspace-overview.gif)
 
-## Workspace OverView
+### Theme Switching
 
-![workspace-overview](.github/assets/workspace-overview.gif)
+| Dark Mode                              | Light Mode                               |
+| -------------------------------------- | ---------------------------------------- |
+| ![Dark](.github/assets/dark-theme.png) | ![Light](.github/assets/light-theme.png) |
 
-## Keystroke Visualizer `optional`
+### Keystroke Visualizer _(optional)_
 
-![keystroke-visualizer](.github/assets/keystroke-visualizer.gif)
+![Keystroke Visualizer](.github/assets/keystroke-visualizer.gif)
 
-## Theme Switching
+### User Panel
 
-| Dark Theme + Custom colors based on wallpaper | Light Theme + Custom colors based on wallpaper |
-| --------------------------------------------- | ---------------------------------------------- |
-| ![image](.github/assets/dark-theme.png)       | ![image](.github/assets/light-theme.png)       |
-
-## User Panel
-
-![user-panel](.github/assets/user-panel.gif)
+![User Panel](.github/assets/user-panel.gif)
