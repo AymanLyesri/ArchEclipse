@@ -18,21 +18,29 @@ const GeneralInfo = () => {
   const [isUpdating, setIsUpdating] = createState(false);
   const [updateStatus, setUpdateStatus] = createState("");
 
-  const configDir = GLib.getenv("HOME") + "/.config/ags";
+  // Path to the root of the Git repository (user's home folder)
+  const repoDir = GLib.getenv("HOME") || GLib.get_home_dir();
 
   const checkVersions = async () => {
     setIsCheckingVersion(true);
     try {
-      // Get current local commit
+      // Safely read the list of available remote repositories
+      const remotesOutput = exec(`git -C ${repoDir} remote`) || "";
+      const remotes = remotesOutput.trim().split(/\s+/);
+      const trackingRemote = remotes.includes("upstream") ? "upstream" : "origin";
+
+      // Get the local commit hash
       const localHash = exec(
-        `git -C ${configDir} rev-parse --short HEAD`,
+        `git -C ${repoDir} rev-parse --short HEAD`,
       ).trim();
       setCurrentVersion(localHash);
 
-      // Fetch and get remote commit
-      await execAsync(`git -C ${configDir} fetch origin master`);
+      // Request changes from the correct remote
+      await execAsync(`git -C ${repoDir} fetch ${trackingRemote} master`);
+      
+      // Get the hash of the remote commit
       const remoteHash = await execAsync(
-        `git -C ${configDir} rev-parse --short origin/master`,
+        `git -C ${repoDir} rev-parse --short ${trackingRemote}/master`,
       );
       setRemoteVersion(remoteHash.trim());
       setUpdateStatus("");

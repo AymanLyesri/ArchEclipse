@@ -11,9 +11,9 @@ from typing import Callable, Optional
 
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parent.parent))
-    from components.utils import command_exists, run_cmd, run_shell, fzf_select
+    from components.utils import command_exists, fzf_select, run_cmd, run_shell
 else:
-    from .utils import command_exists, run_cmd, run_shell, fzf_select
+    from .utils import command_exists, fzf_select, run_cmd, run_shell
 
 FZF_HEIGHT = "40%"
 
@@ -92,7 +92,7 @@ def install_browser(aur_helper: str = "yay") -> None:
         package = "zen-browser-bin"
         app = "zen-browser"
     elif selection == "firefox":
-        title = "Firefox"
+        title = "Mozilla Firefox"
         package = "firefox"
         app = "firefox"
     elif selection == "chromium":
@@ -106,11 +106,29 @@ def install_browser(aur_helper: str = "yay") -> None:
 
     run_cmd([aur_helper, "-S", "--noconfirm", package])
 
-    config_path = Path.home() / ".config/hypr/configs/defaults/browser.conf"
-    config_path.write_text(
-        f"exec-once = {app} \n windowrule = workspace 2 silent, match:title ^({title})$",
-        encoding="utf-8",
-    )
+    config_path = Path.home() / ".config/hypr/config/custom/browser.lua"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # If the template already exists, read it and change the parameters.
+    # If there is no template, use the default template with markers.
+    if config_path.exists():
+        lua_content = config_path.read_text(encoding="utf-8")
+    else:
+        lua_content = (
+            'hl.on("hyprland.start", function()\n'
+            '    hl.exec_cmd("{{ APP_NAME }}")\n'
+            "end)\n\n"
+            "hl.window_rule({\n"
+            '    match = { title = "^({{ APP_TITLE }})$" },\n'
+            '    workspace = "2 silent",\n'
+            "})\n"
+        )
+
+    # Dynamically replace markers with selected values
+    lua_content = lua_content.replace("{{ APP_NAME }}", app)
+    lua_content = lua_content.replace("{{ APP_TITLE }}", title)
+
+    config_path.write_text(lua_content, encoding="utf-8")
 
 
 def install_discord_client(aur_helper: str = "yay") -> None:
@@ -119,7 +137,7 @@ def install_discord_client(aur_helper: str = "yay") -> None:
     app = ""
 
     print("Choose a Discord client to install (recommended: legcord)")
-    cords = ["legcord", "discord", "betterdiscord"]
+    cords = ["legcord", "discord", "betterdiscord", "vesktop"]
     selection = fzf_select(cords, height=FZF_HEIGHT)
     if not selection:
         print("No Discord client selected.")
@@ -138,15 +156,36 @@ def install_discord_client(aur_helper: str = "yay") -> None:
         class_name = "BetterDiscord"
         package = "betterdiscord"
         app = "betterdiscord"
+    elif selection == "vesktop":
+        class_name = "vesktop"
+        package = "vesktop"
+        app = "vesktop"
 
     run_cmd([aur_helper, "-S", "--noconfirm", package])
 
-    config_path = Path.home() / ".config/hypr/configs/defaults/discord_client.conf"
-    config_path.write_text(
-        f"workspace = 6, gapsout:69, on-created-empty:{class_name} \n "
-        "windowrule = workspace 6 silent, match:class ^.*cord$",
-        encoding="utf-8",
-    )
+    config_path = Path.home() / ".config/hypr/config/custom/discord_client.lua"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # If the template already exists, read it and change the parameters.
+    # If there is no template, use the default template with markers.
+    if config_path.exists():
+        lua_content = config_path.read_text(encoding="utf-8")
+    else:
+        lua_content = (
+            'hl.on("hyprland.start", function()\n'
+            '    hl.exec_cmd("{{ APP_NAME }}")\n'
+            "end)\n\n"
+            "hl.window_rule({\n"
+            '    match = { class = "{{ CLASS_NAME }}" },\n'
+            '    workspace = "6 silent",\n'
+            "})\n"
+        )
+
+    # Dynamically replace markers with selected values
+    lua_content = lua_content.replace("{{ APP_NAME }}", app)
+    lua_content = lua_content.replace("{{ CLASS_NAME }}", class_name)
+
+    config_path.write_text(lua_content, encoding="utf-8")
 
 
 def remove_packages() -> None:

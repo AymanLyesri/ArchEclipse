@@ -1,8 +1,8 @@
 hl.on("hyprland.start", function()
-    hl.exec_cmd("zen-browser")
+    hl.exec_cmd("{{ APP_NAME }}")
 end)
 
 hl.window_rule({
-    match = { title = "^(Zen Browser)$" },
+    match = { title = "{{ APP_TITLE }}" },
     workspace = "2 silent",
 })
