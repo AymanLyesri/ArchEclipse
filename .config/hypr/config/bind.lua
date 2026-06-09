@@ -181,7 +181,7 @@ for i = 1, 10 do
     -- # move to workspace [key]
     hl.bind(mainMod .. " + CTRL + " .. key, hl.dsp.window.move({ workspace = i }))
     -- silent move to workspace [key]
-    -- hl.bind(mainMod .. " + SHIFT + " .. key, dispatch("movetoworkspacesilent " .. i))
+    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.move({ workspace = i, follow = false}))
 end
 
 -- # previous workspace
