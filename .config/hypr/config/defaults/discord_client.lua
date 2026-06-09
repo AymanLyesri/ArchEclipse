@@ -1,8 +1,8 @@
 hl.on("hyprland.start", function()
-    hl.exec_cmd("discord")
+    hl.exec_cmd("{{ APP_NAME }}")
 end)
 
 hl.window_rule({
-    match = { class = "^.*cord$" },
+    match = { class = "{{ CLASS_NAME }}" },
     workspace = "6 silent",
 })

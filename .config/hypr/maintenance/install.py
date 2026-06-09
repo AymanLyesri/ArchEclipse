@@ -186,6 +186,12 @@ def main() -> None:
                 "defaults", "Applying default configurations", default_choice="y"
             ),
             presentation.PlannedStep(
+                "browser", "Setting up browser", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "discord_client", "Setting up Discord client", default_choice="y"
+            ),
+            presentation.PlannedStep(
                 "wallpapers", "Setting up wallpapers", default_choice="y"
             ),
             presentation.PlannedStep(
@@ -272,6 +278,18 @@ def main() -> None:
         "Applying default configurations",
         modules["defaults"].apply_defaults,
         run=plan["defaults"],
+    )
+    presentation.execute_planned_step(
+        "*",
+        "Setting up browser",
+        lambda helper=aur_helper: modules["essentials"].install_browser(helper),
+        run=plan["browser"],
+    )
+    presentation.execute_planned_step(
+        "*",
+        "Setting up Discord client",
+        lambda helper=aur_helper: modules["essentials"].install_discord_client(helper),
+        run=plan["discord_client"],
     )
     presentation.execute_planned_step(
         "*",
