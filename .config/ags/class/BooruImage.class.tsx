@@ -525,6 +525,19 @@ export class BooruImage {
   }
 
   /**
+   * Check if this media is waifued (set as current waifuWidget background)
+   */
+  isCurrentWaifu(): boolean {
+    const current = globalSettings.peek().waifuWidget.current;
+    return (
+      (!!current &&
+        current.id === this.id &&
+        current.api?.value === this.api.value) ||
+      false
+    );
+  }
+
+  /**
    * Pin image to terminal background (images only)
    */
   async pinToTerminal(): Promise<void> {
@@ -807,6 +820,8 @@ export class BooruImage {
 
     let info: string[] = [];
     this.isPinnedToTerminal() && info.push("");
+    this.isBookmarked() && info.push("");
+    this.isCurrentWaifu() && info.push("");
     (this.tags.includes("animated") || this.isVideo()) && info.push("");
 
     // Create the button

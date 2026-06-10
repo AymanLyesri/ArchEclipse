@@ -181,33 +181,32 @@ for i = 1, 10 do
     -- # move to workspace [key]
     hl.bind(mainMod .. " + CTRL + " .. key, hl.dsp.window.move({ workspace = i }))
     -- silent move to workspace [key]
-    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.move({ workspace = i, follow = false}))
+    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
 end
 
 -- ## NumPad Workspaces Keybinds
 local numpad_keys = {
-	"KP_End",
-	"KP_Down",
-	"KP_Next",
-	"KP_Left",
-	"KP_Begin",
-	"KP_Right",
-	"KP_Home",
-	"KP_Up",
-	"KP_Prior",
-	"KP_Insert"
+    "KP_End",
+    "KP_Down",
+    "KP_Next",
+    "KP_Left",
+    "KP_Begin",
+    "KP_Right",
+    "KP_Home",
+    "KP_Up",
+    "KP_Prior",
+    "KP_Insert"
 }
 
 for index, key_name in ipairs(numpad_keys) do
-	local workspace_id = tostring(index + 10)
+    local workspace_id = tostring(index + 10)
 
-	-- Switch Workspace [key]
-	hl.bind(mainMod .. " + " .. key_name, hl.dsp.focus({ workspace = workspace_id }))
-	-- Move to workspace [key]
-	hl.bind(mainMod .. " + CTRL + " .. key_name, hl.dsp.window.move({ workspace = workspace_id }))
-	-- Silent moev to workspace [key]
-	hl.bind(mainMod .. " + SHIFT + " .. key_name, hl.dsp.window.move({ workspace = workspace_id, follow = false }))
-
+    -- Switch Workspace [key]
+    hl.bind(mainMod .. " + " .. key_name, hl.dsp.focus({ workspace = workspace_id }))
+    -- Move to workspace [key]
+    hl.bind(mainMod .. " + CTRL + " .. key_name, hl.dsp.window.move({ workspace = workspace_id }))
+    -- Silent moev to workspace [key]
+    hl.bind(mainMod .. " + SHIFT + " .. key_name, hl.dsp.window.move({ workspace = workspace_id, follow = false }))
 end
 
 -- # previous workspace
