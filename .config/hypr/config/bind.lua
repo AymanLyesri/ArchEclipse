@@ -27,6 +27,8 @@ local mainMod = "SUPER"
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ action = "toggle" }))
 -- # close active window
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
+-- # KILL active window
+hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.window.kill())
 -- # float for active window
 hl.bind(mainMod .. " + Space", hl.dsp.window.float({ action = "toggle" }))
 -- # pin active window
