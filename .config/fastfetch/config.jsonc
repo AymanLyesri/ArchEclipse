@@ -114,7 +114,7 @@
     },
     {
       "type": "custom",
-      "format": "{#1}│ `testcon` to test connection",
+      "format": "{#1}│ `quickspeed` to test connection",
     },
     // Colors
     {

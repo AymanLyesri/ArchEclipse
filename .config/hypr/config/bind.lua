@@ -62,7 +62,7 @@ hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd("ags request clipboard " .. m
 -- # open emoji picker
 hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("ags request emojis " .. monitor))
 -- # open notes app
-hl.bind(mainMod .. " + ALT + n", hl.dsp.exec_cmd("ags request notes " .. monitor))
+hl.bind(mainMod .. " + SHIFT + n", hl.dsp.exec_cmd("ags request notes " .. monitor))
 
 -- ## Screenshot and Screen Record Keybinds
 -- # screenshot workspace
@@ -116,27 +116,14 @@ hl.bind(mainMod .. " + CTRL + SHIFT + Escape", hl.dsp.exec_cmd("shutdown now"))
 -- # expand left
 hl.bind(mainMod .. " + SHIFT + left", hl.dsp.window.resize({ x = -resizeAmount, y = 0, relative = true }),
     { repeating = true })
--- # expand left
-hl.bind(mainMod .. " + SHIFT + H", hl.dsp.window.resize({ x = -resizeAmount, y = 0, relative = true }),
-    { repeating = true })
-
 -- # expand right
 hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x = resizeAmount, y = 0, relative = true }),
-    { repeating = true })
--- # expand right
-hl.bind(mainMod .. " + SHIFT + N", hl.dsp.window.resize({ x = resizeAmount, y = 0, relative = true }),
     { repeating = true })
 -- # expand up
 hl.bind(mainMod .. " + SHIFT + up", hl.dsp.window.resize({ x = 0, y = -resizeAmount, relative = true }),
     { repeating = true })
--- # expand up
-hl.bind(mainMod .. " + SHIFT + C", hl.dsp.window.resize({ x = 0, y = -resizeAmount, relative = true }),
-    { repeating = true })
 -- # expand down
 hl.bind(mainMod .. " + SHIFT + down", hl.dsp.window.resize({ x = 0, y = resizeAmount, relative = true }),
-    { repeating = true })
--- # expand down
-hl.bind(mainMod .. " + SHIFT + T", hl.dsp.window.resize({ x = 0, y = resizeAmount, relative = true }),
     { repeating = true })
 
 -- # move left
@@ -148,15 +135,6 @@ hl.bind(mainMod .. " + CTRL + up", hl.dsp.window.move({ direction = "u" }))
 -- # move down
 hl.bind(mainMod .. " + CTRL + down", hl.dsp.window.move({ direction = "d" }))
 
--- # move left
-hl.bind(mainMod .. " + CTRL + h", hl.dsp.window.move({ direction = "l" }))
--- # move right
-hl.bind(mainMod .. " + CTRL + n", hl.dsp.window.move({ direction = "r" }))
--- # move up
-hl.bind(mainMod .. " + CTRL + c", hl.dsp.window.move({ direction = "u" }))
--- # move down
-hl.bind(mainMod .. " + CTRL + t", hl.dsp.window.move({ direction = "d" }))
-
 -- # focus left
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
 -- # focus right
@@ -166,15 +144,6 @@ hl.bind(mainMod .. " + up", hl.dsp.focus({ direction = "up" }))
 -- # focus down
 hl.bind(mainMod .. " + down", hl.dsp.focus({ direction = "down" }))
 
--- # focus left
-hl.bind(mainMod .. " + h", hl.dsp.focus({ direction = "left" }))
--- # focus right
-hl.bind(mainMod .. " + n", hl.dsp.focus({ direction = "right" }))
--- # focus up
-hl.bind(mainMod .. " + c", hl.dsp.focus({ direction = "up" }))
--- # focus down
-hl.bind(mainMod .. " + t", hl.dsp.focus({ direction = "down" }))
-
 -- ## Workspace Keybinds
 for i = 1, 10 do
     local key = i % 10
@@ -182,7 +151,7 @@ for i = 1, 10 do
     hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
     -- # move to workspace [key]
     hl.bind(mainMod .. " + CTRL + " .. key, hl.dsp.window.move({ workspace = i }))
-    -- silent move to workspace [key]
+    -- # silent move to workspace [key]
     hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
 end
 

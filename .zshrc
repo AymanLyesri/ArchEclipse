@@ -73,7 +73,7 @@ function v() {
 }
 
 # Test Connection
-alias testcon="$HOME/.config/hypr/scripts/test-connection.sh"
+alias quickspeed="python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/quickspeed/refs/heads/master/quickspeed.py)"
 
 # Aliases for neofetch
 alias n=$NEOFETCH

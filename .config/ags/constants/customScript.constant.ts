@@ -36,11 +36,11 @@ export const customScripts = (): CustomScript[] => [
     name: "Change Resolution",
     icon: "󰍹",
     description: "Change Resolution",
-    app: "hyprmon",
-    package: "hyprmon-bin",
+    app: "nwg-displays",
+    package: "nwg-displays",
     script: () => {
-      // hyprland.dispatch("exec", "kitty hyprmon");
-      hyprland.dispatch("hl.dsp.exec_cmd('kitty hyprmon')", "");
+      // hyprland.dispatch("exec", "kitty nwg-displays");
+      hyprland.dispatch("hl.dsp.exec_cmd('kitty nwg-displays')", "");
     },
   },
   {
