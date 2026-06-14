@@ -8,5 +8,11 @@ theme/theme.conf
 wallpaper-daemon/config/*
 !wallpaper-daemon/config/defaults.conf
 
+# ignore nwg-displays auto-generated configuration files
+monitors.conf
+monitors.lua
+workspaces.conf
+workspaces.lua
+
 # ignore all pycache files
 __pycache__/
