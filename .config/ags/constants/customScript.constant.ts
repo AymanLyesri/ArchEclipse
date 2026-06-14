@@ -40,7 +40,10 @@ export const customScripts = (): CustomScript[] => [
     package: "nwg-displays",
     script: () => {
       // hyprland.dispatch("exec", "kitty nwg-displays");
-      hyprland.dispatch("hl.dsp.exec_cmd('kitty nwg-displays')", "");
+      hyprland.dispatch(
+        "hl.dsp.exec_cmd('kitty nwg-displays -m ~/.config/hypr/config/custom/monitors.lua -w ~/.config/hypr/config/custom/workspaces.lua')",
+        ""
+      );
     },
   },
   {
