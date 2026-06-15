@@ -282,6 +282,7 @@ const Tabs = () => (
   <box class="tab-list" spacing={5}>
     {booruApis.map((api) => (
       <togglebutton
+        sensitive={progressStatus((status) => status !== "loading")}
         hexpand
         active={selectedTab((tab) => tab === api.name)}
         class="api"
@@ -297,6 +298,7 @@ const Tabs = () => (
       />
     ))}
     <togglebutton
+      sensitive={progressStatus((status) => status !== "loading")}
       class="bookmarks"
       label=""
       active={selectedTab((tab) => tab === "Bookmarks")}
@@ -479,6 +481,7 @@ const PageDisplay = () => (
         if (settings.booru.page > 3) {
           buttons.push(
             <button
+              sensitive={progressStatus((status) => status !== "loading")}
               class="first"
               label="1"
               onClicked={() => {
@@ -507,6 +510,7 @@ const PageDisplay = () => (
         for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
           buttons.push(
             <button
+              sensitive={progressStatus((status) => status !== "loading")}
               label={pageNum !== settings.booru.page ? String(pageNum) : ""}
               onClicked={() => {
                 if (pageNum !== settings.booru.page) {
@@ -778,6 +782,7 @@ const Actions = () => {
   const actions = (
     <box class="navigation" spacing={10}>
       <button
+        sensitive={progressStatus((status) => status !== "loading")}
         label=""
         onClicked={() => {
           const currentPage = globalSettings.peek().booru.page;
@@ -798,6 +803,7 @@ const Actions = () => {
         tooltipText={"Toggle Settings (KEY-UP/DOWN)"}
       />
       <button
+        sensitive={progressStatus((status) => status !== "loading")}
         label=""
         onClicked={() => {
           const currentPage = globalSettings.peek().booru.page;
