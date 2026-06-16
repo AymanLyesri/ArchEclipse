@@ -31,7 +31,9 @@ export default (minimal?: boolean) => {
     "loading" | "error" | "success" | "idle"
   >("idle");
   const [progressText, setProgressText] = createState("Not signed in");
-  const [isSyncing, setIsSyncing] = createState(false);
+  const [isSyncing, setIsSyncing] = createState<"upload" | "download" | null>(
+    null,
+  );
   const [isRefreshing, setIsRefreshing] = createState(false);
   const [pinnedCount, setPinnedCount] = createState(0);
   const [lastSyncAt, setLastSyncAt] = createState<string | null>(null);
@@ -170,6 +172,42 @@ export default (minimal?: boolean) => {
   const lastRemoteUpdatedLabel = lastRemoteUpdatedAt(
     (value) => `Remote updated: ${formatTimestamp(value)}`,
   );
+
+  const handleSync = async (direction: "upload" | "download") => {
+    if (isSyncing()) return;
+    setIsSyncing(direction);
+    setProgressStatus("loading");
+    setProgressText(
+      direction === "upload"
+        ? "Uploading settings..."
+        : "Downloading settings...",
+    );
+
+    const result = await syncSettingsWithSupabase(direction);
+
+    setIsSyncing(null);
+
+    if (!result.ok) {
+      setProgressStatus("error");
+      setProgressText("Settings sync failed");
+      notify({
+        summary: "Settings Sync",
+        body: result.error || "Failed to sync settings.",
+      });
+      return;
+    }
+
+    const directionText =
+      direction === "download" ? "Downloaded from cloud" : "Uploaded to cloud";
+
+    applySettingsSyncMeta();
+    setProgressStatus("success");
+    setProgressText(`Settings sync: ${directionText}`);
+    notify({
+      summary: "Settings Sync",
+      body: directionText,
+    });
+  };
 
   const MagicLinkEmail = () => {
     const emailEntry = (
@@ -405,7 +443,7 @@ export default (minimal?: boolean) => {
             />
             <button
               class="update"
-              label={""}
+              label={""}
               tooltipMarkup={"Refresh profile"}
               sensitive={isRefreshing((refreshing) => !refreshing)}
               onClicked={async () => {
@@ -467,44 +505,24 @@ export default (minimal?: boolean) => {
           </box>
           <box class="settings-sync-actions" spacing={6}>
             <button
-              class="sync"
+              class="sync upload"
               hexpand
-              label={isSyncing() ? "Syncing settings..." : "Sync Settings"}
-              onClicked={async () => {
-                if (isSyncing()) return;
-                setIsSyncing(true);
-                setProgressStatus("loading");
-                setProgressText("Syncing settings...");
-
-                const result = await syncSettingsWithSupabase();
-
-                setIsSyncing(false);
-
-                if (!result.ok) {
-                  setProgressStatus("error");
-                  setProgressText("Settings sync failed");
-                  notify({
-                    summary: "Settings Sync",
-                    body: result.error || "Failed to sync settings.",
-                  });
-                  return;
-                }
-
-                const directionText =
-                  result.direction === "download"
-                    ? "Downloaded from cloud"
-                    : result.direction === "upload"
-                      ? "Uploaded to cloud"
-                      : "Already up to date";
-
-                applySettingsSyncMeta();
-                setProgressStatus("success");
-                setProgressText(`Settings sync: ${directionText}`);
-                notify({
-                  summary: "Settings Sync",
-                  body: directionText,
-                });
-              }}
+              label={isSyncing((s) =>
+                s === "upload" ? "Uploading..." : " Upload",
+              )}
+              tooltipMarkup="Upload local settings to cloud"
+              sensitive={isSyncing((s) => s === null)}
+              onClicked={() => handleSync("upload")}
+            />
+            <button
+              class="sync download"
+              hexpand
+              label={isSyncing((s) =>
+                s === "download" ? "Downloading..." : " Download",
+              )}
+              tooltipMarkup="Download settings from cloud"
+              sensitive={isSyncing((s) => s === null)}
+              onClicked={() => handleSync("download")}
             />
           </box>
         </box>
@@ -520,7 +538,7 @@ export default (minimal?: boolean) => {
                 <label
                   class="booru-favorite-badge"
                   label={booruFavoriteCounts((counts) =>
-                    profile() ? `${counts[api.value] ?? 0}` : "",
+                    profile() ? `${counts[api.value] ?? 0}` : "",
                   )}
                 />
               </box>
@@ -536,7 +554,7 @@ export default (minimal?: boolean) => {
             <label class="pinned-images-label" label="Fastfetch cache" />
             <label
               class="pinned-images-badge"
-              label={pinnedCount((count) => (profile() ? `${count}` : ""))}
+              label={pinnedCount((count) => (profile() ? `${count}` : ""))}
             />
           </box>
         </box>

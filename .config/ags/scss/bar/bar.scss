@@ -1,32 +1,6 @@
 .bar {
   border-radius: 10px;
 
-  &.full {
-    padding: 5px;
-    background: $background-transparent;
-  }
-
-  &.empty {
-    button,
-    .custom-revealer,
-    .workspaces .actions,
-    .utilities .resource-monitor,
-    .utilities .system-tray,
-    .mpris .cover-art {
-      border-radius: 50px;
-    }
-    .workspaces,
-    .information,
-    .utilities {
-      background-color: $background-transparent;
-      border-radius: 50px;
-      padding: 5px;
-    }
-    .panel-trigger {
-      border-radius: 50px;
-      padding: 0px 10px;
-      margin: 5px;
-      min-height: 0px;
-    }
-  }
+  padding: 5px;
+  background: $background-transparent;
 }

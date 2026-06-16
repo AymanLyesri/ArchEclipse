@@ -89,10 +89,7 @@ export default ({
         self.add_controller(motion);
       }}
     >
-      <box
-        spacing={5}
-        class={emptyWorkspace((empty) => (empty ? "bar empty" : "bar full"))}
-      >
+      <box class={"bar"} spacing={5}>
         <LeftPanelVisibility />
 
         <box class="bar-center" hexpand>
