@@ -12,6 +12,7 @@ import { globalMargin } from "../../variables";
 import KeyBind from "../KeyBind";
 import { customApps } from "../../constants/app.constants";
 import { notify } from "../../utils/notification";
+import { getAppsResults, parseAppsQuery } from "./utilities/AppsList";
 import {
   getClipboardResults,
   parseClipboardQuery,
@@ -58,6 +59,15 @@ export function AppButton({
   className?: string;
   onLaunch: (app: LauncherApp) => void;
 }) {
+  // If this is a header entry, display it as a label
+  if (element.app_type === "header") {
+    return (
+      <box class="app-header" spacing={5} hexpand>
+        <label xalign={0} label={element.app_name} class="header-title" />
+      </box>
+    );
+  }
+
   const buttonContent = (appElement: LauncherApp) => (
     <box
       spacing={10}
@@ -213,6 +223,11 @@ export default ({
         keybind: ["SUPER", "SHIFT", "n"],
       },
       {
+        command: "apps ...",
+        description: "list all installed applications",
+        keybind: ["SUPER", "A"],
+      },
+      {
         command: "emoji ...",
         description: "search emojis",
         keybind: ["SUPER", "."],
@@ -332,6 +347,12 @@ export default ({
               },
             }),
           );
+          return;
+        }
+
+        const appsQuery = parseAppsQuery(text);
+        if (appsQuery !== null) {
+          setResults(getAppsResults(appsQuery, launchAndRecord));
           return;
         }
 
