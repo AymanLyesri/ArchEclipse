@@ -19,11 +19,11 @@ ags bundle "$CONFIG_DIR/ags/app.tsx" "$AGS_TMP/ags-bin"
 pkill -f "wallpaper-loop" 2>/dev/null
 
 "$TMP/wallpaper-loop" &
-"$AGS_TMP/ags-bin" &
+"$AGS_TMP/ags-bin" > "$AGS_TMP/ags-bin.log" 2>&1 &
 
 # Run immediately once
-/tmp/battery-check &
-/tmp/updates-check &
+"$TMP/battery-check" &
+"$TMP/updates-check" &
 
 # Check if cronie is running
 if ! systemctl is-active --quiet cronie; then

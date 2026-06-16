@@ -87,7 +87,7 @@ export function ensureAuthServerRunning() {
 
     // kill the old server if it's still running and run the new one
     const killCmd = `bash -c "pkill -f 'python3 ${authServerScriptPath}' || true"`;
-    const startCmd = `bash -c "python3 '${authServerScriptPath}' >/tmp/ags-auth-server.log 2>&1 &"`;
+    const startCmd = `bash -c "python3 '${authServerScriptPath}' >/tmp/ags-${GLib.get_user_name()}/ags-auth-server.log 2>&1 &"`;
 
     // We don't care if the previous pkill fails (no existing process),
     // so ignore errors from the kill step and continue to start.

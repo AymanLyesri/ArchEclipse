@@ -93,14 +93,14 @@ export default (minimal?: boolean) => {
         session.access_token,
       );
 
-      setProfile(fetchedProfile);
-      updateUserProfile(fetchedProfile);
-
       if (!fetchedProfile) {
         setProgressStatus("error");
         setProgressText("Signed in, but profile not found");
         return;
       }
+
+      setProfile(fetchedProfile);
+      updateUserProfile(fetchedProfile);
 
       if (fetchedProfile.avatar) {
         supabaseClient.syncAvatarToFaceIcon(fetchedProfile.avatar);

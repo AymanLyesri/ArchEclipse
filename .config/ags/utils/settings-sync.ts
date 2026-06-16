@@ -24,20 +24,6 @@ export interface SettingsSyncMeta {
 
 export const settingsSyncMetaPath = `${GLib.get_home_dir()}/.config/ags/cache/settings/settings-sync.json`;
 
-// const sanitizeSettings = (settings: Settings): Settings => {
-//   const cloned = JSON.parse(JSON.stringify(settings)) as Settings;
-
-//   if (cloned.apiKeys) {
-//     for (const provider of Object.keys(cloned.apiKeys)) {
-//       const entry = (cloned.apiKeys as any)[provider];
-//       if (entry?.user) entry.user.value = "";
-//       if (entry?.key) entry.key.value = "";
-//     }
-//   }
-
-//   return cloned;
-// };
-
 const readLocalSettings = (): Settings =>
   readJSONFile<Settings>(settingsPath, defaultSettings);
 

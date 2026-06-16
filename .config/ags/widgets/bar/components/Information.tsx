@@ -83,7 +83,6 @@ function Mpris() {
                     transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
                     $={(self) => {
                       player.connect("notify::playback-status", (s) => {
-                        print("playback status changed:", s);
                         const revealSequence = () => {
                           self.reveal_child = true;
                           timeout(5000, () => {
