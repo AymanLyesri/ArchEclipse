@@ -100,6 +100,8 @@ def update_repo(repo_dir: Path, branch: str) -> None:
                 f"{branch}:refs/remotes/origin/{branch}",
             ]
         )
+        print("Forcing reset of local modifications...")
+        run_cmd(["git", "-C", str(repo_dir), "reset", "--hard"])
         run_cmd(
             [
                 "git",
