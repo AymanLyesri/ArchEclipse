@@ -111,7 +111,10 @@ app.start({
       const leftPanel = app.get_window(`left-panel-${monitor}`);
       if (leftPanel) {
         leftPanel.show();
-        setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors.find((w) => w.name === "Donations"));
+        setGlobalSetting(
+          "leftPanel.widget",
+          leftPanelWidgetSelectors.find((w) => w.name === "Donations"),
+        );
       }
       response("Donations widget opened.");
       return;
@@ -138,6 +141,14 @@ app.start({
         prefillLauncherInput(appLauncher as any, "note ");
       }
       response("Notes widget opened.");
+      return;
+    } else if (cmd == "apps") {
+      const appLauncher = app.get_window(`app-launcher-${monitor}`);
+      if (appLauncher) {
+        appLauncher.show();
+        prefillLauncherInput(appLauncher as any, "apps ");
+      }
+      response("Apps list opened.");
       return;
     }
     response("unknown command");

@@ -60,4 +60,16 @@
     @include module;
     padding: 10px;
   }
+
+  .app-header {
+    padding: 8px 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+
+    .header-title {
+      font-weight: bold;
+      font-size: 1.1em;
+      color: $foreground-secondary;
+    }
+  }
 }
