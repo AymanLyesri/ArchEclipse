@@ -7,13 +7,15 @@ export function compileBinaries() {
   const scriptsDir = `${homeDir}/.config/ags/scripts`;
 
   exec(`bash -c "mkdir -p ${tmpDir}"`);
+
+  // Add the -lm flag to all compilations to support math functions
   exec(
-    `gcc -o ${tmpDir}/bandwidth-loop-ags ${scriptsDir}/bandwidth-loop-ags.c`,
+    `gcc -o ${tmpDir}/bandwidth-loop-ags ${scriptsDir}/bandwidth-loop-ags.c -lm`,
   );
   exec(
-    `gcc -o ${tmpDir}/system-resources-loop-ags ${scriptsDir}/system-resources-loop-ags.c`,
+    `gcc -o ${tmpDir}/system-resources-loop-ags ${scriptsDir}/system-resources-loop-ags.c -lm`,
   );
   exec(
-    `gcc -o ${tmpDir}/keystroke-loop-ags ${scriptsDir}/keystroke-loop-ags.c`,
+    `gcc -o ${tmpDir}/keystroke-loop-ags ${scriptsDir}/keystroke-loop-ags.c -lm`,
   );
 }

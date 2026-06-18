@@ -113,7 +113,8 @@ const [limit, setLimit] = createState<number>(100);
 const calculateCacheSize = async () => {
   try {
     const res = await execAsync(
-      `bash -c "du -sb ${booruPath}/${globalSettings.peek().booru.api.value
+      `bash -c "du -sb ${booruPath}/${
+        globalSettings.peek().booru.api.value
       }/previews | cut -f1"`,
     );
     // Convert bytes to megabytes
@@ -145,11 +146,13 @@ const ensureRatingTagFirst = () => {
 const cleanUp = () => {
   const promises = [
     execAsync(
-      `bash -c "rm -rf ${booruPath}/${globalSettings.peek().booru.api.value
+      `bash -c "rm -rf ${booruPath}/${
+        globalSettings.peek().booru.api.value
       }/previews/*"`,
     ),
     execAsync(
-      `bash -c "rm -rf ${booruPath}/${globalSettings.peek().booru.api.value
+      `bash -c "rm -rf ${booruPath}/${
+        globalSettings.peek().booru.api.value
       }/images/*"`,
     ),
   ];
@@ -759,11 +762,7 @@ const Actions = () => {
       revealChild={bottomIsRevealed}
       transitionDuration={globalTransition}
     >
-      <box
-        class="options"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-      >
+      <box class="options" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <PageDisplay />
         <LimitDisplay />
         <ColumnDisplay />
@@ -890,11 +889,22 @@ export default () => {
             setSelectedTab(globalSettings.peek().booru.selectedTab);
             fetchImages();
           }
+          // if the tags change, reset the page to 1
+          if (
+            globalSettings.peek().booru.tags.toString() !==
+            tags.peek().toString()
+          ) {
+            setGlobalSetting("booru.page", 1);
+          }
         });
       }}
     >
       <Images />
-      <box class={"bottom-bar"} orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+      <box
+        class={"bottom-bar"}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+      >
         <Actions />
         <Tabs />
       </box>

@@ -303,275 +303,278 @@ export default (minimal?: boolean) => {
     return box;
   };
 
+  loadProfile(); // moved outside of the render function $ to avoid multiple calls
+
   return (
-    <box
-      spacing={10}
-      class="user-profile"
-      orientation={Gtk.Orientation.VERTICAL}
-      $={() => {
-        loadProfile();
-        updatePinnedCount();
-        applySettingsSyncMeta();
-
-        monitorFile(`${GLib.get_home_dir()}/.config/ags/cache/auth`, () => {
-          loadProfile();
-        });
-        monitorFile(fastfetchCacheDir, () => {
+    <scrolledwindow vexpand>
+      <box
+        spacing={10}
+        class="user-profile"
+        orientation={Gtk.Orientation.VERTICAL}
+        $={() => {
           updatePinnedCount();
-        });
-        monitorFile(settingsSyncMetaPath, () => {
           applySettingsSyncMeta();
-        });
-      }}
-    >
-      <box class="main" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
-        <box halign={Gtk.Align.CENTER}>
-          <button
-            class="profile-picture"
-            tooltipMarkup={"Click to set up profile picture"}
-            onClicked={async () => {
-              try {
-                const filename = await execAsync(
-                  'zenity --file-selection --title="Select Profile Picture" --file-filter="Images (png, jpg, webp) | *.png *.jpg *.jpeg *.webp"',
-                );
 
-                if (!filename || filename.trim() === "") return;
+          monitorFile(`${GLib.get_home_dir()}/.config/ags/cache/auth`, () => {
+            loadProfile();
+          });
+          monitorFile(fastfetchCacheDir, () => {
+            updatePinnedCount();
+          });
+          monitorFile(settingsSyncMetaPath, () => {
+            applySettingsSyncMeta();
+          });
+        }}
+      >
+        <box class="main" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
+          <box halign={Gtk.Align.CENTER}>
+            <button
+              class="profile-picture"
+              tooltipMarkup={"Click to set up profile picture"}
+              onClicked={async () => {
+                try {
+                  const filename = await execAsync(
+                    'zenity --file-selection --title="Select Profile Picture" --file-filter="Images (png, jpg, webp) | *.png *.jpg *.jpeg *.webp"',
+                  );
 
-                const cleanPath = filename.trim();
+                  if (!filename || filename.trim() === "") return;
 
-                await setProfileAvatarFromPath(cleanPath, {
-                  onProgress: (status, text) => {
-                    setProgressStatus(status);
-                    setProgressText(text);
-                  },
-                });
-              } catch (err) {
-                const errorStr = String(err);
-                if (errorStr.includes("exit status 1")) return;
+                  const cleanPath = filename.trim();
 
-                notify({
-                  summary: "Error",
-                  body: errorStr,
-                });
-              }
-            }}
+                  await setProfileAvatarFromPath(cleanPath, {
+                    onProgress: (status, text) => {
+                      setProgressStatus(status);
+                      setProgressText(text);
+                    },
+                  });
+                } catch (err) {
+                  const errorStr = String(err);
+                  if (errorStr.includes("exit status 1")) return;
+
+                  notify({
+                    summary: "Error",
+                    body: errorStr,
+                  });
+                }
+              }}
+            >
+              <Picture
+                width={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
+                height={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
+                file={profilePicturePath}
+              />
+            </button>
+          </box>
+          <box
+            class="profile-card"
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={5}
+            halign={Gtk.Align.CENTER}
+            sensitive={profile((p) => !!p)}
           >
-            <Picture
-              width={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
-              height={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
-              file={profilePicturePath}
+            <box class="profile-form" orientation={Gtk.Orientation.VERTICAL}>
+              <entry
+                class="profile-username"
+                placeholderText={GLib.get_user_name()}
+                hexpand
+                xalign={0.5}
+                tooltipMarkup={"Click to edit username"}
+                text={profile((p) => p?.username ?? "")}
+                $={(self: Gtk.Entry) => {
+                  self.connect("changed", () => {
+                    setProfile((p) => {
+                      if (!p) return p;
+                      return { ...p, username: self.text };
+                    });
+                  });
+                }}
+              />
+            </box>
+            <box class="profile-header" spacing={5} halign={Gtk.Align.CENTER}>
+              <label label={emailLabel} xalign={0.5} />
+              <label label="|" />
+              <label
+                class="profile-meta"
+                label={profile(
+                  (p) => `Supporter: ${p?.is_supporter ? "Yes" : "No"}`,
+                )}
+                xalign={0.5}
+              />
+            </box>
+
+            <box class="profile-actions" spacing={5}>
+              <button
+                class="update"
+                label="Update Profile"
+                hexpand
+                onClicked={async () => {
+                  const session = await refreshAuthSession();
+                  if (!session?.access_token) {
+                    notify({
+                      summary: "Not signed in",
+                      body: "Please sign in to update profile.",
+                    });
+                    return;
+                  }
+
+                  setProgressStatus("loading");
+                  setProgressText("Updating profile...");
+
+                  const result = await supabaseClient.updateCurrentUserProfile(
+                    session.access_token,
+                    { username: profile()!.username || "" },
+                  );
+
+                  if (result.ok) {
+                    setProgressStatus("success");
+                    setProgressText("Profile updated");
+                    notify({
+                      summary: "Profile updated",
+                      body: "Your profile has been updated successfully.",
+                    });
+                    loadProfile(); // Refresh profile after update
+                  } else {
+                    setProgressStatus("error");
+                    setProgressText("Update failed");
+                    notify({
+                      summary: "Update failed",
+                      body: result.error || "Failed to update profile.",
+                    });
+                  }
+                }}
+              />
+              <button
+                class="update"
+                label={""}
+                tooltipMarkup={"Refresh profile"}
+                sensitive={isRefreshing((refreshing) => !refreshing)}
+                onClicked={async () => {
+                  if (isRefreshing()) return;
+                  setIsRefreshing(true);
+                  setProgressStatus("loading");
+                  setProgressText("Refreshing profile...");
+
+                  try {
+                    await loadProfile();
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+              />
+            </box>
+            <button
+              class="update danger"
+              label="Logout"
+              onClicked={async () => {
+                await execAsync(["rm", "-f", authSessionPath]);
+                setProfile(null);
+                clearUserProfile();
+                setProgressStatus("idle");
+                setProgressText("Signed out");
+                notify({
+                  summary: "Signed out",
+                  body: "Your session has been cleared.",
+                });
+              }}
             />
-          </button>
+          </box>
         </box>
+
         <box
-          class="profile-card"
+          class="profile-info"
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={5}
-          halign={Gtk.Align.CENTER}
+          spacing={10}
+          visible={!minimal}
           sensitive={profile((p) => !!p)}
         >
-          <box class="profile-form" orientation={Gtk.Orientation.VERTICAL}>
-            <entry
-              class="profile-username"
-              placeholderText={GLib.get_user_name()}
-              hexpand
-              xalign={0.5}
-              tooltipMarkup={"Click to edit username"}
-              text={profile((p) => p?.username ?? "")}
-              $={(self: Gtk.Entry) => {
-                self.connect("changed", () => {
-                  setProfile((p) => {
-                    if (!p) return p;
-                    return { ...p, username: self.text };
-                  });
-                });
-              }}
-            />
-          </box>
-          <box class="profile-header" spacing={5} halign={Gtk.Align.CENTER}>
-            <label label={emailLabel} xalign={0.5} />
-            <label label="|" />
-            <label
-              class="profile-meta"
-              label={profile(
-                (p) => `Supporter: ${p?.is_supporter ? "Yes" : "No"}`,
-              )}
-              xalign={0.5}
-            />
-          </box>
-
-          <box class="profile-actions" spacing={5}>
-            <button
-              class="update"
-              label="Update Profile"
-              hexpand
-              onClicked={async () => {
-                const session = await refreshAuthSession();
-                if (!session?.access_token) {
-                  notify({
-                    summary: "Not signed in",
-                    body: "Please sign in to update profile.",
-                  });
-                  return;
-                }
-
-                setProgressStatus("loading");
-                setProgressText("Updating profile...");
-
-                const result = await supabaseClient.updateCurrentUserProfile(
-                  session.access_token,
-                  { username: profile()!.username || "" },
-                );
-
-                if (result.ok) {
-                  setProgressStatus("success");
-                  setProgressText("Profile updated");
-                  notify({
-                    summary: "Profile updated",
-                    body: "Your profile has been updated successfully.",
-                  });
-                  loadProfile(); // Refresh profile after update
-                } else {
-                  setProgressStatus("error");
-                  setProgressText("Update failed");
-                  notify({
-                    summary: "Update failed",
-                    body: result.error || "Failed to update profile.",
-                  });
-                }
-              }}
-            />
-            <button
-              class="update"
-              label={""}
-              tooltipMarkup={"Refresh profile"}
-              sensitive={isRefreshing((refreshing) => !refreshing)}
-              onClicked={async () => {
-                if (isRefreshing()) return;
-                setIsRefreshing(true);
-                setProgressStatus("loading");
-                setProgressText("Refreshing profile...");
-
-                try {
-                  await loadProfile();
-                } finally {
-                  setIsRefreshing(false);
-                }
-              }}
-            />
-          </box>
-          <button
-            class="update danger"
-            label="Logout"
-            onClicked={async () => {
-              await execAsync(["rm", "-f", authSessionPath]);
-              setProfile(null);
-              clearUserProfile();
-              setProgressStatus("idle");
-              setProgressText("Signed out");
-              notify({
-                summary: "Signed out",
-                body: "Your session has been cleared.",
-              });
-            }}
-          />
-        </box>
-      </box>
-
-      <box
-        class="profile-info"
-        orientation={Gtk.Orientation.VERTICAL}
-        spacing={10}
-        visible={!minimal}
-        sensitive={profile((p) => !!p)}
-      >
-        <box
-          class="section settings-sync"
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={5}
-        >
-          <label class="settings-sync-header" label="Settings Sync" />
           <box
-            class="settings-sync-info"
+            class="section settings-sync"
+            orientation={Gtk.Orientation.VERTICAL}
             spacing={5}
+          >
+            <label class="settings-sync-header" label="Settings Sync" />
+            <box
+              class="settings-sync-info"
+              spacing={5}
+              orientation={Gtk.Orientation.VERTICAL}
+            >
+              <label class="settings-sync-meta" label={lastSyncLabel} />
+              <label class="settings-sync-result" label={lastSyncResult} />
+              <label
+                class="settings-sync-remote"
+                label={lastRemoteUpdatedLabel}
+              />
+            </box>
+            <box class="settings-sync-actions" spacing={6}>
+              <button
+                class="sync upload"
+                hexpand
+                label={isSyncing((s) =>
+                  s === "upload" ? "Uploading..." : " Upload",
+                )}
+                tooltipMarkup="Upload local settings to cloud"
+                sensitive={isSyncing((s) => s === null)}
+                onClicked={() => handleSync("upload")}
+              />
+              <button
+                class="sync download"
+                hexpand
+                label={isSyncing((s) =>
+                  s === "download" ? "Downloading..." : " Download",
+                )}
+                tooltipMarkup="Download settings from cloud"
+                sensitive={isSyncing((s) => s === null)}
+                onClicked={() => handleSync("download")}
+              />
+            </box>
+          </box>
+          <box
+            class="section booru-favorites"
             orientation={Gtk.Orientation.VERTICAL}
           >
-            <label class="settings-sync-meta" label={lastSyncLabel} />
-            <label class="settings-sync-result" label={lastSyncResult} />
-            <label
-              class="settings-sync-remote"
-              label={lastRemoteUpdatedLabel}
-            />
+            <label class="booru-favorites-title" label="Booru Favorites" />
+            <box class="booru-favorites-list" spacing={5}>
+              {booruApis.map((api) => (
+                <box class="booru-favorite-item" spacing={5} hexpand>
+                  <label class="booru-favorite-name" label={api.name} />
+                  <label
+                    class="booru-favorite-badge"
+                    label={booruFavoriteCounts((counts) =>
+                      profile() ? `${counts[api.value] ?? 0}` : "",
+                    )}
+                  />
+                </box>
+              ))}
+            </box>
           </box>
-          <box class="settings-sync-actions" spacing={6}>
-            <button
-              class="sync upload"
-              hexpand
-              label={isSyncing((s) =>
-                s === "upload" ? "Uploading..." : " Upload",
-              )}
-              tooltipMarkup="Upload local settings to cloud"
-              sensitive={isSyncing((s) => s === null)}
-              onClicked={() => handleSync("upload")}
-            />
-            <button
-              class="sync download"
-              hexpand
-              label={isSyncing((s) =>
-                s === "download" ? "Downloading..." : " Download",
-              )}
-              tooltipMarkup="Download settings from cloud"
-              sensitive={isSyncing((s) => s === null)}
-              onClicked={() => handleSync("download")}
-            />
+          <box
+            class="section pinned-images"
+            orientation={Gtk.Orientation.VERTICAL}
+          >
+            <label class="pinned-images-title" label="Pinned Images" />
+            <box class="pinned-images-row" spacing={6}>
+              <label class="pinned-images-label" label="Fastfetch cache" />
+              <label
+                class="pinned-images-badge"
+                label={pinnedCount((count) => (profile() ? `${count}` : ""))}
+              />
+            </box>
           </box>
+          <Progress
+            status={progressStatus}
+            text={progressText}
+            custom_class="profile-progress"
+            showWhenIdle
+          />
         </box>
-        <box
-          class="section booru-favorites"
-          orientation={Gtk.Orientation.VERTICAL}
-        >
-          <label class="booru-favorites-title" label="Booru Favorites" />
-          <box class="booru-favorites-list" spacing={5}>
-            {booruApis.map((api) => (
-              <box class="booru-favorite-item" spacing={5} hexpand>
-                <label class="booru-favorite-name" label={api.name} />
-                <label
-                  class="booru-favorite-badge"
-                  label={booruFavoriteCounts((counts) =>
-                    profile() ? `${counts[api.value] ?? 0}` : "",
-                  )}
-                />
-              </box>
-            ))}
-          </box>
-        </box>
-        <box
-          class="section pinned-images"
-          orientation={Gtk.Orientation.VERTICAL}
-        >
-          <label class="pinned-images-title" label="Pinned Images" />
-          <box class="pinned-images-row" spacing={6}>
-            <label class="pinned-images-label" label="Fastfetch cache" />
-            <label
-              class="pinned-images-badge"
-              label={pinnedCount((count) => (profile() ? `${count}` : ""))}
-            />
-          </box>
-        </box>
-        <Progress
-          status={progressStatus}
-          text={progressText}
-          custom_class="profile-progress"
-          showWhenIdle
-        />
-      </box>
 
-      <With value={profile}>
-        {(p) => {
-          if (!p) return <MagicLinkEmail />;
-          return null;
-        }}
-      </With>
-    </box>
+        <With value={profile}>
+          {(p) => {
+            if (!p) return <MagicLinkEmail />;
+            return null;
+          }}
+        </With>
+      </box>
+    </scrolledwindow>
   );
 };
