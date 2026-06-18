@@ -63,6 +63,8 @@ hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd("ags request clipboard " .. m
 hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("ags request emojis " .. monitor))
 --- open notes app
 hl.bind(mainMod .. " + SHIFT + n", hl.dsp.exec_cmd("ags request notes " .. monitor))
+--- open all apps
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("ags request apps " .. monitor))
 
 -- Screenshot and Screen Record Keybinds
 --- screenshot workspace
