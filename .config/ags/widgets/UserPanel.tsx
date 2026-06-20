@@ -1,5 +1,4 @@
 import { execAsync, exec } from "ags/process";
-import { createPoll } from "ags/time";
 
 import App from "ags/gtk4/app";
 import { Gtk } from "ags/gtk4";
@@ -7,25 +6,15 @@ import { Gdk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
 
 import Hyprland from "gi://AstalHyprland";
-import { date_less, date_more, profilePicturePath } from "../variables";
+
 import { hideWindow } from "../utils/window";
-import Picture from "./Picture";
-import Gio from "gi://Gio";
-import { notify } from "../utils/notification";
-import GLib from "gi://GLib";
+
 import { getMonitorName } from "../utils/monitor";
-import MediaWidget from "./MediaWidget";
-import Pango from "gi://Pango";
-import { userProfile } from "../utils/user-profile";
-import UserProfile from "./leftPanel/components/UserProfile";
+
+import UserProfile, {
+  UserProfileMinimal,
+} from "./leftPanel/components/UserProfile";
 const hyprland = Hyprland.get_default();
-
-const username = userProfile(
-  (profile) => profile?.username?.trim() || GLib.get_user_name(),
-);
-const desktopEnv = GLib.getenv("XDG_CURRENT_DESKTOP") || "Unknown DE";
-
-const uptime = createPoll("", 600000, "uptime -p"); // every 10 minutes
 
 const UserPanel = () => {
   const Logout = () => (
@@ -130,7 +119,7 @@ const UserPanel = () => {
           valign={Gtk.Align.CENTER}
         >
           {/* <Center /> */}
-          {UserProfile(true)}
+          <UserProfileMinimal />
         </box>
       </overlay>
     );
