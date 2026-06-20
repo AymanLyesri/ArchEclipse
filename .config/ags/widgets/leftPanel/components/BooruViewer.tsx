@@ -490,6 +490,8 @@ const PageDisplay = () => (
               onClicked={() => {
                 setPageDirection("prev");
                 setGlobalSetting("booru.page", 1);
+                setPage(1);
+                fetchImages();
               }}
             />,
           );
@@ -521,9 +523,9 @@ const PageDisplay = () => (
                     pageNum > settings.booru.page ? "next" : "prev",
                   );
                   setGlobalSetting("booru.page", pageNum);
-                } else {
-                  fetchImages();
+                  setPage(pageNum);
                 }
+                fetchImages();
               }}
             />,
           );
@@ -593,7 +595,12 @@ const LimitDisplay = () => (
   <SliderSetting
     label="Limit"
     getValue={globalSettings(({ booru }) => booru.limit / 100)}
-    setValue={(v) => setGlobalSetting("booru.limit", Math.round(v * 100))}
+    setValue={(v) => {
+      setGlobalSetting("booru.limit", Math.round(v * 100));
+      setLimit(Math.round(v * 100));
+
+      fetchImages();
+    }}
     sliderMin={0}
     sliderMax={1}
     sliderStep={0.1}
@@ -605,7 +612,11 @@ const ColumnDisplay = () => (
   <SliderSetting
     label="Columns"
     getValue={globalSettings(({ booru }) => (booru.columns - 1) / 4)}
-    setValue={(v) => setGlobalSetting("booru.columns", Math.round(v * 4) + 1)}
+    setValue={(v) => {
+      setGlobalSetting("booru.columns", Math.round(v * 4) + 1);
+
+      fetchImages();
+    }}
     sliderMin={0}
     sliderMax={1}
     sliderStep={0.25}
@@ -633,6 +644,10 @@ const TagDisplay = () => (
                 setGlobalSetting("booru.tags", [
                   ...new Set([...globalSettings.peek().booru.tags, tag]),
                 ]);
+                setTags(globalSettings.peek().booru.tags);
+                if (selectedTab.peek() !== "Bookmarks") {
+                  fetchImages();
+                }
               }}
             >
               <label
@@ -665,7 +680,10 @@ const TagDisplay = () => (
 
                   newTags.unshift(newRatingTag);
                   setGlobalSetting("booru.tags", newTags);
-                  console.log(globalSettings.peek().booru.tags);
+                  setTags(globalSettings.peek().booru.tags);
+                  if (selectedTab.peek() !== "Bookmarks") {
+                    fetchImages();
+                  }
                 }}
               >
                 <label
@@ -788,6 +806,8 @@ const Actions = () => {
           if (currentPage > 1) {
             setPageDirection("prev");
             setGlobalSetting("booru.page", currentPage - 1);
+            setPage(currentPage - 1);
+            fetchImages();
           }
         }}
         tooltipText={"KEY-LEFT"}
@@ -808,6 +828,8 @@ const Actions = () => {
           const currentPage = globalSettings.peek().booru.page;
           setPageDirection("next");
           setGlobalSetting("booru.page", currentPage + 1);
+          setPage(currentPage + 1);
+          fetchImages();
         }}
         tooltipText={"KEY-RIGHT"}
       />
@@ -866,37 +888,6 @@ export default () => {
         const savedTab = globalSettings.peek().booru.selectedTab;
         setSelectedTab(savedTab || globalSettings.peek().booru.api.name);
         fetchImages();
-
-        globalSettings.subscribe(() => {
-          if (globalSettings.peek().booru.page !== page.peek()) {
-            setPage(globalSettings.peek().booru.page);
-            fetchImages();
-          }
-          if (globalSettings.peek().booru.limit !== limit.peek()) {
-            setLimit(globalSettings.peek().booru.limit);
-            fetchImages();
-          }
-          if (
-            globalSettings.peek().booru.tags.toString() !==
-            tags.peek().toString()
-          ) {
-            setTags(globalSettings.peek().booru.tags);
-            if (selectedTab.peek() !== "Bookmarks") {
-              fetchImages();
-            }
-          }
-          if (globalSettings.peek().booru.selectedTab !== selectedTab.peek()) {
-            setSelectedTab(globalSettings.peek().booru.selectedTab);
-            fetchImages();
-          }
-          // if the tags change, reset the page to 1
-          if (
-            globalSettings.peek().booru.tags.toString() !==
-            tags.peek().toString()
-          ) {
-            setGlobalSetting("booru.page", 1);
-          }
-        });
       }}
     >
       <Images />

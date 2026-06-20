@@ -303,7 +303,43 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
     return box;
   };
 
-  loadProfile(); // moved outside of the render function $ to avoid multiple calls
+  async function updateUserProfileButton() {
+    const session = await refreshAuthSession();
+    if (!session?.access_token) {
+      notify({
+        summary: "Not signed in",
+        body: "Please sign in to update profile.",
+      });
+      return;
+    }
+
+    setProgressStatus("loading");
+    setProgressText("Updating profile...");
+
+    const result = await supabaseClient.updateCurrentUserProfile(
+      session.access_token,
+      { username: profile()!.username || "" },
+    );
+
+    if (result.ok) {
+      setProgressStatus("success");
+      setProgressText("Profile updated");
+      notify({
+        summary: "Profile updated",
+        body: "Your profile has been updated successfully.",
+      });
+      loadProfile(); // Refresh profile after update
+    } else {
+      setProgressStatus("error");
+      setProgressText("Update failed");
+      notify({
+        summary: "Update failed",
+        body: result.error || "Failed to update profile.",
+      });
+    }
+  }
+
+  // moved outside of the render function $ to avoid multiple calls
 
   return (
     <box
@@ -313,6 +349,8 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
       $={() => {
         updatePinnedCount();
         applySettingsSyncMeta();
+
+        loadProfile();
 
         monitorFile(`${GLib.get_home_dir()}/.config/ags/cache/auth`, () => {
           loadProfile();
@@ -387,9 +425,17 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
                   });
                 });
               }}
+              onActivate={async (self) => {
+                updateUserProfileButton();
+              }}
             />
           </box>
-          <box class="profile-header" spacing={5} halign={Gtk.Align.CENTER}>
+          <box
+            visible={!minimal}
+            class="profile-header"
+            spacing={5}
+            halign={Gtk.Align.CENTER}
+          >
             <label label={emailLabel} xalign={0.5} />
             <label label="|" />
             <label
@@ -401,51 +447,22 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
             />
           </box>
 
-          <box class="profile-actions" spacing={5}>
+          <box
+            visible={!minimal}
+            class="profile-actions"
+            spacing={5}
+            orientation={Gtk.Orientation.VERTICAL}
+          >
             <button
               class="update"
-              label="Update Profile"
+              label="Update"
               hexpand
-              onClicked={async () => {
-                const session = await refreshAuthSession();
-                if (!session?.access_token) {
-                  notify({
-                    summary: "Not signed in",
-                    body: "Please sign in to update profile.",
-                  });
-                  return;
-                }
-
-                setProgressStatus("loading");
-                setProgressText("Updating profile...");
-
-                const result = await supabaseClient.updateCurrentUserProfile(
-                  session.access_token,
-                  { username: profile()!.username || "" },
-                );
-
-                if (result.ok) {
-                  setProgressStatus("success");
-                  setProgressText("Profile updated");
-                  notify({
-                    summary: "Profile updated",
-                    body: "Your profile has been updated successfully.",
-                  });
-                  loadProfile(); // Refresh profile after update
-                } else {
-                  setProgressStatus("error");
-                  setProgressText("Update failed");
-                  notify({
-                    summary: "Update failed",
-                    body: result.error || "Failed to update profile.",
-                  });
-                }
-              }}
+              onClicked={async () => updateUserProfileButton()}
             />
             <button
               class="update"
-              label={""}
-              tooltipMarkup={"Refresh profile"}
+              label={"Refresh Profile"}
+              tooltipMarkup={"Refresh"}
               sensitive={isRefreshing((refreshing) => !refreshing)}
               onClicked={async () => {
                 if (isRefreshing()) return;
@@ -460,22 +477,22 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
                 }
               }}
             />
+            <button
+              class="update danger"
+              label="Logout"
+              onClicked={async () => {
+                await execAsync(["rm", "-f", authSessionPath]);
+                setProfile(null);
+                clearUserProfile();
+                setProgressStatus("idle");
+                setProgressText("Signed out");
+                notify({
+                  summary: "Signed out",
+                  body: "Your session has been cleared.",
+                });
+              }}
+            />
           </box>
-          <button
-            class="update danger"
-            label="Logout"
-            onClicked={async () => {
-              await execAsync(["rm", "-f", authSessionPath]);
-              setProfile(null);
-              clearUserProfile();
-              setProgressStatus("idle");
-              setProgressText("Signed out");
-              notify({
-                summary: "Signed out",
-                body: "Your session has been cleared.",
-              });
-            }}
-          />
         </box>
       </box>
 
