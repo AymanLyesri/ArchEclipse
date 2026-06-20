@@ -3,10 +3,21 @@ import GLib from "gi://GLib";
 import Cava from "gi://AstalCava";
 import { globalTransition } from "../variables";
 import { Gtk } from "ags/gtk4";
+
+// Use a single cava instance for all widgets
 const cava = Cava.get_default()!;
 
-// --- Tunable constants (change to lower CPU usage) ---
-const CAVA_UPDATE_MS = 100; // coalesced update interval for audio visualizer (larger => less CPU)
+// Set bars ONCE at module initialization with fixed value
+cava?.set_bars(12);
+
+// --- Tunable constants ---
+const CAVA_UPDATE_MS = 100;
+const DEFAULT_BAR_COUNT = 12;
+
+// Global signal connection (only ONE for all widgets)
+let cavaValues: number[] | null = null;
+let globalSignalId: number | null = null;
+let refCount = 0;
 
 // Small lightweight throttle/coalesce helper
 function scheduleCoalesced(fn: () => void, delayMs: number) {
@@ -14,7 +25,7 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
   let pending = false;
   return (triggerFn?: () => void) => {
     if (triggerFn) triggerFn();
-    if (pending) return; // already scheduled
+    if (pending) return;
     pending = true;
     timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delayMs, () => {
       pending = false;
@@ -22,7 +33,6 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
       try {
         fn();
       } catch (e) {
-        // swallow errors to avoid crashing the scheduler
         console.error(e);
       }
       return GLib.SOURCE_REMOVE;
@@ -30,17 +40,69 @@ function scheduleCoalesced(fn: () => void, delayMs: number) {
   };
 }
 
+// Global callback list for value updates
+const updateCallbacks: Set<() => void> = new Set();
+
+function ensureCavaConnected() {
+  if (refCount === 0 && globalSignalId === null) {
+    globalSignalId =
+      cava?.connect("notify::values", () => {
+        cavaValues = cava.get_values() || null;
+        // Notify all widgets about new values. Snapshot the callbacks
+        // first: widgets can be destroyed/created synchronously as a
+        // reaction to this same notification (e.g. MPRIS players
+        // appearing/disappearing), which would otherwise mutate
+        // updateCallbacks mid-iteration.
+        const callbacksSnapshot = Array.from(updateCallbacks);
+        callbacksSnapshot.forEach((cb) => {
+          try {
+            cb();
+          } catch (e) {
+            console.error(e);
+          }
+        });
+      }) || null;
+  }
+  refCount++;
+}
+
+function releaseCavaConnection() {
+  refCount--;
+  if (refCount === 0 && globalSignalId !== null) {
+    const idToDisconnect = globalSignalId;
+    // We may be called from inside the "notify::values" handler itself
+    // (e.g. a player disappears and its widget is destroyed synchronously
+    // while updateCallbacks.forEach() is still iterating during the same
+    // signal emission). Disconnecting a GObject signal from inside its
+    // own emission corrupts GObject's internal signal-handler bookkeeping
+    // and was the actual source of the g_array_remove_range assertion —
+    // deferring to an idle callback guarantees we only disconnect once
+    // the current emission has fully finished.
+    globalSignalId = null;
+    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+      // Only disconnect if nothing re-subscribed in the meantime.
+      if (refCount === 0) {
+        try {
+          cava?.disconnect(idToDisconnect);
+        } catch (e) {}
+      }
+      return GLib.SOURCE_REMOVE;
+    });
+  }
+}
+
 export default ({
   transitionType,
-  barCount = 12, // Default to 12 if not specified
+  barCount = 12,
   isPlaying = true,
 }: {
   transitionType: Gtk.RevealerTransitionType;
-  barCount?: number; // Optional bar count parameter
+  barCount?: number;
   isPlaying?: Accessor<boolean> | boolean;
 }) => {
-  // Set the number of bars in cava to match our barCount
-  cava?.set_bars(barCount);
+  // Connect to global cava signal (only once for all widgets)
+  ensureCavaConnected();
+
   const [getBars, setBars] = createState("");
 
   const BLOCKS = [
@@ -54,15 +116,13 @@ export default ({
     "\u2588",
   ];
   const BLOCKS_LENGTH = BLOCKS.length;
-  const BAR_COUNT = barCount; // Use the parameter
+  const BAR_COUNT = DEFAULT_BAR_COUNT; // Always use default, ignore parameter
   const EMPTY_BARS = "".padEnd(BAR_COUNT, "\u2581");
-  // Reuse buffer to avoid allocations on every update
   let barArray: string[] = new Array(BAR_COUNT);
   let lastBarString = "";
 
-  // visibility hysteresis: ignore short silence gaps
-  const REVEAL_SHOW_DELAY = 0; // ms before showing on non-empty
-  const REVEAL_HIDE_DELAY = 2000; // ms before hiding on empty
+  const REVEAL_SHOW_DELAY = 0;
+  const REVEAL_HIDE_DELAY = 2000;
   let visible = false;
   let showTimeoutId: number | null = null;
   let hideTimeoutId: number | null = null;
@@ -86,6 +146,13 @@ export default ({
 
   let unsubscribeIsPlaying: (() => void) | null = null;
 
+  // Callback for global cava updates
+  const onCavaUpdate = () => {
+    if (getIsPlaying()) {
+      schedule();
+    }
+  };
+
   const revealer = (
     <revealer
       revealChild={false}
@@ -96,20 +163,26 @@ export default ({
       <label
         class={"cava"}
         onDestroy={() => {
-          // bars.drop(); // No drop in signals
           showTimeoutId = clearTimeoutIfSet(showTimeoutId);
           hideTimeoutId = clearTimeoutIfSet(hideTimeoutId);
+
           if (unsubscribeIsPlaying) {
             unsubscribeIsPlaying();
             unsubscribeIsPlaying = null;
           }
+
+          // Remove from global callbacks
+          updateCallbacks.delete(onCavaUpdate);
+
+          // Release global cava connection
+          releaseCavaConnection();
         }}
         label={getBars}
       />
     </revealer>
   );
 
-  // Create coalesced updater so frequent "notify::values" calls are batched
+  // Create coalesced updater
   const doUpdate = () => {
     if (!getIsPlaying()) {
       showTimeoutId = clearTimeoutIfSet(showTimeoutId);
@@ -123,10 +196,8 @@ export default ({
       return;
     }
 
-    const values = lastValuesCache;
-    // build barArray for current values; if no values treat as empty
+    const values = cavaValues;
     if (!values || values.length === 0) {
-      // fill with empty blocks
       for (let j = 0; j < BAR_COUNT; j++) barArray[j] = BLOCKS[0];
     } else {
       if (barArray.length !== values.length)
@@ -144,17 +215,14 @@ export default ({
 
     const b = barArray.join("");
 
-    // if nothing changed, skip heavy work
     if (b === lastBarString) return;
     lastBarString = b;
 
-    // update bound text (cheap) but control reveal/hide with timers (hysteresis)
     setBars(b);
 
     const isEmpty = b === EMPTY_BARS;
 
     if (!isEmpty) {
-      // audio present -> ensure we will show, cancel any hide timer
       if (hideTimeoutId) {
         try {
           GLib.source_remove(hideTimeoutId);
@@ -163,7 +231,6 @@ export default ({
       }
 
       if (!visible && !showTimeoutId) {
-        // schedule show after short delay (ignore brief silence gaps)
         showTimeoutId = GLib.timeout_add(
           GLib.PRIORITY_DEFAULT,
           REVEAL_SHOW_DELAY,
@@ -175,11 +242,9 @@ export default ({
           },
         );
       } else if (visible) {
-        // already visible -- ensure revealer stays revealed
         if (revealerInstance) revealerInstance.reveal_child = true;
       }
     } else {
-      // empty -> cancel any pending show and schedule hide if currently visible
       if (showTimeoutId) {
         try {
           GLib.source_remove(showTimeoutId);
@@ -188,7 +253,6 @@ export default ({
       }
 
       if (visible && !hideTimeoutId) {
-        // schedule hide after a longer delay (ignore short silence gaps)
         hideTimeoutId = GLib.timeout_add(
           GLib.PRIORITY_DEFAULT,
           REVEAL_HIDE_DELAY,
@@ -200,13 +264,11 @@ export default ({
           },
         );
       } else if (!visible) {
-        // already hidden
         if (revealerInstance) revealerInstance.reveal_child = false;
       }
     }
   };
 
-  let lastValuesCache: number[] | null = null;
   const schedule = scheduleCoalesced(doUpdate, CAVA_UPDATE_MS);
 
   if (typeof isPlaying === "function") {
@@ -220,11 +282,11 @@ export default ({
     }
   }
 
-  cava?.connect("notify::values", () => {
-    // store latest values, schedule an update if not already scheduled
-    lastValuesCache = cava.get_values() || null;
-    schedule();
-  });
+  // Register for global cava updates
+  updateCallbacks.add(onCavaUpdate);
+
+  // Schedule initial update
+  schedule();
 
   return revealer;
 };
