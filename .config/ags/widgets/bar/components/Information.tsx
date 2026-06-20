@@ -32,12 +32,27 @@ const mpris = AstalMpris.get_default();
 function Mpris() {
   const apps = new AstalApps.Apps();
   const players = createBinding(mpris, "players");
+  const DEFAULT_COVER = `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`;
 
   return (
     <box class={"mpris"} spacing={5}>
       <For each={players}>
         {(player) => {
           const [app] = apps.exact_query(player.entry);
+
+          // Cover guard (YouTube anti-flickering protection)
+          let lastValidCover = player.coverArt || DEFAULT_COVER;
+          const coverBinding = createBinding(
+            player,
+            "coverArt",
+          )((c) => {
+            if (c && c.trim() !== "") {
+              lastValidCover = c;
+              return c;
+            }
+            return lastValidCover || DEFAULT_COVER;
+          });
+
           return (
             <menubutton>
               <overlay
@@ -54,13 +69,10 @@ function Mpris() {
                   return `min-width: ${is_playing() ? title_width() + 25 : title_width()}px;`;
                 })}
               >
-                <Picture
-                  class={"cover-art"}
-                  file={createBinding(player, "coverArt")}
-                />
+                <Picture class={"cover-art"} file={coverBinding} />
                 <box class={"content"} $type="overlay" spacing={3}>
                   <Cava
-                    barCount={10}
+                    barCount={12}
                     transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
                     isPlaying={createBinding(
                       player,

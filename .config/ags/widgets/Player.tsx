@@ -27,10 +27,30 @@ export default ({
     "next",
   );
 
-  const dominantColor = createBinding(
-    player,
-    "coverArt",
-  )((path) => getDominantColor(path));
+  const DEFAULT_COVER = `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`;
+
+  // --- Hysteresis Guard for YouTube Cover Art ---
+  // Store the last valid cover art path to prevent sudden fallback to default image
+  // when YouTube temporarily sends empty MPRIS fields during track changes.
+  let lastValidCover = player.coverArt || DEFAULT_COVER;
+
+  const coverBinding = createBinding(player, "coverArt")((c) => {
+    if (c && c.trim() !== "") {
+      lastValidCover = c;
+      return c;
+    }
+    // If YouTube gives an empty string while loading, seamlessly hold the previous image
+    return lastValidCover || DEFAULT_COVER;
+  });
+
+  const dominantColor = coverBinding((path) => {
+    if (!path) return "";
+    try {
+      return getDominantColor(path);
+    } catch (e) {
+      return "";
+    }
+  });
 
   const isPlaying = createBinding(
     player,
@@ -44,20 +64,15 @@ export default ({
     return `${min}:${sec0}${sec}`;
   }
 
-  // =========================
-  // Bottom bar (unchanged logic)
-  // =========================
-  const bottomBar = () => {
-    const title = (
+  // Text block metadata layout (Title + Artist)
+  const trackInfoBlock = () => (
+    <box class="info" orientation={Gtk.Orientation.VERTICAL}>
       <label
         class="title"
         ellipsize={Pango.EllipsizeMode.END}
         halign={Gtk.Align.START}
         label={createBinding(player, "title")((t) => t || "Unknown Track")}
       />
-    );
-
-    const artist = (
       <label
         class="artist"
         maxWidthChars={20}
@@ -65,215 +80,140 @@ export default ({
         ellipsize={Pango.EllipsizeMode.END}
         label={createBinding(player, "artist")((a) => a || "Unknown Artist")}
       />
-    );
+    </box>
+  );
 
-    const positionSlider = (
-      <slider
-        class="slider"
-        $={(self) => {
-          let unsubscribe: (() => void) | null = null;
-
-          const updateValue = () => {
-            if (!isDragging.get()) {
-              const pos = player.position;
-              const len = player.length;
-              self.set_value(len > 0 ? pos / len : 0);
-            }
-          };
-
-          const gestureClick = new Gtk.GestureDrag();
-
-          gestureClick.connect("drag-begin", () => {
-            setIsDragging(true);
-            unsubscribe?.();
-            unsubscribe = null;
-          });
-
-          gestureClick.connect("drag-update", () => {
-            player.position = self.get_value() * player.length;
-          });
-
-          gestureClick.connect("drag-end", () => {
-            player.position = self.get_value() * player.length;
-            setIsDragging(false);
-            unsubscribe = createBinding(player, "position").subscribe(
-              updateValue,
-            );
-          });
-
-          self.add_controller(gestureClick);
-          unsubscribe = createBinding(player, "position").subscribe(
-            updateValue,
-          );
-        }}
-        visible={createBinding(player, "length")((l) => l > 0)}
-      />
-    );
-
-    const positionLabel = (
-      <label
-        class="position time"
-        halign={Gtk.Align.START}
-        label={createBinding(player, "position")(lengthStr)}
-        visible={createBinding(player, "length")((l) => l > 0)}
-      />
-    );
-
-    const lengthLabel = (
-      <label
-        class="length time"
-        halign={Gtk.Align.END}
-        visible={createBinding(player, "length")((l) => l > 0)}
-        label={createBinding(player, "length")(lengthStr)}
-      />
-    );
-
-    const Icon = () => (
-      <box hexpand halign={Gtk.Align.END} valign={Gtk.Align.START}>
-        <image
-          class="icon"
-          tooltip_text={createBinding(player, "identity")((i) => i || "")}
-          iconName={
-            apps.exact_query(player.entry)[0]?.iconName || "audio-x-generic"
-          }
-        />
-      </box>
-    );
-
-    const playPause = (
-      <button
-        onClicked={() => player.play_pause()}
-        class="play-pause"
-        visible={createBinding(player, "can_play")((c) => c)}
-      >
-        <label
-          label={createBinding(
-            player,
-            "playbackStatus",
-          )((s) => {
-            switch (s) {
-              case AstalMpris.PlaybackStatus.PLAYING:
-                return "";
-              case AstalMpris.PlaybackStatus.PAUSED:
-              case AstalMpris.PlaybackStatus.STOPPED:
-                return "";
-              default:
-                return "";
-            }
-          })}
-        />
-      </button>
-    );
-
-    const prev = (
-      <button
-        onClicked={() => {
-          player.previous();
-          setSlideDirection("prev");
-        }}
-        visible={createBinding(player, "can_go_previous")((c) => c)}
-      >
-        <label label="󰒮" />
-      </button>
-    );
-
-    const next = (
-      <button
-        onClicked={() => {
-          player.next();
-          setSlideDirection("next");
-        }}
-        visible={createBinding(player, "can_go_next")((c) => c)}
-      >
-        <label label="󰒭" />
-      </button>
-    );
-
-    return (
-      <box
-        class={"main"}
-        spacing={5}
-        orientation={Gtk.Orientation.VERTICAL}
-        hexpand
-      >
-        <box class="top-row" spacing={10}>
-          <Picture
-            class={createBinding(
-              player,
-              "playbackStatus",
-            )((s) =>
-              s === AstalMpris.PlaybackStatus.PLAYING
-                ? "cover-art-spinner playing"
-                : "cover-art-spinner paused",
-            )}
-            height={40}
-            width={40}
-            file={createBinding(
-              player,
-              "coverArt",
-            )(
-              (c) =>
-                c ||
-                `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`,
-            )}
-          />
-          <box class="info" orientation={Gtk.Orientation.VERTICAL}>
-            {title}
-            {artist}
-          </box>
-          <Icon />
-        </box>
-
-        <box class="separator" vexpand />
-
-        <centerbox>
-          <box $type="start">{positionLabel}</box>
-          <box $type="center" spacing={5}>
-            {prev}
-            {playPause}
-            {next}
-          </box>
-          <box $type="end">{lengthLabel}</box>
-        </centerbox>
-
-        {positionSlider}
-      </box>
-    );
-  };
-
-  // =========================
-  // Stack animation (FIXED)
-  // =========================
-  const playerStack = new Gtk.Stack({
-    transition_duration: 250,
+  // Stack animation layer used ONLY for track metadata text
+  const textStack = new Gtk.Stack({
+    transition_duration: 200,
     hexpand: true,
-    vexpand: true,
   });
 
-  const bar1 = bottomBar() as Gtk.Widget;
-  const bar2 = bottomBar() as Gtk.Widget;
-
+  const info1 = trackInfoBlock() as Gtk.Widget;
+  const info2 = trackInfoBlock() as Gtk.Widget;
+  const names = ["info1", "info2"];
   let currentIndex = 0;
-  const names = ["bar1", "bar2"];
 
-  playerStack.add_named(bar1, names[0]);
-  playerStack.add_named(bar2, names[1]);
-  playerStack.set_visible_child_name(names[0]);
+  textStack.add_named(info1, names[0]);
+  textStack.add_named(info2, names[1]);
+  textStack.set_visible_child_name(names[0]);
 
-  function switchBar(direction: "next" | "prev") {
-    playerStack.set_transition_type(
+  function switchText(direction: "next" | "prev") {
+    textStack.set_transition_type(
       direction === "next"
         ? Gtk.StackTransitionType.SLIDE_LEFT
         : Gtk.StackTransitionType.SLIDE_RIGHT,
     );
-
     currentIndex = currentIndex === 0 ? 1 : 0;
-    playerStack.set_visible_child_name(names[currentIndex]);
+    textStack.set_visible_child_name(names[currentIndex]);
   }
 
-  // =========================
-  // Main overlay
-  // =========================
+  const positionSlider = (
+    <slider
+      class="slider"
+      $={(self) => {
+        let unsubscribe: (() => void) | null = null;
+
+        const updateValue = () => {
+          if (!isDragging.get()) {
+            const pos = player.position;
+            const len = player.length;
+            self.set_value(len > 0 ? pos / len : 0);
+          }
+        };
+
+        const gestureClick = new Gtk.GestureDrag();
+
+        gestureClick.connect("drag-begin", () => {
+          setIsDragging(true);
+          unsubscribe?.();
+          unsubscribe = null;
+        });
+
+        gestureClick.connect("drag-update", () => {
+          player.position = self.get_value() * player.length;
+        });
+
+        gestureClick.connect("drag-end", () => {
+          player.position = self.get_value() * player.length;
+          setIsDragging(false);
+          unsubscribe = createBinding(player, "position").subscribe(updateValue);
+        });
+
+        self.add_controller(gestureClick);
+        unsubscribe = createBinding(player, "position").subscribe(updateValue);
+      }}
+      visible={createBinding(player, "length")((l) => l > 0)}
+    />
+  );
+
+  const positionLabel = (
+    <label
+      class="position time"
+      halign={Gtk.Align.START}
+      label={createBinding(player, "position")(lengthStr)}
+      visible={createBinding(player, "length")((l) => l > 0)}
+    />
+  );
+
+  const lengthLabel = (
+    <label
+      class="length time"
+      halign={Gtk.Align.END}
+      visible={createBinding(player, "length")((l) => l > 0)}
+      label={createBinding(player, "length")(lengthStr)}
+    />
+  );
+
+  const playPause = (
+    <button
+      onClicked={() => player.play_pause()}
+      class="play-pause"
+      visible={createBinding(player, "can_play")((c) => c)}
+    >
+      <label
+        label={createBinding(
+          player,
+          "playbackStatus",
+        )((s) => {
+          switch (s) {
+            case AstalMpris.PlaybackStatus.PLAYING:
+              return "";
+            case AstalMpris.PlaybackStatus.PAUSED:
+            case AstalMpris.PlaybackStatus.STOPPED:
+              return "";
+            default:
+              return "";
+          }
+        })}
+      />
+    </button>
+  );
+
+  const prev = (
+    <button
+      onClicked={() => {
+        player.previous();
+        setSlideDirection("prev");
+      }}
+      visible={createBinding(player, "can_go_previous")((c) => c)}
+    >
+      <label label="󰒮" />
+    </button>
+  );
+
+  const next = (
+    <button
+      onClicked={() => {
+        player.next();
+        setSlideDirection("next");
+      }}
+      visible={createBinding(player, "can_go_next")((c) => c)}
+    >
+      <label label="󰒭" />
+    </button>
+  );
+
   const overlay = (
     <overlay
       class={`player ${className || ""}`}
@@ -294,11 +234,7 @@ export default ({
           return true;
         };
 
-        const timeoutId = GLib.timeout_add(
-          GLib.PRIORITY_DEFAULT,
-          100,
-          checkWidth,
-        );
+        const timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, checkWidth);
 
         self.connect("destroy", () => {
           if (timeoutId) GLib.source_remove(timeoutId);
@@ -307,24 +243,18 @@ export default ({
         self.add_controller(controller);
         checkWidth();
 
-        // ✅ SAFE: only switching, not recreating widgets
+        // Slide animation only for text titles
         createBinding(player, "title").subscribe(() => {
-          switchBar(slideDirection.get() || "next");
+          switchText(slideDirection.get() || "next");
         });
       }}
     >
+      {/* Main blurred background cover art using protected binding */}
       <Picture
         class="img"
         height={height}
         width={width}
-        file={createBinding(
-          player,
-          "coverArt",
-        )(
-          (c) =>
-            c ||
-            `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`,
-        )}
+        file={coverBinding}
       />
 
       <box
@@ -336,7 +266,47 @@ export default ({
           transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
           barCount={50}
         />
-        {playerStack}
+
+        <box class={"main"} spacing={5} orientation={Gtk.Orientation.VERTICAL} hexpand>
+          <box class="top-row" spacing={10}>
+            {/* Small spinning preview thumbnail with protected binding */}
+            <Picture
+              class={createBinding(
+                player,
+                "playbackStatus",
+              )((s) =>
+                s === AstalMpris.PlaybackStatus.PLAYING
+                  ? "cover-art-spinner playing"
+                  : "cover-art-spinner paused",
+              )}
+              height={40}
+              width={40}
+              file={coverBinding}
+            />
+            {textStack}
+            <box hexpand halign={Gtk.Align.END} valign={Gtk.Align.START}>
+              <image
+                class="icon"
+                tooltip_text={createBinding(player, "identity")((i) => i || "")}
+                iconName={apps.exact_query(player.entry)[0]?.iconName || "audio-x-generic"}
+              />
+            </box>
+          </box>
+
+          <box class="separator" vexpand />
+
+          <centerbox>
+            <box $type="start">{positionLabel}</box>
+            <box $type="center" spacing={5}>
+              {prev}
+              {playPause}
+              {next}
+            </box>
+            <box $type="end">{lengthLabel}</box>
+          </centerbox>
+
+          {positionSlider}
+        </box>
       </box>
     </overlay>
   );
