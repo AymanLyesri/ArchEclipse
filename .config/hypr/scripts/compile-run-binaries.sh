@@ -19,7 +19,10 @@ ags bundle "$CONFIG_DIR/ags/app.tsx" "$AGS_TMP/ags-bin"
 pkill -f "wallpaper-loop" 2>/dev/null
 
 "$TMP/wallpaper-loop" &
-"$AGS_TMP/ags-bin" > "$AGS_TMP/ags-bin.log" 2>&1 &
+# Launch AGS under a watchdog so a GTK4 surface-assertion crash self-heals instead of
+# leaving the desktop without bar/panels until a manual relaunch.
+chmod +x "$HOME/.config/hypr/scripts/ags-watchdog.sh" 2>/dev/null
+"$HOME/.config/hypr/scripts/ags-watchdog.sh" "$AGS_TMP/ags-bin" > "$AGS_TMP/ags-bin.log" 2>&1 &
 
 # Run immediately once
 "$TMP/battery-check" &
