@@ -175,33 +175,6 @@ function Clock() {
     </Eventbox>
   );
 }
-
-function ClientTitle({
-  focusedClient,
-}: {
-  focusedClient: Accessor<Hyprland.Client>;
-}) {
-  return (
-    <box visible={focusedClient((c) => !!c)}>
-      <With value={focusedClient}>
-        {(client) =>
-          client && (
-            <label
-              class="client-title"
-              ellipsize={Pango.EllipsizeMode.END}
-              maxWidthChars={20}
-              label={focusedClient((client) => {
-                return client ? createBinding(client, "title") : "No Title";
-              })()}
-              tooltipMarkup={focusedClient((c) => c.class)}
-            />
-          )
-        }
-      </With>
-    </box>
-  );
-}
-
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="information" spacing={5} halign={halign}>

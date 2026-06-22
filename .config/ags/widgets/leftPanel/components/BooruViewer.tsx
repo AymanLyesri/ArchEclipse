@@ -91,135 +91,267 @@ const booruErrorMessageFromUnknown = (
   return text;
 };
 
-const [images, setImages] = createState<BooruImage[]>([]);
-const [cacheSize, setCacheSize] = createState<string>("0kb");
-const [progressStatus, setProgressStatus] = createState<
-  "loading" | "error" | "success" | "idle"
->("idle");
-const [fetchedTags, setFetchedTags] = createState<string[]>([]);
+// NOTE: All state and helpers below are created PER INSTANCE inside
+// createBooruViewerInstance(). This widget can be mounted once per monitor
+// (LeftPanel.tsx calls BooruViewer() once per monitor's Panel()), so any
+// state here MUST NOT live at module scope — module-level createState() would
+// be shared across every monitor, causing the page Stack reference, image
+// list, and selected tab to be silently stolen by whichever monitor's
+// instance mounted last. That was the root cause of "page doesn't switch on
+// the second monitor".
+const createBooruViewerInstance = () => {
+  const [images, setImages] = createState<BooruImage[]>([]);
+  const [cacheSize, setCacheSize] = createState<string>("0kb");
+  const [progressStatus, setProgressStatus] = createState<
+    "loading" | "error" | "success" | "idle"
+  >("idle");
+  const [fetchedTags, setFetchedTags] = createState<string[]>([]);
 
-const [selectedTab, setSelectedTab] = createState<string>("");
-const [scrolledWindow, setScrolledWindow] =
-  createState<Gtk.ScrolledWindow | null>(null);
+  const [selectedTab, setSelectedTab] = createState<string>("");
+  const [scrolledWindow, setScrolledWindow] =
+    createState<Gtk.ScrolledWindow | null>(null);
 
-const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
+  const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
 
-const [page, setPage] = createState<number>(1);
-const [pageStack, setPageStack] = createState<Gtk.Stack | null>(null);
-const [pageDirection, setPageDirection] = createState<"next" | "prev">("next");
-const [tags, setTags] = createState<string[]>([]);
-const [limit, setLimit] = createState<number>(100);
-
-const calculateCacheSize = async () => {
-  try {
-    const res = await execAsync(
-      `bash -c "du -sb ${booruPath}/${
-        globalSettings.peek().booru.api.value
-      }/previews | cut -f1"`,
-    );
-    // Convert bytes to megabytes
-    setCacheSize(`${Math.round(Number(res) / (1024 * 1024))}mb`);
-  } catch (err) {
-    console.error("Error calculating cache size:", err);
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    notify({
-      summary: "Error calculating cache size",
-      body: errorMessage,
-    });
-    setCacheSize("0mb");
-  }
-};
-
-const ensureRatingTagFirst = () => {
-  let tags: string[] = globalSettings.peek().booru.tags;
-  // Find existing rating tag
-  const ratingTag = tags.find((tag) =>
-    tag.match(/[-]rating:explicit|rating:explicit/),
+  const [page, setPage] = createState<number>(1);
+  const [pageStack, setPageStack] = createState<Gtk.Stack | null>(null);
+  const [pageDirection, setPageDirection] = createState<"next" | "prev">(
+    "next",
   );
-  // Remove any existing rating tag
-  tags = tags.filter((tag) => !tag.match(/[-]rating:explicit|rating:explicit/));
-  // Add the previous rating tag at the beginning, or default to "-rating:explicit"
-  tags.unshift(ratingTag ?? "-rating:explicit");
-  setGlobalSetting("booru.tags", tags);
-};
+  const [tags, setTags] = createState<string[]>([]);
+  const [limit, setLimit] = createState<number>(100);
 
-const cleanUp = () => {
-  const promises = [
-    execAsync(
-      `bash -c "rm -rf ${booruPath}/${
-        globalSettings.peek().booru.api.value
-      }/previews/*"`,
-    ),
-    execAsync(
-      `bash -c "rm -rf ${booruPath}/${
-        globalSettings.peek().booru.api.value
-      }/images/*"`,
-    ),
-  ];
-
-  Promise.all(promises)
-    .then(() => {
-      notify({ summary: "Success", body: "Cache cleared successfully" });
-      calculateCacheSize();
-    })
-    .catch((err) => {
-      console.error("Error clearing cache:", err);
+  const calculateCacheSize = async () => {
+    try {
+      const res = await execAsync(
+        `bash -c "du -sb ${booruPath}/${
+          globalSettings.peek().booru.api.value
+        }/previews | cut -f1"`,
+      );
+      // Convert bytes to megabytes
+      setCacheSize(`${Math.round(Number(res) / (1024 * 1024))}mb`);
+    } catch (err) {
+      console.error("Error calculating cache size:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       notify({
-        summary: "Error clearing cache",
-        body: `Failed to clear cache: ${errorMessage}`,
+        summary: "Error calculating cache size",
+        body: errorMessage,
       });
-    });
-};
-const fetchImages = async () => {
-  try {
-    setProgressStatus("loading");
+      setCacheSize("0mb");
+    }
+  };
 
-    const settings = globalSettings.peek();
-    const limit = settings.booru.limit;
-    const currentPage = Math.max(1, settings.booru.page);
-    const startIndex = limit > 0 ? (currentPage - 1) * limit : 0;
+  const ensureRatingTagFirst = () => {
+    let tags: string[] = globalSettings.peek().booru.tags;
+    // Find existing rating tag
+    const ratingTag = tags.find((tag) =>
+      tag.match(/[-]rating:explicit|rating:explicit/),
+    );
+    // Remove any existing rating tag
+    tags = tags.filter(
+      (tag) => !tag.match(/[-]rating:explicit|rating:explicit/),
+    );
+    // Add the previous rating tag at the beginning, or default to "-rating:explicit"
+    tags.unshift(ratingTag ?? "-rating:explicit");
+    setGlobalSetting("booru.tags", tags);
+  };
 
-    let imagesToDisplay: BooruImage[] = [];
+  const cleanUp = () => {
+    const promises = [
+      execAsync(
+        `bash -c "rm -rf ${booruPath}/${
+          globalSettings.peek().booru.api.value
+        }/previews/*"`,
+      ),
+      execAsync(
+        `bash -c "rm -rf ${booruPath}/${
+          globalSettings.peek().booru.api.value
+        }/images/*"`,
+      ),
+    ];
 
-    // Determine source: bookmarks or API
-    if (selectedTab.peek() === "Bookmarks") {
-      // Fetch bookmarks from backend
-      const response = await execAsync([
-        "python",
-        booruScriptPath,
-        "--action",
-        "list-bookmarks",
-      ]);
-      const bookmarks = parseBooruArrayResponse<any>(
-        response,
-        "Invalid response format from bookmark list",
+    Promise.all(promises)
+      .then(() => {
+        notify({ summary: "Success", body: "Cache cleared successfully" });
+        calculateCacheSize();
+      })
+      .catch((err) => {
+        console.error("Error clearing cache:", err);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        notify({
+          summary: "Error clearing cache",
+          body: `Failed to clear cache: ${errorMessage}`,
+        });
+      });
+  };
+  const fetchImages = async () => {
+    try {
+      setProgressStatus("loading");
+
+      const settings = globalSettings.peek();
+      const limit = settings.booru.limit;
+      const currentPage = Math.max(1, settings.booru.page);
+      const startIndex = limit > 0 ? (currentPage - 1) * limit : 0;
+
+      let imagesToDisplay: BooruImage[] = [];
+
+      // Determine source: bookmarks or API
+      if (selectedTab.peek() === "Bookmarks") {
+        // Fetch bookmarks from backend
+        const response = await execAsync([
+          "python",
+          booruScriptPath,
+          "--action",
+          "list-bookmarks",
+        ]);
+        const bookmarks = parseBooruArrayResponse<any>(
+          response,
+          "Invalid response format from bookmark list",
+        );
+        BooruImage.syncBookmarkCache(bookmarks);
+        setGlobalSetting("booru.bookmarks", bookmarks);
+
+        // Apply pagination
+        const pagedBookmarks =
+          limit > 0
+            ? bookmarks.slice(startIndex, startIndex + limit)
+            : bookmarks;
+        imagesToDisplay = pagedBookmarks.map(
+          (b: BooruImage) => new BooruImage(b),
+        );
+      } else {
+        // Fetch from API
+        const apiValue = settings.booru.api.value;
+        const credentials =
+          settings.apiKeys[apiValue as keyof typeof settings.apiKeys];
+
+        const args = [
+          "python",
+          booruScriptPath,
+          "--api",
+          apiValue,
+          "--tags",
+          settings.booru.tags.join(","),
+          "--limit",
+          String(settings.booru.limit),
+          "--page",
+          String(settings.booru.page),
+        ];
+
+        if (credentials?.user.value && credentials?.key.value) {
+          args.push(
+            "--api-user",
+            credentials.user.value,
+            "--api-key",
+            credentials.key.value,
+          );
+        }
+
+        const res = await execAsync(args);
+        const jsonData = parseBooruArrayResponse<any>(
+          res,
+          "Invalid response format from booru API",
+        );
+
+        imagesToDisplay = jsonData.map(
+          (img: any) =>
+            new BooruImage({
+              ...img,
+              api: settings.booru.api,
+            }),
+        );
+      }
+
+      // Download all previews in parallel (unified for both sources)
+      await Promise.all(
+        imagesToDisplay.map(async (img) => {
+          const previewDir = `${booruPath}/${img.api.value}/previews`;
+          const filePath = `${previewDir}/${img.id}.${img.extension}`;
+
+          await execAsync(`mkdir -p "${previewDir}"`);
+
+          try {
+            await execAsync(`test -f "${filePath}"`);
+          } catch {
+            const userAgent = "AGSBooruViewer/1.0 (ArchLinux; Hyprland)";
+            const referer = img.api.url;
+
+            await execAsync(
+              `curl -sSf ` +
+                `-H "User-Agent: ${userAgent}" ` +
+                `-H "Referer: ${referer}" ` +
+                `-H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" ` +
+                `-o "${filePath}" "${img.preview}"`,
+            );
+          }
+        }),
       );
-      BooruImage.syncBookmarkCache(bookmarks);
-      setGlobalSetting("booru.bookmarks", bookmarks);
 
-      // Apply pagination
-      const pagedBookmarks =
-        limit > 0 ? bookmarks.slice(startIndex, startIndex + limit) : bookmarks;
-      imagesToDisplay = pagedBookmarks.map((b: any) => new BooruImage(b));
-    } else {
-      // Fetch from API
+      setImages(imagesToDisplay);
+      calculateCacheSize();
+      setProgressStatus("success");
+    } catch (err) {
+      console.error(err);
+      const errorMessage =
+        selectedTab.peek() === "Bookmarks"
+          ? booruErrorMessageFromUnknown(err, "Failed to load bookmarks")
+          : booruErrorMessageFromUnknown(err, "Failed to fetch images");
+      notify({
+        summary:
+          selectedTab.peek() === "Bookmarks"
+            ? "Error loading bookmarks"
+            : "Error fetching images",
+        body: errorMessage,
+      });
+      setProgressStatus("error");
+    }
+  };
+
+  const Tabs = () => (
+    <box class="tab-list" spacing={5}>
+      {booruApis.map((api) => (
+        <togglebutton
+          sensitive={progressStatus((status) => status !== "loading")}
+          hexpand
+          active={selectedTab((tab) => tab === api.name)}
+          class="api"
+          label={api.name}
+          onToggled={({ active }) => {
+            if (active) {
+              setGlobalSetting("booru.api", api);
+              setSelectedTab(api.name);
+              setGlobalSetting("booru.selectedTab", api.name);
+              fetchImages();
+            }
+          }}
+        />
+      ))}
+      <togglebutton
+        sensitive={progressStatus((status) => status !== "loading")}
+        class="bookmarks"
+        label=""
+        active={selectedTab((tab) => tab === "Bookmarks")}
+        onToggled={({ active }) => {
+          if (active) {
+            setSelectedTab("Bookmarks");
+            setGlobalSetting("booru.selectedTab", "Bookmarks");
+            setPage(1);
+            setGlobalSetting("booru.page", 1);
+            fetchImages();
+          }
+        }}
+      />
+    </box>
+  );
+
+  const fetchTags = async (tag: string) => {
+    try {
+      const settings = globalSettings.peek();
       const apiValue = settings.booru.api.value;
       const credentials =
         settings.apiKeys[apiValue as keyof typeof settings.apiKeys];
 
-      const args = [
-        "python",
-        booruScriptPath,
-        "--api",
-        apiValue,
-        "--tags",
-        settings.booru.tags.join(","),
-        "--limit",
-        String(settings.booru.limit),
-        "--page",
-        String(settings.booru.page),
-      ];
+      const args = ["python", booruScriptPath, "--api", apiValue, "--tag", tag];
 
       if (credentials?.user.value && credentials?.key.value) {
         args.push(
@@ -231,455 +363,319 @@ const fetchImages = async () => {
       }
 
       const res = await execAsync(args);
-      const jsonData = parseBooruArrayResponse<any>(
+      const jsonData = parseBooruArrayResponse<string>(
         res,
-        "Invalid response format from booru API",
+        "Invalid response format from tag search",
       );
-
-      imagesToDisplay = jsonData.map(
-        (img: any) =>
-          new BooruImage({
-            ...img,
-            api: settings.booru.api,
-          }),
+      setFetchedTags(jsonData);
+    } catch (err) {
+      console.error("Error fetching tags:", err);
+      const errorMessage = booruErrorMessageFromUnknown(
+        err,
+        "Failed to fetch tags",
       );
+      notify({
+        summary: "Error fetching tags",
+        body: errorMessage,
+      });
+      setFetchedTags([]);
     }
+  };
 
-    // Download all previews in parallel (unified for both sources)
-    await Promise.all(
-      imagesToDisplay.map(async (img) => {
-        const previewDir = `${booruPath}/${img.api.value}/previews`;
-        const filePath = `${previewDir}/${img.id}.${img.extension}`;
+  const showImagesPage = (
+    imagesWidget: Gtk.Widget,
+    direction: "next" | "prev",
+  ) => {
+    const stack = pageStack.get();
+    if (!stack) return;
 
-        await execAsync(`mkdir -p "${previewDir}"`);
-
-        try {
-          await execAsync(`test -f "${filePath}"`);
-        } catch {
-          await execAsync(`curl -sSf -o "${filePath}" "${img.preview}"`);
-        }
-      }),
+    stack.set_transition_type(
+      direction === "next"
+        ? Gtk.StackTransitionType.SLIDE_LEFT
+        : Gtk.StackTransitionType.SLIDE_RIGHT,
     );
 
-    setImages(imagesToDisplay);
-    calculateCacheSize();
-    setProgressStatus("success");
-  } catch (err) {
-    console.error(err);
-    const errorMessage =
-      selectedTab.peek() === "Bookmarks"
-        ? booruErrorMessageFromUnknown(err, "Failed to load bookmarks")
-        : booruErrorMessageFromUnknown(err, "Failed to fetch images");
-    notify({
-      summary:
-        selectedTab.peek() === "Bookmarks"
-          ? "Error loading bookmarks"
-          : "Error fetching images",
-      body: errorMessage,
-    });
-    setProgressStatus("error");
-  }
-};
+    const name = `page-${Date.now()}`;
+    stack.add_named(imagesWidget, name);
+    stack.set_visible_child_name(name);
 
-const Tabs = () => (
-  <box class="tab-list" spacing={5}>
-    {booruApis.map((api) => (
-      <togglebutton
-        sensitive={progressStatus((status) => status !== "loading")}
+    const visible = stack.get_visible_child();
+    let child = stack.get_first_child();
+    while (child) {
+      const next = child.get_next_sibling();
+      if (visible && child !== visible) {
+        stack.remove(child);
+      }
+      child = next;
+    }
+  };
+
+  const createImagesContent = () => {
+    function masonry(images: BooruImage[], columnsCount: number) {
+      const columns = Array.from({ length: columnsCount }, () => ({
+        height: 0,
+        items: [] as BooruImage[],
+      }));
+
+      for (const image of images) {
+        const ratio = image.height / image.width;
+        const target = columns.reduce((a, b) => (a.height < b.height ? a : b));
+
+        target.items.push(image);
+        target.height += ratio;
+      }
+
+      return columns.map((c) => c.items);
+    }
+
+    const currentImages = images.peek();
+    const columns = globalSettings.peek().booru.columns;
+    const imageColumns = masonry(currentImages, columns);
+    const columnWidth =
+      globalSettings.peek().leftPanel.width / imageColumns.length - 10;
+
+    // Create scrolled window element
+    const scrolled = (
+      <scrolledwindow hexpand vexpand>
+        <box class={"images"} spacing={5}>
+          {imageColumns.map((column) => (
+            <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
+              {column.map((image: BooruImage) => {
+                return image.renderAsImageDialog({
+                  columnWidth,
+                });
+              })}
+            </box>
+          ))}
+        </box>
+      </scrolledwindow>
+    ) as Gtk.ScrolledWindow;
+
+    setScrolledWindow(scrolled);
+
+    return scrolled;
+  };
+
+  const Images = () => {
+    return (
+      <stack
+        transitionDuration={globalTransition}
         hexpand
-        active={selectedTab((tab) => tab === api.name)}
-        class="api"
-        label={api.name}
-        onToggled={({ active }) => {
-          if (active) {
-            setGlobalSetting("booru.api", api);
-            setSelectedTab(api.name);
-            setGlobalSetting("booru.selectedTab", api.name);
-            fetchImages();
-          }
+        vexpand
+        $={(self) => {
+          setPageStack(self);
+
+          let isFirstRender = true;
+
+          const unsubscribe = images.subscribe(() => {
+            const content = createImagesContent() as Gtk.Widget;
+
+            if (isFirstRender) {
+              // First render: add without transition
+              const name = `page-${Date.now()}`;
+              self.add_named(content, name);
+              self.set_visible_child_name(name);
+              isFirstRender = false;
+            } else {
+              // Subsequent renders: use transition
+              showImagesPage(content, pageDirection.peek());
+            }
+
+            // Scroll to top after transition
+            setTimeout(() => {
+              const sw = scrolledWindow.get();
+              if (sw) {
+                const vadjustment = sw.get_vadjustment();
+                vadjustment.set_value(0);
+              }
+            }, globalTransition);
+          });
+
+          self.connect("destroy", () => {
+            if (typeof unsubscribe === "function") {
+              unsubscribe();
+            }
+          });
         }}
       />
-    ))}
-    <togglebutton
-      sensitive={progressStatus((status) => status !== "loading")}
-      class="bookmarks"
-      label=""
-      active={selectedTab((tab) => tab === "Bookmarks")}
-      onToggled={({ active }) => {
-        if (active) {
-          setSelectedTab("Bookmarks");
-          setGlobalSetting("booru.selectedTab", "Bookmarks");
-          fetchImages();
-        }
-      }}
-    />
-  </box>
-);
-
-const fetchTags = async (tag: string) => {
-  try {
-    const settings = globalSettings.peek();
-    const apiValue = settings.booru.api.value;
-    const credentials =
-      settings.apiKeys[apiValue as keyof typeof settings.apiKeys];
-
-    const args = ["python", booruScriptPath, "--api", apiValue, "--tag", tag];
-
-    if (credentials?.user.value && credentials?.key.value) {
-      args.push(
-        "--api-user",
-        credentials.user.value,
-        "--api-key",
-        credentials.key.value,
-      );
-    }
-
-    const res = await execAsync(args);
-    const jsonData = parseBooruArrayResponse<string>(
-      res,
-      "Invalid response format from tag search",
     );
-    setFetchedTags(jsonData);
-  } catch (err) {
-    console.error("Error fetching tags:", err);
-    const errorMessage = booruErrorMessageFromUnknown(
-      err,
-      "Failed to fetch tags",
-    );
-    notify({
-      summary: "Error fetching tags",
-      body: errorMessage,
-    });
-    setFetchedTags([]);
-  }
-};
+  };
 
-const showImagesPage = (
-  imagesWidget: Gtk.Widget,
-  direction: "next" | "prev",
-) => {
-  const stack = pageStack.get();
-  if (!stack) return;
+  const PageDisplay = () => (
+    <box class="pages" spacing={5} halign={Gtk.Align.CENTER}>
+      <With value={globalSettings}>
+        {(settings) => {
+          const buttons = [];
+          const totalPagesToShow = settings.leftPanel.width / 100 + 2;
 
-  stack.set_transition_type(
-    direction === "next"
-      ? Gtk.StackTransitionType.SLIDE_LEFT
-      : Gtk.StackTransitionType.SLIDE_RIGHT,
-  );
-
-  const name = `page-${Date.now()}`;
-  stack.add_named(imagesWidget, name);
-  stack.set_visible_child_name(name);
-
-  const visible = stack.get_visible_child();
-  let child = stack.get_first_child();
-  while (child) {
-    const next = child.get_next_sibling();
-    if (visible && child !== visible) {
-      stack.remove(child);
-    }
-    child = next;
-  }
-};
-
-const createImagesContent = () => {
-  function masonry(images: BooruImage[], columnsCount: number) {
-    const columns = Array.from({ length: columnsCount }, () => ({
-      height: 0,
-      items: [] as BooruImage[],
-    }));
-
-    for (const image of images) {
-      const ratio = image.height / image.width;
-      const target = columns.reduce((a, b) => (a.height < b.height ? a : b));
-
-      target.items.push(image);
-      target.height += ratio;
-    }
-
-    return columns.map((c) => c.items);
-  }
-
-  const currentImages = images.peek();
-  const columns = globalSettings.peek().booru.columns;
-  const imageColumns = masonry(currentImages, columns);
-  const columnWidth =
-    globalSettings.peek().leftPanel.width / imageColumns.length - 10;
-
-  // Create scrolled window element
-  const scrolled = (
-    <scrolledwindow hexpand vexpand>
-      <box class={"images"} spacing={5}>
-        {imageColumns.map((column) => (
-          <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
-            {column.map((image: BooruImage) => {
-              return image.renderAsImageDialog({
-                columnWidth,
-              });
-            })}
-          </box>
-        ))}
-      </box>
-    </scrolledwindow>
-  ) as Gtk.ScrolledWindow;
-
-  setScrolledWindow(scrolled);
-
-  return scrolled;
-};
-
-const Images = () => {
-  return (
-    <stack
-      transitionDuration={globalTransition}
-      hexpand
-      vexpand
-      $={(self) => {
-        setPageStack(self);
-
-        let isFirstRender = true;
-
-        const unsubscribe = images.subscribe(() => {
-          const content = createImagesContent() as Gtk.Widget;
-
-          if (isFirstRender) {
-            // First render: add without transition
-            const name = `page-${Date.now()}`;
-            self.add_named(content, name);
-            self.set_visible_child_name(name);
-            isFirstRender = false;
-          } else {
-            // Subsequent renders: use transition
-            showImagesPage(content, pageDirection.peek());
+          // Show "1" button if the current page is greater than 3
+          if (settings.booru.page > 3) {
+            buttons.push(
+              <button
+                sensitive={progressStatus((status) => status !== "loading")}
+                class="first"
+                label="1"
+                onClicked={() => {
+                  setPageDirection("prev");
+                  setGlobalSetting("booru.page", 1);
+                  setPage(1);
+                  fetchImages();
+                }}
+              />,
+            );
+            buttons.push(<label label={"..."}></label>);
           }
 
-          // Scroll to top after transition
-          setTimeout(() => {
-            const sw = scrolledWindow.get();
-            if (sw) {
-              const vadjustment = sw.get_vadjustment();
-              vadjustment.set_value(0);
-            }
-          }, globalTransition);
-        });
+          // Generate 5-page range dynamically without going below 1
+          // const startPage = Math.max(1, computed[0] - 2);
+          // const endPage = Math.max(5, computed[0] + 2);
+          let startPage = Math.max(
+            1,
+            settings.booru.page - Math.floor(totalPagesToShow / 2),
+          );
+          let endPage = startPage + totalPagesToShow - 1;
 
-        self.connect("destroy", () => {
-          if (typeof unsubscribe === "function") {
-            unsubscribe();
+          // Adjust if endPage exceeds totalPagesToShow
+          if (endPage - startPage + 1 < totalPagesToShow) {
+            endPage = startPage + totalPagesToShow - 1;
           }
-        });
-      }}
-    />
-  );
-};
 
-const PageDisplay = () => (
-  <box class="pages" spacing={5} halign={Gtk.Align.CENTER}>
-    <With value={globalSettings}>
-      {(settings) => {
-        const buttons = [];
-        const totalPagesToShow = settings.leftPanel.width / 100 + 2;
-
-        // Show "1" button if the current page is greater than 3
-        if (settings.booru.page > 3) {
-          buttons.push(
-            <button
-              sensitive={progressStatus((status) => status !== "loading")}
-              class="first"
-              label="1"
-              onClicked={() => {
-                setPageDirection("prev");
-                setGlobalSetting("booru.page", 1);
-                setPage(1);
-                fetchImages();
-              }}
-            />,
-          );
-          buttons.push(<label label={"..."}></label>);
-        }
-
-        // Generate 5-page range dynamically without going below 1
-        // const startPage = Math.max(1, computed[0] - 2);
-        // const endPage = Math.max(5, computed[0] + 2);
-        let startPage = Math.max(
-          1,
-          settings.booru.page - Math.floor(totalPagesToShow / 2),
-        );
-        let endPage = startPage + totalPagesToShow - 1;
-
-        // Adjust if endPage exceeds totalPagesToShow
-        if (endPage - startPage + 1 < totalPagesToShow) {
-          endPage = startPage + totalPagesToShow - 1;
-        }
-
-        for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
-          buttons.push(
-            <button
-              sensitive={progressStatus((status) => status !== "loading")}
-              label={pageNum !== settings.booru.page ? String(pageNum) : ""}
-              onClicked={() => {
-                if (pageNum !== settings.booru.page) {
-                  setPageDirection(
-                    pageNum > settings.booru.page ? "next" : "prev",
-                  );
-                  setGlobalSetting("booru.page", pageNum);
-                  setPage(pageNum);
-                }
-                fetchImages();
-              }}
-            />,
-          );
-        }
-        return <box spacing={5}>{buttons}</box>;
-      }}
-    </With>
-  </box>
-);
-
-const SliderSetting = ({
-  label,
-  getValue,
-  setValue,
-  sliderMin,
-  sliderMax,
-  sliderStep,
-  displayTransform,
-}: {
-  label: string;
-  getValue: Accessor<number>;
-  setValue: (v: number) => void;
-  sliderMin: number;
-  sliderMax: number;
-  sliderStep: number;
-  displayTransform: (v: number) => string;
-}) => {
-  let debounceTimer: any;
-
-  return (
-    <box class="setting" spacing={5}>
-      <label label={label} hexpand xalign={0} />
-      <box spacing={5} halign={Gtk.Align.END}>
-        <slider
-          value={getValue}
-          widthRequest={globalSettings(
-            (settings) => settings.leftPanel.width / 2,
-          )}
-          class="slider"
-          drawValue={false}
-          hexpand
-          $={(self) => {
-            self.set_range(sliderMin, sliderMax);
-            self.set_increments(sliderStep, sliderStep);
-            const adjustment = self.get_adjustment();
-            adjustment.connect("value-changed", () => {
-              // Clear the previous timeout if any
-              if (debounceTimer) clearTimeout(debounceTimer);
-
-              // Set a new timeout with the desired delay (e.g., 300ms)
-              debounceTimer = setTimeout(() => {
-                setValue(adjustment.get_value());
-              }, 300);
-            });
-          }}
-        />
-        <label
-          label={getValue((v) => displayTransform(v))}
-          widthRequest={50}
-        ></label>
-      </box>
+          for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+            buttons.push(
+              <button
+                sensitive={progressStatus((status) => status !== "loading")}
+                label={pageNum !== settings.booru.page ? String(pageNum) : ""}
+                onClicked={() => {
+                  if (pageNum !== settings.booru.page) {
+                    setPageDirection(
+                      pageNum > settings.booru.page ? "next" : "prev",
+                    );
+                    setGlobalSetting("booru.page", pageNum);
+                    setPage(pageNum);
+                  }
+                  fetchImages();
+                }}
+              />,
+            );
+          }
+          return <box spacing={5}>{buttons}</box>;
+        }}
+      </With>
     </box>
   );
-};
 
-const LimitDisplay = () => (
-  <SliderSetting
-    label="Limit"
-    getValue={globalSettings(({ booru }) => booru.limit / 100)}
-    setValue={(v) => {
-      setGlobalSetting("booru.limit", Math.round(v * 100));
-      setLimit(Math.round(v * 100));
+  const SliderSetting = ({
+    label,
+    getValue,
+    setValue,
+    sliderMin,
+    sliderMax,
+    sliderStep,
+    displayTransform,
+  }: {
+    label: string;
+    getValue: Accessor<number>;
+    setValue: (v: number) => void;
+    sliderMin: number;
+    sliderMax: number;
+    sliderStep: number;
+    displayTransform: (v: number) => string;
+  }) => {
+    let debounceTimer: any;
 
-      fetchImages();
-    }}
-    sliderMin={0}
-    sliderMax={1}
-    sliderStep={0.1}
-    displayTransform={(v) => String(Math.round(v * 100))}
-  />
-);
+    return (
+      <box class="setting" spacing={5}>
+        <label label={label} hexpand xalign={0} />
+        <box spacing={5} halign={Gtk.Align.END}>
+          <slider
+            value={getValue}
+            widthRequest={globalSettings(
+              (settings) => settings.leftPanel.width / 2,
+            )}
+            class="slider"
+            drawValue={false}
+            hexpand
+            $={(self) => {
+              self.set_range(sliderMin, sliderMax);
+              self.set_increments(sliderStep, sliderStep);
+              const adjustment = self.get_adjustment();
+              adjustment.connect("value-changed", () => {
+                // Clear the previous timeout if any
+                if (debounceTimer) clearTimeout(debounceTimer);
 
-const ColumnDisplay = () => (
-  <SliderSetting
-    label="Columns"
-    getValue={globalSettings(({ booru }) => (booru.columns - 1) / 4)}
-    setValue={(v) => {
-      setGlobalSetting("booru.columns", Math.round(v * 4) + 1);
+                // Set a new timeout with the desired delay (e.g., 300ms)
+                debounceTimer = setTimeout(() => {
+                  setValue(adjustment.get_value());
+                }, 300);
+              });
+            }}
+          />
+          <label
+            label={getValue((v) => displayTransform(v))}
+            widthRequest={50}
+          ></label>
+        </box>
+      </box>
+    );
+  };
 
-      fetchImages();
-    }}
-    sliderMin={0}
-    sliderMax={1}
-    sliderStep={0.25}
-    displayTransform={(v) => String(Math.round(v * 4) + 1)}
-  />
-);
-const TagDisplay = () => (
-  <Adw.Clamp
-    class={"tags"}
-    maximumSize={globalSettings((settings) => settings.leftPanel.width - 20)}
-  >
-    <box widthRequest={100} orientation={Gtk.Orientation.VERTICAL} spacing={5}>
-      <Gtk.FlowBox
-        columnSpacing={5}
-        rowSpacing={5}
-        selectionMode={Gtk.SelectionMode.NONE}
-        homogeneous={false}
+  const LimitDisplay = () => (
+    <SliderSetting
+      label="Limit"
+      getValue={globalSettings(({ booru }) => booru.limit / 100)}
+      setValue={(v) => {
+        setGlobalSetting("booru.limit", Math.round(v * 100));
+        setLimit(Math.round(v * 100));
+
+        fetchImages();
+      }}
+      sliderMin={0}
+      sliderMax={1}
+      sliderStep={0.1}
+      displayTransform={(v) => String(Math.round(v * 100))}
+    />
+  );
+
+  const ColumnDisplay = () => (
+    <SliderSetting
+      label="Columns"
+      getValue={globalSettings(({ booru }) => (booru.columns - 1) / 4)}
+      setValue={(v) => {
+        setGlobalSetting("booru.columns", Math.round(v * 4) + 1);
+
+        fetchImages();
+      }}
+      sliderMin={0}
+      sliderMax={1}
+      sliderStep={0.25}
+      displayTransform={(v) => String(Math.round(v * 4) + 1)}
+    />
+  );
+  const TagDisplay = () => (
+    <Adw.Clamp
+      class={"tags"}
+      maximumSize={globalSettings((settings) => settings.leftPanel.width - 20)}
+    >
+      <box
+        widthRequest={100}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={5}
       >
-        <For each={fetchedTags}>
-          {(tag) => (
-            <button
-              class="tag fetched"
-              tooltipText={tag}
-              onClicked={() => {
-                setGlobalSetting("booru.tags", [
-                  ...new Set([...globalSettings.peek().booru.tags, tag]),
-                ]);
-                setTags(globalSettings.peek().booru.tags);
-                if (selectedTab.peek() !== "Bookmarks") {
-                  fetchImages();
-                }
-              }}
-            >
-              <label
-                ellipsize={Pango.EllipsizeMode.END}
-                maxWidthChars={10}
-                label={tag}
-              ></label>
-            </button>
-          )}
-        </For>
-      </Gtk.FlowBox>
-      <Gtk.FlowBox columnSpacing={5} rowSpacing={5}>
-        <For each={globalSettings(({ booru }) => booru.tags)}>
-          {(tag: string) =>
-            // match -rating:explicit or rating:explicit
-            tag.match(/[-]rating:explicit|rating:explicit/) ? (
+        <Gtk.FlowBox
+          columnSpacing={5}
+          rowSpacing={5}
+          selectionMode={Gtk.SelectionMode.NONE}
+          homogeneous={false}
+        >
+          <For each={fetchedTags}>
+            {(tag) => (
               <button
-                class={`tag rating`}
+                class="tag fetched"
                 tooltipText={tag}
                 onClicked={() => {
-                  const newRatingTag = tag.startsWith("-")
-                    ? "rating:explicit"
-                    : "-rating:explicit";
-
-                  const newTags = globalSettings
-                    .peek()
-                    .booru.tags.filter(
-                      (t) => !t.match(/[-]rating:explicit|rating:explicit/),
-                    );
-
-                  newTags.unshift(newRatingTag);
-                  setGlobalSetting("booru.tags", newTags);
+                  setGlobalSetting("booru.tags", [
+                    ...new Set([...globalSettings.peek().booru.tags, tag]),
+                  ]);
                   setTags(globalSettings.peek().booru.tags);
                   if (selectedTab.peek() !== "Bookmarks") {
                     fetchImages();
@@ -692,159 +688,203 @@ const TagDisplay = () => (
                   label={tag}
                 ></label>
               </button>
-            ) : (
-              <button
-                class="tag enabled"
-                tooltipText={tag}
-                onClicked={() => {
-                  const newTags = globalSettings
-                    .peek()
-                    .booru.tags.filter((t) => t !== tag);
-                  setGlobalSetting("booru.tags", newTags);
-                }}
-              >
-                <label
-                  ellipsize={Pango.EllipsizeMode.END}
-                  maxWidthChars={10}
-                  label={tag}
-                ></label>
-              </button>
-            )
-          }
-        </For>
-      </Gtk.FlowBox>
-    </box>
-  </Adw.Clamp>
-);
+            )}
+          </For>
+        </Gtk.FlowBox>
+        <Gtk.FlowBox columnSpacing={5} rowSpacing={5}>
+          <For each={globalSettings(({ booru }) => booru.tags)}>
+            {(tag: string) =>
+              // match -rating:explicit or rating:explicit
+              tag.match(/[-]rating:explicit|rating:explicit/) ? (
+                <button
+                  class={`tag rating`}
+                  tooltipText={tag}
+                  onClicked={() => {
+                    const newRatingTag = tag.startsWith("-")
+                      ? "rating:explicit"
+                      : "-rating:explicit";
 
-const Entry = () => {
-  let debounceTimer: any;
-  const onChanged = async (self: Gtk.Entry) => {
-    // Clear the previous timeout if any
-    if (debounceTimer) clearTimeout(debounceTimer);
+                    const newTags = globalSettings
+                      .peek()
+                      .booru.tags.filter(
+                        (t) => !t.match(/[-]rating:explicit|rating:explicit/),
+                      );
 
-    // Set a new timeout with the desired delay (e.g., 300ms)
-    debounceTimer = setTimeout(() => {
+                    newTags.unshift(newRatingTag);
+                    setGlobalSetting("booru.tags", newTags);
+                    setTags(globalSettings.peek().booru.tags);
+                    if (selectedTab.peek() !== "Bookmarks") {
+                      fetchImages();
+                    }
+                  }}
+                >
+                  <label
+                    ellipsize={Pango.EllipsizeMode.END}
+                    maxWidthChars={10}
+                    label={tag}
+                  ></label>
+                </button>
+              ) : (
+                <button
+                  class="tag enabled"
+                  tooltipText={tag}
+                  onClicked={() => {
+                    const newTags = globalSettings
+                      .peek()
+                      .booru.tags.filter((t) => t !== tag);
+                    setGlobalSetting("booru.tags", newTags);
+                  }}
+                >
+                  <label
+                    ellipsize={Pango.EllipsizeMode.END}
+                    maxWidthChars={10}
+                    label={tag}
+                  ></label>
+                </button>
+              )
+            }
+          </For>
+        </Gtk.FlowBox>
+      </box>
+    </Adw.Clamp>
+  );
+
+  const Entry = () => {
+    let debounceTimer: any;
+    const onChanged = async (self: Gtk.Entry) => {
+      // Clear the previous timeout if any
+      if (debounceTimer) clearTimeout(debounceTimer);
+
+      // Set a new timeout with the desired delay (e.g., 300ms)
+      debounceTimer = setTimeout(() => {
+        const text = self.get_text();
+        if (!text) {
+          setFetchedTags([]);
+          return;
+        }
+        fetchTags(text);
+      }, 200);
+    };
+
+    const addTags = (self: Gtk.Entry) => {
+      const currentTags = globalSettings.peek().booru.tags;
       const text = self.get_text();
-      if (!text) {
-        setFetchedTags([]);
-        return;
-      }
-      fetchTags(text);
-    }, 200);
+      const newTags = text.split(" ");
+
+      // Create a Set to remove duplicates
+      const uniqueTags = [...new Set([...currentTags, ...newTags])];
+
+      setGlobalSetting("booru.tags", uniqueTags);
+      fetchImages();
+    };
+
+    return (
+      <entry
+        hexpand
+        placeholderText="Add a Tag"
+        $={(self) => {
+          self.connect("changed", () => onChanged(self));
+          self.connect("activate", () => addTags(self));
+        }}
+      />
+    );
   };
 
-  const addTags = (self: Gtk.Entry) => {
-    const currentTags = globalSettings.peek().booru.tags;
-    const text = self.get_text();
-    const newTags = text.split(" ");
-
-    // Create a Set to remove duplicates
-    const uniqueTags = [...new Set([...currentTags, ...newTags])];
-
-    setGlobalSetting("booru.tags", uniqueTags);
+  const ClearCacheButton = () => {
+    return (
+      <button
+        halign={Gtk.Align.CENTER}
+        valign={Gtk.Align.CENTER}
+        label={cacheSize}
+        class="clear"
+        tooltipText="Clear Cache"
+        onClicked={() => {
+          cleanUp();
+        }}
+      />
+    );
   };
 
-  return (
-    <entry
-      hexpand
-      placeholderText="Add a Tag"
-      $={(self) => {
-        self.connect("changed", () => onChanged(self));
-        self.connect("activate", () => addTags(self));
-      }}
-    />
-  );
-};
-
-const ClearCacheButton = () => {
-  return (
-    <button
-      halign={Gtk.Align.CENTER}
-      valign={Gtk.Align.CENTER}
-      label={cacheSize}
-      class="clear"
-      tooltipText="Clear Cache"
-      onClicked={() => {
-        cleanUp();
-      }}
-    />
-  );
-};
-
-const Actions = () => {
-  const revealer = (
-    <revealer
-      class="revealer"
-      transitionType={Gtk.RevealerTransitionType.SWING_UP}
-      revealChild={bottomIsRevealed}
-      transitionDuration={globalTransition}
-    >
-      <box class="options" orientation={Gtk.Orientation.VERTICAL} spacing={10}>
-        <PageDisplay />
-        <LimitDisplay />
-        <ColumnDisplay />
-        <box class="input" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
-          <TagDisplay />
-          <box spacing={5}>
-            <Entry />
-            <ClearCacheButton />
+  const Actions = () => {
+    const revealer = (
+      <revealer
+        class="revealer"
+        transitionType={Gtk.RevealerTransitionType.SWING_UP}
+        revealChild={bottomIsRevealed}
+        transitionDuration={globalTransition}
+      >
+        <box
+          class="options"
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={10}
+        >
+          <PageDisplay />
+          <LimitDisplay />
+          <ColumnDisplay />
+          <box class="input" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
+            <TagDisplay />
+            <box spacing={5}>
+              <Entry />
+              <ClearCacheButton />
+            </box>
           </box>
         </box>
-      </box>
-    </revealer>
-  );
+      </revealer>
+    );
 
-  // action box (previous, revealer, next)
-  const actions = (
-    <box class="navigation" spacing={10}>
-      <button
-        sensitive={progressStatus((status) => status !== "loading")}
-        label=""
-        onClicked={() => {
-          const currentPage = globalSettings.peek().booru.page;
-          if (currentPage > 1) {
-            setPageDirection("prev");
-            setGlobalSetting("booru.page", currentPage - 1);
-            setPage(currentPage - 1);
+    // action box (previous, revealer, next)
+    const actions = (
+      <box class="navigation" spacing={10}>
+        <button
+          sensitive={progressStatus((status) => status !== "loading")}
+          label=""
+          onClicked={() => {
+            const currentPage = globalSettings.peek().booru.page;
+            if (currentPage > 1) {
+              setPageDirection("prev");
+              setGlobalSetting("booru.page", currentPage - 1);
+              setPage(currentPage - 1);
+              fetchImages();
+            }
+          }}
+          tooltipText={"KEY-LEFT"}
+        />
+        <button
+          hexpand
+          class="reveal-button"
+          label={bottomIsRevealed((revealed) => (!revealed ? "" : ""))}
+          onClicked={(self) => {
+            setBottomIsRevealed(!bottomIsRevealed.get());
+          }}
+          tooltipText={"Toggle Settings (KEY-UP/DOWN)"}
+        />
+        <button
+          sensitive={progressStatus((status) => status !== "loading")}
+          label=""
+          onClicked={() => {
+            const currentPage = globalSettings.peek().booru.page;
+            setPageDirection("next");
+            setGlobalSetting("booru.page", currentPage + 1);
+            setPage(currentPage + 1);
             fetchImages();
-          }
-        }}
-        tooltipText={"KEY-LEFT"}
-      />
-      <button
-        hexpand
-        class="reveal-button"
-        label={bottomIsRevealed((revealed) => (!revealed ? "" : ""))}
-        onClicked={(self) => {
-          setBottomIsRevealed(!bottomIsRevealed.get());
-        }}
-        tooltipText={"Toggle Settings (KEY-UP/DOWN)"}
-      />
-      <button
-        sensitive={progressStatus((status) => status !== "loading")}
-        label=""
-        onClicked={() => {
-          const currentPage = globalSettings.peek().booru.page;
-          setPageDirection("next");
-          setGlobalSetting("booru.page", currentPage + 1);
-          setPage(currentPage + 1);
-          fetchImages();
-        }}
-        tooltipText={"KEY-RIGHT"}
-      />
-    </box>
-  );
+          }}
+          tooltipText={"KEY-RIGHT"}
+        />
+      </box>
+    );
 
-  return (
-    <box class={"actions"} orientation={Gtk.Orientation.VERTICAL}>
-      {actions}
-      {revealer}
-    </box>
-  );
-};
+    return (
+      <box class={"actions"} orientation={Gtk.Orientation.VERTICAL}>
+        {actions}
+        {revealer}
+      </box>
+    );
+  };
 
-export default () => {
+  // This is the JSX returned for THIS instance. Everything above this point
+  // inside createBooruViewerInstance() (images, pageStack, selectedTab,
+  // fetchImages, Tabs, Images, Actions, etc.) is now a fresh closure created
+  // per call — i.e. per monitor — instead of shared module state.
   return (
     <box
       class="booru"
@@ -868,6 +908,7 @@ export default () => {
             const currentPage = globalSettings.peek().booru.page;
             setPageDirection("next");
             setGlobalSetting("booru.page", currentPage + 1);
+            fetchImages();
             return true;
           }
           if (keyval === Gdk.KEY_Left) {
@@ -875,6 +916,7 @@ export default () => {
             if (currentPage > 1) {
               setPageDirection("prev");
               setGlobalSetting("booru.page", currentPage - 1);
+              fetchImages();
             }
             return true;
           }
@@ -907,3 +949,10 @@ export default () => {
     </box>
   );
 };
+
+// Public entry point: called once per BooruViewer mount (once per monitor,
+// since LeftPanel.tsx instantiates this widget separately for each monitor's
+// panel). Each call produces an independent state closure, so navigating
+// pages on one monitor's panel can no longer affect or get stolen by another
+// monitor's panel.
+export default () => createBooruViewerInstance();

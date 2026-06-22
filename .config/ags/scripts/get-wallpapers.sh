@@ -29,6 +29,7 @@ generate_thumbnails() {
         
         # Skip if thumbnail already exists
         if [ ! -f "$thumbnail" ]; then
+            notify-send "Generating Wallpaper Thumbnail" "Generating wallpaper thumbnail for $relative_path" --expire-time=2000 --urgency=low
             case "$ext" in
                 mp4|webm|mkv|mov)
                     ffmpeg -y -loglevel error -i "$wallpaper" -vf "thumbnail,scale=256:-1" -frames:v 1 "$thumbnail" >/dev/null 2>&1 &

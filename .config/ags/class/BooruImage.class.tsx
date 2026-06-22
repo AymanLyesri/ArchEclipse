@@ -359,15 +359,15 @@ export class BooruImage {
 
       const curlArgs = ["curl", "-f", "-o", imagePath];
 
-      if (this.api.value === "gelbooru") {
+      if (this.api.url) {
         curlArgs.splice(
           1,
           0,
           "-L",
           "-H",
-          "Referer: https://gelbooru.com/",
+          `Referer: ${this.api.url}`,
           "-A",
-          "Mozilla/5.0",
+          "AGSBooruViewer/1.0 (ArchLinux; Hyprland)",
         );
       }
 
@@ -417,14 +417,14 @@ export class BooruImage {
           `${booruPath}/${this.api.value}/previews`,
         ]);
         const curlArgs = ["curl", "-f", "-L", "-o", previewPath];
-        if (this.api.value === "gelbooru") {
+        if (this.api.url) {
           curlArgs.splice(
             2,
             0,
             "-H",
-            "Referer: https://gelbooru.com/",
+            `Referer: ${this.api.url}`,
             "-A",
-            "Mozilla/5.0",
+            "AGSBooruViewer/1.0 (ArchLinux; Hyprland)",
           );
         }
         curlArgs.push(this.preview);

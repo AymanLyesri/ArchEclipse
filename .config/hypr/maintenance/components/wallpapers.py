@@ -55,6 +55,9 @@ urls_images_sfw = [
     "https://cdn.donmai.us/original/bd/70/__original_drawn_by_bodhi_wushushenghua__bd703bafcb56eb084528952720ae5611.jpg",
     "https://cdn.donmai.us/original/5f/94/__world_is_fleeting_as_foam_nikki_and_1_more_drawn_by_xxyt_xx__5f9486e7eac9a0da590f13a6cf45dab6.jpg",
     "https://cdn.donmai.us/original/2a/39/__guts_griffith_and_casca_neon_genesis_evangelion_and_2_more_drawn_by_spencer_sais__2a39d1e593cc0925ab32f4cca63854e7.png",
+    "https://cdn.donmai.us/original/15/5f/__original_drawn_by_ichika_ichika87__155f5d20f012fe915a3213edd53b22ab.jpg",
+    "https://cdn.donmai.us/original/fd/e0/__ninomae_ina_nis_hololive_and_1_more_drawn_by_aqby69__fde0698714dc6c06e87952a1ef329602.jpg",
+    "https://cdn.donmai.us/original/60/c8/__narantuya_arknights_drawn_by_helen_zzhao__60c81c2ace0b77d39c2537d4182d430f.jpg",
 ]
 
 urls_images_nsfw = [
@@ -113,6 +116,15 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/09/04/__mirko_and_shihouin_yoruichi_boku_no_hero_academia_and_2_more_drawn_by_themaestronoob__0904bb8f56b8e75629b23ac31e2f6246.jpg",
     "https://cdn.donmai.us/original/fb/ab/__nerissa_ravencroft_and_elizabeth_rose_bloodflame_hololive_and_1_more_drawn_by_daaku_koizumi_arata__fbab2a6ec8d5fdbbe438ee399bb6cd34.jpg",
     "https://cdn.donmai.us/original/b0/a1/__psylocke_luna_snow_and_jeff_the_land_shark_marvel_and_2_more_drawn_by_sciamano240__b0a1ae6b6a61ab051cbee96752e2ff92.png",
+    "https://cdn.donmai.us/original/a6/1f/__ninomae_ina_nis_hololive_and_1_more_drawn_by_floomf__a61ffe48ee3181d772274f9dc743a2e0.png",
+    "https://cdn.donmai.us/original/17/82/__ninomae_ina_nis_and_takodachi_hololive_and_1_more_drawn_by_floomf__17827b7078f7d16405490fdcf8d97771.png",
+    "https://cdn.donmai.us/original/d7/3a/__seed_zenless_zone_zero_drawn_by_elsynien__d73a77c5ac9c4873afa2b6afabbc0f16.jpg",
+    "https://cdn.donmai.us/original/87/39/__original_drawn_by_luceat17__87399f74b4211bad73cc53c794cfb64b.jpg",
+    "https://cdn.donmai.us/original/fb/52/__usada_pekora_don_chan_pekomama_and_pekomon_hololive_drawn_by_mumu_lin__fb52b9770f3213d26ba3e4be40e568f5.png",
+    "https://cdn.donmai.us/original/a4/6b/__janus_azur_lane__a46b8942465098b4746c5991efdfdfe8.png",
+    "https://cdn.donmai.us/original/7d/64/__columbina_and_sandrone_genshin_impact_drawn_by_swkl_d__7d64fa916efdd667c932b9d86764dd1d.jpg",
+    "https://cdn.donmai.us/original/58/57/__makima_chainsaw_man_drawn_by_izei1337__58577761e142e76c0da9263556e52283.jpg",
+    "https://cdn.donmai.us/original/3c/77/__prinz_moritz_azur_lane__3c7795af9ae9b14715a33c33eb584651.png",
 ]
 
 urls_animated_sfw = [
@@ -141,6 +153,7 @@ urls_animated_nsfw = [
     "https://cdn.donmai.us/original/d7/2f/d72f558193a787e698945493d76255fb.mp4",
     "https://cdn.donmai.us/sample/e7/2b/sample-e72b9cc52491048bc676f86653ea313e.webm",
     "https://cdn.donmai.us/original/44/6f/446f5828a683141696dccaedb777803a.mp4",
+    "https://cdn.donmai.us/original/d7/f2/d7f2dc6cb4be818b67c35e2366f4cd69.mp4",
 ]
 
 

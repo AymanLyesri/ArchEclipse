@@ -13,6 +13,7 @@ export class ApiClass implements Api {
   value: string;
   icon?: string;
   description?: string;
+  url?: string;
   idSearchUrl?: string;
   imageGenerationSupport?: boolean;
 
@@ -21,6 +22,7 @@ export class ApiClass implements Api {
     this.value = api.value;
     this.icon = api.icon;
     this.description = api.description;
+    this.url = api.url;
     this.idSearchUrl = api.idSearchUrl;
     this.imageGenerationSupport = api.imageGenerationSupport;
   }
