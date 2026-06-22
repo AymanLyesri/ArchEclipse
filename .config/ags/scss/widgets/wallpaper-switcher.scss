@@ -1,6 +1,98 @@
 .wallpaper-switcher {
   @include module;
 
+  .wallpaper-engine-options {
+    @include module;
+    padding: 10px 15px;
+
+    .setting {
+      label {
+        font-size: 0.85em;
+      }
+    }
+  }
+
+  .we-properties-popover {
+    @include module;
+    padding: 10px;
+
+    .we-property-label {
+      font-size: 0.85em;
+      opacity: 0.85;
+    }
+
+    .we-property-reset {
+      margin-top: 4px;
+    }
+
+    .we-slider-row {
+      .we-slider-value {
+        font-size: 0.8em;
+        opacity: 0.7;
+        min-width: 38px;
+      }
+    }
+
+    // Inline colour picker: a swatch button whose popover holds the RGB picker.
+    // Replaces the system colour dialog (which opens as a stray Hyprland window).
+    .we-color-button {
+      padding: 2px;
+      min-height: 0;
+
+      .we-color-swatch {
+        min-width: 30px;
+        min-height: 20px;
+        border-radius: 6px;
+        border: 1px solid rgba($foreground, 0.25);
+      }
+    }
+  }
+
+  // The colour-picker popover renders inside the layer-shell surface (no window).
+  .we-color-popover {
+    padding: 10px;
+    min-width: 220px;
+
+    .we-color-preview {
+      min-height: 34px;
+      border-radius: 8px;
+      border: 1px solid rgba($foreground, 0.2);
+    }
+
+    .we-color-channel {
+      .we-color-channel-label {
+        font-weight: bold;
+        min-width: 14px;
+        opacity: 0.8;
+      }
+      .we-color-channel-value {
+        font-size: 0.8em;
+        opacity: 0.7;
+        min-width: 30px;
+      }
+      .ch-r highlight {
+        background-color: #e06c75;
+      }
+      .ch-g highlight {
+        background-color: #98c379;
+      }
+      .ch-b highlight {
+        background-color: #61afef;
+      }
+    }
+
+    .we-color-entry-row {
+      .we-color-entry-label {
+        font-size: 0.8em;
+        opacity: 0.7;
+        min-width: 28px;
+      }
+      .we-color-hex {
+        font-family: monospace;
+      }
+    }
+  }
+
   .wallpaper {
     border-radius: 10px;
   }
