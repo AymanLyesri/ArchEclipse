@@ -30,13 +30,27 @@ const predefinedCommands = [
   { label: "⚡ Shutdown", command: "shutdown -h now" },
 ];
 
-// Variables
-const [scriptTasks, setScriptTasks] = createState<ScriptTask[]>([]);
-const [showAddForm, setShowAddForm] = createState(false);
-const [editingTask, setEditingTask] = createState<ScriptTask | null>(null);
+// NOTE: Everything below (state + components) is created PER INSTANCE inside
+// createScriptTimerInstance(). ScriptTimer is mounted once per monitor (via
+// rightPanelWidgetSelectors -> RightPanel.tsx, one Panel() per monitor), so
+// module-level createState() here would be shared across monitors -- the
+// same root cause that broke BooruViewer's page navigation across monitors.
+// Each monitor now keeps its own independent task list, add-form state, and
+// editing state, fully isolated from any other monitor's ScriptTimer.
+// NOTE: with full per-monitor isolation, if the same tasks.json is loaded by
+// two monitors, each monitor's own setInterval(checkTasks, ...) will run
+// independently against its own in-memory copy. If a one-time task fires
+// while both monitors have it loaded, both could attempt to execute it
+// around the same time; this mirrors running two independent ScriptTimer
+// instances in general and is an accepted tradeoff of full isolation.
+const createScriptTimerInstance = () => {
+  // Variables
+  const [scriptTasks, setScriptTasks] = createState<ScriptTask[]>([]);
+  const [showAddForm, setShowAddForm] = createState(false);
+  const [editingTask, setEditingTask] = createState<ScriptTask | null>(null);
 
-// Storage functions
-const saveTasksToFile = async (tasks: ScriptTask[]) => {
+  // Storage functions
+  const saveTasksToFile = async (tasks: ScriptTask[]) => {
   try {
     await execAsync(
       `mkdir -p  ${GLib.get_home_dir()}/.config/ags/cache/script-timer`,
@@ -432,4 +446,18 @@ const ScriptTimer = ({
   );
 };
 
-export default ScriptTimer;
+  return ScriptTimer;
+};
+
+// Public entry point: called once per ScriptTimer mount (once per monitor).
+// Each call produces a fresh state closure via createScriptTimerInstance(),
+// so the returned component function captures its own independent
+// scriptTasks/showAddForm/editingTask rather than module-shared state.
+export default ({
+  className,
+}: {
+  className?: string | Accessor<string>;
+}) => {
+  const Instance = createScriptTimerInstance();
+  return Instance({ className });
+};

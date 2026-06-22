@@ -52,69 +52,81 @@ const MESSAGE_FILE_PATH = `${GLib.get_home_dir()}/.config/ags/cache/chatbot`;
 // STATE MANAGEMENT
 // =============================================================================
 
-/**
- * Array of messages in the current active chat session
- * Each message contains content, role (user/assistant), timestamp, and optional metadata
- */
-const [messages, setMessages] = createState<Message[]>([]);
+// NOTE: Everything below (state, the chatBotEntry widget reference, helper
+// functions, and components) is created PER INSTANCE inside
+// createChatBotInstance(). ChatBot is mounted once per monitor (via
+// leftPanelWidgetSelectors -> LeftPanel.tsx, one Panel() per monitor), so
+// module-level createState()/let bindings here would be shared across
+// monitors -- the same root cause that broke BooruViewer's page navigation
+// across monitors. Each monitor now keeps its own independent messages,
+// sessions, active session, and input widget reference, fully isolated from
+// any other monitor's ChatBot.
+const createChatBotInstance = () => {
+  /**
+   * Array of messages in the current active chat session
+   * Each message contains content, role (user/assistant), timestamp, and optional metadata
+   */
+  const [messages, setMessages] = createState<Message[]>([]);
 
-/**
- * Array of all available sessions for the current API model
- * Sessions persist across app restarts and are loaded from the filesystem
- */
-const [sessions, setSessions] = createState<Session[]>([]);
+  /**
+   * Array of all available sessions for the current API model
+   * Sessions persist across app restarts and are loaded from the filesystem
+   */
+  const [sessions, setSessions] = createState<Session[]>([]);
 
-/**
- * ID of the currently active session being displayed
- * Defaults to "default" session which is automatically created
- */
-const [activeSessionId, setActiveSessionId] = createState<string>("default");
+  /**
+   * ID of the currently active session being displayed
+   * Defaults to "default" session which is automatically created
+   */
+  const [activeSessionId, setActiveSessionId] = createState<string>(
+    "default",
+  );
 
-/**
- * Current API model/provider value (e.g., "openrouter/gpt-4")
- * Used to determine which API to call and where to store messages
- */
-const [currentApiModel, setCurrentApiModel] = createState<string>("");
+  /**
+   * Current API model/provider value (e.g., "openrouter/gpt-4")
+   * Used to determine which API to call and where to store messages
+   */
+  const [currentApiModel, setCurrentApiModel] = createState<string>("");
 
-/**
- * Status indicator for API requests and operations
- * - "idle": No operation in progress
- * - "loading": Request in progress
- * - "success": Request completed successfully
- * - "error": Request failed
- */
-const [progressStatus, setProgressStatus] = createState<
-  "loading" | "error" | "success" | "idle"
->("idle");
+  /**
+   * Status indicator for API requests and operations
+   * - "idle": No operation in progress
+   * - "loading": Request in progress
+   * - "success": Request completed successfully
+   * - "error": Request failed
+   */
+  const [progressStatus, setProgressStatus] = createState<
+    "loading" | "error" | "success" | "idle"
+  >("idle");
 
-/**
- * Toggle state for image generation feature
- * When enabled, AI responses may include generated images
- * Only available for API models that support image generation
- */
-const [chatBotImageGeneration, setChatBotImageGeneration] =
-  createState<boolean>(false);
+  /**
+   * Toggle state for image generation feature
+   * When enabled, AI responses may include generated images
+   * Only available for API models that support image generation
+   */
+  const [chatBotImageGeneration, setChatBotImageGeneration] =
+    createState<boolean>(false);
 
-/**
- * Reference to the message input entry widget for programmatic focus control
- * Allows auto-focusing the input field when the chatbot panel is activated
- */
-let chatBotEntry: Gtk.Widget | null = null;
+  /**
+   * Reference to the message input entry widget for programmatic focus control
+   * Allows auto-focusing the input field when the chatbot panel is activated
+   */
+  let chatBotEntry: Gtk.Widget | null = null;
 
-// =============================================================================
-// UTILITY FUNCTIONS - FILE SYSTEM & PATH MANAGEMENT
-// =============================================================================
+  // =============================================================================
+  // UTILITY FUNCTIONS - FILE SYSTEM & PATH MANAGEMENT
+  // =============================================================================
 
-/**
- * Constructs the file path for storing chat history of a specific session
- * @param {string} apiModel - The API model identifier (e.g., "openrouter/gpt-4")
- * @param {string} sessionId - The unique session identifier
- * @returns {string} Full path to the history.json file for the session
- * @example getMessageFilePath("openrouter/gpt-4", "default")
- *          => "./cache/chatbot/openrouter/gpt-4/sessions/default/history.json"
- */
-const getMessageFilePath = (apiModel: string, sessionId: string): string =>
-  `${MESSAGE_FILE_PATH}/${apiModel}/sessions/${sessionId}/history.json`;
+  /**
+   * Constructs the file path for storing chat history of a specific session
+   * @param {string} apiModel - The API model identifier (e.g., "openrouter/gpt-4")
+   * @param {string} sessionId - The unique session identifier
+   * @returns {string} Full path to the history.json file for the session
+   * @example getMessageFilePath("openrouter/gpt-4", "default")
+   *          => "./cache/chatbot/openrouter/gpt-4/sessions/default/history.json"
+   */
+  const getMessageFilePath = (apiModel: string, sessionId: string): string =>
+    `${MESSAGE_FILE_PATH}/${apiModel}/sessions/${sessionId}/history.json`;
 
 /**
  * Constructs the directory path where all sessions for an API model are stored
@@ -1427,53 +1439,69 @@ const BottomBar = (): JSX.Element => (
  * - Could add memoization for formatText() to improve performance
  * - Consider debouncing auto-scroll for better performance with rapid messages
  */
+  // This is the JSX returned for THIS instance. Everything above this point
+  // inside createChatBotInstance() (messages, sessions, activeSessionId,
+  // chatBotEntry, sendMessage, Messages, SessionTabs, ApiList, etc.) is now a
+  // fresh closure created per call -- i.e. per monitor -- instead of shared
+  // module state.
+  return (): JSX.Element => {
+    return (
+      <box
+        class="chat-bot"
+        orientation={Gtk.Orientation.VERTICAL}
+        hexpand
+        spacing={10}
+        $={async (self) => {
+          // Setup auto-focus on mouse enter
+          const motion = new Gtk.EventControllerMotion();
+          motion.connect("enter", () => {
+            if (chatBotEntry) {
+              chatBotEntry.grab_focus();
+            }
+          });
+          self.add_controller(motion);
+
+          // Initialize chatbot state on component mount
+          const initialApiModel = globalSettings.peek().chatBot.api.value;
+          setCurrentApiModel(initialApiModel);
+
+          // Load sessions and activate the first one
+          const initialSessionId = await loadSessions(initialApiModel);
+          setActiveSessionId(initialSessionId);
+
+          // Load messages for the initial session
+          fetchMessages(initialApiModel, initialSessionId);
+
+          // Subscribe to session changes to automatically reload messages
+          activeSessionId.subscribe(() => {
+            reloadCurrentMessages();
+          });
+        }}
+      >
+        {/* API information and setup guide */}
+        <Info />
+
+        {/* Scrollable message history */}
+        <Messages />
+
+        <BottomBar />
+
+        <Progress
+          status={progressStatus}
+          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+          custom_class="booru-progress"
+        />
+      </box>
+    );
+  };
+};
+
+// Public entry point: called once per ChatBot mount (once per monitor, since
+// LeftPanel.tsx instantiates this widget separately for each monitor's
+// panel). Each call produces an independent state closure, so switching
+// sessions/messages on one monitor's panel can no longer affect or get
+// stolen by another monitor's panel.
 export default (): JSX.Element => {
-  return (
-    <box
-      class="chat-bot"
-      orientation={Gtk.Orientation.VERTICAL}
-      hexpand
-      spacing={10}
-      $={async (self) => {
-        // Setup auto-focus on mouse enter
-        const motion = new Gtk.EventControllerMotion();
-        motion.connect("enter", () => {
-          if (chatBotEntry) {
-            chatBotEntry.grab_focus();
-          }
-        });
-        self.add_controller(motion);
-
-        // Initialize chatbot state on component mount
-        const initialApiModel = globalSettings.peek().chatBot.api.value;
-        setCurrentApiModel(initialApiModel);
-
-        // Load sessions and activate the first one
-        const initialSessionId = await loadSessions(initialApiModel);
-        setActiveSessionId(initialSessionId);
-
-        // Load messages for the initial session
-        fetchMessages(initialApiModel, initialSessionId);
-
-        // Subscribe to session changes to automatically reload messages
-        activeSessionId.subscribe(() => {
-          reloadCurrentMessages();
-        });
-      }}
-    >
-      {/* API information and setup guide */}
-      <Info />
-
-      {/* Scrollable message history */}
-      <Messages />
-
-      <BottomBar />
-
-      <Progress
-        status={progressStatus}
-        transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
-        custom_class="booru-progress"
-      />
-    </box>
-  );
+  const Instance = createChatBotInstance();
+  return Instance();
 };

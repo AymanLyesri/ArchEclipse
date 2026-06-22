@@ -24,13 +24,23 @@ interface CryptoEntry {
 // Available timeframes
 const timeframes = ["1h", "24h", "7d", "30d", "90d", "1y"];
 
-// Variables
-const [cryptoEntries, setCryptoEntries] = createState<CryptoEntry[]>([]);
-const [showAddForm, setShowAddForm] = createState(false);
-const [editingEntry, setEditingEntry] = createState<CryptoEntry | null>(null);
+// NOTE: Everything below (state + components) is created PER INSTANCE inside
+// createCryptoWidgetInstance(). CryptoWidget is mounted once per monitor (via
+// rightPanelWidgetSelectors -> RightPanel.tsx, one Panel() per monitor), so
+// module-level createState() here would be shared across monitors -- the
+// same root cause that broke BooruViewer's page navigation across monitors.
+// Each monitor now keeps its own independent entry list, add-form state, and
+// editing state, fully isolated from any other monitor's CryptoWidget.
+const createCryptoWidgetInstance = () => {
+  // Variables
+  const [cryptoEntries, setCryptoEntries] = createState<CryptoEntry[]>([]);
+  const [showAddForm, setShowAddForm] = createState(false);
+  const [editingEntry, setEditingEntry] = createState<CryptoEntry | null>(
+    null,
+  );
 
-// Storage functions
-const saveEntriesToFile = async (entries: CryptoEntry[]) => {
+  // Storage functions
+  const saveEntriesToFile = async (entries: CryptoEntry[]) => {
   try {
     await execAsync(
       `mkdir -p  ${GLib.get_home_dir()}/.config/ags/cache/crypto`,
@@ -56,12 +66,7 @@ const loadEntriesFromFile = async (): Promise<CryptoEntry[]> => {
   }
 };
 
-// Initialize entries on load
-loadEntriesFromFile().then((entries) => {
-  setCryptoEntries(entries);
-});
-
-// Entry form component
+  // Entry form component
 const CryptoForm = ({
   entry,
   isEdit = false,
@@ -293,58 +298,78 @@ const CryptoEntryItem = ({ entry }: { entry: CryptoEntry }) => {
   );
 };
 
-// Main component
-const CryptoWidget = ({
+  // Main component for this instance
+  const CryptoWidget = ({
+    className,
+  }: {
+    className?: string | Accessor<string>;
+  }) => {
+    const toggleForm = () => {
+      setEditingEntry(null);
+      setShowAddForm(!showAddForm.get());
+    };
+
+    return (
+      <box
+        class={`crypto-widget ${className ?? ""}`}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={5}
+        $={() => {
+          // Load this instance's entries once it mounts
+          loadEntriesFromFile().then((entries) => {
+            setCryptoEntries(entries);
+          });
+        }}
+      >
+        <box class="header">
+          <label
+            class="title"
+            label="Crypto Tracker"
+            hexpand
+            halign={Gtk.Align.START}
+          />
+          <button
+            class="add-btn"
+            label={showAddForm((show) => (show ? "✕" : "+"))}
+            onClicked={toggleForm}
+          />
+        </box>
+
+        <revealer
+          revealChild={showAddForm}
+          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+          transitionDuration={globalTransition}
+        >
+          <With value={editingEntry}>
+            {(entry) =>
+              entry ? CryptoForm({ entry, isEdit: true }) : CryptoForm({})
+            }
+          </With>
+        </revealer>
+
+        <scrolledwindow class="crypto-list" vexpand>
+          <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
+            <For each={cryptoEntries}>
+              {(entry) => CryptoEntryItem({ entry })}
+            </For>
+          </box>
+        </scrolledwindow>
+      </box>
+    );
+  };
+
+  return CryptoWidget;
+};
+
+// Public entry point: called once per CryptoWidget mount (once per monitor).
+// Each call produces a fresh state closure via createCryptoWidgetInstance(),
+// so the returned component function captures its own independent
+// cryptoEntries/showAddForm/editingEntry rather than module-shared state.
+export default ({
   className,
 }: {
   className?: string | Accessor<string>;
 }) => {
-  const toggleForm = () => {
-    setEditingEntry(null);
-    setShowAddForm(!showAddForm.get());
-  };
-
-  return (
-    <box
-      class={`crypto-widget ${className ?? ""}`}
-      orientation={Gtk.Orientation.VERTICAL}
-      spacing={5}
-    >
-      <box class="header">
-        <label
-          class="title"
-          label="Crypto Tracker"
-          hexpand
-          halign={Gtk.Align.START}
-        />
-        <button
-          class="add-btn"
-          label={showAddForm((show) => (show ? "✕" : "+"))}
-          onClicked={toggleForm}
-        />
-      </box>
-
-      <revealer
-        revealChild={showAddForm}
-        transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
-        transitionDuration={globalTransition}
-      >
-        <With value={editingEntry}>
-          {(entry) =>
-            entry ? CryptoForm({ entry, isEdit: true }) : CryptoForm({})
-          }
-        </With>
-      </revealer>
-
-      <scrolledwindow class="crypto-list" vexpand>
-        <box orientation={Gtk.Orientation.VERTICAL} spacing={8}>
-          <For each={cryptoEntries}>
-            {(entry) => CryptoEntryItem({ entry })}
-          </For>
-        </box>
-      </scrolledwindow>
-    </box>
-  );
+  const Instance = createCryptoWidgetInstance();
+  return Instance({ className });
 };
-
-export default CryptoWidget;
