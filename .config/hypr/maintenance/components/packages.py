@@ -40,6 +40,7 @@ PACKAGES: list[str] = [
     "translate-shell",
     "python2-bin",
     "python-requests",
+    "python-pillow",
     "zsh",
     "zsh-auto-notify",
     "zsh-history-substring-search",
