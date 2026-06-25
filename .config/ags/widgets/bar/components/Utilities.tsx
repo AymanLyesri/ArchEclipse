@@ -211,7 +211,11 @@ function Volume() {
       // step={0.1} // Gtk.Scale doesn't have step prop directly in JSX usually, handled by adjustment or set_increment
       class="slider"
       widthRequest={100}
-      onValueChanged={(self) => (speaker.volume = self.get_value())}
+      onValueChanged={(self) => {
+        // external volume changes (fn keys, pavucontrol) also fire this and loop back
+        if (Math.abs(self.get_value() - speaker.volume) < 0.001) return;
+        speaker.volume = self.get_value();
+      }}
       value={volume((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
     />
   );
