@@ -238,6 +238,130 @@ export const defaultSettings: Settings = {
   wallpaperSwitcher: {
     category: "defaults/sfw",
   },
+  wallpaper: {
+    mode: {
+      name: "Wallpaper Mode",
+      value: "workspace",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Per Workspace: each workspace can have its own wallpaper.\nGlobal: one wallpaper is used everywhere.",
+    },
+    primarySource: {
+      name: "Primary (Fallback) Wallpaper",
+      value: "workspace1",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Used for workspaces with nothing set (and in Global mode if no global wallpaper is chosen).\nWorkspace 1: reuse workspace 1's wallpaper. Custom: use the wallpaper set with the 'primary' target.",
+    },
+    playbackSpeed: {
+      name: "Playback Speed",
+      value: 1,
+      type: "float",
+      min: 0.1,
+      max: 2,
+      tooltip:
+        "Animation speed (1 = normal, 0.5 = half, 2 = double). Applies to video/GIF wallpapers, and to Wallpaper Engine scenes when the patched engine is installed.",
+    },
+  },
+  wallpaperEngine: {
+    scaling: {
+      name: "Scaling Mode",
+      value: "default",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip:
+        "How the wallpaper is fit to the screen.\nDefault keeps the author's setting, Fill (Cover) crops to fill, Fit letterboxes, Stretch distorts to fill.",
+    },
+    clamping: {
+      name: "Clamp Mode",
+      value: "clamp",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip: "How texture edges are handled (clamp / border / repeat).",
+    },
+    fps: {
+      name: "FPS Limit",
+      value: 30,
+      type: "int",
+      min: 5,
+      max: 240,
+      tooltip: "Frame rate cap. Lower values save battery and GPU.",
+    },
+    renderScale: {
+      name: "Render Scale (Quality)",
+      value: 1,
+      type: "float",
+      min: 0.5,
+      max: 2,
+      tooltip:
+        "Supersampling factor. >1 (e.g. 1.5, 2) antialiases and sharpens 3D/scene wallpapers at higher GPU cost; <1 renders faster. Applied on next wallpaper load.",
+    },
+    volume: {
+      name: "Volume",
+      value: 15,
+      type: "int",
+      min: 0,
+      max: 100,
+      tooltip: "Audio volume (ignored when Mute Audio is on).",
+    },
+    mute: {
+      name: "Mute Audio",
+      value: true,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip: "Mute all sound the wallpaper produces.",
+    },
+    noAutomute: {
+      name: "Disable Auto-mute",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "By default audio mutes when another app plays sound. Enable to keep wallpaper audio playing.",
+    },
+    disableMouse: {
+      name: "Disable Mouse Interaction",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip: "Stop the wallpaper from reacting to the mouse cursor.",
+    },
+    disableParallax: {
+      name: "Disable Parallax",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip: "Disable the depth/parallax movement effect.",
+    },
+    noFullscreenPause: {
+      name: "Don't Pause on Fullscreen",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "By default the wallpaper pauses when an app is fullscreen (saves resources). Enable to keep it running.",
+    },
+    audioDevice: {
+      name: "Audio Device (reactive wallpapers)",
+      value: "",
+      type: "string",
+      min: 0,
+      max: 0,
+      tooltip:
+        "PulseAudio/PipeWire source that sound-reactive wallpapers listen to. Empty = system default output. Find names with: pactl list sources short",
+    },
+  },
   apiKeys: {
     openrouter: {
       user: {

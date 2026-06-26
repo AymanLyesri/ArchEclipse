@@ -17,5 +17,12 @@ for pid in $(pgrep -x mpvpaper); do
     fi
 done
 
+# Stop any linux-wallpaperengine instance bound to this monitor
+for pid in $(pgrep -f "linux-wallpaperengine"); do
+    if tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q -- "--screen-root $monitor"; then
+        kill "$pid" 2>/dev/null
+    fi
+done
+
 # Set wallpaper theme
 "$hyprdir/theme/scripts/wal-theme.sh" "$wallpaper"

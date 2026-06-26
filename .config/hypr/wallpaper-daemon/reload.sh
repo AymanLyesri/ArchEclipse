@@ -6,6 +6,7 @@ hyprDir=$HOME/.config/hypr # hypr directory
 # Kill existing hyprpaper and auto.sh to prevent memory leak
 killall hyprpaper 2>/dev/null
 pkill -f "wallpaper-loop" 2>/dev/null
+pkill -f "linux-wallpaperengine" 2>/dev/null
 
 nohup hyprpaper > /dev/null 2>&1 &
 
