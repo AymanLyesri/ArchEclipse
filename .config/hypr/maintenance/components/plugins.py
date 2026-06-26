@@ -17,6 +17,8 @@ def install_plugins() -> None:
     run_shell("echo ' ArchEclipse ' | lolcat", check=False)
     run_shell("figlet 'PLUGINS' -f slant | lolcat", check=False)
 
+    run_cmd(["hyprpm", "update"])
+
     plugins = [
         ("hyprland-plugins", "https://github.com/hyprwm/hyprland-plugins"),
         ("dynamic-cursors", "https://github.com/virtcode/hypr-dynamic-cursors"),
@@ -31,7 +33,6 @@ def install_plugins() -> None:
         run_cmd(["hyprpm", "add", repo])
         run_cmd(["hyprpm", "enable", plugin])
 
-    run_cmd(["hyprpm", "update"])
     run_cmd(["hyprctl", "reload"], check=False)
 
 
