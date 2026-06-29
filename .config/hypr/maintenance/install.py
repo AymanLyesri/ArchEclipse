@@ -63,19 +63,25 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "defaults": importlib.import_module("components.defaults"),
         "sddm": importlib.import_module("components.sddm"),
         "wallpapers": importlib.import_module("components.wallpapers"),
+        "wallpaperengine": importlib.import_module("components.wallpaperengine"),
         "plugins": importlib.import_module("components.plugins"),
         "tweaks": importlib.import_module("components.tweaks"),
     }
     return components
 
 
-def parse_branch(argv: list[str]) -> str:
+def parse_options(argv: list[str]) -> tuple[str, str]:
     """
     Branch precedence:
     - `--branch/-b <name>`
     - legacy positional `<branch>` (argv[1])
     - env `ARCHECLIPSE_BRANCH`
     - default: `master`
+
+    Repository precedence (URL or GitHub `owner/name`, for testing forks):
+    - `--repo/-r <repo>`
+    - env `ARCHECLIPSE_REPO`
+    - default: `AymanLyesri/ArchEclipse`
     """
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument(
@@ -83,6 +89,12 @@ def parse_branch(argv: list[str]) -> str:
         "--branch",
         default=None,
         help="ArchEclipse git branch to clone (default: master)",
+    )
+    parser.add_argument(
+        "-r",
+        "--repo",
+        default=None,
+        help="ArchEclipse git repository, URL or owner/name (default: AymanLyesri/ArchEclipse)",
     )
     parser.add_argument(
         "legacy_branch",
@@ -94,12 +106,17 @@ def parse_branch(argv: list[str]) -> str:
     args = parser.parse_args(argv[1:])
 
     if args.branch:
-        return str(args.branch)
-    if args.legacy_branch:
-        return str(args.legacy_branch)
-    if os.environ.get("ARCHECLIPSE_BRANCH"):
-        return str(os.environ["ARCHECLIPSE_BRANCH"])
-    return "master"
+        branch = str(args.branch)
+    elif args.legacy_branch:
+        branch = str(args.legacy_branch)
+    else:
+        branch = os.environ.get("ARCHECLIPSE_BRANCH", "master")
+
+    repo = str(args.repo) if args.repo else os.environ.get("ARCHECLIPSE_REPO", "AymanLyesri/ArchEclipse")
+    if "://" not in repo:
+        repo = f"https://github.com/{repo}.git"
+
+    return branch, repo
 
 
 def main() -> None:
@@ -118,9 +135,9 @@ def main() -> None:
         print(f"Repository already exists at {conf_dir}; overwriting")
         shutil.rmtree(conf_dir)
 
-    branch = parse_branch(sys.argv)
+    branch, repo = parse_options(sys.argv)
 
-    print("Cloning ArchEclipse repository (latest commit only)...")
+    print(f"Cloning ArchEclipse repository from {repo} (latest commit only)...")
     run_cmd(
         [
             "git",
@@ -130,7 +147,7 @@ def main() -> None:
             "--single-branch",
             "--branch",
             branch,
-            "https://github.com/AymanLyesri/ArchEclipse.git",
+            repo,
             str(conf_dir),
         ]
     )
@@ -193,6 +210,11 @@ def main() -> None:
             ),
             presentation.PlannedStep(
                 "wallpapers", "Setting up wallpapers", default_choice="y"
+            ),
+            presentation.PlannedStep(
+                "wallpaper_engine",
+                "Installing Wallpaper Engine renderer (builds linux-wallpaperengine)",
+                default_choice="y",
             ),
             presentation.PlannedStep(
                 "plugins", "Installing plugins", default_choice="y"
@@ -296,6 +318,16 @@ def main() -> None:
         "Setting up wallpapers",
         modules["wallpapers"].main,
         run=plan["wallpapers"],
+    )
+
+    presentation.print_section_header("WALLPAPER ENGINE")
+    presentation.execute_planned_step(
+        "*",
+        "Installing Wallpaper Engine renderer (linux-wallpaperengine)",
+        lambda helper=aur_helper: modules["wallpaperengine"].install_wallpaper_engine(
+            helper
+        ),
+        run=plan["wallpaper_engine"],
     )
 
     presentation.print_section_header("PLUGINS & TWEAKS")
