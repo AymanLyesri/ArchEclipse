@@ -17,12 +17,16 @@ else:
 
 def _prompt_yes_no(prompt: str) -> bool:
     while True:
-        choice = input(f"{prompt} [Y/N]: ").strip().lower()
-        if choice in {"y", "yes"}:
-            return True
-        if choice in {"n", "no"}:
+        try:
+            choice = input(f"{prompt} [Y/N]: ").strip().lower()
+            if choice in {"y", "yes"}:
+                return True
+            if choice in {"n", "no"}:
+                return False
+            print("Please answer Y or N.")
+        except (KeyboardInterrupt, EOFError):
+            print("\nInterrupted. Defaulting to No.")
             return False
-        print("Please answer Y or N.")
 
 
 def configure_keyboard() -> None:
@@ -56,14 +60,17 @@ def configure_keyboard() -> None:
         selected_layouts.append(new_layout)
 
         print("Optional: select a keyboard variant (eg: intl, dvorak) or leave empty")
-        new_variant = fzf_select(kb_variants, height=FZF_HEIGHT)
-        if not new_variant:
+        kb_variants_with_skip = ["none (skip variant)"] + kb_variants
+        new_variant = fzf_select(kb_variants_with_skip, height=FZF_HEIGHT)
+        if not new_variant or new_variant == "none (skip variant)":
             print("No variant selected. Leaving it empty.")
             new_variant = ""
         else:
             print(f"Selected variant: {new_variant}")
 
         selected_variants.append(new_variant)
+
+        sys.stdin.flush()
 
         if not _prompt_yes_no("Would you like to add another layout and variant pair?"):
             break
