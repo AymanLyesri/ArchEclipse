@@ -103,23 +103,25 @@ export class NotificationWidget {
   }
 
   private getTitle() {
+    const safeSummary = GLib.markup_escape_text(this.n.summary || "", -1);
     return (
       <label
         class="title"
         xalign={0}
         maxWidthChars={24}
         wrap={true}
-        label={this.n.summary}
+        label={safeSummary}
         useMarkup={true}
       />
     );
   }
 
   private getBody() {
+    const safeBody = GLib.markup_escape_text(this.n.body || "", -1);
     return (
       <label
         class="body"
-        label={this.n.body}
+        label={safeBody}
         xalign={0}
         wrap={true}
         wrapMode={Pango.WrapMode.WORD_CHAR}
@@ -129,6 +131,7 @@ export class NotificationWidget {
         maxWidthChars={10}
         singleLineMode={this.isEllipsized}
         vexpand={false}
+        useMarkup={true}
       />
     );
   }
@@ -189,6 +192,7 @@ export class NotificationWidget {
   }
 
   private getTopBar() {
+    const safeAppName = GLib.markup_escape_text(this.n.app_name || "", -1);
     return (
       <box class="top-bar" spacing={5}>
         <box spacing={5}>
@@ -197,8 +201,9 @@ export class NotificationWidget {
           )} */}
           <label
             class="app-name"
-            label={this.n.app_name}
+            label={safeAppName}
             ellipsize={Pango.EllipsizeMode.END}
+            useMarkup={false}
           />
 
           {this.getCopyButton()}
