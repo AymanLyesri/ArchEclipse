@@ -159,22 +159,37 @@ fi
 # supervisor's own command line too (it carries the same --screen-root args), so a deliberate
 # stop kills both. Clean exits and TERM/KILL are treated as intentional.
 launch_supervised() {
+    local log="${XDG_CACHE_HOME:-$HOME/.cache}/lwe-$monitor.log"
+    mkdir -p "$(dirname "$log")"
     setsid bash -c '
         enginebin="$1"; shift
+        log="$1"; shift
         crashes=0
         while :; do
-            "$enginebin" "$@" >/dev/null 2>&1
+            # Rotate the log so it never grows unbounded.
+            [ -f "$log" ] && [ "$(stat -c%s "$log" 2>/dev/null || echo 0)" -gt 1000000 ] && : > "$log"
+            start=$(date +%s)
+            "$enginebin" "$@" >>"$log" 2>&1
             rc=$?
             case "$rc" in 0|129|130|137|143) exit 0 ;; esac
-            crashes=$((crashes+1))
+            ran=$(( $(date +%s) - start ))
+            # A run that survived a while then died (e.g. an EGL/DPMS surface loss when the monitor
+            # slept) is NOT a startup crash-loop. Reset the counter on healthy uptime so occasional
+            # crashes never accumulate to a permanent give-up.
+            if [ "$ran" -ge 60 ]; then crashes=0; else crashes=$((crashes+1)); fi
+            printf "%s engine exit %s after %ss (crashes=%s)\n" "$(date -Is)" "$rc" "$ran" "$crashes" >>"$log"
             if [ "$crashes" -ge 5 ]; then
-                notify-send -u critical "Wallpaper Engine" "Engine keeps crashing (exit $rc) — giving up after 5 restarts." 2>/dev/null
-                exit 1
+                # Rapid crash-loop: back off, then keep trying (do NOT give up permanently, so the
+                # wallpaper recovers when the monitor wakes / the transient condition clears).
+                notify-send -u critical "Wallpaper Engine" "Engine crash-looping (exit $rc) — backing off. Log: $log" 2>/dev/null
+                sleep 30
+                crashes=0
+                continue
             fi
             notify-send "Wallpaper Engine" "Engine crashed (exit $rc) — restarting…" 2>/dev/null
             sleep 2
         done
-    ' _ "$bin" "${args[@]}" >/dev/null 2>&1 9>&- < /dev/null &
+    ' _ "$bin" "$log" "${args[@]}" >/dev/null 2>&1 9>&- < /dev/null &
     disown
 }
 
