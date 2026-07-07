@@ -215,10 +215,13 @@ def _prepare_source(kind: str, location: str, ref: Optional[str]) -> Optional[Pa
         _backup_dest()
 
     print_step("*", f"Cloning {location}" + (f" ({ref})" if ref else ""))
-    clone = ["git", "clone", "--depth", "1", location, str(DEST)]
+    # --recurse-submodules: the engine vendors glslang/SPIRV-Cross/quickjs/kissfft/argparse as
+    # submodules under src/External; without them CMake's add_subdirectory aborts the configure.
+    clone = ["git", "clone", "--depth", "1", "--recurse-submodules"]
     if ref:
         # ref must be a branch or tag (shallow clone can't target an arbitrary commit).
-        clone[4:4] = ["--branch", ref]
+        clone += ["--branch", ref]
+    clone += [location, str(DEST)]
     run_cmd(clone)
     return DEST
 
@@ -226,6 +229,12 @@ def _prepare_source(kind: str, location: str, ref: Optional[str]) -> Optional[Pa
 # --------------------------------------------------------------------------- build
 
 def _build(repo_dir: Path) -> None:
+    # Repair a checkout cloned without submodules (older installer, or a manual clone): fetch them
+    # before configuring so CMake finds the vendored deps under src/External. Idempotent.
+    if (repo_dir / ".gitmodules").is_file():
+        print_step("*", "Fetching git submodules")
+        run_cmd(["git", "-C", str(repo_dir), "submodule", "update", "--init", "--recursive"])
+
     build_dir = repo_dir / "build"
     build_dir.mkdir(parents=True, exist_ok=True)
     print_step("*", "Configuring (CMake — this downloads CEF on first run)")
