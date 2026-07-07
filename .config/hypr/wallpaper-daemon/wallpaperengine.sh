@@ -158,20 +158,64 @@ fi
 # an intentional stop does not — stop_engine_for_monitor's pkill pattern matches the
 # supervisor's own command line too (it carries the same --screen-root args), so a deliberate
 # stop kills both. Clean exits and TERM/KILL are treated as intentional.
+#
+# A watchdog also covers a nastier failure: the compositor can close the engine's layer surface
+# (output disable, `hyprctl reload`, monitor hotplug) after which the engine keeps running but
+# renders nothing — an invisible wallpaper that no exit-code check can catch. So the engine runs
+# in the background and we poll Hyprland: if the monitor is present but the engine has no layer on
+# it for a few checks, kill the engine so the loop relaunches it.
 launch_supervised() {
     local log="${XDG_CACHE_HOME:-$HOME/.cache}/lwe-$monitor.log"
     mkdir -p "$(dirname "$log")"
     setsid bash -c '
         enginebin="$1"; shift
         log="$1"; shift
+        monitor="$1"; shift
         crashes=0
+
+        # True if the engine has a live layer on $monitor. Also true (do not restart) when the
+        # monitor itself is gone or hyprctl/jq are unavailable — there is nothing to render on, so
+        # the watchdog must never thrash against a missing output or a probe it cannot run.
+        engine_layer_ok() {
+            command -v hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 || return 0
+            local mons layers
+            mons="$(hyprctl monitors -j 2>/dev/null)" || return 0
+            printf "%s" "$mons" | jq -e --arg m "$monitor" "any(.[]; .name==\$m)" >/dev/null 2>&1 || return 0
+            layers="$(hyprctl layers -j 2>/dev/null)" || return 0
+            printf "%s" "$layers" | jq -e --arg m "$monitor" \
+                "(.[\$m].levels // {}) | any(.[][]?; .namespace|test(\"wallpaperengine\"))" >/dev/null 2>&1
+        }
+
         while :; do
             # Rotate the log so it never grows unbounded.
             [ -f "$log" ] && [ "$(stat -c%s "$log" 2>/dev/null || echo 0)" -gt 1000000 ] && : > "$log"
             start=$(date +%s)
-            "$enginebin" "$@" >>"$log" 2>&1
-            rc=$?
-            case "$rc" in 0|129|130|137|143) exit 0 ;; esac
+            "$enginebin" "$@" >>"$log" 2>&1 &
+            epid=$!
+
+            misses=0
+            while kill -0 "$epid" 2>/dev/null; do
+                sleep 15
+                kill -0 "$epid" 2>/dev/null || break
+                if engine_layer_ok; then
+                    misses=0
+                else
+                    misses=$((misses+1))
+                    if [ "$misses" -ge 3 ]; then
+                        printf "%s engine alive but no layer on %s — restarting\n" "$(date -Is)" "$monitor" >>"$log"
+                        kill "$epid" 2>/dev/null; sleep 2; kill -9 "$epid" 2>/dev/null
+                        break
+                    fi
+                fi
+            done
+            wait "$epid"; rc=$?
+
+            # A watchdog kill is an intentional restart, not an engine exit — skip the clean-stop
+            # check in that case so the loop always relaunches.
+            if [ "$misses" -lt 3 ]; then
+                case "$rc" in 0|129|130|137|143) exit 0 ;; esac
+            fi
+
             ran=$(( $(date +%s) - start ))
             # A run that survived a while then died (e.g. an EGL/DPMS surface loss when the monitor
             # slept) is NOT a startup crash-loop. Reset the counter on healthy uptime so occasional
@@ -189,7 +233,7 @@ launch_supervised() {
             notify-send "Wallpaper Engine" "Engine crashed (exit $rc) — restarting…" 2>/dev/null
             sleep 2
         done
-    ' _ "$bin" "$log" "${args[@]}" >/dev/null 2>&1 9>&- < /dev/null &
+    ' _ "$bin" "$log" "$monitor" "${args[@]}" >/dev/null 2>&1 9>&- < /dev/null &
     disown
 }
 
