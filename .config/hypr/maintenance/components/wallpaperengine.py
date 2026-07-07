@@ -146,13 +146,22 @@ def _choose_source() -> Optional[tuple[str, str, Optional[str]]]:
 
 # --------------------------------------------------------------------------- dependencies
 
+def _unsatisfied(packages: list[str]) -> list[str]:
+    # `pacman -T` prints only deps not already satisfied, honoring `provides`: a drop-in such as
+    # zlib-ng-compat (provides zlib) or sdl2-compat (provides sdl2) counts as met and is dropped, so
+    # we never force a conflicting replacement that breaks lib32-* dependents. Groups pass through.
+    result = run_cmd(["pacman", "-T", *packages], check=False, capture_output=True)
+    return [line.strip() for line in (result.stdout or "").splitlines() if line.strip()]
+
+
 def _install_build_deps(aur_helper: str) -> None:
     print_step("*", "Installing build dependencies")
-    # Mirror packages.py: feed targets on stdin so the helper resolves official + AUR repos.
-    run_cmd(
-        [aur_helper, "-S", "--needed", "-"],
-        input_text="\n".join(BUILD_DEPS),
-    )
+    missing = _unsatisfied(BUILD_DEPS)
+    if not missing:
+        print_success("All build dependencies already satisfied.")
+        return
+    # Only install what's genuinely missing; feed on stdin so the helper resolves official + AUR.
+    run_cmd([aur_helper, "-S", "--needed", "-"], input_text="\n".join(missing))
 
 
 # --------------------------------------------------------------------------- source preparation
