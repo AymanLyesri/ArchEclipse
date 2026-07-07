@@ -40,13 +40,17 @@ bin="$HOME/linux-wallpaperengine/build/output/linux-wallpaperengine"
 we()   { jq -r "($1) // empty" "$settings" 2>/dev/null; }
 send() { printf '%s\n' "$*" | socat - "UNIX-CONNECT:$sock" 2>/dev/null; }
 
-# Push this wallpaper's saved property overrides to the running engine.
+# Push this wallpaper's saved property overrides to the running engine. The control socket is
+# serviced once per render frame, so each round-trip costs up to a frame (seconds on a low-FPS
+# wallpaper). Fire them concurrently — the engine drains all pending clients in a single poll — so
+# N properties cost one frame instead of N.
 push_props() {
     local f="$daemon/config/properties/$id.conf"
     [ -f "$f" ] || return
     while IFS='=' read -r k v; do
-        [ -n "$k" ] && send "property $monitor $k $v"
+        [ -n "$k" ] && send "property $monitor $k $v" &
     done < "$f"
+    wait
 }
 
 # Engine can't render this item (web/3D-model/asset) or failed to start -> show a static image.
@@ -65,24 +69,32 @@ fallback() {
     esac
 }
 
-# Ask the live engine to dump a rendered frame to the cache, wait for the async save, and echo the
-# path. Falls back (empty output) if the engine doesn't support it or doesn't produce the file.
-render_preview() {
-    mkdir -p "$preview_cache"
-    local out="$preview_cache/$id.png"
-    # Let a few new frames render first (after a live swap the engine rebuilds the scene), so the
-    # capture is the new wallpaper and not the previous one or a half-initialised frame.
-    sleep 0.5
-    [ "$(send "screenshot $out")" = ok ] || return 1
-    for _ in $(seq 1 40); do [ -s "$out" ] && { echo "$out"; return 0; }; sleep 0.1; done
-    return 1
-}
-
-# Generate the colour scheme from a real rendered frame when we can; otherwise the workshop preview.
-theme() {
-    local img; img="$(render_preview)"
-    [ -n "$img" ] || img="$preview"
-    "$hyprdir/theme/scripts/wal-theme.sh" "$img" >/dev/null 2>&1
+# Regenerate the desktop colour scheme from the wallpaper — always in a detached, debounced
+# background job so it never delays the visible swap or holds the per-monitor lock (otherwise
+# back-to-back workspace switches queue behind each other's colour regen). The palette comes from a
+# real rendered frame: a cached frame is reused instantly, and only the first view of a wallpaper
+# pays for a screenshot. During rapid switching only the final wallpaper themes (marker guards it).
+theme_async() {
+    local marker="${XDG_RUNTIME_DIR:-/tmp}/lwe-theme-$monitor.target"
+    printf '%s' "$id" > "$marker"
+    setsid bash -c '
+        marker=$1; want=$2; sock=$3; preview=$4; cache=$5; wal=$6
+        # Settle briefly so a burst of workspace switches collapses to just the last one.
+        sleep 0.4
+        [ "$(cat "$marker" 2>/dev/null)" = "$want" ] || exit 0
+        out="$cache/$want.png"
+        if [ ! -s "$out" ]; then
+            mkdir -p "$cache"
+            printf "screenshot %s\n" "$out" | socat - "UNIX-CONNECT:$sock" >/dev/null 2>&1
+            for _ in $(seq 1 40); do [ -s "$out" ] && break; sleep 0.1; done
+        fi
+        # Only recolour if this is still the wallpaper on screen.
+        [ "$(cat "$marker" 2>/dev/null)" = "$want" ] || exit 0
+        [ -s "$out" ] || out="$preview"
+        "$wal" "$out" >/dev/null 2>&1
+    ' _ "$marker" "$id" "$sock" "$preview" "$preview_cache" "$hyprdir/theme/scripts/wal-theme.sh" \
+        >/dev/null 2>&1 9>&- < /dev/null &
+    disown
 }
 
 # The engine renders every Wallpaper Engine type natively now — 2D scenes, web (CEF),
@@ -90,11 +102,24 @@ theme() {
 # we just hand the item to the engine below. (The old three.js bake for 3D models is
 # gone.) fallback() is only for non-WE wallpapers (plain images/videos).
 
-# Already running for this monitor -> swap live.
-if [ -S "$sock" ] && [ "$(send ping)" = pong ]; then
-    [ "$(send "bg $monitor $dir")" = ok ] && { push_props; theme; exit 0; }
-    fallback
-    exit 0
+# Already running for this monitor -> swap live. The swap doubles as the liveness probe (saves a
+# round-trip, and each round-trip can cost up to a render frame): a live engine answers "ok" or
+# "error", a dead socket answers nothing. On "ok" swap; on "error" the engine is up but can't render
+# this item -> static fallback; on no answer the socket is stale -> fall through to a fresh start.
+if [ -S "$sock" ]; then
+    resp="$(send "bg $monitor $dir")"
+    if [ "$resp" = ok ]; then
+        push_props
+        # The swap is on screen now; drop the per-monitor lock before theming so back-to-back
+        # workspace switches don't serialise behind colour regeneration.
+        exec 9>&-
+        theme_async
+        exit 0
+    elif [ "$resp" = error ]; then
+        fallback
+        exit 0
+    fi
+    # empty/other response -> engine gone -> fall through to the fresh-start path below
 fi
 
 # Stop any existing engine for THIS monitor and WAIT for it to actually exit before the
@@ -257,7 +282,7 @@ if [ "$started" = true ]; then
     # Property overrides were already applied at launch via --set-property above.
     # Do NOT re-push them over the socket here: that calls setProperty -> reloads
     # the wallpaper seconds after startup, which crashes CEF web wallpapers.
-    theme
+    theme_async
 else
     fallback
 fi
