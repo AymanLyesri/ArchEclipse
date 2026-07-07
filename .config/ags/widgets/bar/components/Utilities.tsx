@@ -464,9 +464,9 @@ function ResourceMonitor() {
               icon=""
             />
             <CircularProgress
-              visible={res?.ramUsedGB !== undefined}
-              tooltipText={`RAM Usage ${res?.ramUsedGB}%`}
-              value={res?.ramUsedGB ? res?.ramUsedGB / 100 : 0}
+              visible={res?.ramUsedGB !== undefined && res?.ramTotalGB !== undefined}
+              tooltipText={`RAM Usage ${res?.ramUsedGB && res?.ramTotalGB ? Math.round((res.ramUsedGB>
+              value={res?.ramUsedGB && res?.ramTotalGB ? res.ramUsedGB / res.ramTotalGB : 0}
               className="ram-monitor"
               icon=""
             />
