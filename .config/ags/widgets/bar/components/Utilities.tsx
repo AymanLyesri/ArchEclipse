@@ -170,10 +170,17 @@ function Battery() {
   return (
     <menubutton
       visible={createBinding(battery, "isPresent")}
-      tooltipMarkup={createComputed(() => {
-        const profile = powerprofiles.active_profile;
-        return `Battery: ${percent} \nProfile: ${profile}`;
-      })}
+      $={(self) => {
+        const updateTooltip = () => {
+          const currentPercent = battery.percentage;
+          const profile = powerprofiles.active_profile;
+          self.tooltip_markup = `Battery: ${Math.floor(currentPercent * 100)}% \nProfile: ${profile}`;
+        };
+        updateTooltip();
+
+        battery.connect("notify::percentage", updateTooltip);
+        powerprofiles.connect("notify::active-profile", updateTooltip);
+      }}
     >
       <box spacing={5} class="battery">
         <image iconName={createBinding(battery, "iconName")} />
