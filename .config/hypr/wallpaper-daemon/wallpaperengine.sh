@@ -40,15 +40,16 @@ bin="$HOME/linux-wallpaperengine/build/output/linux-wallpaperengine"
 we()   { jq -r "($1) // empty" "$settings" 2>/dev/null; }
 send() { printf '%s\n' "$*" | socat - "UNIX-CONNECT:$sock" 2>/dev/null; }
 
-# Push this wallpaper's saved property overrides to the running engine. The control socket is
-# serviced once per render frame, so each round-trip costs up to a frame (seconds on a low-FPS
-# wallpaper). Fire them concurrently — the engine drains all pending clients in a single poll — so
-# N properties cost one frame instead of N.
-push_props() {
+# Stage this wallpaper's saved property overrides in the running engine BEFORE the swap: `stage`
+# only records the value (no live effect, no rebuild), so the following `bg` builds the wallpaper
+# once with every property already right — instead of building with defaults and then rebuilding
+# per structural property pushed afterwards. Fired concurrently (the engine drains all pending
+# clients in a single poll), so N properties cost one render frame, not N.
+stage_props() {
     local f="$daemon/config/properties/$id.conf"
     [ -f "$f" ] || return
     while IFS='=' read -r k v; do
-        [ -n "$k" ] && send "property $monitor $k $v" &
+        [ -n "$k" ] && send "stage $k $v" &
     done < "$f"
     wait
 }
@@ -97,25 +98,6 @@ theme_async() {
     disown
 }
 
-# Warm the engine's resident cache: build every distinct per-workspace *scene* now so later
-# workspace switches are instant binds instead of cold loads. Detached so it never delays startup;
-# each preload blocks one render frame in the engine, so we serialise (wait for "ok") to spread the
-# cost across frames instead of freezing rendering in one burst. Only scenes benefit (the engine
-# rebuilds video/web on demand), so non-scene items are skipped.
-preload_all() {
-    local conf="$daemon/config/$monitor/defaults.conf"
-    [ -f "$conf" ] || return
-    setsid bash -c '
-        sock="$1"; conf="$2"
-        grep -oE "/[^=]*workshop/content/431960/[0-9]+" "$conf" | sort -u | while IFS= read -r dir; do
-            t="$(jq -r ".type // empty" "$dir/project.json" 2>/dev/null | tr "[:upper:]" "[:lower:]")"
-            [ "$t" = scene ] || continue
-            printf "preload %s\n" "$dir" | socat - "UNIX-CONNECT:$sock" >/dev/null 2>&1
-        done
-    ' _ "$sock" "$conf" >/dev/null 2>&1 9>&- < /dev/null &
-    disown
-}
-
 # The engine renders every Wallpaper Engine type natively now — 2D scenes, web (CEF),
 # video, and 3D model (.mdl) scenes — so no special handling per type is needed here;
 # we just hand the item to the engine below. (The old three.js bake for 3D models is
@@ -126,9 +108,11 @@ preload_all() {
 # "error", a dead socket answers nothing. On "ok" swap; on "error" the engine is up but can't render
 # this item -> static fallback; on no answer the socket is stale -> fall through to a fresh start.
 if [ -S "$sock" ]; then
+    # Stage saved properties first (no-ops on a dead socket), then swap: the build happens once,
+    # with every property already right.
+    stage_props
     resp="$(send "bg $monitor $dir")"
     if [ "$resp" = ok ]; then
-        push_props
         # The swap is on screen now; drop the per-monitor lock before theming so back-to-back
         # workspace switches don't serialise behind colour regeneration.
         exec 9>&-
@@ -302,7 +286,6 @@ if [ "$started" = true ]; then
     # Do NOT re-push them over the socket here: that calls setProperty -> reloads
     # the wallpaper seconds after startup, which crashes CEF web wallpapers.
     theme_async
-    preload_all
 else
     fallback
 fi
