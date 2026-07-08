@@ -127,11 +127,14 @@ export class BooruImage {
   // Runtime state (not serialized)
   private _isDownloaded?: boolean;
   private _isBookmarked?: boolean;
+  private _isPinned?: boolean;
 
   private _loadingState!: Accessor<"loading" | "error" | "success" | "idle">;
   private _setLoadingState!: Setter<"loading" | "error" | "success" | "idle">;
   private static _bookmarkKeys = new Set<string>();
   private static _bookmarkCacheHydrated = false;
+  private static _pinKeys = new Set<string>();
+  private static _pinCacheHydrated = false;
 
   // ═══════════════════════════════════════════════════════════════
   // Constructor
@@ -301,6 +304,10 @@ export class BooruImage {
     return `${this.id}:${this.api.value}`;
   }
 
+  private getPinKey(): string {
+    return `${this.id}:${this.api.value}`;
+  }
+
   static syncBookmarkCache(bookmarks: Array<Partial<BooruImage>>): void {
     const next = new Set<string>();
 
@@ -314,6 +321,21 @@ export class BooruImage {
 
     BooruImage._bookmarkKeys = next;
     BooruImage._bookmarkCacheHydrated = true;
+  }
+
+  static syncPinCache(pins: Array<Partial<BooruImage>>): void {
+    const next = new Set<string>();
+
+    for (const pin of pins) {
+      const pinId = pin?.id;
+      const apiValue = pin?.api?.value;
+      if (typeof pinId === "number" && typeof apiValue === "string") {
+        next.add(`${pinId}:${apiValue}`);
+      }
+    }
+
+    BooruImage._pinKeys = next;
+    BooruImage._pinCacheHydrated = true;
   }
 
   /**
@@ -501,27 +523,28 @@ export class BooruImage {
   }
 
   /**
-   * Build cache path for terminal pinning.
-   * Always store as WebP to reduce size while keeping transparent corners.
-   */
-  private getTerminalPinnedPath(): string | null {
-    const sourceImagePath = this.getImagePath();
-    const sourceFile = Gio.File.new_for_path(sourceImagePath);
-    const sourceBasename = sourceFile.get_basename();
-
-    if (!sourceBasename) return null;
-
-    const cacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
-    const stem = sourceBasename.replace(/\.[^.]+$/, "");
-    return `${cacheDir}/${stem}.webp`;
-  }
-
-  /**
    * Check if this media is currently pinned for fastfetch
    */
   isPinnedToTerminal(): boolean {
-    const pinnedPath = this.getTerminalPinnedPath();
-    return !!pinnedPath && Gio.File.new_for_path(pinnedPath).query_exists(null);
+    const key = this.getPinKey();
+    if (BooruImage._pinCacheHydrated) {
+      this._isPinned = BooruImage._pinKeys.has(key);
+      return this._isPinned;
+    }
+
+    if (this._isPinned !== undefined) return this._isPinned;
+
+    const currentPins = globalSettings.peek().booru.pins;
+    const pinned = currentPins.some(
+      (img: any) => img.id === this.id && img.api?.value === this.api.value,
+    );
+    this._isPinned = pinned;
+
+    if (pinned) {
+      BooruImage._pinKeys.add(key);
+    }
+
+    return pinned;
   }
 
   /**
@@ -549,72 +572,38 @@ export class BooruImage {
       return;
     }
 
-    const CORNER_RADIUS_PERCENT = 5;
-    const cacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
-    const sourceImagePath = this.getImagePath();
-    const sourceFile = Gio.File.new_for_path(sourceImagePath);
-    const terminalWaifuPath = this.getTerminalPinnedPath();
-
-    if (!terminalWaifuPath) {
-      notify({
-        summary: "Error pinning to terminal",
-        body: "Invalid image path",
-      });
-      return;
-    }
-
     try {
-      await execAsync(["mkdir", "-p", cacheDir]);
-
-      if (!sourceFile.query_exists(null)) {
-        throw new Error("Image file does not exist locally");
+      if (!this.isDownloaded()) {
+        notify({
+          summary: "Error pinning to terminal",
+          body: "Download image first",
+        });
+        return;
       }
 
-      const pinnedFileExists =
-        Gio.File.new_for_path(terminalWaifuPath).query_exists(null);
+      const pinKey = this.getPinKey();
+      const currentPins = globalSettings.peek().booru.pins;
+      const existingIndex = currentPins.findIndex(
+        (img) => img.id === this.id && img.api?.value === this.api.value,
+      );
 
-      if (pinnedFileExists) {
-        await execAsync(["rm", "-f", terminalWaifuPath]);
-
+      if (existingIndex !== -1) {
+        const nextPins = currentPins.filter(
+          (_, index) => index !== existingIndex,
+        );
+        setGlobalSetting("booru.pins", nextPins);
+        BooruImage._pinKeys.delete(pinKey);
+        BooruImage._pinCacheHydrated = true;
+        this._isPinned = false;
         notify({ summary: "Waifu", body: "UN-Pinned from Terminal" });
       } else {
-        const radius = `%[fx:min(w,h)*${CORNER_RADIUS_PERCENT / 100}]`;
-
-        await execAsync([
-          "magick",
-          sourceImagePath,
-          "-alpha",
-          "set",
-          "(",
-          "+clone",
-          "-alpha",
-          "transparent",
-          "-background",
-          "none",
-          "-fill",
-          "white",
-          "-draw",
-          `roundrectangle 0,0,%[fx:w-1],%[fx:h-1],${radius},${radius}`,
-          ")",
-          "-compose",
-          "Dst_In",
-          "-composite",
-          "-strip",
-          "-quality",
-          "82",
-          "-define",
-          "webp:method=6",
-          "-define",
-          "webp:alpha-quality=90",
-          "-background",
-          "none",
-          terminalWaifuPath,
-        ]);
-
+        const nextPins = [...currentPins, this.toJSON()];
+        setGlobalSetting("booru.pins", nextPins);
+        BooruImage._pinKeys.add(pinKey);
+        BooruImage._pinCacheHydrated = true;
+        this._isPinned = true;
         notify({ summary: "Waifu", body: "Pinned To Terminal" });
       }
-
-      await execAsync(["bash", "-c", "pkill -SIGUSR1 zsh || true"]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       notify({ summary: "Error pinning to terminal", body: errorMessage });

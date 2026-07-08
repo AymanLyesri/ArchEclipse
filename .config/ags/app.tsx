@@ -20,6 +20,7 @@ import { setGlobalSetting } from "./variables";
 import { Gtk } from "ags/gtk4";
 import AlwaysOnWidget from "./widgets/AlwaysOnWidget";
 import { ensureAuthServerRunning } from "./utils/auth-session";
+import { startFastfetchPinsSync } from "./services/fastfetch";
 const Notification = Notifd.get_default();
 
 const perMonitorDisplay = () => {
@@ -65,6 +66,7 @@ app.start({
   css: getCssPath(),
   main: () => {
     ensureAuthServerRunning();
+    startFastfetchPinsSync();
     logTime("Compiling Binaries", () => compileBinaries());
     logTime("\tInitializing Per-Monitor Display", () => perMonitorDisplay());
   },

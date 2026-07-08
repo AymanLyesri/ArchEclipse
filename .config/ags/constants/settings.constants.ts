@@ -210,6 +210,7 @@ export const defaultSettings: Settings = {
     page: 1,
     columns: 2,
     bookmarks: [],
+    pins: [],
     selectedTab: booruApis[0].name,
   },
   crypto: {
