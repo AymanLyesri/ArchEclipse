@@ -23,7 +23,7 @@ export default function ({
   className,
   visible,
 }: {
-  width?: Accessor<number> | number;
+  width?: number;
   height?: Accessor<number> | number;
   className?: string | Accessor<string>;
   visible?: Accessor<boolean> | boolean;

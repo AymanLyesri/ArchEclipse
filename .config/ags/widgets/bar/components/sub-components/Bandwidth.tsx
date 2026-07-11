@@ -4,6 +4,7 @@ import { With } from "gnim";
 import { formatKiloBytes } from "../../../../utils/bytes";
 import { createSubprocess } from "ags/process";
 import GLib from "gi://GLib";
+import { connectPopoverEvents } from "../../../../utils/window";
 
 export default () => {
   const bandwidth = createSubprocess(
@@ -25,7 +26,10 @@ export default () => {
   );
 
   return (
-    <menubutton class={"bandwidth"}>
+    <menubutton
+      class={"bandwidth"}
+      $={(self) => connectPopoverEvents(self, "barWindow")}
+    >
       <box class="bandwidth-button" tooltipText={"click to open"} spacing={5}>
         <box>
           <label

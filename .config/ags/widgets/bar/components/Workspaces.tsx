@@ -3,19 +3,17 @@ import { focusedWorkspace, specialWorkspace } from "../../../variables";
 
 import Hyprland from "gi://AstalHyprland";
 import { createBinding, createComputed } from "ags";
-import { hideWindow, showWindow } from "../../../utils/window";
 import { For } from "ags";
 import { Accessor } from "ags";
-import app from "ags/gtk4/app";
 import { timeout, Timer } from "ags/time";
 import { Gdk } from "ags/gtk4";
 import GObject from "ags/gobject";
 import { workspaceClientLayout } from "./sub-components/WorkspaceOverview";
 import { workspaceRegexIconMap } from "../../../constants/workspace.constants";
+import { connectPopoverEvents } from "../../../utils/window";
 
 const hyprland = Hyprland.get_default();
 
-const overviewIcon = "󰕬";
 const specialIcon = "";
 
 const getWorkspaceIcon = (clientClass: string, fallbackIcon: string) => {
@@ -140,6 +138,7 @@ function Workspaces() {
 
           popover.set_child(workspaceClientLayout(workspace));
           popover.set_parent(self);
+          connectPopoverEvents(self, "barWindow", popover);
 
           // --- HOVER LOGIC ---
           let hideTimeout: Timer;
@@ -338,17 +337,6 @@ function Workspaces() {
   );
 }
 
-// const OverView = () => (
-//   <button
-//     class="overview"
-//     label={overviewIcon}
-//     onClicked={() =>
-//       hyprland.message_async("dispatch hyprexpo:expo toggle", (res) => {})
-//     }
-//     tooltipMarkup={`Overview Mode\n<b>SUPER + SHIFT + TAB</b>`}
-//   />
-// );
-
 const Special = () => (
   <button
     class={specialWorkspace((special) =>
@@ -384,10 +372,48 @@ const Special = () => (
 
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
-    <box class="workspaces" spacing={5} halign={halign} hexpand>
+    <box class="workspaces" spacing={5} halign={halign}>
       {/* <OverView /> */}
       <Special />
       <Workspaces />
+    </box>
+  );
+};
+
+export const WorkspacesCompact = () => {
+  const workspaces = createComputed(() => {
+    const active = createBinding(hyprland, "workspaces")();
+
+    const map = new Map(active.map((w) => [w.id, w]));
+
+    return Array.from({ length: 10 }, (_, i) => map.get(i + 1)).filter(
+      (w): w is Hyprland.Workspace => w !== undefined,
+    );
+  });
+
+  return (
+    <box class="workspaces-compact" spacing={5}>
+      <For each={workspaces}>
+        {(workspace, index: Accessor<number>) => {
+          const id = workspace!.id;
+          return (
+            <button
+              class={createComputed(() => {
+                const currentWorkspace = focusedWorkspace().id;
+                const isFocused = currentWorkspace === id;
+                return isFocused ? "is-focused" : "is-unfocused";
+              })}
+              label={createComputed(() => {
+                const clients = createBinding(workspace!, "clients")();
+                const main_client = clients[0];
+                const client_class = main_client?.class || "empty";
+
+                return getWorkspaceIcon(client_class, "");
+              })}
+            />
+          );
+        }}
+      </For>
     </box>
   );
 };

@@ -1,15 +1,6 @@
 import Brightness from "../../../services/brightness";
 import CustomRevealer from "../../CustomRevealer";
-import {
-  Accessor,
-  createBinding,
-  createComputed,
-  createState,
-  With,
-} from "ags";
-import { createSubprocess, execAsync } from "ags/process";
-
-import Wp from "gi://AstalWp";
+import { Accessor, createBinding, createComputed, With } from "ags";
 
 import { Gtk } from "ags/gtk4";
 import {
@@ -32,6 +23,8 @@ import { connectPopoverEvents } from "../../../utils/window";
 
 import Hyprland from "gi://AstalHyprland";
 import ControlPanel from "../../ControlPanel";
+import Volume from "./sub-components/Volume";
+import Battery from "./sub-components/Battery";
 const hyprland = Hyprland.get_default();
 
 function BrightnessWidget() {
@@ -154,165 +147,6 @@ function BrightnessWidget() {
   );
 }
 
-function Battery() {
-  const battery = AstalBattery.get_default();
-  const powerprofiles = AstalPowerProfiles.get_default();
-
-  const percent = createBinding(
-    battery,
-    "percentage",
-  )((p) => `${Math.floor(p * 100)}%`);
-
-  const setProfile = (profile: string) => {
-    powerprofiles.set_active_profile(profile);
-  };
-
-  return (
-    <menubutton
-      visible={createBinding(battery, "isPresent")}
-      tooltipMarkup={createComputed(() => {
-        const profile = powerprofiles.active_profile;
-        return `Battery: ${percent.peek()} \nProfile: ${profile}`;
-      })}
-    >
-      <box spacing={5} class="battery">
-        <image iconName={createBinding(battery, "iconName")} />
-        <label label={percent} />
-      </box>
-      <popover
-        $={(self) => {
-          self.connect("notify::visible", () => {
-            if (self.visible) self.add_css_class("popover-open");
-            else if (self.get_child()) self.remove_css_class("popover-open");
-          });
-        }}
-      >
-        <box orientation={Gtk.Orientation.VERTICAL}>
-          {powerprofiles.get_profiles().map(({ profile }) => (
-            <button onClicked={() => setProfile(profile)}>
-              <label label={profile} xalign={0} />
-            </button>
-          ))}
-        </box>
-      </popover>
-    </menubutton>
-  );
-}
-
-function Volume() {
-  const speaker = Wp.get_default()?.audio.defaultSpeaker!;
-  const volumeIcon = createBinding(speaker, "volumeIcon");
-  const volume = createBinding(speaker, "volume");
-
-  const icon = <image pixelSize={11} iconName={volumeIcon} />;
-
-  const slider = (
-    <slider
-      // step={0.1} // Gtk.Scale doesn't have step prop directly in JSX usually, handled by adjustment or set_increment
-      class="slider"
-      widthRequest={100}
-      onValueChanged={(self) => {
-        // external volume changes (fn keys, pavucontrol) also fire this and loop back
-        if (Math.abs(self.get_value() - speaker.volume) < 0.001) return;
-        speaker.volume = self.get_value();
-      }}
-      value={volume((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
-    />
-  );
-
-  const percentage = (
-    <label label={volume((v: number) => `${Math.round(v * 100)}%`)} />
-  );
-
-  const trigger = (
-    <box class="trigger" spacing={5} children={[icon, percentage]} />
-  );
-
-  let hideTimeout: any = null;
-  let isHovering = false;
-  let lastVolume = speaker.volume;
-  let firstRender = true;
-
-  const revealer = (
-    <revealer
-      revealChild={false}
-      transitionDuration={globalTransition}
-      transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
-      $={(self) => {
-        speaker.connect(`notify::volume`, () => {
-          const currentVolume = speaker.volume;
-
-          // Skip the initial notification on component mount
-          if (firstRender) {
-            firstRender = false;
-            lastVolume = currentVolume;
-            return;
-          }
-
-          // Ignore spurious notifications where value did not change
-          if (currentVolume === lastVolume) {
-            return;
-          }
-
-          lastVolume = currentVolume;
-          self.reveal_child = true;
-
-          if (hideTimeout) {
-            clearTimeout(hideTimeout);
-          }
-
-          // Set new timeout to hide after 2 seconds of no volume changes
-          hideTimeout = setTimeout(() => {
-            if (!isHovering) {
-              self.reveal_child = false;
-            }
-          }, 2000);
-        });
-      }}
-    >
-      {slider}
-    </revealer>
-  );
-  return (
-    <box
-      tooltipText={volume(
-        (v) => `Volume: ${Math.round(v * 100)}%\nClick to open Volume Mixer`,
-      )}
-      class={"custom-revealer"}
-    >
-      <Gtk.EventControllerMotion
-        onEnter={() => {
-          isHovering = true;
-          if (hideTimeout) {
-            clearTimeout(hideTimeout);
-          }
-          (revealer as Gtk.Revealer).reveal_child = true;
-        }}
-        onLeave={() => {
-          isHovering = false;
-          if (hideTimeout) {
-            clearTimeout(hideTimeout);
-          }
-          hideTimeout = setTimeout(() => {
-            (revealer as Gtk.Revealer).reveal_child = false;
-          }, 2000);
-        }}
-      ></Gtk.EventControllerMotion>
-      <Gtk.GestureClick
-        onPressed={() => {
-          execAsync(`pavucontrol`).catch((err) =>
-            notify({ summary: "pavu", body: err }),
-          );
-        }}
-      />
-      <box class={"content"}>
-        {trigger}
-        {revealer}
-      </box>
-    </box>
-  );
-}
-
 function Tray() {
   const tray = AstalTray.get_default();
   const items = createBinding(tray, "items");
@@ -337,7 +171,10 @@ function Tray() {
           {(item) => (
             <menubutton
               class="tray-icon"
-              $={(self) => init(self, item)}
+              $={(self) => {
+                init(self, item);
+                connectPopoverEvents(self, "barWindow");
+              }}
               tooltipText={item.tooltip_text}
             >
               <image pixelSize={11} gicon={createBinding(item, "gicon")} />
@@ -398,7 +235,7 @@ function Tray() {
 
 function ResourceMonitor() {
   return (
-    <box
+    <button
       class="resource-monitor"
       $={(self) => {
         const popover = new Gtk.Popover({
@@ -486,7 +323,7 @@ function ResourceMonitor() {
           </box>
         )}
       </With>
-    </box>
+    </button>
   );
 }
 
@@ -503,7 +340,7 @@ function ControlPanelButton() {
 
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
-    <box class="utilities" spacing={5} halign={halign} hexpand>
+    <box class="utilities" spacing={5} halign={halign}>
       <Battery />
       <BrightnessWidget />
       <Volume />

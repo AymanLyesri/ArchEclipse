@@ -12,16 +12,14 @@ import { setGlobalSetting } from "../variables";
  *    $={(self) => { (self as any).windowPropertyName = new Window(); }}
  *
  * 2. In widgets with popovers, call connectPopoverEvents in the $ property:
- *    <menubutton $={(self) => connectPopoverEvents(self, "windowPropertyName")}>>
- *       <popover
-      $={(self) => {
-        self.connect("notify::visible", () => {
-          if (self.visible) self.add_css_class("popover-open");
-          else if (self.get_child()) self.remove_css_class("popover-open");
-        });
-      }}
-    >...</popover>
+ *    <menubutton $={(self) => connectPopoverEvents(self, "windowPropertyName")}>...
  *    </menubutton>
+ *    <button $={(self) => {
+ *      const popover = new Gtk.Popover(...);
+ *      popover.set_parent(self);
+ *      connectPopoverEvents(self, "windowPropertyName", popover);
+ *    }}>...
+ *    </button>
  *
  * 3. Check popup state before hiding panel on leave event:
  *    if (!lock.get() && !windowInstance.popupIsOpen()) { hidePanel(); }
@@ -75,8 +73,9 @@ export { Window };
  * Call this in the $ property of a menubutton or any widget with a popover
  */
 export const connectPopoverEvents = (
-  self: Gtk.MenuButton,
+  self: Gtk.Widget,
   windowPropertyName: string = "leftPanelWindow",
+  popover?: Gtk.Popover | null,
 ) => {
   // Find the window instance from parent chain
   const findWindowInstance = () => {
@@ -89,20 +88,35 @@ export const connectPopoverEvents = (
     return windowInstance;
   };
 
+  const getPopover = () => {
+    if (popover) return popover;
+
+    const menuButton = self as Gtk.MenuButton;
+    return typeof menuButton.get_popover === "function"
+      ? menuButton.get_popover()
+      : null;
+  };
+
   // Try to connect immediately if popover exists
   const tryConnect = () => {
-    const popover = self.get_popover();
-    if (popover) {
-      const windowInstance = findWindowInstance();
-      if (windowInstance && windowInstance.setPopupIsOpen) {
-        popover.connect("show", () => {
-          windowInstance.setPopupIsOpen(true);
-        });
-        popover.connect("closed", () => {
+    const currentPopover = getPopover();
+    if (currentPopover) {
+      const updatePopupState = () => {
+        const windowInstance = findWindowInstance();
+        if (windowInstance && windowInstance.setPopupIsOpen) {
+          windowInstance.setPopupIsOpen(currentPopover.visible);
+        }
+      };
+
+      currentPopover.connect("notify::visible", updatePopupState);
+      currentPopover.connect("destroy", () => {
+        const windowInstance = findWindowInstance();
+        if (windowInstance && windowInstance.setPopupIsOpen) {
           windowInstance.setPopupIsOpen(false);
-        });
-        return true;
-      }
+        }
+      });
+      updatePopupState();
+      return true;
     }
     return false;
   };

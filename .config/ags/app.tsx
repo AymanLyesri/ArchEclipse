@@ -33,7 +33,7 @@ const perMonitorDisplay = () => {
   );
   const widgets = [
     Bar,
-    BarHover,
+    // BarHover,
     RightPanel,
     RightPanelHover,
     LeftPanel,

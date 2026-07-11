@@ -14,7 +14,7 @@ import { rightPanelWidgetSelectors } from "../../constants/widget.constants";
 import GObject from "ags/gobject";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 import app from "ags/gtk4/app";
-import { timeout } from "ags/time";
+import { timeout, Timer } from "ags/time";
 
 function moveItem<T>(array: T[], from: number, to: number): T[] {
   const copy = [...array];
@@ -218,6 +218,7 @@ function Panel() {
           {(widget, index) => {
             try {
               return widget.widget({
+                width: globalSettings.peek().rightPanel.width - 20,
                 height: globalSettings(
                   ({ rightPanel }) => rightPanel.width - 20,
                 ),
@@ -273,6 +274,7 @@ export default ({
         const windowInstance = new Window();
         (self as any).rightPanelWindow = windowInstance;
         (self as any).monitorName = monitorName;
+        let hideTimeout: Timer | null = null;
 
         const motion = new Gtk.EventControllerMotion();
 
@@ -282,7 +284,18 @@ export default ({
           const windowInstance = (self as any).rightPanelWindow;
           if (windowInstance && windowInstance.isDragging()) return;
 
-          hideWindow(`right-panel-${monitorName}`);
+          hideTimeout = timeout(1000, () => {
+            hideTimeout = null;
+
+            hideWindow(`right-panel-${monitorName}`);
+          });
+        });
+
+        motion.connect("enter", () => {
+          if (hideTimeout !== null) {
+            hideTimeout.cancel();
+            hideTimeout = null;
+          }
         });
 
         self.add_controller(motion);

@@ -5,6 +5,7 @@ import { With } from "gnim";
 import { Eventbox } from "./Custom/Eventbox";
 import Pango from "gi://Pango";
 import { weatherData, setWeatherCity, globalSettings } from "../variables";
+import { connectPopoverEvents } from "../utils/window";
 
 // Weather code to description mapping
 const weatherCodes: Record<
@@ -447,6 +448,8 @@ export function WeatherButton() {
 
         popover.set_child((<Weather moreDetails />) as unknown as Gtk.Widget);
         popover.set_parent(self);
+
+        connectPopoverEvents(self, "barWindow", popover);
 
         popover.connect("notify::visible", () => {
           if (!popover) return;

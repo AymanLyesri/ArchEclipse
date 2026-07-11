@@ -61,7 +61,7 @@ export const rightPanelWidgetSelectors: WidgetSelector[] = [
       height,
       className,
     }: {
-      width?: number | Accessor<number>;
+      width?: number;
       height?: number | Accessor<number>;
       className?: string | Accessor<string>;
     }) => MediaWidget({ width: width, height: height, className: className }),

@@ -26,6 +26,7 @@ import { WeatherButton } from "../../Weather";
 import { timeout } from "ags/time";
 import GObject from "ags/gobject";
 import Picture from "../../Picture";
+import { connectPopoverEvents } from "../../../utils/window";
 
 const mpris = AstalMpris.get_default();
 
@@ -54,7 +55,7 @@ function Mpris() {
           });
 
           return (
-            <menubutton>
+            <menubutton $={(self) => connectPopoverEvents(self, "barWindow")}>
               <overlay
                 css={createComputed(() => {
                   const title_width = createBinding(

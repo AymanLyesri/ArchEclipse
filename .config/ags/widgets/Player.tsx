@@ -15,14 +15,13 @@ export default ({
   className,
 }: {
   player: AstalMpris.Player;
-  width?: Accessor<number> | number;
+  width?: number;
   height?: Accessor<number> | number;
   className?: string;
 }) => {
   const apps = new AstalApps.Apps();
 
   const [isDragging, setIsDragging] = createState(false);
-  const [parentWidth, setParentWidth] = createState(0);
   const [slideDirection, setSlideDirection] = createState<"next" | "prev">(
     "next",
   );
@@ -34,7 +33,10 @@ export default ({
   // when YouTube temporarily sends empty MPRIS fields during track changes.
   let lastValidCover = player.coverArt || DEFAULT_COVER;
 
-  const coverBinding = createBinding(player, "coverArt")((c) => {
+  const coverBinding = createBinding(
+    player,
+    "coverArt",
+  )((c) => {
     if (c && c.trim() !== "") {
       lastValidCover = c;
       return c;
@@ -137,7 +139,9 @@ export default ({
         gestureClick.connect("drag-end", () => {
           player.position = self.get_value() * player.length;
           setIsDragging(false);
-          unsubscribe = createBinding(player, "position").subscribe(updateValue);
+          unsubscribe = createBinding(player, "position").subscribe(
+            updateValue,
+          );
         });
 
         self.add_controller(gestureClick);
@@ -219,30 +223,6 @@ export default ({
       class={`player ${className || ""}`}
       hexpand
       $={(self) => {
-        const controller = new Gtk.EventControllerMotion();
-
-        controller.connect("enter", () => {
-          const alloc = self.get_allocation();
-          if (alloc) setParentWidth(alloc.width);
-        });
-
-        const checkWidth = () => {
-          const alloc = self.get_allocation();
-          if (alloc && alloc.width > 0 && alloc.width !== parentWidth.get()) {
-            setParentWidth(alloc.width);
-          }
-          return true;
-        };
-
-        const timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, checkWidth);
-
-        self.connect("destroy", () => {
-          if (timeoutId) GLib.source_remove(timeoutId);
-        });
-
-        self.add_controller(controller);
-        checkWidth();
-
         // Slide animation only for text titles
         createBinding(player, "title").subscribe(() => {
           switchText(slideDirection.get() || "next");
@@ -250,12 +230,7 @@ export default ({
       }}
     >
       {/* Main blurred background cover art using protected binding */}
-      <Picture
-        class="img"
-        height={height}
-        width={width}
-        file={coverBinding}
-      />
+      <Picture class="img" height={height} width={width} file={coverBinding} />
 
       <box
         $type="overlay"
@@ -264,10 +239,15 @@ export default ({
       >
         <Cava
           transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
-          barCount={50}
+          barCount={width ? Math.floor(width / 10) : 12}
         />
 
-        <box class={"main"} spacing={5} orientation={Gtk.Orientation.VERTICAL} hexpand>
+        <box
+          class={"main"}
+          spacing={5}
+          orientation={Gtk.Orientation.VERTICAL}
+          hexpand
+        >
           <box class="top-row" spacing={10}>
             {/* Small spinning preview thumbnail with protected binding */}
             <Picture
@@ -288,7 +268,10 @@ export default ({
               <image
                 class="icon"
                 tooltip_text={createBinding(player, "identity")((i) => i || "")}
-                iconName={apps.exact_query(player.entry)[0]?.iconName || "audio-x-generic"}
+                iconName={
+                  apps.exact_query(player.entry)[0]?.iconName ||
+                  "audio-x-generic"
+                }
               />
             </box>
           </box>

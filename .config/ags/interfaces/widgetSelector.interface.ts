@@ -11,7 +11,7 @@ export interface WidgetSelector {
     halign,
     className,
   }: {
-    width?: number | Accessor<number>;
+    width?: number;
     height?: number | Accessor<number>;
     halign?: Gtk.Align | Accessor<Gtk.Align>;
     className?: string | Accessor<string>;
