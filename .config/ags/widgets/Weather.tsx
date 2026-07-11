@@ -461,9 +461,9 @@ export function WeatherButton() {
       }}
     >
       <box class="weather-button" spacing={5}>
-        <label label={weatherIcon(weatherData())} />
+        <label label={weatherData((w) => weatherIcon(w))} />
         <label
-          label={currentWeatherLabel(weatherData())}
+          label={weatherData((w) => currentWeatherLabel(w))}
           ellipsize={Pango.EllipsizeMode.END}
         />
       </box>
