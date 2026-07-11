@@ -72,9 +72,9 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --now"))
 --- screenshot area
 hl.bind(mainMod .. " + CTRL + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --area"))
 --- screen record workspace
-hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(scriptsDir .. "/screenrecord.sh --now"))
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("ags request screenrecord now"))
 --- screen record area
-hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd(scriptsDir .. "/screenrecord.sh --area"))
+hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd("ags request screenrecord area"))
 
 -- Special Workspace Keybinds
 --- move to special workspace

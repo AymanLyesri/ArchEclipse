@@ -23,10 +23,17 @@ import Battery from "./components/sub-components/Battery";
 import Wp from "gi://AstalWp";
 import Brightness from "../../services/brightness";
 import BrightnessWidget from "./components/sub-components/BrightnessWidget";
+import Recording from "./components/sub-components/Recording";
+import { isRecording } from "../../services/record.service";
 
-export const [barState, setBarState] = createState<
-  "compact" | "expanded" | "recording" | "volume" | "brightness"
->("compact");
+export type BarStateName =
+  | "compact"
+  | "expanded"
+  | "recording"
+  | "volume"
+  | "brightness";
+
+export const [barState, setBarState] = createState<BarStateName>("compact");
 
 export default ({
   monitor,
@@ -40,7 +47,10 @@ export default ({
 
   const layout = globalSettings.peek().bar.layout;
 
-  // Spring state — lives outside animateWidth so it persists across calls
+  // ---------------------------------------------------------------------
+  // Spring physics width animation — lives outside animateWidth so it
+  // persists (and keeps momentum) across repeated calls.
+  // ---------------------------------------------------------------------
   let widthVelocity = 0;
   let springTimer: Timer | null = null;
 
@@ -82,27 +92,63 @@ export default ({
     });
   }
 
+  // ---------------------------------------------------------------------
+  // Widget / width registry — single source of truth for every stack
+  // page instead of one `let widthX` variable per widget. Adding a new
+  // bar state later is just one more registerBarWidget() call.
+  // ---------------------------------------------------------------------
+  const barWidgets = {} as Record<BarStateName, Gtk.Widget>;
+  const barWidths = {} as Record<BarStateName, number>;
+
+  /**
+   * Registers a widget under a bar-state name and caches its measured
+   * natural width (plus an explicit padding fudge-factor, replacing the
+   * old unexplained `*= 1.5` / `*= 5` multipliers).
+   */
+  function registerBarWidget(
+    name: BarStateName,
+    widget: Gtk.Widget,
+    padding: number = 250,
+  ) {
+    barWidgets[name] = widget;
+    const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
+    barWidths[name] = natural + padding;
+    return widget;
+  }
+
   const expandedBar = (
-    <box spacing={25}>
+    <centerbox hexpand>
       {layout
         .filter((widget) => widget.enabled)
         .map((widget: WidgetSelector, key) => {
           switch (widget.name) {
             case "workspaces":
-              return <Workspaces />;
+              return (
+                <box $type="start">
+                  <Workspaces />
+                </box>
+              );
             case "information":
-              return <Information />;
+              return (
+                <box $type="center">
+                  <Information />
+                </box>
+              );
             case "utilities":
-              return <Utilities />;
+              return (
+                <box $type="end">
+                  <Utilities />
+                </box>
+              );
             default:
               return <box />;
           }
         })}
-    </box>
+    </centerbox>
   ) as Gtk.Widget;
 
   const compactBar = (
-    <box spacing={5}>
+    <box spacing={5} halign={Gtk.Align.CENTER} hexpand>
       <WorkspacesCompact />
       <Information />
       <Battery />
@@ -110,10 +156,75 @@ export default ({
     </box>
   ) as Gtk.Widget;
 
-  let compactWidth = 0;
-  let expandedWidth = 0;
-  let volumeWidth = 0;
-  let brightnessWidth = 0;
+  // ---------------------------------------------------------------------
+  // Transient-state helper — shows a bar page (volume/brightness/etc),
+  // then decays back to compact after `holdMs` of no further changes.
+  // Replaces the two near-identical animate -> setBarState -> setTimeout
+  // blocks that used to live inline per-signal.
+  // ---------------------------------------------------------------------
+  let transientHideTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  function showTransientState(name: BarStateName, holdMs = 2000) {
+    animateWidth(barWidths[name]);
+    timeout(100, () => setBarState(name));
+
+    if (transientHideTimeout) {
+      clearTimeout(transientHideTimeout);
+    }
+
+    transientHideTimeout = setTimeout(() => {
+      animateWidth(barWidths.compact);
+      timeout(100, () => setBarState("compact"));
+    }, holdMs);
+  }
+
+  isRecording.subscribe(() => {
+    const recording = isRecording.peek();
+
+    if (recording) {
+      if (transientHideTimeout) {
+        clearTimeout(transientHideTimeout);
+        transientHideTimeout = null;
+      }
+      animateWidth(barWidths.recording);
+      timeout(100, () => setBarState("recording"));
+    } else if (barState.peek() === "recording") {
+      animateWidth(barWidths.compact);
+      timeout(100, () => setBarState("compact"));
+    }
+  });
+  /**
+   * Wires a GObject signal to showTransientState(), with its own
+   * first-render guard and "last seen value" dedupe — each call gets
+   * independent state, so multiple watchers no longer stomp on each
+   * other's `firstRender`/`lastValue` the way the old inline copies did.
+   */
+  function watchTransient<T>(
+    connectTo: { connect: (signal: string, cb: () => void) => void },
+    signal: string,
+    getValue: () => T,
+    stateName: BarStateName,
+  ) {
+    let isFirst = true;
+    let last: T;
+
+    connectTo.connect(signal, () => {
+      const current = getValue();
+
+      // Skip the initial notification on mount
+      if (isFirst) {
+        isFirst = false;
+        last = current;
+        return;
+      }
+
+      // Ignore spurious notifications where the value didn't actually change
+      if (current === last) return;
+      last = current;
+
+      showTransientState(stateName);
+    });
+  }
 
   // Using a setup hook on the stack is the most reliable way to register named children in GTK4
   const barStack = (
@@ -123,95 +234,46 @@ export default ({
       hhomogeneous={false} // Prevents the expanded width from stretching
       visibleChildName={barState}
       $={(self) => {
-        self.add_named(compactBar, "compact");
-        [, compactWidth] = compactBar.measure(Gtk.Orientation.HORIZONTAL, -1);
-        compactWidth *= 1.5;
-        self.add_named(expandedBar, "expanded");
-        [, expandedWidth] = expandedBar.measure(Gtk.Orientation.HORIZONTAL, -1);
-        expandedWidth *= 1.5;
-        self.add_named(Volume({ widthRequest: currentWidth }), "volume");
-        [, volumeWidth] = Volume({ widthRequest: currentWidth }).measure(
-          Gtk.Orientation.HORIZONTAL,
-          -1,
-        );
-        volumeWidth *= 5;
+        self.add_named(registerBarWidget("compact", compactBar), "compact");
         self.add_named(
-          BrightnessWidget({ widthRequest: currentWidth }),
+          registerBarWidget("expanded", expandedBar, 500),
+          "expanded",
+        );
+
+        const volumeWidget = Volume({ widthRequest: currentWidth });
+        self.add_named(registerBarWidget("volume", volumeWidget), "volume");
+
+        const brightnessWidget = BrightnessWidget({
+          widthRequest: currentWidth,
+        });
+        self.add_named(
+          registerBarWidget("brightness", brightnessWidget),
           "brightness",
         );
-        [, brightnessWidth] = Volume({ widthRequest: currentWidth }).measure(
-          Gtk.Orientation.HORIZONTAL,
-          -1,
-        );
-        brightnessWidth *= 5;
 
-        setCurrentWidth(compactWidth);
+        const recordingWidget = Recording({ widthRequest: currentWidth });
+        self.add_named(
+          registerBarWidget("recording", recordingWidget),
+          "recording",
+        );
+
+        setCurrentWidth(barWidths.compact);
 
         const speaker = Wp.get_default()?.audio.defaultSpeaker!;
-        let widgetHideTimeout: any = null;
-        let lastVolume = speaker.volume;
-        let firstRender = true;
-        speaker.connect(`notify::volume`, () => {
-          const currentVolume = speaker.volume;
-
-          // Skip the initial notification on component mount
-          if (firstRender) {
-            firstRender = false;
-            lastVolume = currentVolume;
-            return;
-          }
-
-          // Ignore spurious notifications where value did not change
-          if (currentVolume === lastVolume) {
-            return;
-          }
-
-          animateWidth(volumeWidth);
-          timeout(100, () => setBarState("volume"));
-
-          if (widgetHideTimeout) {
-            clearTimeout(widgetHideTimeout);
-          }
-
-          // Set new timeout to hide after 2 seconds of no volume changes
-          widgetHideTimeout = setTimeout(() => {
-            animateWidth(compactWidth);
-            timeout(100, () => setBarState("compact"));
-          }, 2000);
-        });
+        watchTransient(
+          speaker,
+          "notify::volume",
+          () => speaker.volume,
+          "volume",
+        );
 
         const brightness = Brightness.get_default();
-        let lastScreen = brightness.screen;
-
-        brightness.connect(`notify::screen`, () => {
-          const currentScreen = brightness.screen;
-
-          // Skip the initial notification on component mount
-          if (firstRender) {
-            firstRender = false;
-            lastScreen = currentScreen;
-            return;
-          }
-
-          // Ignore spurious notifications where value did not change
-          if (currentScreen === lastScreen) {
-            return;
-          }
-
-          lastScreen = currentScreen;
-          animateWidth(brightnessWidth);
-          timeout(100, () => setBarState("brightness"));
-
-          if (widgetHideTimeout) {
-            clearTimeout(widgetHideTimeout);
-          }
-
-          // Set new timeout to hide after 2 seconds of no brightness changes
-          widgetHideTimeout = setTimeout(() => {
-            animateWidth(compactWidth);
-            timeout(100, () => setBarState("compact"));
-          }, 2000);
-        });
+        watchTransient(
+          brightness,
+          "notify::screen",
+          () => brightness.screen,
+          "brightness",
+        );
       }}
     />
   ) as Gtk.Widget;
@@ -283,10 +345,9 @@ export default ({
                 compactTimeout.cancel();
                 compactTimeout = null;
               }
-              animateWidth(expandedWidth);
+              animateWidth(barWidths.expanded);
 
               timeout(100, () => {
-                // setIsBarExpanded(true);
                 setBarState("expanded");
               });
             });
@@ -303,7 +364,7 @@ export default ({
                   setBarState("compact");
 
                   timeout(100, () => {
-                    animateWidth(compactWidth);
+                    animateWidth(barWidths.compact);
                   });
                 }
               });
@@ -312,10 +373,7 @@ export default ({
           }}
           hexpand={false}
         >
-          {/* {barStack} */}
-          <box halign={Gtk.Align.CENTER} hexpand>
-            {barStack}
-          </box>
+          {barStack}
         </box>
         <box $type="end" hexpand>
           <Gtk.EventControllerMotion

@@ -1,0 +1,15 @@
+.recording {
+  .recording-dot {
+    // font-size: 25px;
+    padding: 0px 5px;
+    color: red;
+    // scale the dot to 1.5 times its original size
+    transform: scale(3);
+  }
+
+  .recording-time {
+    font-size: 12px;
+    padding: 0px 5px;
+    color: $foreground;
+  }
+}

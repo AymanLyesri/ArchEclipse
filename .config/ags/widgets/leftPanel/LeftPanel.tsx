@@ -178,7 +178,7 @@ export default ({
         motion.connect("leave", () => {
           if (globalSettings.peek().leftPanel.lock) return;
 
-          hideTimeout = timeout(1000, () => {
+          hideTimeout = timeout(500, () => {
             hideTimeout = null;
             if (
               !globalSettings.peek().leftPanel.lock &&

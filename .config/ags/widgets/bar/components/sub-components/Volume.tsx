@@ -16,8 +16,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
     <slider
       // step={0.1} // Gtk.Scale doesn't have step prop directly in JSX usually, handled by adjustment or set_increment
       class="slider"
-      widthRequest={100}
-      hexpand
+      widthRequest={widthRequest || 100}
       onValueChanged={(self) => {
         // external volume changes (fn keys, pavucontrol) also fire this and loop back
         if (Math.abs(self.get_value() - speaker.volume) < 0.001) return;
@@ -86,7 +85,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
         (v) => `Volume: ${Math.round(v * 100)}%\nClick to open Volume Mixer`,
       )}
       class={"custom-revealer"}
-      widthRequest={widthRequest}
     >
       <Gtk.EventControllerMotion
         onEnter={() => {

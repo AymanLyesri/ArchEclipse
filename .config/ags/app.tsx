@@ -21,6 +21,7 @@ import { Gtk } from "ags/gtk4";
 import AlwaysOnWidget from "./widgets/AlwaysOnWidget";
 import { ensureAuthServerRunning } from "./utils/auth-session";
 import { startFastfetchPinsSync } from "./services/fastfetch";
+import { isRecording, toggleRecording } from "./services/record.service";
 const Notification = Notifd.get_default();
 
 const perMonitorDisplay = () => {
@@ -70,7 +71,7 @@ app.start({
     logTime("Compiling Binaries", () => compileBinaries());
     logTime("\tInitializing Per-Monitor Display", () => perMonitorDisplay());
   },
-  requestHandler(argv: string[], response: (response: string) => void) {
+  async requestHandler(argv: string[], response: (response: string) => void) {
     const [cmd, arg, ...rest] = argv;
     const monitor = arg;
 
@@ -151,6 +152,12 @@ app.start({
         prefillLauncherInput(appLauncher as any, "apps ");
       }
       response("Apps list opened.");
+      return;
+    }
+
+    if (cmd == "screenrecord") {
+      const state = await toggleRecording(arg as "now" | "area");
+      response(`Recording ${state}.`);
       return;
     }
     response("unknown command");

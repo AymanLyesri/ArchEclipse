@@ -30,8 +30,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
 
   const slider = (
     <slider
-      hexpand
-      widthRequest={100}
+      widthRequest={widthRequest || 100}
       class="slider"
       drawValue={false}
       onValueChanged={({ value }) => {
@@ -97,7 +96,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
       tooltipText={screen((v) => `Brightness: ${Math.round(v * 100)}%`)}
       class={"custom-revealer"}
       visible={createBinding(brightness, "hasBacklight")}
-      widthRequest={widthRequest}
     >
       <Gtk.EventControllerMotion
         onEnter={() => {
