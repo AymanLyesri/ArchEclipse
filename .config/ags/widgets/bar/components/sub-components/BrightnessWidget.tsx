@@ -1,43 +1,54 @@
-import { Accessor, createBinding } from "ags";
-import Wp from "gi://AstalWp";
-import { globalTransition } from "../../../../variables";
 import { Gtk } from "ags/gtk4";
-import { execAsync } from "ags/process";
-import { notify } from "../../../../utils/notification";
+import { globalTransition } from "../../../../variables";
+import { Accessor, createBinding } from "ags";
+import Brightness from "../../../../services/brightness";
 
 export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
-  const speaker = Wp.get_default()?.audio.defaultSpeaker!;
-  const volumeIcon = createBinding(speaker, "volumeIcon");
-  const volume = createBinding(speaker, "volume");
+  const brightness = Brightness.get_default();
+  const screen = createBinding(brightness, "screen");
 
-  const icon = <image pixelSize={11} iconName={volumeIcon} />;
-
-  const slider = (
-    <slider
-      // step={0.1} // Gtk.Scale doesn't have step prop directly in JSX usually, handled by adjustment or set_increment
-      class="slider"
-      widthRequest={100}
-      hexpand
-      onValueChanged={(self) => {
-        // external volume changes (fn keys, pavucontrol) also fire this and loop back
-        if (Math.abs(self.get_value() - speaker.volume) < 0.001) return;
-        speaker.volume = self.get_value();
-      }}
-      value={volume((v: number) => (isNaN(v) || v < 0 ? 0 : v > 1 ? 1 : v))}
+  const label = (
+    <label
+      label={screen((v) => {
+        switch (true) {
+          case v > 0.75:
+            return "󰃠";
+          case v > 0.5:
+            return "󰃟";
+          case v > 0:
+            return "󰃞";
+          default:
+            return "󰃞";
+        }
+      })}
     />
   );
 
   const percentage = (
-    <label label={volume((v: number) => `${Math.round(v * 100)}%`)} />
+    <label label={screen((v: number) => `${Math.round(v * 100)}%`)} />
+  );
+
+  const slider = (
+    <slider
+      hexpand
+      widthRequest={100}
+      class="slider"
+      drawValue={false}
+      onValueChanged={({ value }) => {
+        if (value == screen.peek()) return;
+        brightness.screen = value;
+      }}
+      value={screen}
+    />
   );
 
   const trigger = (
-    <box class="trigger" spacing={5} children={[icon, percentage]} />
+    <box class="trigger" spacing={5} children={[label, percentage]} />
   );
 
   let hideTimeout: any = null;
   let isHovering = false;
-  let lastVolume = speaker.volume;
+  let lastScreen = brightness.screen;
   let firstRender = true;
 
   const revealer = (
@@ -46,29 +57,29 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
       transitionDuration={globalTransition}
       transitionType={Gtk.RevealerTransitionType.SWING_LEFT}
       $={(self) => {
-        speaker.connect(`notify::volume`, () => {
-          const currentVolume = speaker.volume;
+        brightness.connect(`notify::screen`, () => {
+          const currentScreen = brightness.screen;
 
           // Skip the initial notification on component mount
           if (firstRender) {
             firstRender = false;
-            lastVolume = currentVolume;
+            lastScreen = currentScreen;
             return;
           }
 
           // Ignore spurious notifications where value did not change
-          if (currentVolume === lastVolume) {
+          if (currentScreen === lastScreen) {
             return;
           }
 
-          lastVolume = currentVolume;
+          lastScreen = currentScreen;
           self.reveal_child = true;
 
           if (hideTimeout) {
             clearTimeout(hideTimeout);
           }
 
-          // Set new timeout to hide after 2 seconds of no volume changes
+          // Set new timeout to hide after 2 seconds of no brightness changes
           hideTimeout = setTimeout(() => {
             if (!isHovering) {
               self.reveal_child = false;
@@ -80,12 +91,12 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
       {slider}
     </revealer>
   );
+
   return (
     <box
-      tooltipText={volume(
-        (v) => `Volume: ${Math.round(v * 100)}%\nClick to open Volume Mixer`,
-      )}
+      tooltipText={screen((v) => `Brightness: ${Math.round(v * 100)}%`)}
       class={"custom-revealer"}
+      visible={createBinding(brightness, "hasBacklight")}
       widthRequest={widthRequest}
     >
       <Gtk.EventControllerMotion
@@ -106,13 +117,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           }, 2000);
         }}
       ></Gtk.EventControllerMotion>
-      <Gtk.GestureClick
-        onPressed={() => {
-          execAsync(`pavucontrol`).catch((err) =>
-            notify({ summary: "pavu", body: err }),
-          );
-        }}
-      />
       <box class={"content"}>
         {trigger}
         {revealer}

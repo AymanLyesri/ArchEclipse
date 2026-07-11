@@ -9,21 +9,24 @@ import {
   fullscreenClient,
   globalMargin,
   globalSettings,
-  isBarExpanded,
-  setIsBarExpanded,
 } from "../../variables";
 import { getMonitorName } from "../../utils/monitor";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
 import { Astal } from "ags/gtk4";
 import { Gdk } from "ags/gtk4";
 import { Gtk } from "ags/gtk4";
-import { RightPanelVisibility } from "../rightPanel/RightPanel";
-import { LeftPanelVisibility } from "../leftPanel/LeftPanel";
 import app from "ags/gtk4/app";
 import { interval, timeout, Timer } from "ags/time";
 import { Window } from "../../utils/window";
 import Volume from "./components/sub-components/Volume";
 import Battery from "./components/sub-components/Battery";
+import Wp from "gi://AstalWp";
+import Brightness from "../../services/brightness";
+import BrightnessWidget from "./components/sub-components/BrightnessWidget";
+
+export const [barState, setBarState] = createState<
+  "compact" | "expanded" | "recording" | "volume" | "brightness"
+>("compact");
 
 export default ({
   monitor,
@@ -109,18 +112,8 @@ export default ({
 
   let compactWidth = 0;
   let expandedWidth = 0;
-
-  timeout(250, () => {
-    [, compactWidth] = compactBar.measure(Gtk.Orientation.HORIZONTAL, -1);
-    compactWidth *= 1.5; // Add a small buffer to prevent clipping
-
-    [, expandedWidth] = expandedBar.measure(Gtk.Orientation.HORIZONTAL, -1);
-    expandedWidth *= 1.5; // Add a small buffer to prevent clipping
-
-    setCurrentWidth(compactWidth);
-
-    print(`Compact width: ${compactWidth}, Expanded width: ${expandedWidth}`);
-  });
+  let volumeWidth = 0;
+  let brightnessWidth = 0;
 
   // Using a setup hook on the stack is the most reliable way to register named children in GTK4
   const barStack = (
@@ -128,12 +121,97 @@ export default ({
       transitionType={Gtk.StackTransitionType.CROSSFADE}
       transitionDuration={250}
       hhomogeneous={false} // Prevents the expanded width from stretching
-      visibleChildName={isBarExpanded((expanded) =>
-        expanded ? "expanded" : "compact",
-      )}
+      visibleChildName={barState}
       $={(self) => {
         self.add_named(compactBar, "compact");
+        [, compactWidth] = compactBar.measure(Gtk.Orientation.HORIZONTAL, -1);
+        compactWidth *= 1.5;
         self.add_named(expandedBar, "expanded");
+        [, expandedWidth] = expandedBar.measure(Gtk.Orientation.HORIZONTAL, -1);
+        expandedWidth *= 1.5;
+        self.add_named(Volume({ widthRequest: currentWidth }), "volume");
+        [, volumeWidth] = Volume({ widthRequest: currentWidth }).measure(
+          Gtk.Orientation.HORIZONTAL,
+          -1,
+        );
+        volumeWidth *= 5;
+        self.add_named(
+          BrightnessWidget({ widthRequest: currentWidth }),
+          "brightness",
+        );
+        [, brightnessWidth] = Volume({ widthRequest: currentWidth }).measure(
+          Gtk.Orientation.HORIZONTAL,
+          -1,
+        );
+        brightnessWidth *= 5;
+
+        setCurrentWidth(compactWidth);
+
+        const speaker = Wp.get_default()?.audio.defaultSpeaker!;
+        let widgetHideTimeout: any = null;
+        let lastVolume = speaker.volume;
+        let firstRender = true;
+        speaker.connect(`notify::volume`, () => {
+          const currentVolume = speaker.volume;
+
+          // Skip the initial notification on component mount
+          if (firstRender) {
+            firstRender = false;
+            lastVolume = currentVolume;
+            return;
+          }
+
+          // Ignore spurious notifications where value did not change
+          if (currentVolume === lastVolume) {
+            return;
+          }
+
+          animateWidth(volumeWidth);
+          timeout(100, () => setBarState("volume"));
+
+          if (widgetHideTimeout) {
+            clearTimeout(widgetHideTimeout);
+          }
+
+          // Set new timeout to hide after 2 seconds of no volume changes
+          widgetHideTimeout = setTimeout(() => {
+            animateWidth(compactWidth);
+            timeout(100, () => setBarState("compact"));
+          }, 2000);
+        });
+
+        const brightness = Brightness.get_default();
+        let lastScreen = brightness.screen;
+
+        brightness.connect(`notify::screen`, () => {
+          const currentScreen = brightness.screen;
+
+          // Skip the initial notification on component mount
+          if (firstRender) {
+            firstRender = false;
+            lastScreen = currentScreen;
+            return;
+          }
+
+          // Ignore spurious notifications where value did not change
+          if (currentScreen === lastScreen) {
+            return;
+          }
+
+          lastScreen = currentScreen;
+          animateWidth(brightnessWidth);
+          timeout(100, () => setBarState("brightness"));
+
+          if (widgetHideTimeout) {
+            clearTimeout(widgetHideTimeout);
+          }
+
+          // Set new timeout to hide after 2 seconds of no brightness changes
+          widgetHideTimeout = setTimeout(() => {
+            animateWidth(compactWidth);
+            timeout(100, () => setBarState("compact"));
+          }, 2000);
+        });
       }}
     />
   ) as Gtk.Widget;
@@ -192,6 +270,7 @@ export default ({
             const motion = new Gtk.EventControllerMotion();
 
             motion.connect("enter", () => {
+              if (barState.peek() != "compact") return;
               if (hideTimeout !== null) {
                 {
                   barStack;
@@ -207,10 +286,12 @@ export default ({
               animateWidth(expandedWidth);
 
               timeout(100, () => {
-                setIsBarExpanded(true);
+                // setIsBarExpanded(true);
+                setBarState("expanded");
               });
             });
             motion.connect("leave", () => {
+              if (barState.peek() != "expanded") return;
               if (compactTimeout !== null) {
                 compactTimeout.cancel();
                 compactTimeout = null;
@@ -219,7 +300,7 @@ export default ({
               compactTimeout = timeout(100, () => {
                 compactTimeout = null;
                 if (!windowInstance.popupIsOpen()) {
-                  setIsBarExpanded(false);
+                  setBarState("compact");
 
                   timeout(100, () => {
                     animateWidth(compactWidth);

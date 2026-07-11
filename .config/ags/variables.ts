@@ -233,4 +233,4 @@ monitorFile(`${GLib.get_home_dir()}/.face.icon`, () => {
   );
 });
 
-export const [isBarExpanded, setIsBarExpanded] = createState<boolean>(false);
+// export const [isBarExpanded, setIsBarExpanded] = createState<boolean>(false);
