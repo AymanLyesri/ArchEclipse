@@ -17,7 +17,6 @@ import { monitorFile } from "ags/file";
 import { Progress } from "../../Progress";
 import GLib from "gi://GLib";
 import { booruApis } from "../../../constants/api.constants";
-import Gio from "gi://Gio";
 import {
   clearUserProfile,
   updateUserProfile,
@@ -35,46 +34,13 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
     null,
   );
   const [isRefreshing, setIsRefreshing] = createState(false);
-  const [pinnedCount, setPinnedCount] = createState(0);
   const [lastSyncAt, setLastSyncAt] = createState<string | null>(null);
   const [lastSyncDirection, setLastSyncDirection] =
     createState<SettingsSyncDirection | null>(null);
   const [lastRemoteUpdatedAt, setLastRemoteUpdatedAt] = createState<
     string | null
   >(null);
-
-  const fastfetchCacheDir = `${GLib.get_home_dir()}/.config/fastfetch/cache`;
-
-  const updatePinnedCount = () => {
-    try {
-      const cacheDir = Gio.File.new_for_path(fastfetchCacheDir);
-
-      if (!cacheDir.query_exists(null)) {
-        setPinnedCount(0);
-        return;
-      }
-
-      const enumerator = cacheDir.enumerate_children(
-        "standard::name,standard::type",
-        Gio.FileQueryInfoFlags.NONE,
-        null,
-      );
-      let count = 0;
-      for (
-        let info = enumerator.next_file(null);
-        info !== null;
-        info = enumerator.next_file(null)
-      ) {
-        if (info.get_file_type() === Gio.FileType.REGULAR) {
-          count += 1;
-        }
-      }
-      enumerator.close(null);
-      setPinnedCount(count);
-    } catch {
-      setPinnedCount(0);
-    }
-  };
+  const pinnedCount = globalSettings(({ booru }) => booru.pins?.length ?? 0);
 
   const loadProfile = async () => {
     const session = await refreshAuthSession();
@@ -347,16 +313,12 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
       class="user-profile"
       orientation={Gtk.Orientation.VERTICAL}
       $={() => {
-        updatePinnedCount();
         applySettingsSyncMeta();
 
         loadProfile();
 
         monitorFile(`${GLib.get_home_dir()}/.config/ags/cache/auth`, () => {
           loadProfile();
-        });
-        monitorFile(fastfetchCacheDir, () => {
-          updatePinnedCount();
         });
         monitorFile(settingsSyncMetaPath, () => {
           applySettingsSyncMeta();

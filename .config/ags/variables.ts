@@ -232,3 +232,5 @@ monitorFile(`${GLib.get_home_dir()}/.face.icon`, () => {
       : `${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`,
   );
 });
+
+// export const [isBarExpanded, setIsBarExpanded] = createState<boolean>(false);

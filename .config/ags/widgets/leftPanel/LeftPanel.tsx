@@ -8,7 +8,7 @@ import {
   setGlobalSetting,
 } from "../../variables";
 import { getMonitorName } from "../../utils/monitor";
-import { WindowActions, Window } from "../../utils/window";
+import { WindowActions, Window, hideWindow } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 import app from "ags/gtk4/app";
 import { timeout, Timer } from "ags/time";
@@ -178,13 +178,13 @@ export default ({
         motion.connect("leave", () => {
           if (globalSettings.peek().leftPanel.lock) return;
 
-          hideTimeout = timeout(100, () => {
+          hideTimeout = timeout(1000, () => {
             hideTimeout = null;
             if (
               !globalSettings.peek().leftPanel.lock &&
               !windowInstance.popupIsOpen()
             ) {
-              app.get_window(`left-panel-${monitorName}`)?.hide();
+              hideWindow(`left-panel-${monitorName}`);
             }
           });
         });

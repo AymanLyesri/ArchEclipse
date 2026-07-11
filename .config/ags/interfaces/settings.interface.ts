@@ -82,6 +82,7 @@ export interface Settings {
     page: number;
     columns: number;
     bookmarks: Waifu[];
+    pins: Waifu[];
     selectedTab: string;
   };
   leftPanel: {

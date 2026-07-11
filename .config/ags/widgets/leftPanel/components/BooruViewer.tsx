@@ -195,7 +195,7 @@ const createBooruViewerInstance = () => {
 
       let imagesToDisplay: BooruImage[] = [];
 
-      // Determine source: bookmarks or API
+      // Determine source: bookmarks, pins, or API
       if (selectedTab.peek() === "Bookmarks") {
         // Fetch bookmarks from backend
         const response = await execAsync([
@@ -218,6 +218,15 @@ const createBooruViewerInstance = () => {
             : bookmarks;
         imagesToDisplay = pagedBookmarks.map(
           (b: BooruImage) => new BooruImage(b),
+        );
+      } else if (selectedTab.peek() === "Pins") {
+        const pins = settings.booru.pins ?? [];
+        BooruImage.syncPinCache(pins);
+
+        const pagedPins =
+          limit > 0 ? pins.slice(startIndex, startIndex + limit) : pins;
+        imagesToDisplay = pagedPins.map(
+          (pin: BooruImage) => new BooruImage(pin),
         );
       } else {
         // Fetch from API
@@ -295,12 +304,16 @@ const createBooruViewerInstance = () => {
       const errorMessage =
         selectedTab.peek() === "Bookmarks"
           ? booruErrorMessageFromUnknown(err, "Failed to load bookmarks")
-          : booruErrorMessageFromUnknown(err, "Failed to fetch images");
+          : selectedTab.peek() === "Pins"
+            ? booruErrorMessageFromUnknown(err, "Failed to load pins")
+            : booruErrorMessageFromUnknown(err, "Failed to fetch images");
       notify({
         summary:
           selectedTab.peek() === "Bookmarks"
             ? "Error loading bookmarks"
-            : "Error fetching images",
+            : selectedTab.peek() === "Pins"
+              ? "Error loading pins"
+              : "Error fetching images",
         body: errorMessage,
       });
       setProgressStatus("error");
@@ -335,6 +348,21 @@ const createBooruViewerInstance = () => {
           if (active) {
             setSelectedTab("Bookmarks");
             setGlobalSetting("booru.selectedTab", "Bookmarks");
+            setPage(1);
+            setGlobalSetting("booru.page", 1);
+            fetchImages();
+          }
+        }}
+      />
+      <togglebutton
+        sensitive={progressStatus((status) => status !== "loading")}
+        class="pins"
+        label=""
+        active={selectedTab((tab) => tab === "Pins")}
+        onToggled={({ active }) => {
+          if (active) {
+            setSelectedTab("Pins");
+            setGlobalSetting("booru.selectedTab", "Pins");
             setPage(1);
             setGlobalSetting("booru.page", 1);
             fetchImages();
@@ -677,7 +705,10 @@ const createBooruViewerInstance = () => {
                     ...new Set([...globalSettings.peek().booru.tags, tag]),
                   ]);
                   setTags(globalSettings.peek().booru.tags);
-                  if (selectedTab.peek() !== "Bookmarks") {
+                  if (
+                    selectedTab.peek() !== "Bookmarks" &&
+                    selectedTab.peek() !== "Pins"
+                  ) {
                     fetchImages();
                   }
                 }}
@@ -713,7 +744,10 @@ const createBooruViewerInstance = () => {
                     newTags.unshift(newRatingTag);
                     setGlobalSetting("booru.tags", newTags);
                     setTags(globalSettings.peek().booru.tags);
-                    if (selectedTab.peek() !== "Bookmarks") {
+                    if (
+                      selectedTab.peek() !== "Bookmarks" &&
+                      selectedTab.peek() !== "Pins"
+                    ) {
                       fetchImages();
                     }
                   }}

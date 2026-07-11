@@ -200,3 +200,13 @@
     min-width: 10px;
   }
 }
+
+.workspaces-compact {
+  button {
+    background: transparent;
+  }
+
+  .is-focused {
+    background: $background;
+  }
+}

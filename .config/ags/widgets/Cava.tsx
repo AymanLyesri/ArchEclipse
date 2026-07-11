@@ -7,9 +7,6 @@ import { Gtk } from "ags/gtk4";
 // Use a single cava instance for all widgets
 const cava = Cava.get_default()!;
 
-// Set bars ONCE at module initialization with fixed value
-cava?.set_bars(12);
-
 // --- Tunable constants ---
 const CAVA_UPDATE_MS = 100;
 const DEFAULT_BAR_COUNT = 12;
@@ -100,6 +97,9 @@ export default ({
   barCount?: number;
   isPlaying?: Accessor<boolean> | boolean;
 }) => {
+  print(
+    `[Cava] Initialized with ${barCount} bars and transition type ${transitionType}`,
+  );
   // Connect to global cava signal (only once for all widgets)
   ensureCavaConnected();
 
@@ -116,7 +116,7 @@ export default ({
     "\u2588",
   ];
   const BLOCKS_LENGTH = BLOCKS.length;
-  const BAR_COUNT = DEFAULT_BAR_COUNT; // Always use default, ignore parameter
+  const BAR_COUNT = barCount || DEFAULT_BAR_COUNT;
   const EMPTY_BARS = "".padEnd(BAR_COUNT, "\u2581");
   let barArray: string[] = new Array(BAR_COUNT);
   let lastBarString = "";
