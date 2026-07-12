@@ -332,7 +332,7 @@ export default ({
             const motion = new Gtk.EventControllerMotion();
 
             motion.connect("enter", () => {
-              if (barState.peek() != "compact") return;
+              if (barState.peek() !== "compact" && barState.peek() !== "recording") return;
               if (hideTimeout !== null) {
                 {
                   barStack;
@@ -361,10 +361,13 @@ export default ({
               compactTimeout = timeout(100, () => {
                 compactTimeout = null;
                 if (!windowInstance.popupIsOpen()) {
-                  setBarState("compact");
+                  const recording = isRecording.peek();
+                  const nextState = recording ? "recording" : "compact";
+
+                  setBarState(nextState);
 
                   timeout(100, () => {
-                    animateWidth(barWidths.compact);
+                    animateWidth(barWidths[nextState]);
                   });
                 }
               });
