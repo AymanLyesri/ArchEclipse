@@ -62,6 +62,9 @@ function Tray() {
               <menubutton
                 class="tray-icon tray-overflow"
                 tooltipText="More icons"
+                $={(self) => {
+                  connectPopoverEvents(self, "barWindow");
+                }}
               >
                 <image pixelSize={11} iconName="view-more-symbolic" />
                 <popover
@@ -82,7 +85,10 @@ function Tray() {
                       {(item) => (
                         <menubutton
                           class="tray-icon"
-                          $={(self) => init(self, item)}
+                          $={(self) => {
+                            init(self, item);
+                            connectPopoverEvents(self, "barWindow");
+                          }}
                           tooltipText={item.tooltip_text}
                         >
                           <box spacing={8}>
