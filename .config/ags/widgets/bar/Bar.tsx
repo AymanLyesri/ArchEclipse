@@ -33,8 +33,6 @@ export type BarStateName =
   | "volume"
   | "brightness";
 
-export const [barState, setBarState] = createState<BarStateName>("compact");
-
 export default ({
   monitor,
   setup,
@@ -43,6 +41,10 @@ export default ({
   setup: (self: Gtk.Window) => void;
 }) => {
   const monitorName = getMonitorName(monitor)!;
+  // Per-instance bar state so each monitor's Bar has isolated state.
+  // Previously this lived at module scope which caused different monitor
+  // instances to share and stomp on the same state.
+  const [barState, setBarState] = createState<BarStateName>("compact");
   const [currentWidth, setCurrentWidth] = createState(0);
 
   const layout = globalSettings.peek().bar.layout;
@@ -178,7 +180,7 @@ export default ({
     }, holdMs);
   }
 
-  isRecording.subscribe(() => {
+  const unsubscribeIsRecording = isRecording.subscribe(() => {
     const recording = isRecording.peek();
 
     if (recording) {
@@ -232,8 +234,16 @@ export default ({
       transitionType={Gtk.StackTransitionType.CROSSFADE}
       transitionDuration={250}
       hhomogeneous={false} // Prevents the expanded width from stretching
-      visibleChildName={barState}
       $={(self) => {
+        const syncVisibleChild = () => {
+          const currentState = barState.peek();
+          const targetChild =
+            currentState && self.get_child_by_name(currentState)
+              ? currentState
+              : "compact";
+          self.set_visible_child_name(targetChild);
+        };
+
         self.add_named(registerBarWidget("compact", compactBar), "compact");
         self.add_named(
           registerBarWidget("expanded", expandedBar, 500),
@@ -258,6 +268,16 @@ export default ({
         );
 
         setCurrentWidth(barWidths.compact);
+        syncVisibleChild();
+
+        const unsubscribeBarState = barState.subscribe(() => {
+          syncVisibleChild();
+        });
+
+        self.connect("destroy", () => {
+          unsubscribeBarState();
+          unsubscribeIsRecording();
+        });
 
         const speaker = Wp.get_default()?.audio.defaultSpeaker!;
         watchTransient(
@@ -327,19 +347,11 @@ export default ({
           $={(self) => {
             const windowInstance = new Window();
             (self as any).barWindow = windowInstance;
-            let hideTimeout: Timer | null = null;
             let compactTimeout: Timer | null = null;
             const motion = new Gtk.EventControllerMotion();
 
             motion.connect("enter", () => {
               if (barState.peek() !== "compact" && barState.peek() !== "recording") return;
-              if (hideTimeout !== null) {
-                {
-                  barStack;
-                }
-                hideTimeout.cancel();
-                hideTimeout = null;
-              }
 
               if (compactTimeout !== null) {
                 compactTimeout.cancel();

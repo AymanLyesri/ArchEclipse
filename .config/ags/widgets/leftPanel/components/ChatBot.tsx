@@ -49,72 +49,113 @@ interface Session {
 const MESSAGE_FILE_PATH = `${GLib.get_home_dir()}/.config/ags/cache/chatbot`;
 
 // =============================================================================
+// CROSS-MONITOR SESSIONS SYNC (intentional, narrow exception)
+// =============================================================================
+
+// Sessions are keyed by apiModel and persisted on disk under
+// `${MESSAGE_FILE_PATH}/${apiModel}/sessions`, so unlike messages, the active
+// session, or the selected model -- which are legitimately private to each
+// monitor's own chat window -- the *list* of sessions for a given model is a
+// shared filesystem resource. If two monitors both have the same model
+// selected, creating/deleting a session on one should be reflected on the
+// other without requiring a manual model-switch to force a disk re-read.
+//
+// This is a module-level (i.e. process-wide, shared across all monitors)
+// pub/sub used ONLY to notify instances that the on-disk session list for a
+// given apiModel changed. Each instance decides for itself whether the
+// change is relevant (only if it's currently viewing that apiModel) and how
+// to merge it into its own local `sessions`/`activeSessionId` state -- no
+// instance's messages, active session, or model selection are pushed onto
+// another instance by this mechanism.
+type SessionsChangeListener = (apiModel: string) => void;
+const sessionsChangeListeners = new Set<SessionsChangeListener>();
+
+const notifySessionsChanged = (apiModel: string): void => {
+  for (const listener of sessionsChangeListeners) {
+    listener(apiModel);
+  }
+};
+
+// =============================================================================
 // STATE MANAGEMENT
 // =============================================================================
 
-/**
- * Array of messages in the current active chat session
- * Each message contains content, role (user/assistant), timestamp, and optional metadata
- */
-const [messages, setMessages] = createState<Message[]>([]);
+// NOTE: Everything below (state, the chatBotEntry widget reference, helper
+// functions, and components) is created PER INSTANCE inside
+// createChatBotInstance(). ChatBot is mounted once per monitor (via
+// leftPanelWidgetSelectors -> LeftPanel.tsx, one Panel() per monitor), so
+// module-level createState()/let bindings here would be shared across
+// monitors -- the same root cause that broke BooruViewer's page navigation
+// across monitors. Each monitor now keeps its own independent messages,
+// sessions, active session, and input widget reference, fully isolated from
+// any other monitor's ChatBot. The one deliberate exception is the sessions
+// list sync above, which is a shared filesystem resource by nature.
+const createChatBotInstance = () => {
+  /**
+   * Array of messages in the current active chat session
+   * Each message contains content, role (user/assistant), timestamp, and optional metadata
+   */
+  const [messages, setMessages] = createState<Message[]>([]);
 
-/**
- * Array of all available sessions for the current API model
- * Sessions persist across app restarts and are loaded from the filesystem
- */
-const [sessions, setSessions] = createState<Session[]>([]);
+  /**
+   * Array of all available sessions for the current API model
+   * Sessions persist across app restarts and are loaded from the filesystem
+   */
+  const [sessions, setSessions] = createState<Session[]>([]);
 
-/**
- * ID of the currently active session being displayed
- * Defaults to "default" session which is automatically created
- */
-const [activeSessionId, setActiveSessionId] = createState<string>("default");
+  /**
+   * ID of the currently active session being displayed
+   * Defaults to "default" session which is automatically created
+   */
+  const [activeSessionId, setActiveSessionId] = createState<string>(
+    "default",
+  );
 
-/**
- * Current API model/provider value (e.g., "openrouter/gpt-4")
- * Used to determine which API to call and where to store messages
- */
-const [currentApiModel, setCurrentApiModel] = createState<string>("");
+  /**
+   * Current API model/provider value (e.g., "openrouter/gpt-4")
+   * Used to determine which API to call and where to store messages
+   */
+  const [currentApiModel, setCurrentApiModel] = createState<string>("");
 
-/**
- * Status indicator for API requests and operations
- * - "idle": No operation in progress
- * - "loading": Request in progress
- * - "success": Request completed successfully
- * - "error": Request failed
- */
-const [progressStatus, setProgressStatus] = createState<
-  "loading" | "error" | "success" | "idle"
->("idle");
+  /**
+   * Status indicator for API requests and operations
+   * - "idle": No operation in progress
+   * - "loading": Request in progress
+   * - "success": Request completed successfully
+   * - "error": Request failed
+   */
+  const [progressStatus, setProgressStatus] = createState<
+    "loading" | "error" | "success" | "idle"
+  >("idle");
 
-/**
- * Toggle state for image generation feature
- * When enabled, AI responses may include generated images
- * Only available for API models that support image generation
- */
-const [chatBotImageGeneration, setChatBotImageGeneration] =
-  createState<boolean>(false);
+  /**
+   * Toggle state for image generation feature
+   * When enabled, AI responses may include generated images
+   * Only available for API models that support image generation
+   */
+  const [chatBotImageGeneration, setChatBotImageGeneration] =
+    createState<boolean>(false);
 
-/**
- * Reference to the message input entry widget for programmatic focus control
- * Allows auto-focusing the input field when the chatbot panel is activated
- */
-let chatBotEntry: Gtk.Widget | null = null;
+  /**
+   * Reference to the message input entry widget for programmatic focus control
+   * Allows auto-focusing the input field when the chatbot panel is activated
+   */
+  let chatBotEntry: Gtk.Widget | null = null;
 
-// =============================================================================
-// UTILITY FUNCTIONS - FILE SYSTEM & PATH MANAGEMENT
-// =============================================================================
+  // =============================================================================
+  // UTILITY FUNCTIONS - FILE SYSTEM & PATH MANAGEMENT
+  // =============================================================================
 
-/**
- * Constructs the file path for storing chat history of a specific session
- * @param {string} apiModel - The API model identifier (e.g., "openrouter/gpt-4")
- * @param {string} sessionId - The unique session identifier
- * @returns {string} Full path to the history.json file for the session
- * @example getMessageFilePath("openrouter/gpt-4", "default")
- *          => "./cache/chatbot/openrouter/gpt-4/sessions/default/history.json"
- */
-const getMessageFilePath = (apiModel: string, sessionId: string): string =>
-  `${MESSAGE_FILE_PATH}/${apiModel}/sessions/${sessionId}/history.json`;
+  /**
+   * Constructs the file path for storing chat history of a specific session
+   * @param {string} apiModel - The API model identifier (e.g., "openrouter/gpt-4")
+   * @param {string} sessionId - The unique session identifier
+   * @returns {string} Full path to the history.json file for the session
+   * @example getMessageFilePath("openrouter/gpt-4", "default")
+   *          => "./cache/chatbot/openrouter/gpt-4/sessions/default/history.json"
+   */
+  const getMessageFilePath = (apiModel: string, sessionId: string): string =>
+    `${MESSAGE_FILE_PATH}/${apiModel}/sessions/${sessionId}/history.json`;
 
 /**
  * Constructs the directory path where all sessions for an API model are stored
@@ -251,6 +292,73 @@ const loadSessions = async (apiModel: string): Promise<string> => {
     };
     setSessions([defaultSession]);
     return "default";
+  }
+};
+
+/**
+ * Re-reads the session list for an apiModel from disk and merges it into
+ * THIS instance's local state, without forcing the user's currently active
+ * session to change unless it no longer exists.
+ *
+ * Used to react to `notifySessionsChanged()` events fired by another
+ * monitor's instance when it creates or deletes a session for the SAME
+ * apiModel this instance currently has selected -- e.g. monitor B created a
+ * new session while viewing the same model as monitor A, so monitor A's
+ * session tabs should pick it up without requiring a manual model-switch.
+ *
+ * Unlike loadSessions(), this never overwrites activeSessionId/messages if
+ * the currently active session still exists -- it only appends/removes tabs
+ * and falls back to the first session if the active one was deleted
+ * elsewhere.
+ *
+ * @param {string} apiModel - The API model whose sessions changed on disk
+ */
+const syncSessionsFromDisk = async (apiModel: string): Promise<void> => {
+  const sessionsDir = getSessionsDir(apiModel);
+
+  try {
+    await execAsync(`mkdir -p "${sessionsDir}"`);
+
+    const output = await execAsync(
+      `find "${sessionsDir}" -mindepth 1 -maxdepth 1 -type d -printf "%f\\n"`,
+    );
+
+    const sessionIds = output
+      .trim()
+      .split("\n")
+      .filter((id) => id && id.length > 0);
+
+    if (sessionIds.length === 0) return;
+
+    const loadedSessions: Session[] = sessionIds
+      .sort((a, b) => {
+        if (a === "default") return -1;
+        if (b === "default") return 1;
+        return a.localeCompare(b);
+      })
+      .map((id, index) => ({
+        id,
+        name: `Session ${index + 1}`,
+        createdAt: Date.now(),
+      }));
+
+    setSessions(loadedSessions);
+
+    // If the session this instance was showing got deleted from another
+    // monitor, fall back to the first remaining session and load its
+    // messages. Otherwise leave activeSessionId/messages untouched.
+    const activeStillExists = loadedSessions.some(
+      (s) => s.id === activeSessionId.peek(),
+    );
+    if (!activeStillExists) {
+      const fallbackId = loadedSessions[0].id;
+      setActiveSessionId(fallbackId);
+      fetchMessages(apiModel, fallbackId);
+    }
+  } catch (err) {
+    // Best-effort background sync -- log but don't clobber local state or
+    // show a notification for what is essentially a passive refresh.
+    print(`Error syncing sessions for ${apiModel}: ${err}`);
   }
 };
 
@@ -678,8 +786,12 @@ const sendMessage = async (message: Message): Promise<void> => {
 
     const endTime = Date.now();
 
-    // Show response notification
-    notify({ summary: globalSettings.peek().chatBot.api.name, body: response });
+    // Show response notification (provider name resolved from THIS instance's
+    // apiModel, not from the shared global setting, to keep notifications
+    // scoped to the monitor that actually sent the message)
+    const currentProviderName =
+      chatBotApis.find((p) => p.value === apiModel)?.name ?? apiModel;
+    notify({ summary: currentProviderName, body: response });
 
     // Create assistant message object
     const newMessage: Message = {
@@ -762,9 +874,16 @@ const ApiList = (): JSX.Element => (
     {chatBotApis.map((provider) => (
       <togglebutton
         hexpand
-        active={globalSettings(
-          ({ chatBot }) => chatBot.api.name === provider.name,
-        )}
+        // NOTE: bound to THIS instance's currentApiModel, not to the shared
+        // globalSettings store. Binding to globalSettings here was the root
+        // cause of cross-monitor leakage: any monitor writing to the shared
+        // "chatBot.api" setting would reactively flip `active` on every
+        // other monitor's togglebutton too, which in turn fires `onToggled`
+        // there and cascades into that monitor's own loadSessions/
+        // setActiveSessionId/fetchMessages calls -- silently hijacking its
+        // independent state. Comparing against the local per-instance state
+        // keeps each monitor's provider selection fully isolated.
+        active={currentApiModel((model) => model === provider.value)}
         class="provider"
         tooltipMarkup={`
 <b>${provider.name}</b>
@@ -772,9 +891,14 @@ ${provider.description || ""}
           `}
         onToggled={async ({ active }) => {
           if (active) {
+            // Persisted only as a "last used" default for the NEXT monitor
+            // that mounts (read once via globalSettings.peek() in the
+            // component's $ init callback below) -- nothing in this file
+            // subscribes to it reactively anymore, so writing it here can
+            // no longer cascade into other already-open monitors.
             setGlobalSetting("chatBot.api", provider);
 
-            // Update current API model state
+            // Update current API model state (this instance only)
             setCurrentApiModel(provider.value);
 
             // Load sessions for new API and get first session ID
@@ -856,10 +980,15 @@ const SessionTabs = (): JSX.Element => {
       createdAt: Date.now(),
     };
 
-    // Update state
+    // Update state (this instance)
     setSessions([...sessions.peek(), newSession]);
     setActiveSessionId(newSessionId);
     setMessages([]);
+
+    // Sessions are a shared filesystem resource keyed by apiModel -- let any
+    // other monitor currently viewing this SAME model pick up the new tab
+    // without needing a manual model-switch to force a disk re-read.
+    notifySessionsChanged(apiModel);
   };
 
   /**
@@ -904,7 +1033,7 @@ const SessionTabs = (): JSX.Element => {
         `rm -rf "${MESSAGE_FILE_PATH}/${apiModel}/sessions/${sessionId}"`,
       );
 
-      // Filter out the deleted session
+      // Filter out the deleted session (this instance)
       const updatedSessions = currentSessions.filter((s) => s.id !== sessionId);
       setSessions(updatedSessions);
 
@@ -912,6 +1041,11 @@ const SessionTabs = (): JSX.Element => {
       if (activeSessionId.peek() === sessionId) {
         setActiveSessionId(updatedSessions[0].id);
       }
+
+      // Let any other monitor currently viewing this SAME model know a
+      // session disappeared from disk, so it can drop the tab (and, if it
+      // was that instance's active session, fall back on its own).
+      notifySessionsChanged(apiModel);
     } catch (err) {
       notify({
         summary: "Error",
@@ -1004,17 +1138,25 @@ const SessionTabs = (): JSX.Element => {
  */
 const Info = (): JSX.Element => (
   <box class="info" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
+    {/* Resolved from THIS instance's currentApiModel so each monitor shows
+        the provider it actually has active, instead of whichever provider
+        was last selected on any monitor via the shared globalSettings store */}
     <label
       class="name"
       hexpand
       wrap
-      label={globalSettings(({ chatBot }) => `[${chatBot.api.name}]`)}
+      label={currentApiModel(
+        (model) => `[${chatBotApis.find((p) => p.value === model)?.name ?? ""}]`,
+      )}
     />
     <label
       class="description"
       hexpand
       wrap
-      label={globalSettings(({ chatBot }) => chatBot.api.description || "")}
+      label={currentApiModel(
+        (model) =>
+          chatBotApis.find((p) => p.value === model)?.description || "",
+      )}
     />
     <box
       visible={globalSettings(
@@ -1044,7 +1186,7 @@ const Info = (): JSX.Element => (
         class={"step"}
         label="3. Copy & Paste it in the settings"
         onClicked={() => {
-          setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[3]);
+          setGlobalSetting("leftPanel.widget", leftPanelWidgetSelectors[4]);
         }}
       ></button>
     </box>
@@ -1265,8 +1407,14 @@ const ClearButton = (): JSX.Element => (
  */
 const ImageGenerationSwitch = (): JSX.Element => (
   <togglebutton
-    sensitive={globalSettings(
-      ({ chatBot }) => chatBot.api.imageGenerationSupport ?? false,
+    // Resolved from THIS instance's currentApiModel -- otherwise this would
+    // enable/disable itself on every monitor whenever ANY monitor switched
+    // provider, since the shared globalSettings store no longer reflects
+    // this instance's actual selection after the isolation fix above.
+    sensitive={currentApiModel(
+      (model) =>
+        chatBotApis.find((p) => p.value === model)?.imageGenerationSupport ??
+        false,
     )}
     active={chatBotImageGeneration}
     class="image-generation"
@@ -1427,53 +1575,86 @@ const BottomBar = (): JSX.Element => (
  * - Could add memoization for formatText() to improve performance
  * - Consider debouncing auto-scroll for better performance with rapid messages
  */
+  // This is the JSX returned for THIS instance. Everything above this point
+  // inside createChatBotInstance() (messages, sessions, activeSessionId,
+  // chatBotEntry, sendMessage, Messages, SessionTabs, ApiList, etc.) is now a
+  // fresh closure created per call -- i.e. per monitor -- instead of shared
+  // module state.
+  return (): JSX.Element => {
+    return (
+      <box
+        class="chat-bot"
+        orientation={Gtk.Orientation.VERTICAL}
+        hexpand
+        spacing={10}
+        $={async (self) => {
+          // Setup auto-focus on mouse enter
+          const motion = new Gtk.EventControllerMotion();
+          motion.connect("enter", () => {
+            if (chatBotEntry) {
+              chatBotEntry.grab_focus();
+            }
+          });
+          self.add_controller(motion);
+
+          // Initialize chatbot state on component mount
+          const initialApiModel = globalSettings.peek().chatBot.api.value;
+          setCurrentApiModel(initialApiModel);
+
+          // Load sessions and activate the first one
+          const initialSessionId = await loadSessions(initialApiModel);
+          setActiveSessionId(initialSessionId);
+
+          // Load messages for the initial session
+          fetchMessages(initialApiModel, initialSessionId);
+
+          // Subscribe to session changes to automatically reload messages
+          activeSessionId.subscribe(() => {
+            reloadCurrentMessages();
+          });
+
+          // Listen for other monitors creating/deleting sessions on the
+          // SAME apiModel this instance is currently viewing, so its
+          // session tabs stay in sync with disk without needing a manual
+          // model-switch. Only messages/activeSessionId/model selection
+          // stay private to this instance -- see syncSessionsFromDisk().
+          const onSessionsChanged: SessionsChangeListener = (
+            changedApiModel,
+          ) => {
+            if (changedApiModel === currentApiModel.peek()) {
+              syncSessionsFromDisk(changedApiModel);
+            }
+          };
+          sessionsChangeListeners.add(onSessionsChanged);
+          self.connect("destroy", () => {
+            sessionsChangeListeners.delete(onSessionsChanged);
+          });
+        }}
+      >
+        {/* API information and setup guide */}
+        <Info />
+
+        {/* Scrollable message history */}
+        <Messages />
+
+        <BottomBar />
+
+        <Progress
+          status={progressStatus}
+          transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
+          custom_class="booru-progress"
+        />
+      </box>
+    );
+  };
+};
+
+// Public entry point: called once per ChatBot mount (once per monitor, since
+// LeftPanel.tsx instantiates this widget separately for each monitor's
+// panel). Each call produces an independent state closure, so switching
+// sessions/messages on one monitor's panel can no longer affect or get
+// stolen by another monitor's panel.
 export default (): JSX.Element => {
-  return (
-    <box
-      class="chat-bot"
-      orientation={Gtk.Orientation.VERTICAL}
-      hexpand
-      spacing={10}
-      $={async (self) => {
-        // Setup auto-focus on mouse enter
-        const motion = new Gtk.EventControllerMotion();
-        motion.connect("enter", () => {
-          if (chatBotEntry) {
-            chatBotEntry.grab_focus();
-          }
-        });
-        self.add_controller(motion);
-
-        // Initialize chatbot state on component mount
-        const initialApiModel = globalSettings.peek().chatBot.api.value;
-        setCurrentApiModel(initialApiModel);
-
-        // Load sessions and activate the first one
-        const initialSessionId = await loadSessions(initialApiModel);
-        setActiveSessionId(initialSessionId);
-
-        // Load messages for the initial session
-        fetchMessages(initialApiModel, initialSessionId);
-
-        // Subscribe to session changes to automatically reload messages
-        activeSessionId.subscribe(() => {
-          reloadCurrentMessages();
-        });
-      }}
-    >
-      {/* API information and setup guide */}
-      <Info />
-
-      {/* Scrollable message history */}
-      <Messages />
-
-      <BottomBar />
-
-      <Progress
-        status={progressStatus}
-        transitionType={Gtk.RevealerTransitionType.SWING_DOWN}
-        custom_class="booru-progress"
-      />
-    </box>
-  );
+  const Instance = createChatBotInstance();
+  return Instance();
 };

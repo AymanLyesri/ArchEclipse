@@ -11,44 +11,55 @@ import { globalSettings, globalTransition } from "../../../variables";
 import GLib from "gi://GLib";
 import Gio from "gi://Gio";
 
-const [mangaList, setMangaList] = createState<Manga[]>([]);
-const [selectedManga, setSelectedManga] = createState<Manga | null>(null);
-const [chapters, setChapters] = createState<Chapter[]>([]);
-const [selectedChapter, setSelectedChapter] = createState<Chapter | null>(null);
-const [pages, setPages] = createState<Page[]>([]);
-const [pageCache, setPageCache] = createState<Record<number, Page>>({});
-const [currentPageIndex, setCurrentPageIndex] = createState(0);
-const [currentTab, setCurrentTab] = createState<string>("Manga");
-const [progressStatus, setProgressStatus] = createState<
-  "loading" | "error" | "success" | "idle"
->("idle");
-const [searchQuery, setSearchQuery] = createState<string>("");
-const [initialized, setInitialized] = createState(false);
-const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
-
-const [currentApi, setCurrentApi] = createState<string>("mangadex");
-
-const pageInfo = createComputed(() => {
-  const all = pages();
-  const idx = currentPageIndex();
-  return {
-    label: all.length > 0 ? `Page ${idx + 1} / ${all.length}` : "No pages",
-    canPrev: idx > 0,
-    canNext: all.length > 0 && idx < all.length - 1,
-  };
-});
-
-const displayedPage = createComputed(
-  () => pageCache()[currentPageIndex()] ?? null,
-);
-
-const panelWidth = createComputed(() => globalSettings().leftPanel.width);
-
 const scriptPath = `${GLib.get_home_dir()}/.config/ags/scripts/manga.py`;
 
-const getProviderFlag = () => `--provider ${currentApi.get()}`;
+// NOTE: Everything below (state, computed values, helpers, and components)
+// is created PER INSTANCE inside createMangaViewerInstance(). MangaViewer is
+// mounted once per monitor (via leftPanelWidgetSelectors -> LeftPanel.tsx,
+// one Panel() per monitor), so module-level createState()/createComputed()
+// here would be shared across monitors -- the same root cause that broke
+// BooruViewer's page navigation across monitors. Each monitor now keeps its
+// own independent manga list, selected manga/chapter, page cache, and tab
+// state, fully isolated from any other monitor's MangaViewer.
+const createMangaViewerInstance = () => {
+  const [mangaList, setMangaList] = createState<Manga[]>([]);
+  const [selectedManga, setSelectedManga] = createState<Manga | null>(null);
+  const [chapters, setChapters] = createState<Chapter[]>([]);
+  const [selectedChapter, setSelectedChapter] = createState<Chapter | null>(
+    null,
+  );
+  const [pages, setPages] = createState<Page[]>([]);
+  const [pageCache, setPageCache] = createState<Record<number, Page>>({});
+  const [currentPageIndex, setCurrentPageIndex] = createState(0);
+  const [currentTab, setCurrentTab] = createState<string>("Manga");
+  const [progressStatus, setProgressStatus] = createState<
+    "loading" | "error" | "success" | "idle"
+  >("idle");
+  const [searchQuery, setSearchQuery] = createState<string>("");
+  const [initialized, setInitialized] = createState(false);
+  const [bottomIsRevealed, setBottomIsRevealed] = createState<boolean>(false);
 
-const getSortedChaptersList = (chaptersList: Chapter[]) => {
+  const [currentApi, setCurrentApi] = createState<string>("mangadex");
+
+  const pageInfo = createComputed(() => {
+    const all = pages();
+    const idx = currentPageIndex();
+    return {
+      label: all.length > 0 ? `Page ${idx + 1} / ${all.length}` : "No pages",
+      canPrev: idx > 0,
+      canNext: all.length > 0 && idx < all.length - 1,
+    };
+  });
+
+  const displayedPage = createComputed(
+    () => pageCache()[currentPageIndex()] ?? null,
+  );
+
+  const panelWidth = createComputed(() => globalSettings().leftPanel.width);
+
+  const getProviderFlag = () => `--provider ${currentApi.get()}`;
+
+  const getSortedChaptersList = (chaptersList: Chapter[]) => {
   return [...chaptersList]
     .sort((a, b) => {
       // 1. Sorting by volumes
@@ -765,56 +776,72 @@ const Actions = () => {
   );
 };
 
-export default () => {
-  if (!initialized.get()) {
-    setInitialized(true);
-    fetchPopular();
-  }
-  return (
-    <box
-      orientation={Gtk.Orientation.VERTICAL}
-      class="manga-viewer"
-      spacing={10}
-      $={(self) => {
-        const keyController = new Gtk.EventControllerKey();
-        keyController.connect("key-pressed", (_, keyval: number) => {
-          if (currentTab.get() === "Pages") {
-            if (keyval === Gdk.KEY_Left) {
-              goToPage("prev");
-              return true;
-            }
-            if (keyval === Gdk.KEY_Right) {
-              goToPage("next");
-              return true;
-            }
-          }
-          if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {
-            setBottomIsRevealed(true);
-            return true;
-          }
-          if (keyval === Gdk.KEY_Down && bottomIsRevealed.get()) {
-            setBottomIsRevealed(false);
-            return true;
-          }
-          return false;
-        });
-        self.add_controller(keyController);
-      }}
-    >
-      <Content />
+  // This is the JSX returned for THIS instance. Everything above this point
+  // inside createMangaViewerInstance() (mangaList, selectedManga, pages,
+  // pageCache, currentTab, fetchPopular, goToPage, Content, Actions, etc.)
+  // is now a fresh closure created per call -- i.e. per monitor -- instead
+  // of shared module state.
+  return () => {
+    if (!initialized.get()) {
+      setInitialized(true);
+      fetchPopular();
+    }
+    return (
       <box
-        class={"bottom-bar"}
         orientation={Gtk.Orientation.VERTICAL}
+        class="manga-viewer"
         spacing={10}
+        $={(self) => {
+          const keyController = new Gtk.EventControllerKey();
+          keyController.connect("key-pressed", (_, keyval: number) => {
+            if (currentTab.get() === "Pages") {
+              if (keyval === Gdk.KEY_Left) {
+                goToPage("prev");
+                return true;
+              }
+              if (keyval === Gdk.KEY_Right) {
+                goToPage("next");
+                return true;
+              }
+            }
+            if (keyval === Gdk.KEY_Up && !bottomIsRevealed.get()) {
+              setBottomIsRevealed(true);
+              return true;
+            }
+            if (keyval === Gdk.KEY_Down && bottomIsRevealed.get()) {
+              setBottomIsRevealed(false);
+              return true;
+            }
+            return false;
+          });
+          self.add_controller(keyController);
+        }}
       >
-        <Actions />
-        <PageNavigation />
-        <ChapterNavigation />
-        <UrlBar />
-        <Sections />
-        <Tabs />
+        <Content />
+        <box
+          class={"bottom-bar"}
+          orientation={Gtk.Orientation.VERTICAL}
+          spacing={10}
+        >
+          <Actions />
+          <PageNavigation />
+          <ChapterNavigation />
+          <UrlBar />
+          <Sections />
+          <Tabs />
+        </box>
+        <Progress status={progressStatus} />
       </box>
-      <Progress status={progressStatus} />
-    </box>
-  );
+    );
+  };
+};
+
+// Public entry point: called once per MangaViewer mount (once per monitor,
+// since LeftPanel.tsx instantiates this widget separately for each
+// monitor's panel). Each call produces an independent state closure, so
+// browsing manga/chapters/pages on one monitor's panel can no longer affect
+// or get stolen by another monitor's panel.
+export default () => {
+  const Instance = createMangaViewerInstance();
+  return Instance();
 };
