@@ -20,6 +20,7 @@ import Brightness from "./sub-components/BrightnessWidget";
 import BrightnessWidget from "./sub-components/BrightnessWidget";
 const hyprland = Hyprland.get_default();
 
+
 function Tray() {
   const tray = AstalTray.get_default();
   const items = createBinding(tray, "items");
