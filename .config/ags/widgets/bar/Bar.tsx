@@ -32,6 +32,9 @@ import AppLauncher from "../applauncher/AppLauncher";
 import GLib from "gi://GLib";
 import AstalMpris from "gi://AstalMpris";
 import PlayerWidget from "./components/sub-components/PlayerWidget";
+import NetworkWidget from "./sub-components/NetworkWidget";
+import CompactBar from "./sub-components/CompactBar";
+import ExpandedBar from "./sub-components/ExpandedBar";
 
 const mpris = AstalMpris.get_default();
 
@@ -42,7 +45,8 @@ export type BarStateName =
   | "volume"
   | "brightness"
   | "search"
-  | "player";
+  | "player"
+  | "network";
 
 export const [barState, setBarState] = createState<BarStateName>("compact");
 export const [stackVisibleChild, setStackVisibleChild] =
@@ -75,6 +79,7 @@ const PRIORITY: Record<BarStateName, number> = {
   expanded: 60,
   volume: 80,
   brightness: 80,
+  network: 80,
   player: 80,
   search: 100,
 };
@@ -214,8 +219,6 @@ export default ({
   const monitorName = getMonitorName(monitor)!;
   const [currentWidth, setCurrentWidth] = createState(0);
 
-  const layout = globalSettings.peek().bar.layout;
-
   // ---------------------------------------------------------------------
   // Spring physics width animation — lives outside animateWidth so it
   // persists (and keeps momentum) across repeated calls.
@@ -309,46 +312,6 @@ export default ({
     barWidths[name] = natural + padding;
     return widget;
   }
-
-  const expandedBar = (
-    <centerbox hexpand>
-      {layout
-        .filter((widget) => widget.enabled)
-        .map((widget: WidgetSelector, key) => {
-          switch (widget.name) {
-            case "workspaces":
-              return (
-                <box $type="start">
-                  <Workspaces />
-                </box>
-              );
-            case "information":
-              return (
-                <box $type="center">
-                  <Information />
-                </box>
-              );
-            case "utilities":
-              return (
-                <box $type="end">
-                  <Utilities />
-                </box>
-              );
-            default:
-              return <box />;
-          }
-        })}
-    </centerbox>
-  ) as Gtk.Widget;
-
-  const compactBar = (
-    <box spacing={5} halign={Gtk.Align.CENTER} hexpand>
-      <WorkspacesCompact />
-      <Information />
-      <Battery />
-      <Volume />
-    </box>
-  ) as Gtk.Widget;
 
   function SearchBar({ widthRequest }: { widthRequest?: Accessor<number> }) {
     let entryRef: Gtk.TextView | null = null;
@@ -496,7 +459,7 @@ export default ({
         self.add_named(
           registerBarWidget({
             name: "compact",
-            widget: compactBar,
+            widget: CompactBar(),
             padding: 400,
           }),
           "compact",
@@ -504,50 +467,66 @@ export default ({
         self.add_named(
           registerBarWidget({
             name: "expanded",
-            widget: expandedBar,
+            widget: ExpandedBar(),
             padding: 500,
           }),
           "expanded",
         );
-
-        const volumeWidget = Volume({ widthRequest: currentWidth });
         self.add_named(
-          registerBarWidget({ name: "volume", widget: volumeWidget }),
+          registerBarWidget({
+            name: "volume",
+            widget: Volume({ widthRequest: currentWidth }),
+          }),
           "volume",
         );
 
-        const brightnessWidget = BrightnessWidget({
-          widthRequest: currentWidth,
-        });
         self.add_named(
-          registerBarWidget({ name: "brightness", widget: brightnessWidget }),
+          registerBarWidget({
+            name: "brightness",
+            widget: BrightnessWidget({
+              widthRequest: currentWidth,
+            }),
+          }),
           "brightness",
         );
 
-        const recordingWidget = Recording({ widthRequest: currentWidth });
         self.add_named(
-          registerBarWidget({ name: "recording", widget: recordingWidget }),
+          registerBarWidget({
+            name: "recording",
+            widget: Recording({ widthRequest: currentWidth }),
+          }),
           "recording",
         );
 
-        const playerWidget = PlayerWidget({ widthRequest: currentWidth });
         self.add_named(
           registerBarWidget({
             name: "player",
-            widget: playerWidget,
-            padding: 500,
+            widget: PlayerWidget({ widthRequest: currentWidth }),
+            padding: 350,
           }),
           "player",
         );
 
-        const searchWidget = SearchBar({ widthRequest: currentWidth });
         self.add_named(
           registerBarWidget({
             name: "search",
-            widget: searchWidget,
+            widget: SearchBar({ widthRequest: currentWidth }),
             padding: 500,
           }),
           "search",
+        );
+
+        const networkWidget = NetworkWidget({
+          widthRequest: currentWidth,
+        });
+
+        self.add_named(
+          registerBarWidget({
+            name: "network",
+            widget: networkWidget,
+            padding: 300,
+          }),
+          "network",
         );
 
         setCurrentWidth(barWidths.compact);
