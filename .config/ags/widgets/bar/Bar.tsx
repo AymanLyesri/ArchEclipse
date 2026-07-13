@@ -82,6 +82,10 @@ export type BarStateName =
 // monitor already sets up its own watcher/controller for those.
 // =============================================================================
 
+export const [searchQuery, setSearchQuery] = createState<string>("");
+export const [searchActivate, setSearchActivate] = createState<number>(0);
+export const activeSearchMonitors = new Set<string>();
+
 const PRIORITY: Record<BarStateName, number> = {
   compact: 0,
   recording: 40,
@@ -150,18 +154,6 @@ export function deactivateStateOnMonitor(
     controller.deactivate(state);
   }
 }
-
-// ---------------------------------------------------------------------
-// Search state -- kept at module scope on purpose. Only the VISUAL bar
-// resolver (which page is showing, on which monitor) needed to become
-// per-instance above; the search text itself is a single logical query the
-// user is typing on one physical keyboard, so sharing it across monitors is
-// intentional and unchanged by this patch.
-// ---------------------------------------------------------------------
-export const [searchQuery, setSearchQuery] = createState<string>("");
-export const [searchActivate, setSearchActivate] = createState<number>(0);
-export const activeSearchMonitors = new Set<string>();
-
 // ---------------------------------------------------------------------
 // Player watcher — module scope, not per-monitor, since mpris players
 // are global and shouldn't be watched N times for N bars.
@@ -324,7 +316,6 @@ export default ({
   };
   barInstanceListeners.add(instanceStateController);
   barInstanceMap.set(monitorName, instanceStateController);
-
   // ---------------------------------------------------------------------
   // Spring physics width animation — lives outside animateWidth so it
   // persists (and keeps momentum) across repeated calls.
@@ -585,7 +576,6 @@ export default ({
           }),
           "expanded",
         );
-
         self.add_named(
           registerBarWidget({
             name: "volume",
@@ -682,7 +672,6 @@ export default ({
           barInstanceMap.delete(monitorName);
           unsubscribeBarStateWidth();
           unsubscribeIsRecording();
-        });
       }}
     />
   ) as Gtk.Widget;
