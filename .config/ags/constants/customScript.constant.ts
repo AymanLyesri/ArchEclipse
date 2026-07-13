@@ -5,6 +5,7 @@ import { globalSettings } from "../variables";
 import Hyprland from "gi://AstalHyprland";
 import { execAsync } from "ags/process";
 import GLib from "gi://GLib";
+import { toggleRecording } from "../services/record.service";
 
 const hyprland = Hyprland.get_default();
 
@@ -100,10 +101,7 @@ export const customScripts = (): CustomScript[] => [
     keybind: ["SUPER", "SHIFT", "R"],
     app: "wf-recorder",
     script: () => {
-      hyprland.dispatch(
-        "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/screenrecord.sh --now\"')",
-        "",
-      );
+      toggleRecording("now").catch(print);
     },
   },
   {
@@ -113,10 +111,7 @@ export const customScripts = (): CustomScript[] => [
     keybind: ["SUPER", "CTRL", "SHIFT", "R"],
     app: "wf-recorder",
     script: () => {
-      hyprland.dispatch(
-        "hl.dsp.exec_cmd('bash -c \"$HOME/.config/hypr/scripts/screenrecord.sh --area\"')",
-        "",
-      );
+      toggleRecording("area").catch(print);
     },
   },
   // System Utilities

@@ -12,7 +12,7 @@ const QUICK_APP_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launche
 export default function QuickApps({
   onAfterLaunch,
 }: {
-  onAfterLaunch: () => void;
+  onAfterLaunch?: () => void;
 }) {
   const [quickAppHistory, setQuickAppHistory] = createState<string[]>([]);
   const [orderedQuickApps, setOrderedQuickApps] =
@@ -111,7 +111,7 @@ export default function QuickApps({
                 const monitorName = (self.get_root() as any).monitorName;
                 touchQuickAppHistory(app.app_name);
                 app.app_launch(monitorName);
-                onAfterLaunch();
+                onAfterLaunch?.();
               }}
             >
               <box spacing={5}>

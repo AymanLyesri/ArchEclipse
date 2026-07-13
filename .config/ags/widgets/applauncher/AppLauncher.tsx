@@ -2,13 +2,11 @@ import { Accessor, createState } from "ags";
 import Apps from "gi://AstalApps";
 
 import { writeJSONFile } from "../../utils/json";
-import app from "ags/gtk4/app";
-import { Astal, Gtk } from "ags/gtk4";
+import { Gtk } from "ags/gtk4";
 import Hyprland from "gi://AstalHyprland";
 import Pango from "gi://Pango";
 import { createBinding, For, With } from "gnim";
 
-import { globalMargin } from "../../variables";
 import KeyBind from "../KeyBind";
 import { customApps } from "../../constants/app.constants";
 import { notify } from "../../utils/notification";
@@ -45,6 +43,7 @@ import AppHistory, { normalizeHistory } from "./AppHistory";
 
 import Mpris from "gi://AstalMpris";
 import Player from "../Player";
+import { searchActivate, searchQuery } from "../bar/Bar";
 const mpris = Mpris.get_default();
 
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;
@@ -59,7 +58,6 @@ export function AppButton({
   className?: string;
   onLaunch: (app: LauncherApp) => void;
 }) {
-  // If this is a header entry, display it as a label
   if (element.app_type === "header") {
     return (
       <box class="app-header" spacing={5} hexpand>
@@ -137,15 +135,21 @@ export function AppButton({
   );
 }
 
+/**
+ * Launcher content. No longer a top-level Astal.Window — this is now
+ * mounted inside a Gtk.Popover parented to the bar's search entry
+ * (see SearchBar in Bar.tsx). Focus, show/hide, and click-outside are
+ * all handled by the Popover (autohide) instead of manual GestureClick
+ * + layer-shell keymode juggling.
+ */
 export default ({
   monitor,
-  setup,
+  onLaunched,
 }: {
   monitor: Gdk.Monitor;
-  setup: (self: Gtk.Window) => void;
+  onLaunched: () => void;
 }) => {
   const [Results, setResults] = createState<LauncherApp[]>([]);
-
   const [history, setHistory] = createState<string[]>([]);
 
   function getInstalledAppByName(appName: string): Apps.Application | null {
@@ -176,34 +180,20 @@ export default ({
     touchHistory(application.name);
   }
 
-  let parentWindowRef: Gtk.Window | null = null;
-  let launcherContainerRef: Gtk.Box | null = null;
-
-  let entryWidget: Gtk.TextView | null = null;
-
   let debounceTimer: any;
   let args: string[];
-
-  function EmptyEntry() {
-    if (entryWidget) {
-      entryWidget.buffer.text = "";
-    }
-    setResults([]);
-  }
 
   function launchApp(app: LauncherApp) {
     app.app_launch();
     const shouldCloseOnLaunch = app.app_close_on_launch ?? true;
 
+    setResults([]);
+
     if (!shouldCloseOnLaunch) {
       return;
     }
 
-    // hideWindow(`app-launcher-${monitorName.get()}`);
-    if (parentWindowRef) {
-      parentWindowRef.hide();
-    }
-    EmptyEntry();
+    onLaunched();
   }
 
   function Help({ results }: { results: Accessor<LauncherApp[]> }) {
@@ -310,16 +300,6 @@ export default ({
     );
   }
 
-  const getInputText = () => entryWidget?.buffer.text || "";
-
-  const setInputText = (value: string) => {
-    if (!entryWidget) return;
-    entryWidget.buffer.text = value;
-    const iter = entryWidget.buffer.get_end_iter();
-    entryWidget.buffer.place_cursor(iter);
-    entryWidget.grab_focus();
-  };
-
   const handleEntryChanged = (text: string) => {
     if (debounceTimer) {
       clearTimeout(debounceTimer);
@@ -343,7 +323,7 @@ export default ({
           setResults(
             getNoteResults(noteQuery, MAX_ITEMS, {
               prefillEntry: (value: string) => {
-                setInputText(value);
+                // handled via searchQuery state now
               },
             }),
           );
@@ -426,193 +406,85 @@ export default ({
   const players = createBinding(mpris, "players");
 
   return (
-    <Astal.Window
-      gdkmonitor={monitor}
-      name={`app-launcher-${getMonitorName(monitor)}`}
-      namespace="app-launcher"
-      application={app}
-      // exclusivity={Astal.Exclusivity.IGNORE}
-      keymode={Astal.Keymode.EXCLUSIVE}
-      layer={Astal.Layer.TOP}
-      margin={globalMargin} // top right bottom left
-      visible={false}
-      anchor={Astal.WindowAnchor.TOP}
+    <box
+      class="app-launcher"
+      spacing={10}
+      widthRequest={900}
+      heightRequest={500}
       $={(self) => {
-        parentWindowRef = self;
-        setup(self);
+        // React to global search text/activate, scoped to this monitor
+        searchQuery.subscribe(() => {
+          handleEntryChanged(searchQuery.get());
+        });
 
-        (self as any).entry = entryWidget; // expose entry widget for external access (e.g. from notifications)
+        searchActivate.subscribe(() => {
+          const first = Results.get()[0];
+          if (first) launchApp(first);
+        });
 
-        // add monitor name to window
-        (self as any).monitorName = getMonitorName(monitor);
+        // Reload app db + prune stale history whenever this popover
+        // becomes visible (mirrors old notify::visible logic)
+        self.connect("map", () => {
+          apps.reload();
 
-        // focus on visible
-        self.connect("notify::visible", () => {
-          if (self.visible) {
-            // Updating the application database
-            apps.reload();
+          const currentHistory = history.get();
+          const validHistory = currentHistory.filter(
+            (appName) => apps.fuzzy_query(appName).length > 0,
+          );
 
-            // History Update: Remove entries that no longer exist
-            // Take the current list of names from history
-            const currentHistory = history.get();
-
-            // Filter, leaving only those that actually exist after reload
-            const validHistory = currentHistory.filter(
-              (appName) => apps.fuzzy_query(appName).length > 0,
-            );
-
-            // If something is deleted, update the state and save it to a file
-            if (validHistory.length !== currentHistory.length) {
-              setHistory(validHistory);
-              persistHistory(validHistory);
-            }
-            if (entryWidget) {
-              entryWidget.grab_focus();
-            }
+          if (validHistory.length !== currentHistory.length) {
+            setHistory(validHistory);
+            persistHistory(validHistory);
           }
         });
       }}
-      resizable={false}
     >
-      <Gtk.GestureClick
-        onPressed={(_, _nPress, x: number, y: number) => {
-          const isWidgetInsideLauncher = (
-            widget: Gtk.Widget | null,
-          ): boolean => {
-            let current = widget;
-
-            while (current) {
-              if (current === launcherContainerRef) {
-                return true;
-              }
-              current = current.get_parent();
-            }
-
-            return false;
-          };
-
-          if (!parentWindowRef || !launcherContainerRef) {
-            return;
-          }
-
-          const picked = parentWindowRef.pick(x, y, Gtk.PickFlags.DEFAULT);
-
-          if (isWidgetInsideLauncher(picked)) {
-            return;
-          }
-
-          parentWindowRef.hide();
-          EmptyEntry();
-        }}
-      />
-      <Gtk.EventControllerKey
-        onKeyPressed={({ widget }, keyval: number) => {
-          if (keyval === Gdk.KEY_Escape) {
-            widget.hide();
-            return true;
-          }
-        }}
-      />
-      <box
-        class="app-launcher"
-        spacing={10}
-        $={(self) => {
-          launcherContainerRef = self;
-        }}
-      >
-        <box class={"left"}>
-          <With value={players}>
-            {(players) =>
-              players.length > 0 ? (
-                <Player
-                  width={300}
-                  player={
-                    mpris.players.find(
-                      (player) =>
-                        player.playbackStatus === Mpris.PlaybackStatus.PLAYING,
-                    ) || mpris.players[0]
-                  }
-                />
-              ) : (
-                <box></box>
-              )
-            }
-          </With>
-        </box>
-        <box
-          class={"center"}
-          hexpand
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={10}
-          widthRequest={500}
-        >
-          <Gtk.TextView
-            hexpand={true}
-            wrapMode={Gtk.WrapMode.WORD_CHAR}
-            topMargin={8}
-            bottomMargin={8}
-            leftMargin={10}
-            rightMargin={10}
-            tooltipMarkup={
-              "Search apps and utilities\n<b>Enter</b> launch first result\n<b>Shift+Enter</b> new line"
-            }
-            $={(self) => {
-              entryWidget = self;
-              self.buffer.connect("changed", () => {
-                handleEntryChanged(getInputText());
-              });
-              return self;
-            }}
-          >
-            <Gtk.EventControllerKey
-              onKeyPressed={(
-                _,
-                keyval: number,
-                _keycode: number,
-                state: number,
-              ) => {
-                const isEnter =
-                  keyval === Gdk.KEY_Return || keyval === Gdk.KEY_KP_Enter;
-                if (!isEnter) return false;
-
-                const isShiftPressed =
-                  (state & Gdk.ModifierType.SHIFT_MASK) !== 0;
-                if (isShiftPressed) return false;
-
-                if (Results.get().length > 0) {
-                  launchApp(Results.get()[0]);
+      <box class={"left"}>
+        <With value={players}>
+          {(players) =>
+            players.length > 0 ? (
+              <Player
+                width={300}
+                player={
+                  mpris.players.find(
+                    (player) =>
+                      player.playbackStatus === Mpris.PlaybackStatus.PLAYING,
+                  ) || mpris.players[0]
                 }
-                return true;
-              }}
-            />
-          </Gtk.TextView>
-          <scrolledwindow hexpand vexpand>
-            <ResultsList results={Results} onLaunch={launchApp} />
-          </scrolledwindow>
-        </box>
-        <box
-          class={"right"}
-          orientation={Gtk.Orientation.VERTICAL}
-          spacing={10}
-          widthRequest={300}
-        >
-          <QuickApps
-            onAfterLaunch={() => {
-              if (parentWindowRef) {
-                parentWindowRef.hide();
-              }
-            }}
-          />
-          <AppHistory
-            history={history}
-            setHistory={setHistory}
-            persistHistory={persistHistory}
-            getInstalledAppByName={getInstalledAppByName}
-            launchAndRecord={launchAndRecord}
-            onLaunch={launchApp}
-          />
-        </box>
+              />
+            ) : (
+              <box></box>
+            )
+          }
+        </With>
       </box>
-    </Astal.Window>
+      <box
+        class={"center"}
+        hexpand
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+        widthRequest={500}
+      >
+        <scrolledwindow hexpand vexpand>
+          <ResultsList results={Results} onLaunch={launchApp} />
+        </scrolledwindow>
+      </box>
+      <box
+        class={"right"}
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+        widthRequest={300}
+      >
+        <QuickApps onAfterLaunch={onLaunched} />
+        <AppHistory
+          history={history}
+          setHistory={setHistory}
+          persistHistory={persistHistory}
+          getInstalledAppByName={getInstalledAppByName}
+          launchAndRecord={launchAndRecord}
+          onLaunch={launchApp}
+        />
+      </box>
+    </box>
   );
 };

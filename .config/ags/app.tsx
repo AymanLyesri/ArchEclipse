@@ -1,5 +1,5 @@
 import app from "ags/gtk4/app";
-import Bar from "./widgets/bar/Bar";
+import Bar, { barState, setBarState, setSearchQuery } from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
 import { logTime, logTimeWidget } from "./utils/time";
 import { compileBinaries } from "./utils/gcc";
@@ -40,7 +40,6 @@ const perMonitorDisplay = () => {
     LeftPanel,
     LeftPanelHover,
     NotificationPopups,
-    AppLauncher,
     UserPanel,
     WallpaperSwitcher,
     AlwaysOnWidget,
@@ -122,35 +121,23 @@ app.start({
       response("Donations widget opened.");
       return;
     } else if (cmd == "clipboard") {
-      const appLauncher = app.get_window(`app-launcher-${monitor}`);
-      if (appLauncher) {
-        appLauncher.show();
-        prefillLauncherInput(appLauncher as any, "cb ");
-      }
+      setBarState("search");
+      setSearchQuery("cb ");
       response("Clipboard widget opened.");
       return;
     } else if (cmd == "emojis") {
-      const appLauncher = app.get_window(`app-launcher-${monitor}`);
-      if (appLauncher) {
-        appLauncher.show();
-        prefillLauncherInput(appLauncher as any, "emoji ");
-      }
+      setBarState("search");
+      setSearchQuery("emoji ");
       response("Emoji picker opened.");
       return;
     } else if (cmd == "notes") {
-      const appLauncher = app.get_window(`app-launcher-${monitor}`);
-      if (appLauncher) {
-        appLauncher.show();
-        prefillLauncherInput(appLauncher as any, "note ");
-      }
+      setBarState("search");
+      setSearchQuery("note ");
       response("Notes widget opened.");
       return;
     } else if (cmd == "apps") {
-      const appLauncher = app.get_window(`app-launcher-${monitor}`);
-      if (appLauncher) {
-        appLauncher.show();
-        prefillLauncherInput(appLauncher as any, "apps ");
-      }
+      setBarState("search");
+      setSearchQuery("apps ");
       response("Apps list opened.");
       return;
     }
@@ -158,6 +145,16 @@ app.start({
     if (cmd == "screenrecord") {
       const state = await toggleRecording(arg as "now" | "area");
       response(`Recording ${state}.`);
+      return;
+    }
+
+    if (cmd == "search") {
+      if (barState.peek() === "search") {
+        setBarState("compact"); // popover's barState.subscribe will popdown()
+      } else {
+        setBarState("search");
+      }
+      response("Search toggled.");
       return;
     }
     response("unknown command");

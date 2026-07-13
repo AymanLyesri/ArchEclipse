@@ -7,46 +7,45 @@ export const [isRecording, setIsRecording] = createState(false);
 
 const SCRIPT = `${GLib.get_home_dir()}/.config/hypr/scripts/screenrecord.sh`;
 
-// resync on module load — covers AGS restarts/reloads while wf-recorder is still running
 async function syncRecordingState() {
   const running = await execAsync(["pgrep", "-x", "wf-recorder"])
     .then(() => true)
     .catch(() => false);
-  setIsRecording(running);
+  if (running !== isRecording.peek()) setIsRecording(running);
 }
+
 syncRecordingState();
+
+// Poll the actual recorder state instead of maintaining it manually.
+GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+  syncRecordingState();
+  return GLib.SOURCE_CONTINUE;
+});
 
 export async function toggleRecording(
   mode: "now" | "area" = "now",
 ): Promise<"started" | "stopped"> {
   if (isRecording.peek()) {
-    setIsRecording(false);
     try {
       await execAsync([SCRIPT, "stop"]);
-    } catch {
-      notify({
-        summary: "ScreenRecord Error",
-        body: "Failed to stop screen recording. Please check the script.",
-      });
-      setIsRecording(true);
-    }
-    return "stopped";
-  } else {
-    setIsRecording(true);
-    try {
-      await execAsync([
-        SCRIPT,
-        "start",
-        ...(mode === "area" ? ["--area"] : []),
-      ]);
-      return "started";
-    } catch {
-      notify({
-        summary: "ScreenRecord Error",
-        body: "Failed to start screen recording. Please check the script.",
-      });
-      setIsRecording(false);
       return "stopped";
+    } catch {
+      notify({
+        summary: "ScreenRecord Error",
+        body: "Failed to stop screen recording.",
+      });
+      return "started";
     }
   }
+
+  execAsync([SCRIPT, "start", ...(mode === "area" ? ["--area"] : [])]).catch(
+    () => {
+      notify({
+        summary: "ScreenRecord Error",
+        body: "Failed to start screen recording.",
+      });
+    },
+  );
+
+  return "started";
 }
