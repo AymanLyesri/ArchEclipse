@@ -1,4 +1,10 @@
-import { Accessor, createComputed, createState, With } from "ags";
+import {
+  Accessor,
+  createBinding,
+  createComputed,
+  createState,
+  With,
+} from "ags";
 import Workspaces, { WorkspacesCompact } from "./components/Workspaces";
 import Information from "./components/Information";
 import Utilities from "./components/Utilities";
@@ -24,6 +30,10 @@ import Recording from "./components/sub-components/Recording";
 import { isRecording } from "../../services/record.service";
 import AppLauncher from "../applauncher/AppLauncher";
 import GLib from "gi://GLib";
+import AstalMpris from "gi://AstalMpris";
+import PlayerWidget from "./components/sub-components/PlayerWidget";
+
+const mpris = AstalMpris.get_default();
 
 export type BarStateName =
   | "compact"
@@ -31,12 +41,168 @@ export type BarStateName =
   | "recording"
   | "volume"
   | "brightness"
-  | "search";
+  | "search"
+  | "player";
 
 export const [barState, setBarState] = createState<BarStateName>("compact");
+export const [stackVisibleChild, setStackVisibleChild] =
+  createState<BarStateName>("compact");
 export const [searchQuery, setSearchQuery] = createState<string>("");
 
 export const [searchActivate, setSearchActivate] = createState<number>(0);
+
+// ---------------------------------------------------------------------
+// Visibility resolver — priority-based instead of scattered if/else.
+//
+// Every "thing that might want to be shown" registers itself as active
+// (or inactive) via activateState/deactivateState instead of calling
+// setBarState directly. `barState` is now a *derived* value: whichever
+// active entry has the highest priority wins. This is what makes
+// "volume flashes over recording, then reverts to recording" and
+// "a pulse replaces the expanded view" fall out for free instead of
+// needing manual "what was I before" bookkeeping.
+//
+// NOTE: any other file in the codebase that currently calls
+// setBarState(...) directly (e.g. a keybind opening search) should be
+// migrated to activateState(...) / deactivateState(...) — calling
+// setBarState directly bypasses the resolver and will get stomped on
+// by the next state change.
+// ---------------------------------------------------------------------
+
+const PRIORITY: Record<BarStateName, number> = {
+  compact: 0,
+  recording: 40,
+  expanded: 60,
+  volume: 80,
+  brightness: 80,
+  player: 80,
+  search: 100,
+};
+
+type StateEntry = {
+  priority: number;
+  timer?: Timer;
+};
+
+const activeStates = new Map<BarStateName, StateEntry>();
+// compact is the permanent base — always present, lowest priority.
+activeStates.set("compact", { priority: PRIORITY.compact });
+
+function resolveVisibleState(): BarStateName {
+  let best: BarStateName = "compact";
+  let bestPriority = -Infinity;
+  for (const [name, entry] of activeStates) {
+    if (entry.priority > bestPriority) {
+      best = name;
+      bestPriority = entry.priority;
+    }
+  }
+  return best;
+}
+
+/**
+ * Marks a state as active. If `holdMs` is given, the state auto-deactivates
+ * after that long — and retriggering (calling activateState again while
+ * already active) resets the timer rather than stacking a second one.
+ * Omit `holdMs` for states that stay active until explicitly deactivated
+ * (search toggle, recording, expanded-on-hover).
+ */
+export function activateState(name: BarStateName, holdMs?: number) {
+  const priority = PRIORITY[name];
+  const existing = activeStates.get(name);
+  existing?.timer?.cancel();
+
+  const entry: StateEntry = { priority };
+  if (holdMs !== undefined) {
+    entry.timer = timeout(holdMs, () => deactivateState(name));
+  }
+  activeStates.set(name, entry);
+
+  timeout(100, () => setBarState(resolveVisibleState()));
+}
+
+export function deactivateState(name: BarStateName) {
+  if (name === "compact") return; // base is permanent, can't be removed
+  activeStates.get(name)?.timer?.cancel();
+  activeStates.delete(name);
+
+  timeout(100, () => setBarState(resolveVisibleState()));
+}
+
+// ---------------------------------------------------------------------
+// Player watcher — module scope, not per-monitor, since mpris players
+// are global and shouldn't be watched N times for N bars.
+//
+// "player" is a pulse: whenever any mpris player's playback-status or
+// title changes, that player becomes the `activePlayer` and "player"
+// gets activated for a couple seconds, same as a volume/brightness
+// nudge. It doesn't try to track "the" active player across pauses —
+// whichever player changed most recently wins, which matches how a
+// person actually thinks about it ("something just changed").
+// ---------------------------------------------------------------------
+
+export const [activePlayer, setActivePlayer] =
+  createState<AstalMpris.Player | null>(null);
+
+const PLAYER_HOLD_MS = 2500;
+const watchedPlayers = new Set<AstalMpris.Player>();
+
+function watchPlayerTransient(player: AstalMpris.Player) {
+  let lastStatus = player.playbackStatus;
+  let lastTitle = player.title;
+  let debounceTimer: Timer | null = null;
+
+  // notify::title / notify::artist / notify::playback-status tend to
+  // fire in a burst for one logical track change — coalesce them into
+  // a single pulse instead of resetting the hold timer 3-4 times.
+  const pulse = () => {
+    setActivePlayer(player);
+    debounceTimer?.cancel();
+    debounceTimer = timeout(50, () => {
+      debounceTimer = null;
+      activateState("player", PLAYER_HOLD_MS);
+    });
+  };
+
+  player.connect("notify::playback-status", () => {
+    if (player.playbackStatus === lastStatus) return;
+    lastStatus = player.playbackStatus;
+    pulse();
+  });
+
+  player.connect("notify::title", () => {
+    if (player.title === lastTitle) return;
+    lastTitle = player.title;
+    pulse();
+  });
+}
+
+function syncWatchedPlayers() {
+  const current = new Set(playersBinding.get());
+
+  for (const player of current) {
+    if (!watchedPlayers.has(player)) {
+      watchedPlayers.add(player);
+      watchPlayerTransient(player);
+    }
+  }
+
+  // A player disappearing (app closed) shouldn't leave a stale
+  // activePlayer sitting around if it's the one currently shown.
+  for (const player of watchedPlayers) {
+    if (!current.has(player)) {
+      watchedPlayers.delete(player);
+      if (activePlayer.peek() === player) {
+        setActivePlayer(null);
+        deactivateState("player");
+      }
+    }
+  }
+}
+
+const playersBinding = createBinding(mpris, "players");
+playersBinding.subscribe(syncWatchedPlayers);
+syncWatchedPlayers();
 
 export default ({
   monitor,
@@ -104,14 +270,23 @@ export default ({
   const barWidths = {} as Record<BarStateName, number>;
 
   // Auto-animate width on every bar-state change — single source of truth.
-  // Call sites just do setBarState(name); this handles the width for free.
-  let isFirstBarState = true;
+  // barState is now driven by the priority resolver above; this block
+  // doesn't need to know or care why it changed.
   barState.subscribe(() => {
     const name = barState.get();
     const target = barWidths[name];
-    if (target === undefined) return; // widget not registered yet, ignore
+    if (target === undefined) return;
 
-    animateWidth(target);
+    const current = currentWidth.peek();
+    const growing = target > current;
+
+    if (growing) {
+      animateWidth(target);
+      timeout(100, () => setStackVisibleChild(name));
+    } else {
+      setStackVisibleChild(name);
+      timeout(100, () => animateWidth(target));
+    }
   });
 
   /**
@@ -265,7 +440,7 @@ export default ({
             self.set_offset(0, 15); // x, y — this replaces marginTop
             self.connect("closed", () => {
               if (barState.peek() !== "search") return; // only reset if search was active
-              setBarState("compact");
+              deactivateState("search");
               setSearchQuery("");
             });
           }}
@@ -275,37 +450,19 @@ export default ({
       </box>
     ) as Gtk.Widget;
   }
-  // ---------------------------------------------------------------------
-  // Transient-state helper — shows a bar page (volume/brightness/etc),
-  // then decays back to compact after `holdMs` of no further changes.
-  // Replaces the two near-identical animate -> setBarState -> setTimeout
-  // blocks that used to live inline per-signal.
-  // ---------------------------------------------------------------------
-  let transientHideTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  function showTransientState(name: BarStateName, holdMs = 2000) {
-    timeout(100, () => setBarState(name));
-
-    if (transientHideTimeout) {
-      clearTimeout(transientHideTimeout);
-    }
-
-    transientHideTimeout = setTimeout(() => {
-      timeout(100, () => setBarState("compact"));
-    }, holdMs);
-  }
 
   /**
-   * Wires a GObject signal to showTransientState(), with its own
-   * first-render guard and "last seen value" dedupe — each call gets
-   * independent state, so multiple watchers no longer stomp on each
-   * other's `firstRender`/`lastValue` the way the old inline copies did.
+   * Wires a GObject signal to activateState() as a transient pulse, with
+   * its own first-render guard and "last seen value" dedupe — each call
+   * gets independent state, so multiple watchers don't stomp on each
+   * other's firstRender/lastValue.
    */
   function watchTransient<T>(
     connectTo: { connect: (signal: string, cb: () => void) => void },
     signal: string,
     getValue: () => T,
     stateName: BarStateName,
+    holdMs = 2000,
   ) {
     let isFirst = true;
     let last: T;
@@ -324,7 +481,7 @@ export default ({
       if (current === last) return;
       last = current;
 
-      showTransientState(stateName);
+      activateState(stateName, holdMs);
     });
   }
 
@@ -334,13 +491,13 @@ export default ({
       transitionType={Gtk.StackTransitionType.CROSSFADE}
       transitionDuration={250}
       hhomogeneous={false} // Prevents the expanded width from stretching
-      visibleChildName={barState}
+      visibleChildName={stackVisibleChild}
       $={(self) => {
         self.add_named(
           registerBarWidget({
             name: "compact",
             widget: compactBar,
-            padding: 300,
+            padding: 400,
           }),
           "compact",
         );
@@ -373,6 +530,16 @@ export default ({
           "recording",
         );
 
+        const playerWidget = PlayerWidget({ widthRequest: currentWidth });
+        self.add_named(
+          registerBarWidget({
+            name: "player",
+            widget: playerWidget,
+            padding: 500,
+          }),
+          "player",
+        );
+
         const searchWidget = SearchBar({ widthRequest: currentWidth });
         self.add_named(
           registerBarWidget({
@@ -401,19 +568,14 @@ export default ({
           "brightness",
         );
 
+        // Recording is continuous, not transient — it stays active for as
+        // long as isRecording is true, and simply won't be the *visible*
+        // state if something higher-priority (search, a volume pulse,
+        // hover-expanded) is active in the meantime.
         isRecording.subscribe(() => {
-          const recording = isRecording.peek();
-
-          if (recording) {
-            if (transientHideTimeout) {
-              clearTimeout(transientHideTimeout);
-              transientHideTimeout = null;
-            }
-
-            timeout(100, () => setBarState("recording"));
-          } else if (barState.peek() === "recording") {
-            timeout(100, () => setBarState("compact"));
-          }
+          isRecording.peek()
+            ? activateState("recording")
+            : deactivateState("recording");
         });
       }}
     />
@@ -461,47 +623,31 @@ export default ({
           $={(self) => {
             const windowInstance = new Window();
             (self as any).barWindow = windowInstance;
-            let hideTimeout: Timer | null = null;
-            let compactTimeout: Timer | null = null;
+            let leaveTimer: Timer | null = null;
             const motion = new Gtk.EventControllerMotion();
 
             motion.connect("enter", () => {
-              if (
-                barState.peek() !== "compact" &&
-                barState.peek() !== "recording"
-              )
-                return;
-              if (hideTimeout !== null) {
-                {
-                  barStack;
-                }
-                hideTimeout.cancel();
-                hideTimeout = null;
+              if (leaveTimer !== null) {
+                leaveTimer.cancel();
+                leaveTimer = null;
               }
-
-              if (compactTimeout !== null) {
-                compactTimeout.cancel();
-                compactTimeout = null;
-              }
-
-              timeout(100, () => {
-                setBarState("expanded");
-              });
+              // No manual "am I allowed to expand right now" guard needed —
+              // if search or a volume/brightness pulse is active, they
+              // outrank "expanded" in the resolver and stay visible
+              // regardless of this call.
+              activateState("expanded");
             });
+
             motion.connect("leave", () => {
-              if (barState.peek() != "expanded") return;
-              if (compactTimeout !== null) {
-                compactTimeout.cancel();
-                compactTimeout = null;
+              if (leaveTimer !== null) {
+                leaveTimer.cancel();
+                leaveTimer = null;
               }
 
-              compactTimeout = timeout(250, () => {
-                compactTimeout = null;
+              leaveTimer = timeout(250, () => {
+                leaveTimer = null;
                 if (!windowInstance.popupIsOpen()) {
-                  const recording = isRecording.peek();
-                  const nextState = recording ? "recording" : "compact";
-
-                  setBarState(nextState);
+                  deactivateState("expanded");
                 }
               });
             });

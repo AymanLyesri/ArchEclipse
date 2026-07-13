@@ -27,120 +27,9 @@ import { timeout } from "ags/time";
 import GObject from "ags/gobject";
 import Picture from "../../Picture";
 import { connectPopoverEvents } from "../../../utils/window";
+import PlayerWidget from "./sub-components/PlayerWidget";
 
 const mpris = AstalMpris.get_default();
-
-function Mpris() {
-  const apps = new AstalApps.Apps();
-  const players = createBinding(mpris, "players");
-  const DEFAULT_COVER = `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`;
-
-  return (
-    <box class={"mpris"} spacing={5}>
-      <For each={players}>
-        {(player) => {
-          const [app] = apps.exact_query(player.entry);
-
-          // Cover guard (YouTube anti-flickering protection)
-          let lastValidCover = player.coverArt || DEFAULT_COVER;
-          const coverBinding = createBinding(
-            player,
-            "coverArt",
-          )((c) => {
-            if (c && c.trim() !== "") {
-              lastValidCover = c;
-              return c;
-            }
-            return lastValidCover || DEFAULT_COVER;
-          });
-
-          return (
-            <menubutton $={(self) => connectPopoverEvents(self, "barWindow")}>
-              <overlay
-                css={createComputed(() => {
-                  const title_width = createBinding(
-                    player,
-                    "title",
-                  )((title) => Math.min(title.length * 10 + 50, 200));
-                  const is_playing = createBinding(
-                    player,
-                    "playbackStatus",
-                  )((status) => status === AstalMpris.PlaybackStatus.PLAYING);
-                  // return min-width
-                  return `min-width: ${is_playing() ? title_width() + 25 : title_width()}px;`;
-                })}
-              >
-                <Picture class={"cover-art"} file={coverBinding} />
-                <box class={"content"} $type="overlay" spacing={3}>
-                  <Cava
-                    barCount={12}
-                    transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-                    isPlaying={createBinding(
-                      player,
-                      "playbackStatus",
-                    )((status) => status === AstalMpris.PlaybackStatus.PLAYING)}
-                  />
-                  <image
-                    visible={!!app?.iconName}
-                    iconName={app?.iconName}
-                    class={createBinding(
-                      player,
-                      "playbackStatus",
-                    )((s) =>
-                      s === AstalMpris.PlaybackStatus.PLAYING
-                        ? "mpris-icon playing"
-                        : "mpris-icon paused",
-                    )}
-                  />
-                  <revealer
-                    transitionType={Gtk.RevealerTransitionType.SLIDE_LEFT}
-                    $={(self) => {
-                      player.connect("notify::playback-status", (s) => {
-                        const revealSequence = () => {
-                          self.reveal_child = true;
-                          timeout(5000, () => {
-                            self.reveal_child = false;
-                          });
-                        };
-                        revealSequence();
-                      });
-                    }}
-                  >
-                    <label
-                      class="playback-status-icon icon"
-                      label={createBinding(
-                        player,
-                        "playbackStatus",
-                      )((s) =>
-                        s === AstalMpris.PlaybackStatus.PLAYING ? "" : "",
-                      )}
-                    />
-                  </revealer>
-                  <label
-                    label={createBinding(player, "title")}
-                    ellipsize={Pango.EllipsizeMode.END}
-                    maxWidthChars={25}
-                  />
-                </box>
-              </overlay>
-              <popover
-                $={(self) => {
-                  self.connect("notify::visible", () => {
-                    if (self.visible) self.add_css_class("popover-open");
-                    else if (self.get_child())
-                      self.remove_css_class("popover-open");
-                  });
-                }}
-              >
-                <Player height={200} width={300} player={player} />
-              </popover>
-            </menubutton>
-          );
-        }}
-      </For>
-    </box>
-  );
-}
 
 function Clock() {
   const revealer = <label class="revealer" label={date_more}></label>;
@@ -186,7 +75,9 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
         )((players) => players.length > 0)}
       >
         <With value={createBinding(mpris, "players")}>
-          {(players: AstalMpris.Player[]) => players.length > 0 && <Mpris />}
+          {(players: AstalMpris.Player[]) =>
+            players.length > 0 && <PlayerWidget />
+          }
         </With>
       </box>
 

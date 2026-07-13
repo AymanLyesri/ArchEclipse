@@ -1,5 +1,11 @@
 import app from "ags/gtk4/app";
-import Bar, { barState, setBarState, setSearchQuery } from "./widgets/bar/Bar";
+import Bar, {
+  activateState,
+  barState,
+  deactivateState,
+  setBarState,
+  setSearchQuery,
+} from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
 import { logTime, logTimeWidget } from "./utils/time";
 import { compileBinaries } from "./utils/gcc";
@@ -121,22 +127,22 @@ app.start({
       response("Donations widget opened.");
       return;
     } else if (cmd == "clipboard") {
-      setBarState("search");
+      activateState("search");
       setSearchQuery("cb ");
       response("Clipboard widget opened.");
       return;
     } else if (cmd == "emojis") {
-      setBarState("search");
+      activateState("search");
       setSearchQuery("emoji ");
       response("Emoji picker opened.");
       return;
     } else if (cmd == "notes") {
-      setBarState("search");
+      activateState("search");
       setSearchQuery("note ");
       response("Notes widget opened.");
       return;
     } else if (cmd == "apps") {
-      setBarState("search");
+      activateState("search");
       setSearchQuery("apps ");
       response("Apps list opened.");
       return;
@@ -150,9 +156,9 @@ app.start({
 
     if (cmd == "search") {
       if (barState.peek() === "search") {
-        setBarState("compact"); // popover's barState.subscribe will popdown()
+        deactivateState("search");
       } else {
-        setBarState("search");
+        activateState("search");
       }
       response("Search toggled.");
       return;
