@@ -1,11 +1,14 @@
-import App from "ags/gtk4/app";
-import { createComputed, createState, With } from "ags";
+import {
+  Accessor,
+  createBinding,
+  createComputed,
+  createState,
+  With,
+} from "ags";
 import Workspaces, { WorkspacesCompact } from "./components/Workspaces";
 import Information from "./components/Information";
 import Utilities from "./components/Utilities";
 import {
-  emptyWorkspace,
-  focusedClient,
   fullscreenClient,
   globalMargin,
   globalSettings,
@@ -25,13 +28,214 @@ import Brightness from "../../services/brightness";
 import BrightnessWidget from "./components/sub-components/BrightnessWidget";
 import Recording from "./components/sub-components/Recording";
 import { isRecording } from "../../services/record.service";
+import AppLauncher from "../applauncher/AppLauncher";
+import GLib from "gi://GLib";
+import AstalMpris from "gi://AstalMpris";
+import PlayerWidget from "./components/sub-components/PlayerWidget";
+import NetworkWidget from "./sub-components/NetworkWidget";
+import CompactBar from "./sub-components/CompactBar";
+import ExpandedBar from "./sub-components/ExpandedBar";
+
+const mpris = AstalMpris.get_default();
 
 export type BarStateName =
   | "compact"
   | "expanded"
   | "recording"
   | "volume"
-  | "brightness";
+  | "brightness"
+  | "search"
+  | "player"
+  | "network";
+
+// =============================================================================
+// PER-MONITOR ISOLATION (see default export below)
+// =============================================================================
+// In the previous iteration of this refactor, `barState`, `stackVisibleChild`,
+// and `activeStates` (the whole priority resolver) lived at module scope --
+// meaning every monitor's bar shared ONE resolver. Hovering monitor A's bar
+// to expand it would also expand monitor B's (and C's, ...), because there
+// was only a single `activeStates` Map / `barState` for the whole process.
+// This is the exact same bug already fixed on ChatBot.tsx and the plain
+// (non-upstream) Bar.tsx -- it just came back with this resolver rewrite.
+//
+// Fix: each monitor's own priority resolver (activeStates map, barState,
+// stackVisibleChild, resolveVisibleState) now lives inside the per-instance
+// closure in the default export below, so hovering/pulsing one monitor's bar
+// can never affect another's.
+//
+// Two things legitimately need to reach every open bar, and still do:
+//   1. Other files calling the exported activateState()/deactivateState()
+//      directly (e.g. a keybind opening "search").
+//   2. The single module-level mpris player watcher below, which by design
+//      watches each real player only once for all N bars.
+// Both now go through `barInstanceListeners`: each mounted bar instance
+// registers its own LOCAL activate/deactivate pair on mount and unregisters
+// it on destroy, and the exported activateState()/deactivateState() simply
+// broadcast to every registered instance -- same external signature and
+// behaviour as before this patch.
+//
+// Things that already listen to one real, genuinely-global source
+// independently per monitor -- recording, volume, brightness, the
+// hover-triggered "expanded" state -- call their OWN instance's local
+// resolver directly and never touch this broadcast layer, since each
+// monitor already sets up its own watcher/controller for those.
+// =============================================================================
+
+const PRIORITY: Record<BarStateName, number> = {
+  compact: 0,
+  recording: 40,
+  expanded: 60,
+  volume: 80,
+  brightness: 80,
+  network: 80,
+  player: 80,
+  search: 100,
+};
+
+type StateEntry = {
+  priority: number;
+  timer?: Timer;
+};
+
+type LocalStateController = {
+  activate: (name: BarStateName, holdMs?: number) => void;
+  deactivate: (name: BarStateName) => void;
+};
+
+const barInstanceListeners = new Set<LocalStateController>();
+const barInstanceMap = new Map<string, LocalStateController>();
+
+/**
+ * External API -- unchanged signature/behaviour for any other file in the
+ * codebase that calls this directly (e.g. a keybind opening search).
+ * Broadcasts to every currently mounted bar instance; each instance decides
+ * locally how that affects ITS OWN barState/stackVisibleChild.
+ */
+export function activateState(name: BarStateName, holdMs?: number) {
+  for (const listener of barInstanceListeners) {
+    listener.activate(name, holdMs);
+  }
+}
+
+export function deactivateState(name: BarStateName) {
+  for (const listener of barInstanceListeners) {
+    listener.deactivate(name);
+  }
+}
+
+/**
+ * Activate state on a specific monitor only.
+ */
+export function activateStateOnMonitor(
+  monitorName: string,
+  state: BarStateName,
+  holdMs?: number,
+) {
+  const controller = barInstanceMap.get(monitorName);
+  if (controller) {
+    controller.activate(state, holdMs);
+  }
+}
+
+/**
+ * Deactivate state on a specific monitor only.
+ */
+export function deactivateStateOnMonitor(
+  monitorName: string,
+  state: BarStateName,
+) {
+  const controller = barInstanceMap.get(monitorName);
+  if (controller) {
+    controller.deactivate(state);
+  }
+}
+
+// ---------------------------------------------------------------------
+// Search state -- kept at module scope on purpose. Only the VISUAL bar
+// resolver (which page is showing, on which monitor) needed to become
+// per-instance above; the search text itself is a single logical query the
+// user is typing on one physical keyboard, so sharing it across monitors is
+// intentional and unchanged by this patch.
+// ---------------------------------------------------------------------
+export const [searchQuery, setSearchQuery] = createState<string>("");
+export const [searchActivate, setSearchActivate] = createState<number>(0);
+export const activeSearchMonitors = new Set<string>();
+
+// ---------------------------------------------------------------------
+// Player watcher — module scope, not per-monitor, since mpris players
+// are global and shouldn't be watched N times for N bars.
+//
+// "player" is a pulse: whenever any mpris player's playback-status or
+// title changes, that player becomes the `activePlayer` and "player"
+// gets activated for a couple seconds, same as a volume/brightness
+// nudge. It doesn't try to track "the" active player across pauses —
+// whichever player changed most recently wins, which matches how a
+// person actually thinks about it ("something just changed").
+// ---------------------------------------------------------------------
+
+export const [activePlayer, setActivePlayer] =
+  createState<AstalMpris.Player | null>(null);
+
+const PLAYER_HOLD_MS = 2500;
+const watchedPlayers = new Set<AstalMpris.Player>();
+
+function watchPlayerTransient(player: AstalMpris.Player) {
+  let lastStatus = player.playbackStatus;
+  let lastTitle = player.title;
+  let debounceTimer: Timer | null = null;
+
+  // notify::title / notify::artist / notify::playback-status tend to
+  // fire in a burst for one logical track change — coalesce them into
+  // a single pulse instead of resetting the hold timer 3-4 times.
+  const pulse = () => {
+    setActivePlayer(player);
+    debounceTimer?.cancel();
+    debounceTimer = timeout(50, () => {
+      debounceTimer = null;
+      activateState("player", PLAYER_HOLD_MS);
+    });
+  };
+
+  player.connect("notify::playback-status", () => {
+    if (player.playbackStatus === lastStatus) return;
+    lastStatus = player.playbackStatus;
+    pulse();
+  });
+
+  player.connect("notify::title", () => {
+    if (player.title === lastTitle) return;
+    lastTitle = player.title;
+    pulse();
+  });
+}
+
+function syncWatchedPlayers() {
+  const current = new Set(playersBinding.get());
+
+  for (const player of current) {
+    if (!watchedPlayers.has(player)) {
+      watchedPlayers.add(player);
+      watchPlayerTransient(player);
+    }
+  }
+
+  // A player disappearing (app closed) shouldn't leave a stale
+  // activePlayer sitting around if it's the one currently shown.
+  for (const player of watchedPlayers) {
+    if (!current.has(player)) {
+      watchedPlayers.delete(player);
+      if (activePlayer.peek() === player) {
+        setActivePlayer(null);
+        deactivateState("player");
+      }
+    }
+  }
+}
+
+const playersBinding = createBinding(mpris, "players");
+playersBinding.subscribe(syncWatchedPlayers);
+syncWatchedPlayers();
 
 export default ({
   monitor,
@@ -41,13 +245,85 @@ export default ({
   setup: (self: Gtk.Window) => void;
 }) => {
   const monitorName = getMonitorName(monitor)!;
-  // Per-instance bar state so each monitor's Bar has isolated state.
-  // Previously this lived at module scope which caused different monitor
-  // instances to share and stomp on the same state.
-  const [barState, setBarState] = createState<BarStateName>("compact");
   const [currentWidth, setCurrentWidth] = createState(0);
 
-  const layout = globalSettings.peek().bar.layout;
+  // ---------------------------------------------------------------------
+  // Priority resolver -- PER INSTANCE (see the isolation note near the top
+  // of this file). Every "thing that might want to be shown" registers
+  // itself as active (or inactive) via activateLocalState/deactivateLocalState
+  // instead of calling setBarState directly. `barState` is a *derived*
+  // value: whichever active entry has the highest priority wins. This is
+  // what makes "volume flashes over recording, then reverts to recording"
+  // and "a pulse replaces the expanded view" fall out for free, scoped to
+  // THIS monitor only.
+  // ---------------------------------------------------------------------
+  const [barState, setBarState] = createState<BarStateName>("compact");
+  const [stackVisibleChild, setStackVisibleChild] =
+    createState<BarStateName>("compact");
+
+  const activeStates = new Map<BarStateName, StateEntry>();
+  // compact is the permanent base — always present, lowest priority.
+  activeStates.set("compact", { priority: PRIORITY.compact });
+
+  function resolveVisibleState(): BarStateName {
+    let best: BarStateName = "compact";
+    let bestPriority = -Infinity;
+    for (const [name, entry] of activeStates) {
+      if (entry.priority > bestPriority) {
+        best = name;
+        bestPriority = entry.priority;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Marks a state as active on THIS monitor's bar only. If `holdMs` is
+   * given, the state auto-deactivates after that long — and retriggering
+   * (calling this again while already active) resets the timer rather than
+   * stacking a second one. Omit `holdMs` for states that stay active until
+   * explicitly deactivated (search toggle, recording, expanded-on-hover).
+   */
+  function activateLocalState(name: BarStateName, holdMs?: number) {
+    const priority = PRIORITY[name];
+    const existing = activeStates.get(name);
+    existing?.timer?.cancel();
+
+    const entry: StateEntry = { priority };
+    if (holdMs !== undefined) {
+      entry.timer = timeout(holdMs, () => deactivateLocalState(name));
+    }
+    activeStates.set(name, entry);
+
+    if (name === "search") {
+      activeSearchMonitors.add(monitorName);
+    }
+
+    timeout(100, () => setBarState(resolveVisibleState()));
+  }
+
+  function deactivateLocalState(name: BarStateName) {
+    if (name === "compact") return; // base is permanent, can't be removed
+    activeStates.get(name)?.timer?.cancel();
+    activeStates.delete(name);
+
+    if (name === "search") {
+      activeSearchMonitors.delete(monitorName);
+    }
+
+    timeout(100, () => setBarState(resolveVisibleState()));
+  }
+
+  // Register this instance so the exported (module-level) activateState()/
+  // deactivateState() -- used by other files, e.g. a keybind opening search,
+  // and by the shared mpris player watcher -- can reach THIS monitor's bar
+  // too. Unregistered on window destroy, further down.
+  const instanceStateController: LocalStateController = {
+    activate: activateLocalState,
+    deactivate: deactivateLocalState,
+  };
+  barInstanceListeners.add(instanceStateController);
+  barInstanceMap.set(monitorName, instanceStateController);
 
   // ---------------------------------------------------------------------
   // Spring physics width animation — lives outside animateWidth so it
@@ -102,110 +378,167 @@ export default ({
   const barWidgets = {} as Record<BarStateName, Gtk.Widget>;
   const barWidths = {} as Record<BarStateName, number>;
 
+  // Auto-animate width on every bar-state change — single source of truth.
+  // barState is now driven by the priority resolver above (per instance);
+  // this block doesn't need to know or care why it changed.
+  const unsubscribeBarStateWidth = barState.subscribe(() => {
+    const name = barState.get();
+    const target = barWidths[name];
+    if (target === undefined) return;
+
+    const current = currentWidth.peek();
+    const growing = target > current;
+
+    if (growing) {
+      animateWidth(target);
+      timeout(100, () => setStackVisibleChild(name));
+    } else {
+      setStackVisibleChild(name);
+      timeout(100, () => animateWidth(target));
+    }
+  });
+
   /**
    * Registers a widget under a bar-state name and caches its measured
    * natural width (plus an explicit padding fudge-factor, replacing the
    * old unexplained `*= 1.5` / `*= 5` multipliers).
    */
-  function registerBarWidget(
-    name: BarStateName,
-    widget: Gtk.Widget,
-    padding: number = 250,
-  ) {
+  function registerBarWidget({
+    name,
+    widget,
+    padding = 250,
+  }: {
+    name: BarStateName;
+    widget: Gtk.Widget;
+    padding?: number;
+    width?: number;
+  }) {
     barWidgets[name] = widget;
     const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
     barWidths[name] = natural + padding;
     return widget;
   }
 
-  const expandedBar = (
-    <centerbox hexpand>
-      {layout
-        .filter((widget) => widget.enabled)
-        .map((widget: WidgetSelector, key) => {
-          switch (widget.name) {
-            case "workspaces":
-              return (
-                <box $type="start">
-                  <Workspaces />
-                </box>
-              );
-            case "information":
-              return (
-                <box $type="center">
-                  <Information />
-                </box>
-              );
-            case "utilities":
-              return (
-                <box $type="end">
-                  <Utilities />
-                </box>
-              );
-            default:
-              return <box />;
-          }
-        })}
-    </centerbox>
-  ) as Gtk.Widget;
+  function SearchBar({ widthRequest }: { widthRequest?: Accessor<number> }) {
+    let entryRef: Gtk.TextView | null = null;
+    let popoverRef: Gtk.Popover | null = null;
+    let settingFromState = false; // guards buffer<->state feedback loop
 
-  const compactBar = (
-    <box spacing={5} halign={Gtk.Align.CENTER} hexpand>
-      <WorkspacesCompact />
-      <Information />
-      <Battery />
-      <Volume />
-    </box>
-  ) as Gtk.Widget;
+    const closePopover = () => {
+      popoverRef?.popdown();
+    };
 
-  // ---------------------------------------------------------------------
-  // Transient-state helper — shows a bar page (volume/brightness/etc),
-  // then decays back to compact after `holdMs` of no further changes.
-  // Replaces the two near-identical animate -> setBarState -> setTimeout
-  // blocks that used to live inline per-signal.
-  // ---------------------------------------------------------------------
-  let transientHideTimeout: ReturnType<typeof setTimeout> | null = null;
+    return (
+      <box class="search-bar">
+        <scrolledwindow vscrollbarPolicy={Gtk.PolicyType.EXTERNAL}>
+          <Gtk.TextView
+            wrapMode={Gtk.WrapMode.WORD_CHAR}
+            hexpand
+            $={(self) => {
+              entryRef = self;
 
-  function showTransientState(name: BarStateName, holdMs = 2000) {
-    animateWidth(barWidths[name]);
-    timeout(100, () => setBarState(name));
+              // state -> widget (e.g. prefillLauncherInput from main.tsx,
+              // or launcher clearing the query on launch)
+              searchQuery.subscribe(() => {
+                const next = searchQuery.get();
+                if (self.buffer.text === next) return;
+                settingFromState = true;
+                self.buffer.text = next;
+                const iter = self.buffer.get_end_iter();
+                self.buffer.place_cursor(iter);
+                settingFromState = false;
+              });
 
-    if (transientHideTimeout) {
-      clearTimeout(transientHideTimeout);
-    }
+              // widget -> state
+              self.buffer.connect("changed", () => {
+                if (settingFromState) return;
+                setSearchQuery(self.buffer.text);
+              });
 
-    transientHideTimeout = setTimeout(() => {
-      animateWidth(barWidths.compact);
-      timeout(100, () => setBarState("compact"));
-    }, holdMs);
+              barState.subscribe(() => {
+                if (barState.get() === "search") {
+                  const window = barWidgets.search?.get_root() as
+                    | Gtk.Window
+                    | undefined;
+                  if (!window) return; // not registered yet — ignore the initial fire
+                  window.keymode = Astal.Keymode.ON_DEMAND; // set BEFORE popup
+                  timeout(50, () => {
+                    popoverRef?.popup();
+                    entryRef?.grab_focus();
+                  });
+                } else {
+                  popoverRef?.popdown();
+                }
+              });
+            }}
+          >
+            <Gtk.EventControllerKey
+              onKeyPressed={(
+                _,
+                keyval: number,
+                _keycode: number,
+                state: number,
+              ) => {
+                if (keyval === Gdk.KEY_Escape) {
+                  closePopover();
+                  return true;
+                }
+
+                const isEnter =
+                  keyval === Gdk.KEY_Return || keyval === Gdk.KEY_KP_Enter;
+                if (!isEnter) return false;
+
+                const isShiftPressed =
+                  (state & Gdk.ModifierType.SHIFT_MASK) !== 0;
+                if (isShiftPressed) return false; // Shift+Enter -> newline
+
+                setSearchActivate(searchActivate.peek() + 1);
+                return true; // swallow Enter so TextView doesn't insert \n
+              }}
+            />
+          </Gtk.TextView>
+        </scrolledwindow>
+
+        <Gtk.Popover
+          autohide={false}
+          hasArrow={false}
+          marginTop={50}
+          $={(self) => {
+            popoverRef = self;
+            self.set_parent(entryRef!);
+            self.set_offset(0, 15); // x, y — replaces marginTop (position offset)
+            self.connect("closed", () => {
+              if (barState.peek() !== "search") return; // only reset if search was active
+              // Local, not the broadcast deactivateState(): closing THIS
+              // monitor's popover (Escape, click-away, launch) must not
+              // close search on every other monitor too.
+              deactivateLocalState("search");
+              setSearchQuery("");
+            });
+          }}
+        >
+          <AppLauncher monitor={monitor} onLaunched={closePopover} />
+        </Gtk.Popover>
+      </box>
+    ) as Gtk.Widget;
   }
 
-  const unsubscribeIsRecording = isRecording.subscribe(() => {
-    const recording = isRecording.peek();
-
-    if (recording) {
-      if (transientHideTimeout) {
-        clearTimeout(transientHideTimeout);
-        transientHideTimeout = null;
-      }
-      animateWidth(barWidths.recording);
-      timeout(100, () => setBarState("recording"));
-    } else if (barState.peek() === "recording") {
-      animateWidth(barWidths.compact);
-      timeout(100, () => setBarState("compact"));
-    }
-  });
   /**
-   * Wires a GObject signal to showTransientState(), with its own
-   * first-render guard and "last seen value" dedupe — each call gets
-   * independent state, so multiple watchers no longer stomp on each
-   * other's `firstRender`/`lastValue` the way the old inline copies did.
+   * Wires a GObject signal to activateLocalState() as a transient pulse
+   * scoped to THIS monitor's bar, with its own first-render guard and "last
+   * seen value" dedupe — each call gets independent state, so multiple
+   * watchers don't stomp on each other's firstRender/lastValue. Each
+   * monitor sets up its own watcher on the same global signal (speaker
+   * volume, screen brightness), so no cross-instance broadcast is needed:
+   * every monitor independently notices the same real-world change and
+   * pulses its own bar.
    */
   function watchTransient<T>(
     connectTo: { connect: (signal: string, cb: () => void) => void },
     signal: string,
     getValue: () => T,
     stateName: BarStateName,
+    holdMs = 2000,
   ) {
     let isFirst = true;
     let last: T;
@@ -224,7 +557,7 @@ export default ({
       if (current === last) return;
       last = current;
 
-      showTransientState(stateName);
+      activateLocalState(stateName, holdMs);
     });
   }
 
@@ -234,50 +567,83 @@ export default ({
       transitionType={Gtk.StackTransitionType.CROSSFADE}
       transitionDuration={250}
       hhomogeneous={false} // Prevents the expanded width from stretching
+      visibleChildName={stackVisibleChild}
       $={(self) => {
-        const syncVisibleChild = () => {
-          const currentState = barState.peek();
-          const targetChild =
-            currentState && self.get_child_by_name(currentState)
-              ? currentState
-              : "compact";
-          self.set_visible_child_name(targetChild);
-        };
-
-        self.add_named(registerBarWidget("compact", compactBar), "compact");
         self.add_named(
-          registerBarWidget("expanded", expandedBar, 500),
+          registerBarWidget({
+            name: "compact",
+            widget: CompactBar(),
+            padding: 400,
+          }),
+          "compact",
+        );
+        self.add_named(
+          registerBarWidget({
+            name: "expanded",
+            widget: ExpandedBar(),
+            padding: 500,
+          }),
           "expanded",
         );
 
-        const volumeWidget = Volume({ widthRequest: currentWidth });
-        self.add_named(registerBarWidget("volume", volumeWidget), "volume");
-
-        const brightnessWidget = BrightnessWidget({
-          widthRequest: currentWidth,
-        });
         self.add_named(
-          registerBarWidget("brightness", brightnessWidget),
+          registerBarWidget({
+            name: "volume",
+            widget: Volume({ widthRequest: currentWidth }),
+          }),
+          "volume",
+        );
+
+        self.add_named(
+          registerBarWidget({
+            name: "brightness",
+            widget: BrightnessWidget({
+              widthRequest: currentWidth,
+            }),
+          }),
           "brightness",
         );
 
-        const recordingWidget = Recording({ widthRequest: currentWidth });
         self.add_named(
-          registerBarWidget("recording", recordingWidget),
+          registerBarWidget({
+            name: "recording",
+            widget: Recording({ widthRequest: currentWidth }),
+          }),
           "recording",
         );
 
+        self.add_named(
+          registerBarWidget({
+            name: "player",
+            widget: PlayerWidget({ widthRequest: currentWidth }),
+            padding: 350,
+          }),
+          "player",
+        );
+
+        self.add_named(
+          registerBarWidget({
+            name: "search",
+            widget: SearchBar({ widthRequest: currentWidth }),
+            padding: 500,
+          }),
+          "search",
+        );
+
+        const networkWidget = NetworkWidget({
+          widthRequest: currentWidth,
+        });
+
+        self.add_named(
+          registerBarWidget({
+            name: "network",
+            widget: networkWidget,
+            padding: 300,
+          }),
+          "network",
+        );
+
         setCurrentWidth(barWidths.compact);
-        syncVisibleChild();
-
-        const unsubscribeBarState = barState.subscribe(() => {
-          syncVisibleChild();
-        });
-
-        self.connect("destroy", () => {
-          unsubscribeBarState();
-          unsubscribeIsRecording();
-        });
 
         const speaker = Wp.get_default()?.audio.defaultSpeaker!;
         watchTransient(
@@ -294,6 +660,29 @@ export default ({
           () => brightness.screen,
           "brightness",
         );
+
+        // Recording is continuous, not transient — it stays active for as
+        // long as isRecording is true, and simply won't be the *visible*
+        // state if something higher-priority (search, a volume pulse,
+        // hover-expanded) is active in the meantime. Each monitor watches
+        // the same global isRecording accessor independently and pulses
+        // its OWN local resolver -- no broadcast needed.
+        const unsubscribeIsRecording = isRecording.subscribe(() => {
+          isRecording.peek()
+            ? activateLocalState("recording")
+            : deactivateLocalState("recording");
+        });
+
+        // Cleanup on window close: drop this instance from the broadcast
+        // registry (so external activateState()/deactivateState() calls
+        // and the shared mpris player watcher stop reaching a destroyed
+        // bar) and unsubscribe the local watchers set up above.
+        self.connect("destroy", () => {
+          barInstanceListeners.delete(instanceStateController);
+          barInstanceMap.delete(monitorName);
+          unsubscribeBarStateWidth();
+          unsubscribeIsRecording();
+        });
       }}
     />
   ) as Gtk.Widget;
@@ -305,19 +694,12 @@ export default ({
       namespace="bar"
       class="Bar"
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
+      keymode={Astal.Keymode.ON_DEMAND}
       anchor={
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.LEFT |
         Astal.WindowAnchor.RIGHT
       }
-      marginTop={globalSettings(({ bar }) => {
-        return bar.orientation.value ? globalMargin : 0;
-      })}
-      marginBottom={globalSettings(({ bar }) => {
-        return !bar.orientation.value ? globalMargin : 0;
-      })}
-      marginRight={globalMargin}
-      marginLeft={globalMargin}
       visible={createComputed(() => {
         return !fullscreenClient() && globalSettings().bar.lock; // Hide when a client is fullscreen
       })}
@@ -347,40 +729,32 @@ export default ({
           $={(self) => {
             const windowInstance = new Window();
             (self as any).barWindow = windowInstance;
-            let compactTimeout: Timer | null = null;
+            let leaveTimer: Timer | null = null;
             const motion = new Gtk.EventControllerMotion();
 
             motion.connect("enter", () => {
-              if (barState.peek() !== "compact" && barState.peek() !== "recording") return;
-
-              if (compactTimeout !== null) {
-                compactTimeout.cancel();
-                compactTimeout = null;
+              if (leaveTimer !== null) {
+                leaveTimer.cancel();
+                leaveTimer = null;
               }
-              animateWidth(barWidths.expanded);
-
-              timeout(100, () => {
-                setBarState("expanded");
-              });
+              // No manual "am I allowed to expand right now" guard needed —
+              // if search or a volume/brightness pulse is active, they
+              // outrank "expanded" in the resolver and stay visible
+              // regardless of this call. Local only: hovering THIS
+              // monitor's bar must never expand another monitor's bar.
+              activateLocalState("expanded");
             });
+
             motion.connect("leave", () => {
-              if (barState.peek() != "expanded") return;
-              if (compactTimeout !== null) {
-                compactTimeout.cancel();
-                compactTimeout = null;
+              if (leaveTimer !== null) {
+                leaveTimer.cancel();
+                leaveTimer = null;
               }
 
-              compactTimeout = timeout(100, () => {
-                compactTimeout = null;
+              leaveTimer = timeout(250, () => {
+                leaveTimer = null;
                 if (!windowInstance.popupIsOpen()) {
-                  const recording = isRecording.peek();
-                  const nextState = recording ? "recording" : "compact";
-
-                  setBarState(nextState);
-
-                  timeout(100, () => {
-                    animateWidth(barWidths[nextState]);
-                  });
+                  deactivateLocalState("expanded");
                 }
               });
             });
