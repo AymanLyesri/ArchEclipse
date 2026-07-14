@@ -65,7 +65,7 @@ network.connect("notify::primary", () => updateActivity(true));
 export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   return (
     <box
-      class="popup-widget"
+      class="network-widget"
       spacing={12}
       widthRequest={widthRequest}
       valign={Gtk.Align.CENTER}

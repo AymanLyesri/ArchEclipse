@@ -43,7 +43,7 @@ import AppHistory, { normalizeHistory } from "./AppHistory";
 
 import Mpris from "gi://AstalMpris";
 import Player from "../Player";
-import { searchActivate, searchQuery } from "../bar/Bar";
+import { searchActivate, searchQuery } from "../bar/sub-components/SearchBar";
 const mpris = Mpris.get_default();
 
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;
@@ -142,13 +142,7 @@ export function AppButton({
  * all handled by the Popover (autohide) instead of manual GestureClick
  * + layer-shell keymode juggling.
  */
-export default ({
-  monitor,
-  onLaunched,
-}: {
-  monitor: Gdk.Monitor;
-  onLaunched: () => void;
-}) => {
+export default ({ onLaunched }: { onLaunched: () => void }) => {
   const [Results, setResults] = createState<LauncherApp[]>([]);
   const [history, setHistory] = createState<string[]>([]);
 

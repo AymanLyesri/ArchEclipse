@@ -171,7 +171,6 @@ export const defaultSettings: Settings = {
       "Enable dynamic theme variants (light/dark) based on the current wallpaper",
   },
   bar: {
-    lock: true,
     orientation: {
       name: "Orientation",
       value: true,

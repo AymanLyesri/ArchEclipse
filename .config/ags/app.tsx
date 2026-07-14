@@ -4,12 +4,10 @@ import Bar, {
   barState,
   deactivateState,
   setBarState,
-  setSearchQuery,
 } from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
 import { logTime, logTimeWidget } from "./utils/time";
 import { compileBinaries } from "./utils/gcc";
-import BarHover from "./widgets/bar/BarHover";
 import RightPanelHover from "./widgets/rightPanel/RightPanelHover";
 import RightPanel from "./widgets/rightPanel/RightPanel";
 import LeftPanel from "./widgets/leftPanel/LeftPanel";
@@ -28,6 +26,7 @@ import AlwaysOnWidget from "./widgets/AlwaysOnWidget";
 import { ensureAuthServerRunning } from "./utils/auth-session";
 import { startFastfetchPinsSync } from "./services/fastfetch";
 import { isRecording, toggleRecording } from "./services/record.service";
+import { setSearchQuery } from "./widgets/bar/sub-components/SearchBar";
 const Notification = Notifd.get_default();
 
 const perMonitorDisplay = () => {

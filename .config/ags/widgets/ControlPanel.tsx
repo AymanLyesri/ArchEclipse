@@ -106,22 +106,6 @@ function Theme() {
   );
 }
 
-function PinBar() {
-  return (
-    <togglebutton
-      active={globalSettings(({ bar }) => bar.lock)}
-      onToggled={({ active }) => {
-        setGlobalSetting("bar.lock", active);
-      }}
-      class="panel-lock icon"
-      label={globalSettings(({ bar }) => (bar.lock ? "" : ""))}
-      tooltipMarkup={globalSettings(({ bar }) =>
-        bar.lock ? `Unlock Bar` : `Lock Bar`,
-      )}
-    />
-  );
-}
-
 function DndToggle() {
   const [hasPing, setHasPing] = createState(false);
   let pingTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -240,7 +224,7 @@ export default () => {
       </box>
       <box spacing={5} halign={Gtk.Align.CENTER}>
         <Theme />
-        <PinBar />
+
         <DndToggle />
         <UserPanel />
         <AppLauncher />
