@@ -99,13 +99,13 @@ hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
 
 --- brightness up
-hl.bind("ALT + F3", hl.dsp.exec_cmd("brightnessctl set +10%"), { locked = true, repeating = true })
+hl.bind("ALT + F3", hl.dsp.exec_cmd("bash -c 'p=$(ls -1 /sys/class/backlight | head -1); c=$(brightnessctl -m -d $p | cut -d, -f4 | tr -d %); for d in /sys/class/backlight/*; do brightnessctl -q --device=\"$(basename $d)\" set $((c+10))%; done'"), { locked = true, repeating = true })
 --- brightness down
-hl.bind("ALT + F2", hl.dsp.exec_cmd("brightnessctl set 10%-"), { locked = true, repeating = true })
+hl.bind("ALT + F2", hl.dsp.exec_cmd("bash -c 'p=$(ls -1 /sys/class/backlight | head -1); c=$(brightnessctl -m -d $p | cut -d, -f4 | tr -d %); for d in /sys/class/backlight/*; do brightnessctl -q --device=\"$(basename $d)\" set $((c-10))%; done'"), { locked = true, repeating = true })
 --- brightness up
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set +10%"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("bash -c 'p=$(ls -1 /sys/class/backlight | head -1); c=$(brightnessctl -m -d $p | cut -d, -f4 | tr -d %); for d in /sys/class/backlight/*; do brightnessctl -q --device=\"$(basename $d)\" set $((c+10))%; done'"), { locked = true, repeating = true })
 --- brightness down
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 10%-"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("bash -c 'p=$(ls -1 /sys/class/backlight | head -1); c=$(brightnessctl -m -d $p | cut -d, -f4 | tr -d %); for d in /sys/class/backlight/*; do brightnessctl -q --device=\"$(basename $d)\" set $((c-10))%; done'"), { locked = true, repeating = true })
 
 -- System Controls
 --- lock
