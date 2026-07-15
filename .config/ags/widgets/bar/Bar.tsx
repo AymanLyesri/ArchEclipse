@@ -477,7 +477,7 @@ export default ({
     >
       <centerbox>
         <box $type="start" hexpand>
-          <Gtk.EventControllerMotion
+          {/* <Gtk.EventControllerMotion
             onEnter={() => {
               if (globalSettings.peek().leftPanel.lock) return;
               const leftPanel = app.get_window(
@@ -486,7 +486,7 @@ export default ({
               print(`left-panel-${monitorName}`);
               leftPanel.show();
             }}
-          />
+          /> */}
         </box>
         <box
           class={"bar"}
@@ -530,7 +530,7 @@ export default ({
           {barStack}
         </box>
         <box $type="end" hexpand>
-          <Gtk.EventControllerMotion
+          {/* <Gtk.EventControllerMotion
             onEnter={() => {
               if (globalSettings.peek().rightPanel.lock) return;
               const rightPanel = app.get_window(
@@ -539,7 +539,7 @@ export default ({
               print(`right-panel-${monitorName}`);
               rightPanel.show();
             }}
-          />
+          /> */}
         </box>
       </centerbox>
     </window>

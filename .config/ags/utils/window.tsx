@@ -44,17 +44,27 @@ export const queueResize = (window: Gtk.Window | null) => {
 };
 
 class Window {
-  private _popupIsOpen: boolean = false;
+  private _openPopovers: Set<Gtk.Popover> = new Set();
   private _isDragging: boolean = false;
 
   constructor() {}
 
   public popupIsOpen(): boolean {
-    return this._popupIsOpen;
+    return this._openPopovers.size > 0;
   }
 
+  // Kept for compatibility if anything still calls this directly —
+  // but prefer addOpenPopover/removeOpenPopover below.
   public setPopupIsOpen(value: boolean): void {
-    this._popupIsOpen = value;
+    if (!value) this._openPopovers.clear();
+  }
+
+  public addOpenPopover(popover: Gtk.Popover): void {
+    this._openPopovers.add(popover);
+  }
+
+  public removeOpenPopover(popover: Gtk.Popover): void {
+    this._openPopovers.delete(popover);
   }
 
   public isDragging(): boolean {
@@ -97,23 +107,24 @@ export const connectPopoverEvents = (
       : null;
   };
 
-  // Try to connect immediately if popover exists
   const tryConnect = () => {
     const currentPopover = getPopover();
     if (currentPopover) {
       const updatePopupState = () => {
         const windowInstance = findWindowInstance();
-        if (windowInstance && windowInstance.setPopupIsOpen) {
-          windowInstance.setPopupIsOpen(currentPopover.visible);
+        if (!windowInstance) return;
+
+        if (currentPopover.visible) {
+          windowInstance.addOpenPopover?.(currentPopover);
+        } else {
+          windowInstance.removeOpenPopover?.(currentPopover);
         }
       };
 
       currentPopover.connect("notify::visible", updatePopupState);
       currentPopover.connect("destroy", () => {
         const windowInstance = findWindowInstance();
-        if (windowInstance && windowInstance.setPopupIsOpen) {
-          windowInstance.setPopupIsOpen(false);
-        }
+        windowInstance?.removeOpenPopover?.(currentPopover);
       });
       updatePopupState();
       return true;

@@ -7,9 +7,13 @@
     transform: scale(3);
   }
 
+  .recording-label {
+    font-size: 1.1em;
+  }
+
   .recording-time {
-    font-size: 12px;
+    font-size: 1.1em;
     padding: 0px 5px;
-    color: $foreground;
+    color: $foreground-secondary;
   }
 }

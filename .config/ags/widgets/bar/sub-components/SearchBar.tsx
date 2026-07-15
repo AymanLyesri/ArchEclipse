@@ -95,6 +95,14 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           popoverRef = self;
           self.set_parent(entryRef!);
           self.set_offset(0, 15); // x, y — this replaces marginTop
+          self.connect("notify::visible", () => {
+            if (self.visible) {
+              self.add_css_class("popover-open");
+            } else {
+              self.remove_css_class("popover-open");
+            }
+          });
+
           self.connect("closed", () => {
             if (barState.peek() !== "search") return; // only reset if search was active
             deactivateState("search");
