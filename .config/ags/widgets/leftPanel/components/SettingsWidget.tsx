@@ -4,6 +4,7 @@ import { Gdk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
 import Hyprland from "gi://AstalHyprland";
 import GObject from "ags/gobject";
+import Pango from "gi://Pango";
 import { createBinding, createState, createComputed, Accessor, For } from "ags";
 import { execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
@@ -23,6 +24,83 @@ import { hyprThemeConfPath } from "../../../constants/path.constants";
 const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/config/custom";
+
+// Wallpaper mode / primary choices (shared with the wallpaper switcher)
+export const wallpaperModeChoices = [
+  { label: "Per Workspace", value: "workspace" },
+  { label: "Global", value: "global" },
+];
+
+export const wallpaperPrimaryChoices = [
+  { label: "Workspace 1", value: "workspace1" },
+  { label: "Custom", value: "custom" },
+];
+
+// Re-resolve and apply the wallpaper that should be shown now (any type) on
+// every connected monitor. Used for mode/primary and Wallpaper Engine launch
+// options (fps/volume/mute/...), which need a fresh engine to take effect.
+export const applyCurrentWallpapers = () => {
+  execAsync([
+    "bash",
+    "-c",
+    `for m in $(hyprctl monitors -j | jq -r '.[].name'); do "$HOME/.config/hypr/wallpaper-daemon/apply-current.sh" "$m"; done`,
+  ]).catch((err) => notify({ summary: "Error", body: String(err) }));
+};
+
+// Send a live command to running Wallpaper Engine processes (no restart). Used
+// for scaling/clamp/speed/property tweaks.
+// Send a live control command to the running engine(s). The ctl script exits
+// non-zero (and prints a reason) when no engine is reachable or it rejects the
+// command, so a dead/orphaned socket no longer fails silently — we surface it.
+export const controlWE = (args: string): Promise<boolean> =>
+  execAsync([
+    "bash",
+    "-c",
+    `"$HOME/.config/hypr/wallpaper-daemon/wallpaperengine-ctl.sh" ${args}`,
+  ])
+    .then(() => true)
+    .catch(() => {
+      notify({
+        summary: "Wallpaper Engine",
+        body: `Couldn't apply "${args}" live — the engine isn't reachable. It will apply on the next reload.`,
+      });
+      return false;
+    });
+
+// Restart running engines (for changes that can't be applied live, e.g. the
+// audio capture device).
+export const restartWE = () =>
+  execAsync([
+    "bash",
+    "-c",
+    `"$HOME/.config/hypr/wallpaper-daemon/wallpaperengine-restart.sh"`,
+  ]).catch(() => {});
+
+// Try to apply a change live; if the running engine can't (socket dead, or the
+// command isn't supported by that build), fall back to a full restart so the
+// change always takes effect — no manual switch-back-and-forth needed.
+export const controlWEOrRestart = (args: string): Promise<void> =>
+  execAsync([
+    "bash",
+    "-c",
+    `"$HOME/.config/hypr/wallpaper-daemon/wallpaperengine-ctl.sh" ${args}`,
+  ])
+    .then(() => undefined)
+    .catch(() => restartWE().then(() => undefined));
+
+// Wallpaper Engine option choices (shared with the wallpaper switcher)
+export const weScalingChoices = [
+  { label: "Default", value: "default" },
+  { label: "Fill", value: "fill" },
+  { label: "Fit", value: "fit" },
+  { label: "Stretch", value: "stretch" },
+];
+
+export const weClampChoices = [
+  { label: "Clamp", value: "clamp" },
+  { label: "Border", value: "border" },
+  { label: "Repeat", value: "repeat" },
+];
 
 const setThemeFlagInConf = (
   flag: "autocolor" | "autovariant",
@@ -67,6 +145,90 @@ function addUserToInputGroup() {
     })
     .catch((err) => notify({ summary: "Error", body: err.toString() }));
 }
+
+// Audio OUTPUT devices for reactive Wallpaper Engine wallpapers (detected at
+// runtime). value = monitor source name, label = friendly description.
+const [audioSources, setAudioSources] = createState<
+  { value: string; label: string }[]
+>([]);
+
+const detectAudioSources = async () => {
+  try {
+    const out = await execAsync([
+      "bash",
+      "-c",
+      `"$HOME/.config/hypr/wallpaper-daemon/wallpaperengine-audio-devices.sh"`,
+    ]);
+    setAudioSources(
+      out
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          const [value, label] = line.split("\t");
+          return { value, label: label || value };
+        }),
+    );
+  } catch {
+    setAudioSources([]);
+  }
+};
+
+// Dropdown to pick the audio capture source (empty = system default output).
+const AudioDeviceSelector = () => (
+  <box
+    orientation={Gtk.Orientation.VERTICAL}
+    spacing={5}
+    $={() => detectAudioSources()}
+  >
+    <label
+      class="subcategory-label"
+      label="Audio Device (reactive wallpapers)"
+      halign={Gtk.Align.START}
+    />
+    <menubutton class="category-selector" halign={Gtk.Align.START}>
+      <label
+        ellipsize={Pango.EllipsizeMode.END}
+        maxWidthChars={28}
+        label={globalSettings(({ wallpaperEngine }) => {
+          const v = wallpaperEngine.audioDevice.value;
+          if (!v) return "System Default";
+          const found = audioSources.peek().find((s) => s.value === v);
+          if (found) return found.label;
+          // Friendlier fallback for a raw PulseAudio node name (the full path is
+          // huge and used to force the whole settings panel wider than it should be).
+          return v.replace(/^alsa_(output|input)\./, "").replace(/\.monitor$/, "");
+        })}
+      />
+      <popover>
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={5} class="popover">
+          <button
+            class="category"
+            label="System Default"
+            onClicked={() => {
+              setGlobalSetting("wallpaperEngine.audioDevice.value", "");
+              controlWEOrRestart(`set audiodevice default`);
+            }}
+          />
+          <For each={audioSources}>
+            {(src) => (
+              <button
+                class="category"
+                label={src.label}
+                onClicked={() => {
+                  setGlobalSetting(
+                    "wallpaperEngine.audioDevice.value",
+                    src.value,
+                  );
+                  controlWEOrRestart(`set audiodevice ${src.value}`);
+                }}
+              />
+            )}
+          </For>
+        </box>
+      </popover>
+    </menubutton>
+  </box>
+);
 
 // File Manager options with display names and commands
 const fileManagerOptions = [
@@ -330,18 +492,22 @@ const BarLayoutSetting = () => {
   );
 };
 
-const Setting = ({
+export const Setting = ({
   keyChanged,
   setting,
   callBack,
   choices,
+  compact = false,
 }: {
   keyChanged: string;
   setting: AGSSetting;
   callBack?: (newValue?: any) => void;
   choices?: { label: string; value: any }[];
+  compact?: boolean;
 }) => {
-  const Title = () => <label hexpand xalign={0} label={setting.name} />;
+  const Title = () => (
+    <label hexpand={!compact} xalign={0} label={setting.name} />
+  );
 
   const SliderWidget = () => {
     const infoLabel = (
@@ -357,7 +523,12 @@ const Setting = ({
 
     const Slider = (
       <slider
-        widthRequest={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
+        widthRequest={
+          compact
+            ? 140
+            : globalSettings(({ leftPanel }) => leftPanel.width / 2)
+        }
+        hexpand={!compact}
         class="slider"
         drawValue={false}
         min={setting.min}
@@ -385,6 +556,16 @@ const Setting = ({
       />
     );
 
+    if (compact) {
+      return (
+        <box spacing={5} halign={Gtk.Align.START} valign={Gtk.Align.CENTER}>
+          <Title />
+          {Slider}
+          {infoLabel}
+        </box>
+      );
+    }
+
     return (
       <box spacing={5}>
         <Title />
@@ -398,7 +579,7 @@ const Setting = ({
 
   const SwitchWidget = () => {
     const infoLabel = (
-      <label hexpand={true} label={setting.value ? "On" : "Off"} />
+      <label hexpand={false} label={setting.value ? "On" : "Off"} />
     ) as Gtk.Label;
 
     const Switch = (
@@ -413,6 +594,16 @@ const Setting = ({
       />
     );
 
+    if (compact) {
+      return (
+        <box spacing={5} halign={Gtk.Align.START} valign={Gtk.Align.CENTER}>
+          <Title />
+          {Switch}
+          {infoLabel}
+        </box>
+      );
+    }
+
     return (
       <box spacing={5}>
         <Title />
@@ -426,13 +617,19 @@ const Setting = ({
 
   const SelectWidget = () => {
     return (
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
+      <box
+        orientation={Gtk.Orientation.VERTICAL}
+        spacing={10}
+        halign={compact ? Gtk.Align.START : Gtk.Align.FILL}
+      >
         <Title />
-        <box spacing={5}>
+        {/* In the settings panel (non-compact) fill the panel width so the choice
+            buttons share it; in the compact switcher keep them natural-width. */}
+        <box spacing={5} hexpand={!compact}>
           {choices &&
             choices.map((choice) => (
               <togglebutton
-                hexpand
+                hexpand={!compact}
                 label={choice.label}
                 active={globalSettings((s) => {
                   // get current value from AGSSetting from settings
@@ -670,6 +867,9 @@ export default () => {
     <box class="settings" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <scrolledwindow
         vexpand
+        // Never scroll horizontally: constrain content to the panel width so the choice
+        // FlowBoxes wrap to a second row instead of overflowing/clipping at the edge.
+        hscrollbarPolicy={Gtk.PolicyType.NEVER}
         $={() =>
           // Initialize detection
           detectFileManagers()
@@ -782,6 +982,90 @@ export default () => {
                 },
               ]}
             />
+          </box>
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={16}
+          >
+            <label label="Wallpaper" halign={Gtk.Align.START} />
+            <Setting
+              keyChanged="wallpaper.mode"
+              setting={globalSettings.peek().wallpaper.mode}
+              choices={wallpaperModeChoices}
+              callBack={applyCurrentWallpapers}
+            />
+            <Setting
+              keyChanged="wallpaper.primarySource"
+              setting={globalSettings.peek().wallpaper.primarySource}
+              choices={wallpaperPrimaryChoices}
+              callBack={applyCurrentWallpapers}
+            />
+            <Setting
+              keyChanged="wallpaper.playbackSpeed"
+              setting={globalSettings.peek().wallpaper.playbackSpeed}
+              callBack={(v) => controlWE(`speed ${v}`)}
+            />
+          </box>
+          <box
+            class={"category"}
+            orientation={Gtk.Orientation.VERTICAL}
+            spacing={16}
+          >
+            <label label="Wallpaper Engine" halign={Gtk.Align.START} />
+            <Setting
+              keyChanged="wallpaperEngine.scaling"
+              setting={globalSettings.peek().wallpaperEngine.scaling}
+              choices={weScalingChoices}
+              callBack={(v) => controlWE(`scaling ${v}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.clamping"
+              setting={globalSettings.peek().wallpaperEngine.clamping}
+              choices={weClampChoices}
+              callBack={(v) => controlWE(`clamp ${v}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.fps"
+              setting={globalSettings.peek().wallpaperEngine.fps}
+              callBack={(v) => controlWE(`set fps ${v}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.renderScale"
+              setting={globalSettings.peek().wallpaperEngine.renderScale}
+              callBack={(v) => controlWEOrRestart(`set renderscale ${v}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.volume"
+              setting={globalSettings.peek().wallpaperEngine.volume}
+              callBack={(v) => controlWE(`volume ${v}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.mute"
+              setting={globalSettings.peek().wallpaperEngine.mute}
+              callBack={(v) => controlWE(`mute ${v ? 1 : 0}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.noAutomute"
+              setting={globalSettings.peek().wallpaperEngine.noAutomute}
+              callBack={(v) => controlWE(`set noautomute ${v ? 1 : 0}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.disableMouse"
+              setting={globalSettings.peek().wallpaperEngine.disableMouse}
+              callBack={(v) => controlWE(`set disablemouse ${v ? 1 : 0}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.disableParallax"
+              setting={globalSettings.peek().wallpaperEngine.disableParallax}
+              callBack={(v) => controlWE(`set disableparallax ${v ? 1 : 0}`)}
+            />
+            <Setting
+              keyChanged="wallpaperEngine.noFullscreenPause"
+              setting={globalSettings.peek().wallpaperEngine.noFullscreenPause}
+              callBack={(v) => controlWE(`set nofullscreenpause ${v ? 1 : 0}`)}
+            />
+            <AudioDeviceSelector />
           </box>
           <box
             class={"category"}

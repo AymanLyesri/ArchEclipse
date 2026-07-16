@@ -20,8 +20,23 @@ for pid in $(pgrep -x mpvpaper); do
     fi
 done
 
+# Stop any linux-wallpaperengine instance bound to this monitor
+for pid in $(pgrep -f "linux-wallpaperengine"); do
+    if tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q -- "--screen-root $monitor"; then
+        kill "$pid" 2>/dev/null
+    fi
+done
+
+# Read playback speed from settings (defaults to 1 = normal).
+settings="$HOME/.config/ags/cache/settings/settings.json"
+speed="1"
+if command -v jq >/dev/null 2>&1 && [ -f "$settings" ]; then
+    s="$(jq -r '(.wallpaper.playbackSpeed.value) // 1' "$settings" 2>/dev/null)"
+    [ -n "$s" ] && [ "$s" != "null" ] && speed="$s"
+fi
+
 # Start mpvpaper in background for animated/video wallpapers
-nohup mpvpaper -o "no-audio --loop --fs --panscan=1.0" "$monitor" "$wallpaper" >/dev/null 2>&1 &
+nohup mpvpaper -o "no-audio --loop --fs --panscan=1.0 --speed=$speed" "$monitor" "$wallpaper" >/dev/null 2>&1 &
 
 sleep 1 # Wait for wallpaper to be set (removes stuttering)
 
