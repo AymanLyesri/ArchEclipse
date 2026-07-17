@@ -40,9 +40,112 @@ The project spans multiple languages and layers of the stack:
 
 ## Architecture & Technical Highlights
 
+### Architecture
+
+```mermaid
+graph TB
+    subgraph Install["Setup & maintenance"]
+        Installer["install.py / update.py<br/>Python installer"]
+        Pacman["pacman/pkglist.txt<br/>package list"]
+        Archeclipse["archeclipse CLI<br/>update wrapper"]
+    end
+
+    subgraph Hypr["Hyprland — window manager (Lua)"]
+        HyprMain["hyprland.lua<br/>entry point"]
+        HyprConfig["config/*.lua<br/>bind, animations, monitor,<br/>windowrule, gesture, input"]
+        HyprScripts["scripts / scripts-c<br/>screenshot, screenrecord,<br/>hyprlock, wallpaper-loop"]
+        WallpaperDaemon["wallpaper-daemon<br/>hyprpaper / mpvpaper"]
+        Evremap["evremap<br/>key remapping service"]
+    end
+
+    subgraph AGS["AGS / Astal shell (GTK4 + TypeScript)"]
+        App["app.tsx<br/>shell bootstrap"]
+
+        subgraph BarSys["Bar system"]
+            Bar["Bar.tsx<br/>state machine:<br/>compact/expanded/search/<br/>volume/brightness/recording"]
+            CompactBar["CompactBar.tsx"]
+            ExpandedBar["ExpandedBar.tsx"]
+            SearchBar["SearchBar.tsx"]
+            BarSub["sub-components<br/>Battery, Volume, Bandwidth,<br/>Brightness, Player, Recording"]
+        end
+
+        AppLauncher["AppLauncher.tsx<br/>Gtk.Popover launcher +<br/>QuickApps + AppHistory"]
+
+        subgraph Panels["Side panels"]
+            LeftPanel["LeftPanel.tsx<br/>Settings, ChatBot,<br/>BooruViewer, MangaViewer,<br/>KeyBinds, UserProfile"]
+            RightPanel["RightPanel.tsx<br/>Calendar, Notifications,<br/>SystemResources, Crypto, Waifu"]
+        end
+
+        subgraph Core["Core layers"]
+            Widgets["widgets/<br/>reusable TSX components"]
+            Services["services/<br/>brightness, record,<br/>autoSwitchWorkspace"]
+            Utils["utils/<br/>settings-sync, auth-session,<br/>color, icon, notification"]
+            Classes["class/<br/>Supabase.class.tsx<br/>BooruImage.class.tsx"]
+            Constants["constants/ + interfaces/<br/>typed config & API contracts"]
+            SCSS["scss/<br/>bar, panel, widgets themes"]
+        end
+
+        subgraph NativeScripts["Native/companion scripts"]
+            CLoops["*.c loops<br/>system-resources, bandwidth,<br/>keystroke visualizer"]
+            PyScripts["*.py<br/>chatbot, booru, manga,<br/>crypto, auth-callback"]
+            ShScripts["*.sh<br/>get-wallpapers, translate,<br/>get-keybinds, image-color"]
+        end
+    end
+
+    subgraph Backend["External services"]
+        Supabase[("Supabase<br/>auth + RLS + settings sync")]
+        APIs[("Booru / manga / crypto /<br/>weather / chatbot APIs")]
+    end
+
+    Installer --> Pacman
+    Installer --> HyprMain
+    Archeclipse --> Installer
+
+    HyprMain --> HyprConfig
+    HyprConfig --> HyprScripts
+    HyprConfig --> WallpaperDaemon
+    HyprConfig --> Evremap
+    HyprMain -- "spawns/execs" --> App
+
+    App --> BarSys
+    App --> AppLauncher
+    App --> Panels
+    App --> Core
+
+    Bar --> CompactBar
+    Bar --> ExpandedBar
+    Bar --> SearchBar
+    Bar --> BarSub
+    SearchBar -.->|opens| AppLauncher
+
+    Widgets --> Core
+    LeftPanel --> Widgets
+    RightPanel --> Widgets
+    BarSys --> Widgets
+
+    Core --> NativeScripts
+    Utils --> Classes
+    Classes -->|"auth, settings sync"| Supabase
+    NativeScripts -->|"HTTP calls"| APIs
+
+    SCSS -.->|styles| App
+
+    classDef install fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    classDef hypr fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    classDef ags fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+    classDef core fill:#E6F1FB,stroke:#185FA5,color:#042C53
+    classDef ext fill:#FAEEDA,stroke:#854F0B,color:#412402
+
+    class Installer,Pacman,Archeclipse install
+    class HyprMain,HyprConfig,HyprScripts,WallpaperDaemon,Evremap hypr
+    class App,Bar,CompactBar,ExpandedBar,SearchBar,BarSub,AppLauncher,LeftPanel,RightPanel ags
+    class Widgets,Services,Utils,Classes,Constants,SCSS,CLoops,PyScripts,ShScripts core
+    class Supabase,APIs ext
+```
+
 ### Dynamic Theming Engine
 
-A custom pipeline generates a full system color scheme from the active wallpaper at runtime using [PyWal](https://github.com/dylanaraps/pywal). Colors propagate automatically to GTK4 widgets, terminal, and all UI components. No manual color editing required — ever.
+A custom pipeline generates a full system color scheme from the active wallpaper at runtime using [Cwal](https://github.com/nitinbhat972/cwal) a custom C implementation of PyWal (10-50x faster, zero Python overhead) that generates a full color scheme at runtime. Colors propagate automatically to GTK4 widgets, terminal, and all UI components. No manual color editing required — ever.
 
 - Per-workspace wallpaper assignment with both static and animated (video) support
 - Global light/dark mode toggle with instant application across the entire environment
@@ -136,7 +239,6 @@ archeclipse
 
 - [ ] Per-component tutorials and documentation _(in progress)_
 - [ ] Gaming performance optimization _(in progress)_
-- [ ] MangaDex manga reader _(in progress)_
 - [ ] Continuous polish and refinement _(ongoing)_
 
 Issues, suggestions, and feature requests are always welcome — [open one here](https://github.com/AymanLyesri/ArchEclipse/issues).

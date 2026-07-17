@@ -178,7 +178,7 @@ export default ({
         motion.connect("leave", () => {
           if (globalSettings.peek().leftPanel.lock) return;
 
-          hideTimeout = timeout(500, () => {
+          hideTimeout = timeout(0, () => {
             hideTimeout = null;
             if (
               !globalSettings.peek().leftPanel.lock &&
@@ -212,32 +212,3 @@ export default ({
     </window>
   );
 };
-
-export function LeftPanelVisibility() {
-  return (
-    <revealer
-      revealChild={globalSettings(({ leftPanel }) => leftPanel.lock)}
-      transitionType={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      transitionDuration={globalTransition}
-    >
-      <togglebutton
-        active={false}
-        label={""}
-        onToggled={(self) => {
-          const leftPanel = app.get_window(
-            `left-panel-${(self.get_root() as any).monitorName}`,
-          ) as Gtk.Window;
-          if (self.active) {
-            leftPanel.show();
-            self.label = "";
-          } else {
-            leftPanel.hide();
-            self.label = "";
-          }
-        }}
-        class="panel-trigger"
-        tooltipText={"SUPER + L"}
-      />
-    </revealer>
-  );
-}

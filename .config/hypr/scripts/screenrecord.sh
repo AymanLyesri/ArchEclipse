@@ -1,20 +1,24 @@
 #!/bin/bash
-screenshot_dir="$HOME/Videos/ScreenRecords"
+screenrecord_dir="$HOME/Videos/ScreenRecords"
+screenrecord_fullscreen_dir="$screenrecord_dir/fullscreen"
+screenrecord_area_dir="$screenrecord_dir/area"
 pid_file="/tmp/screenrecord.pid"
 file_name="/tmp/screenrecord_name"
 
-mkdir -p "$screenshot_dir"
+mkdir -p "$screenrecord_dir"
+mkdir -p "$screenrecord_fullscreen_dir"
+mkdir -p "$screenrecord_area_dir"
 
 start() {
     timestamp=$(date +%Y%m%d_%H%M%S)
     audio_source=$(pactl get-default-sink).monitor
     
     if [[ "$1" == "--area" ]]; then
-        file="$screenshot_dir/screenrecord_area_${timestamp}.mp4"
+        file="$screenrecord_area_dir/screenrecord_area_${timestamp}.mp4"
         geometry=$(slurp) || exit 1  # user cancelled selection
         wf-recorder -g "$geometry" -a"$audio_source" -p crf=24 -p preset=medium -F fps=60 -f "$file" &
     else
-        file="$screenshot_dir/screenrecord_${timestamp}.mp4"
+        file="$screenrecord_fullscreen_dir/screenrecord_${timestamp}.mp4"
         wf-recorder -a"$audio_source" -p crf=24 -p preset=medium -F fps=60 -f "$file" &
     fi
     

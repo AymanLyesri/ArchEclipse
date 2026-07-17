@@ -284,7 +284,7 @@ export default ({
           const windowInstance = (self as any).rightPanelWindow;
           if (windowInstance && windowInstance.isDragging()) return;
 
-          hideTimeout = timeout(500, () => {
+          hideTimeout = timeout(0, () => {
             hideTimeout = null;
 
             hideWindow(`right-panel-${monitorName}`);

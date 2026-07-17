@@ -1,9 +1,13 @@
 #!/bin/bash
 timestamp=$(date +%Y%m%d_%H%M%S)
 screenshot_dir="$HOME/Pictures/Screenshots"
+screenshot_fullscreen_dir="$screenshot_dir/fullscreen"
+screenshot_area_dir="$screenshot_dir/area"
 
 # create screenshot directory if it doesn't exist
 mkdir -p "$screenshot_dir"
+mkdir -p "$screenshot_fullscreen_dir"
+mkdir -p "$screenshot_area_dir"
 
 # check if file argument is passed as second argument
 if [[ "$2" ]]; then
@@ -14,12 +18,12 @@ fi
 # notify and view screenshot
 
 if [[ "$1" == "--now" ]]; then
-    img="$screenshot_dir/screenshot_$timestamp.webp"
+    img="$screenshot_fullscreen_dir/screenshot_$timestamp.webp"
     # Full output
     grimblast --freeze save screen "$img"
     
     elif [[ "$1" == "--area" ]]; then
-    img="$screenshot_dir/screenshot_area_$timestamp.webp"
+    img="$screenshot_area_dir/screenshot_area_$timestamp.webp"
     # Select region
     grimblast --freeze save area "$img"
     
