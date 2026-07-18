@@ -4,4 +4,17 @@
 
   padding: 5px;
   background: $background-transparent;
+
+  &.compact {
+    button,
+    .custom-revealer {
+      background-color: transparent;
+    }
+
+    /* Currently focused workspace */
+    button.is-focused {
+      background-color: $background-transparent;
+      // min-width: 50px;
+    }
+  }
 }

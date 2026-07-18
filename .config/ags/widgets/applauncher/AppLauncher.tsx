@@ -403,8 +403,6 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
     <box
       class="app-launcher"
       spacing={10}
-      widthRequest={900}
-      heightRequest={500}
       $={(self) => {
         // React to global search text/activate, scoped to this monitor
         searchQuery.subscribe(() => {

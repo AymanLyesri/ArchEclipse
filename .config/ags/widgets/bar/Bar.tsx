@@ -167,11 +167,11 @@ function watchPlayerTransient(player: AstalMpris.Player) {
     });
   };
 
-  player.connect("notify::playback-status", () => {
-    if (player.playbackStatus === lastStatus) return;
-    lastStatus = player.playbackStatus;
-    pulse();
-  });
+  // player.connect("notify::playback-status", () => {
+  //   if (player.playbackStatus === lastStatus) return;
+  //   lastStatus = player.playbackStatus;
+  //   pulse();
+  // });
 
   player.connect("notify::title", () => {
     if (player.title === lastTitle) return;
@@ -489,7 +489,7 @@ export default ({
           /> */}
         </box>
         <box
-          class={"bar"}
+          class={barState((state) => `bar ${state}`)}
           $type="center"
           widthRequest={currentWidth}
           $={(self) => {

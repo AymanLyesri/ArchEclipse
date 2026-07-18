@@ -26,6 +26,8 @@
 !.config/wallpapers/
 # include starship config
 !.config/starship.toml
+# include btop config
+!.config/btop/
 
 # include icons (cursort theme)
 !.icons/

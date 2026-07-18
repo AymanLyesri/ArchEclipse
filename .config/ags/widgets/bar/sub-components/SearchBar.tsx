@@ -45,17 +45,18 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
             });
 
             barState.subscribe(() => {
+              if (!entryRef) return;
+              const window = entryRef.get_root() as Gtk.Window | undefined;
+              if (!window) return; // not registered yet — ignore the initial fire
               if (barState.get() === "search") {
-                if (!entryRef) return;
-                const window = entryRef.get_root() as Gtk.Window | undefined;
-                if (!window) return; // not registered yet — ignore the initial fire
-                window.keymode = Astal.Keymode.ON_DEMAND; // set BEFORE popup
+                window.keymode = Astal.Keymode.EXCLUSIVE; // set BEFORE popup
                 timeout(50, () => {
                   popoverRef?.popup();
                   entryRef?.grab_focus();
                 });
               } else {
                 popoverRef?.popdown();
+                window.keymode = Astal.Keymode.ON_DEMAND;
               }
             });
           }}
