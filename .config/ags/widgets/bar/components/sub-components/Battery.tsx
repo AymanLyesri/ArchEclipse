@@ -39,10 +39,10 @@ export default () => {
   return (
     <menubutton
       visible={createBinding(battery, "isPresent")}
-      tooltipMarkup={createComputed(() => {
-        const profile = powerprofiles.active_profile;
-        return `Battery: ${percent.peek()} \nProfile: ${profile}`;
-      })}
+      tooltipMarkup={createComputed(
+        [percent, createBinding(powerprofiles, "activeProfile")], 
+        (p, profile) => `Battery: ${p} \nProfile: ${profile}`
+      )}
       $={(self) => connectPopoverEvents(self, "barWindow", popover)}
     >
       <box spacing={5} class="battery">
