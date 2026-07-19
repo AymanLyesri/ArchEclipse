@@ -160,11 +160,23 @@ export default ({
                   setProgressStatus("loading");
                   const target = targetType.peek();
                   const command = {
-                    sddm: `pkexec bash -c 'sed -i "s|^background=.*|background=${wallpaper}|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf'`,
-                    lockscreen: `bash -c "mkdir -p $HOME/.config/wallpapers/lockscreen && cp ${wallpaper} $HOME/.config/wallpapers/lockscreen/wallpaper"`,
-                    workspace: `bash -c "$HOME/.config/hypr/wallpaper-daemon/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
-                      (self.get_root() as any).monitorName
-                    } ${wallpaper}"`,
+                    sddm: [
+                      "pkexec",
+                      "bash",
+                      "-c",
+                      `sed -i "s|^background=.*|background=${wallpaper}|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf`,
+                    ],
+                    lockscreen: [
+                      "bash",
+                      "-c",
+                      `mkdir -p \$HOME/.config/wallpapers/lockscreen && cp "${wallpaper}" \$HOME/.config/wallpapers/lockscreen/wallpaper`,
+                    ],
+                    workspace: [
+                      `${GLib.get_home_dir()}/.config/hypr/wallpaper-daemon/set-wallpaper.sh`,
+                      String(selectedWorkspaceId.peek()),
+                      String((self.get_root() as any).monitorName),
+                      wallpaper,
+                    ],
                   }[target];
 
                   execAsync(command!)
@@ -297,11 +309,12 @@ export default ({
             selectedWallpapers.peek()[
               Math.floor(Math.random() * selectedWallpapers.peek().length)
             ];
-          execAsync(
-            `bash -c "$HOME/.config/hypr/wallpaper-daemon/set-wallpaper.sh ${selectedWorkspaceId.peek()} ${
-              (self.get_root() as any).monitorName
-            } ${randomWallpaper}"`,
-          )
+          execAsync([
+            `${GLib.get_home_dir()}/.config/hypr/wallpaper-daemon/set-wallpaper.sh`,
+            String(selectedWorkspaceId.peek()),
+            String((self.get_root() as any).monitorName),
+            randomWallpaper,
+          ])
             .finally(() => {
               FetchCurrentWallpapers((self.get_root() as any).monitorName);
               setProgressStatus("success");

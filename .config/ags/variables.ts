@@ -13,7 +13,10 @@ import { defaultSettings } from "./constants/settings.constants";
 import { createSubprocess, exec, execAsync } from "ags/process";
 import { notify } from "./utils/notification";
 import { SystemResourcesInterface } from "./interfaces/systemResources.interface";
-import { weatherInterface } from "./interfaces/weather.interface";
+import {
+  weatherInterface,
+  OpenMeteoResponse,
+} from "./interfaces/weather.interface";
 import Gio from "gi://Gio";
 import { monitorFile } from "ags/file";
 
@@ -123,50 +126,88 @@ const [weatherData, setWeatherData] = createState<weatherInterface | null>(
 
 export const updateWeather = async () => {
   try {
-    // We read from the global settings (we use any so that TypeScript doesn't complain about the lack of an interface)
-    const settings = globalSettings.peek() as any;
+    const settings = globalSettings.peek() as Settings;
     let lat = settings.weather?.lat;
     let lon = settings.weather?.lon;
+    let detectedCity = "";
 
     // If the coordinates are not specified, we determine by IP
     if (!lat || !lon) {
-      const locOut = await execAsync([
-        "bash",
-        "-c",
-        `curl -fsSL https://ipapi.co/latlong || curl -fsSL https://ifconfig.co/coordinates || curl -fsSL https://ipinfo.io/loc`,
-      ]);
-      const loc = locOut.trim().split(",");
-      if (loc.length >= 2) {
-        lat = loc[0];
-        lon = loc[1];
+      try {
+        // We make a request to ipinfo.io, which returns the coordinates in the "loc" field and the city name in "city"
+        const ipOut = await execAsync([
+          "curl",
+          "-fsSL",
+          "https://ipinfo.io/json",
+        ]);
+        const ipData = JSON.parse(ipOut);
+
+        if (ipData.loc) {
+          const loc = ipData.loc.split(",");
+          lat = loc[0];
+          lon = loc[1];
+        }
+        if (ipData.city) {
+          detectedCity = ipData.city;
+        }
+      } catch (ipErr) {
+        // Fallback via ifconfig.co if ipinfo.io doesn't respond
+        try {
+          const backupOut = await execAsync([
+            "curl",
+            "-fsSL",
+            "https://ifconfig.co/json",
+          ]);
+          const backupData = JSON.parse(backupOut);
+          if (backupData.latitude && backupData.longitude) {
+            lat = backupData.latitude;
+            lon = backupData.longitude;
+          }
+          if (backupData.city) {
+            detectedCity = backupData.city;
+          }
+        } catch (backupErr) {
+          console.error("Failed to detect location by IP:", backupErr);
+        }
       }
     }
 
     if (!lat || !lon) return;
 
+    // Request weather from Open-Meteo
     const out = await execAsync([
       "curl",
       "-fsSL",
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2`,
     ]);
 
-    const parsed = JSON.parse(out);
-    setWeatherData({
+    const parsed = JSON.parse(out) as OpenMeteoResponse;
+
+    // If the city is determined by IP and the settings are currently empty (Auto mode),
+    // we'll temporarily write it to the weather object so the widget can display it,
+    // but we won't overwrite the user's global settings.
+    const finalCityName = settings.weather?.city || detectedCity || "Unknown";
+
+    // include detected city (from IP) so the widget can show an Auto city name
+    const weather: weatherInterface = {
+      city: finalCityName,
       current: {
-        temp: parsed.current.temperature_2m,
-        temp_unit: parsed.current_units.temperature_2m,
-        humidity: parsed.current.relative_humidity_2m,
-        wind_speed: parsed.current.wind_speed_10m,
-        wind_unit: parsed.current_units.wind_speed_10m,
-        wind_direction: parsed.current.wind_direction_10m,
-        apparent_temp: parsed.current.apparent_temperature,
-        is_day: parsed.current.is_day,
-        precipitation: parsed.current.precipitation,
-        weather_code: parsed.current.weather_code,
+        time: parsed.current?.time,
+        temp: parsed.current?.temperature_2m,
+        temp_unit: parsed.current_units?.temperature_2m ?? "°C",
+        humidity: parsed.current?.relative_humidity_2m,
+        wind_speed: parsed.current?.wind_speed_10m,
+        wind_unit: parsed.current_units?.wind_speed_10m ?? "km/h",
+        wind_direction: parsed.current?.wind_direction_10m,
+        apparent_temp: parsed.current?.apparent_temperature,
+        is_day: parsed.current?.is_day,
+        precipitation: parsed.current?.precipitation,
+        weather_code: parsed.current?.weather_code,
       },
       daily: parsed.daily,
       hourly: parsed.hourly,
-    } as weatherInterface);
+    };
+    setWeatherData(weather);
   } catch (e) {
     console.error("Weather parsing error:", e);
   }
@@ -232,5 +273,3 @@ monitorFile(`${GLib.get_home_dir()}/.face.icon`, () => {
       : `${GLib.get_home_dir()}/.config/ags/assets/userpanel/archeclipse_default_pfp.jpg`,
   );
 });
-
-// export const [isBarExpanded, setIsBarExpanded] = createState<boolean>(false);

@@ -1,8 +1,7 @@
 .player-widget {
   menubutton > button {
     padding: 0;
-    background-color: black;
-
+    background-color: $background;
     label {
       font-weight: 700;
     }

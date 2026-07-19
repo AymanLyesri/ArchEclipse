@@ -1,7 +1,7 @@
 import { createState } from "ags";
 import { Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
-import { For } from "gnim";
+import { Accessor, For } from "gnim";
 
 import { readJSONFile, writeJSONFile } from "../../utils/json";
 import { quickApps } from "../../constants/app.constants";
@@ -11,8 +11,10 @@ const QUICK_APP_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launche
 
 export default function QuickApps({
   onAfterLaunch,
+  sensitive,
 }: {
   onAfterLaunch?: () => void;
+  sensitive?: Accessor<boolean>;
 }) {
   const [quickAppHistory, setQuickAppHistory] = createState<string[]>([]);
   const [orderedQuickApps, setOrderedQuickApps] =
@@ -83,6 +85,7 @@ export default function QuickApps({
   return (
     <scrolledwindow vexpand hexpand>
       <box
+        sensitive={sensitive}
         class="quick-apps results"
         spacing={5}
         orientation={Gtk.Orientation.VERTICAL}

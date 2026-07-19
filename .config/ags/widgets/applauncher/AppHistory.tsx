@@ -35,6 +35,7 @@ export default function AppHistory({
   getInstalledAppByName,
   launchAndRecord,
   onLaunch,
+  sensitive,
 }: {
   history: Accessor<string[]>;
   setHistory: (history: string[]) => void;
@@ -42,10 +43,12 @@ export default function AppHistory({
   getInstalledAppByName: (appName: string) => Apps.Application | null;
   launchAndRecord: (application: Apps.Application) => void;
   onLaunch: (app: LauncherApp) => void;
+  sensitive?: Accessor<boolean>;
 }) {
   return (
     <scrolledwindow vexpand>
       <box
+        sensitive={sensitive}
         valign={Gtk.Align.START}
         class={"history"}
         orientation={Gtk.Orientation.VERTICAL}

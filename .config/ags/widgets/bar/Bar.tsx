@@ -460,7 +460,7 @@ export default ({
       namespace="bar"
       class="Bar"
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      keymode={Astal.Keymode.ON_DEMAND}
+      keymode={Astal.Keymode.NONE}
       anchor={
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.LEFT |

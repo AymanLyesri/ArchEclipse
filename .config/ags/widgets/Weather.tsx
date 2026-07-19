@@ -1,10 +1,9 @@
-import { createPoll } from "ags/time";
 import { Gtk } from "ags/gtk4";
-import GLib from "gi://GLib";
 import { With } from "gnim";
-import { Eventbox } from "./Custom/Eventbox";
 import Pango from "gi://Pango";
 import { weatherData, setWeatherCity, globalSettings } from "../variables";
+import type { Settings } from "../interfaces/settings.interface";
+import type { weatherInterface } from "../interfaces/weather.interface";
 import { connectPopoverEvents } from "../utils/window";
 
 // Weather code to description mapping
@@ -73,10 +72,22 @@ const getWindDirection = (degrees: number) => {
   return windDirections[index];
 };
 
-// Format time from ISO string
-const formatTime = (isoTime: number) => {
+const UNKNOWN_WEATHER = { description: "Unknown", background: "#000000" };
+const getWeatherInfo = (code?: number) =>
+  code != null ? (weatherCodes[code] ?? UNKNOWN_WEATHER) : UNKNOWN_WEATHER;
+
+const fmt = (value: number | undefined | null, unit = "") =>
+  value != null ? `${value}${unit}` : "N/A";
+
+// Format time from ISO string safely
+const formatTime = (isoTime: string | number | undefined) => {
   if (!isoTime) return "N/A";
-  const date = new Date(isoTime);
+  const normalized =
+    typeof isoTime === "string"
+      ? isoTime.replace("T", " ").replace(/-/g, "/")
+      : isoTime;
+  const date = new Date(normalized);
+  if (isNaN(date.getTime())) return "N/A";
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -84,9 +95,16 @@ const formatTime = (isoTime: number) => {
   });
 };
 
-const formatDate = (isoTime: number) => {
+const formatDate = (isoTime: string | number | undefined) => {
   if (!isoTime) return "N/A";
-  const date = new Date(isoTime);
+
+  const normalized =
+    typeof isoTime === "string"
+      ? isoTime.replace("T", " ").replace(/-/g, "/")
+      : isoTime;
+
+  const date = new Date(normalized);
+  if (isNaN(date.getTime())) return "N/A";
   return date.toLocaleDateString([], {
     weekday: "short",
     day: "numeric",
@@ -94,27 +112,16 @@ const formatDate = (isoTime: number) => {
   });
 };
 
-// const currentWeatherLabel = weather((w) => {
-//   if (!w) return "Weather N/A";
-//   const current = w.current;
-//   return `${current.temp}${current.temp_unit} ${
-//     weatherCodes[current.weather_code]?.description || "Unknown"
-//   }`;
-// });
-
-const currentWeatherLabel = (w: any) => {
+const currentWeatherLabel = (w: weatherInterface | null) => {
   if (!w) return "Weather N/A";
   const current = w.current;
-  return `${current.temp}${current.temp_unit} ${
-    weatherCodes[current.weather_code]?.description || "Unknown"
+  return `${fmt(current.temp, current.temp_unit)} ${
+    getWeatherInfo(current.weather_code).description
   }`;
 };
 
-const weatherIcon = (w: any) => {
-  if (!w) return "";
-  const code = w.current.weather_code;
-  // Map weather codes to icon names (simplified)
-  // clear
+const weatherIcon = (code?: number) => {
+  if (code == null) return "󰖙";
   if (code === 0) return "󰖙";
   // partly cloudy
   if (code === 1 || code === 2) return "󰖐";
@@ -136,7 +143,6 @@ const weatherIcon = (w: any) => {
 };
 
 export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
-  // Create a variable to store a reference to the input field
   let cityEntry: Gtk.Entry;
 
   return (
@@ -153,8 +159,8 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
               <box
                 class={`weather-section`}
                 css={`
-                  background-color: ${weatherCodes[current.weather_code]
-                    ?.background || "#000000"};
+                  background-color: ${getWeatherInfo(current.weather_code)
+                    .background};
                   color: white;
                 `}
                 orientation={Gtk.Orientation.VERTICAL}
@@ -169,26 +175,33 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                   >
                     <label
                       class={"weather-icon-large"}
-                      label={weatherIcon(w)}
+                      label={weatherIcon(current?.weather_code)}
+                    />
+                    <label
+                      class="weather-city-name"
+                      css="font-weight: bold; font-size: 1.2rem; margin-bottom: 4px;"
+                      label={globalSettings((s: Settings) => {
+                        const savedCity = s.weather?.city;
+                        if (savedCity) return `󰍎 ${savedCity}`;
+                        if (w && w.city) return `󰍎 ${w.city}`;
+                        return "Auto (IP)";
+                      })}
                     />
                     <label
                       class="weather-temp-large"
-                      label={`${current.temp}${current.temp_unit}`}
+                      label={fmt(current.temp, current.temp_unit)}
                     />
                     <label
                       class="weather-description"
-                      label={
-                        weatherCodes[current.weather_code]?.description ||
-                        "Unknown"
-                      }
+                      label={getWeatherInfo(current.weather_code).description}
                     />
                     <label
                       class="weather-feels-like"
-                      label={`Feels like: ${current.apparent_temp}${current.temp_unit}`}
+                      label={`Feels like: ${fmt(current.apparent_temp, current.temp_unit)}`}
                     />
                     <label
                       class="weather-date"
-                      label={`${formatDate(w.daily.time[0])}`}
+                      label={`${formatDate(w.daily.time?.[0])}`}
                     />
                   </box>
 
@@ -205,31 +218,31 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                     >
                       <box orientation={Gtk.Orientation.VERTICAL} hexpand>
                         <label class={"icon"} label="" />
-                        <label label={formatTime(today.sunrise[0])} />
+                        <label label={formatTime(today.sunrise?.[0])} />
                       </box>
                       <label class={"sun"} label="" hexpand />
                       <box orientation={Gtk.Orientation.VERTICAL} hexpand>
                         <label class={"icon"} label="" />
-                        <label label={formatTime(today.sunset[0])} />
+                        <label label={formatTime(today.sunset?.[0])} />
                       </box>
                     </box>
                     <box spacing={5} vexpand>
                       <box class="weather-detail" spacing={5} hexpand>
                         <label class={"icon"} label="" />
-                        <label label={`${current.humidity}%`} />
+                        <label label={fmt(current.humidity, "%")} />
                       </box>
                       <box class="weather-detail" spacing={5} hexpand>
                         <label class={"icon"} label="" />
-                        <label label={`${current.precipitation} mm`} />
+                        <label label={fmt(current.precipitation, " mm")} />
                       </box>
                     </box>
 
                     <box class="weather-detail" spacing={5} vexpand>
                       <label class={"icon"} label="" />
                       <label
-                        label={`${current.wind_speed} ${
+                        label={`${fmt(current.wind_speed)} ${
                           current.wind_unit
-                        } ${getWindDirection(current.wind_direction)}`}
+                        } ${getWindDirection(current.wind_direction ?? 0)}`}
                       />
                     </box>
                   </box>
@@ -241,9 +254,16 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                 >
                   <entry
                     class="weather-city-input"
-                    placeholderText="Enter city..."
-                    text={globalSettings((s: any) => s.weather?.city || "")}
-                    // We save a link to this entry when creating it.
+                    placeholderText={globalSettings((s: Settings) => {
+                      const city = s.weather?.city;
+                      if (city) return "Search...";
+
+                      const currentLoc = w?.city || "IP";
+                      return `Not ${currentLoc}?...`;
+                    })}
+                    text={globalSettings(
+                      (s: Settings) => s.weather?.city || "",
+                    )}
                     $={(self) => {
                       cityEntry = self;
                     }}
@@ -274,7 +294,7 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
               </box>
 
               <box
-                class={"weather-section"}
+                class={`weather-section`}
                 orientation={Gtk.Orientation.VERTICAL}
                 spacing={12}
                 visible={moreDetails}
@@ -290,7 +310,10 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                     <label class="forecast-label" label="Max" />
                     <label
                       class="forecast-value"
-                      label={`${today.temperature_2m_max[0]}${current.temp_unit}`}
+                      label={fmt(
+                        today.temperature_2m_max?.[0],
+                        current.temp_unit,
+                      )}
                     />
                   </box>
                   <box
@@ -302,7 +325,10 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                     <label class="forecast-label" label="Min" />
                     <label
                       class="forecast-value"
-                      label={`${today.temperature_2m_min[0]}${current.temp_unit}`}
+                      label={fmt(
+                        today.temperature_2m_min?.[0],
+                        current.temp_unit,
+                      )}
                     />
                   </box>
                   <box
@@ -314,7 +340,7 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                     <label class="forecast-label" label="Rain" />
                     <label
                       class="forecast-value"
-                      label={`${today.precipitation_sum[0]} mm`}
+                      label={`${today.precipitation_sum?.[0] ?? 0} mm`}
                     />
                   </box>
                   <box
@@ -326,14 +352,14 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                     <label class="forecast-label" label="Wind" />
                     <label
                       class="forecast-value"
-                      label={`${today.wind_speed_10m_max[0]} ${current.wind_unit}`}
+                      label={`${today.wind_speed_10m_max?.[0] ?? "N/A"} ${current.wind_unit}`}
                     />
                   </box>
                 </box>
               </box>
 
               <box
-                class={"weather-section"}
+                class={`weather-section`}
                 orientation={Gtk.Orientation.VERTICAL}
                 spacing={12}
                 visible={moreDetails}
@@ -342,21 +368,48 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
 
                 <box class="hourly-forecast">
                   {(() => {
-                    const now = new Date();
-                    const currentHour = now.getHours();
                     const hourlyData = w.hourly;
+                    if (!hourlyData?.time || hourlyData.time.length === 0)
+                      return null;
 
-                    // Show next 12 hours divided by 3h (4 blocks)
+                    const apiCurrentTime = current.time;
+                    const currentHourISO = apiCurrentTime
+                      ? `${apiCurrentTime.slice(0, 13)}:00`
+                      : (() => {
+                          const now = new Date();
+                          const year = now.getFullYear();
+                          const month = String(now.getMonth() + 1).padStart(
+                            2,
+                            "0",
+                          );
+                          const day = String(now.getDate()).padStart(2, "0");
+                          const hoursStr = String(now.getHours()).padStart(
+                            2,
+                            "0",
+                          );
+                          return `${year}-${month}-${day}T${hoursStr}:00`;
+                        })();
+
+                    const startIndex = hourlyData.time.findIndex(
+                      (t: string) => t >= currentHourISO,
+                    );
+                    const baseIndex = startIndex === -1 ? 0 : startIndex;
+
                     const hours = [];
                     for (let i = 0; i < 4; i++) {
-                      const hourIndex = currentHour + i * 3;
+                      const hourIndex = baseIndex + i * 3;
                       if (hourIndex >= hourlyData.time.length) break;
 
-                      const time = new Date(hourlyData.time[hourIndex]);
+                      const timeStr = hourlyData.time[hourIndex];
+                      const safeTimeStr = timeStr
+                        .replace("T", " ")
+                        .replace(/-/g, "/");
+                      const time = new Date(safeTimeStr);
+
                       const temp = hourlyData.temperature_2m?.[hourIndex];
                       const weatherCode = hourlyData.weather_code?.[hourIndex];
                       const precipitation =
-                        hourlyData.precipitation?.[hourIndex] || 0;
+                        hourlyData.precipitation?.[hourIndex] ?? 0;
 
                       hours.push(
                         <box
@@ -366,20 +419,29 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                           spacing={4}
                           hexpand
                         >
-                          <label class="hourly-icon" label={weatherIcon(w)} />
+                          <label
+                            class="hourly-icon"
+                            label={weatherIcon(weatherCode)}
+                          />
 
                           <box class={"hourly-content"} spacing={5}>
                             <label
                               class="hourly-temp"
-                              label={temp ? `${Math.round(temp)}°` : "N/A"}
+                              label={
+                                temp != null ? `${Math.round(temp)}°` : "N/A"
+                              }
                             />
                             <label
                               class="hourly-time"
-                              label={time.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: false,
-                              })}
+                              label={
+                                !isNaN(time.getTime())
+                                  ? time.toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: false,
+                                    })
+                                  : "N/A"
+                              }
                             />
                           </box>
 
@@ -396,19 +458,6 @@ export function Weather({ moreDetails = false }: { moreDetails?: boolean }) {
                   })()}
                 </box>
               </box>
-
-              {/* <Eventbox
-                    onClick={() =>
-                      GLib.spawn_command_line_async(
-                        "xdg-open 'https://open-meteo.com/'",
-                      )
-                    }
-                  >
-                    <label
-                      class="weather-link"
-                      label="More details on Open-Meteo →"
-                    />
-                  </Eventbox> */}
             </box>
           );
         }}
@@ -425,11 +474,9 @@ export function WeatherButton() {
       class="weather-button"
       tooltipText={"click to open"}
       css={weatherData((w) => {
-        if (!w) {
-          return "";
-        }
+        if (!w) return "";
         return `background-color: ${
-          weatherCodes[w.current.weather_code]?.background || "#000000"
+          getWeatherInfo(w.current.weather_code).background
         };
         color: white;
       `;
@@ -461,7 +508,9 @@ export function WeatherButton() {
       }}
     >
       <box class="weather-button" spacing={5}>
-        <label label={weatherData((w) => weatherIcon(w))} />
+        <label
+          label={weatherData((w) => weatherIcon(w?.current?.weather_code))}
+        />
         <label
           label={weatherData((w) => currentWeatherLabel(w))}
           ellipsize={Pango.EllipsizeMode.END}

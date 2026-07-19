@@ -142,7 +142,13 @@ export function AppButton({
  * all handled by the Popover (autohide) instead of manual GestureClick
  * + layer-shell keymode juggling.
  */
-export default ({ onLaunched }: { onLaunched: () => void }) => {
+export default ({
+  onLaunched,
+  minimal,
+}: {
+  onLaunched: () => void;
+  minimal?: Accessor<boolean>;
+}) => {
   const [Results, setResults] = createState<LauncherApp[]>([]);
   const [history, setHistory] = createState<string[]>([]);
 
@@ -467,7 +473,7 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
         spacing={10}
         widthRequest={300}
       >
-        <QuickApps onAfterLaunch={onLaunched} />
+        <QuickApps onAfterLaunch={onLaunched} sensitive={minimal} />
         <AppHistory
           history={history}
           setHistory={setHistory}
@@ -475,6 +481,7 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
           getInstalledAppByName={getInstalledAppByName}
           launchAndRecord={launchAndRecord}
           onLaunch={launchApp}
+          sensitive={minimal}
         />
       </box>
     </box>
