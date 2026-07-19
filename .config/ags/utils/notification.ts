@@ -8,10 +8,7 @@ export function notify({
   summary: string;
   body: string;
 }) {
-  // Escape ampersands and other special markup characters
-  const safeSummary = GLib.markup_escape_text(summary, -1);
-  const safeBody = GLib.markup_escape_text(body, -1);
-
-  execAsync(`notify-send "${safeSummary}" "${safeBody}"`).catch((err) => print(err));
+  execAsync(["notify-send", summary, body])
+      .catch((err) => print("Failed to send notification:", err));
   print(`Notification Sent: ${summary} - ${body}`);
 }

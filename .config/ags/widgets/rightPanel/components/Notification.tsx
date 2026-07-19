@@ -70,7 +70,13 @@ export class NotificationWidget {
 
   private copyNotificationContent() {
     if (this.n.appIcon) {
-      execAsync(`bash -c "wl-copy --type image/png < '${this.n.appIcon}'"`)
+      execAsync([
+        "bash",
+        "-c",
+        'wl-copy --type image/png < "$1"',
+        "--",
+        this.n.appIcon,
+      ])
         .finally(() => notify({ summary: "Copied", body: this.n.appIcon }))
         .catch((err) => notify({ summary: "Error", body: err }));
       return;
@@ -78,7 +84,7 @@ export class NotificationWidget {
 
     const content = this.n.body || this.n.app_name;
     if (!content) return;
-    execAsync(`wl-copy "${content}"`).catch((err) =>
+    execAsync(["wl-copy", content]).catch((err) =>
       notify({ summary: "Error", body: err }),
     );
   }
@@ -103,7 +109,15 @@ export class NotificationWidget {
   }
 
   private getTitle() {
-    const safeSummary = GLib.markup_escape_text(this.n.summary || "", -1);
+    const rawSummary = this.n.summary || "";
+    let safeSummary = rawSummary;
+
+    try {
+      Pango.parse_markup(rawSummary, -1, '\0');
+    } catch (e) {
+      safeSummary = GLib.markup_escape_text(rawSummary, -1);
+    }
+
     return (
       <label
         class="title"
@@ -117,7 +131,15 @@ export class NotificationWidget {
   }
 
   private getBody() {
-    const safeBody = GLib.markup_escape_text(this.n.body || "", -1);
+    const rawBody = this.n.body || "";
+    let safeBody = rawBody;
+  
+    try {
+      Pango.parse_markup(rawBody, -1, '\0');
+    } catch (e) {
+      safeBody = GLib.markup_escape_text(rawBody, -1);
+    }
+  
     return (
       <label
         class="body"
@@ -192,16 +214,13 @@ export class NotificationWidget {
   }
 
   private getTopBar() {
-    const safeAppName = GLib.markup_escape_text(this.n.app_name || "", -1);
+    const appName = this.n.app_name || "";
     return (
       <box class="top-bar" spacing={5}>
         <box spacing={5}>
-          {/* {this.n.appIcon && (
-            <image class="app-icon" iconName={this.n.appIcon} />
-          )} */}
           <label
             class="app-name"
-            label={safeAppName}
+            label={appName}
             ellipsize={Pango.EllipsizeMode.END}
             useMarkup={false}
           />
