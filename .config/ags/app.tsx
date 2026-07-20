@@ -4,6 +4,7 @@ import Bar, {
   barState,
   deactivateState,
   setBarState,
+  setActiveSearchMonitor,
 } from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
 import { logTime, logTimeWidget } from "./utils/time";
@@ -126,21 +127,25 @@ app.start({
       response("Donations widget opened.");
       return;
     } else if (cmd == "clipboard") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("cb ");
       response("Clipboard widget opened.");
       return;
     } else if (cmd == "emojis") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("emoji ");
       response("Emoji picker opened.");
       return;
     } else if (cmd == "notes") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("note ");
       response("Notes widget opened.");
       return;
     } else if (cmd == "apps") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("apps ");
       response("Apps list opened.");
@@ -157,6 +162,7 @@ app.start({
       if (barState.peek() === "search") {
         deactivateState("search");
       } else {
+        setActiveSearchMonitor(monitor || null);
         activateState("search");
       }
       response("Search toggled.");
