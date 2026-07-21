@@ -1,6 +1,6 @@
 import { Accessor, createState } from "ags";
 import { Astal, Gdk, Gtk } from "ags/gtk4";
-import { barState, deactivateState } from "../Bar";
+import { activeSearchMonitor, barState, deactivateState } from "../Bar";
 import { timeout } from "ags/time";
 import AppLauncher from "../../applauncher/AppLauncher";
 
@@ -8,12 +8,27 @@ export const [searchQuery, setSearchQuery] = createState<string>("");
 
 export const [searchActivate, setSearchActivate] = createState<number>(0);
 
-export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
+export default ({
+  widthRequest,
+  monitor,
+}: {
+  widthRequest?: Accessor<number>;
+  monitor?: string;
+}) => {
   let entryRef: Gtk.TextView | null = null;
   let popoverRef: Gtk.Popover | null = null;
   let settingFromState = false; // guards buffer<->state feedback loop
 
   const [isExclusive, setIsExclusive] = createState<boolean>(true);
+
+  // barState/activeSearchMonitor are module-level singletons shared by
+  // every monitor's SearchBar instance — without this check every
+  // instance pops its own popover open the moment ANY monitor's search
+  // activates, not just the target one.
+  const isTargetMonitor = () => {
+    const target = activeSearchMonitor.peek();
+    return !target || !monitor || target === monitor;
+  };
 
   isExclusive.subscribe(() => {
     const window = entryRef?.get_root() as Gtk.Window | undefined;
@@ -55,23 +70,36 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 setSearchQuery(self.buffer.text);
               });
 
-              barState.subscribe(() => {
+              const syncPopoverVisibility = () => {
                 if (!entryRef) return;
                 const window = entryRef.get_root() as Gtk.Window | undefined;
                 if (!window) return; // not registered yet — ignore the initial fire
-                window.keymode = Astal.Keymode.EXCLUSIVE;
-                if (barState.get() === "search") {
-                  timeout(50, () => {
-                    popoverRef?.popup();
-                    entryRef?.grab_focus();
-                  });
-                } else {
+
+                if (barState.get() !== "search") {
                   popoverRef?.popdown();
                   setSearchQuery("");
                   setIsExclusive(true);
                   window.keymode = Astal.Keymode.NONE;
+                  return;
                 }
-              });
+
+                if (!isTargetMonitor()) {
+                  // search is active, but for a different monitor — stay hidden
+                  // without touching the shared query/exclusive state.
+                  popoverRef?.popdown();
+                  window.keymode = Astal.Keymode.NONE;
+                  return;
+                }
+
+                window.keymode = Astal.Keymode.EXCLUSIVE;
+                timeout(50, () => {
+                  popoverRef?.popup();
+                  entryRef?.grab_focus();
+                });
+              };
+
+              barState.subscribe(syncPopoverVisibility);
+              activeSearchMonitor.subscribe(syncPopoverVisibility);
             }}
           >
             <Gtk.EventControllerKey
@@ -130,6 +158,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
 
           self.connect("closed", () => {
             if (barState.peek() !== "search") return; // only reset if search was active
+            if (!isTargetMonitor()) return; // not this monitor's close — just us hiding
             deactivateState("search");
             setSearchQuery("");
             setIsExclusive(true);
