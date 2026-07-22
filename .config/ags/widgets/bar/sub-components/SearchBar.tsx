@@ -80,7 +80,14 @@ export default ({
                   return;
                 }
 
-                window.keymode = Astal.Keymode.ON_DEMAND;
+                // EXCLUSIVE by default so typing always works regardless of
+                // pointer position — this system's Hyprland has follow_mouse
+                // enabled, which ties ON_DEMAND keyboard focus to whatever's
+                // under the cursor, so ON_DEMAND alone would only let typing
+                // through while hovering the popup. The motion controller
+                // below switches to ON_DEMAND (needed for clicks to land)
+                // only while the pointer is actually over the popup content.
+                window.keymode = Astal.Keymode.EXCLUSIVE;
                 timeout(50, () => {
                   popoverRef?.popup();
                   entryRef?.grab_focus();
@@ -154,6 +161,20 @@ export default ({
             timeout(100, () => entryRef?.grab_focus());
           });
           self.add_controller(refocusEntry);
+
+          // Swap to ON_DEMAND only while the pointer is over the popup, so
+          // clicks land — swap back to EXCLUSIVE on leave so typing keeps
+          // working once the pointer moves away without needing a re-click.
+          const popupMotion = new Gtk.EventControllerMotion();
+          popupMotion.connect("enter", () => {
+            const window = entryRef?.get_root() as Gtk.Window | undefined;
+            if (window) window.keymode = Astal.Keymode.ON_DEMAND;
+          });
+          popupMotion.connect("leave", () => {
+            const window = entryRef?.get_root() as Gtk.Window | undefined;
+            if (window) window.keymode = Astal.Keymode.EXCLUSIVE;
+          });
+          self.add_controller(popupMotion);
         }}
       >
         <AppLauncher onLaunched={closePopover} />
