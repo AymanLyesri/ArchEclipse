@@ -53,6 +53,17 @@ export const [barState, setBarState] = createState<BarStateName>("compact");
 export const [stackVisibleChild, setStackVisibleChild] =
   createState<BarStateName>("compact");
 
+// Which monitor's bar requested "search" (and its friends: clipboard,
+// emojis, notes, apps). barState/searchQuery/searchActivate below are
+// module-level singletons shared by every monitor's Bar instance, so
+// without this, activating search pops it open on every monitor and
+// each mounted AppLauncher independently launches the selected result
+// (one launch per monitor). Falsy means "unscoped" (show everywhere) —
+// keeps old behavior if a caller doesn't pass a monitor.
+export const [activeSearchMonitor, setActiveSearchMonitor] = createState<
+  string | null
+>(null);
+
 // ---------------------------------------------------------------------
 // Visibility resolver — priority-based instead of scattered if/else.
 //
@@ -217,6 +228,22 @@ export default ({
   const monitorName = getMonitorName(monitor)!;
   const [currentWidth, setCurrentWidth] = createState(0);
 
+  // "search" is a global priority state shared by every monitor's Bar
+  // instance (see activeSearchMonitor above it) — resolve it to "compact"
+  // for any monitor that isn't the one search was requested on, so only
+  // the target monitor's bar actually expands/shows the search page.
+  // `target` is passed in rather than read here so reactive callers can
+  // track activeSearchMonitor themselves (peek() wouldn't register as a
+  // dependency inside a createComputed producer).
+  function resolveMonitorState(
+    name: BarStateName,
+    target: string | null,
+  ): BarStateName {
+    return name === "search" && target && target !== monitorName
+      ? "compact"
+      : name;
+  }
+
   // ---------------------------------------------------------------------
   // Spring physics width animation — lives outside animateWidth so it
   // persists (and keeps momentum) across repeated calls.
@@ -274,7 +301,12 @@ export default ({
   // barState is now driven by the priority resolver above; this block
   // doesn't need to know or care why it changed.
   barState.subscribe(() => {
-    const name = barState.get();
+    // rawName drives the shared stackVisibleChild setter — every monitor's
+    // subscriber must write the *same* value here, or whichever instance's
+    // resolved (per-monitor) name is written last silently overwrites the
+    // others'. Only the width/growing decision below is monitor-scoped.
+    const rawName = barState.get();
+    const name = resolveMonitorState(rawName, activeSearchMonitor.peek());
     const target = barWidths[name];
     if (target === undefined) return;
 
@@ -283,9 +315,9 @@ export default ({
 
     if (growing) {
       animateWidth(target);
-      timeout(100, () => setStackVisibleChild(name));
+      timeout(100, () => setStackVisibleChild(rawName));
     } else {
-      setStackVisibleChild(name);
+      setStackVisibleChild(rawName);
       timeout(100, () => animateWidth(target));
     }
   });
@@ -351,7 +383,9 @@ export default ({
       transitionType={Gtk.StackTransitionType.CROSSFADE}
       transitionDuration={250}
       hhomogeneous={false} // Prevents the expanded width from stretching
-      visibleChildName={stackVisibleChild}
+      visibleChildName={createComputed(() =>
+        resolveMonitorState(stackVisibleChild(), activeSearchMonitor()),
+      )}
       $={(self) => {
         self.add_named(
           registerBarWidget({
@@ -407,7 +441,7 @@ export default ({
         self.add_named(
           registerBarWidget({
             name: "search",
-            widget: SearchBar({ widthRequest: currentWidth }),
+            widget: SearchBar({ widthRequest: currentWidth, monitor: monitorName }),
             padding: 500,
           }),
           "search",
@@ -489,7 +523,9 @@ export default ({
           /> */}
         </box>
         <box
-          class={barState((state) => `bar ${state}`)}
+          class={createComputed(
+            () => `bar ${resolveMonitorState(barState(), activeSearchMonitor())}`,
+          )}
           $type="center"
           widthRequest={currentWidth}
           $={(self) => {

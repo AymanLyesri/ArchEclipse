@@ -1,6 +1,6 @@
 import { Accessor, createState } from "ags";
 import { Astal, Gdk, Gtk } from "ags/gtk4";
-import { barState, deactivateState } from "../Bar";
+import { activeSearchMonitor, barState, deactivateState } from "../Bar";
 import { timeout } from "ags/time";
 import AppLauncher from "../../applauncher/AppLauncher";
 
@@ -8,20 +8,25 @@ export const [searchQuery, setSearchQuery] = createState<string>("");
 
 export const [searchActivate, setSearchActivate] = createState<number>(0);
 
-export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
+export default ({
+  widthRequest,
+  monitor,
+}: {
+  widthRequest?: Accessor<number>;
+  monitor?: string;
+}) => {
   let entryRef: Gtk.TextView | null = null;
   let popoverRef: Gtk.Popover | null = null;
   let settingFromState = false; // guards buffer<->state feedback loop
 
-  const [isExclusive, setIsExclusive] = createState<boolean>(true);
-
-  isExclusive.subscribe(() => {
-    const window = entryRef?.get_root() as Gtk.Window | undefined;
-    if (!window) return; // not registered yet — ignore the initial fire
-    window.keymode = isExclusive.get()
-      ? Astal.Keymode.EXCLUSIVE
-      : Astal.Keymode.ON_DEMAND;
-  });
+  // barState/activeSearchMonitor are module-level singletons shared by
+  // every monitor's SearchBar instance — without this check every
+  // instance pops its own popover open the moment ANY monitor's search
+  // activates, not just the target one.
+  const isTargetMonitor = () => {
+    const target = activeSearchMonitor.peek();
+    return !target || !monitor || target === monitor;
+  };
 
   const closePopover = () => {
     popoverRef?.popdown();
@@ -55,23 +60,35 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 setSearchQuery(self.buffer.text);
               });
 
-              barState.subscribe(() => {
+              const syncPopoverVisibility = () => {
                 if (!entryRef) return;
                 const window = entryRef.get_root() as Gtk.Window | undefined;
                 if (!window) return; // not registered yet — ignore the initial fire
-                window.keymode = Astal.Keymode.EXCLUSIVE;
-                if (barState.get() === "search") {
-                  timeout(50, () => {
-                    popoverRef?.popup();
-                    entryRef?.grab_focus();
-                  });
-                } else {
+
+                if (barState.get() !== "search") {
                   popoverRef?.popdown();
                   setSearchQuery("");
-                  setIsExclusive(true);
                   window.keymode = Astal.Keymode.NONE;
+                  return;
                 }
-              });
+
+                if (!isTargetMonitor()) {
+                  // search is active, but for a different monitor — stay hidden
+                  // without touching the shared query/exclusive state.
+                  popoverRef?.popdown();
+                  window.keymode = Astal.Keymode.NONE;
+                  return;
+                }
+
+                window.keymode = Astal.Keymode.ON_DEMAND;
+                timeout(50, () => {
+                  popoverRef?.popup();
+                  entryRef?.grab_focus();
+                });
+              };
+
+              barState.subscribe(syncPopoverVisibility);
+              activeSearchMonitor.subscribe(syncPopoverVisibility);
             }}
           >
             <Gtk.EventControllerKey
@@ -82,8 +99,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 state: number,
               ) => {
                 if (keyval === Gdk.KEY_Escape) {
-                  setIsExclusive(isExclusive.peek() ? false : true);
-
+                  deactivateState("search");
                   return true;
                 }
 
@@ -100,15 +116,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
               }}
             />
           </Gtk.TextView>
-          <togglebutton
-            class="search-icon"
-            label="ESC"
-            active={isExclusive}
-            onClicked={() => {
-              setIsExclusive(isExclusive.peek() ? false : true);
-            }}
-            tooltipMarkup="Keyboard input mode (true focus) / mouse input mode."
-          />
         </box>
       </scrolledwindow>
 
@@ -130,16 +137,26 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
 
           self.connect("closed", () => {
             if (barState.peek() !== "search") return; // only reset if search was active
+            if (!isTargetMonitor()) return; // not this monitor's close — just us hiding
             deactivateState("search");
             setSearchQuery("");
-            setIsExclusive(true);
           });
+
+          // ON_DEMAND keymode (needed so clicks reach the popover at all)
+          // lets GTK's normal focus-follows-click move keyboard focus away
+          // from the entry whenever something inside is clicked — steal it
+          // back afterwards so typing keeps working without an extra click.
+          // CAPTURE phase so this fires even when a child (e.g. a button)
+          // claims the click sequence for itself.
+          const refocusEntry = new Gtk.GestureClick();
+          refocusEntry.set_propagation_phase(Gtk.PropagationPhase.CAPTURE);
+          refocusEntry.connect("pressed", () => {
+            timeout(100, () => entryRef?.grab_focus());
+          });
+          self.add_controller(refocusEntry);
         }}
       >
-        <AppLauncher
-          onLaunched={closePopover}
-          minimal={isExclusive((is) => !is)}
-        />
+        <AppLauncher onLaunched={closePopover} />
       </Gtk.Popover>
     </box>
   ) as Gtk.Widget;
