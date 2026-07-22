@@ -254,7 +254,7 @@ export default ({
   function animateWidth(
     target: number,
     stiffness = 250, // higher = snappier
-    damping = 15, // lower = more bounce
+    damping = 32, // critically damped for stiffness=250/mass=1 — no bounce/jitter
     mass = 1,
   ) {
     // Cancel any in-flight spring so we don't run two at once —
