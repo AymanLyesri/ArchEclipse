@@ -4,6 +4,7 @@ import Bar, {
   barState,
   deactivateState,
   setBarState,
+  setActiveSearchMonitor,
 } from "./widgets/bar/Bar";
 import { getCssPath } from "./utils/scss";
 import { logTime, logTimeWidget } from "./utils/time";
@@ -28,6 +29,14 @@ import { startFastfetchPinsSync } from "./services/fastfetch";
 import { isRecording, toggleRecording } from "./services/record.service";
 import { setSearchQuery } from "./widgets/bar/sub-components/SearchBar";
 const Notification = Notifd.get_default();
+
+// The "SUPER + SUPER_L" (mod-key-alone) bind retriggers rapidly while
+// the key is held (Hyprland re-fires mod-only binds on repeat), which
+// was flip-flopping search open/closed several times a second and made
+// the bar's width animation look like it was shaking. Debounce so only
+// the first toggle within this window actually takes effect.
+const SEARCH_TOGGLE_DEBOUNCE_MS = 400;
+let lastSearchToggleAt = 0;
 
 const perMonitorDisplay = () => {
   const monitors = createBinding(app, "monitors");
@@ -126,21 +135,25 @@ app.start({
       response("Donations widget opened.");
       return;
     } else if (cmd == "clipboard") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("cb ");
       response("Clipboard widget opened.");
       return;
     } else if (cmd == "emojis") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("emoji ");
       response("Emoji picker opened.");
       return;
     } else if (cmd == "notes") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("note ");
       response("Notes widget opened.");
       return;
     } else if (cmd == "apps") {
+      setActiveSearchMonitor(monitor || null);
       activateState("search");
       setSearchQuery("apps ");
       response("Apps list opened.");
@@ -154,9 +167,17 @@ app.start({
     }
 
     if (cmd == "search") {
+      const now = Date.now();
+      if (now - lastSearchToggleAt < SEARCH_TOGGLE_DEBOUNCE_MS) {
+        response("Search toggle debounced.");
+        return;
+      }
+      lastSearchToggleAt = now;
+
       if (barState.peek() === "search") {
         deactivateState("search");
       } else {
+        setActiveSearchMonitor(monitor || null);
         activateState("search");
       }
       response("Search toggled.");
