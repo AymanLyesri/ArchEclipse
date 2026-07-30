@@ -4,12 +4,11 @@ import Battery from "../components/sub-components/Battery";
 import { WorkspacesCompact } from "../components/Workspaces";
 import Volume from "../components/sub-components/Volume";
 
-export default () =>
+export default ({ components }: { components: Gtk.Widget[] }) =>
   (
     <box spacing={5} halign={Gtk.Align.CENTER} hexpand>
-      <WorkspacesCompact />
-      <Information />
-      <Battery />
-      <Volume />
+      {components.map((component, index) => (
+        <box>{component}</box>
+      ))}
     </box>
   ) as Gtk.Widget;

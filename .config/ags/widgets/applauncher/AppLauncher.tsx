@@ -43,7 +43,7 @@ import AppHistory, { normalizeHistory } from "./AppHistory";
 
 import Mpris from "gi://AstalMpris";
 import Player from "../Player";
-import { searchActivate, searchQuery } from "../bar/sub-components/SearchBar";
+import { searchActivate, searchQuery } from "../bar/barStates/SearchBar";
 const mpris = Mpris.get_default();
 
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;

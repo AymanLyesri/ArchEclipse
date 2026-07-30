@@ -32,10 +32,10 @@ import AppLauncher from "../applauncher/AppLauncher";
 import GLib from "gi://GLib";
 import AstalMpris from "gi://AstalMpris";
 import PlayerWidget from "./components/sub-components/PlayerWidget";
-import NetworkWidget from "./sub-components/NetworkWidget";
-import CompactBar from "./sub-components/CompactBar";
-import ExpandedBar from "./sub-components/ExpandedBar";
-import SearchBar from "./sub-components/SearchBar";
+import NetworkWidget from "./barStates/NetworkWidget";
+import CompactBar from "./barStates/CompactBar";
+import ExpandedBar from "./barStates/ExpandedBar";
+import SearchBar from "./barStates/SearchBar";
 
 const mpris = AstalMpris.get_default();
 
@@ -274,8 +274,8 @@ export default ({
   // barState is now driven by the priority resolver above; this block
   // doesn't need to know or care why it changed.
   barState.subscribe(() => {
-    const name = barState.get();
-    const target = barWidths[name];
+    const state = barState.peek();
+    const target = barWidths[state];
     if (target === undefined) return;
 
     const current = currentWidth.peek();
@@ -283,11 +283,14 @@ export default ({
 
     if (growing) {
       animateWidth(target);
-      timeout(100, () => setStackVisibleChild(name));
+      timeout(100, () => setStackVisibleChild(state));
     } else {
-      setStackVisibleChild(name);
+      setStackVisibleChild(state);
       timeout(100, () => animateWidth(target));
     }
+
+    if (state === "compact") moveInformationTo(compactInfoSlot);
+    else if (state === "expanded") moveInformationTo(expandedInfoSlot);
   });
 
   /**
@@ -345,6 +348,29 @@ export default ({
     });
   }
 
+  const workspaces = (<Workspaces />) as Gtk.Widget;
+  const information = (<Information />) as Gtk.Widget;
+  const utilities = (<Utilities />) as Gtk.Widget;
+  const workspacesCompact = (<WorkspacesCompact />) as Gtk.Widget;
+  const battery = (<Battery />) as Gtk.Widget;
+  const volume = (<Volume />) as Gtk.Widget;
+
+  // Single shared Information instance — reparented between slots rather
+  // than duplicated. GTK widgets can only have one parent, and Information
+  // carries its own bindings/state we don't want two independent copies of.
+
+  const compactInfoSlot = new Gtk.Box();
+  const expandedInfoSlot = new Gtk.Box();
+
+  function moveInformationTo(slot: Gtk.Box) {
+    const parent = information.get_parent();
+    if (parent === slot) return;
+    if (parent) (parent as Gtk.Box).remove(information);
+    slot.append(information);
+  }
+
+  moveInformationTo(compactInfoSlot); // initial state
+
   // Using a setup hook on the stack is the most reliable way to register named children in GTK4
   const barStack = (
     <stack
@@ -356,7 +382,9 @@ export default ({
         self.add_named(
           registerBarWidget({
             name: "compact",
-            widget: CompactBar(),
+            widget: CompactBar({
+              components: [workspacesCompact, compactInfoSlot, battery, volume],
+            }),
             padding: 400,
           }),
           "compact",
@@ -364,7 +392,11 @@ export default ({
         self.add_named(
           registerBarWidget({
             name: "expanded",
-            widget: ExpandedBar(),
+            widget: ExpandedBar({
+              start: workspaces,
+              center: expandedInfoSlot,
+              end: utilities,
+            }),
             padding: 500,
           }),
           "expanded",
@@ -477,16 +509,16 @@ export default ({
     >
       <centerbox>
         <box $type="start" hexpand>
-          {/* <Gtk.EventControllerMotion
+          <Gtk.EventControllerMotion
             onEnter={() => {
-              if (globalSettings.peek().leftPanel.lock) return;
+              if (!globalSettings.peek().leftPanel.lock) return;
               const leftPanel = app.get_window(
                 `left-panel-${monitorName}`,
               ) as Gtk.Window;
               print(`left-panel-${monitorName}`);
               leftPanel.show();
             }}
-          /> */}
+          />
         </box>
         <box
           class={barState((state) => `bar ${state}`)}
@@ -530,16 +562,16 @@ export default ({
           {barStack}
         </box>
         <box $type="end" hexpand>
-          {/* <Gtk.EventControllerMotion
+          <Gtk.EventControllerMotion
             onEnter={() => {
-              if (globalSettings.peek().rightPanel.lock) return;
+              if (!globalSettings.peek().rightPanel.lock) return;
               const rightPanel = app.get_window(
                 `right-panel-${monitorName}`,
               ) as Gtk.Window;
               print(`right-panel-${monitorName}`);
               rightPanel.show();
             }}
-          /> */}
+          />
         </box>
       </centerbox>
     </window>

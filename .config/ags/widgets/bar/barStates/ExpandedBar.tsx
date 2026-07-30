@@ -7,7 +7,15 @@ import Utilities from "../components/Utilities";
 
 const layout = globalSettings.peek().bar.layout;
 
-export default () =>
+export default ({
+  start,
+  center,
+  end,
+}: {
+  start: Gtk.Widget;
+  center: Gtk.Widget;
+  end: Gtk.Widget;
+}) =>
   (
     <centerbox hexpand>
       {layout
@@ -15,23 +23,11 @@ export default () =>
         .map((widget: WidgetSelector, key) => {
           switch (widget.name) {
             case "workspaces":
-              return (
-                <box $type="start">
-                  <Workspaces />
-                </box>
-              );
+              return <box $type="start">{start}</box>;
             case "information":
-              return (
-                <box $type="center">
-                  <Information />
-                </box>
-              );
+              return <box $type="center">{center}</box>;
             case "utilities":
-              return (
-                <box $type="end">
-                  <Utilities />
-                </box>
-              );
+              return <box $type="end">{end}</box>;
             default:
               return <box />;
           }

@@ -26,7 +26,7 @@ import AlwaysOnWidget from "./widgets/AlwaysOnWidget";
 import { ensureAuthServerRunning } from "./utils/auth-session";
 import { startFastfetchPinsSync } from "./services/fastfetch";
 import { isRecording, toggleRecording } from "./services/record.service";
-import { setSearchQuery } from "./widgets/bar/sub-components/SearchBar";
+import { setSearchQuery } from "./widgets/bar/barStates/SearchBar";
 const Notification = Notifd.get_default();
 
 const perMonitorDisplay = () => {
