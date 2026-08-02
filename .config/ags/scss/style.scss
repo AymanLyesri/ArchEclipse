@@ -8,8 +8,9 @@
 @import "bar/workspaces.scss";
 @import "bar/information.scss";
 @import "bar/utilities.scss";
-@import "bar/sub-components/recording.scss";
-@import "bar/sub-components/player-widget.scss";
+@import "bar/bar-states/recording.scss";
+@import "bar/bar-states/player-widget.scss";
+@import "bar/bar-states/search-bar.scss";
 
 @import "panel/panel.scss";
 

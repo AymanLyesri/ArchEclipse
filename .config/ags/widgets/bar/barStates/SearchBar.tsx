@@ -33,6 +33,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
         <box spacing={5}>
           <Gtk.TextView
             wrapMode={Gtk.WrapMode.WORD_CHAR}
+            class="search-entry"
             hexpand
             $={(self) => {
               entryRef = self;
