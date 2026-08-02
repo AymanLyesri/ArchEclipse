@@ -25,11 +25,7 @@ function moveItem<T>(array: T[], from: number, to: number): T[] {
 
 const WidgetActions = () => {
   return (
-    <box
-      orientation={Gtk.Orientation.VERTICAL}
-      class="widget-actions"
-      spacing={5}
-    >
+    <box orientation={Gtk.Orientation.VERTICAL} class="widget-actions">
       <For each={globalSettings(({ rightPanel }) => rightPanel.widgets)}>
         {(widget: WidgetSelector) => {
           return (
@@ -305,7 +301,7 @@ export default ({
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
             hideWindow(`right-panel-${monitorName}`);
-            widget.hide();
+            widget!.hide();
             return true;
           }
         }}

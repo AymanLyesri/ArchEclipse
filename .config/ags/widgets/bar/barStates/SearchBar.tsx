@@ -18,7 +18,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   isExclusive.subscribe(() => {
     const window = entryRef?.get_root() as Gtk.Window | undefined;
     if (!window) return; // not registered yet — ignore the initial fire
-    window.keymode = isExclusive.get()
+    window.keymode = isExclusive.peek()
       ? Astal.Keymode.EXCLUSIVE
       : Astal.Keymode.ON_DEMAND;
   });

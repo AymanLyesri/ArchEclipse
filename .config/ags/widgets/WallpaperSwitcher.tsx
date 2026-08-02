@@ -531,7 +531,7 @@ export default ({
       <box
         class="wallpaper-switcher"
         orientation={Gtk.Orientation.VERTICAL}
-        spacing={20}
+        spacing={5}
       >
         {getCurrentWorkspaces}
         {actions}

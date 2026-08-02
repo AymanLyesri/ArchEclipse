@@ -165,7 +165,6 @@ export function WindowActions({
       halign={Gtk.Align.END}
       valign={Gtk.Align.END}
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={5}
       $={(self) => {
         self.connect("notify::root", () => {
           const root = self.get_root();

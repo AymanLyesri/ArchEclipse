@@ -15,11 +15,7 @@ import { timeout, Timer } from "ags/time";
 
 function Panel() {
   const WidgetActions = () => (
-    <box
-      orientation={Gtk.Orientation.VERTICAL}
-      class="widget-actions"
-      spacing={10}
-    >
+    <box orientation={Gtk.Orientation.VERTICAL} class="widget-actions">
       {leftPanelWidgetSelectors.map((widgetSelector) => {
         return (
           <togglebutton
@@ -203,7 +199,7 @@ export default ({
         onKeyPressed={({ widget }, keyval: number) => {
           if (keyval === Gdk.KEY_Escape) {
             app.get_window(`left-panel-${monitorName}`)?.hide();
-            widget.hide();
+            widget!.hide();
             return true;
           }
         }}
