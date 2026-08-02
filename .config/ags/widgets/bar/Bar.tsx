@@ -217,6 +217,8 @@ export default ({
   const monitorName = getMonitorName(monitor)!;
   const [currentWidth, setCurrentWidth] = createState(0);
 
+  const barOnTop = globalSettings((s) => s.bar.orientation.value as boolean);
+
   // ---------------------------------------------------------------------
   // Spring physics width animation — lives outside animateWidth so it
   // persists (and keeps momentum) across repeated calls.
@@ -493,11 +495,15 @@ export default ({
       class="Bar"
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       keymode={Astal.Keymode.NONE}
-      anchor={
-        Astal.WindowAnchor.TOP |
-        Astal.WindowAnchor.LEFT |
-        Astal.WindowAnchor.RIGHT
-      }
+      anchor={createComputed(() =>
+        barOnTop()
+          ? Astal.WindowAnchor.TOP |
+            Astal.WindowAnchor.LEFT |
+            Astal.WindowAnchor.RIGHT
+          : Astal.WindowAnchor.BOTTOM |
+            Astal.WindowAnchor.LEFT |
+            Astal.WindowAnchor.RIGHT,
+      )}
       visible={createComputed(() => {
         return !fullscreenClient();
       })}
@@ -508,7 +514,7 @@ export default ({
       }}
     >
       <centerbox>
-        <box $type="start" hexpand>
+        <box $type="start" halign={Gtk.Align.START} widthRequest={100}>
           <Gtk.EventControllerMotion
             onEnter={() => {
               if (!globalSettings.peek().leftPanel.lock) return;
@@ -521,7 +527,11 @@ export default ({
           />
         </box>
         <box
-          class={barState((state) => `bar ${state}`)}
+          class={createComputed(() => {
+            const state = barState();
+            const onTop = barOnTop();
+            return `bar ${state} ${onTop ? "top" : "bottom"}`;
+          })}
           $type="center"
           widthRequest={currentWidth}
           $={(self) => {
@@ -561,7 +571,7 @@ export default ({
         >
           {barStack}
         </box>
-        <box $type="end" hexpand>
+        <box $type="end" halign={Gtk.Align.END} widthRequest={100}>
           <Gtk.EventControllerMotion
             onEnter={() => {
               if (!globalSettings.peek().rightPanel.lock) return;

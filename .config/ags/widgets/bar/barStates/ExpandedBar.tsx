@@ -1,11 +1,11 @@
 import { Gtk } from "ags/gtk4";
 import { globalSettings } from "../../../variables";
-import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
-import Workspaces from "../components/Workspaces";
-import Information from "../components/Information";
-import Utilities from "../components/Utilities";
 
-const layout = globalSettings.peek().bar.layout;
+const isEnabled = (name: string) =>
+  globalSettings(
+    (s) =>
+      s.bar.layout.find((widget) => widget.name === name)?.enabled ?? false,
+  );
 
 export default ({
   start,
@@ -18,19 +18,14 @@ export default ({
 }) =>
   (
     <centerbox hexpand>
-      {layout
-        .filter((widget) => widget.enabled)
-        .map((widget: WidgetSelector, key) => {
-          switch (widget.name) {
-            case "workspaces":
-              return <box $type="start">{start}</box>;
-            case "information":
-              return <box $type="center">{center}</box>;
-            case "utilities":
-              return <box $type="end">{end}</box>;
-            default:
-              return <box />;
-          }
-        })}
+      <box $type="start" visible={isEnabled("workspaces")}>
+        {start}
+      </box>
+      <box $type="center" visible={isEnabled("information")}>
+        {center}
+      </box>
+      <box $type="end" visible={isEnabled("utilities")}>
+        {end}
+      </box>
     </centerbox>
   ) as Gtk.Widget;
