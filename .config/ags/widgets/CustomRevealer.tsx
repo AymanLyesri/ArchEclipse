@@ -31,13 +31,6 @@ export default ({
       revealChild={revealChild}
       transitionDuration={globalTransition}
       transitionType={transitionType}
-      $={(self) => {
-        if ($) $(self);
-        self.connect(`notify::volume`, () => {
-          print("Volume changed, revealing slider");
-          self.reveal_child = true;
-        });
-      }}
       child={child}
     />
   );

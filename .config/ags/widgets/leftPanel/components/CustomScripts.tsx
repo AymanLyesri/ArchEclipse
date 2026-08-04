@@ -17,7 +17,6 @@ export default () => {
         class="custom-scripts"
         orientation={Gtk.Orientation.VERTICAL}
         hexpand
-        spacing={10}
       >
         <For each={getCustomScripts}>
           {(script) => {

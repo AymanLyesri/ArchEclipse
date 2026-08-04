@@ -467,7 +467,7 @@ const createBooruViewerInstance = () => {
       <scrolledwindow hexpand vexpand>
         <box class={"images"} spacing={5}>
           {imageColumns.map((column) => (
-            <box orientation={Gtk.Orientation.VERTICAL} spacing={5} hexpand>
+            <box orientation={Gtk.Orientation.VERTICAL} hexpand>
               {column.map((image: BooruImage) => {
                 return image.renderAsImageDialog({
                   columnWidth,

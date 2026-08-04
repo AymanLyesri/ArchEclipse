@@ -8,7 +8,9 @@
   .tag,
   .actions .section {
     opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
   }
 
   &:hover {
@@ -21,7 +23,9 @@
       .tags > :nth-child(#{$i}) .tag,
       .section:nth-child(#{$i}) {
         opacity: 1;
-        transition-delay: $section-delay * ($i - 1), 0s;
+        transition-delay:
+          $section-delay * ($i - 1),
+          0s;
       }
     }
   }
@@ -30,7 +34,9 @@
     @for $i from 1 through $section-count {
       .tags > :nth-child(#{$i}) .tag,
       .section:nth-child(#{$i}) {
-        transition-delay: $section-delay * ($i - 1), 0s;
+        transition-delay:
+          $section-delay * ($i - 1),
+          0s;
         opacity: 0;
       }
     }
