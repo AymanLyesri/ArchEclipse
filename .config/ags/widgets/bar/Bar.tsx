@@ -229,7 +229,7 @@ export default ({
   function animateWidth(
     target: number,
     stiffness = 250, // higher = snappier
-    damping = 15, // lower = more bounce
+    damping = 20, // lower = more bounce
     mass = 1,
   ) {
     // Cancel any in-flight spring so we don't run two at once —
@@ -545,6 +545,7 @@ export default ({
                 leaveTimer.cancel();
                 leaveTimer = null;
               }
+              windowInstance.setIsHovered(true);
               // No manual "am I allowed to expand right now" guard needed —
               // if search or a volume/brightness pulse is active, they
               // outrank "expanded" in the resolver and stay visible
@@ -553,6 +554,7 @@ export default ({
             });
 
             motion.connect("leave", () => {
+              windowInstance.setIsHovered(false);
               if (leaveTimer !== null) {
                 leaveTimer.cancel();
                 leaveTimer = null;

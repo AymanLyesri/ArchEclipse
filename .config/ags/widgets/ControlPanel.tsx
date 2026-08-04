@@ -157,7 +157,6 @@ function DndToggle() {
 function WallpaperSwitcher() {
   return (
     <button
-      class="wallpaper-switcher"
       label="󰸉"
       onClicked={(self) => {
         const window = app.get_window(
@@ -215,10 +214,10 @@ export default () => {
   return (
     <box
       class="control-panel"
-      spacing={15}
+      spacing={5}
       orientation={Gtk.Orientation.VERTICAL}
     >
-      <box class="sliders" spacing={10} orientation={Gtk.Orientation.VERTICAL}>
+      <box class="sliders" spacing={5} orientation={Gtk.Orientation.VERTICAL}>
         <Volume />
         <BrightnessWidget />
       </box>

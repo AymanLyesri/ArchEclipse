@@ -122,18 +122,31 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           self.set_parent(entryRef!);
           self.set_offset(0, 15); // x, y — this replaces marginTop
           self.connect("notify::visible", () => {
+            const window = entryRef?.get_root() as Gtk.Window | undefined;
+            const windowInstance = (window as any)?.barWindow;
             if (self.visible) {
               self.add_css_class("popover-open");
+              windowInstance?.addOpenPopover?.(self);
             } else {
               self.remove_css_class("popover-open");
+              windowInstance?.removeOpenPopover?.(self);
             }
           });
 
           self.connect("closed", () => {
+            const window = entryRef?.get_root() as Gtk.Window | undefined;
+            const windowInstance = (window as any)?.barWindow;
             if (barState.peek() !== "search") return; // only reset if search was active
             deactivateState("search");
             setSearchQuery("");
             setIsExclusive(true);
+
+            if (
+              !windowInstance?.isHovered?.() &&
+              !windowInstance?.popupIsOpen?.()
+            ) {
+              deactivateState("expanded");
+            }
           });
         }}
       >

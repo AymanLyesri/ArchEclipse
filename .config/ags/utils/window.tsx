@@ -46,6 +46,7 @@ export const queueResize = (window: Gtk.Window | null) => {
 class Window {
   private _openPopovers: Set<Gtk.Popover> = new Set();
   private _isDragging: boolean = false;
+  private _isHovered: boolean = false;
 
   constructor() {}
 
@@ -73,6 +74,14 @@ class Window {
 
   public setIsDragging(value: boolean): void {
     this._isDragging = value;
+  }
+
+  public isHovered(): boolean {
+    return this._isHovered;
+  }
+
+  public setIsHovered(value: boolean): void {
+    this._isHovered = value;
   }
 }
 

@@ -69,7 +69,10 @@
      */
     .workspace-group {
       border-radius: 50px;
-
+      button {
+        margin: 0px;
+      }
+      margin: 5px 0px;
       &.active {
         background-color: $background-transparent;
       }

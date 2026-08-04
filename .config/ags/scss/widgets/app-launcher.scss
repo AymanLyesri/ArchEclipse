@@ -47,8 +47,10 @@
       }
     }
 
-    .content {
-      min-height: 100px;
+    .results {
+      .first {
+        background-color: $background-secondary;
+      }
     }
   }
 

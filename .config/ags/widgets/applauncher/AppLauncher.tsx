@@ -284,13 +284,12 @@ export default ({
           visible={results((entries) => entries.length > 0)}
           class="results"
           orientation={Gtk.Orientation.VERTICAL}
-          spacing={10}
         >
           <For each={results}>
             {(result, index) => (
               <AppButton
                 element={result}
-                className={index.peek() === 0 ? "checked" : ""}
+                className={index() === 0 ? "first" : ""}
                 onLaunch={onLaunch}
               />
             )}

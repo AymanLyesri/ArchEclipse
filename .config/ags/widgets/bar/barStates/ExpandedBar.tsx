@@ -17,7 +17,7 @@ export default ({
   end: Gtk.Widget;
 }) =>
   (
-    <centerbox hexpand>
+    <centerbox>
       <box $type="start" visible={isEnabled("workspaces")}>
         {start}
       </box>
