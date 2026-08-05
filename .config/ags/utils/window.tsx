@@ -51,7 +51,9 @@ class Window {
   constructor() {}
 
   public popupIsOpen(): boolean {
-    return this._openPopovers.size > 0;
+    return Array.from(this._openPopovers.values()).some(
+      (popover) => !!popover.visible,
+    );
   }
 
   // Kept for compatibility if anything still calls this directly —

@@ -11,6 +11,7 @@ import GObject from "ags/gobject";
 import { workspaceClientLayout } from "./sub-components/WorkspaceOverview";
 import { workspaceRegexIconMap } from "../../../constants/workspace.constants";
 import { connectPopoverEvents } from "../../../utils/window";
+import { deactivateState } from "../Bar";
 
 const hyprland = Hyprland.get_default();
 
@@ -139,6 +140,30 @@ function Workspaces() {
           popover.set_child(workspaceClientLayout(workspace));
           popover.set_parent(self);
           connectPopoverEvents(self, "barWindow", popover);
+
+          const findBarWindow = () => {
+            let parent = self.get_parent();
+            let candidate = null as any;
+            while (parent && !candidate) {
+              candidate = (parent as any).barWindow;
+              parent = parent.get_parent();
+            }
+            return candidate as {
+              isHovered?: () => boolean;
+              popupIsOpen?: () => boolean;
+            } | null;
+          };
+
+          popover.connect("notify::visible", () => {
+            if (popover.visible) return;
+            const windowInstance = findBarWindow();
+            if (
+              !windowInstance?.isHovered?.() &&
+              !windowInstance?.popupIsOpen?.()
+            ) {
+              deactivateState("expanded");
+            }
+          });
 
           // --- HOVER LOGIC ---
           let hideTimeout: Timer;

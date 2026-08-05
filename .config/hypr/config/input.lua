@@ -3,7 +3,7 @@ hl.config({
         kb_rules = "evdev",
         kb_model = "pc105",
         resolve_binds_by_sym = 1,
-        kb_options = "grp:alt_shift_toggle",
+        kb_options = "grp:win_space_toggle",
         repeat_rate = 50,
         repeat_delay = 300,
         numlock_by_default = 1,

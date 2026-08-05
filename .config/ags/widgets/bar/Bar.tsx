@@ -539,6 +539,14 @@ export default ({
             (self as any).barWindow = windowInstance;
             let leaveTimer: Timer | null = null;
             const motion = new Gtk.EventControllerMotion();
+            const tryCollapseExpanded = () => {
+              if (
+                !windowInstance.isHovered() &&
+                !windowInstance.popupIsOpen()
+              ) {
+                deactivateState("expanded");
+              }
+            };
 
             motion.connect("enter", () => {
               if (leaveTimer !== null) {
@@ -562,9 +570,7 @@ export default ({
 
               leaveTimer = timeout(250, () => {
                 leaveTimer = null;
-                if (!windowInstance.popupIsOpen()) {
-                  deactivateState("expanded");
-                }
+                tryCollapseExpanded();
               });
             });
             self.add_controller(motion);
