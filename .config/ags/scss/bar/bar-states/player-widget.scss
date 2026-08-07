@@ -1,4 +1,20 @@
 .player-widget {
+  .no-player {
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    background-color: $background;
+
+    label {
+      font-weight: 700;
+      opacity: 0.9;
+    }
+
+    .icon {
+      opacity: 0.75;
+    }
+  }
+
   menubutton > button {
     padding: 0;
     background-color: $background;

@@ -28,8 +28,6 @@ import Brightness from "../../services/brightness";
 import BrightnessWidget from "./components/sub-components/BrightnessWidget";
 import Recording from "./components/sub-components/Recording";
 import { isRecording } from "../../services/record.service";
-import AppLauncher from "../applauncher/AppLauncher";
-import GLib from "gi://GLib";
 import AstalMpris from "gi://AstalMpris";
 import PlayerWidget from "./components/sub-components/PlayerWidget";
 import NetworkWidget from "./barStates/NetworkWidget";
@@ -514,7 +512,13 @@ export default ({
       }}
     >
       <centerbox>
-        <box $type="start" halign={Gtk.Align.START} widthRequest={100}>
+        <box
+          $type="start"
+          valign={Gtk.Align.START}
+          halign={Gtk.Align.START}
+          widthRequest={5}
+          heightRequest={5}
+        >
           <Gtk.EventControllerMotion
             onEnter={() => {
               if (!globalSettings.peek().leftPanel.lock) return;
@@ -579,7 +583,13 @@ export default ({
         >
           {barStack}
         </box>
-        <box $type="end" halign={Gtk.Align.END} widthRequest={100}>
+        <box
+          $type="end"
+          valign={Gtk.Align.START}
+          halign={Gtk.Align.END}
+          widthRequest={5}
+          heightRequest={5}
+        >
           <Gtk.EventControllerMotion
             onEnter={() => {
               if (!globalSettings.peek().rightPanel.lock) return;
