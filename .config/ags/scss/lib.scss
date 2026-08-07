@@ -195,19 +195,25 @@ scrollbar {
 }
 
 popover {
-  &.popover-open {
-    animation: opacity-in 0.5s ease-out;
-  }
+  background: transparent;
+  border: unset;
+  box-shadow: unset;
+
   arrow {
-    background: $background-secondary;
+    background: transparent;
+    border: unset;
   }
+
   contents {
     padding: 0px;
     background: transparent;
     box-shadow: unset;
     border: unset;
+    border-radius: 0;
+    outline: none;
+    clip: rect(0, 100%, 100%, 0);
     * {
-      transition: all 0.2s;
+      transition: none;
     }
     button {
       @include button;

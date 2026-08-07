@@ -419,20 +419,27 @@ export default ({
           if (first) launchApp(first);
         });
 
-        // Reload app db + prune stale history whenever this popover
-        // becomes visible (mirrors old notify::visible logic)
+        // Reload app db + prune stale history on the next idle cycle so
+        // the popup opens immediately instead of blocking on startup work.
+        let didInitialLoad = false;
         self.connect("map", () => {
-          apps.reload();
+          if (didInitialLoad) return;
+          didInitialLoad = true;
 
-          const currentHistory = history.get();
-          const validHistory = currentHistory.filter(
-            (appName) => apps.fuzzy_query(appName).length > 0,
-          );
+          GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            apps.reload();
 
-          if (validHistory.length !== currentHistory.length) {
-            setHistory(validHistory);
-            persistHistory(validHistory);
-          }
+            const currentHistory = history.get();
+            const validHistory = currentHistory.filter(
+              (appName) => apps.fuzzy_query(appName).length > 0,
+            );
+
+            if (validHistory.length !== currentHistory.length) {
+              setHistory(validHistory);
+              persistHistory(validHistory);
+            }
+            return GLib.SOURCE_REMOVE;
+          });
         });
       }}
     >

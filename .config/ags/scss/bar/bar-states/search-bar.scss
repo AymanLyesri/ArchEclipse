@@ -1,6 +1,20 @@
 .search-bar {
   padding: 0px 5px;
+  overflow: visible;
+
   .search-entry {
     margin: 5px 0px;
+    background: transparent;
+  }
+}
+
+popover.search-bar-popover {
+  background: transparent;
+
+  contents {
+    background: transparent;
+    border: unset;
+    box-shadow: unset;
+    padding: 0;
   }
 }

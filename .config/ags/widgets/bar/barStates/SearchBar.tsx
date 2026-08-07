@@ -1,5 +1,6 @@
 import { Accessor, createState } from "ags";
 import { Astal, Gdk, Gtk } from "ags/gtk4";
+import GLib from "gi://GLib";
 import { barState, deactivateState } from "../Bar";
 import { timeout } from "ags/time";
 import AppLauncher from "../../applauncher/AppLauncher";
@@ -12,8 +13,40 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   let entryRef: Gtk.TextView | null = null;
   let popoverRef: Gtk.Popover | null = null;
   let settingFromState = false; // guards buffer<->state feedback loop
+  let popupTimer: any = null;
 
   const [isExclusive, setIsExclusive] = createState<boolean>(true);
+
+  const cancelPendingPopup = () => {
+    if (popupTimer) {
+      popupTimer.cancel?.();
+      popupTimer = null;
+    }
+  };
+
+  const showPopover = () => {
+    if (!popoverRef || !entryRef) return;
+
+    cancelPendingPopup();
+    popupTimer = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+      popupTimer = null;
+
+      if (!popoverRef || !entryRef || barState.peek() !== "search") {
+        return GLib.SOURCE_REMOVE;
+      }
+
+      if (popoverRef.get_parent() !== entryRef) {
+        popoverRef.set_parent(entryRef);
+      }
+
+      if (!popoverRef.visible) {
+        popoverRef.popup();
+      }
+
+      entryRef.grab_focus();
+      return GLib.SOURCE_REMOVE;
+    });
+  };
 
   isExclusive.subscribe(() => {
     const window = entryRef?.get_root() as Gtk.Window | undefined;
@@ -24,6 +57,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   });
 
   const closePopover = () => {
+    cancelPendingPopup();
     popoverRef?.popdown();
   };
 
@@ -62,12 +96,9 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 if (!window) return; // not registered yet — ignore the initial fire
                 window.keymode = Astal.Keymode.EXCLUSIVE;
                 if (barState.get() === "search") {
-                  timeout(50, () => {
-                    popoverRef?.popup();
-                    entryRef?.grab_focus();
-                  });
+                  showPopover();
                 } else {
-                  popoverRef?.popdown();
+                  closePopover();
                   setSearchQuery("");
                   setIsExclusive(true);
                   window.keymode = Astal.Keymode.NONE;
@@ -119,7 +150,9 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
         marginTop={50}
         $={(self) => {
           popoverRef = self;
-          self.set_parent(entryRef!);
+          if (entryRef) {
+            self.set_parent(entryRef);
+          }
           self.set_offset(0, 15); // x, y — this replaces marginTop
           self.connect("notify::visible", () => {
             const window = entryRef?.get_root() as Gtk.Window | undefined;
