@@ -58,6 +58,7 @@ export interface Settings {
     lock: AGSSetting;
     smartHide: AGSSetting;
     expanded: AGSSetting;
+    fullWidth: AGSSetting;
     orientation: AGSSetting;
     workspaceNumbers: AGSSetting;
     layout: WidgetSelector[];
