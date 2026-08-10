@@ -10,6 +10,7 @@ import AstalPowerProfiles from "gi://AstalPowerProfiles";
 import CircularProgress from "../../CircularProgress";
 import { timeout, Timer } from "ags/time";
 import SystemResources from "../../rightPanel/components/SystemResources";
+import { SystemResourcesInterface } from "../../../interfaces/systemResources.interface";
 import { connectPopoverEvents } from "../../../utils/window";
 
 import Hyprland from "gi://AstalHyprland";
@@ -113,6 +114,13 @@ function Tray() {
   );
 }
 
+function maxGpuLoad(res: SystemResourcesInterface | null): number | null {
+  const loads = (res?.gpus ?? [])
+    .map((gpu) => gpu.load)
+    .filter((load): load is number => load !== null);
+  return loads.length ? Math.max(...loads) : null;
+}
+
 function ResourceMonitor() {
   return (
     <button
@@ -194,9 +202,11 @@ function ResourceMonitor() {
               icon=""
             />
             <CircularProgress
-              visible={res?.gpuLoad !== undefined}
-              tooltipText={`GPU Usage ${res?.gpuLoad}%`}
-              value={res?.gpuLoad ? res?.gpuLoad / 100 : 0}
+              visible={(res?.gpus?.length ?? 0) > 0}
+              tooltipText={(res?.gpus ?? [])
+                .map((gpu) => `${gpu.driver}: ${gpu.load ?? "N/A"}%`)
+                .join(" | ")}
+              value={(maxGpuLoad(res) ?? 0) / 100}
               className="gpu-monitor"
               icon="󱤟"
             />

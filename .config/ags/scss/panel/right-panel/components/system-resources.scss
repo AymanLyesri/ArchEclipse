@@ -27,6 +27,11 @@
       .metric {
         font-size: 0.95em;
       }
+
+      .metric.driver {
+        color: $foreground-secondary;
+        font-size: 0.85em;
+      }
     }
 
     // .resource-column.cpu {

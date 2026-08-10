@@ -9,6 +9,13 @@ function formatOptionalNumber(
   return value === null || value === undefined ? "N/A" : `${value}${suffix}`;
 }
 
+function formatGpuMemory(used: number | null, total: number | null): string {
+  if (used === null) return "N/A";
+  return total === null
+    ? `${used.toFixed(2)} GB`
+    : `${used.toFixed(2)}/${total.toFixed(2)} GB`;
+}
+
 export default ({
   className,
   orientation,
@@ -41,6 +48,7 @@ export default ({
             <box
               class="resource-columns"
               spacing={10}
+              homogeneous
               orientation={globalSettings(
                 ({ rightPanel }) =>
                   orientation ??
@@ -97,33 +105,36 @@ export default ({
                 />
               </box>
 
-              <box
-                class="resource-column gpu"
-                orientation={Gtk.Orientation.VERTICAL}
-                spacing={6}
-                hexpand
-              >
-                <label
-                  class="column-title"
-                  label={stats?.gpuLabel}
-                  xalign={0}
-                />
-                <label
-                  class="metric"
-                  label={`Load: ${formatOptionalNumber(stats?.gpuLoad, "%")}`}
-                  xalign={0}
-                />
-                <label
-                  class="metric"
-                  label={`Memory: ${formatOptionalNumber(stats?.gpuMemoryUsedGB, " GB")}`}
-                  xalign={0}
-                />
-                <label
-                  class="metric"
-                  label={`Temp: ${formatOptionalNumber(stats?.gpuTempC, "°C")}`}
-                  xalign={0}
-                />
-              </box>
+              {(stats?.gpus ?? []).map((gpu) => (
+                <box
+                  class="resource-column gpu"
+                  orientation={Gtk.Orientation.VERTICAL}
+                  spacing={6}
+                  hexpand
+                >
+                  <label class="column-title" label={gpu.label} xalign={0} />
+                  <label
+                    class="metric driver"
+                    label={`Driver: ${gpu.driver}`}
+                    xalign={0}
+                  />
+                  <label
+                    class="metric"
+                    label={`Load: ${formatOptionalNumber(gpu.load, "%")}`}
+                    xalign={0}
+                  />
+                  <label
+                    class="metric"
+                    label={`Memory: ${formatGpuMemory(gpu.memoryUsedGB, gpu.memoryTotalGB)}`}
+                    xalign={0}
+                  />
+                  <label
+                    class="metric"
+                    label={`Temp: ${formatOptionalNumber(gpu.tempC, "°C")}`}
+                    xalign={0}
+                  />
+                </box>
+              ))}
             </box>
           </box>
         )}

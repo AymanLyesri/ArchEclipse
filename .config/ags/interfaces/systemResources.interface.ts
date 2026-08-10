@@ -1,3 +1,12 @@
+export interface GpuStatInterface {
+  label: string;
+  driver: string;
+  load: number | null;
+  memoryUsedGB: number | null;
+  memoryTotalGB: number | null;
+  tempC: number | null;
+}
+
 export interface SystemResourcesInterface {
   cpuLoad: number;
   clockGHz: number;
@@ -6,9 +15,7 @@ export interface SystemResourcesInterface {
   ramTotalGB: number;
   ramUsedGB: number;
   ramFreeGB: number;
-  gpuLoad: number | null;
-  gpuMemoryUsedGB: number | null;
-  gpuTempC: number | null;
-  gpuLabel: string;
+  ramUsage: number;
+  gpus: GpuStatInterface[];
   updatedAt: string;
 }
