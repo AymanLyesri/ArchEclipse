@@ -627,7 +627,11 @@ export default ({
             return `bar ${state} ${onTop ? "top" : "bottom"}`;
           })}
           $type="center"
-          widthRequest={currentWidth}
+          widthRequest={createComputed(() =>
+            (globalSettings().bar.fullWidth.value as boolean)
+              ? -1
+              : currentWidth(),
+          )}
           $={(self) => {
             const windowInstance = new Window();
             (self as any).barWindow = windowInstance;
@@ -676,7 +680,9 @@ export default ({
             });
             self.add_controller(motion);
           }}
-          hexpand={false}
+          hexpand={globalSettings(
+            ({ bar }) => bar.fullWidth.value as boolean,
+          )}
         >
           {barStack}
         </box>

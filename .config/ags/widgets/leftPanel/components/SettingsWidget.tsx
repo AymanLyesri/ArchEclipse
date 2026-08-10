@@ -701,6 +701,10 @@ export default () => {
               setting={globalSettings.peek().bar.expanded}
             />
             <Setting
+              keyChanged="bar.fullWidth"
+              setting={globalSettings.peek().bar.fullWidth}
+            />
+            <Setting
               keyChanged="alwaysOnWidget.visibility"
               setting={globalSettings.peek().alwaysOnWidget.visibility}
             />

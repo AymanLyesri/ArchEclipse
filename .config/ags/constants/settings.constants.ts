@@ -197,6 +197,15 @@ export const defaultSettings: Settings = {
       max: 1,
       tooltip: "Rest in the expanded layout instead of the compact pill",
     },
+    fullWidth: {
+      name: "Full Width",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "Stretch the bar across the whole monitor like the classic layout",
+    },
     orientation: {
       name: "Orientation",
       value: true,
