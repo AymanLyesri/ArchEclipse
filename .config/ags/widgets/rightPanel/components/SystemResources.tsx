@@ -1,40 +1,12 @@
 import { Gtk } from "ags/gtk4";
-import { Accessor, createState, With } from "ags";
-import { execAsync } from "ags/process";
+import { Accessor, With } from "ags";
 import { globalSettings, systemResourcesData } from "../../../variables";
-import GLib from "gi://GLib";
-
-interface SystemResourcesData {
-  cpuLoad: number;
-  clockGHz: number;
-  threads: number;
-  cpuTempC: number | null;
-  ramTotalGB: number;
-  ramUsedGB: number;
-  ramFreeGB: number;
-  gpuLoad: number | null;
-  gpuMemoryUsedGB: number | null;
-  gpuTempC: number | null;
-  gpuLabel: string;
-  updatedAt: string;
-}
-
-const POLL_MS = 5000;
-const SCRIPT_PATH = `/tmp/ags-${GLib.get_user_name()}/system-resources-loop-ags`;
 
 function formatOptionalNumber(
   value: number | null | undefined,
   suffix: string,
 ): string {
   return value === null || value === undefined ? "N/A" : `${value}${suffix}`;
-}
-
-function getNowTimeLabel(): string {
-  return new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
 }
 
 export default ({
@@ -44,21 +16,6 @@ export default ({
   className?: string | Accessor<string>;
   orientation?: Gtk.Orientation;
 }) => {
-  const [data, setData] = createState<SystemResourcesData>({
-    cpuLoad: 0,
-    clockGHz: 0,
-    threads: 0,
-    cpuTempC: null,
-    ramTotalGB: 0,
-    ramUsedGB: 0,
-    ramFreeGB: 0,
-    gpuLoad: null,
-    gpuMemoryUsedGB: null,
-    gpuTempC: null,
-    gpuLabel: "GPU",
-    updatedAt: "--:--:--",
-  });
-
   return (
     <box
       class={`system-resources ${className ?? ""}`}
@@ -84,10 +41,12 @@ export default ({
             <box
               class="resource-columns"
               spacing={10}
-              orientation={globalSettings(({ rightPanel }) =>
-                (orientation ?? rightPanel.width < 400)
-                  ? Gtk.Orientation.VERTICAL
-                  : Gtk.Orientation.HORIZONTAL,
+              orientation={globalSettings(
+                ({ rightPanel }) =>
+                  orientation ??
+                  (rightPanel.width < 400
+                    ? Gtk.Orientation.VERTICAL
+                    : Gtk.Orientation.HORIZONTAL),
               )}
             >
               <box
