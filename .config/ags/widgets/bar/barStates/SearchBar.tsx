@@ -9,6 +9,11 @@ export const [searchQuery, setSearchQuery] = createState<string>("");
 
 export const [searchActivate, setSearchActivate] = createState<number>(0);
 
+// Fresh object per keypress so equal directions still emit.
+export const [searchNavigate, setSearchNavigate] = createState<{
+  direction: number;
+}>({ direction: 0 });
+
 export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   let entryRef: Gtk.TextView | null = null;
   let popoverRef: Gtk.Popover | null = null;
@@ -116,6 +121,15 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 if (keyval === Gdk.KEY_Escape) {
                   setIsExclusive(isExclusive.peek() ? false : true);
 
+                  return true;
+                }
+
+                const isDown =
+                  keyval === Gdk.KEY_Down || keyval === Gdk.KEY_Tab;
+                const isUp =
+                  keyval === Gdk.KEY_Up || keyval === Gdk.KEY_ISO_Left_Tab;
+                if (isDown || isUp) {
+                  setSearchNavigate({ direction: isDown ? 1 : -1 });
                   return true;
                 }
 

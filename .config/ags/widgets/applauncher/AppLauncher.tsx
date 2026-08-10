@@ -5,7 +5,7 @@ import { writeJSONFile } from "../../utils/json";
 import { Gtk } from "ags/gtk4";
 import Hyprland from "gi://AstalHyprland";
 import Pango from "gi://Pango";
-import { createBinding, For, With } from "gnim";
+import { createBinding, createComputed, For, With } from "gnim";
 
 import KeyBind from "../KeyBind";
 import { customApps } from "../../constants/app.constants";
@@ -44,7 +44,11 @@ import AppHistory, { normalizeHistory } from "./AppHistory";
 import Mpris from "gi://AstalMpris";
 import Player from "../Player";
 import { playablePlayers } from "../bar/components/sub-components/PlayerWidget";
-import { searchActivate, searchQuery } from "../bar/barStates/SearchBar";
+import {
+  searchActivate,
+  searchNavigate,
+  searchQuery,
+} from "../bar/barStates/SearchBar";
 const mpris = Mpris.get_default();
 
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;
@@ -56,7 +60,7 @@ export function AppButton({
   onLaunch,
 }: {
   element: LauncherApp;
-  className?: string;
+  className?: string | Accessor<string>;
   onLaunch: (app: LauncherApp) => void;
 }) {
   if (element.app_type === "header") {
@@ -152,6 +156,16 @@ export default ({
 }) => {
   const [Results, setResults] = createState<LauncherApp[]>([]);
   const [history, setHistory] = createState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = createState(0);
+
+  const firstSelectable = (list: LauncherApp[]) => {
+    const index = list.findIndex((entry) => entry.app_type !== "header");
+    return index === -1 ? 0 : index;
+  };
+
+  Results.subscribe(() => {
+    setSelectedIndex(firstSelectable(Results.peek()));
+  });
 
   function getInstalledAppByName(appName: string): Apps.Application | null {
     return (
@@ -290,7 +304,9 @@ export default ({
             {(result, index) => (
               <AppButton
                 element={result}
-                className={index() === 0 ? "first" : ""}
+                className={createComputed(() =>
+                  index() === selectedIndex() ? "first" : "",
+                )}
                 onLaunch={onLaunch}
               />
             )}
@@ -414,8 +430,24 @@ export default ({
         });
 
         searchActivate.subscribe(() => {
-          const first = Results.get()[0];
-          if (first) launchApp(first);
+          const list = Results.get();
+          const target =
+            list[selectedIndex.peek()] ?? list[firstSelectable(list)];
+          if (target && target.app_type !== "header") launchApp(target);
+        });
+
+        searchNavigate.subscribe(() => {
+          const { direction } = searchNavigate.get();
+          if (!direction) return;
+          const list = Results.peek();
+          if (list.length === 0) return;
+
+          const start = selectedIndex.peek();
+          let next = start;
+          do {
+            next = (next + direction + list.length) % list.length;
+          } while (list[next]?.app_type === "header" && next !== start);
+          setSelectedIndex(next);
         });
 
         // Reload app db + prune stale history on the next idle cycle so
