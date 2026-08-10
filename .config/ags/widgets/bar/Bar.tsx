@@ -29,6 +29,7 @@ import BrightnessWidget from "./components/sub-components/BrightnessWidget";
 import Recording from "./components/sub-components/Recording";
 import { isRecording } from "../../services/record.service";
 import AstalMpris from "gi://AstalMpris";
+import Hyprland from "gi://AstalHyprland";
 import PlayerWidget from "./components/sub-components/PlayerWidget";
 import NetworkWidget from "./barStates/NetworkWidget";
 import CompactBar from "./barStates/CompactBar";
@@ -36,6 +37,7 @@ import ExpandedBar from "./barStates/ExpandedBar";
 import SearchBar from "./barStates/SearchBar";
 
 const mpris = AstalMpris.get_default();
+const hyprland = Hyprland.get_default();
 
 export type BarStateName =
   | "compact"
@@ -285,6 +287,22 @@ export default ({
     return natural + (barPaddings[state] ?? 0);
   }
 
+  // Workspaces appearing/disappearing and client class changes alter the
+  // compact/expanded content width while the bar is resting — follow them.
+  // Debounced so GTK gets an idle cycle to relayout before the measure.
+  let widthRefreshTimer: Timer | null = null;
+  function queueWidthRefresh() {
+    widthRefreshTimer?.cancel();
+    widthRefreshTimer = timeout(150, () => {
+      widthRefreshTimer = null;
+      const state = barState.peek();
+      if (!DYNAMIC_STATES.includes(state)) return;
+      const target = widthFor(state);
+      if (target === undefined) return;
+      if (Math.abs(target - currentWidth.peek()) > 1) animateWidth(target);
+    });
+  }
+
   // Auto-animate width on every bar-state change — single source of truth.
   // barState is now driven by the priority resolver above; this block
   // doesn't need to know or care why it changed.
@@ -528,6 +546,18 @@ export default ({
       $={(self) => {
         setup(self);
         (self as any).monitorName = monitorName;
+
+        const unsubWorkspaces = createBinding(hyprland, "workspaces").subscribe(
+          queueWidthRefresh,
+        );
+        const unsubClients = createBinding(hyprland, "clients").subscribe(
+          queueWidthRefresh,
+        );
+        self.connect("destroy", () => {
+          unsubWorkspaces();
+          unsubClients();
+          widthRefreshTimer?.cancel();
+        });
       }}
     >
       <centerbox>
