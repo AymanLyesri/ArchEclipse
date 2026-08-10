@@ -694,8 +694,16 @@ export default () => {
               setting={globalSettings.peek().leftPanel.hotZone}
             />
             <Setting
+              keyChanged="leftPanel.hotZoneSize"
+              setting={globalSettings.peek().leftPanel.hotZoneSize}
+            />
+            <Setting
               keyChanged="rightPanel.hotZone"
               setting={globalSettings.peek().rightPanel.hotZone}
+            />
+            <Setting
+              keyChanged="rightPanel.hotZoneSize"
+              setting={globalSettings.peek().rightPanel.hotZoneSize}
             />
             <button
               class="hot-zone-preview"

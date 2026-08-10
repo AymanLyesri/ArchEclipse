@@ -200,6 +200,14 @@ export const defaultSettings: Settings = {
       tooltip:
         "Reveal the right panel by hovering the screen edge or bar corner",
     },
+    hotZoneSize: {
+      name: "Right Panel Hot Zone Size",
+      value: 5,
+      type: "int",
+      min: 1,
+      max: 50,
+      tooltip: "Width in pixels of the right panel reveal area",
+    },
   },
   leftPanel: {
     exclusivity: true,
@@ -214,6 +222,14 @@ export const defaultSettings: Settings = {
       max: 1,
       tooltip:
         "Reveal the left panel by hovering the screen edge or bar corner",
+    },
+    hotZoneSize: {
+      name: "Left Panel Hot Zone Size",
+      value: 5,
+      type: "int",
+      min: 1,
+      max: 50,
+      tooltip: "Width in pixels of the left panel reveal area",
     },
   },
   chatBot: {

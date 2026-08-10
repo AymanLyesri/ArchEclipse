@@ -517,8 +517,12 @@ export default ({
           $type="start"
           valign={Gtk.Align.START}
           halign={Gtk.Align.START}
-          widthRequest={5}
-          heightRequest={5}
+          widthRequest={globalSettings(
+            (s) => s.leftPanel.hotZoneSize.value as number,
+          )}
+          heightRequest={globalSettings(
+            (s) => s.leftPanel.hotZoneSize.value as number,
+          )}
           css={hotZonePreview((preview) =>
             preview ? "background-color: rgba(255, 85, 85, 0.4);" : "",
           )}
@@ -593,8 +597,12 @@ export default ({
           $type="end"
           valign={Gtk.Align.START}
           halign={Gtk.Align.END}
-          widthRequest={5}
-          heightRequest={5}
+          widthRequest={globalSettings(
+            (s) => s.rightPanel.hotZoneSize.value as number,
+          )}
+          heightRequest={globalSettings(
+            (s) => s.rightPanel.hotZoneSize.value as number,
+          )}
           css={hotZonePreview((preview) =>
             preview ? "background-color: rgba(255, 85, 85, 0.4);" : "",
           )}

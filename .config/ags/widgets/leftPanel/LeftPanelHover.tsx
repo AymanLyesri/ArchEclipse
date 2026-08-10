@@ -45,11 +45,13 @@ export default ({
       }}
     >
       <box
-        css={hotZonePreview((preview) =>
-          preview
-            ? "min-width: 5px; background-color: rgba(255, 85, 85, 0.4);"
-            : "min-width: 5px; background-color: rgba(0,0,0,0.01);",
-        )}
+        css={createComputed(() => {
+          const size = globalSettings().leftPanel.hotZoneSize.value as number;
+          const background = hotZonePreview()
+            ? "rgba(255, 85, 85, 0.4)"
+            : "rgba(0,0,0,0.01)";
+          return `min-width: ${size}px; background-color: ${background};`;
+        })}
       />
     </window>
   );
