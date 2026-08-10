@@ -705,6 +705,10 @@ export default () => {
               setting={globalSettings.peek().bar.fullWidth}
             />
             <Setting
+              keyChanged="bar.revealPressure"
+              setting={globalSettings.peek().bar.revealPressure}
+            />
+            <Setting
               keyChanged="alwaysOnWidget.visibility"
               setting={globalSettings.peek().alwaysOnWidget.visibility}
             />

@@ -59,6 +59,7 @@ export interface Settings {
     smartHide: AGSSetting;
     expanded: AGSSetting;
     fullWidth: AGSSetting;
+    revealPressure: AGSSetting;
     orientation: AGSSetting;
     layout: WidgetSelector[];
   };

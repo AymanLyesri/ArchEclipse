@@ -206,6 +206,15 @@ export const defaultSettings: Settings = {
       tooltip:
         "Stretch the bar across the whole monitor like the classic layout",
     },
+    revealPressure: {
+      name: "Reveal Pressure",
+      value: 250,
+      type: "int",
+      min: 0,
+      max: 1000,
+      tooltip:
+        "How long the pointer must hold the screen edge before an unlocked bar reveals, in milliseconds (0 = instant)",
+    },
     orientation: {
       name: "Orientation",
       value: true,
