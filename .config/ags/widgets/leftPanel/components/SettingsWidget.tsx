@@ -689,6 +689,10 @@ export default () => {
               setting={globalSettings.peek().bar.orientation}
             />
             <Setting
+              keyChanged="bar.lock"
+              setting={globalSettings.peek().bar.lock}
+            />
+            <Setting
               keyChanged="alwaysOnWidget.visibility"
               setting={globalSettings.peek().alwaysOnWidget.visibility}
             />

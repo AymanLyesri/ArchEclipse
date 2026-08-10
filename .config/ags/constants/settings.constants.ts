@@ -171,6 +171,15 @@ export const defaultSettings: Settings = {
       "Enable dynamic theme variants (light/dark) based on the current wallpaper",
   },
   bar: {
+    lock: {
+      name: "Lock",
+      value: true,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "Keep the bar always visible. When off, the bar auto-hides and hovering the screen edge reveals it",
+    },
     orientation: {
       name: "Orientation",
       value: true,
