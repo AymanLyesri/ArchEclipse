@@ -710,6 +710,10 @@ export default () => {
               setting={globalSettings.peek().bar.fullWidth}
             />
             <Setting
+              keyChanged="bar.revealPressure"
+              setting={globalSettings.peek().bar.revealPressure}
+            />
+            <Setting
               keyChanged="leftPanel.hotZone"
               setting={globalSettings.peek().leftPanel.hotZone}
             />
