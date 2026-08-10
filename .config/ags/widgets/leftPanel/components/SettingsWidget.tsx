@@ -15,6 +15,7 @@ import {
   globalSettings,
   setGlobalSetting,
   setGlobalSettings,
+  setHotZonePreview,
 } from "../../../variables";
 import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
 import { refreshCss } from "../../../utils/scss";
@@ -687,6 +688,23 @@ export default () => {
             <Setting
               keyChanged="bar.orientation"
               setting={globalSettings.peek().bar.orientation}
+            />
+            <Setting
+              keyChanged="leftPanel.hotZone"
+              setting={globalSettings.peek().leftPanel.hotZone}
+            />
+            <Setting
+              keyChanged="rightPanel.hotZone"
+              setting={globalSettings.peek().rightPanel.hotZone}
+            />
+            <button
+              class="hot-zone-preview"
+              label="Preview Hot Zones"
+              tooltipText="Highlight the panel reveal areas for a few seconds"
+              onClicked={() => {
+                setHotZonePreview(true);
+                timeout(3000, () => setHotZonePreview(false));
+              }}
             />
             <Setting
               keyChanged="alwaysOnWidget.visibility"

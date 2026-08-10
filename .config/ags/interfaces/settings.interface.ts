@@ -69,6 +69,7 @@ export interface Settings {
     width: number;
     widgets: WidgetSelector[];
     lock: boolean;
+    hotZone: AGSSetting;
   };
   chatBot: {
     api: Api;
@@ -89,6 +90,7 @@ export interface Settings {
     width: number;
     lock: boolean;
     widget: WidgetSelector;
+    hotZone: AGSSetting;
   };
   crypto: {
     favorite: {

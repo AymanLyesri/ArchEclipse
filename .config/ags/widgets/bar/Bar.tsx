@@ -12,6 +12,7 @@ import {
   fullscreenClient,
   globalMargin,
   globalSettings,
+  hotZonePreview,
 } from "../../variables";
 import { getMonitorName } from "../../utils/monitor";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
@@ -518,9 +519,14 @@ export default ({
           halign={Gtk.Align.START}
           widthRequest={5}
           heightRequest={5}
+          css={hotZonePreview((preview) =>
+            preview ? "background-color: rgba(255, 85, 85, 0.4);" : "",
+          )}
         >
           <Gtk.EventControllerMotion
             onEnter={() => {
+              if (!(globalSettings.peek().leftPanel.hotZone.value as boolean))
+                return;
               if (!globalSettings.peek().leftPanel.lock) return;
               const leftPanel = app.get_window(
                 `left-panel-${monitorName}`,
@@ -589,9 +595,14 @@ export default ({
           halign={Gtk.Align.END}
           widthRequest={5}
           heightRequest={5}
+          css={hotZonePreview((preview) =>
+            preview ? "background-color: rgba(255, 85, 85, 0.4);" : "",
+          )}
         >
           <Gtk.EventControllerMotion
             onEnter={() => {
+              if (!(globalSettings.peek().rightPanel.hotZone.value as boolean))
+                return;
               if (!globalSettings.peek().rightPanel.lock) return;
               const rightPanel = app.get_window(
                 `right-panel-${monitorName}`,
