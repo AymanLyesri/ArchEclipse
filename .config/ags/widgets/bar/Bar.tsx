@@ -169,10 +169,17 @@ export function toggleBarShown(monitorName: string) {
   setBarShown({ ...barShown.peek(), [monitorName]: !current });
 }
 
-// Client moves/resizes don't re-emit the clients list - tick on the raw
-// IPC event stream so the room check re-evaluates.
+// Client moves/resizes don't re-emit the clients list - tick (debounced)
+// on the raw IPC event stream so the room check re-evaluates.
 const [hyprlandTick, setHyprlandTick] = createState(0);
-hyprland.connect("event", () => setHyprlandTick(hyprlandTick.peek() + 1));
+let hyprlandTickTimer: Timer | null = null;
+hyprland.connect("event", () => {
+  if (hyprlandTickTimer) return;
+  hyprlandTickTimer = timeout(100, () => {
+    hyprlandTickTimer = null;
+    setHyprlandTick(hyprlandTick.peek() + 1);
+  });
+});
 
 function barBlocked(monitorName: string, barHeight: number): boolean {
   const monitor = hyprland.get_monitors().find((m) => m.name === monitorName);
@@ -183,11 +190,21 @@ function barBlocked(monitorName: string, barHeight: number): boolean {
   const bandStart = onTop ? monitor.y : monitor.y + monitor.height - barHeight;
   const bandEnd = bandStart + barHeight;
 
-  return workspace
-    .get_clients()
-    .some(
-      (client) => client.y + client.height > bandStart && client.y < bandEnd,
-    );
+  // Query geometry straight from Hyprland - the cached client objects
+  // lag behind floating window moves and resizes.
+  let clients: any[] = [];
+  try {
+    clients = JSON.parse(hyprland.message("j/clients"));
+  } catch {
+    return false;
+  }
+
+  return clients.some((client) => {
+    if (!client.mapped || client.workspace?.id !== workspace.id) return false;
+    const top = client.at?.[1] ?? 0;
+    const bottom = top + (client.size?.[1] ?? 0);
+    return bottom > bandStart && top < bandEnd;
+  });
 }
 
 // An unlocked bar overlays instead of reserving space, so window geometry
