@@ -56,6 +56,7 @@ export interface Settings {
   dynamicThemeVariants: AGSSetting;
   bar: {
     lock: AGSSetting;
+    smartHide: AGSSetting;
     expanded: AGSSetting;
     orientation: AGSSetting;
     layout: WidgetSelector[];

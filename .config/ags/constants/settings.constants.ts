@@ -180,6 +180,15 @@ export const defaultSettings: Settings = {
       tooltip:
         "Keep the bar always visible. When off, the bar auto-hides and hovering the screen edge reveals it",
     },
+    smartHide: {
+      name: "Smart Hide",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "When the bar is unlocked, hide it only while the focused workspace has windows",
+    },
     expanded: {
       name: "Always Expanded",
       value: false,
