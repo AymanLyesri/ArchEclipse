@@ -36,13 +36,27 @@ export default ({
       visible={globalSettings(({ bar }) => !(bar.lock.value as boolean))}
       $={(self) => {
         setup(self);
-        // Pressure barrier: the pointer must hold the edge strip for the
-        // configured delay before the bar reveals, so brushing the screen
-        // edge (browser tabs, window buttons) doesn't summon it.
+        // Pressure barrier: revealing requires pushing the pointer against
+        // the outermost screen edge pixel and holding it there for the
+        // configured delay - merely crossing the strip does nothing.
         let pressureTimer: Timer | null = null;
-        const motion = new Gtk.EventControllerMotion();
-        motion.connect("enter", () => {
+
+        const cancelPressure = () => {
           pressureTimer?.cancel();
+          pressureTimer = null;
+        };
+
+        const applyPressure = (y: number) => {
+          const height = Math.max(self.get_height(), 1);
+          const onTop = globalSettings.peek().bar.orientation.value as boolean;
+          const atEdge = onTop ? y <= 1 : y >= height - 2;
+
+          if (!atEdge) {
+            cancelPressure();
+            return;
+          }
+          if (pressureTimer) return;
+
           const delay = globalSettings.peek().bar.revealPressure
             .value as number;
           if (delay <= 0) {
@@ -53,11 +67,12 @@ export default ({
             pressureTimer = null;
             revealBar(monitorName);
           });
-        });
-        motion.connect("leave", () => {
-          pressureTimer?.cancel();
-          pressureTimer = null;
-        });
+        };
+
+        const motion = new Gtk.EventControllerMotion();
+        motion.connect("enter", (_controller, _x, y) => applyPressure(y));
+        motion.connect("motion", (_controller, _x, y) => applyPressure(y));
+        motion.connect("leave", cancelPressure);
         self.add_controller(motion);
       }}
     >
