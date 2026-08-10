@@ -29,6 +29,7 @@ import {
   isArithmeticQuery,
 } from "./utilities/Arithmetic";
 import { getUrlResults, isUrlQuery } from "./utilities/Url";
+import { rankApps } from "./utilities/RankApps";
 import { getNoteResults, parseNoteQuery } from "./utilities/Note";
 
 const apps = new Apps.Apps();
@@ -383,8 +384,7 @@ export default ({
           setResults(getUrlResults(text));
         } else {
           setResults(
-            apps
-              .fuzzy_query(args.shift()!)
+            rankApps(args.shift()!, apps.get_list(), history.peek())
               .slice(0, MAX_ITEMS)
               .map((application: Apps.Application) => ({
                 app_name: application.name,
