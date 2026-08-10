@@ -180,6 +180,14 @@ export const defaultSettings: Settings = {
       tooltip:
         "Keep the bar always visible. When off, the bar auto-hides and hovering the screen edge reveals it",
     },
+    expanded: {
+      name: "Always Expanded",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip: "Rest in the expanded layout instead of the compact pill",
+    },
     orientation: {
       name: "Orientation",
       value: true,

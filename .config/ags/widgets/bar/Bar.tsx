@@ -129,6 +129,15 @@ export function activateState(name: BarStateName, holdMs?: number) {
 
 export function deactivateState(name: BarStateName) {
   if (name === "compact") return; // base is permanent, can't be removed
+  // Always-expanded mode pins the expanded state against every collapse
+  // path (hover leave, popover close). Turning the setting off passes
+  // here because the watcher below runs after the value changed.
+  if (
+    name === "expanded" &&
+    (globalSettings.peek().bar.expanded.value as boolean)
+  ) {
+    return;
+  }
   activeStates.get(name)?.timer?.cancel();
   activeStates.delete(name);
 
@@ -159,13 +168,24 @@ export function concealBar(monitorName: string) {
 }
 
 let lastBarLock = globalSettings.peek().bar.lock.value as boolean;
+let lastBarExpanded = globalSettings.peek().bar.expanded.value as boolean;
+if (lastBarExpanded) activateState("expanded");
+
 globalSettings.subscribe(() => {
   const lock = globalSettings.peek().bar.lock.value as boolean;
-  if (lock === lastBarLock) return;
-  lastBarLock = lock;
-  // Re-locking pins every bar visible again; stale overrides would keep
-  // a bar hidden with no hover strip left to reveal it.
-  if (lock) setBarShown({});
+  if (lock !== lastBarLock) {
+    lastBarLock = lock;
+    // Re-locking pins every bar visible again; stale overrides would keep
+    // a bar hidden with no hover strip left to reveal it.
+    if (lock) setBarShown({});
+  }
+
+  const expanded = globalSettings.peek().bar.expanded.value as boolean;
+  if (expanded !== lastBarExpanded) {
+    lastBarExpanded = expanded;
+    if (expanded) activateState("expanded");
+    else deactivateState("expanded");
+  }
 });
 
 // ---------------------------------------------------------------------
