@@ -3,11 +3,7 @@ import { Gtk } from "ags/gtk4";
 import { Gdk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
 import { createComputed } from "gnim";
-import {
-  globalSettings,
-  hotZonePreview,
-  setGlobalSetting,
-} from "../../variables";
+import { globalSettings, hotZonePreview } from "../../variables";
 import app from "ags/gtk4/app";
 import { getMonitorName } from "../../utils/monitor";
 import { showWindow } from "../../utils/window";
