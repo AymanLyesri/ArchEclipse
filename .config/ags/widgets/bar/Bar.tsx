@@ -716,6 +716,37 @@ export default ({
               });
             });
             self.add_controller(motion);
+
+            // Watchdog: a reveal that never gets a pill enter/leave cycle
+            // (edge reveal, keybind, pointer crossing too fast for GTK to
+            // fire enter) would keep its override forever. Re-conceal once
+            // the pointer is clearly elsewhere.
+            let idleTimer: Timer | null = null;
+            const scheduleIdleCheck = () => {
+              idleTimer?.cancel();
+              idleTimer = timeout(1500, () => {
+                idleTimer = null;
+                if (globalSettings.peek().bar.lock.value as boolean) return;
+                if (barShown.peek()[monitorName] !== true) return;
+                if (
+                  barState.peek() === "search" ||
+                  windowInstance.isHovered() ||
+                  windowInstance.popupIsOpen()
+                ) {
+                  scheduleIdleCheck();
+                  return;
+                }
+                concealBar(monitorName);
+              });
+            };
+            barShown.subscribe(() => {
+              if (barShown.peek()[monitorName] === true) {
+                scheduleIdleCheck();
+              } else {
+                idleTimer?.cancel();
+                idleTimer = null;
+              }
+            });
           }}
           hexpand={globalSettings(
             ({ bar }) => bar.fullWidth.value as boolean,
