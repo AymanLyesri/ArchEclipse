@@ -56,6 +56,23 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
     popoverRef?.popdown();
   };
 
+  // The bar's Window bookkeeping instance lives on the pill box, not on
+  // the root window - walk up like the workspace popovers do.
+  const findBarWindow = () => {
+    let parent = entryRef?.get_parent();
+    let candidate: any = null;
+    while (parent && !candidate) {
+      candidate = (parent as any).barWindow;
+      parent = parent.get_parent();
+    }
+    return candidate as {
+      isHovered?: () => boolean;
+      popupIsOpen?: () => boolean;
+      addOpenPopover?: (popover: Gtk.Popover) => void;
+      removeOpenPopover?: (popover: Gtk.Popover) => void;
+    } | null;
+  };
+
   return (
     <box class="search-bar">
       <scrolledwindow vscrollbarPolicy={Gtk.PolicyType.EXTERNAL}>
@@ -160,8 +177,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           }
           self.set_offset(0, 15); // x, y — this replaces marginTop
           self.connect("notify::visible", () => {
-            const window = entryRef?.get_root() as Gtk.Window | undefined;
-            const windowInstance = (window as any)?.barWindow;
+            const windowInstance = findBarWindow();
             if (self.visible) {
               self.add_css_class("popover-open");
               windowInstance?.addOpenPopover?.(self);
@@ -172,8 +188,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           });
 
           self.connect("closed", () => {
-            const window = entryRef?.get_root() as Gtk.Window | undefined;
-            const windowInstance = (window as any)?.barWindow;
+            const windowInstance = findBarWindow();
             if (barState.peek() !== "search") return; // only reset if search was active
             deactivateState("search");
             setSearchQuery("");
