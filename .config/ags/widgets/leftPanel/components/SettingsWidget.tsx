@@ -694,6 +694,10 @@ export default () => {
               setting={globalSettings.peek().bar.workspaceNumbers}
             />
             <Setting
+              keyChanged="bar.lock"
+              setting={globalSettings.peek().bar.lock}
+            />
+            <Setting
               keyChanged="leftPanel.hotZone"
               setting={globalSettings.peek().leftPanel.hotZone}
             />

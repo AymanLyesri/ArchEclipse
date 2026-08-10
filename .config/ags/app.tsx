@@ -5,6 +5,7 @@ import Bar, {
   deactivateState,
   setBarState,
 } from "./widgets/bar/Bar";
+import BarHover from "./widgets/bar/BarHover";
 import { getCssPath } from "./utils/scss";
 import { logTime, logTimeWidget } from "./utils/time";
 import { compileBinaries } from "./utils/gcc";
@@ -39,7 +40,7 @@ const perMonitorDisplay = () => {
   );
   const widgets = [
     Bar,
-    // BarHover,
+    BarHover,
     RightPanel,
     RightPanelHover,
     LeftPanel,

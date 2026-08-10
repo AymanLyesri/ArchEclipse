@@ -55,6 +55,7 @@ export interface Settings {
   dynamicThemeColors: AGSSetting;
   dynamicThemeVariants: AGSSetting;
   bar: {
+    lock: AGSSetting;
     orientation: AGSSetting;
     workspaceNumbers: AGSSetting;
     layout: WidgetSelector[];

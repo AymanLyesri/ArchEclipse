@@ -136,6 +136,39 @@ export function deactivateState(name: BarStateName) {
 }
 
 // ---------------------------------------------------------------------
+// Bar visibility — per-monitor override on top of settings-driven
+// auto-visibility. Key absent = auto (bar.lock decides), true/false =
+// explicit override from the hover strip or a toggle request. The
+// override lives here rather than in window.show()/hide() calls because
+// the bar window's `visible` is a binding — an external show/hide would
+// be stomped by its next re-evaluation.
+// ---------------------------------------------------------------------
+
+export const [barShown, setBarShown] = createState<Record<string, boolean>>(
+  {},
+);
+
+export function revealBar(monitorName: string) {
+  setBarShown({ ...barShown.peek(), [monitorName]: true });
+}
+
+export function concealBar(monitorName: string) {
+  const next = { ...barShown.peek() };
+  delete next[monitorName];
+  setBarShown(next);
+}
+
+let lastBarLock = globalSettings.peek().bar.lock.value as boolean;
+globalSettings.subscribe(() => {
+  const lock = globalSettings.peek().bar.lock.value as boolean;
+  if (lock === lastBarLock) return;
+  lastBarLock = lock;
+  // Re-locking pins every bar visible again; stale overrides would keep
+  // a bar hidden with no hover strip left to reveal it.
+  if (lock) setBarShown({});
+});
+
+// ---------------------------------------------------------------------
 // Player watcher — module scope, not per-monitor, since mpris players
 // are global and shouldn't be watched N times for N bars.
 //
@@ -546,7 +579,10 @@ export default ({
             Astal.WindowAnchor.RIGHT,
       )}
       visible={createComputed(() => {
-        return !fullscreenClient();
+        if (fullscreenClient()) return false;
+        const override = barShown()[monitorName];
+        if (override !== undefined) return override;
+        return globalSettings().bar.lock.value as boolean;
       })}
       layer={Astal.Layer.TOP}
       $={(self) => {
@@ -639,6 +675,13 @@ export default ({
               leaveTimer = timeout(250, () => {
                 leaveTimer = null;
                 tryCollapseExpanded();
+                if (
+                  !(globalSettings.peek().bar.lock.value as boolean) &&
+                  !windowInstance.isHovered() &&
+                  !windowInstance.popupIsOpen()
+                ) {
+                  concealBar(monitorName);
+                }
               });
             });
             self.add_controller(motion);
