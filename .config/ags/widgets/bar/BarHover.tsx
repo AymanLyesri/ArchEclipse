@@ -15,18 +15,30 @@ import { revealBar } from "./Bar";
 // motion - physical push only shows up in the raw relative deltas.
 let armedSink: ((dy: number) => void) | null = null;
 let pressureStreamSeen = false;
+let pressureStreamStarted = false;
 
-const pressureStream = createSubprocess(
-  null,
-  `/tmp/ags-${GLib.get_user_name()}/pointer-pressure-loop-ags`,
-  (out) => {
-    pressureStreamSeen = true;
-    const dy = parseInt(out, 10);
-    if (!Number.isNaN(dy)) armedSink?.(dy);
-    return null;
-  },
-);
-pressureStream.subscribe(() => {});
+// Started lazily from the first strip's setup: the helper binary is
+// compiled during app startup, and a failed spawn at module scope would
+// take the whole bundle down with it.
+function ensurePressureStream() {
+  if (pressureStreamStarted) return;
+  pressureStreamStarted = true;
+  try {
+    const stream = createSubprocess(
+      null,
+      `/tmp/ags-${GLib.get_user_name()}/pointer-pressure-loop-ags`,
+      (out) => {
+        pressureStreamSeen = true;
+        const dy = parseInt(out, 10);
+        if (!Number.isNaN(dy)) armedSink?.(dy);
+        return null;
+      },
+    );
+    stream.subscribe(() => {});
+  } catch {
+    // No motion stream - the strips' dwell fallback still reveals.
+  }
+}
 
 export default ({
   monitor,
@@ -57,6 +69,7 @@ export default ({
       visible={globalSettings(({ bar }) => !(bar.lock.value as boolean))}
       $={(self) => {
         setup(self);
+        ensurePressureStream();
 
         // Pressure barrier: while the pointer sits on the outermost edge
         // pixel, physical push (raw relative motion into the edge) is
