@@ -698,6 +698,10 @@ export default () => {
               setting={globalSettings.peek().bar.lock}
             />
             <Setting
+              keyChanged="bar.smartHide"
+              setting={globalSettings.peek().bar.smartHide}
+            />
+            <Setting
               keyChanged="bar.expanded"
               setting={globalSettings.peek().bar.expanded}
             />

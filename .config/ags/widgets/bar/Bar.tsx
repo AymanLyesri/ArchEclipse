@@ -167,6 +167,28 @@ export function concealBar(monitorName: string) {
   setBarShown(next);
 }
 
+const hyprlandClients = createBinding(hyprland, "clients");
+const hyprlandFocusedWorkspace = createBinding(hyprland, "focusedWorkspace");
+
+function monitorOccupied(monitorName: string): boolean {
+  const monitor = hyprland.get_monitors().find((m) => m.name === monitorName);
+  const workspace = monitor?.activeWorkspace;
+  if (!workspace) return false;
+  return workspace.get_clients().length > 0;
+}
+
+// Occupancy-based rather than geometry-based on purpose: the bar reserves
+// an exclusive zone while visible, so windows only ever overlap its area
+// after it hides — geometric overlap checks oscillate between the two
+// states. On a tiling compositor "workspace has windows" is the stable
+// equivalent.
+export function barAutoVisible(monitorName: string): boolean {
+  const { lock, smartHide } = globalSettings.peek().bar;
+  if (lock.value as boolean) return true;
+  if (!(smartHide.value as boolean)) return false;
+  return !monitorOccupied(monitorName);
+}
+
 let lastBarLock = globalSettings.peek().bar.lock.value as boolean;
 let lastBarExpanded = globalSettings.peek().bar.expanded.value as boolean;
 if (lastBarExpanded) activateState("expanded");
@@ -602,7 +624,12 @@ export default ({
         if (fullscreenClient()) return false;
         const override = barShown()[monitorName];
         if (override !== undefined) return override;
-        return globalSettings().bar.lock.value as boolean;
+
+        // Register the reactive dependencies barAutoVisible peeks at.
+        globalSettings();
+        hyprlandClients();
+        hyprlandFocusedWorkspace();
+        return barAutoVisible(monitorName);
       })}
       layer={Astal.Layer.TOP}
       $={(self) => {
