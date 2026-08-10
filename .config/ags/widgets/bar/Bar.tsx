@@ -167,6 +167,11 @@ export function concealBar(monitorName: string) {
   setBarShown(next);
 }
 
+export function toggleBarShown(monitorName: string) {
+  const current = barShown.peek()[monitorName] ?? barAutoVisible(monitorName);
+  setBarShown({ ...barShown.peek(), [monitorName]: !current });
+}
+
 const hyprlandClients = createBinding(hyprland, "clients");
 const hyprlandFocusedWorkspace = createBinding(hyprland, "focusedWorkspace");
 
