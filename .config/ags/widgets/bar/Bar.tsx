@@ -573,7 +573,11 @@ export default ({
       name={`bar-${monitorName}`}
       namespace="bar"
       class="Bar"
-      exclusivity={Astal.Exclusivity.EXCLUSIVE}
+      exclusivity={globalSettings(({ bar }) =>
+        (bar.lock.value as boolean)
+          ? Astal.Exclusivity.EXCLUSIVE
+          : Astal.Exclusivity.IGNORE,
+      )}
       keymode={Astal.Keymode.NONE}
       anchor={createComputed(() =>
         barOnTop()
