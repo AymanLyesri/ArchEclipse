@@ -2,10 +2,31 @@ import App from "ags/gtk4/app";
 import { Gtk } from "ags/gtk4";
 import { Gdk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
+import GLib from "gi://GLib";
+import { createSubprocess } from "ags/process";
 import { timeout, Timer } from "ags/time";
 import { globalSettings } from "../../variables";
 import { getMonitorName } from "../../utils/monitor";
 import { revealBar } from "./Bar";
+
+// One relative-motion stream shared by every monitor's strip; whichever
+// strip currently holds the pointer at its edge is the armed sink. The
+// pointer is pinned at the screen edge, so the compositor reports no
+// motion - physical push only shows up in the raw relative deltas.
+let armedSink: ((dy: number) => void) | null = null;
+let pressureStreamSeen = false;
+
+const pressureStream = createSubprocess(
+  null,
+  `/tmp/ags-${GLib.get_user_name()}/pointer-pressure-loop-ags`,
+  (out) => {
+    pressureStreamSeen = true;
+    const dy = parseInt(out, 10);
+    if (!Number.isNaN(dy)) armedSink?.(dy);
+    return null;
+  },
+);
+pressureStream.subscribe(() => {});
 
 export default ({
   monitor,
@@ -36,43 +57,74 @@ export default ({
       visible={globalSettings(({ bar }) => !(bar.lock.value as boolean))}
       $={(self) => {
         setup(self);
-        // Pressure barrier: revealing requires pushing the pointer against
-        // the outermost screen edge pixel and holding it there for the
-        // configured delay - merely crossing the strip does nothing.
-        let pressureTimer: Timer | null = null;
 
-        const cancelPressure = () => {
-          pressureTimer?.cancel();
-          pressureTimer = null;
+        // Pressure barrier: while the pointer sits on the outermost edge
+        // pixel, physical push (raw relative motion into the edge) is
+        // accumulated; crossing the threshold reveals the bar. Moving
+        // away bleeds the pressure off. If the motion stream is not
+        // available (no read access to /dev/input/mice), a 1s dwell on
+        // the edge pixel is the fallback.
+        let pressure = 0;
+        let atEdge = false;
+        let fallbackTimer: Timer | null = null;
+
+        const cancelFallback = () => {
+          fallbackTimer?.cancel();
+          fallbackTimer = null;
         };
 
-        const applyPressure = (y: number) => {
+        const sink = (dy: number) => {
+          if (!atEdge) return;
+          const onTop = globalSettings.peek().bar.orientation.value as boolean;
+          const push = onTop ? dy : -dy;
+          pressure = Math.max(0, pressure + push);
+
+          const threshold = globalSettings.peek().bar.revealPressure
+            .value as number;
+          if (pressure >= threshold) {
+            pressure = 0;
+            revealBar(monitorName);
+          }
+        };
+
+        const leaveEdge = () => {
+          atEdge = false;
+          pressure = 0;
+          cancelFallback();
+          if (armedSink === sink) armedSink = null;
+        };
+
+        const updateEdge = (y: number) => {
           const height = Math.max(self.get_height(), 1);
           const onTop = globalSettings.peek().bar.orientation.value as boolean;
-          const atEdge = onTop ? y <= 1 : y >= height - 2;
+          const nowAtEdge = onTop ? y <= 1 : y >= height - 2;
 
-          if (!atEdge) {
-            cancelPressure();
-            return;
-          }
-          if (pressureTimer) return;
+          if (nowAtEdge && !atEdge) {
+            atEdge = true;
+            pressure = 0;
+            armedSink = sink;
 
-          const delay = globalSettings.peek().bar.revealPressure
-            .value as number;
-          if (delay <= 0) {
-            revealBar(monitorName);
-            return;
+            const threshold = globalSettings.peek().bar.revealPressure
+              .value as number;
+            if (threshold <= 0) {
+              revealBar(monitorName);
+              return;
+            }
+            if (!pressureStreamSeen) {
+              fallbackTimer = timeout(1000, () => {
+                fallbackTimer = null;
+                revealBar(monitorName);
+              });
+            }
+          } else if (!nowAtEdge && atEdge) {
+            leaveEdge();
           }
-          pressureTimer = timeout(delay, () => {
-            pressureTimer = null;
-            revealBar(monitorName);
-          });
         };
 
         const motion = new Gtk.EventControllerMotion();
-        motion.connect("enter", (_controller, _x, y) => applyPressure(y));
-        motion.connect("motion", (_controller, _x, y) => applyPressure(y));
-        motion.connect("leave", cancelPressure);
+        motion.connect("enter", (_controller, _x, y) => updateEdge(y));
+        motion.connect("motion", (_controller, _x, y) => updateEdge(y));
+        motion.connect("leave", leaveEdge);
         self.add_controller(motion);
       }}
     >

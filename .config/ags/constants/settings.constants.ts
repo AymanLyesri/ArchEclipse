@@ -213,7 +213,7 @@ export const defaultSettings: Settings = {
       min: 0,
       max: 1000,
       tooltip:
-        "How long the pointer must hold the screen edge before an unlocked bar reveals, in milliseconds (0 = instant)",
+        "How hard the pointer must be pushed against the screen edge before an unlocked bar reveals (relative motion units, 0 = instant)",
     },
     orientation: {
       name: "Orientation",
