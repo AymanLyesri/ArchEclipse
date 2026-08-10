@@ -693,6 +693,10 @@ export default () => {
               setting={globalSettings.peek().bar.lock}
             />
             <Setting
+              keyChanged="bar.expanded"
+              setting={globalSettings.peek().bar.expanded}
+            />
+            <Setting
               keyChanged="alwaysOnWidget.visibility"
               setting={globalSettings.peek().alwaysOnWidget.visibility}
             />
