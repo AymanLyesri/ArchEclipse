@@ -20,8 +20,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   let settingFromState = false; // guards buffer<->state feedback loop
   let popupTimer: any = null;
 
-  const [isExclusive, setIsExclusive] = createState<boolean>(true);
-
   const cancelPendingPopup = () => {
     if (popupTimer) {
       popupTimer.cancel?.();
@@ -52,14 +50,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
       return GLib.SOURCE_REMOVE;
     });
   };
-
-  isExclusive.subscribe(() => {
-    const window = entryRef?.get_root() as Gtk.Window | undefined;
-    if (!window) return; // not registered yet — ignore the initial fire
-    window.keymode = isExclusive.peek()
-      ? Astal.Keymode.EXCLUSIVE
-      : Astal.Keymode.ON_DEMAND;
-  });
 
   const closePopover = () => {
     cancelPendingPopup();
@@ -99,13 +89,16 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 if (!entryRef) return;
                 const window = entryRef.get_root() as Gtk.Window | undefined;
                 if (!window) return; // not registered yet — ignore the initial fire
-                window.keymode = Astal.Keymode.EXCLUSIVE;
                 if (barState.get() === "search") {
+                  // ON_DEMAND, never EXCLUSIVE: Hyprland restricts pointer
+                  // input while a layer surface holds the keyboard
+                  // exclusively, which made everything in the results
+                  // popover unclickable.
+                  window.keymode = Astal.Keymode.ON_DEMAND;
                   showPopover();
                 } else {
                   closePopover();
                   setSearchQuery("");
-                  setIsExclusive(true);
                   window.keymode = Astal.Keymode.NONE;
                 }
               });
@@ -119,8 +112,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 state: number,
               ) => {
                 if (keyval === Gdk.KEY_Escape) {
-                  setIsExclusive(isExclusive.peek() ? false : true);
-
+                  deactivateState("search");
                   return true;
                 }
 
@@ -146,14 +138,13 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
               }}
             />
           </Gtk.TextView>
-          <togglebutton
+          <button
             class="search-icon"
             label="ESC"
-            active={isExclusive}
             onClicked={() => {
-              setIsExclusive(isExclusive.peek() ? false : true);
+              deactivateState("search");
             }}
-            tooltipMarkup="Keyboard input mode (true focus) / mouse input mode."
+            tooltipMarkup="Close the launcher"
           />
         </box>
       </scrolledwindow>
@@ -186,7 +177,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
             if (barState.peek() !== "search") return; // only reset if search was active
             deactivateState("search");
             setSearchQuery("");
-            setIsExclusive(true);
 
             if (
               !windowInstance?.isHovered?.() &&
