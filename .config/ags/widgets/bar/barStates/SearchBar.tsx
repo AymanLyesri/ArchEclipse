@@ -197,10 +197,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           });
         }}
       >
-        <AppLauncher
-          onLaunched={closePopover}
-          minimal={isExclusive((is) => !is)}
-        />
+        <AppLauncher onLaunched={closePopover} />
       </Gtk.Popover>
     </box>
   ) as Gtk.Widget;
