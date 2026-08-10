@@ -2,7 +2,6 @@ import { Accessor, createState } from "ags";
 import { Astal, Gdk, Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import { barState, deactivateState } from "../Bar";
-import { timeout } from "ags/time";
 import AppLauncher from "../../applauncher/AppLauncher";
 
 export const [searchQuery, setSearchQuery] = createState<string>("");
