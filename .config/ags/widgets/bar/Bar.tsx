@@ -269,13 +269,34 @@ export default ({
   // ---------------------------------------------------------------------
   const barWidgets = {} as Record<BarStateName, Gtk.Widget>;
   const barWidths = {} as Record<BarStateName, number>;
+  const barPaddings = {} as Record<BarStateName, number>;
+
+  // Compact and expanded hold live content (workspaces, clock, tray) whose
+  // natural width changes at runtime — measure those at transition time.
+  // Every other page binds its own widthRequest to currentWidth, so a live
+  // measure would feed the current width back into itself; they keep the
+  // width cached at registration.
+  const DYNAMIC_STATES: BarStateName[] = ["compact", "expanded"];
+
+  function widthFor(state: BarStateName): number | undefined {
+    const widget = barWidgets[state];
+    if (!DYNAMIC_STATES.includes(state) || !widget) return barWidths[state];
+    const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
+    return natural + (barPaddings[state] ?? 0);
+  }
 
   // Auto-animate width on every bar-state change — single source of truth.
   // barState is now driven by the priority resolver above; this block
   // doesn't need to know or care why it changed.
   barState.subscribe(() => {
     const state = barState.peek();
-    const target = barWidths[state];
+
+    // Re-parent the shared Information widget before measuring, so the
+    // target state is measured with its actual content in place.
+    if (state === "compact") moveInformationTo(compactInfoSlot);
+    else if (state === "expanded") moveInformationTo(expandedInfoSlot);
+
+    const target = widthFor(state);
     if (target === undefined) return;
 
     const current = currentWidth.peek();
@@ -288,9 +309,6 @@ export default ({
       setStackVisibleChild(state);
       timeout(100, () => animateWidth(target));
     }
-
-    if (state === "compact") moveInformationTo(compactInfoSlot);
-    else if (state === "expanded") moveInformationTo(expandedInfoSlot);
   });
 
   /**
@@ -309,6 +327,7 @@ export default ({
     width?: number;
   }) {
     barWidgets[name] = widget;
+    barPaddings[name] = padding;
     const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
     barWidths[name] = natural + padding;
     return widget;
@@ -385,7 +404,7 @@ export default ({
             widget: CompactBar({
               components: [workspacesCompact, compactInfoSlot, battery, volume],
             }),
-            padding: 400,
+            padding: 40,
           }),
           "compact",
         );
@@ -397,7 +416,7 @@ export default ({
               center: expandedInfoSlot,
               end: utilities,
             }),
-            padding: 500,
+            padding: 60,
           }),
           "expanded",
         );
@@ -458,7 +477,7 @@ export default ({
           "network",
         );
 
-        setCurrentWidth(barWidths.compact);
+        setCurrentWidth(widthFor("compact") ?? barWidths.compact);
 
         const speaker = Wp.get_default()?.audio.defaultSpeaker!;
         watchTransient(
