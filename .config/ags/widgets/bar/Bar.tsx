@@ -590,6 +590,9 @@ export default ({
       )}
       visible={createComputed(() => {
         if (fullscreenClient()) return false;
+        // The search popover lives inside this window - an auto-hidden
+        // bar would open the launcher on an invisible surface.
+        if (barState() === "search") return true;
         const override = barShown()[monitorName];
         if (override !== undefined) return override;
 
@@ -674,6 +677,7 @@ export default ({
                 leaveTimer = null;
                 tryCollapseExpanded();
                 if (
+                  barState.peek() !== "search" &&
                   !(globalSettings.peek().bar.lock.value as boolean) &&
                   !windowInstance.isHovered() &&
                   !windowInstance.popupIsOpen()
