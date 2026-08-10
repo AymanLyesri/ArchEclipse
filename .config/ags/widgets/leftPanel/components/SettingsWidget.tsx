@@ -689,6 +689,10 @@ export default () => {
               setting={globalSettings.peek().bar.orientation}
             />
             <Setting
+              keyChanged="bar.workspaceNumbers"
+              setting={globalSettings.peek().bar.workspaceNumbers}
+            />
+            <Setting
               keyChanged="alwaysOnWidget.visibility"
               setting={globalSettings.peek().alwaysOnWidget.visibility}
             />
