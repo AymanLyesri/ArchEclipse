@@ -12,18 +12,33 @@ import Player from "../../../Player";
 
 const mpris = AstalMpris.get_default();
 
+// Browsers leave zombie mpris players behind after a media tab closes -
+// no title, nothing playing - which would render as "Unknown Track"
+// entries. Only players with real metadata or active playback count.
+export const isPlayablePlayer = (player: AstalMpris.Player) =>
+  (player.title ?? "").trim() !== "" ||
+  player.playbackStatus === AstalMpris.PlaybackStatus.PLAYING;
+
+export const playablePlayers = createComputed(() => {
+  const players = createBinding(mpris, "players")();
+  return players.filter((player) => {
+    createBinding(player, "title")();
+    createBinding(player, "playbackStatus")();
+    return isPlayablePlayer(player);
+  });
+});
+
 export default ({
   widthRequest,
 }: {
   widthRequest?: Accessor<number> | number;
 }) => {
   const apps = new AstalApps.Apps();
-  const players = createBinding(mpris, "players");
   const DEFAULT_COVER = `${GLib.get_home_dir()}/.config/ags/assets/player/player_default.png`;
 
   return (
     <box class={"player-widget"} spacing={5} widthRequest={widthRequest}>
-      <With value={players}>
+      <With value={playablePlayers}>
         {(playerList) =>
           playerList.length == 0 ? (
             <box halign={Gtk.Align.CENTER} hexpand spacing={5}>

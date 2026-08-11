@@ -27,7 +27,9 @@ import { timeout } from "ags/time";
 import GObject from "ags/gobject";
 import Picture from "../../Picture";
 import { connectPopoverEvents } from "../../../utils/window";
-import PlayerWidget from "./sub-components/PlayerWidget";
+import PlayerWidget, {
+  playablePlayers,
+} from "./sub-components/PlayerWidget";
 
 const mpris = AstalMpris.get_default();
 
@@ -68,13 +70,8 @@ function Clock() {
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
   return (
     <box class="information" spacing={5} halign={halign}>
-      <box
-        visible={createBinding(
-          mpris,
-          "players",
-        )((players) => players.length > 0)}
-      >
-        <With value={createBinding(mpris, "players")}>
+      <box visible={playablePlayers((players) => players.length > 0)}>
+        <With value={playablePlayers}>
           {(players: AstalMpris.Player[]) =>
             players.length > 0 && <PlayerWidget />
           }

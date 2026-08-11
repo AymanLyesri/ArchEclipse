@@ -30,7 +30,9 @@ import Recording from "./components/sub-components/Recording";
 import { isRecording } from "../../services/record.service";
 import AstalMpris from "gi://AstalMpris";
 import Hyprland from "gi://AstalHyprland";
-import PlayerWidget from "./components/sub-components/PlayerWidget";
+import PlayerWidget, {
+  isPlayablePlayer,
+} from "./components/sub-components/PlayerWidget";
 import NetworkWidget from "./barStates/NetworkWidget";
 import CompactBar from "./barStates/CompactBar";
 import ExpandedBar from "./barStates/ExpandedBar";
@@ -176,6 +178,9 @@ function watchPlayerTransient(player: AstalMpris.Player) {
   player.connect("notify::title", () => {
     if (player.title === lastTitle) return;
     lastTitle = player.title;
+    // A tab closing clears the title - don't pulse the bar for a
+    // player that no longer has anything to show.
+    if (!isPlayablePlayer(player)) return;
     pulse();
   });
 }
