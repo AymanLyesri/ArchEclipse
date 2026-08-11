@@ -29,17 +29,13 @@ import BrightnessWidget from "./components/sub-components/BrightnessWidget";
 import Recording from "./components/sub-components/Recording";
 import { isRecording } from "../../services/record.service";
 import AstalMpris from "gi://AstalMpris";
-import Hyprland from "gi://AstalHyprland";
-import PlayerWidget, {
-  isPlayablePlayer,
-} from "./components/sub-components/PlayerWidget";
+import PlayerWidget from "./components/sub-components/PlayerWidget";
 import NetworkWidget from "./barStates/NetworkWidget";
 import CompactBar from "./barStates/CompactBar";
 import ExpandedBar from "./barStates/ExpandedBar";
 import SearchBar from "./barStates/SearchBar";
 
 const mpris = AstalMpris.get_default();
-const hyprland = Hyprland.get_default();
 
 export type BarStateName =
   | "compact"
@@ -178,9 +174,6 @@ function watchPlayerTransient(player: AstalMpris.Player) {
   player.connect("notify::title", () => {
     if (player.title === lastTitle) return;
     lastTitle = player.title;
-    // A tab closing clears the title - don't pulse the bar for a
-    // player that no longer has anything to show.
-    if (!isPlayablePlayer(player)) return;
     pulse();
   });
 }
@@ -276,50 +269,13 @@ export default ({
   // ---------------------------------------------------------------------
   const barWidgets = {} as Record<BarStateName, Gtk.Widget>;
   const barWidths = {} as Record<BarStateName, number>;
-  const barPaddings = {} as Record<BarStateName, number>;
-
-  // Compact and expanded hold live content (workspaces, clock, tray) whose
-  // natural width changes at runtime — measure those at transition time.
-  // Every other page binds its own widthRequest to currentWidth, so a live
-  // measure would feed the current width back into itself; they keep the
-  // width cached at registration.
-  const DYNAMIC_STATES: BarStateName[] = ["compact", "expanded"];
-
-  function widthFor(state: BarStateName): number | undefined {
-    const widget = barWidgets[state];
-    if (!DYNAMIC_STATES.includes(state) || !widget) return barWidths[state];
-    const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
-    return natural + (barPaddings[state] ?? 0);
-  }
-
-  // Workspaces appearing/disappearing and client class changes alter the
-  // compact/expanded content width while the bar is resting — follow them.
-  // Debounced so GTK gets an idle cycle to relayout before the measure.
-  let widthRefreshTimer: Timer | null = null;
-  function queueWidthRefresh() {
-    widthRefreshTimer?.cancel();
-    widthRefreshTimer = timeout(150, () => {
-      widthRefreshTimer = null;
-      const state = barState.peek();
-      if (!DYNAMIC_STATES.includes(state)) return;
-      const target = widthFor(state);
-      if (target === undefined) return;
-      if (Math.abs(target - currentWidth.peek()) > 1) animateWidth(target);
-    });
-  }
 
   // Auto-animate width on every bar-state change — single source of truth.
   // barState is now driven by the priority resolver above; this block
   // doesn't need to know or care why it changed.
   barState.subscribe(() => {
     const state = barState.peek();
-
-    // Re-parent the shared Information widget before measuring, so the
-    // target state is measured with its actual content in place.
-    if (state === "compact") moveInformationTo(compactInfoSlot);
-    else if (state === "expanded") moveInformationTo(expandedInfoSlot);
-
-    const target = widthFor(state);
+    const target = barWidths[state];
     if (target === undefined) return;
 
     const current = currentWidth.peek();
@@ -332,6 +288,9 @@ export default ({
       setStackVisibleChild(state);
       timeout(100, () => animateWidth(target));
     }
+
+    if (state === "compact") moveInformationTo(compactInfoSlot);
+    else if (state === "expanded") moveInformationTo(expandedInfoSlot);
   });
 
   /**
@@ -350,7 +309,6 @@ export default ({
     width?: number;
   }) {
     barWidgets[name] = widget;
-    barPaddings[name] = padding;
     const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
     barWidths[name] = natural + padding;
     return widget;
@@ -427,7 +385,7 @@ export default ({
             widget: CompactBar({
               components: [workspacesCompact, compactInfoSlot, battery, volume],
             }),
-            padding: 40,
+            padding: 400,
           }),
           "compact",
         );
@@ -439,7 +397,7 @@ export default ({
               center: expandedInfoSlot,
               end: utilities,
             }),
-            padding: 60,
+            padding: 500,
           }),
           "expanded",
         );
@@ -500,7 +458,7 @@ export default ({
           "network",
         );
 
-        setCurrentWidth(widthFor("compact") ?? barWidths.compact);
+        setCurrentWidth(barWidths.compact);
 
         const speaker = Wp.get_default()?.audio.defaultSpeaker!;
         watchTransient(
@@ -551,18 +509,6 @@ export default ({
       $={(self) => {
         setup(self);
         (self as any).monitorName = monitorName;
-
-        const unsubWorkspaces = createBinding(hyprland, "workspaces").subscribe(
-          queueWidthRefresh,
-        );
-        const unsubClients = createBinding(hyprland, "clients").subscribe(
-          queueWidthRefresh,
-        );
-        self.connect("destroy", () => {
-          unsubWorkspaces();
-          unsubClients();
-          widthRefreshTimer?.cancel();
-        });
       }}
     >
       <centerbox>
