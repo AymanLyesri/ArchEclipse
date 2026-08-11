@@ -178,6 +178,14 @@ export const defaultSettings: Settings = {
       min: 0,
       max: 1,
     },
+    workspaceNumbers: {
+      name: "Workspace Numbers",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip: "Show a small workspace number next to each workspace icon",
+    },
     layout: barWidgetSelectors,
   },
   waifuWidget: {
