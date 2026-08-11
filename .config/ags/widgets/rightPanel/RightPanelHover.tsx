@@ -3,7 +3,7 @@ import { Gtk } from "ags/gtk4";
 import { Gdk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
 import { createComputed } from "gnim";
-import { globalSettings, setGlobalSetting } from "../../variables";
+import { globalSettings, hotZonePreview } from "../../variables";
 import app from "ags/gtk4/app";
 import { getMonitorName } from "../../utils/monitor";
 
@@ -26,7 +26,10 @@ export default ({
       }
       exclusivity={Astal.Exclusivity.IGNORE}
       layer={Astal.Layer.TOP}
-      visible={globalSettings(({ rightPanel }) => !rightPanel.lock)}
+      visible={globalSettings(
+        ({ rightPanel }) =>
+          !rightPanel.lock && (rightPanel.hotZone.value as boolean),
+      )}
       $={(self) => {
         setup(self);
         const motion = new Gtk.EventControllerMotion();
@@ -36,7 +39,15 @@ export default ({
         self.add_controller(motion);
       }}
     >
-      <box css="min-width: 5px; background-color: rgba(0,0,0,0.01);" />
+      <box
+        css={createComputed(() => {
+          const size = globalSettings().rightPanel.hotZoneSize.value as number;
+          const background = hotZonePreview()
+            ? "rgba(255, 85, 85, 0.4)"
+            : "rgba(0,0,0,0.01)";
+          return `min-width: ${size}px; background-color: ${background};`;
+        })}
+      />
     </window>
   );
 };
