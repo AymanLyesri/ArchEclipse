@@ -187,7 +187,7 @@ export const defaultSettings: Settings = {
       min: 0,
       max: 1,
       tooltip:
-        "When the bar is unlocked, hide it only while the focused workspace has windows",
+        "When the bar is unlocked, show it while no window overlaps its area and hide it when one is in the way",
     },
     expanded: {
       name: "Always Expanded",

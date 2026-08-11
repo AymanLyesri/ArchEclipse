@@ -172,26 +172,51 @@ export function toggleBarShown(monitorName: string) {
   setBarShown({ ...barShown.peek(), [monitorName]: !current });
 }
 
-const hyprlandClients = createBinding(hyprland, "clients");
-const hyprlandFocusedWorkspace = createBinding(hyprland, "focusedWorkspace");
+// Client moves/resizes don't re-emit the clients list - tick (debounced)
+// on the raw IPC event stream so the room check re-evaluates.
+const [hyprlandTick, setHyprlandTick] = createState(0);
+let hyprlandTickTimer: Timer | null = null;
+hyprland.connect("event", () => {
+  if (hyprlandTickTimer) return;
+  hyprlandTickTimer = timeout(100, () => {
+    hyprlandTickTimer = null;
+    setHyprlandTick(hyprlandTick.peek() + 1);
+  });
+});
 
-function monitorOccupied(monitorName: string): boolean {
+function barBlocked(monitorName: string, barHeight: number): boolean {
   const monitor = hyprland.get_monitors().find((m) => m.name === monitorName);
   const workspace = monitor?.activeWorkspace;
-  if (!workspace) return false;
-  return workspace.get_clients().length > 0;
+  if (!monitor || !workspace) return false;
+
+  const onTop = globalSettings.peek().bar.orientation.value as boolean;
+  const bandStart = onTop ? monitor.y : monitor.y + monitor.height - barHeight;
+  const bandEnd = bandStart + barHeight;
+
+  // Query geometry straight from Hyprland - the cached client objects
+  // lag behind floating window moves and resizes.
+  let clients: any[] = [];
+  try {
+    clients = JSON.parse(hyprland.message("j/clients"));
+  } catch {
+    return false;
+  }
+
+  return clients.some((client) => {
+    if (!client.mapped || client.workspace?.id !== workspace.id) return false;
+    const top = client.at?.[1] ?? 0;
+    const bottom = top + (client.size?.[1] ?? 0);
+    return bottom > bandStart && top < bandEnd;
+  });
 }
 
-// Occupancy-based rather than geometry-based on purpose: the bar reserves
-// an exclusive zone while visible, so windows only ever overlap its area
-// after it hides — geometric overlap checks oscillate between the two
-// states. On a tiling compositor "workspace has windows" is the stable
-// equivalent.
-export function barAutoVisible(monitorName: string): boolean {
+// An unlocked bar overlays instead of reserving space, so window geometry
+// is independent of bar visibility and a geometric room check is stable.
+export function barAutoVisible(monitorName: string, barHeight = 40): boolean {
   const { lock, smartHide } = globalSettings.peek().bar;
   if (lock.value as boolean) return true;
   if (!(smartHide.value as boolean)) return false;
-  return !monitorOccupied(monitorName);
+  return !barBlocked(monitorName, barHeight);
 }
 
 let lastBarLock = globalSettings.peek().bar.lock.value as boolean;
@@ -608,6 +633,11 @@ export default ({
     />
   ) as Gtk.Widget;
 
+  function currentBarHeight(): number {
+    const [, natural] = barStack.measure(Gtk.Orientation.VERTICAL, -1);
+    return Math.max(natural, 30);
+  }
+
   return (
     <window
       gdkmonitor={monitor}
@@ -639,9 +669,8 @@ export default ({
 
         // Register the reactive dependencies barAutoVisible peeks at.
         globalSettings();
-        hyprlandClients();
-        hyprlandFocusedWorkspace();
-        return barAutoVisible(monitorName);
+        hyprlandTick();
+        return barAutoVisible(monitorName, currentBarHeight());
       })}
       layer={Astal.Layer.TOP}
       $={(self) => {
