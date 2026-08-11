@@ -199,12 +199,46 @@ export const defaultSettings: Settings = {
     lock: false,
     width: 250,
     widgets: rightPanelWidgetSelectors,
+    hotZone: {
+      name: "Right Panel Hot Zone",
+      value: true,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "Reveal the right panel by hovering the screen edge or bar corner",
+    },
+    hotZoneSize: {
+      name: "Right Panel Hot Zone Size",
+      value: 5,
+      type: "int",
+      min: 1,
+      max: 50,
+      tooltip: "Width in pixels of the right panel reveal area",
+    },
   },
   leftPanel: {
     exclusivity: true,
     lock: false,
     width: 400,
     widget: leftPanelWidgetSelectors[0],
+    hotZone: {
+      name: "Left Panel Hot Zone",
+      value: true,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "Reveal the left panel by hovering the screen edge or bar corner",
+    },
+    hotZoneSize: {
+      name: "Left Panel Hot Zone Size",
+      value: 5,
+      type: "int",
+      min: 1,
+      max: 50,
+      tooltip: "Width in pixels of the left panel reveal area",
+    },
   },
   chatBot: {
     api: chatBotApis[0],
