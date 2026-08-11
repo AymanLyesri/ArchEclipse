@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+#include <dirent.h>
 
 typedef struct {
     unsigned long long total;
@@ -13,11 +14,19 @@ typedef struct {
 typedef enum {
     GPU_NONE,
     GPU_NVIDIA,
-    GPU_SYSFS
+    GPU_SYSFS,
+    GPU_XE
 } GPUType;
 
 static GPUType gpu_type = GPU_NONE;
 static int active_gpu_card_index = -1;
+
+#define XE_MAX_GTS 8
+static char xe_gt_idle_path[XE_MAX_GTS][288];
+static int xe_gt_count = 0;
+static unsigned long long xe_prev_idle_ms[XE_MAX_GTS];
+static double xe_prev_sample_time = 0.0;
+static int xe_primed = 0;
 
 typedef struct {
     double load;
@@ -159,6 +168,136 @@ static int get_ram_info(double *total_gb, double *used_gb, double *free_gb, doub
 
 /* ---------------- GPU ---------------- */
 
+static double monotonic_seconds() {
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) return 0.0;
+    return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
+}
+
+static int detect_xe_gts(int card_index) {
+    int count = 0;
+    for (int tile = 0; tile < 4 && count < XE_MAX_GTS; tile++) {
+        for (int gt = 0; gt < 4 && count < XE_MAX_GTS; gt++) {
+            char path[288];
+            snprintf(path, sizeof(path),
+                     "/sys/class/drm/card%d/device/tile%d/gt%d/gtidle/idle_residency_ms",
+                     card_index, tile, gt);
+            if (access(path, R_OK) == 0) {
+                snprintf(xe_gt_idle_path[count], sizeof(xe_gt_idle_path[count]), "%s", path);
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+static int xe_read_load(double *out) {
+    double now = monotonic_seconds();
+    unsigned long long idle_ms[XE_MAX_GTS];
+
+    for (int i = 0; i < xe_gt_count; i++) {
+        double v = 0.0;
+        if (!read_double_from_file(xe_gt_idle_path[i], &v)) return 0;
+        idle_ms[i] = (unsigned long long)v;
+    }
+
+    if (!xe_primed) {
+        memcpy(xe_prev_idle_ms, idle_ms, sizeof(idle_ms[0]) * xe_gt_count);
+        xe_prev_sample_time = now;
+        xe_primed = 1;
+        return 0;
+    }
+
+    double wall_s = now - xe_prev_sample_time;
+    if (wall_s < 0.05) return 0;
+
+    double busiest = 0.0;
+    for (int i = 0; i < xe_gt_count; i++) {
+        unsigned long long prev = xe_prev_idle_ms[i];
+        if (idle_ms[i] < prev) continue;
+
+        double idle_s = (double)(idle_ms[i] - prev) / 1000.0;
+        double busy = (1.0 - idle_s / wall_s) * 100.0;
+        if (busy > busiest) busiest = busy;
+    }
+
+    memcpy(xe_prev_idle_ms, idle_ms, sizeof(idle_ms[0]) * xe_gt_count);
+    xe_prev_sample_time = now;
+
+    if (busiest < 0.0) busiest = 0.0;
+    if (busiest > 100.0) busiest = 100.0;
+    *out = busiest;
+    return 1;
+}
+
+static int xe_read_memory_gb(double *out) {
+    DIR *proc = opendir("/proc");
+    if (!proc) return 0;
+
+    long long seen_ids[4096];
+    int seen_count = 0;
+    unsigned long long total_kib = 0;
+    int found_any = 0;
+
+    struct dirent *pe;
+    while ((pe = readdir(proc)) != NULL) {
+        if (pe->d_name[0] < '0' || pe->d_name[0] > '9') continue;
+
+        char fdinfo_dir[300];
+        snprintf(fdinfo_dir, sizeof(fdinfo_dir), "/proc/%s/fdinfo", pe->d_name);
+        DIR *fdd = opendir(fdinfo_dir);
+        if (!fdd) continue;
+
+        struct dirent *fe;
+        while ((fe = readdir(fdd)) != NULL) {
+            if (fe->d_name[0] == '.') continue;
+
+            char fpath[600];
+            snprintf(fpath, sizeof(fpath), "%s/%s", fdinfo_dir, fe->d_name);
+            FILE *fp = fopen(fpath, "r");
+            if (!fp) continue;
+
+            char line[256];
+            int is_xe = 0;
+            long long client_id = -1;
+            unsigned long long resident_kib = 0;
+
+            while (fgets(line, sizeof(line), fp)) {
+                if (strncmp(line, "drm-driver:", 11) == 0) {
+                    if (strstr(line, "xe")) is_xe = 1;
+                    else break;
+                } else if (strncmp(line, "drm-client-id:", 14) == 0) {
+                    client_id = atoll(line + 14);
+                } else if (strncmp(line, "drm-resident-", 13) == 0) {
+                    char *colon = strchr(line, ':');
+                    if (colon) resident_kib += strtoull(colon + 1, NULL, 10);
+                }
+            }
+            fclose(fp);
+
+            if (!is_xe || client_id < 0) continue;
+
+            int duplicate = 0;
+            for (int i = 0; i < seen_count; i++) {
+                if (seen_ids[i] == client_id) { duplicate = 1; break; }
+            }
+            if (duplicate) continue;
+
+            if (seen_count < (int)(sizeof(seen_ids) / sizeof(seen_ids[0]))) {
+                seen_ids[seen_count++] = client_id;
+            }
+            total_kib += resident_kib;
+            found_any = 1;
+        }
+        closedir(fdd);
+    }
+    closedir(proc);
+
+    if (!found_any) return 0;
+    *out = (double)total_kib / 1024.0 / 1024.0;
+    return 1;
+}
+
 static void detect_gpu() {
     if (access("/usr/bin/nvidia-smi", X_OK) == 0 || access("/bin/nvidia-smi", X_OK) == 0) {
         gpu_type = GPU_NVIDIA;
@@ -175,6 +314,18 @@ static void detect_gpu() {
             char vram_path[256];
             snprintf(vram_path, sizeof(vram_path), "/sys/class/drm/card%d/device/mem_info_vram_used", i);
             if (access(vram_path, R_OK) == 0) {
+                break;
+            }
+        }
+    }
+
+    if (gpu_type == GPU_NONE) {
+        for (int i = 0; i < 8; i++) {
+            int gts = detect_xe_gts(i);
+            if (gts > 0) {
+                gpu_type = GPU_XE;
+                active_gpu_card_index = i;
+                xe_gt_count = gts;
                 break;
             }
         }
@@ -230,6 +381,22 @@ static GPUMetrics get_gpu_metrics() {
         if (read_gpu_temp_sysfs(active_gpu_card_index, &val)) {
             m.temp_c = val / 1000.0;
             m.has_temp = 1;
+        }
+    }
+
+    if (gpu_type == GPU_XE && active_gpu_card_index >= 0) {
+        double val = 0.0;
+
+        m.label = "Intel GPU";
+
+        if (xe_read_load(&val)) {
+            m.load = val;
+            m.has_load = 1;
+        }
+
+        if (xe_read_memory_gb(&val)) {
+            m.memory_used_gb = val;
+            m.has_memory = 1;
         }
     }
 
@@ -300,6 +467,11 @@ int main(int argc, char **argv) {
     int once = (argc > 1 && strcmp(argv[1], "--once") == 0);
 
     detect_gpu();
+
+    if (gpu_type == GPU_XE) {
+        double discard = 0.0;
+        xe_read_load(&discard);
+    }
 
     CPUStat old_stat = {0}, new_stat = {0};
 
