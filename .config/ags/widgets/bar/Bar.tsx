@@ -719,8 +719,31 @@ export default ({
 
             // Watchdog: a reveal that never gets a pill enter/leave cycle
             // (edge reveal, keybind, pointer crossing too fast for GTK to
-            // fire enter) would keep its override forever. Re-conceal once
-            // the pointer is clearly elsewhere.
+            // fire enter/leave) would keep its override forever. GTK hover
+            // state is unreliable for the same reason, so ask Hyprland
+            // where the cursor actually is.
+            const pointerOnBar = (): boolean => {
+              try {
+                const [xRaw, yRaw] = hyprland.message("cursorpos").split(",");
+                const x = parseInt(xRaw, 10);
+                const y = parseInt(yRaw, 10);
+                const gdkMonitor = hyprland
+                  .get_monitors()
+                  .find((m) => m.name === monitorName);
+                if (!gdkMonitor || Number.isNaN(x) || Number.isNaN(y))
+                  return true;
+
+                const height = currentBarHeight();
+                if (x < gdkMonitor.x || x > gdkMonitor.x + gdkMonitor.width)
+                  return false;
+                return (globalSettings.peek().bar.orientation.value as boolean)
+                  ? y <= gdkMonitor.y + height
+                  : y >= gdkMonitor.y + gdkMonitor.height - height;
+              } catch {
+                return true; // can't tell - don't conceal blindly
+              }
+            };
+
             let idleTimer: Timer | null = null;
             const scheduleIdleCheck = () => {
               idleTimer?.cancel();
@@ -730,12 +753,13 @@ export default ({
                 if (barShown.peek()[monitorName] !== true) return;
                 if (
                   barState.peek() === "search" ||
-                  windowInstance.isHovered() ||
-                  windowInstance.popupIsOpen()
+                  windowInstance.popupIsOpen() ||
+                  pointerOnBar()
                 ) {
                   scheduleIdleCheck();
                   return;
                 }
+                windowInstance.setIsHovered(false);
                 concealBar(monitorName);
               });
             };
