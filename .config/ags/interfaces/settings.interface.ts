@@ -55,11 +55,6 @@ export interface Settings {
   dynamicThemeColors: AGSSetting;
   dynamicThemeVariants: AGSSetting;
   bar: {
-    lock: AGSSetting;
-    smartHide: AGSSetting;
-    expanded: AGSSetting;
-    fullWidth: AGSSetting;
-    revealPressure: AGSSetting;
     orientation: AGSSetting;
     layout: WidgetSelector[];
   };
@@ -74,6 +69,8 @@ export interface Settings {
     width: number;
     widgets: WidgetSelector[];
     lock: boolean;
+    hotZone: AGSSetting;
+    hotZoneSize: AGSSetting;
   };
   chatBot: {
     api: Api;
@@ -94,6 +91,8 @@ export interface Settings {
     width: number;
     lock: boolean;
     widget: WidgetSelector;
+    hotZone: AGSSetting;
+    hotZoneSize: AGSSetting;
   };
   crypto: {
     favorite: {

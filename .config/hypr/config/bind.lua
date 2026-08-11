@@ -46,8 +46,6 @@ hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("[workspace 5] " .. terminal .. " bto
 -- Status Bar and Panels
 --- restart status bar
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(statusBar))
---- toggle status bar visibility
-hl.bind(mainMod .. " + ALT_L", hl.dsp.exec_cmd("ags request bar " .. monitor))
 --- toggle app launcher
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("ags request search " .. monitor))
 --- toggle media panel
