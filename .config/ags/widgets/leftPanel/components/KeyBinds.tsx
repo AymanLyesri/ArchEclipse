@@ -1,4 +1,5 @@
 import { Gtk } from "ags/gtk4";
+import Pango from "gi://Pango";
 import KeyBind from "../../KeyBind";
 import { execAsync } from "ags/process";
 import { createState, For, With } from "gnim";
@@ -18,6 +19,8 @@ export default () => {
     <scrolledwindow
       hexpand
       vexpand
+      hscrollbarPolicy={Gtk.PolicyType.NEVER}
+      vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
       $={(self) => {
         execAsync(
           `bash -c "${GLib.get_home_dir()}/.config/ags/scripts/get-keybinds.sh"`,
@@ -49,6 +52,9 @@ export default () => {
                 <label
                   class="keybind-category-title"
                   label={category}
+                  tooltipText={category}
+                  ellipsize={Pango.EllipsizeMode.END}
+                  maxWidthChars={22}
                   xalign={0}
                 />
                 {binds.map((bind) => (
@@ -56,7 +62,9 @@ export default () => {
                     <label
                       class="keybind-description"
                       label={bind.description}
-                      wrap
+                      tooltipText={bind.description}
+                      ellipsize={Pango.EllipsizeMode.END}
+                      maxWidthChars={22}
                       hexpand
                       xalign={0}
                     />

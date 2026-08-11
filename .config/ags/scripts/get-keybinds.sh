@@ -51,6 +51,19 @@ main_mod="SUPER"
 any_category_printed=false
 current_category=""
 
+# Files that shouldn't be treated as keybind sources even if they live in custom/
+blacklist=("monitors.lua" "monitors.conf")
+
+is_blacklisted() {
+  local base
+  base="$(basename "$1")"
+  local item
+  for item in "${blacklist[@]}"; do
+    [[ "$base" == "$item" ]] && return 0
+  done
+  return 1
+}
+
 echo "{"
 
 # 1. First stage: Parse the main bind.lua file
@@ -139,6 +152,7 @@ if [[ -d "$custom_dir" ]]; then
   while IFS= read -r cfile; do
     [[ "$cfile" == *.lua ]] || continue
     [[ -f "$cfile" ]] || continue
+    is_blacklisted "$cfile" && continue
 
     local_main_mod="$main_mod"
     current_comment=""
