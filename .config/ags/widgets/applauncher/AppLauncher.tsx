@@ -44,6 +44,7 @@ import AppHistory, { normalizeHistory } from "./AppHistory";
 
 import Mpris from "gi://AstalMpris";
 import Player from "../Player";
+import { playablePlayers } from "../bar/components/sub-components/PlayerWidget";
 import {
   searchActivate,
   searchNavigate,
@@ -412,8 +413,6 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
     }, 100);
   };
 
-  const players = createBinding(mpris, "players");
-
   return (
     <box
       class="app-launcher"
@@ -470,16 +469,16 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
       }}
     >
       <box class={"left"}>
-        <With value={players}>
+        <With value={playablePlayers}>
           {(players) =>
             players.length > 0 ? (
               <Player
                 width={300}
                 player={
-                  mpris.players.find(
+                  players.find(
                     (player) =>
                       player.playbackStatus === Mpris.PlaybackStatus.PLAYING,
-                  ) || mpris.players[0]
+                  ) || players[0]
                 }
               />
             ) : (
