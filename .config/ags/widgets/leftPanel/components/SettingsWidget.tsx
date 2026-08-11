@@ -468,35 +468,33 @@ const Setting = ({
   };
 
   const TextWidget = () => {
-    const isSecret = keyChanged.toLowerCase().includes("key") || keyChanged.toLowerCase().includes("user");
+    const isSecret =
+      keyChanged.toLowerCase().includes("key") ||
+      keyChanged.toLowerCase().includes("user");
     // Hide by default if it's a secret (false for visibility property)
     const [revealText, setRevealText] = createState(!isSecret);
-  
+
     let entryRef: Gtk.Entry | null = null;
-  
+
     return (
       <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <Title />
         <box orientation={Gtk.Orientation.HORIZONTAL} spacing={5} hexpand>
-          
           <entry
             hexpand
             text={setting.value ?? ""}
             placeholderText={`Enter ${setting.name}`}
-            
             // For GTK4/AGS, passing the Boolean binding correctly is important
             visibility={revealText((v) => v)}
             // Pass the ASCII code of the "*" character (42) instead of a string so that GTK displays the mask correctly
-            invisibleChar={42} 
-            
-            $={(self) => { 
+            invisibleChar={42}
+            $={(self) => {
               entryRef = self;
             }}
-            
             onActivate={(self) => {
               const text = self.text;
               const sameValue = text === setting.value;
-  
+
               if (!sameValue) {
                 setGlobalSetting(keyChanged + ".value", text);
                 notify({
@@ -521,17 +519,19 @@ const Setting = ({
               }
             }}
           />
-  
+
           {/* Show/Hide Button */}
           {isSecret && (
             <button
-              tooltipText={revealText((v) => v ? "Hide Sensitive Data" : "Show Sensitive Data")}
+              tooltipText={revealText((v) =>
+                v ? "Hide Sensitive Data" : "Show Sensitive Data",
+              )}
               onClicked={() => setRevealText(!revealText.get())}
             >
-              <label label={revealText((v) => v ? "󰈈" : "󰈉")} /> 
+              <label label={revealText((v) => (v ? "󰈈" : "󰈉"))} />
             </button>
           )}
-  
+
           {/* Copy button via wl-copy */}
           <button
             tooltipText="Copy to Clipboard"
@@ -553,7 +553,6 @@ const Setting = ({
           >
             <label label="󰆏" />
           </button>
-  
         </box>
       </box>
     );
@@ -688,6 +687,26 @@ export default () => {
             <Setting
               keyChanged="bar.orientation"
               setting={globalSettings.peek().bar.orientation}
+            />
+            <Setting
+              keyChanged="bar.lock"
+              setting={globalSettings.peek().bar.lock}
+            />
+            <Setting
+              keyChanged="bar.smartHide"
+              setting={globalSettings.peek().bar.smartHide}
+            />
+            <Setting
+              keyChanged="bar.expanded"
+              setting={globalSettings.peek().bar.expanded}
+            />
+            <Setting
+              keyChanged="bar.fullWidth"
+              setting={globalSettings.peek().bar.fullWidth}
+            />
+            <Setting
+              keyChanged="bar.revealPressure"
+              setting={globalSettings.peek().bar.revealPressure}
             />
             <Setting
               keyChanged="leftPanel.hotZone"

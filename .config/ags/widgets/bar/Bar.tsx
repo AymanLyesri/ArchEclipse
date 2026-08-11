@@ -12,7 +12,6 @@ import {
   fullscreenClient,
   globalMargin,
   globalSettings,
-  hotZonePreview,
 } from "../../variables";
 import { getMonitorName } from "../../utils/monitor";
 import { WidgetSelector } from "../../interfaces/widgetSelector.interface";
@@ -30,6 +29,7 @@ import BrightnessWidget from "./components/sub-components/BrightnessWidget";
 import Recording from "./components/sub-components/Recording";
 import { isRecording } from "../../services/record.service";
 import AstalMpris from "gi://AstalMpris";
+import Hyprland from "gi://AstalHyprland";
 import PlayerWidget from "./components/sub-components/PlayerWidget";
 import NetworkWidget from "./barStates/NetworkWidget";
 import CompactBar from "./barStates/CompactBar";
@@ -37,6 +37,7 @@ import ExpandedBar from "./barStates/ExpandedBar";
 import SearchBar from "./barStates/SearchBar";
 
 const mpris = AstalMpris.get_default();
+const hyprland = Hyprland.get_default();
 
 export type BarStateName =
   | "compact"
@@ -125,11 +126,116 @@ export function activateState(name: BarStateName, holdMs?: number) {
 
 export function deactivateState(name: BarStateName) {
   if (name === "compact") return; // base is permanent, can't be removed
+  // Always-expanded mode pins the expanded state against every collapse
+  // path (hover leave, popover close). Turning the setting off passes
+  // here because the watcher below runs after the value changed.
+  if (
+    name === "expanded" &&
+    (globalSettings.peek().bar.expanded.value as boolean)
+  ) {
+    return;
+  }
   activeStates.get(name)?.timer?.cancel();
   activeStates.delete(name);
 
   timeout(100, () => setBarState(resolveVisibleState()));
 }
+
+// ---------------------------------------------------------------------
+// Bar visibility — per-monitor override on top of settings-driven
+// auto-visibility. Key absent = auto (bar.lock decides), true/false =
+// explicit override from the hover strip or a toggle request. The
+// override lives here rather than in window.show()/hide() calls because
+// the bar window's `visible` is a binding — an external show/hide would
+// be stomped by its next re-evaluation.
+// ---------------------------------------------------------------------
+
+export const [barShown, setBarShown] = createState<Record<string, boolean>>(
+  {},
+);
+
+export function revealBar(monitorName: string) {
+  setBarShown({ ...barShown.peek(), [monitorName]: true });
+}
+
+export function concealBar(monitorName: string) {
+  const next = { ...barShown.peek() };
+  delete next[monitorName];
+  setBarShown(next);
+}
+
+export function toggleBarShown(monitorName: string) {
+  const current = barShown.peek()[monitorName] ?? barAutoVisible(monitorName);
+  setBarShown({ ...barShown.peek(), [monitorName]: !current });
+}
+
+// Client moves/resizes don't re-emit the clients list - tick (debounced)
+// on the raw IPC event stream so the room check re-evaluates.
+const [hyprlandTick, setHyprlandTick] = createState(0);
+let hyprlandTickTimer: Timer | null = null;
+hyprland.connect("event", () => {
+  if (hyprlandTickTimer) return;
+  hyprlandTickTimer = timeout(100, () => {
+    hyprlandTickTimer = null;
+    setHyprlandTick(hyprlandTick.peek() + 1);
+  });
+});
+
+function barBlocked(monitorName: string, barHeight: number): boolean {
+  const monitor = hyprland.get_monitors().find((m) => m.name === monitorName);
+  const workspace = monitor?.activeWorkspace;
+  if (!monitor || !workspace) return false;
+
+  const onTop = globalSettings.peek().bar.orientation.value as boolean;
+  const bandStart = onTop ? monitor.y : monitor.y + monitor.height - barHeight;
+  const bandEnd = bandStart + barHeight;
+
+  // Query geometry straight from Hyprland - the cached client objects
+  // lag behind floating window moves and resizes.
+  let clients: any[] = [];
+  try {
+    clients = JSON.parse(hyprland.message("j/clients"));
+  } catch {
+    return false;
+  }
+
+  return clients.some((client) => {
+    if (!client.mapped || client.workspace?.id !== workspace.id) return false;
+    const top = client.at?.[1] ?? 0;
+    const bottom = top + (client.size?.[1] ?? 0);
+    return bottom > bandStart && top < bandEnd;
+  });
+}
+
+// An unlocked bar overlays instead of reserving space, so window geometry
+// is independent of bar visibility and a geometric room check is stable.
+export function barAutoVisible(monitorName: string, barHeight = 40): boolean {
+  const { lock, smartHide } = globalSettings.peek().bar;
+  if (lock.value as boolean) return true;
+  if (!(smartHide.value as boolean)) return false;
+  return !barBlocked(monitorName, barHeight);
+}
+
+let lastBarLock = globalSettings.peek().bar.lock.value as boolean;
+let lastBarExpanded = globalSettings.peek().bar.expanded.value as boolean;
+if (lastBarExpanded) activateState("expanded");
+
+globalSettings.subscribe(() => {
+  const lock = globalSettings.peek().bar.lock.value as boolean;
+  if (lock !== lastBarLock) {
+    lastBarLock = lock;
+    // Re-locking pins every bar visible again; stale overrides would keep
+    // a bar hidden with no hover strip left to reveal it.
+    if (lock) setBarShown({});
+  }
+
+  const expanded = globalSettings.peek().bar.expanded.value as boolean;
+  if (expanded !== lastBarExpanded) {
+    lastBarExpanded = expanded;
+    if (expanded) activateState("expanded");
+    else deactivateState("expanded");
+  }
+});
 
 // ---------------------------------------------------------------------
 // Player watcher — module scope, not per-monitor, since mpris players
@@ -486,13 +592,22 @@ export default ({
     />
   ) as Gtk.Widget;
 
+  function currentBarHeight(): number {
+    const [, natural] = barStack.measure(Gtk.Orientation.VERTICAL, -1);
+    return Math.max(natural, 30);
+  }
+
   return (
     <window
       gdkmonitor={monitor}
       name={`bar-${monitorName}`}
       namespace="bar"
       class="Bar"
-      exclusivity={Astal.Exclusivity.EXCLUSIVE}
+      exclusivity={globalSettings(({ bar }) =>
+        (bar.lock.value as boolean)
+          ? Astal.Exclusivity.EXCLUSIVE
+          : Astal.Exclusivity.IGNORE,
+      )}
       keymode={Astal.Keymode.NONE}
       anchor={createComputed(() =>
         barOnTop()
@@ -504,7 +619,17 @@ export default ({
             Astal.WindowAnchor.RIGHT,
       )}
       visible={createComputed(() => {
-        return !fullscreenClient();
+        if (fullscreenClient()) return false;
+        // The search popover lives inside this window - an auto-hidden
+        // bar would open the launcher on an invisible surface.
+        if (barState() === "search") return true;
+        const override = barShown()[monitorName];
+        if (override !== undefined) return override;
+
+        // Register the reactive dependencies barAutoVisible peeks at.
+        globalSettings();
+        hyprlandTick();
+        return barAutoVisible(monitorName, currentBarHeight());
       })}
       layer={Astal.Layer.TOP}
       $={(self) => {
@@ -517,20 +642,11 @@ export default ({
           $type="start"
           valign={Gtk.Align.START}
           halign={Gtk.Align.START}
-          widthRequest={globalSettings(
-            (s) => s.leftPanel.hotZoneSize.value as number,
-          )}
-          heightRequest={globalSettings(
-            (s) => s.leftPanel.hotZoneSize.value as number,
-          )}
-          css={hotZonePreview((preview) =>
-            preview ? "background-color: rgba(255, 85, 85, 0.4);" : "",
-          )}
+          widthRequest={5}
+          heightRequest={5}
         >
           <Gtk.EventControllerMotion
             onEnter={() => {
-              if (!(globalSettings.peek().leftPanel.hotZone.value as boolean))
-                return;
               if (!globalSettings.peek().leftPanel.lock) return;
               const leftPanel = app.get_window(
                 `left-panel-${monitorName}`,
@@ -547,7 +663,11 @@ export default ({
             return `bar ${state} ${onTop ? "top" : "bottom"}`;
           })}
           $type="center"
-          widthRequest={currentWidth}
+          widthRequest={createComputed(() =>
+            (globalSettings().bar.fullWidth.value as boolean)
+              ? -1
+              : currentWidth(),
+          )}
           $={(self) => {
             const windowInstance = new Window();
             (self as any).barWindow = windowInstance;
@@ -585,11 +705,76 @@ export default ({
               leaveTimer = timeout(250, () => {
                 leaveTimer = null;
                 tryCollapseExpanded();
+                if (
+                  barState.peek() !== "search" &&
+                  !(globalSettings.peek().bar.lock.value as boolean) &&
+                  !windowInstance.isHovered() &&
+                  !windowInstance.popupIsOpen()
+                ) {
+                  concealBar(monitorName);
+                }
               });
             });
             self.add_controller(motion);
+
+            // Watchdog: a reveal that never gets a pill enter/leave cycle
+            // (edge reveal, keybind, pointer crossing too fast for GTK to
+            // fire enter/leave) would keep its override forever. GTK hover
+            // state is unreliable for the same reason, so ask Hyprland
+            // where the cursor actually is.
+            const pointerOnBar = (): boolean => {
+              try {
+                const [xRaw, yRaw] = hyprland.message("cursorpos").split(",");
+                const x = parseInt(xRaw, 10);
+                const y = parseInt(yRaw, 10);
+                const gdkMonitor = hyprland
+                  .get_monitors()
+                  .find((m) => m.name === monitorName);
+                if (!gdkMonitor || Number.isNaN(x) || Number.isNaN(y))
+                  return true;
+
+                const height = currentBarHeight();
+                if (x < gdkMonitor.x || x > gdkMonitor.x + gdkMonitor.width)
+                  return false;
+                return (globalSettings.peek().bar.orientation.value as boolean)
+                  ? y <= gdkMonitor.y + height
+                  : y >= gdkMonitor.y + gdkMonitor.height - height;
+              } catch {
+                return true; // can't tell - don't conceal blindly
+              }
+            };
+
+            let idleTimer: Timer | null = null;
+            const scheduleIdleCheck = () => {
+              idleTimer?.cancel();
+              idleTimer = timeout(1500, () => {
+                idleTimer = null;
+                if (globalSettings.peek().bar.lock.value as boolean) return;
+                if (barShown.peek()[monitorName] !== true) return;
+                if (
+                  barState.peek() === "search" ||
+                  windowInstance.popupIsOpen() ||
+                  pointerOnBar()
+                ) {
+                  scheduleIdleCheck();
+                  return;
+                }
+                windowInstance.setIsHovered(false);
+                concealBar(monitorName);
+              });
+            };
+            barShown.subscribe(() => {
+              if (barShown.peek()[monitorName] === true) {
+                scheduleIdleCheck();
+              } else {
+                idleTimer?.cancel();
+                idleTimer = null;
+              }
+            });
           }}
-          hexpand={false}
+          hexpand={globalSettings(
+            ({ bar }) => bar.fullWidth.value as boolean,
+          )}
         >
           {barStack}
         </box>
@@ -597,20 +782,11 @@ export default ({
           $type="end"
           valign={Gtk.Align.START}
           halign={Gtk.Align.END}
-          widthRequest={globalSettings(
-            (s) => s.rightPanel.hotZoneSize.value as number,
-          )}
-          heightRequest={globalSettings(
-            (s) => s.rightPanel.hotZoneSize.value as number,
-          )}
-          css={hotZonePreview((preview) =>
-            preview ? "background-color: rgba(255, 85, 85, 0.4);" : "",
-          )}
+          widthRequest={5}
+          heightRequest={5}
         >
           <Gtk.EventControllerMotion
             onEnter={() => {
-              if (!(globalSettings.peek().rightPanel.hotZone.value as boolean))
-                return;
               if (!globalSettings.peek().rightPanel.lock) return;
               const rightPanel = app.get_window(
                 `right-panel-${monitorName}`,

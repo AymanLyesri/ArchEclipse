@@ -171,6 +171,50 @@ export const defaultSettings: Settings = {
       "Enable dynamic theme variants (light/dark) based on the current wallpaper",
   },
   bar: {
+    lock: {
+      name: "Lock",
+      value: true,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "Keep the bar always visible. When off, the bar auto-hides and hovering the screen edge reveals it",
+    },
+    smartHide: {
+      name: "Smart Hide",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "When the bar is unlocked, show it while no window overlaps its area and hide it when one is in the way",
+    },
+    expanded: {
+      name: "Always Expanded",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip: "Rest in the expanded layout instead of the compact pill",
+    },
+    fullWidth: {
+      name: "Full Width",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 1,
+      tooltip:
+        "Stretch the bar across the whole monitor like the classic layout",
+    },
+    revealPressure: {
+      name: "Reveal Pressure",
+      value: 250,
+      type: "int",
+      min: 0,
+      max: 1000,
+      tooltip:
+        "How hard the pointer must be pushed against the screen edge before an unlocked bar reveals (relative motion units, 0 = instant)",
+    },
     orientation: {
       name: "Orientation",
       value: true,
@@ -191,46 +235,12 @@ export const defaultSettings: Settings = {
     lock: false,
     width: 250,
     widgets: rightPanelWidgetSelectors,
-    hotZone: {
-      name: "Right Panel Hot Zone",
-      value: true,
-      type: "bool",
-      min: 0,
-      max: 1,
-      tooltip:
-        "Reveal the right panel by hovering the screen edge or bar corner",
-    },
-    hotZoneSize: {
-      name: "Right Panel Hot Zone Size",
-      value: 5,
-      type: "int",
-      min: 1,
-      max: 50,
-      tooltip: "Width in pixels of the right panel reveal area",
-    },
   },
   leftPanel: {
     exclusivity: true,
     lock: false,
     width: 400,
     widget: leftPanelWidgetSelectors[0],
-    hotZone: {
-      name: "Left Panel Hot Zone",
-      value: true,
-      type: "bool",
-      min: 0,
-      max: 1,
-      tooltip:
-        "Reveal the left panel by hovering the screen edge or bar corner",
-    },
-    hotZoneSize: {
-      name: "Left Panel Hot Zone Size",
-      value: 5,
-      type: "int",
-      min: 1,
-      max: 50,
-      tooltip: "Width in pixels of the left panel reveal area",
-    },
   },
   chatBot: {
     api: chatBotApis[0],

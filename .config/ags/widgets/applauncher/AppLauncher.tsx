@@ -5,7 +5,7 @@ import { writeJSONFile } from "../../utils/json";
 import { Gtk } from "ags/gtk4";
 import Hyprland from "gi://AstalHyprland";
 import Pango from "gi://Pango";
-import { createBinding, createComputed, For, With } from "gnim";
+import { createBinding, For, With } from "gnim";
 
 import KeyBind from "../KeyBind";
 import { customApps } from "../../constants/app.constants";
@@ -29,7 +29,6 @@ import {
   isArithmeticQuery,
 } from "./utilities/Arithmetic";
 import { getUrlResults, isUrlQuery } from "./utilities/Url";
-import { rankApps } from "./utilities/RankApps";
 import { getNoteResults, parseNoteQuery } from "./utilities/Note";
 
 const apps = new Apps.Apps();
@@ -44,12 +43,7 @@ import AppHistory, { normalizeHistory } from "./AppHistory";
 
 import Mpris from "gi://AstalMpris";
 import Player from "../Player";
-import { playablePlayers } from "../bar/components/sub-components/PlayerWidget";
-import {
-  searchActivate,
-  searchNavigate,
-  searchQuery,
-} from "../bar/barStates/SearchBar";
+import { searchActivate, searchQuery } from "../bar/barStates/SearchBar";
 const mpris = Mpris.get_default();
 
 const LAUNCHER_HISTORY_PATH = `${GLib.get_home_dir()}/.config/ags/cache/launcher/app-history.json`;
@@ -61,7 +55,7 @@ export function AppButton({
   onLaunch,
 }: {
   element: LauncherApp;
-  className?: string | Accessor<string>;
+  className?: string;
   onLaunch: (app: LauncherApp) => void;
 }) {
   if (element.app_type === "header") {
@@ -148,19 +142,15 @@ export function AppButton({
  * all handled by the Popover (autohide) instead of manual GestureClick
  * + layer-shell keymode juggling.
  */
-export default ({ onLaunched }: { onLaunched: () => void }) => {
+export default ({
+  onLaunched,
+  minimal,
+}: {
+  onLaunched: () => void;
+  minimal?: Accessor<boolean>;
+}) => {
   const [Results, setResults] = createState<LauncherApp[]>([]);
   const [history, setHistory] = createState<string[]>([]);
-  const [selectedIndex, setSelectedIndex] = createState(0);
-
-  const firstSelectable = (list: LauncherApp[]) => {
-    const index = list.findIndex((entry) => entry.app_type !== "header");
-    return index === -1 ? 0 : index;
-  };
-
-  Results.subscribe(() => {
-    setSelectedIndex(firstSelectable(Results.peek()));
-  });
 
   function getInstalledAppByName(appName: string): Apps.Application | null {
     return (
@@ -299,9 +289,7 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
             {(result, index) => (
               <AppButton
                 element={result}
-                className={createComputed(() =>
-                  index() === selectedIndex() ? "first" : "",
-                )}
+                className={index() === 0 ? "first" : ""}
                 onLaunch={onLaunch}
               />
             )}
@@ -378,7 +366,8 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
           setResults(getUrlResults(text));
         } else {
           setResults(
-            rankApps(args.shift()!, apps.get_list(), history.peek())
+            apps
+              .fuzzy_query(args.shift()!)
               .slice(0, MAX_ITEMS)
               .map((application: Apps.Application) => ({
                 app_name: application.name,
@@ -413,6 +402,8 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
     }, 100);
   };
 
+  const players = createBinding(mpris, "players");
+
   return (
     <box
       class="app-launcher"
@@ -424,24 +415,8 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
         });
 
         searchActivate.subscribe(() => {
-          const list = Results.get();
-          const target =
-            list[selectedIndex.peek()] ?? list[firstSelectable(list)];
-          if (target && target.app_type !== "header") launchApp(target);
-        });
-
-        searchNavigate.subscribe(() => {
-          const { direction } = searchNavigate.get();
-          if (!direction) return;
-          const list = Results.peek();
-          if (list.length === 0) return;
-
-          const start = selectedIndex.peek();
-          let next = start;
-          do {
-            next = (next + direction + list.length) % list.length;
-          } while (list[next]?.app_type === "header" && next !== start);
-          setSelectedIndex(next);
+          const first = Results.get()[0];
+          if (first) launchApp(first);
         });
 
         // Reload app db + prune stale history on the next idle cycle so
@@ -469,16 +444,16 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
       }}
     >
       <box class={"left"}>
-        <With value={playablePlayers}>
+        <With value={players}>
           {(players) =>
             players.length > 0 ? (
               <Player
                 width={300}
                 player={
-                  players.find(
+                  mpris.players.find(
                     (player) =>
                       player.playbackStatus === Mpris.PlaybackStatus.PLAYING,
-                  ) || players[0]
+                  ) || mpris.players[0]
                 }
               />
             ) : (
@@ -504,7 +479,7 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
         spacing={10}
         widthRequest={300}
       >
-        <QuickApps onAfterLaunch={onLaunched} />
+        <QuickApps onAfterLaunch={onLaunched} sensitive={minimal} />
         <AppHistory
           history={history}
           setHistory={setHistory}
@@ -512,6 +487,7 @@ export default ({ onLaunched }: { onLaunched: () => void }) => {
           getInstalledAppByName={getInstalledAppByName}
           launchAndRecord={launchAndRecord}
           onLaunch={launchApp}
+          sensitive={minimal}
         />
       </box>
     </box>

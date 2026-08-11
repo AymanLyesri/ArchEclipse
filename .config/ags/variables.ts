@@ -72,10 +72,6 @@ export const layers = createBinding;
 export const globalMargin = 5;
 export const globalTransition = 300;
 
-// Flashed on by the settings "Preview Hot Zones" button so the otherwise
-// invisible panel reveal areas can be located on screen.
-export const [hotZonePreview, setHotZonePreview] = createState(false);
-
 export const date_less = createPoll(
   "",
   30000,

@@ -2,22 +2,20 @@ import { Accessor, createState } from "ags";
 import { Astal, Gdk, Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import { barState, deactivateState } from "../Bar";
+import { timeout } from "ags/time";
 import AppLauncher from "../../applauncher/AppLauncher";
 
 export const [searchQuery, setSearchQuery] = createState<string>("");
 
 export const [searchActivate, setSearchActivate] = createState<number>(0);
 
-// Fresh object per keypress so equal directions still emit.
-export const [searchNavigate, setSearchNavigate] = createState<{
-  direction: number;
-}>({ direction: 0 });
-
 export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   let entryRef: Gtk.TextView | null = null;
   let popoverRef: Gtk.Popover | null = null;
   let settingFromState = false; // guards buffer<->state feedback loop
   let popupTimer: any = null;
+
+  const [isExclusive, setIsExclusive] = createState<boolean>(true);
 
   const cancelPendingPopup = () => {
     if (popupTimer) {
@@ -50,26 +48,17 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
     });
   };
 
+  isExclusive.subscribe(() => {
+    const window = entryRef?.get_root() as Gtk.Window | undefined;
+    if (!window) return; // not registered yet — ignore the initial fire
+    window.keymode = isExclusive.peek()
+      ? Astal.Keymode.EXCLUSIVE
+      : Astal.Keymode.ON_DEMAND;
+  });
+
   const closePopover = () => {
     cancelPendingPopup();
     popoverRef?.popdown();
-  };
-
-  // The bar's Window bookkeeping instance lives on the pill box, not on
-  // the root window - walk up like the workspace popovers do.
-  const findBarWindow = () => {
-    let parent = entryRef?.get_parent();
-    let candidate: any = null;
-    while (parent && !candidate) {
-      candidate = (parent as any).barWindow;
-      parent = parent.get_parent();
-    }
-    return candidate as {
-      isHovered?: () => boolean;
-      popupIsOpen?: () => boolean;
-      addOpenPopover?: (popover: Gtk.Popover) => void;
-      removeOpenPopover?: (popover: Gtk.Popover) => void;
-    } | null;
   };
 
   return (
@@ -105,16 +94,13 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 if (!entryRef) return;
                 const window = entryRef.get_root() as Gtk.Window | undefined;
                 if (!window) return; // not registered yet — ignore the initial fire
+                window.keymode = Astal.Keymode.EXCLUSIVE;
                 if (barState.get() === "search") {
-                  // ON_DEMAND, never EXCLUSIVE: Hyprland restricts pointer
-                  // input while a layer surface holds the keyboard
-                  // exclusively, which made everything in the results
-                  // popover unclickable.
-                  window.keymode = Astal.Keymode.ON_DEMAND;
                   showPopover();
                 } else {
                   closePopover();
                   setSearchQuery("");
+                  setIsExclusive(true);
                   window.keymode = Astal.Keymode.NONE;
                 }
               });
@@ -128,16 +114,8 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 state: number,
               ) => {
                 if (keyval === Gdk.KEY_Escape) {
-                  deactivateState("search");
-                  return true;
-                }
+                  setIsExclusive(isExclusive.peek() ? false : true);
 
-                const isDown =
-                  keyval === Gdk.KEY_Down || keyval === Gdk.KEY_Tab;
-                const isUp =
-                  keyval === Gdk.KEY_Up || keyval === Gdk.KEY_ISO_Left_Tab;
-                if (isDown || isUp) {
-                  setSearchNavigate({ direction: isDown ? 1 : -1 });
                   return true;
                 }
 
@@ -154,13 +132,14 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
               }}
             />
           </Gtk.TextView>
-          <button
+          <togglebutton
             class="search-icon"
             label="ESC"
+            active={isExclusive}
             onClicked={() => {
-              deactivateState("search");
+              setIsExclusive(isExclusive.peek() ? false : true);
             }}
-            tooltipMarkup="Close the launcher"
+            tooltipMarkup="Keyboard input mode (true focus) / mouse input mode."
           />
         </box>
       </scrolledwindow>
@@ -176,7 +155,8 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           }
           self.set_offset(0, 15); // x, y — this replaces marginTop
           self.connect("notify::visible", () => {
-            const windowInstance = findBarWindow();
+            const window = entryRef?.get_root() as Gtk.Window | undefined;
+            const windowInstance = (window as any)?.barWindow;
             if (self.visible) {
               self.add_css_class("popover-open");
               windowInstance?.addOpenPopover?.(self);
@@ -187,10 +167,12 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           });
 
           self.connect("closed", () => {
-            const windowInstance = findBarWindow();
+            const window = entryRef?.get_root() as Gtk.Window | undefined;
+            const windowInstance = (window as any)?.barWindow;
             if (barState.peek() !== "search") return; // only reset if search was active
             deactivateState("search");
             setSearchQuery("");
+            setIsExclusive(true);
 
             if (
               !windowInstance?.isHovered?.() &&
@@ -201,7 +183,10 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
           });
         }}
       >
-        <AppLauncher onLaunched={closePopover} />
+        <AppLauncher
+          onLaunched={closePopover}
+          minimal={isExclusive((is) => !is)}
+        />
       </Gtk.Popover>
     </box>
   ) as Gtk.Widget;
