@@ -1,26 +1,6 @@
 import { Gtk } from "ags/gtk4";
-import { Accessor, createState, With } from "ags";
-import { execAsync } from "ags/process";
+import { Accessor, With } from "ags";
 import { globalSettings, systemResourcesData } from "../../../variables";
-import GLib from "gi://GLib";
-
-interface SystemResourcesData {
-  cpuLoad: number;
-  clockGHz: number;
-  threads: number;
-  cpuTempC: number | null;
-  ramTotalGB: number;
-  ramUsedGB: number;
-  ramFreeGB: number;
-  gpuLoad: number | null;
-  gpuMemoryUsedGB: number | null;
-  gpuTempC: number | null;
-  gpuLabel: string;
-  updatedAt: string;
-}
-
-const POLL_MS = 5000;
-const SCRIPT_PATH = `/tmp/ags-${GLib.get_user_name()}/system-resources-loop-ags`;
 
 function formatOptionalNumber(
   value: number | null | undefined,
@@ -29,12 +9,11 @@ function formatOptionalNumber(
   return value === null || value === undefined ? "N/A" : `${value}${suffix}`;
 }
 
-function getNowTimeLabel(): string {
-  return new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+function formatGpuMemory(used: number | null, total: number | null): string {
+  if (used === null) return "N/A";
+  return total === null
+    ? `${used.toFixed(2)} GB`
+    : `${used.toFixed(2)}/${total.toFixed(2)} GB`;
 }
 
 export default ({
@@ -44,21 +23,6 @@ export default ({
   className?: string | Accessor<string>;
   orientation?: Gtk.Orientation;
 }) => {
-  const [data, setData] = createState<SystemResourcesData>({
-    cpuLoad: 0,
-    clockGHz: 0,
-    threads: 0,
-    cpuTempC: null,
-    ramTotalGB: 0,
-    ramUsedGB: 0,
-    ramFreeGB: 0,
-    gpuLoad: null,
-    gpuMemoryUsedGB: null,
-    gpuTempC: null,
-    gpuLabel: "GPU",
-    updatedAt: "--:--:--",
-  });
-
   return (
     <box
       class={`system-resources ${className ?? ""}`}
@@ -84,10 +48,13 @@ export default ({
             <box
               class="resource-columns"
               spacing={10}
-              orientation={globalSettings(({ rightPanel }) =>
-                (orientation ?? rightPanel.width < 400)
-                  ? Gtk.Orientation.VERTICAL
-                  : Gtk.Orientation.HORIZONTAL,
+              homogeneous
+              orientation={globalSettings(
+                ({ rightPanel }) =>
+                  orientation ??
+                  (rightPanel.width < 400
+                    ? Gtk.Orientation.VERTICAL
+                    : Gtk.Orientation.HORIZONTAL),
               )}
             >
               <box
@@ -138,33 +105,36 @@ export default ({
                 />
               </box>
 
-              <box
-                class="resource-column gpu"
-                orientation={Gtk.Orientation.VERTICAL}
-                spacing={6}
-                hexpand
-              >
-                <label
-                  class="column-title"
-                  label={stats?.gpuLabel}
-                  xalign={0}
-                />
-                <label
-                  class="metric"
-                  label={`Load: ${formatOptionalNumber(stats?.gpuLoad, "%")}`}
-                  xalign={0}
-                />
-                <label
-                  class="metric"
-                  label={`Memory: ${formatOptionalNumber(stats?.gpuMemoryUsedGB, " GB")}`}
-                  xalign={0}
-                />
-                <label
-                  class="metric"
-                  label={`Temp: ${formatOptionalNumber(stats?.gpuTempC, "°C")}`}
-                  xalign={0}
-                />
-              </box>
+              {(stats?.gpus ?? []).map((gpu) => (
+                <box
+                  class="resource-column gpu"
+                  orientation={Gtk.Orientation.VERTICAL}
+                  spacing={6}
+                  hexpand
+                >
+                  <label class="column-title" label={gpu.label} xalign={0} />
+                  <label
+                    class="metric driver"
+                    label={`Driver: ${gpu.driver}`}
+                    xalign={0}
+                  />
+                  <label
+                    class="metric"
+                    label={`Load: ${formatOptionalNumber(gpu.load, "%")}`}
+                    xalign={0}
+                  />
+                  <label
+                    class="metric"
+                    label={`Memory: ${formatGpuMemory(gpu.memoryUsedGB, gpu.memoryTotalGB)}`}
+                    xalign={0}
+                  />
+                  <label
+                    class="metric"
+                    label={`Temp: ${formatOptionalNumber(gpu.tempC, "°C")}`}
+                    xalign={0}
+                  />
+                </box>
+              ))}
             </box>
           </box>
         )}
