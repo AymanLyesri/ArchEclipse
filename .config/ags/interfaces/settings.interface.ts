@@ -56,7 +56,6 @@ export interface Settings {
   dynamicThemeVariants: AGSSetting;
   bar: {
     orientation: AGSSetting;
-    workspaceNumbers: AGSSetting;
     layout: WidgetSelector[];
   };
   waifuWidget: {

@@ -1,9 +1,5 @@
 import { Gtk } from "ags/gtk4";
-import {
-  focusedWorkspace,
-  globalSettings,
-  specialWorkspace,
-} from "../../../variables";
+import { focusedWorkspace, specialWorkspace } from "../../../variables";
 
 import Hyprland from "gi://AstalHyprland";
 import { createBinding, createComputed } from "ags";
@@ -29,9 +25,6 @@ const getWorkspaceIcon = (clientClass: string, fallbackIcon: string) => {
       ?.icon || fallbackIcon
   );
 };
-
-const workspaceNumberBadge = (id: number) =>
-  `<span size="x-small" rise="5000" alpha="65%"> ${id}</span>`;
 
 function Workspaces() {
   /**
@@ -122,6 +115,16 @@ function Workspaces() {
           previousWorkspaceStates.set(id, { isActive, isFocused });
 
           return classes.join(" ");
+        })}
+        label={createComputed(() => {
+          const isActive = workspace !== null;
+          if (!isActive) return emptyIcon;
+
+          const clients = createBinding(workspace!, "clients")();
+          const main_client = clients[0];
+          const client_class = main_client?.class || "empty";
+
+          return getWorkspaceIcon(client_class, extraWorkspaceIcon);
         })}
         onClicked={() =>
           hyprland.dispatch(`hl.dsp.focus({workspace = ${id}})`, "")
@@ -239,25 +242,7 @@ function Workspaces() {
 
           self.add_controller(dropTarget);
         }}
-      >
-        <label
-          useMarkup
-          label={createComputed(() => {
-            const numbered = globalSettings().bar.workspaceNumbers
-              .value as boolean;
-            const isActive = workspace !== null;
-            if (!isActive)
-              return numbered ? emptyIcon + workspaceNumberBadge(id) : emptyIcon;
-
-            const clients = createBinding(workspace!, "clients")();
-            const main_client = clients[0];
-            const client_class = main_client?.class || "empty";
-            const icon = getWorkspaceIcon(client_class, extraWorkspaceIcon);
-
-            return numbered ? icon + workspaceNumberBadge(id) : icon;
-          })}
-        />
-      </button>
+      />
     );
   };
 
@@ -443,21 +428,14 @@ export const WorkspacesCompact = () => {
                 const isFocused = currentWorkspace === id;
                 return isFocused ? "is-focused" : "is-unfocused";
               })}
-            >
-              <label
-                useMarkup
-                label={createComputed(() => {
-                  const clients = createBinding(workspace!, "clients")();
-                  const main_client = clients[0];
-                  const client_class = main_client?.class || "empty";
-                  const icon = getWorkspaceIcon(client_class, "");
+              label={createComputed(() => {
+                const clients = createBinding(workspace!, "clients")();
+                const main_client = clients[0];
+                const client_class = main_client?.class || "empty";
 
-                  return globalSettings().bar.workspaceNumbers.value
-                    ? icon + workspaceNumberBadge(id)
-                    : icon;
-                })}
-              />
-            </button>
+                return getWorkspaceIcon(client_class, "");
+              })}
+            />
           );
         }}
       </For>

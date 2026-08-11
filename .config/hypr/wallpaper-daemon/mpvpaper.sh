@@ -21,7 +21,7 @@ for pid in $(pgrep -x mpvpaper); do
 done
 
 # Start mpvpaper in background for animated/video wallpapers
-nohup mpvpaper -o "no-audio --loop --fs --panscan=1.0 --hwdec=auto-safe" "$monitor" "$wallpaper" >/dev/null 2>&1 &
+nohup mpvpaper -o "no-audio --loop --fs --panscan=1.0" "$monitor" "$wallpaper" >/dev/null 2>&1 &
 
 sleep 1 # Wait for wallpaper to be set (removes stuttering)
 
