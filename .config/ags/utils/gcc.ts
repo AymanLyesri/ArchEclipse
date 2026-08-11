@@ -18,4 +18,7 @@ export function compileBinaries() {
   exec(
     `gcc -o ${tmpDir}/keystroke-loop-ags ${scriptsDir}/keystroke-loop-ags.c -lm`,
   );
+  exec(
+    `gcc -o ${tmpDir}/pointer-pressure-loop-ags ${scriptsDir}/pointer-pressure-loop-ags.c -lm`,
+  );
 }
