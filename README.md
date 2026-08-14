@@ -292,7 +292,7 @@ If this project saved you time or you just enjoy it, a coffee helps keep develop
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=aymanlyesri/ArchEclipse&type=Date)](https://star-history.com/#aymanlyesri/ArchEclipse&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=aymanlyesri/ArchEclipse&type=Date)](https://star-history.dera.page/#aymanlyesri/ArchEclipse&Date)
 
 ---
 
