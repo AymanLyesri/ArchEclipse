@@ -694,6 +694,10 @@ export default () => {
               setting={globalSettings.peek().bar.workspaceNumbers}
             />
             <Setting
+              keyChanged="bar.searchAutoInput"
+              setting={globalSettings.peek().bar.searchAutoInput}
+            />
+            <Setting
               keyChanged="bar.lock"
               setting={globalSettings.peek().bar.lock}
             />

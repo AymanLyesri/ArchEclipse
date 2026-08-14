@@ -62,6 +62,7 @@ export interface Settings {
     revealPressure: AGSSetting;
     orientation: AGSSetting;
     workspaceNumbers: AGSSetting;
+    searchAutoInput: AGSSetting;
     layout: WidgetSelector[];
   };
   waifuWidget: {

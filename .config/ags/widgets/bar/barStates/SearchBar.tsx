@@ -1,7 +1,8 @@
-import { Accessor, createState } from "ags";
+import { Accessor, createState, With } from "ags";
 import { Astal, Gdk, Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import { barState, deactivateState } from "../Bar";
+import { globalSettings } from "../../../variables";
 import AppLauncher from "../../applauncher/AppLauncher";
 
 export const [searchQuery, setSearchQuery] = createState<string>("");
@@ -18,6 +19,31 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   let popoverRef: Gtk.Popover | null = null;
   let settingFromState = false; // guards buffer<->state feedback loop
   let popupTimer: any = null;
+
+  // Auto input mode: keyboard and mouse both work (ON_DEMAND keymode) and
+  // Esc closes the launcher. Legacy mode (default): the launcher grabs the
+  // keyboard exclusively; Esc toggles between keyboard grab and mouse input,
+  // since Hyprland restricts pointer input while a layer surface holds the
+  // keyboard exclusively.
+  const autoInput = () =>
+    globalSettings.peek().bar.searchAutoInput.value as boolean;
+
+  // Legacy mode only: whether the keyboard is exclusively grabbed right now.
+  const [isExclusive, setIsExclusive] = createState<boolean>(true);
+
+  const applyKeymode = () => {
+    const window = entryRef?.get_root() as Gtk.Window | undefined;
+    if (!window) return;
+    if (barState.peek() !== "search") {
+      window.keymode = Astal.Keymode.NONE;
+      return;
+    }
+    window.keymode = autoInput()
+      ? Astal.Keymode.ON_DEMAND
+      : isExclusive.peek()
+        ? Astal.Keymode.EXCLUSIVE
+        : Astal.Keymode.ON_DEMAND;
+  };
 
   const cancelPendingPopup = () => {
     if (popupTimer) {
@@ -101,16 +127,15 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 setSearchQuery(self.buffer.text);
               });
 
+              isExclusive.subscribe(applyKeymode);
+
               barState.subscribe(() => {
                 if (!entryRef) return;
                 const window = entryRef.get_root() as Gtk.Window | undefined;
                 if (!window) return; // not registered yet — ignore the initial fire
                 if (barState.get() === "search") {
-                  // ON_DEMAND, never EXCLUSIVE: Hyprland restricts pointer
-                  // input while a layer surface holds the keyboard
-                  // exclusively, which made everything in the results
-                  // popover unclickable.
-                  window.keymode = Astal.Keymode.ON_DEMAND;
+                  setIsExclusive(true); // legacy mode always opens grabbed
+                  applyKeymode();
                   showPopover();
                 } else {
                   closePopover();
@@ -128,7 +153,11 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 state: number,
               ) => {
                 if (keyval === Gdk.KEY_Escape) {
-                  deactivateState("search");
+                  if (autoInput()) {
+                    deactivateState("search");
+                  } else {
+                    setIsExclusive(!isExclusive.peek());
+                  }
                   return true;
                 }
 
@@ -154,14 +183,34 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
               }}
             />
           </Gtk.TextView>
-          <button
-            class="search-icon"
-            label="ESC"
-            onClicked={() => {
-              deactivateState("search");
-            }}
-            tooltipMarkup="Close the launcher"
-          />
+          <With
+            value={globalSettings(
+              (s) => s.bar.searchAutoInput.value as boolean,
+            )}
+          >
+            {(auto: boolean) =>
+              auto ? (
+                <button
+                  class="search-icon"
+                  label="ESC"
+                  onClicked={() => {
+                    deactivateState("search");
+                  }}
+                  tooltipMarkup="Close the launcher"
+                />
+              ) : (
+                <togglebutton
+                  class="search-icon"
+                  label="ESC"
+                  active={isExclusive}
+                  onClicked={() => {
+                    setIsExclusive(!isExclusive.peek());
+                  }}
+                  tooltipMarkup="Keyboard input mode (true focus) / mouse input mode."
+                />
+              )
+            }
+          </With>
         </box>
       </scrolledwindow>
 
