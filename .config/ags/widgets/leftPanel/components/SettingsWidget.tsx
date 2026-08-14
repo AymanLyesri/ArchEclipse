@@ -15,6 +15,7 @@ import {
   globalSettings,
   setGlobalSetting,
   setGlobalSettings,
+  setHotZonePreview,
 } from "../../../variables";
 import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
 import { refreshCss } from "../../../utils/scss";
@@ -687,6 +688,59 @@ export default () => {
             <Setting
               keyChanged="bar.orientation"
               setting={globalSettings.peek().bar.orientation}
+            />
+            <Setting
+              keyChanged="bar.workspaceNumbers"
+              setting={globalSettings.peek().bar.workspaceNumbers}
+            />
+            <Setting
+              keyChanged="bar.searchAutoInput"
+              setting={globalSettings.peek().bar.searchAutoInput}
+            />
+            <Setting
+              keyChanged="bar.lock"
+              setting={globalSettings.peek().bar.lock}
+            />
+            <Setting
+              keyChanged="bar.smartHide"
+              setting={globalSettings.peek().bar.smartHide}
+            />
+            <Setting
+              keyChanged="bar.expanded"
+              setting={globalSettings.peek().bar.expanded}
+            />
+            <Setting
+              keyChanged="bar.fullWidth"
+              setting={globalSettings.peek().bar.fullWidth}
+            />
+            <Setting
+              keyChanged="bar.revealPressure"
+              setting={globalSettings.peek().bar.revealPressure}
+            />
+            <Setting
+              keyChanged="leftPanel.hotZone"
+              setting={globalSettings.peek().leftPanel.hotZone}
+            />
+            <Setting
+              keyChanged="leftPanel.hotZoneSize"
+              setting={globalSettings.peek().leftPanel.hotZoneSize}
+            />
+            <Setting
+              keyChanged="rightPanel.hotZone"
+              setting={globalSettings.peek().rightPanel.hotZone}
+            />
+            <Setting
+              keyChanged="rightPanel.hotZoneSize"
+              setting={globalSettings.peek().rightPanel.hotZoneSize}
+            />
+            <button
+              class="hot-zone-preview"
+              label="Preview Hot Zones"
+              tooltipText="Highlight the panel reveal areas for a few seconds"
+              onClicked={() => {
+                setHotZonePreview(true);
+                timeout(3000, () => setHotZonePreview(false));
+              }}
             />
             <Setting
               keyChanged="alwaysOnWidget.visibility"
