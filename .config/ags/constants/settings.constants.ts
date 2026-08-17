@@ -230,15 +230,7 @@ export const defaultSettings: Settings = {
       max: 1,
       tooltip: "Show a small workspace number next to each workspace icon",
     },
-    searchAutoInput: {
-      name: "Search Auto Input",
-      value: false,
-      type: "bool",
-      min: 0,
-      max: 1,
-      tooltip:
-        "On: keyboard and mouse both work in the launcher and Esc closes it. Off: the launcher grabs the keyboard exclusively and Esc (key or button) toggles between keyboard and mouse input.",
-    },
+
     layout: barWidgetSelectors,
   },
   waifuWidget: {

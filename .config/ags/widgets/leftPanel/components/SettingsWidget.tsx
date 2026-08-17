@@ -358,7 +358,7 @@ const Setting = ({
 
     const Slider = (
       <slider
-        widthRequest={globalSettings(({ leftPanel }) => leftPanel.width / 2)}
+        widthRequest={globalSettings(({ leftPanel }) => leftPanel.width / 3)}
         class="slider"
         drawValue={false}
         min={setting.min}
@@ -468,35 +468,45 @@ const Setting = ({
   };
 
   const TextWidget = () => {
-    const isSecret = keyChanged.toLowerCase().includes("key") || keyChanged.toLowerCase().includes("user");
+    const isSecret =
+      keyChanged.toLowerCase().includes("key") ||
+      keyChanged.toLowerCase().includes("user");
     // Hide by default if it's a secret (false for visibility property)
     const [revealText, setRevealText] = createState(!isSecret);
-  
+
     let entryRef: Gtk.Entry | null = null;
-  
+
     return (
       <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <Title />
         <box orientation={Gtk.Orientation.HORIZONTAL} spacing={5} hexpand>
-          
           <entry
             hexpand
             text={setting.value ?? ""}
             placeholderText={`Enter ${setting.name}`}
-            
             // For GTK4/AGS, passing the Boolean binding correctly is important
             visibility={revealText((v) => v)}
             // Pass the ASCII code of the "*" character (42) instead of a string so that GTK displays the mask correctly
-            invisibleChar={42} 
-            
-            $={(self) => { 
+            invisibleChar={42}
+            $={(self) => {
               entryRef = self;
+              self.connect("changed", (self: Gtk.Entry) => {
+                const sameValue = self.text === setting.value;
+                if (!sameValue) {
+                  self.set_css_classes(["unsaved"]);
+                  self.set_tooltip_markup(
+                    `<b>Unsaved Changes</b>\nPress Enter to save changes`,
+                  );
+                } else {
+                  self.set_css_classes([]);
+                  self.set_tooltip_markup("");
+                }
+              });
             }}
-            
             onActivate={(self) => {
               const text = self.text;
               const sameValue = text === setting.value;
-  
+
               if (!sameValue) {
                 setGlobalSetting(keyChanged + ".value", text);
                 notify({
@@ -508,30 +518,20 @@ const Setting = ({
                 self.set_tooltip_markup("");
               }
             }}
-            onChanged={(self: Gtk.Entry) => {
-              const sameValue = self.text === setting.value;
-              if (!sameValue) {
-                self.set_css_classes(["unsaved"]);
-                self.set_tooltip_markup(
-                  `<b>Unsaved Changes</b>\nPress Enter to save changes`,
-                );
-              } else {
-                self.set_css_classes([]);
-                self.set_tooltip_markup("");
-              }
-            }}
           />
-  
+
           {/* Show/Hide Button */}
           {isSecret && (
             <button
-              tooltipText={revealText((v) => v ? "Hide Sensitive Data" : "Show Sensitive Data")}
+              tooltipText={revealText((v) =>
+                v ? "Hide Sensitive Data" : "Show Sensitive Data",
+              )}
               onClicked={() => setRevealText(!revealText.get())}
             >
-              <label label={revealText((v) => v ? "󰈈" : "󰈉")} /> 
+              <label label={revealText((v) => (v ? "󰈈" : "󰈉"))} />
             </button>
           )}
-  
+
           {/* Copy button via wl-copy */}
           <button
             tooltipText="Copy to Clipboard"
@@ -553,7 +553,6 @@ const Setting = ({
           >
             <label label="󰆏" />
           </button>
-  
         </box>
       </box>
     );
@@ -692,10 +691,6 @@ export default () => {
             <Setting
               keyChanged="bar.workspaceNumbers"
               setting={globalSettings.peek().bar.workspaceNumbers}
-            />
-            <Setting
-              keyChanged="bar.searchAutoInput"
-              setting={globalSettings.peek().bar.searchAutoInput}
             />
             <Setting
               keyChanged="bar.lock"

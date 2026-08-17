@@ -25,8 +25,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
   // keyboard exclusively; Esc toggles between keyboard grab and mouse input,
   // since Hyprland restricts pointer input while a layer surface holds the
   // keyboard exclusively.
-  const autoInput = () =>
-    globalSettings.peek().bar.searchAutoInput.value as boolean;
 
   // Legacy mode only: whether the keyboard is exclusively grabbed right now.
   const [isExclusive, setIsExclusive] = createState<boolean>(true);
@@ -38,11 +36,7 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
       window.keymode = Astal.Keymode.NONE;
       return;
     }
-    window.keymode = autoInput()
-      ? Astal.Keymode.ON_DEMAND
-      : isExclusive.peek()
-        ? Astal.Keymode.EXCLUSIVE
-        : Astal.Keymode.ON_DEMAND;
+    window.keymode = Astal.Keymode.EXCLUSIVE;
   };
 
   const cancelPendingPopup = () => {
@@ -153,11 +147,8 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
                 state: number,
               ) => {
                 if (keyval === Gdk.KEY_Escape) {
-                  if (autoInput()) {
-                    deactivateState("search");
-                  } else {
-                    setIsExclusive(!isExclusive.peek());
-                  }
+                  deactivateState("search");
+
                   return true;
                 }
 
@@ -183,34 +174,6 @@ export default ({ widthRequest }: { widthRequest?: Accessor<number> }) => {
               }}
             />
           </Gtk.TextView>
-          <With
-            value={globalSettings(
-              (s) => s.bar.searchAutoInput.value as boolean,
-            )}
-          >
-            {(auto: boolean) =>
-              auto ? (
-                <button
-                  class="search-icon"
-                  label="ESC"
-                  onClicked={() => {
-                    deactivateState("search");
-                  }}
-                  tooltipMarkup="Close the launcher"
-                />
-              ) : (
-                <togglebutton
-                  class="search-icon"
-                  label="ESC"
-                  active={isExclusive}
-                  onClicked={() => {
-                    setIsExclusive(!isExclusive.peek());
-                  }}
-                  tooltipMarkup="Keyboard input mode (true focus) / mouse input mode."
-                />
-              )
-            }
-          </With>
         </box>
       </scrolledwindow>
 

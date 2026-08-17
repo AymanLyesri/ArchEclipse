@@ -153,9 +153,7 @@ export function deactivateState(name: BarStateName) {
 // be stomped by its next re-evaluation.
 // ---------------------------------------------------------------------
 
-export const [barShown, setBarShown] = createState<Record<string, boolean>>(
-  {},
-);
+export const [barShown, setBarShown] = createState<Record<string, boolean>>({});
 
 export function revealBar(monitorName: string) {
   setBarShown({ ...barShown.peek(), [monitorName]: true });
@@ -638,6 +636,9 @@ export default ({
     return Math.max(natural, 30);
   }
 
+  let leftHoverTimer: Timer | null = null;
+  let rightHoverTimer: Timer | null = null;
+
   return (
     <window
       gdkmonitor={monitor}
@@ -693,7 +694,11 @@ export default ({
       <centerbox>
         <box
           $type="start"
-          valign={Gtk.Align.START}
+          valign={globalSettings((s) =>
+            (s.bar.orientation.value as boolean)
+              ? Gtk.Align.START
+              : Gtk.Align.END,
+          )}
           halign={Gtk.Align.START}
           widthRequest={globalSettings(
             (s) => s.leftPanel.hotZoneSize.value as number,
@@ -710,11 +715,19 @@ export default ({
               if (!(globalSettings.peek().leftPanel.hotZone.value as boolean))
                 return;
               if (!globalSettings.peek().leftPanel.lock) return;
-              const leftPanel = app.get_window(
-                `left-panel-${monitorName}`,
-              ) as Gtk.Window;
-              print(`left-panel-${monitorName}`);
-              leftPanel.show();
+
+              leftHoverTimer?.cancel();
+              leftHoverTimer = timeout(500, () => {
+                leftHoverTimer = null;
+                const leftPanel = app.get_window(
+                  `left-panel-${monitorName}`,
+                ) as Gtk.Window;
+                if (leftPanel) leftPanel.show();
+              });
+            }}
+            onLeave={() => {
+              leftHoverTimer?.cancel();
+              leftHoverTimer = null;
             }}
           />
         </box>
@@ -834,15 +847,17 @@ export default ({
               }
             });
           }}
-          hexpand={globalSettings(
-            ({ bar }) => bar.fullWidth.value as boolean,
-          )}
+          hexpand={globalSettings(({ bar }) => bar.fullWidth.value as boolean)}
         >
           {barStack}
         </box>
         <box
           $type="end"
-          valign={Gtk.Align.START}
+          valign={globalSettings((s) =>
+            (s.bar.orientation.value as boolean)
+              ? Gtk.Align.START
+              : Gtk.Align.END,
+          )}
           halign={Gtk.Align.END}
           widthRequest={globalSettings(
             (s) => s.rightPanel.hotZoneSize.value as number,
@@ -859,11 +874,19 @@ export default ({
               if (!(globalSettings.peek().rightPanel.hotZone.value as boolean))
                 return;
               if (!globalSettings.peek().rightPanel.lock) return;
-              const rightPanel = app.get_window(
-                `right-panel-${monitorName}`,
-              ) as Gtk.Window;
-              print(`right-panel-${monitorName}`);
-              rightPanel.show();
+
+              rightHoverTimer?.cancel();
+              rightHoverTimer = timeout(500, () => {
+                rightHoverTimer = null;
+                const rightPanel = app.get_window(
+                  `right-panel-${monitorName}`,
+                ) as Gtk.Window;
+                if (rightPanel) rightPanel.show();
+              });
+            }}
+            onLeave={() => {
+              rightHoverTimer?.cancel();
+              rightHoverTimer = null;
             }}
           />
         </box>

@@ -186,13 +186,17 @@ const TaskForm = ({
     >
       <entry
         text={nameEntry}
-        onChanged={(self) => setNameEntry(self.text)}
         placeholderText="Enter task name"
+        $={(self) => {
+          self.connect("changed", (self) => setNameEntry(self.text));
+        }}
       />
 
       <entry
         text={timeEntry}
-        onChanged={(self) => setTimeEntry(self.text)}
+        $={(self) => {
+          self.connect("changed", (self) => setTimeEntry(self.text));
+        }}
         placeholderText="HH:MM (24-hour format)"
         maxLength={5}
       />
@@ -200,9 +204,11 @@ const TaskForm = ({
       <box orientation={Gtk.Orientation.VERTICAL}>
         <entry
           text={commandEntry}
-          onChanged={(self) => {
-            setCommandEntry(self.text);
-            updateSuggestions(self.text);
+          $={(self) => {
+            self.connect("changed", (self) => {
+              setCommandEntry(self.text);
+              updateSuggestions(self.text);
+            });
           }}
           placeholderText="Enter command or select preset"
         />
