@@ -81,6 +81,19 @@ function resolveCode(name: string): string {
   return layoutCodes?.get(name) ?? name.slice(0, 2).toUpperCase();
 }
 
+export function flagEmoji(code: string): string | null {
+  const upper = code.toUpperCase();
+  if (upper.length !== 2) return null;
+  const REGIONAL_INDICATOR_A = 0x1f1e6;
+  const points = [...upper].map(
+    (char) => REGIONAL_INDICATOR_A + (char.charCodeAt(0) - 65),
+  );
+  const valid = points.every(
+    (point) => point >= REGIONAL_INDICATOR_A && point <= REGIONAL_INDICATOR_A + 25,
+  );
+  return valid ? String.fromCodePoint(...points) : null;
+}
+
 void loadLayoutCodes().then((map) => {
   layoutCodes = map;
   if (lastRawLayoutName) setActiveLayout(lastRawLayoutName, mainDeviceName || undefined);
