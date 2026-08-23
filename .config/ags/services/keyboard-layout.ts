@@ -10,14 +10,42 @@ type KeyboardDevice = {
   main?: boolean;
 };
 
+export function findHyprlandSignature(): string | null {
+  const envSignature = GLib.getenv("HYPRLAND_INSTANCE_SIGNATURE");
+  if (envSignature) return envSignature;
+
+  const hyprDir = Gio.File.new_for_path(`${GLib.get_user_runtime_dir()}/hypr`);
+  try {
+    const enumerator = hyprDir.enumerate_children(
+      "standard::name,standard::type",
+      Gio.FileQueryInfoFlags.NONE,
+      null,
+    );
+    let info: Gio.FileInfo | null;
+    let found: string | null = null;
+    while ((info = enumerator.next_file(null))) {
+      if (info.get_file_type() === Gio.FileType.DIRECTORY) {
+        found = info.get_name();
+      }
+    }
+    enumerator.close(null);
+    return found;
+  } catch {
+    return null;
+  }
+}
+
+export function hyprctlCommand(...args: string[]): string[] {
+  const signature = findHyprlandSignature();
+  return signature ? ["hyprctl", "-i", signature, ...args] : ["hyprctl", ...args];
+}
+
 export const [keyboardLayout, setKeyboardLayout] = createState("");
 export const [keyboardLayoutName, setKeyboardLayoutName] = createState("");
 
 export const [deviceLayouts, setDeviceLayouts] = createState<
   Record<string, { layout: string; layoutName: string }>
 >({});
-
-let mainDeviceName = "";
 
 const XKB_BASE_LIST_PATH = "/usr/share/X11/xkb/rules/base.lst";
 
@@ -96,7 +124,7 @@ export function flagEmoji(code: string): string | null {
 
 void loadLayoutCodes().then((map) => {
   layoutCodes = map;
-  if (lastRawLayoutName) setActiveLayout(lastRawLayoutName, mainDeviceName || undefined);
+  if (lastRawLayoutName) setActiveLayout(lastRawLayoutName);
 });
 
 function setActiveLayout(rawName: string, device?: string) {
@@ -112,28 +140,31 @@ function setActiveLayout(rawName: string, device?: string) {
     }));
   }
 
-  if (!mainDeviceName || !device || device === mainDeviceName) {
-    lastRawLayoutName = normalized;
-    setKeyboardLayoutName(normalized);
-    setKeyboardLayout(code);
-  }
+  lastRawLayoutName = normalized;
+  setKeyboardLayoutName(normalized);
+  setKeyboardLayout(code);
 }
 
 async function loadInitialLayout() {
   try {
-    const output = await execAsync(["hyprctl", "devices", "-j"]);
+    const output = await execAsync(hyprctlCommand("devices", "-j"));
     const devices = JSON.parse(output) as { keyboards?: KeyboardDevice[] };
     const keyboards = devices.keyboards ?? [];
     const mainKeyboard = keyboards.find((device) => device.main) ?? keyboards[0];
 
-    mainDeviceName = mainKeyboard?.name ?? "";
     if (mainKeyboard?.active_keymap) {
-      setActiveLayout(mainKeyboard.active_keymap, mainDeviceName || undefined);
+      setActiveLayout(mainKeyboard.active_keymap, mainKeyboard.name);
     }
 
     for (const kb of keyboards) {
-      if (kb.name && kb.name !== mainDeviceName && kb.active_keymap) {
-        setActiveLayout(kb.active_keymap, kb.name);
+      if (kb.name && kb.name !== mainKeyboard?.name && kb.active_keymap) {
+        setDeviceLayouts((prev) => ({
+          ...prev,
+          [kb.name!]: {
+            layout: resolveCode(kb.active_keymap!.trim()),
+            layoutName: kb.active_keymap!.trim(),
+          },
+        }));
       }
     }
   } catch (error) {
@@ -222,7 +253,7 @@ function readNextLine() {
 }
 
 function watchLayoutChanges() {
-  const signature = GLib.getenv("HYPRLAND_INSTANCE_SIGNATURE");
+  const signature = findHyprlandSignature();
   if (!signature) {
     scheduleReconnect();
     return;
