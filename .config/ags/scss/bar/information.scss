@@ -10,6 +10,11 @@
     }
   }
 
+  .keyboard-layout {
+    @include module;
+    min-width: 2.2em;
+  }
+
   .client-title {
     @include module;
   }
