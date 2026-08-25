@@ -243,40 +243,63 @@ void expand_path(const char* input, char* output, size_t output_size) {
 }
 
 /*
- * Get wallpaper path for specific workspace
- * Reads from monitor-specific config file
- * Format: w-{workspace_id}={wallpaper_path}
+ * Read a monitor's wallpaper key
+ * Format: {key}={value}, one per line
  */
-bool get_wallpaper_for_workspace(const char* monitor, int workspace_id, char* wallpaper, size_t size) {
+static bool read_config_entry(const char* monitor, const char* key, char* value, size_t size) {
     char config_path[MAX_PATH_LEN];
     snprintf(config_path, sizeof(config_path), "%s/wallpaper-daemon/config/%s/defaults.conf", hypr_dir, monitor);
-    
+
     FILE* fp = fopen(config_path, "r");
     if (!fp) {
-        char error_msg[512];
-        snprintf(error_msg, sizeof(error_msg), "Cannot open config at %s: %s", config_path, strerror(errno));
-        notify_error("get_wallpaper_for_workspace", error_msg);
         return false;
     }
-    
+
     char line[MAX_LINE_LEN];
-    char ws_key[32];
-    snprintf(ws_key, sizeof(ws_key), "w-%d=", workspace_id);
-    
     bool found = false;
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\n")] = 0;
-        
-        if (strncmp(line, ws_key, strlen(ws_key)) == 0) {
-            strncpy(wallpaper, line + strlen(ws_key), size - 1);
-            wallpaper[size - 1] = '\0';
+        if (strncmp(line, key, strlen(key)) == 0) {
+            strncpy(value, line + strlen(key), size - 1);
+            value[size - 1] = '\0';
             found = true;
             break;
         }
     }
-    
+
     fclose(fp);
     return found;
+}
+
+/*
+ * True when this monitor shows one wallpaper on every workspace
+ * Format: mode=global
+ */
+bool is_global_mode(const char* monitor) {
+    char mode[32] = "";
+    return read_config_entry(monitor, "mode=", mode, sizeof(mode)) &&
+           strcmp(mode, "global") == 0;
+}
+
+/*
+ * Get wallpaper path for specific workspace
+ * Reads from monitor-specific config file
+ * Format: w-{workspace_id}={wallpaper_path}, or global={wallpaper_path} in
+ * global mode, where the workspace does not decide the wallpaper
+ */
+bool get_wallpaper_for_workspace(const char* monitor, int workspace_id, char* wallpaper, size_t size) {
+    char key[32];
+    if (is_global_mode(monitor)) {
+        snprintf(key, sizeof(key), "global=");
+    } else {
+        snprintf(key, sizeof(key), "w-%d=", workspace_id);
+    }
+
+    if (!read_config_entry(monitor, key, wallpaper, size)) {
+        return false;
+    }
+
+    return true;
 }
 
 /*

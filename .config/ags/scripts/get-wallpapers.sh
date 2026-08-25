@@ -76,12 +76,28 @@ if [ "$1" == "--current" ]; then
     else
         monitor=$2
     fi
+    monitor_conf="$wallpaper_config/$monitor/defaults.conf"
+
+    # In global mode one wallpaper covers every workspace, so that is the only
+    # entry to report; otherwise report the per-workspace slots in order.
+    mode="$(grep '^mode=' "$monitor_conf" 2>/dev/null | cut -d'=' -f2- | head -n 1)"
+    [ "$mode" = "global" ] || mode="workspace"
+
     # Read the file line by line
     while IFS='=' read -r key path; do
+        if [ "$mode" = "global" ]; then
+            [ "$key" = "global" ] || continue
+        else
+            case "$key" in
+                w-*) ;;
+                *) continue ;;
+            esac
+        fi
+
         # Trim any whitespace from the path and add to the array
         path=$(echo "$path" | sed "s~^\$HOME~$HOME~" | xargs)
         wallpaper_paths+=("\"$path\"")
-    done <"$wallpaper_config/$monitor/defaults.conf"
+    done <"$monitor_conf"
 
 else
 
