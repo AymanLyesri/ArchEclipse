@@ -430,21 +430,6 @@ bool is_hyprpaper_running() {
     return system("pgrep -x hyprpaper >/dev/null 2>&1") == 0;
 }
 
-/* Check if wallpaper should be rendered via mpvpaper */
-bool is_media_wallpaper(const char* wallpaper) {
-    if (!wallpaper) {
-        return false;
-    }
-
-    const char* dot = strrchr(wallpaper, '.');
-    if (!dot || *(dot + 1) == '\0') {
-        return false;
-    }
-
-    const char* ext = dot + 1;
-    return strcasecmp(ext, "gif") == 0 || strcasecmp(ext, "mp4") == 0 || strcasecmp(ext, "webm") == 0;
-}
-
 /* Kill any running wallpaper script instances */
 void kill_wallpaper_script() {
     char cmd[MAX_PATH_LEN];
@@ -521,11 +506,7 @@ void change_wallpaper() {
         
         /* Execute wallpaper change script */
         char cmd[MAX_PATH_LEN * 2];
-        if (is_media_wallpaper(expanded_wallpaper)) {
-            snprintf(cmd, sizeof(cmd), "%s/wallpaper-daemon/mpvpaper.sh '%s' '%s' &", hypr_dir, monitor, expanded_wallpaper);
-        } else {
-            snprintf(cmd, sizeof(cmd), "%s/wallpaper-daemon/hyprpaper.sh '%s' '%s' &", hypr_dir, monitor, expanded_wallpaper);
-        }
+        snprintf(cmd, sizeof(cmd), "%s/wallpaper-daemon/apply.sh '%s' '%s' &", hypr_dir, monitor, expanded_wallpaper);
         system(cmd);
         
         /* Update monitor state */

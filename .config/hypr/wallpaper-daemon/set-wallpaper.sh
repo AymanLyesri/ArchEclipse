@@ -37,14 +37,7 @@ if [ "$old_wallpaper" = "$wallpaper" ]; then
 fi
 
 if [ "$workspace_id" = "$current_workspace" ]; then
-    wallpaper_ext="${wallpaper##*.}"
-    wallpaper_ext="$(printf '%s' "$wallpaper_ext" | tr '[:upper:]' '[:lower:]')"
-    
-    if [ "$wallpaper_ext" = "gif" ] || [ "$wallpaper_ext" = "mp4" ] || [ "$wallpaper_ext" = "webm" ]; then
-        "$hyprDir/wallpaper-daemon/mpvpaper.sh" "$monitor" "$wallpaper" &
-    else
-        "$hyprDir/wallpaper-daemon/hyprpaper.sh" "$monitor" "$wallpaper" &
-    fi
+    "$hyprDir/wallpaper-daemon/apply.sh" "$monitor" "$wallpaper" &
 fi
 
 sed -i "s|^w-${workspace_id}=.*|w-${workspace_id}=${wallpaper}|" "$current_config"
