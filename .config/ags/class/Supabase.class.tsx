@@ -1,7 +1,13 @@
 import { fetch } from "ags/fetch";
 import { execAsync } from "ags/process";
+import Gio from "gi://Gio";
 import { notify } from "../utils/notification";
 import GLib from "gi://GLib";
+import {
+  SUPABASE_URL,
+  SUPABASE_PUB_KEY,
+  supabaseHeaders,
+} from "../constants/supabase.constants";
 
 export interface SupabaseAuthUser {
   id: string;
@@ -24,8 +30,8 @@ export interface SupabaseSettingsRow {
 }
 
 export class Supabase {
-  SUPABASE_URL = "https://skekmjmsgcbfhbwgpzkp.supabase.co";
-  SUPABASE_PUB_KEY = "sb_publishable_PLXFIwBsb79Gfu3YkW5B-w_rHozkZ1y";
+  SUPABASE_URL = SUPABASE_URL;
+  SUPABASE_PUB_KEY = SUPABASE_PUB_KEY;
   HOME_FACE_ICON = `${GLib.get_home_dir()}/.face.icon`;
 
   /**
@@ -49,9 +55,8 @@ export class Supabase {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        apikey: this.SUPABASE_PUB_KEY,
-        Authorization: `Bearer ${this.SUPABASE_PUB_KEY}`,
-      },
+        ...supabaseHeaders(),
+},
       body: JSON.stringify(body),
     });
 
@@ -76,10 +81,7 @@ export class Supabase {
 
   async fetchCurrentUser(accessToken: string) {
     const res = await fetch(`${this.SUPABASE_URL}/auth/v1/user`, {
-      headers: {
-        apikey: this.SUPABASE_PUB_KEY,
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers: supabaseHeaders(accessToken),
     });
 
     if (!res.ok) {
@@ -104,10 +106,7 @@ export class Supabase {
       fetch(
         `${this.SUPABASE_URL}/rest/v1/user_profiles?select=id,username,avatar&id=eq.${encodeURIComponent(user.id)}`,
         {
-          headers: {
-            apikey: this.SUPABASE_PUB_KEY,
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers: supabaseHeaders(accessToken),
         },
       ),
       this.fetchSupporterStatus(accessToken, user.id),
@@ -157,10 +156,7 @@ export class Supabase {
     const res = await fetch(
       `${this.SUPABASE_URL}/rest/v1/supporters?select=id&id=eq.${encodeURIComponent(userId)}`,
       {
-        headers: {
-          apikey: this.SUPABASE_PUB_KEY,
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: supabaseHeaders(accessToken),
       },
     );
 
@@ -170,16 +166,33 @@ export class Supabase {
     return rows.length > 0;
   }
 
-  async syncAvatarToFaceIcon(avatarUrl: string) {
+  async syncAvatarToFaceIcon(avatarUrl: string, retries = 3) {
     if (!avatarUrl.trim()) return;
 
-    try {
-      await execAsync(["curl", "-fsSL", avatarUrl, "-o", this.HOME_FACE_ICON]);
-    } catch (error) {
-      notify({
-        summary: "Avatar sync failed",
-        body: String(error),
-      });
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(avatarUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const buf = (await res.arrayBuffer()) ?? new ArrayBuffer(0);
+        const file = Gio.File.new_for_path(this.HOME_FACE_ICON);
+        const outStream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
+        outStream.write_all(new Uint8Array(buf), null);
+        outStream.close(null);
+        return;
+        return;
+      } catch (error) {
+        console.warn(
+          `[Avatar] sync attempt ${attempt}/${retries} failed: ${error}`,
+        );
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, 10_000));
+        } else {
+          notify({
+            summary: "Avatar sync failed",
+            body: `${String(error)} — will retry on next refresh.`,
+          });
+        }
+      }
     }
   }
 
@@ -214,10 +227,9 @@ export class Supabase {
       `${this.SUPABASE_URL}/rest/v1/user_profiles?id=eq.${encodeURIComponent(user.id)}`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: this.SUPABASE_PUB_KEY,
-          Authorization: `Bearer ${accessToken}`,
+        headers: {"Content-Type": "application/json",
+
+          ...supabaseHeaders(accessToken),
           Prefer: "return=representation",
         },
         body: JSON.stringify(updateData),
@@ -324,7 +336,7 @@ export class Supabase {
         "-H",
         `Content-Type: ${contentTypeHeader}`,
         "-H",
-        `apikey: ${this.SUPABASE_PUB_KEY}`,
+        `apikey: ${SUPABASE_PUB_KEY}`,
         "-H",
         `Authorization: Bearer ${accessToken}`,
         "-H",
@@ -384,10 +396,7 @@ export class Supabase {
     const res = await fetch(
       `${this.SUPABASE_URL}/rest/v1/user_settings?select=id,settings,updated_at&id=eq.${encodeURIComponent(user.id)}`,
       {
-        headers: {
-          apikey: this.SUPABASE_PUB_KEY,
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: supabaseHeaders(accessToken),
       },
     );
 
@@ -422,10 +431,9 @@ export class Supabase {
       `${this.SUPABASE_URL}/rest/v1/user_settings?on_conflict=id`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: this.SUPABASE_PUB_KEY,
-          Authorization: `Bearer ${accessToken}`,
+        headers: {"Content-Type": "application/json",
+
+          ...supabaseHeaders(accessToken),
           Prefer: "resolution=merge-duplicates,return=representation",
         },
         body: JSON.stringify(payload),

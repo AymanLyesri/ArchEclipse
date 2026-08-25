@@ -16,6 +16,7 @@ import { globalSettings, profilePicturePath } from "../../../variables";
 import { monitorFile } from "ags/file";
 import { Progress } from "../../Progress";
 import GLib from "gi://GLib";
+import Gio from "gi://Gio";
 import { booruApis } from "../../../constants/api.constants";
 import {
   clearUserProfile,
@@ -42,7 +43,21 @@ function UserProfile({ minimal = false }: { minimal?: boolean }) {
   >(null);
   const pinnedCount = globalSettings(({ booru }) => booru.pins?.length ?? 0);
 
+  // Wait (up to ~30s) for network connectivity before the first profile load
+  // so cold boots on an offline interface don't log connection errors.
+  const waitForNetwork = async (maxWaitMs = 30_000): Promise<boolean> => {
+    const monitor = Gio.NetworkMonitor.get_default();
+    if (!monitor) return true;
+    const deadline = Date.now() + maxWaitMs;
+    while (!monitor.get_connectivity()) {
+      if (Date.now() >= deadline) return false;
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+    }
+    return true;
+  };
+
   const loadProfile = async () => {
+    await waitForNetwork();
     const session = await refreshAuthSession();
 
     if (!session?.access_token) {

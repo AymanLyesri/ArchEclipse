@@ -17,8 +17,7 @@ export interface AuthSession {
 
 export const authSessionPath = `${GLib.get_home_dir()}/.config/ags/cache/auth/session.json`;
 export const authServerScriptPath = `${GLib.get_home_dir()}/.config/ags/scripts/auth-server-callback.py`;
-const SUPABASE_URL = "https://skekmjmsgcbfhbwgpzkp.supabase.co";
-const SUPABASE_PUB_KEY = "sb_publishable_PLXFIwBsb79Gfu3YkW5B-w_rHozkZ1y";
+import { SUPABASE_URL, supabaseHeaders } from "../constants/supabase.constants";
 
 export function readAuthSession(): AuthSession | null {
   const session = readJSONFile<AuthSession | null>(authSessionPath, null);
@@ -32,14 +31,24 @@ export async function refreshAuthSession(): Promise<AuthSession | null> {
 
   if (!session?.access_token) return null;
 
-  const tokenCheck = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      apikey: SUPABASE_PUB_KEY,
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  }).catch(() => null);
+  // Skip the network round-trip while the access token is still valid
+  // (with a 60s safety margin). Falls through to validation + refresh otherwise.
+  const expiresAtMs = session.expires_at ? Date.parse(session.expires_at) : NaN;
+  const tokenLikelyValid =
+    !Number.isNaN(expiresAtMs) && expiresAtMs - Date.now() > 60_000;
+  if (tokenLikelyValid) return session;
 
-  if (tokenCheck?.ok) return session;
+  let tokenCheckOk = false;
+  try {
+    const tokenCheck = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: supabaseHeaders(session.access_token),
+    });
+    tokenCheckOk = tokenCheck.ok;
+  } catch {
+    tokenCheckOk = false;
+  }
+
+  if (tokenCheckOk) return session;
 
   if (!session.refresh_token) return session;
 
@@ -49,7 +58,7 @@ export async function refreshAuthSession(): Promise<AuthSession | null> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        apikey: SUPABASE_PUB_KEY,
+        ...supabaseHeaders(),
       },
       body: JSON.stringify({ refresh_token: session.refresh_token }),
     },
