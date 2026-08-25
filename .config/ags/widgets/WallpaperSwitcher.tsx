@@ -19,7 +19,13 @@ import { Gdk } from "ags/gtk4";
 import { formatKiloBytes } from "../utils/bytes";
 import { readJson } from "../utils/json";
 import GLib from "gi://GLib";
-import { KirieItem, kirieInstalled, kirieList } from "../services/kirie";
+import {
+  KirieItem,
+  kirieCurrentItem,
+  kirieInstalled,
+  kirieList,
+} from "../services/kirie";
+import WallpaperEngineProperties from "./WallpaperEngineProperties";
 
 // Wallpaper Engine items are directories rather than files, so they are kept
 // beside the folder wallpapers under their own category and looked up by the
@@ -105,6 +111,15 @@ export default ({
   const [targetType, setTargetType] = createState<string>("workspace");
 
   const [wallpapers, setWallpapers] = createState<Record<string, string[]>>({});
+
+  // The engine item whose settings the properties popover is showing.
+  const [propertiesItem, setPropertiesItem] = createState<KirieItem | null>(
+    null,
+  );
+  let propertiesButton: Gtk.MenuButton | null = null;
+  // Set when a right-click picked the item, so opening the button on its own
+  // still falls back to whatever is on this monitor.
+  let pickedItem = false;
 
   const selectedWallpapers = createComputed(() => {
     return (
@@ -258,13 +273,13 @@ export default ({
                 };
 
                 const handleRightClick = () => {
-                  // Steam owns the engine items; deleting one here would only
-                  // break the subscription it belongs to.
-                  if (engineItem(wallpaper)) {
-                    notify({
-                      summary: "Wallpaper Engine",
-                      body: "Unsubscribe from this item in Steam to remove it.",
-                    });
+                  // Steam owns the engine items, so right-click opens their
+                  // settings instead of deleting them.
+                  const item = engineItem(wallpaper);
+                  if (item) {
+                    pickedItem = true;
+                    setPropertiesItem(item);
+                    propertiesButton?.popup();
                     return;
                   }
 
@@ -330,6 +345,7 @@ export default ({
                       if (item)
                         return (
                           `Click to set as <b>${type}</b> wallpaper.` +
+                          "\nRight-click for its settings." +
                           `\n ${item.title}` +
                           `\n Wallpaper Engine ${item.type}`
                         );
@@ -591,6 +607,48 @@ export default ({
       </menubutton>
     );
 
+    const propertiesSelector = (
+      <menubutton
+        class="wallpaper-properties"
+        valign={Gtk.Align.CENTER}
+        visible={kirieInstalled()}
+        tooltipMarkup="<b>Wallpaper Engine</b> settings for this wallpaper"
+        $={(self) => {
+          propertiesButton = self;
+          self.connect("notify::active", () => {
+            if (!self.active) {
+              pickedItem = false;
+              return;
+            }
+            if (pickedItem) return;
+            kirieCurrentItem(monitorName).then((dir) =>
+              setPropertiesItem(engineItem(dir) ?? null),
+            );
+          });
+        }}
+      >
+        <label label="󰒓" />
+        <popover>
+          <With value={propertiesItem}>
+            {(item) =>
+              item ? (
+                <WallpaperEngineProperties monitor={monitorName} item={item} />
+              ) : (
+                <label
+                  class="popover"
+                  wrap
+                  label={
+                    "No Wallpaper Engine wallpaper here.\n" +
+                    "Right-click one to edit its settings."
+                  }
+                />
+              )
+            }
+          </With>
+        </popover>
+      </menubutton>
+    );
+
     const actions = (
       <box
         class="actions"
@@ -602,6 +660,7 @@ export default ({
         {selectedWorkspaceLabel}
         {displayColorScheme}
         {categorySelector}
+        {propertiesSelector}
         {randomButton}
         {resetButton}
         {addWallpaper}

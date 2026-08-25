@@ -77,3 +77,30 @@
     @include module;
   }
 }
+
+.wallpaper-engine-properties {
+  // The popover draws over the wallpaper grid, so it needs the module
+  // background of its own — otherwise the wallpapers show through the text.
+  @include module;
+
+  min-width: 340px;
+  padding: 10px;
+
+  .title {
+    font-weight: bold;
+  }
+
+  .status {
+    opacity: 0.7;
+  }
+
+  .property {
+    .property-value {
+      min-width: 40px;
+    }
+  }
+
+  .property-combo .popover {
+    @include module;
+  }
+}
