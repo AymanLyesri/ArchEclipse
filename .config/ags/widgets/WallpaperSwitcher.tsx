@@ -19,8 +19,68 @@ import { Gdk } from "ags/gtk4";
 import { formatKiloBytes } from "../utils/bytes";
 import { readJson } from "../utils/json";
 import GLib from "gi://GLib";
+import { KirieItem, kirieInstalled, kirieList } from "../services/kirie";
+
+// Wallpaper Engine items are directories rather than files, so they are kept
+// beside the folder wallpapers under their own category and looked up by the
+// path that gets stored as the wallpaper.
+export const engineCategory = "wallpaper engine";
+// GtkPicture hands back a placeholder for the animated previews these items
+// ship, so those get a still frame cached beside the folder thumbnails.
+const engineThumbnails = `${GLib.get_home_dir()}/.config/ags/cache/thumbnails/wallpaper-engine`;
+const isAnimated = (preview: string) => preview.toLowerCase().endsWith(".gif");
+const engineThumbnail = (item: KirieItem) =>
+  item.preview && isAnimated(item.preview)
+    ? `${engineThumbnails}/${item.id}.jpg`
+    : (item.preview ?? "");
+
+/** Make the still frames the animated previews need, once per item. */
+async function makeEngineThumbnails(items: KirieItem[]) {
+  const missing = items.filter(
+    (item) =>
+      item.preview &&
+      isAnimated(item.preview) &&
+      !GLib.file_test(engineThumbnail(item), GLib.FileTest.EXISTS),
+  );
+  if (missing.length === 0) return;
+
+  const jobs = missing
+    .map(
+      (item) =>
+        `magick ${JSON.stringify(`${item.preview}[0]`)} -resize 256x256 ` +
+        `-quality 85 -strip ${JSON.stringify(engineThumbnail(item))} &`,
+    )
+    .join("\n");
+
+  await execAsync([
+    "bash",
+    "-c",
+    `mkdir -p ${JSON.stringify(engineThumbnails)}\n${jobs}\nwait`,
+  ]).catch((err) => print("Error making engine thumbnails: " + String(err)));
+}
+const [engineItems, setEngineItems] = createState<Record<string, KirieItem>>({});
+export const engineItem = (path: string): KirieItem | undefined =>
+  engineItems.peek()[path];
+
+/** The installed engine items as a wallpaper category, empty when kirie is
+ * not installed or has nothing this build can render. */
+async function fetchEngineWallpapers(): Promise<Record<string, string[]>> {
+  if (!kirieInstalled()) return {};
+  try {
+    const items = (await kirieList()).filter((item) => item.renderable);
+    await makeEngineThumbnails(items);
+    setEngineItems(Object.fromEntries(items.map((item) => [item.dir, item])));
+    return items.length ? { [engineCategory]: items.map((item) => item.dir) } : {};
+  } catch (err) {
+    print("Error listing wallpaper engine items: " + String(err));
+    return {};
+  }
+}
 
 export function toThumbnailPath(file: string) {
+  const item = engineItem(file);
+  if (item) return engineThumbnail(item);
+
   return file
     .replace("/.config/wallpapers/", "/.config/ags/cache/thumbnails/")
     .replace(/\.[^/.]+$/, ".jpg");
@@ -61,7 +121,7 @@ export default ({
         `bash ${GLib.get_home_dir()}/.config/ags/scripts/get-wallpapers.sh`,
       );
       const wallpapers = readJson(output);
-      setWallpapers(wallpapers);
+      setWallpapers({ ...wallpapers, ...(await fetchEngineWallpapers()) });
     } catch (err) {
       notify({ summary: "Error", body: String(err) });
       print("Error fetching wallpapers: " + String(err));
@@ -132,7 +192,9 @@ export default ({
                         file={toThumbnailPath(wallpaper)}
                         info={[
                           String(workspaceId + 1),
-                          wallpaper.split(".").pop() || "unknown",
+                          engineItem(wallpaper)?.type ||
+                            wallpaper.split(".").pop() ||
+                            "unknown",
                         ]}
                       ></Picture>
                     )}
@@ -196,6 +258,16 @@ export default ({
                 };
 
                 const handleRightClick = () => {
+                  // Steam owns the engine items; deleting one here would only
+                  // break the subscription it belongs to.
+                  if (engineItem(wallpaper)) {
+                    notify({
+                      summary: "Wallpaper Engine",
+                      body: "Unsubscribe from this item in Steam to remove it.",
+                    });
+                    return;
+                  }
+
                   setProgressStatus("loading");
                   execAsync(
                     `bash -c "rm -f '${toThumbnailPath(
@@ -253,21 +325,34 @@ export default ({
 
                       self.add_controller(gesture);
                     }}
-                    tooltipMarkup={targetType(
-                      (type) =>
+                    tooltipMarkup={targetType((type) => {
+                      const item = engineItem(wallpaper);
+                      if (item)
+                        return (
+                          `Click to set as <b>${type}</b> wallpaper.` +
+                          `\n ${item.title}` +
+                          `\n Wallpaper Engine ${item.type}`
+                        );
+
+                      return (
                         "Click to set as <b>" +
                         type +
                         "</b> wallpaper.\nRight-click to delete." +
                         // get filename from path
                         `\n ${wallpaper.split("/").pop()}` +
                         // file size
-                        `\n Size: ${fileSize(wallpaper)}`,
-                    )}
+                        `\n Size: ${fileSize(wallpaper)}`
+                      );
+                    })}
                   >
                     <Picture
                       class="wallpaper"
                       file={toThumbnailPath(wallpaper)}
-                      info={[wallpaper.split(".").pop() || "unknown"]}
+                      info={[
+                        engineItem(wallpaper)?.type ||
+                          wallpaper.split(".").pop() ||
+                          "unknown",
+                      ]}
                     ></Picture>
                   </button>
                 ) as Gtk.Widget;
@@ -557,7 +642,9 @@ export default ({
       $={async (self) => {
         setup(self);
         (self as any).monitorName = monitorName;
-        FetchWallpapers();
+        // The engine items have to be known before the current wallpapers are
+        // drawn, or the ones set from an item render without their preview.
+        await FetchWallpapers();
         FetchCurrentWallpapers(monitorName);
 
         // Initialize selected workspace
