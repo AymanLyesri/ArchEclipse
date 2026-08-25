@@ -30,6 +30,7 @@ import { connectPopoverEvents } from "../../../utils/window";
 import PlayerWidget, {
   playablePlayers,
 } from "./sub-components/PlayerWidget";
+import KeyboardLayout from "./sub-components/KeyboardLayout";
 
 const mpris = AstalMpris.get_default();
 
@@ -80,6 +81,7 @@ export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
 
       {WeatherButton()}
       <Clock />
+      <KeyboardLayout />
       <Bandwidth />
       <box>
         <With value={globalSettings(({ crypto }) => crypto.favorite)}>
