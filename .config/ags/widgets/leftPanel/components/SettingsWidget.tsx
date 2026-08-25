@@ -4,7 +4,14 @@ import { Gdk } from "ags/gtk4";
 import { Astal } from "ags/gtk4";
 import Hyprland from "gi://AstalHyprland";
 import GObject from "ags/gobject";
-import { createBinding, createState, createComputed, Accessor, For } from "ags";
+import {
+  createBinding,
+  createState,
+  createComputed,
+  Accessor,
+  For,
+  With,
+} from "ags";
 import { execAsync } from "ags/process";
 import { notify } from "../../../utils/notification";
 import { AGSSetting } from "../../../interfaces/settings.interface";
@@ -21,6 +28,12 @@ import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
 import { refreshCss } from "../../../utils/scss";
 import { timeout } from "ags/time";
 import { hyprThemeConfPath } from "../../../constants/path.constants";
+import {
+  kirieCheck,
+  kirieGpus,
+  kirieInstalled,
+  kirieOk,
+} from "../../../services/kirie";
 const hyprland = Hyprland.get_default();
 
 const hyprCustomDir: string = "$HOME/.config/hypr/config/custom";
@@ -625,6 +638,181 @@ const applyHyprlandSetting = (fullKey: string, value: any) => {
   ]).catch((err) => notify(err));
 };
 
+// Wallpaper Engine (kirie) --------------------------------------------------
+//
+// The engine takes most of these live over its control socket; the few it can
+// only read at startup are handed to the next launch by the wallpaper daemon,
+// which reads them straight out of this settings file.
+
+const kirieScript = "$HOME/.config/hypr/wallpaper-daemon/kirie.sh";
+
+type Choice = { label: string; value: any };
+
+const scalingChoices: Choice[] = [
+  { label: "Default", value: "default" },
+  { label: "Stretch", value: "stretch" },
+  { label: "Fit", value: "fit" },
+  { label: "Fill", value: "fill" },
+];
+
+const clampChoices: Choice[] = [
+  { label: "Clamp", value: "clamp" },
+  { label: "Border", value: "border" },
+  { label: "Repeat", value: "repeat" },
+];
+
+const layerChoices: Choice[] = [
+  { label: "Background", value: "background" },
+  { label: "Bottom", value: "bottom" },
+  { label: "Top", value: "top" },
+  { label: "Overlay", value: "overlay" },
+];
+
+const [gpuChoices, setGpuChoices] = createState<Choice[]>([
+  { label: "Automatic", value: "auto" },
+]);
+const [audioChoices, setAudioChoices] = createState<Choice[]>([
+  { label: "Default", value: "" },
+]);
+
+// Both lists describe the machine, not the config, so they are read from the
+// machine: kirie knows the GPUs it can be pinned to, PipeWire knows the
+// sources a wallpaper can listen to.
+const detectEngineChoices = () => {
+  if (!kirieInstalled()) return;
+
+  // The reported names are long enough to stretch the whole panel
+  // ("AMD Ryzen 9 7950X 16-Core Processor (RADV RAPHAEL_MENDOCINO)"), and the
+  // vendor plus the kind is what picks a GPU anyway.
+  kirieGpus()
+    .then((gpus) =>
+      setGpuChoices(
+        gpus.map((gpu) => ({
+          label:
+            gpu.value === "auto"
+              ? "Automatic"
+              : `${gpu.value.toUpperCase()} (${gpu.kind})`,
+          value: gpu.value,
+        })),
+      ),
+    )
+    .catch(() => {});
+
+  execAsync(["bash", "-c", "pactl -f json list sources"])
+    .then((output) => {
+      const sources = JSON.parse(output) as {
+        name: string;
+        description: string;
+      }[];
+      setAudioChoices([
+        { label: "Default", value: "" },
+        // Wallpapers react to what is being played, which is what a monitor
+        // source carries.
+        ...sources
+          .filter((source) => source.name.endsWith(".monitor"))
+          .map((source) => ({
+            label: (source.description || source.name)
+              .replace(/^Monitor of /, "")
+              .slice(0, 16),
+            value: source.name,
+          })),
+      ]);
+    })
+    .catch(() => {});
+};
+
+/** The socket command for a setting the running engine can take live. */
+const kirieCommand = (key: string, value: any): string | null => {
+  switch (key) {
+    case "fps":
+      return `set fps ${Math.round(value)}`;
+    case "batteryFps":
+      return `set batteryfps ${Math.round(value)}`;
+    case "renderScale":
+      return `set renderscale ${value}`;
+    case "playbackSpeed":
+      return `speed ${value}`;
+    case "volume":
+      return `volume ${Math.round(value)}`;
+    case "mute":
+      return `mute ${value ? 1 : 0}`;
+    case "audioDevice":
+      return value ? `set audiodevice ${value}` : null;
+    case "noAutomute":
+      return `set noautomute ${value}`;
+    case "disableMouse":
+      return `set disablemouse ${value}`;
+    case "disableParallax":
+      return `set disableparallax ${value}`;
+    case "noFullscreenPause":
+      return `set nofullscreenpause ${value}`;
+    default:
+      return null;
+  }
+};
+
+const applyEngineSetting = (key: string, value: any) => {
+  // Scaling and edge handling are per screen in the engine; the panel keeps
+  // one value and applies it to every monitor.
+  if (key === "scaling" || key === "clamp") {
+    hyprland
+      .get_monitors()
+      .forEach((monitor) => kirieOk(`${key} ${monitor.get_name()} ${value}`));
+    return;
+  }
+
+  const command = kirieCommand(key, value);
+  if (command) kirieOk(command);
+};
+
+const EngineSetting = ({
+  setting,
+  choices,
+}: {
+  setting: string;
+  choices?: Choice[];
+}) => (
+  <Setting
+    keyChanged={`wallpaperEngine.${setting}`}
+    setting={(globalSettings.peek().wallpaperEngine as any)[setting]}
+    choices={choices}
+    callBack={(value) => applyEngineSetting(setting, value)}
+  />
+);
+
+const EngineActions = () => {
+  const run = (args: string, summary: string) =>
+    execAsync(["bash", "-c", `${kirieScript} ${args}`])
+      .then(() => notify({ summary: "Wallpaper Engine", body: summary }))
+      .catch((err) => notify({ summary: "Error", body: String(err) }));
+
+  return (
+    <box spacing={5} homogeneous>
+      <button
+        label="Restart Engine"
+        tooltipText="Apply the settings that are only read at startup"
+        onClicked={() => run("--restart", "Engine restarted.")}
+      />
+      <button
+        label="Stop Engine"
+        tooltipText="Stop rendering until a Wallpaper Engine wallpaper is picked again"
+        onClicked={() => run("--stop", "Engine stopped.")}
+      />
+      <button
+        label="Diagnostics"
+        tooltipText="Check what the engine needs to render on this machine"
+        onClicked={() =>
+          kirieCheck()
+            .then((out) => notify({ summary: "kirie check", body: out.trim() }))
+            .catch((err) =>
+              notify({ summary: "kirie check", body: String(err).trim() }),
+            )
+        }
+      />
+    </box>
+  );
+};
+
 const createHyprlandSettings = (
   prefix: string,
   settings: NestedSettings,
@@ -670,10 +858,11 @@ export default () => {
     <box class="settings" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <scrolledwindow
         vexpand
-        $={() =>
+        $={() => {
           // Initialize detection
-          detectFileManagers()
-        }
+          detectFileManagers();
+          detectEngineChoices();
+        }}
       >
         <box orientation={Gtk.Orientation.VERTICAL} spacing={16}>
           <box
@@ -832,6 +1021,41 @@ export default () => {
               ]}
             />
           </box>
+          {kirieInstalled() && (
+            <box
+              class={"category"}
+              orientation={Gtk.Orientation.VERTICAL}
+              spacing={16}
+            >
+              <label label="Wallpaper Engine" halign={Gtk.Align.START} />
+              <EngineSetting setting="fps" />
+              <EngineSetting setting="batteryFps" />
+              <EngineSetting setting="renderScale" />
+              <EngineSetting setting="playbackSpeed" />
+              <EngineSetting setting="volume" />
+              <EngineSetting setting="mute" />
+              <With value={audioChoices}>
+                {(choices) => (
+                  <EngineSetting setting="audioDevice" choices={choices} />
+                )}
+              </With>
+              <EngineSetting setting="noAutomute" />
+              <EngineSetting setting="noAudioProcessing" />
+              <EngineSetting setting="scaling" choices={scalingChoices} />
+              <EngineSetting setting="clamp" choices={clampChoices} />
+              <EngineSetting setting="layer" choices={layerChoices} />
+              <With value={gpuChoices}>
+                {(choices) => <EngineSetting setting="gpu" choices={choices} />}
+              </With>
+              <EngineSetting setting="assetsDir" />
+              <EngineSetting setting="disableMouse" />
+              <EngineSetting setting="disableParallax" />
+              <EngineSetting setting="disableParticles" />
+              <EngineSetting setting="noFullscreenPause" />
+              <EngineSetting setting="fullscreenPauseOnlyActive" />
+              <EngineActions />
+            </box>
+          )}
           <box
             class={"category"}
             orientation={Gtk.Orientation.VERTICAL}

@@ -114,6 +114,27 @@ export interface Settings {
   wallpaperSwitcher: {
     category: string;
   };
+  wallpaperEngine: {
+    fps: AGSSetting;
+    batteryFps: AGSSetting;
+    renderScale: AGSSetting;
+    playbackSpeed: AGSSetting;
+    volume: AGSSetting;
+    mute: AGSSetting;
+    audioDevice: AGSSetting;
+    noAutomute: AGSSetting;
+    noAudioProcessing: AGSSetting;
+    scaling: AGSSetting;
+    clamp: AGSSetting;
+    layer: AGSSetting;
+    gpu: AGSSetting;
+    assetsDir: AGSSetting;
+    disableMouse: AGSSetting;
+    disableParallax: AGSSetting;
+    disableParticles: AGSSetting;
+    noFullscreenPause: AGSSetting;
+    fullscreenPauseOnlyActive: AGSSetting;
+  };
   apiKeys: {
     openrouter: {
       user: AGSSetting;

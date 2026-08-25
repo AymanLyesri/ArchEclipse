@@ -325,6 +325,174 @@ export const defaultSettings: Settings = {
   wallpaperSwitcher: {
     category: "defaults/sfw",
   },
+  // Wallpaper Engine renderer (kirie). Everything the engine accepts live is
+  // sent over its control socket as it changes; the rest is handed to the next
+  // engine launch by the wallpaper daemon, hence the "restart" tooltips.
+  wallpaperEngine: {
+    fps: {
+      name: "Frame Rate",
+      value: 30,
+      type: "int",
+      min: 1,
+      max: 240,
+      tooltip: "Frames per second the wallpaper is rendered at.",
+    },
+    batteryFps: {
+      name: "Battery Frame Rate",
+      value: 10,
+      type: "int",
+      min: 0,
+      max: 240,
+      tooltip:
+        "Frame rate used while running on battery.\n0 keeps the normal frame rate.",
+    },
+    renderScale: {
+      name: "Render Scale",
+      value: 1,
+      type: "float",
+      min: 0.5,
+      max: 2,
+      tooltip:
+        "Resolution the wallpaper renders at, relative to the screen.\nBelow 1 costs quality and saves GPU.",
+    },
+    playbackSpeed: {
+      name: "Playback Speed",
+      value: 1,
+      type: "float",
+      min: 0.1,
+      max: 2,
+      tooltip: "Animation speed (1 = normal, 0.5 = half, 2 = double).",
+    },
+    volume: {
+      name: "Volume",
+      value: 15,
+      type: "int",
+      min: 0,
+      max: 128,
+      tooltip: "Volume of wallpapers that carry sound.",
+    },
+    mute: {
+      name: "Mute",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip: "Silence wallpaper audio without pausing the wallpaper.",
+    },
+    audioDevice: {
+      name: "Audio Source",
+      value: "",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Source the audio-reactive wallpapers listen to.\nEmpty follows the default output.",
+    },
+    noAutomute: {
+      name: "Keep Sound With Other Audio",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Keep wallpaper audio playing while something else is making sound.",
+    },
+    noAudioProcessing: {
+      name: "Disable Audio Reactivity",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Stop capturing system audio entirely.\nApplies when the engine restarts.",
+    },
+    scaling: {
+      name: "Scaling",
+      value: "default",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip: "How the wallpaper is fitted to the screen.",
+    },
+    clamp: {
+      name: "Edge Handling",
+      value: "clamp",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip: "What is drawn beyond the wallpaper's edges.",
+    },
+    layer: {
+      name: "Layer",
+      value: "bottom",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Which desktop layer the wallpaper is drawn on.\nApplies when the engine restarts.",
+    },
+    gpu: {
+      name: "GPU",
+      value: "auto",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Which GPU renders the wallpaper.\nApplies when the engine restarts.",
+    },
+    assetsDir: {
+      name: "Assets Directory",
+      value: "",
+      type: "string",
+      min: 0,
+      max: 512,
+      tooltip:
+        "Wallpaper Engine's builtin assets folder.\nEmpty detects it automatically. Applies when the engine restarts.",
+    },
+    disableMouse: {
+      name: "Disable Mouse Interaction",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip: "Stop wallpapers from reacting to the pointer.",
+    },
+    disableParallax: {
+      name: "Disable Parallax",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip: "Stop the camera from following the pointer.",
+    },
+    disableParticles: {
+      name: "Disable Particles",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Skip particle systems, the most expensive part of many scenes.\nApplies when the engine restarts.",
+    },
+    noFullscreenPause: {
+      name: "Keep Rendering Under Fullscreen",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Keep the wallpaper running while a window is fullscreen.\nCosts GPU for something nobody can see.",
+    },
+    fullscreenPauseOnlyActive: {
+      name: "Pause Only For The Active Window",
+      value: false,
+      type: "bool",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Pause only when the fullscreen window is the focused one.\nApplies when the engine restarts.",
+    },
+  },
   apiKeys: {
     openrouter: {
       user: {

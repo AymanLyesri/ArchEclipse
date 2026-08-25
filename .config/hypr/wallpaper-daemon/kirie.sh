@@ -114,6 +114,7 @@ launch() {
         flag_value --fps fps 30
         flag_value --playback-speed playbackSpeed 1
         flag_value --render-scale renderScale 1
+        flag_value --battery-fps batteryFps 10
         # --silent is the muted form of --volume; passing both is contradictory.
         [ "$(setting mute false)" = "true" ] || flag_value --volume volume 15
         flag_value --audio-device audioDevice ""
@@ -164,11 +165,7 @@ launch() {
     # setsid detaches, so its own pid is not the engine's; ask for the real one.
     pgrep -nx kirie >"$pidFile"
 
-    # Settings and per-screen overrides the command line cannot carry.
-    local batteryFps
-    batteryFps="$(setting batteryFps "")"
-    [ -n "$batteryFps" ] && send "set batteryfps $batteryFps" 5 >/dev/null
-
+    # Per-screen overrides the command line cannot carry.
     first=1
     while read -r monitor item; do
         [ -n "$monitor" ] && [ -n "$item" ] || continue
