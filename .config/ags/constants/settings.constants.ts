@@ -325,6 +325,17 @@ export const defaultSettings: Settings = {
   wallpaperSwitcher: {
     category: "defaults/sfw",
   },
+  wallpaper: {
+    mode: {
+      name: "Wallpaper Mode",
+      value: "workspace",
+      type: "select",
+      min: 0,
+      max: 0,
+      tooltip:
+        "Per Workspace: every workspace keeps its own wallpaper.\nGlobal: one wallpaper for all of them.",
+    },
+  },
   // Wallpaper Engine renderer (kirie). Everything the engine accepts live is
   // sent over its control socket as it changes; the rest is handed to the next
   // engine launch by the wallpaper daemon, hence the "restart" tooltips.

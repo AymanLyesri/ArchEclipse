@@ -1088,6 +1088,23 @@ export default () => {
             keyChanged="autoWorkspaceSwitching"
             setting={globalSettings.peek().autoWorkspaceSwitching}
           /> */}
+            <Setting
+              keyChanged="wallpaper.mode"
+              setting={globalSettings.peek().wallpaper.mode}
+              choices={[
+                { label: "Per Workspace", value: "workspace" },
+                { label: "Global", value: "global" },
+              ]}
+              callBack={(mode) =>
+                execAsync([
+                  "bash",
+                  "-c",
+                  `$HOME/.config/hypr/wallpaper-daemon/set-wallpaper.sh --mode ${mode}`,
+                ]).catch((err) =>
+                  notify({ summary: "Error", body: String(err) }),
+                )
+              }
+            />
             <FileManagerSelector />
           </box>
         </box>

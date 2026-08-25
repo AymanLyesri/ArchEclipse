@@ -112,6 +112,13 @@ export default ({
 
   const [wallpapers, setWallpapers] = createState<Record<string, string[]>>({});
 
+  // In global mode one wallpaper covers every workspace, so the wallpaper is
+  // stored under the daemon's `global` slot instead of a workspace one.
+  const wallpaperMode = globalSettings(({ wallpaper }) => wallpaper.mode.value);
+  const isGlobal = () => wallpaperMode.peek() === "global";
+  const wallpaperTarget = () =>
+    isGlobal() ? "global" : String(selectedWorkspaceId.peek());
+
   // The engine item whose settings the properties popover is showing.
   const [propertiesItem, setPropertiesItem] = createState<KirieItem | null>(
     null,
@@ -192,7 +199,11 @@ export default ({
                       setTargetType("workspace");
                       setSelectedWorkspaceId(workspaceId + 1);
                     }}
-                    tooltipMarkup={`Set wallpaper for <b>Workspace ${workspaceId + 1}</b>`}
+                    tooltipMarkup={
+                      wallpaperMode.peek() === "global"
+                        ? "The <b>global</b> wallpaper, used on every workspace"
+                        : `Set wallpaper for <b>Workspace ${workspaceId + 1}</b>`
+                    }
                   >
                     {wallpaper == "" ? (
                       <label
@@ -206,7 +217,9 @@ export default ({
                         class="wallpaper"
                         file={toThumbnailPath(wallpaper)}
                         info={[
-                          String(workspaceId + 1),
+                          wallpaperMode.peek() === "global"
+                            ? "global"
+                            : String(workspaceId + 1),
                           engineItem(wallpaper)?.type ||
                             wallpaper.split(".").pop() ||
                             "unknown",
@@ -250,7 +263,7 @@ export default ({
                     ],
                     workspace: [
                       `${GLib.get_home_dir()}/.config/hypr/wallpaper-daemon/set-wallpaper.sh`,
-                      String(selectedWorkspaceId.peek()),
+                      wallpaperTarget(),
                       String((self.get_root() as any).monitorName),
                       wallpaper,
                     ],
@@ -412,7 +425,7 @@ export default ({
             ];
           execAsync([
             `${GLib.get_home_dir()}/.config/hypr/wallpaper-daemon/set-wallpaper.sh`,
-            String(selectedWorkspaceId.peek()),
+            wallpaperTarget(),
             String((self.get_root() as any).monitorName),
             randomWallpaper,
           ])
@@ -449,9 +462,11 @@ export default ({
         class="selected-workspace"
         label={createComputed(
           () =>
-            `Wallpaper -> ${targetType()} ${
-              targetType() === "workspace" ? selectedWorkspaceId() : ""
-            }`,
+            targetType() !== "workspace"
+              ? `Wallpaper -> ${targetType()}`
+              : wallpaperMode() === "global"
+                ? "Wallpaper -> global"
+                : `Wallpaper -> workspace ${selectedWorkspaceId()}`,
         )}
         $={(self) =>
           createComputed([selectedWorkspaceId, targetType]).subscribe(() => {
@@ -705,6 +720,8 @@ export default ({
         // drawn, or the ones set from an item render without their preview.
         await FetchWallpapers();
         FetchCurrentWallpapers(monitorName);
+
+        wallpaperMode.subscribe(() => FetchCurrentWallpapers(monitorName));
 
         // Initialize selected workspace
         focusedWorkspace.subscribe(() => {
