@@ -44,6 +44,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "presentation": importlib.import_module("components.presentation"),
         "packages": importlib.import_module("components.packages"),
         "plugins": importlib.import_module("components.plugins"),
+        "kirie": importlib.import_module("components.kirie"),
     }
 
 
@@ -209,6 +210,11 @@ def main() -> None:
                 "packages", package_description, default_choice="y"
             ),
             presentation.PlannedStep(
+                "wallpaper_engine",
+                "Updating the Wallpaper Engine renderer",
+                default_choice="y",
+            ),
+            presentation.PlannedStep(
                 "plugins", "Updating plugins", default_choice="y"
             ),
         ],
@@ -270,6 +276,14 @@ def main() -> None:
             lambda: modules["packages"].install_packages(aur_helper),
             run=False,
         )
+
+    presentation.print_section_header("WALLPAPER ENGINE")
+    presentation.execute_planned_step(
+        "*",
+        "Updating the Wallpaper Engine renderer",
+        modules["kirie"].install_kirie,
+        run=plan["wallpaper_engine"],
+    )
 
     presentation.print_section_header("PLUGINS")
     presentation.execute_planned_step(

@@ -63,6 +63,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "defaults": importlib.import_module("components.defaults"),
         "sddm": importlib.import_module("components.sddm"),
         "wallpapers": importlib.import_module("components.wallpapers"),
+        "kirie": importlib.import_module("components.kirie"),
         "plugins": importlib.import_module("components.plugins"),
         "tweaks": importlib.import_module("components.tweaks"),
     }
@@ -195,6 +196,11 @@ def main() -> None:
                 "wallpapers", "Setting up wallpapers", default_choice="y"
             ),
             presentation.PlannedStep(
+                "wallpaper_engine",
+                "Installing the Wallpaper Engine renderer",
+                default_choice="y",
+            ),
+            presentation.PlannedStep(
                 "plugins", "Installing plugins", default_choice="y"
             ),
             presentation.PlannedStep(
@@ -296,6 +302,12 @@ def main() -> None:
         "Setting up wallpapers",
         modules["wallpapers"].main,
         run=plan["wallpapers"],
+    )
+    presentation.execute_planned_step(
+        "*",
+        "Installing the Wallpaper Engine renderer",
+        modules["kirie"].install_kirie,
+        run=plan["wallpaper_engine"],
     )
 
     presentation.print_section_header("PLUGINS & TWEAKS")
