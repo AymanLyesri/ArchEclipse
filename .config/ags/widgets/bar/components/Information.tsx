@@ -69,20 +69,36 @@ function Clock() {
   );
 }
 export default ({ halign }: { halign?: Gtk.Align | Accessor<Gtk.Align> }) => {
+  const t0 = GLib.get_monotonic_time();
+  const mark = (label: string) =>
+    print(
+      `[InfoTiming] ${label}: ${(GLib.get_monotonic_time() - t0) / 1000} ms\n`,
+    );
+  const playerBox = (
+    <box visible={playablePlayers((players) => players.length > 0)}>
+      <With value={playablePlayers}>
+        {(players: AstalMpris.Player[]) =>
+          players.length > 0 && <PlayerWidget />
+        }
+      </With>
+    </box>
+  );
+  mark("player");
+  const weather = WeatherButton();
+  mark("weather");
+  const clock = <Clock />;
+  mark("clock");
+  const kbd = <KeyboardLayout />;
+  mark("keyboard");
+  const bw = <Bandwidth />;
+  mark("bandwidth");
   return (
     <box class="information" spacing={5} halign={halign}>
-      <box visible={playablePlayers((players) => players.length > 0)}>
-        <With value={playablePlayers}>
-          {(players: AstalMpris.Player[]) =>
-            players.length > 0 && <PlayerWidget />
-          }
-        </With>
-      </box>
-
-      {WeatherButton()}
-      <Clock />
-      <KeyboardLayout />
-      <Bandwidth />
+      {playerBox}
+      {weather}
+      {clock}
+      {kbd}
+      {bw}
       <box>
         <With value={globalSettings(({ crypto }) => crypto.favorite)}>
           {(crypto: { symbol: string; timeframe: string }) =>

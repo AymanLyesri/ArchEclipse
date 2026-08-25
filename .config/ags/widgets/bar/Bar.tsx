@@ -25,6 +25,7 @@ import { Window } from "../../utils/window";
 import Volume from "./components/sub-components/Volume";
 import Battery from "./components/sub-components/Battery";
 import Wp from "gi://AstalWp";
+import GLib from "gi://GLib";
 import Brightness from "../../services/brightness";
 import BrightnessWidget from "./components/sub-components/BrightnessWidget";
 import Recording from "./components/sub-components/Recording";
@@ -453,11 +454,18 @@ export default ({
     padding?: number;
     width?: number;
   }) {
-    barWidgets[name] = widget;
-    barPaddings[name] = padding;
-    const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
-    barWidths[name] = natural + padding;
-    return widget;
+    const t0 = GLib.get_monotonic_time();
+    const result = (() => {
+      barWidgets[name] = widget;
+      barPaddings[name] = padding;
+      const [, natural] = widget.measure(Gtk.Orientation.HORIZONTAL, -1);
+      barWidths[name] = natural + padding;
+      return widget;
+    })();
+    print(
+      `[BarTiming] ${name}: ${(GLib.get_monotonic_time() - t0) / 1000} ms\n`,
+    );
+    return result;
   }
 
   /**
@@ -494,12 +502,16 @@ export default ({
     });
   }
 
+  const t0 = GLib.get_monotonic_time();
   const workspaces = (<Workspaces />) as Gtk.Widget;
   const information = (<Information />) as Gtk.Widget;
   const utilities = (<Utilities />) as Gtk.Widget;
   const workspacesCompact = (<WorkspacesCompact />) as Gtk.Widget;
   const battery = (<Battery />) as Gtk.Widget;
   const volume = (<Volume />) as Gtk.Widget;
+  print(
+    `[BarTiming] shared widgets: ${(GLib.get_monotonic_time() - t0) / 1000} ms\n`,
+  );
 
   // Single shared Information instance — reparented between slots rather
   // than duplicated. GTK widgets can only have one parent, and Information

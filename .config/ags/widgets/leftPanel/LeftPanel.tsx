@@ -12,6 +12,7 @@ import { WindowActions, Window, hideWindow } from "../../utils/window";
 import { leftPanelWidgetSelectors } from "../../constants/widget.constants";
 import app from "ags/gtk4/app";
 import { timeout, Timer } from "ags/time";
+import { createRoot } from "gnim";
 
 function Panel() {
   const WidgetActions = () => (
@@ -73,23 +74,36 @@ function Panel() {
     vexpand: true,
   });
 
-  // PRECREATE INSIDE JSX CONTEXT
-  leftPanelWidgetSelectors.forEach((selector) => {
+  const buildWidget = (name: string): Gtk.Widget | null => {
+    // LAZY: widgets are created on first display instead of eagerly at
+    // startup. Precreating all 8 panels (most disabled, window hidden)
+    // dominated cold-start time (~700 ms of per-monitor init).
+    if (widgetCache.has(name)) return widgetCache.get(name)!;
+
+    const selector = leftPanelWidgetSelectors.find((s) => s.name === name);
+    if (!selector) return null;
+
     try {
-      const widget = (
+      // createRoot gives lazily-created widgets a proper reactive scope.
+      // Without it, JSX created inside a settings-subscribe callback runs
+      // "out of tracking context" and throws (bindings + onCleanup need
+      // an owning scope). The dispose fn is intentionally dropped: these
+      // panels live for the app's lifetime, same as eager creation did.
+      const widget = createRoot((dispose) => (
         <box hexpand vexpand>
           {selector.widget?.({}) as JSX.Element}
         </box>
-      ) as Gtk.Widget;
-
-      widgetCache.set(selector.name, widget);
+      )) as Gtk.Widget;
+      widgetCache.set(name, widget);
+      return widget;
     } catch (err) {
-      console.error(err);
+      console.error(`[LeftPanel] failed to create widget "${name}":`, err);
+      return null;
     }
-  });
+  };
 
   const showWidget = (name: string) => {
-    const widget = widgetCache.get(name);
+    const widget = buildWidget(name);
 
     if (!widget) return;
 
