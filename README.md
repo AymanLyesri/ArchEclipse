@@ -147,7 +147,7 @@ graph TB
 
 A custom pipeline generates a full system color scheme from the active wallpaper at runtime using [Cwal](https://github.com/nitinbhat972/cwal) a custom C implementation of PyWal (10-50x faster, zero Python overhead) that generates a full color scheme at runtime. Colors propagate automatically to GTK4 widgets, terminal, and all UI components. No manual color editing required — ever.
 
-- Per-workspace wallpaper assignment with static, animated (video) and Wallpaper Engine support
+- Per-workspace or one-for-all wallpaper assignment with static, animated (video) and Wallpaper Engine support
 - Global light/dark mode toggle with instant application across the entire environment
 - Color changes hot-reload without restarting any component
 

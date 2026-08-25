@@ -369,6 +369,26 @@ wallpaper = DP-1,$HOME/.config/wallpapers/background.png
 
 The blur effect uses your wallpaper as a base for the blur.
 
+### One Wallpaper Everywhere
+
+Wallpapers are per workspace by default. Set **Wallpaper Mode** to *Global* in
+`SUPER` + `L` to use a single wallpaper on every workspace instead — the
+switcher then shows one slot rather than ten, and changing workspace no longer
+changes the wallpaper.
+
+The mode is stored per monitor, in the same file as its wallpapers:
+
+```conf
+# ~/.config/hypr/wallpaper-daemon/config/<monitor>/defaults.conf
+mode=global
+global=$HOME/.config/wallpapers/defaults/images_sfw/wallpaper.jpg
+w-1=...
+```
+
+Per-workspace assignments are kept while global mode is on, so switching back
+restores them. From a script: `set-wallpaper.sh --mode global|workspace` and
+`set-wallpaper.sh global <monitor> <wallpaper>`.
+
 ### Wallpaper Engine Wallpapers
 
 Wallpaper Engine items subscribed through Steam are rendered by
