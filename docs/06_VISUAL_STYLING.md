@@ -369,6 +369,34 @@ wallpaper = DP-1,$HOME/.config/wallpapers/background.png
 
 The blur effect uses your wallpaper as a base for the blur.
 
+### Wallpaper Engine Wallpapers
+
+Wallpaper Engine items subscribed through Steam are rendered by
+[kirie](https://github.com/UnhingedSoftware/kirie), installed into
+`~/.local/bin` by the install and update scripts. Without it, everything below
+is simply hidden.
+
+Picking one is the same as picking an image: open the switcher with
+`SUPER` + `W` and choose the **wallpaper engine** category. The daemon then
+routes that wallpaper to the engine instead of hyprpaper, and picking a plain
+image again hands the monitor back.
+
+| What | Where |
+|---|---|
+| Per-wallpaper settings (bloom, colours, speeds…) | Right-click the wallpaper in `SUPER` + `W` |
+| Engine settings (frame rate, GPU, volume, scaling…) | Wallpaper Engine section of `SUPER` + `L` |
+| Saved per-wallpaper settings | `~/.config/ags/cache/wallpaper-engine/<item id>.json` |
+| Engine control | `~/.config/hypr/wallpaper-daemon/kirie.sh` |
+| Engine log | `$XDG_RUNTIME_DIR/kirie.log` |
+
+One engine process serves every monitor, so changing workspace swaps the
+wallpaper over the engine's control socket rather than restarting it. Settings
+that can only be read at startup — GPU, layer, particles — say so in their
+tooltip and take effect on **Restart Engine**.
+
+The theme pipeline uses the item's preview image, so colours follow a
+Wallpaper Engine wallpaper exactly as they follow a static one.
+
 ## Performance Optimization
 
 ### If Your System Struggles:

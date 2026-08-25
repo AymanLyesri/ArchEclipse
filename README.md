@@ -54,7 +54,7 @@ graph TB
         HyprMain["hyprland.lua<br/>entry point"]
         HyprConfig["config/*.lua<br/>bind, animations, monitor,<br/>windowrule, gesture, input"]
         HyprScripts["scripts / scripts-c<br/>screenshot, screenrecord,<br/>hyprlock, wallpaper-loop"]
-        WallpaperDaemon["wallpaper-daemon<br/>hyprpaper / mpvpaper"]
+        WallpaperDaemon["wallpaper-daemon<br/>hyprpaper / mpvpaper / kirie"]
         Evremap["evremap<br/>key remapping service"]
     end
 
@@ -147,7 +147,7 @@ graph TB
 
 A custom pipeline generates a full system color scheme from the active wallpaper at runtime using [Cwal](https://github.com/nitinbhat972/cwal) a custom C implementation of PyWal (10-50x faster, zero Python overhead) that generates a full color scheme at runtime. Colors propagate automatically to GTK4 widgets, terminal, and all UI components. No manual color editing required — ever.
 
-- Per-workspace wallpaper assignment with both static and animated (video) support
+- Per-workspace wallpaper assignment with static, animated (video) and Wallpaper Engine support
 - Global light/dark mode toggle with instant application across the entire environment
 - Color changes hot-reload without restarting any component
 
