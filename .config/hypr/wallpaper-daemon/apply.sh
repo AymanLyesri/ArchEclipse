@@ -16,6 +16,14 @@ if [ -z "$monitor" ] || [ -z "$wallpaper" ]; then
     exit 1
 fi
 
+# A Wallpaper Engine item is a directory with a project.json beside its assets.
+if [ -f "$wallpaper/project.json" ]; then
+    exec "$hyprDir/wallpaper-daemon/kirie.sh" "$monitor" "$wallpaper"
+fi
+
+# Anything else is a plain file, so the engine must let go of this monitor.
+"$hyprDir/wallpaper-daemon/kirie.sh" --stop "$monitor" >/dev/null 2>&1
+
 ext="${wallpaper##*.}"
 ext="$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')"
 
