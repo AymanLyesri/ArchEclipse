@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -83,7 +84,43 @@ def install_kirie() -> None:
 
     STAMP_PATH.write_text(f"{tag}\n")
     print(f"Installed kirie {tag} to {INSTALL_PATH}")
+    _ensure_on_path()
     _report_readiness()
+
+
+def _ensure_on_path() -> None:
+    """Make ~/.local/bin reachable, in the session and in shells.
+
+    kirie installs here because it is not a package, and on a machine where
+    nothing else has ever installed to ~/.local/bin that directory is on
+    nobody's PATH — so `kirie` answers "command not found" on a machine that
+    has it.
+    """
+    bin_dir = INSTALL_PATH.parent
+    if shutil.which("kirie"):
+        return
+
+    # The systemd user session: what SDDM starts, and therefore what the panel
+    # and every launcher inherit.
+    env_file = Path.home() / ".config/environment.d/10-local-bin.conf"
+    ensure_dir(env_file.parent)
+    if not env_file.is_file() or "local/bin" not in env_file.read_text():
+        env_file.write_text(f'PATH="{bin_dir}:$PATH"\n')
+
+    # Interactive shells. ArchEclipse ships its own .zshrc with this already,
+    # so only files it does not own are appended to — and only when the
+    # directory is not mentioned at all, so re-running changes nothing.
+    for name in (".bashrc", ".profile"):
+        rc = Path.home() / name
+        if not rc.is_file():
+            continue
+        if "local/bin" in rc.read_text():
+            continue
+        with rc.open("a") as handle:
+            handle.write(f'\nexport PATH="{bin_dir}:$PATH"\n')
+
+    print(f"  ! {bin_dir} was not on PATH; added it.")
+    print("    Open a new shell or log out and back in for `kirie` to resolve.")
 
 
 def _report_readiness() -> None:
