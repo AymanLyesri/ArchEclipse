@@ -36,7 +36,9 @@ import {
 /// page here is a slice of one — which keeps every thumbnail on screen at a
 /// size worth looking at.
 const COLUMNS = 3;
-const ROWS = 4;
+/// Rows *fetched*; the grid scrolls, so this is how much there is to look
+/// through per query rather than how much fits at once.
+const ROWS = 6;
 const PAGE_SIZE = COLUMNS * ROWS;
 
 /// Thumbnail edge. Steam serves square preview images, so the card is square.
@@ -145,13 +147,23 @@ const ADULT = ["Mature", "Questionable"];
 ///
 /// Workshop titles carry HTML often enough to matter — banners, credit links
 /// — and a card is 148px wide.
-const plainTitle = (raw: string) =>
-  raw
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+const plainTitle = (raw: string) => {
+  // Decode before stripping, and repeat: entity-encoded markup would
+  // otherwise be unwrapped into visible tag soup rather than removed.
+  let text = raw;
+  for (let pass = 0; pass < 3; pass += 1) {
+    const next = text
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&amp;/gi, "&")
+      .replace(/<[^>]*>/g, " ");
+    if (next === text) break;
+    text = next;
+  }
+  return text.replace(/\s+/g, " ").trim();
+};
 
 /// Bytes as a short human string.
 const humanSize = (bytes: number) => {
@@ -525,7 +537,9 @@ export default function WorkshopBrowser({
       orientation={Gtk.Orientation.VERTICAL}
       spacing={5}
       widthRequest={COLUMNS * (TILE + 22)}
-      heightRequest={ROWS * (TILE + 62) + 84}
+      // Four rows tall, six rows deep: the panel stays a panel and the extra
+      // two rows are a scroll away.
+      heightRequest={4 * (TILE + 62) + 84}
     >
       <box spacing={4}>
         {searchEntry}

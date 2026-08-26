@@ -869,12 +869,11 @@ export default ({
         visible={kirieInstalled()}
         tooltipMarkup="Browse the <b>Steam Workshop</b>"
       >
-        {/* Steam's own mark with a magnifier beside it: a download arrow said
-            "fetch something", not "go and look through the Workshop". */}
-        <box class="workshop-icon" spacing={1}>
-          <label class="steam" label="" />
-          <label class="lens" label="󰍉" />
-        </box>
+        {/* Steam's own mark, alone. A download arrow said "fetch something"
+            rather than "go and look through the Workshop", but pairing the
+            mark with a magnifier just made two small glyphs fight for the
+            same button — the tooltip can carry the rest. */}
+        <label class="workshop-icon" label={"\u{f1b6}"} />
         <popover position={Gtk.PositionType.TOP}>
           <WorkshopBrowser
             onInstalled={() => FetchWallpapers()}

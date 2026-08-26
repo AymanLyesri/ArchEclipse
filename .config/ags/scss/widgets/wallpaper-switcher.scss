@@ -388,16 +388,8 @@
   }
 }
 
-// Steam mark + magnifier on the Workshop button. The lens rides small and low
-// so the pair reads as one badge rather than two icons in a row.
+// Steam's mark on the Workshop button, sized to sit level with the gear and
+// shuffle icons either side of it.
 .workshop-icon {
-  .steam {
-    font-size: 1.05em;
-  }
-
-  .lens {
-    font-size: 0.72em;
-    opacity: 0.85;
-    margin-top: 4px;
-  }
+  font-size: 1.15em;
 }

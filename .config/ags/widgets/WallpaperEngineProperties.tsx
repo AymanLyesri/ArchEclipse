@@ -52,19 +52,44 @@ const wireValue = (value: any): string => String(value);
 /// markup nobody can read. Tags come out, entities are decoded, whitespace
 /// collapses, and a label that was *only* markup falls back to its key.
 function plainText(raw: string): string {
-  const stripped = raw
-    // Anything inside a tag goes; an <img> or <a> carries no text of its own.
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Entities are decoded FIRST and tags stripped after, repeatedly: a label
+  // that arrives as `&lt;center&gt;&lt;a href=…` is markup wearing a
+  // disguise, and stripping before decoding just unwraps it into visible
+  // tag soup — which is exactly what the settings panel was showing.
+  const decode = (text: string) =>
+    text
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#0?39;/g, "'")
+      .replace(/&amp;/gi, "&");
+
+  let text = raw;
+  for (let pass = 0; pass < 3; pass += 1) {
+    const next = decode(text).replace(/<[^>]*>/g, " ");
+    if (next === text) break;
+    text = next;
+  }
+
+  const stripped = text.replace(/\s+/g, " ").trim();
   // A bare URL left behind by a stripped link is not a label either.
   return /^https?:\/\/\S*$/.test(stripped) ? "" : stripped;
+}
+
+/// Whether a property is a banner rather than a setting.
+///
+/// Wallpaper authors use label-only properties as decoration — a credit link,
+/// a QQ group, a picture of themselves. Their `text` is pure markup, and the
+/// key kirie derives from it is that same markup with the punctuation gone
+/// ("centerahrefhttpsspacebilibilicom5890295imgsrc…"), so neither is showable.
+/// The row carries no control worth keeping either, so it does not get drawn.
+function isBanner(property: KirieProperty): boolean {
+  const raw = property.text ?? "";
+  if (!raw.trim()) return false;
+  // Wrote something, and none of it survived being read as text ⇒ it was
+  // markup all the way down.
+  return plainText(raw) === "";
 }
 
 function propertyLabel(property: KirieProperty): string {
@@ -340,7 +365,15 @@ export default function WallpaperEngineProperties({
         hscrollbarPolicy={Gtk.PolicyType.NEVER}
       >
         <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
-          <For each={properties}>{(property) => Property(property)}</For>
+          <For each={properties}>
+            {(property) =>
+              isBanner(property) ? (
+                <box visible={false} />
+              ) : (
+                Property(property)
+              )
+            }
+          </For>
         </box>
       </scrolledwindow>
     </box>
