@@ -158,6 +158,70 @@
     }
   }
 
+  // The Workshop browser: a grid of items this machine does not have yet, so
+  // the cards have to read as browsable rather than as installed wallpapers.
+  .workshop {
+    popover > contents {
+      background: $background;
+      border: 1px solid $background-secondary;
+      border-radius: 12px;
+      box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.55);
+      padding: 10px;
+    }
+  }
+
+  .workshop-browser {
+    .workshop-card {
+      padding: 6px;
+      border-radius: 10px;
+      background: $background-semi-transparent;
+
+      &:hover {
+        background: $background-secondary;
+      }
+    }
+
+    .workshop-preview {
+      border-radius: 8px;
+    }
+
+    .workshop-title {
+      font-weight: bold;
+    }
+
+    .workshop-kind,
+    .workshop-meta {
+      opacity: 0.7;
+      font-size: 0.85em;
+    }
+
+    .workshop-warning {
+      color: $secondary;
+      font-size: 0.8em;
+    }
+
+    .subscribe {
+      padding: 4px 10px;
+      border-radius: 6px;
+
+      // An item already on disk is one click from being shown, so it stops
+      // looking like a download.
+      &.ready {
+        background: $secondary;
+        color: $background;
+      }
+    }
+
+    .workshop-status {
+      opacity: 0.7;
+    }
+
+    .workshop-filters togglebutton {
+      padding: 2px 10px;
+      border-radius: 6px;
+    }
+  }
+
   .color-picker-popover {
     // The wheel supplies its own colour; the popover only has to not tint it.
     background: transparent;

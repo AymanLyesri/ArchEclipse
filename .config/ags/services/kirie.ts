@@ -41,6 +41,43 @@ export interface KirieProperty {
   options?: { label: string; value: any }[];
 }
 
+/** One Workshop search result (`workshop search`, docs/compat-socket.md §13).
+ *
+ * Shares `KirieItem`'s keys so a picker can render browsable and installed
+ * wallpapers from one code path; `dir` is null until the files arrive. */
+export interface KirieWorkshopItem extends KirieItem {
+  dir: string;
+  subscribed: boolean;
+  installed: boolean;
+  size: number;
+  votes_up: number;
+  votes_down: number;
+  score: number;
+  updated: number;
+  tags: string[];
+}
+
+/** What to ask the Workshop for. */
+export interface KirieWorkshopQuery {
+  text?: string;
+  tags?: string[];
+  excludeTags?: string[];
+  sort?: "popular" | "trend" | "recent" | "rated";
+  days?: number;
+  page?: number;
+  limit?: number;
+}
+
+/** A subscription in flight (`workshop job <n>`). */
+export interface KirieWorkshopJob {
+  job: number;
+  id: string;
+  state: "subscribing" | "downloading" | "installed" | "error";
+  bytes: number;
+  dir: string | null;
+  error: string | null;
+}
+
 /** A GPU kirie can be pinned to, as reported by `kirie gpus --json`. */
 export interface KirieGpu {
   value: string;
@@ -245,3 +282,69 @@ export const kirieGpus = (): Promise<KirieGpu[]> =>
  * report too. */
 export const kirieCheck = (): Promise<string> =>
   execAsync([kirieBin() ?? "kirie", "check"]);
+
+// --- Workshop (docs/compat-socket.md §13) -----------------------------------
+//
+// These are the only calls here that leave the machine: the engine hands the
+// request to a short-lived Steam helper, which talks to the local Steam
+// client. They take seconds rather than milliseconds, so they set their own
+// timeouts — the 2s default of the rest of this file would fail every search.
+
+/** How long to allow a Workshop query. The engine's own cap is 30s. */
+const WORKSHOP_TIMEOUT = 30000;
+
+/** Parse a Workshop reply, turning the engine's `{"error":…}` into a rejection. */
+const workshopJson = <T,>(reply: string): T => {
+  const value = JSON.parse(reply);
+  if (value && !Array.isArray(value) && typeof value.error === "string") {
+    throw new Error(value.error);
+  }
+  return value as T;
+};
+
+/** `workshop search` — browse the Workshop, installed or not.
+ *
+ * `text` goes last in the wire format: a search phrase has spaces in it and
+ * the engine reads it as the rest of the line. */
+export const kirieWorkshopSearch = (
+  query: KirieWorkshopQuery = {},
+): Promise<KirieWorkshopItem[]> => {
+  const args: string[] = [];
+  for (const tag of query.tags ?? []) args.push(`tag=${tag}`);
+  for (const tag of query.excludeTags ?? []) args.push(`nottag=${tag}`);
+  if (query.sort) args.push(`sort=${query.sort}`);
+  if (query.days) args.push(`days=${query.days}`);
+  if (query.page) args.push(`page=${query.page}`);
+  if (query.limit) args.push(`limit=${query.limit}`);
+  const text = query.text?.trim();
+  if (text) args.push(`text=${text}`);
+
+  return kirieSend(`workshop search ${args.join(" ")}`, WORKSHOP_TIMEOUT).then(
+    workshopJson<KirieWorkshopItem[]>,
+  );
+};
+
+/** `workshop subscribe <id>` → the job number following the download. */
+export const kirieWorkshopSubscribe = (id: string): Promise<number> =>
+  kirieSend(`workshop subscribe ${id}`, WORKSHOP_TIMEOUT).then(
+    (reply) => workshopJson<{ job: number }>(reply).job,
+  );
+
+/** `workshop job <n>` → how that subscription is going. */
+export const kirieWorkshopJob = (job: number): Promise<KirieWorkshopJob> =>
+  kirieSend(`workshop job ${job}`).then(workshopJson<KirieWorkshopJob>);
+
+/** `workshop state <id>` → subscribed/installed/where, Steam or no Steam. */
+export const kirieWorkshopState = (id: string): Promise<KirieWorkshopItem> =>
+  kirieSend(`workshop state ${id}`, WORKSHOP_TIMEOUT).then(
+    (reply) => workshopJson<KirieWorkshopItem[]>(reply)[0],
+  );
+
+/** Whether this engine speaks the Workshop verbs at all.
+ *
+ * An engine from before they existed answers `unknown command`, and the
+ * browser has to say so rather than look broken. */
+export const kirieWorkshopSupported = (): Promise<boolean> =>
+  kirieSend("workshop job 0")
+    .then((reply) => !reply.startsWith("unknown"))
+    .catch(() => false);

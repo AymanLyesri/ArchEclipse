@@ -26,6 +26,7 @@ import {
   kirieList,
 } from "../services/kirie";
 import WallpaperEngineProperties from "./WallpaperEngineProperties";
+import WorkshopBrowser from "./WorkshopBrowser";
 
 // Wallpaper Engine items are directories rather than files, so they are kept
 // beside the folder wallpapers under their own category and looked up by the
@@ -675,6 +676,38 @@ export default ({
       </menubutton>
     );
 
+    // Browse the Workshop for wallpapers this machine does not have yet — the
+    // one thing the rest of this switcher cannot show, since it lists what is
+    // installed. Subscribing puts the item exactly where `kirie list` looks.
+    const workshopSelector = (
+      <menubutton
+        class="workshop"
+        visible={kirieInstalled()}
+        tooltipMarkup="Browse the <b>Steam Workshop</b>"
+      >
+        <label label="󰇚" />
+        <popover position={Gtk.PositionType.TOP}>
+          <WorkshopBrowser
+            onApply={(dir) => {
+              setProgressStatus("loading");
+              execAsync([
+                `${GLib.get_home_dir()}/.config/hypr/wallpaper-daemon/set-wallpaper.sh`,
+                wallpaperTarget(),
+                monitorName,
+                dir,
+              ])
+                .then(() => FetchCurrentWallpapers(monitorName))
+                .finally(() => setProgressStatus("success"))
+                .catch((err) => {
+                  setProgressStatus("error");
+                  notify({ summary: "Error", body: String(err) });
+                });
+            }}
+          />
+        </popover>
+      </menubutton>
+    );
+
     const actions = (
       <box
         class="actions"
@@ -687,6 +720,7 @@ export default ({
         {displayColorScheme}
         {categorySelector}
         {propertiesSelector}
+        {workshopSelector}
         {randomButton}
         {resetButton}
         {addWallpaper}
