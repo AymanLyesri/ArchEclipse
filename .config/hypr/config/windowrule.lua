@@ -107,3 +107,12 @@ hl.window_rule({
     match = { class = "^(grass)" },
     workspace = "9 silent",
 })
+
+-- File pickers opened from the panel have no parent window to sit on, so
+-- tiling them drops a chooser into a workspace slot beside real windows.
+hl.window_rule({
+    match = { class = "^(zenity|xdg-desktop-portal-gtk)$" },
+    float = true,
+    center = true,
+    size = { 900, 600 },
+})
