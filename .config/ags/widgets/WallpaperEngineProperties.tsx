@@ -5,6 +5,7 @@ import GLib from "gi://GLib";
 import { execAsync } from "ags/process";
 import { timeout } from "ags/time";
 import { notify } from "../utils/notification";
+import ColorPicker from "./ColorPicker";
 import { readJSONFile, writeJSONFile } from "../utils/json";
 import {
   KirieItem,
@@ -188,10 +189,18 @@ export default function WallpaperEngineProperties({
                   )?.label ?? String(value)
                 }
               />
-              <popover>
+              {/* Beside the row, not on top of it: the panel is a dense
+                  column, and a popover pointing down covers the very settings
+                  the choice is being compared against. */}
+              <popover position={Gtk.PositionType.LEFT}>
                 <box orientation={Gtk.Orientation.VERTICAL} class="popover">
                   {(property.options ?? []).map((option) => (
                     <button
+                      class={
+                        String(option.value) === String(value)
+                          ? "selected"
+                          : ""
+                      }
                       label={option.label}
                       onClicked={(self) => {
                         apply(property, option.value);
@@ -212,15 +221,9 @@ export default function WallpaperEngineProperties({
         return (
           <box class="property" spacing={5}>
             {title}
-            <Gtk.ColorDialogButton
-              halign={Gtk.Align.END}
-              dialog={new Gtk.ColorDialog({ withAlpha: false })}
+            <ColorPicker
               rgba={tripleToRgba(value)}
-              $={(self: Gtk.ColorDialogButton) =>
-                self.connect("notify::rgba", () =>
-                  apply(property, rgbaToTriple(self.get_rgba())),
-                )
-              }
+              onPicked={(picked) => apply(property, rgbaToTriple(picked))}
             />
           </box>
         );

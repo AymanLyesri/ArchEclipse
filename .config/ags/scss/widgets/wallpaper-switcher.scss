@@ -100,7 +100,72 @@
     }
   }
 
+  // Popovers float over a busy panel of sliders and colours, so they get a
+  // solid ground and a border of their own: at the shell's usual translucency
+  // the choice list read as text printed on top of the rows behind it.
+  //
+  // The background has to go on `> contents` — GTK4's popover paints there,
+  // not on the widget node, so styling only the class left it transparent.
+  .property-combo,
+  .color-picker {
+    popover > contents {
+      background: $background;
+      border: 1px solid $background-secondary;
+      border-radius: 10px;
+      box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.55);
+      padding: 6px;
+    }
+
+    popover > arrow {
+      background: $background;
+      border: 1px solid $background-secondary;
+    }
+  }
+
   .property-combo .popover {
-    @include module;
+    background: transparent;
+    min-width: 140px;
+
+    button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: transparent;
+
+      &:hover {
+        background: $background-secondary;
+      }
+
+      // The value in force, so the list says which one is current rather than
+      // leaving it to be inferred from the button that opened it.
+      &.selected {
+        background: $secondary;
+        color: $background;
+        font-weight: bold;
+      }
+    }
+  }
+
+  // The swatch is the whole button: a menubutton's usual padding around a
+  // 34x20 colour block reads as a grey button that happens to be tinted.
+  .color-picker {
+    padding: 0;
+    min-height: 0;
+    min-width: 0;
+
+    .color-swatch {
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  .color-picker-popover {
+    // The wheel supplies its own colour; the popover only has to not tint it.
+    background: transparent;
+    padding: 4px;
+
+    entry {
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
   }
 }
