@@ -237,8 +237,16 @@ const BarLayoutSetting = () => {
         label={"bar Layout"}
         halign={Gtk.Align.START}
       />
-      <box class="setting" spacing={10}>
-        <For each={globalSettings(({ bar }) => bar.layout)}>
+      {/* One button per bar widget, and they are drag-reordered, so they have
+          to stay on one line — which would otherwise make this row alone
+          decide the panel's width. It scrolls by itself instead. */}
+      <scrolledwindow
+        hscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
+        vscrollbarPolicy={Gtk.PolicyType.NEVER}
+        propagateNaturalWidth={false}
+      >
+        <box class="setting" spacing={10}>
+          <For each={globalSettings(({ bar }) => bar.layout)}>
           {(widget: WidgetSelector) => {
             return (
               <togglebutton
@@ -338,8 +346,9 @@ const BarLayoutSetting = () => {
               ></togglebutton>
             );
           }}
-        </For>
-      </box>
+          </For>
+        </box>
+      </scrolledwindow>
     </box>
   );
 };
@@ -355,7 +364,12 @@ const Setting = ({
   callBack?: (newValue?: any) => void;
   choices?: { label: string; value: any }[];
 }) => {
-  const Title = () => <label hexpand xalign={0} label={setting.name} />;
+  // `wrap` is what lets the label shrink: a wrapped label only ever demands
+  // room for its longest word, where a single-line one demands the whole
+  // sentence — and the panel is only as wide as its widest child.
+  const Title = () => (
+    <label hexpand xalign={0} wrap={true} label={setting.name} />
+  );
 
   const SliderWidget = () => {
     const infoLabel = (
@@ -371,7 +385,9 @@ const Setting = ({
 
     const Slider = (
       <slider
-        widthRequest={globalSettings(({ leftPanel }) => leftPanel.width / 3)}
+        // A minimum, not a preference: paired with a long setting name it was
+        // enough on its own to push a row past the panel's width.
+        widthRequest={globalSettings(({ leftPanel }) => leftPanel.width / 4)}
         class="slider"
         drawValue={false}
         min={setting.min}
@@ -442,7 +458,17 @@ const Setting = ({
     return (
       <box orientation={Gtk.Orientation.VERTICAL} spacing={10}>
         <Title />
-        <box spacing={5}>
+        {/* A row of choices used to decide how wide the whole panel was: an
+            audio picker with eight devices made every other setting scroll
+            sideways. A FlowBox wraps onto a second line instead. */}
+        <Gtk.FlowBox
+          columnSpacing={5}
+          rowSpacing={5}
+          selectionMode={Gtk.SelectionMode.NONE}
+          homogeneous={true}
+          minChildrenPerLine={1}
+          maxChildrenPerLine={4}
+        >
           {choices &&
             choices.map((choice) => (
               <togglebutton
@@ -475,7 +501,7 @@ const Setting = ({
                 }}
               />
             ))}
-        </box>
+        </Gtk.FlowBox>
       </box>
     );
   };
@@ -495,6 +521,11 @@ const Setting = ({
         <box orientation={Gtk.Orientation.HORIZONTAL} spacing={5} hexpand>
           <entry
             hexpand
+            // Without this an entry asks for room for its whole value, and a
+            // 40-character API key made the entire settings panel wider than
+            // the panel it lives in.
+            maxWidthChars={1}
+            widthChars={1}
             text={setting.value ?? ""}
             placeholderText={`Enter ${setting.name}`}
             // For GTK4/AGS, passing the Boolean binding correctly is important
@@ -858,6 +889,10 @@ export default () => {
     <box class="settings" orientation={Gtk.Orientation.VERTICAL} spacing={5}>
       <scrolledwindow
         vexpand
+        // The panel has a fixed width, so anything wider than it is a bug in
+        // the row rather than something to scroll to: settings that cannot
+        // fit shrink instead.
+        hscrollbarPolicy={Gtk.PolicyType.NEVER}
         $={() => {
           // Initialize detection
           detectFileManagers();
