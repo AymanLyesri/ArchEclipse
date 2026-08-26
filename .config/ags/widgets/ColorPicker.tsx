@@ -1,24 +1,16 @@
 import { Gtk } from "ags/gtk4";
 import Gdk from "gi://Gdk";
 
-// A small colour picker that lives inside the panel.
-//
-// GTK's own `Gtk.ColorDialog` opens a full dialog window: under a layer-shell
-// shell it has no parent to sit on, so the compositor drops it in the corner
-// at whatever size it asks for — a palette grid taking a third of the screen
-// to set one wallpaper colour. This is the same job as a popover on the swatch
-// itself: an HSV wheel, a value/saturation square inside it, and a hex field.
+// An HSV wheel in a popover on the swatch. Gtk.ColorDialog opens a window,
+// and under layer-shell it has no parent to sit on — the compositor drops a
+// palette grid in the screen corner to set one wallpaper colour.
 
 /// Wheel side in pixels, and how thick the hue ring is.
 const SIZE = 176;
 const RING = 14;
 
-/// Cells across the saturation/value square.
-///
-/// It is painted as a grid rather than with cairo gradients: two overlaid
-/// gradients need a mesh or per-pixel surface to look right, while 26×26 flat
-/// cells are exact, redraw in well under a frame, and never depend on which
-/// cairo bindings gjs happens to expose.
+/// Cells across the saturation/value square. A grid rather than gradients:
+/// two overlaid cairo gradients need a mesh to look right.
 const CELLS = 26;
 
 /// HSV (each 0..1) to RGB (each 0..1).

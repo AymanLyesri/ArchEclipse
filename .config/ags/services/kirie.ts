@@ -212,11 +212,8 @@ export function kirieLines(
   });
 }
 
-/** Whether a failure is the engine having gone away mid-conversation.
- *
- * A restart (or a reload of the wallpaper daemon) closes the socket under any
- * request already in flight, which surfaces as a broken pipe or a refused
- * connection — worth one retry, since by then the new engine is usually up. */
+/** Whether a failure is the engine having gone away mid-conversation: a
+ * restart closes the socket under any request in flight. Worth one retry. */
 const engineWentAway = (err: unknown) =>
   /Broken pipe|Connection refused|not reachable|closed/i.test(String(err));
 
@@ -312,10 +309,8 @@ export const kirieCheck = (): Promise<string> =>
 
 // --- Workshop (docs/compat-socket.md §13) -----------------------------------
 //
-// These are the only calls here that leave the machine: the engine hands the
-// request to a short-lived Steam helper, which talks to the local Steam
-// client. They take seconds rather than milliseconds, so they set their own
-// timeouts — the 2s default of the rest of this file would fail every search.
+// The only calls here that leave the machine, so they take seconds and set
+// their own timeout; this file's 2s default would fail every search.
 
 /** How long to allow a Workshop query. The engine's own cap is 30s. */
 const WORKSHOP_TIMEOUT = 30000;

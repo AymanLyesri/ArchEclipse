@@ -15,22 +15,12 @@ import {
   kirieWorkshopSupported,
 } from "../services/kirie";
 
-// Browse the Steam Workshop from the panel.
+// Browse the Steam Workshop over kirie's control socket
+// (docs/compat-socket.md §13): search, filter, subscribe, apply.
 //
-// The wallpaper switcher can only offer what is already installed; finding
-// anything new meant leaving for Steam's own UI. kirie answers Workshop
-// queries over its control socket (docs/compat-socket.md §13) by way of a
-// short-lived Steam helper, so this is a view over that: search, filter,
-// subscribe, and apply the moment the files land.
-//
-// Two things it deliberately does not do:
-//
-// * **Ask Steam per keystroke.** A search runs on Enter. Every query is a real
-//   request to Valve, and the engine spawns a helper process for each one.
-// * **Poll Steam for download progress.** The engine follows a subscription by
-//   watching the filesystem, because initialising Steamworks announces the
-//   process as playing Wallpaper Engine and accrues playtime. This asks the
-//   engine, which already knows.
+// Searches run on Enter, never per keystroke — every query is a real request
+// to Valve. Download progress comes from the engine, which watches the
+// filesystem, not from Steam.
 
 /// Results per page: three across, four down. Steam serves 50 per query, so a
 /// page here is a slice of one — which keeps every thumbnail on screen at a
@@ -57,11 +47,8 @@ const SORTS: { label: string; value: "popular" | "trend" | "recent" | "rated" }[
     { label: "Top rated", value: "rated" },
   ];
 
-/// The Workshop's own filter vocabulary, grouped the way Steam's page groups
-/// it. These are plain tags to the engine — the grouping is purely so the
-/// panel can offer one dropdown per axis instead of a wall of chips.
-///
-/// Tags with spaces in them are why the socket grammar takes quoted values.
+/// The Workshop's filter vocabulary. Plain tags to the engine; grouped here
+/// only so the panel can offer one dropdown per axis.
 const FILTER_GROUPS: { label: string; tags: string[] }[] = [
   { label: "Type", tags: ["Scene", "Video", "Web", "Application"] },
   { label: "Age", tags: ["Everyone", "Questionable", "Mature"] },
@@ -177,11 +164,8 @@ const humanSize = (bytes: number) => {
   return `${bytes}B`;
 };
 
-/// How many preview downloads may be in flight at once.
-///
-/// A page is 24 items and they all want their thumbnail at the same moment;
-/// firing every request together makes the first screenful arrive *slower*,
-/// because none of them finish first.
+/// Preview downloads in flight at once. Firing all 18 together makes the
+/// first screenful arrive slower, because none of them finish first.
 const PREVIEW_PARALLEL = 6;
 
 let previewsRunning = 0;
@@ -203,11 +187,8 @@ const queued = <T,>(task: () => Promise<T>): Promise<T> =>
     else previewQueue.push(start);
   });
 
-/// Fetch an item's preview image once, and answer with its local path.
-///
-/// Hardened the same way the engine's own image fetches are: http(s) only,
-/// including across redirects, with a time and a size cap, because the URL
-/// comes from the network and the file lands on disk.
+/// Fetch an item's preview image once, and answer with its local path. The
+/// URL comes off the network, so curl is held to http(s), a time and a size.
 const ensurePreview = async (item: KirieWorkshopItem): Promise<string | null> => {
   if (!item.preview) return null;
   const path = `${PREVIEW_DIR}/${item.id}.img`;
@@ -312,10 +293,8 @@ export default function WorkshopBrowser({
   };
 
   /// Follow a subscription to its end, reporting into the card's own button.
-  ///
-  /// `ready` is how the card remembers where the files landed: the button keeps
-  /// one click handler that branches on it, rather than growing a second one
-  /// that would re-subscribe on every press.
+  /// `ready` records where the files landed, so the single click handler can
+  /// branch instead of a second one being added that re-subscribes.
   const follow = (
     job: number,
     button: Gtk.Button,
