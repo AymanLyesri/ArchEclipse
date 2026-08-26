@@ -29,7 +29,12 @@ class Colors:
 
 def install_core_tools() -> None:
     packages_to_install: list[str] = []
-    packages_names = ["git", "fzf", "figlet", "lolcat"]
+    # No lolcat here. The repo one is ruby's, which drags in ruby, rubygems and
+    # rdoc for a banner — and the package list installs `c-lolcat` later, which
+    # *conflicts* with it, so the install stopped to ask permission to remove
+    # what it had just put on. The banners already tolerate it being absent
+    # (every call is check=False), and c-lolcat provides the same command.
+    packages_names = ["git", "fzf", "figlet"]
 
     print("Checking core tools installation...")
 
