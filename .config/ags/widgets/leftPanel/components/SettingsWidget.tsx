@@ -27,6 +27,7 @@ import {
 import { WidgetSelector } from "../../../interfaces/widgetSelector.interface";
 import { refreshCss } from "../../../utils/scss";
 import { timeout } from "ags/time";
+import GLib from "gi://GLib";
 import { hyprThemeConfPath } from "../../../constants/path.constants";
 import {
   kirieCheck,
@@ -782,6 +783,38 @@ const kirieCommand = (key: string, value: any): string | null => {
   }
 };
 
+/// Settings the engine can only be told at launch.
+///
+/// The control socket has no verb for these — audio reactivity, particles,
+/// which GPU, which layer — so changing one used to set the value and do
+/// nothing at all, which reads as the toggle being broken. `kirie.sh` already
+/// builds the command line from this same settings file, so the honest way to
+/// apply them is to relaunch the engine with it.
+const LAUNCH_ONLY = new Set([
+  "noAudioProcessing",
+  "disableParticles",
+  "fullscreenPauseOnlyActive",
+  "layer",
+  "gpu",
+  "assetsDir",
+]);
+
+/// Debounce generation, so flipping three of these in a row restarts once.
+let restartGeneration = 0;
+
+const restartEngineSoon = () => {
+  restartGeneration += 1;
+  const mine = restartGeneration;
+  timeout(600, () => {
+    if (mine !== restartGeneration) return;
+    execAsync([
+      "bash",
+      `${GLib.get_home_dir()}/.config/hypr/wallpaper-daemon/kirie.sh`,
+      "--restart",
+    ]).catch((err) => notify({ summary: "Wallpaper Engine", body: String(err) }));
+  });
+};
+
 const applyEngineSetting = (key: string, value: any) => {
   // Scaling and edge handling are per screen in the engine; the panel keeps
   // one value and applies it to every monitor.
@@ -793,7 +826,11 @@ const applyEngineSetting = (key: string, value: any) => {
   }
 
   const command = kirieCommand(key, value);
-  if (command) kirieOk(command);
+  if (command) {
+    kirieOk(command);
+    return;
+  }
+  if (LAUNCH_ONLY.has(key)) restartEngineSoon();
 };
 
 const EngineSetting = ({
