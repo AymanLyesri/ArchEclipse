@@ -178,7 +178,13 @@ export default ({
     const getCurrentWorkspaces = (
       <box>
         <With value={currentWallpapers}>
-          {(wallpapers) => {
+          {(fetched) => {
+            // One wallpaper covers every workspace in global mode, so it is
+            // drawn once. Slicing here (rather than trusting the fetch) means
+            // the row is right the moment the mode changes, before the daemon
+            // has rewritten its config.
+            const wallpapers =
+              wallpaperMode.peek() === "global" ? fetched.slice(0, 1) : fetched;
             return (
               <box
                 hexpand={true}
@@ -190,7 +196,12 @@ export default ({
                   <button
                     class={focusedWorkspace((workspace) => {
                       const i = workspace?.id || 1;
-                      return i === workspaceId + 1
+                      // The single global tile is always the live one; keying
+                      // it off the focused workspace would light it up only on
+                      // workspace 1.
+                      const isCurrent =
+                        wallpaperMode.peek() === "global" || i === workspaceId + 1;
+                      return isCurrent
                         ? "wallpaper-button focused"
                         : "wallpaper-button";
                     })}
@@ -721,6 +732,15 @@ export default ({
         await FetchWallpapers();
         FetchCurrentWallpapers(monitorName);
 
+        // Switching the mode writes the daemon's config from a script that is
+        // still running when the setting itself changes, so refetching on the
+        // setting alone reads the OLD layout and sticks there — ten workspace
+        // tiles labelled "global". Follow the file the daemon actually writes:
+        // it also covers wallpapers changed by anything other than this panel.
+        monitorFile(
+          `${GLib.get_home_dir()}/.config/hypr/wallpaper-daemon/config/${monitorName}/defaults.conf`,
+          () => FetchCurrentWallpapers(monitorName),
+        );
         wallpaperMode.subscribe(() => FetchCurrentWallpapers(monitorName));
 
         // Initialize selected workspace
