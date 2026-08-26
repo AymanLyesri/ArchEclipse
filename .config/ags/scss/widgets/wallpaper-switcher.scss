@@ -206,21 +206,24 @@
     min-width: 148px;
   }
 
-  // These are dropdowns, and they have to look like it: as bare labels in a
-  // row they read as a heading strip rather than as controls.
+  // These are dropdowns and have to read as controls, but an outlined box per
+  // filter turns the row into a grid of frames. The chevron carries the
+  // affordance; the surface is just enough tint to separate them from the
+  // panel, and only firms up under the pointer.
   .workshop-filter,
   .workshop-sort,
   .clear-filters,
   .adult {
-    padding: 2px 8px;
-    border-radius: 5px;
+    padding: 2px 9px;
+    border-radius: 999px;
     font-size: 0.82em;
     min-height: 0;
-    background: $background-secondary;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: none;
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.06);
 
     &:hover {
-      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.14);
     }
   }
 
@@ -336,15 +339,16 @@
 
 // The library's own order control, matching the browser's dropdowns.
 .order-selector {
-  padding: 2px 8px;
-  border-radius: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
   font-size: 0.85em;
   min-height: 0;
-  background: $background-secondary;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: none;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.06);
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.14);
   }
 
   popover > contents {
