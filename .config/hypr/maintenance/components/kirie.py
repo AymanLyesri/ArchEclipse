@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import urllib.request
 from pathlib import Path
@@ -82,6 +83,37 @@ def install_kirie() -> None:
 
     STAMP_PATH.write_text(f"{tag}\n")
     print(f"Installed kirie {tag} to {INSTALL_PATH}")
+    _report_readiness()
+
+
+def _report_readiness() -> None:
+    """Say what kirie still needs, while the user is here to act on it.
+
+    The binary installing successfully is not the same as it being able to
+    render: it needs a Vulkan driver, and Wallpaper Engine's own assets for
+    scene wallpapers. Both are silent failures later — an empty wallpaper
+    picker, or a wallpaper that never appears.
+    """
+    try:
+        gpus = subprocess.run(
+            [str(INSTALL_PATH), "gpus"], capture_output=True, text=True, timeout=60
+        )
+        if "no Vulkan adapter" in (gpus.stdout + gpus.stderr):
+            print("  ! No Vulkan driver found; kirie cannot render here.")
+            print("    Install the one for your GPU: vulkan-radeon, vulkan-intel,")
+            print("    nvidia-utils — or vulkan-swrast to render on the CPU.")
+    except Exception:
+        pass
+
+    try:
+        assets = subprocess.run(
+            [str(INSTALL_PATH), "assets"], capture_output=True, text=True, timeout=60
+        )
+        if assets.returncode != 0:
+            print("  ! Wallpaper Engine is not installed; scene wallpapers need its")
+            print("    shared assets. Install it via Steam, or set KIRIE_WE_ASSETS.")
+    except Exception:
+        pass
 
 
 def _download(url: str, target: Path, what: str) -> bool:
