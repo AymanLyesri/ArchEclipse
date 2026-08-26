@@ -31,8 +31,8 @@ INSTALL_PATH = Path.home() / ".local/bin/kirie"
 STAMP_PATH = Path.home() / ".local/share/kirie/installed-version"
 
 
-def _latest_release() -> tuple[str, str] | None:
-    """The latest release tag and the download URL of the asset."""
+def _latest_release() -> tuple[str, dict[str, str]] | None:
+    """The latest release tag and its assets, keyed by file name."""
     try:
         request = urllib.request.Request(
             RELEASE_API, headers={"Accept": "application/vnd.github+json"}
@@ -43,12 +43,15 @@ def _latest_release() -> tuple[str, str] | None:
         print(f"Could not reach the kirie release feed: {error}")
         return None
 
-    for asset in release.get("assets", []):
-        if asset.get("name") == ASSET:
-            return release.get("tag_name", ""), asset["browser_download_url"]
-
-    print(f"Release {release.get('tag_name')} has no {ASSET} asset")
-    return None
+    assets = {
+        asset.get("name", ""): asset.get("browser_download_url", "")
+        for asset in release.get("assets", [])
+    }
+    tag = release.get("tag_name", "")
+    if ASSET not in assets:
+        print(f"Release {tag} has no {ASSET} asset")
+        return None
+    return tag, assets
 
 
 def install_kirie() -> None:
@@ -64,7 +67,7 @@ def install_kirie() -> None:
     latest = _latest_release()
     if latest is None:
         return
-    tag, url = latest
+    tag, assets = latest
 
     installed = STAMP_PATH.read_text().strip() if STAMP_PATH.is_file() else ""
     if installed == tag and INSTALL_PATH.is_file():
@@ -73,21 +76,29 @@ def install_kirie() -> None:
 
     ensure_dir(INSTALL_PATH.parent)
     ensure_dir(STAMP_PATH.parent)
-    download_path = INSTALL_PATH.with_suffix(".download")
 
-    print(f"Downloading kirie {tag}...")
+    if not _download(assets[ASSET], INSTALL_PATH, f"kirie {tag}"):
+        return
+
+    STAMP_PATH.write_text(f"{tag}\n")
+    print(f"Installed kirie {tag} to {INSTALL_PATH}")
+
+
+def _download(url: str, target: Path, what: str) -> bool:
+    """Fetch one binary into place, atomically. True when it landed."""
+    download_path = target.with_suffix(".download")
+    print(f"Downloading {what}...")
     try:
         urllib.request.urlretrieve(url, download_path)
     except Exception as error:
-        print(f"Failed to download kirie: {error}")
+        print(f"Failed to download {what}: {error}")
         download_path.unlink(missing_ok=True)
-        return
+        return False
 
     # Replace in one step: a half-written binary is worse than the old one.
     download_path.chmod(0o755)
-    os.replace(download_path, INSTALL_PATH)
-    STAMP_PATH.write_text(f"{tag}\n")
-    print(f"Installed kirie {tag} to {INSTALL_PATH}")
+    os.replace(download_path, target)
+    return True
 
 
 def main() -> None:

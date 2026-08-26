@@ -12,6 +12,12 @@
 !.config/
 .config/*
 
+# Include the user services ArchEclipse ships (the session guard has to be one:
+# it exists to restart the shell after a compositor crash, and Hyprland's
+# post-crash safe mode is exactly when exec-once does not run).
+!.config/systemd/
+!.config/systemd/user/
+
 # Include hyprland config
 !.config/hypr/
 # Include kitty config

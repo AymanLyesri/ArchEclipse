@@ -1,0 +1,15 @@
+[Unit]
+Description=Bring the ArchEclipse shell back after a compositor crash
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.config/hypr/scripts/session-guard.sh
+Restart=always
+RestartSec=5
+# The guard's whole job is to be cheap and dull; it must never be the reason
+# something else is starved.
+Nice=10
+
+[Install]
+WantedBy=default.target

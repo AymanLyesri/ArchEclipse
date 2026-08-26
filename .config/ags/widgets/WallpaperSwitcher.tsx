@@ -221,6 +221,19 @@ export default ({
       FetchWallpapers();
       return;
     }
+    // Steam deletes the files it owns and stops there, so an item kirie has
+    // rendered keeps its directory alive through the shader cache kirie left
+    // inside it. That ghost is ours to clear — but only once nothing of the
+    // wallpaper itself is left, which is what the missing project.json says.
+    if (
+      !GLib.file_test(`${path}/project.json`, GLib.FileTest.EXISTS) &&
+      GLib.file_test(`${path}/.kirie-cache`, GLib.FileTest.IS_DIR)
+    ) {
+      execAsync(["rm", "-rf", "--", path])
+        .catch(() => {})
+        .finally(() => FetchWallpapers());
+      return;
+    }
     timeout(1000, () => rescanWhenGone(path, attemptsLeft - 1));
   };
 
