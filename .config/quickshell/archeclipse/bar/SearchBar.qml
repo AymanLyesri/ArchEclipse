@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.theme
+import qs.services
 
 // Port of barStates/SearchBar.tsx — the search "dynamic island" state.
 //
@@ -33,12 +34,12 @@ Rectangle {
         clip: true
         focus: true
 
-        onTextEdited: root.queryChanged(text)
-        onAccepted: root.activateRequested()
+        onTextEdited: { root.queryChanged(text); Launcher.runQuery(text) }
+        onAccepted: { root.activateRequested(); Launcher.activateSelected(); BarState.deactivate("search") }
 
         Keys.onEscapePressed: BarState.deactivate("search")
-        Keys.onDownPressed: root.navigateRequested(1)
-        Keys.onUpPressed: root.navigateRequested(-1)
+        Keys.onDownPressed: { root.navigateRequested(1); Launcher.selectNext(1) }
+        Keys.onUpPressed: { root.navigateRequested(-1); Launcher.selectNext(-1) }
 
         // focus grab must wait one event-loop turn — the loader creates this
         // page before the layer surface gets keyboard interactivity

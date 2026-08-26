@@ -204,6 +204,22 @@ PanelWindow {
             }
         }
 
+        // ---- launcher results popup (below/above pill while search open) ----
+        PopupWindow {
+            id: launcherPopup
+            parentWindow: root
+            visible: BarState.state === "search"
+            anchor.window: root
+            anchor.item: pill
+            anchor.edges: Edges.Bottom
+            anchor.gravity: Edges.Bottom
+            anchor.margins.top: 8
+            color: "transparent"
+            width: 520
+            height: Math.min(launcherPanel.height + 4, 480)
+            LauncherPanel { id: launcherPanel }
+        }
+
         // ---- hot zones (left/right panel reveal strips) ----
         HotZone {
             side: "left"

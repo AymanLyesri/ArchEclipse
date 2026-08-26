@@ -3,3 +3,4 @@ singleton WorkspaceIcons 1.0 WorkspaceIcons.qml
 singleton SysInfo 1.0 SysInfo.qml
 singleton VolumeWatcher 1.0 VolumeWatcher.qml
 Ipc 1.0 Ipc.qml
+singleton Launcher 1.0 Launcher.qml
