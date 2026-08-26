@@ -82,9 +82,6 @@ def parse_branch(argv: list[str]) -> tuple[str, str]:
     - default: `master`
 
     Repository precedence: `--repo/-r`, env `ARCHECLIPSE_REPO`, then upstream.
-    A branch only exists somewhere, so pinning the branch without being able to
-    pin the repo made a fork impossible to install from — including for the
-    person testing their own before opening a pull request.
     """
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument(
@@ -123,9 +120,8 @@ def parse_branch(argv: list[str]) -> tuple[str, str]:
 def main() -> None:
     conf_dir = Path.home() / "ArchEclipse"
 
-    # Arguments first, and nothing destructive before them: the clone used to
-    # be deleted before argparse ran, so `install.py --help` — which only ever
-    # prints usage and exits — wiped ~/ArchEclipse on the way there.
+    # Before anything destructive: `--help` used to wipe ~/ArchEclipse on its
+    # way to printing usage.
     branch, repo = parse_branch(sys.argv)
 
     try:

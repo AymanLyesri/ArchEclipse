@@ -29,11 +29,8 @@ class Colors:
 
 def install_core_tools() -> None:
     packages_to_install: list[str] = []
-    # No lolcat here. The repo one is ruby's, which drags in ruby, rubygems and
-    # rdoc for a banner — and the package list installs `c-lolcat` later, which
-    # *conflicts* with it, so the install stopped to ask permission to remove
-    # what it had just put on. The banners already tolerate it being absent
-    # (every call is check=False), and c-lolcat provides the same command.
+    # No lolcat: the package list installs c-lolcat, which conflicts with the
+    # repo's ruby one. Banners already tolerate it missing (check=False).
     packages_names = ["git", "fzf", "figlet"]
 
     print("Checking core tools installation...")
@@ -47,11 +44,8 @@ def install_core_tools() -> None:
 
     if packages_to_install:
         print(f"Installing: {' '.join(packages_to_install)}")
-        # -Syu, not -S: a machine whose package database is older than the
-        # mirrors asks for versions that have already been superseded and
-        # removed, and every mirror answers 404 — which is how the very first
-        # step of a fresh install failed. Refreshing without upgrading (-Sy)
-        # would leave a partial upgrade behind instead, so it is the full one.
+        # -Syu: a stale database asks for versions the mirrors have already
+        # replaced and every one answers 404. -Sy alone risks a partial upgrade.
         run_cmd(
             ["sudo", "pacman", "-Syu", "--needed", "--noconfirm", *packages_to_install]
         )

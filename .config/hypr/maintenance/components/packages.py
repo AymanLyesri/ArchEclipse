@@ -120,12 +120,7 @@ def install_packages(aur_helper: str = "yay") -> None:
     if batch.returncode == 0:
         return
 
-    # One package can fail for reasons that have nothing to do with the rest —
-    # an AUR PKGBUILD that installs into /usr/local and collides with the
-    # filesystem package, a build that breaks against a new toolchain, a
-    # dependency pulled from under it. Installed as one transaction, that
-    # single failure means the machine gets *no* packages at all and the
-    # install stops on its first real step.
+    # As one transaction, a single bad AUR package means none of them install.
     print("\nBatch install failed; retrying one package at a time...")
     failed: list[str] = []
     for package in PACKAGES:
@@ -137,8 +132,7 @@ def install_packages(aur_helper: str = "yay") -> None:
             failed.append(package)
 
     if failed:
-        # Not fatal: the desktop works without any one of these, and the user
-        # can see exactly what to chase rather than a wall of pacman output.
+        # Not fatal: the desktop works without any one of these.
         print("\nThese packages could not be installed:")
         for package in failed:
             print(f"  - {package}")

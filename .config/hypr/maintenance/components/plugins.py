@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,13 @@ else:
 def install_plugins() -> None:
     run_shell("echo ' ArchEclipse ' | lolcat", check=False)
     run_shell("figlet 'PLUGINS' -f slant | lolcat", check=False)
+
+    # hyprpm needs a running Hyprland to know which version to build against.
+    if not os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        print("Hyprland is not running; skipping plugins.")
+        print("Run this step again from inside a Hyprland session:")
+        print("  python3 ~/ArchEclipse/.config/hypr/maintenance/components/plugins.py")
+        return
 
     run_cmd(["hyprpm", "update"])
 
