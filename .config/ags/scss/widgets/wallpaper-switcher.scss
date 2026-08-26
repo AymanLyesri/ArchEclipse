@@ -186,7 +186,7 @@
   .workshop-card {
     // Fixed width, or a long title stretches its column and the grid stops
     // being a grid.
-    min-width: 170px;
+    min-width: 190px;
     padding: 6px;
     border-radius: 10px;
     background: $background-semi-transparent;
@@ -199,9 +199,46 @@
   .workshop-preview {
     border-radius: 8px;
     // A slot that is the same size whether or not the thumbnail has arrived,
-    // so the grid does not reflow as previews come in.
+    // so the grid does not reflow as previews come in. Square, because that
+    // is the shape Steam serves.
     background: $background-secondary;
-    min-height: 84px;
+    min-height: 190px;
+    min-width: 190px;
+  }
+
+  .workshop-filter,
+  .clear-filters,
+  .adult {
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.9em;
+  }
+
+  .workshop-filter popover > contents,
+  .workshop-sort popover > contents {
+    background: $background;
+    border: 1px solid $background-secondary;
+    border-radius: 10px;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.55);
+    padding: 6px;
+  }
+
+  .workshop-filter .popover button,
+  .workshop-sort .popover button {
+    padding: 4px 12px;
+    border-radius: 6px;
+    background: transparent;
+
+    &:hover {
+      background: $background-secondary;
+    }
+
+    // The tag in force in this group.
+    &.selected {
+      background: $secondary;
+      color: $background;
+      font-weight: bold;
+    }
   }
 
   .workshop-title {
@@ -235,8 +272,5 @@
     opacity: 0.7;
   }
 
-  .workshop-filters togglebutton {
-    padding: 2px 10px;
-    border-radius: 6px;
-  }
+
 }

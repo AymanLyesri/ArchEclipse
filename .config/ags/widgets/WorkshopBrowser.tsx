@@ -2,6 +2,8 @@ import { createState, With } from "ags";
 import { Gtk } from "ags/gtk4";
 import GLib from "gi://GLib";
 import Pango from "gi://Pango";
+import Gdk from "gi://Gdk";
+import GdkPixbuf from "gi://GdkPixbuf";
 import { execAsync } from "ags/process";
 import { timeout } from "ags/time";
 import { notify } from "../utils/notification";
@@ -30,9 +32,15 @@ import {
 //   process as playing Wallpaper Engine and accrues playtime. This asks the
 //   engine, which already knows.
 
-/// Results per page. Steam serves 50; a grid of 24 previews is what fits on
-/// screen without making the popover a scrolling chore.
-const PAGE_SIZE = 24;
+/// Results per page: three across, four down. Steam serves 50 per query, so a
+/// page here is a slice of one — which keeps every thumbnail on screen at a
+/// size worth looking at.
+const COLUMNS = 3;
+const ROWS = 4;
+const PAGE_SIZE = COLUMNS * ROWS;
+
+/// Thumbnail edge. Steam serves square preview images, so the card is square.
+const TILE = 190;
 
 /// Where downloaded preview thumbnails live.
 const PREVIEW_DIR = `${GLib.get_user_cache_dir()}/ags/workshop-previews`;
@@ -45,8 +53,87 @@ const SORTS: { label: string; value: "popular" | "trend" | "recent" | "rated" }[
     { label: "Top rated", value: "rated" },
   ];
 
-/// Type filters, which are Workshop tags like any other.
-const KINDS = ["Scene", "Video", "Web"];
+/// The Workshop's own filter vocabulary, grouped the way Steam's page groups
+/// it. These are plain tags to the engine — the grouping is purely so the
+/// panel can offer one dropdown per axis instead of a wall of chips.
+///
+/// Tags with spaces in them are why the socket grammar takes quoted values.
+const FILTER_GROUPS: { label: string; tags: string[] }[] = [
+  { label: "Type", tags: ["Scene", "Video", "Web", "Application"] },
+  { label: "Age", tags: ["Everyone", "Questionable", "Mature"] },
+  {
+    label: "Genre",
+    tags: [
+      "Abstract",
+      "Animal",
+      "Anime",
+      "Cartoon",
+      "CGI",
+      "Cyberpunk",
+      "Fantasy",
+      "Game",
+      "Girls",
+      "Guys",
+      "Landscape",
+      "Medieval",
+      "Memes",
+      "MMD",
+      "Music",
+      "Nature",
+      "Pixel art",
+      "Relaxing",
+      "Retro",
+      "Sci-Fi",
+      "Sports",
+      "Technology",
+      "Television",
+      "Vehicle",
+      "Unspecified",
+    ],
+  },
+  {
+    label: "Resolution",
+    tags: [
+      "Standard Definition",
+      "1280 x 720",
+      "1920 x 1080",
+      "2560 x 1440",
+      "3840 x 2160",
+      "Ultrawide Standard",
+      "Ultrawide 2560 x 1080",
+      "Ultrawide 3440 x 1440",
+      "Dual Standard",
+      "Dual 3840 x 1080",
+      "Dual 5120 x 1440",
+      "Triple Standard",
+      "Triple 5760 x 1080",
+      "Triple 7680 x 1440",
+      "Portrait Standard",
+      "Portrait 720 x 1280",
+      "Portrait 1080 x 1920",
+      "Portrait 1440 x 2560",
+      "Portrait 2160 x 3840",
+      "Other resolution",
+      "Dynamic resolution",
+    ],
+  },
+  { label: "Category", tags: ["Wallpaper", "Preset", "Asset"] },
+  {
+    label: "Features",
+    tags: [
+      "Approved",
+      "Audio responsive",
+      "3D",
+      "Customizable",
+      "Puppet Warp",
+      "HDR",
+      "Media Integration",
+      "User Shortcut",
+      "Video Texture",
+      "Asset Pack",
+    ],
+  },
+];
 
 /// Tags that mark adult content. Excluded unless the user says otherwise —
 /// this panel opens over a desktop.
@@ -139,9 +226,21 @@ export default function WorkshopBrowser({
   const [status, setStatus] = createState<string>("");
   const [busy, setBusy] = createState<boolean>(false);
   const [sort, setSort] = createState<(typeof SORTS)[number]["value"]>("popular");
-  const [kind, setKind] = createState<string>("");
+  // One chosen tag per filter group, keyed by group label. Steam ANDs across
+  // groups, which is what a picker wants: Scene + Anime + 2560 x 1440.
+  const [filters, setFilters] = createState<Record<string, string>>({});
   const [allowAdult, setAllowAdult] = createState<boolean>(false);
   const [page, setPage] = createState<number>(1);
+
+  /// Set or clear one group's tag, then search from the first page again: a
+  /// filter change makes the page number meaningless.
+  const setFilter = (group: string, tag: string) => {
+    const next = { ...filters.peek() };
+    if (tag === "" || next[group] === tag) delete next[group];
+    else next[group] = tag;
+    setFilters(next);
+    search(1);
+  };
 
   let query = "";
 
@@ -149,10 +248,16 @@ export default function WorkshopBrowser({
     setBusy(true);
     setPage(nextPage);
     setStatus(nextPage === 1 ? "searching…" : `page ${nextPage}…`);
+    const chosen = Object.values(filters.peek()).filter(Boolean);
     kirieWorkshopSearch({
       text: query,
-      tags: kind.peek() ? [kind.peek()] : [],
-      excludeTags: allowAdult.peek() ? [] : ADULT,
+      tags: chosen,
+      // An explicit age choice wins over the blanket exclusion: asking for
+      // "Mature" and getting nothing would just look broken.
+      excludeTags:
+        allowAdult.peek() || chosen.some((tag) => ADULT.includes(tag))
+          ? []
+          : ADULT,
       sort: sort.peek(),
       page: nextPage,
       limit: PAGE_SIZE,
@@ -229,12 +334,27 @@ export default function WorkshopBrowser({
   const card = (item: KirieWorkshopItem) => {
     const preview = new Gtk.Picture({
       contentFit: Gtk.ContentFit.COVER,
-      widthRequest: 150,
-      heightRequest: 84,
+      widthRequest: TILE,
+      heightRequest: TILE,
       cssClasses: ["workshop-preview"],
     });
     ensurePreview(item).then((path) => {
-      if (path) preview.set_filename(path);
+      if (!path) return;
+      // NOT `set_filename`: that goes through GdkTexture, which decodes only
+      // PNG and JPEG, and a good half of Steam's previews are animated GIFs —
+      // they came out blank. GdkPixbuf reads those (first frame), and scaling
+      // at load keeps a 1080x1080 thumbnail from becoming a 4 MB texture.
+      try {
+        const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+          path,
+          TILE * 2,
+          TILE * 2,
+          true,
+        );
+        preview.set_paintable(Gdk.Texture.new_for_pixbuf(pixbuf));
+      } catch (_err) {
+        // An unreadable thumbnail leaves the placeholder tile.
+      }
     });
 
     // Where this item's files are, once they exist. Set from the search
@@ -313,8 +433,8 @@ export default function WorkshopBrowser({
       class="workshop-browser"
       orientation={Gtk.Orientation.VERTICAL}
       spacing={8}
-      widthRequest={700}
-      heightRequest={520}
+      widthRequest={COLUMNS * (TILE + 26)}
+      heightRequest={ROWS * (TILE + 96)}
     >
       <box spacing={6}>
         {searchEntry}
@@ -337,20 +457,57 @@ export default function WorkshopBrowser({
         </menubutton>
       </box>
 
-      <box spacing={6} class="workshop-filters">
-        {KINDS.map((tag) => (
-          <togglebutton
-            label={tag}
-            active={kind((k) => k === tag)}
-            onToggled={({ active }) => {
-              const next = active ? tag : "";
-              if (kind.peek() === next) return;
-              setKind(next);
-              search(1);
-            }}
-          />
+      <Gtk.FlowBox
+        class="workshop-filters"
+        columnSpacing={6}
+        rowSpacing={6}
+        selectionMode={Gtk.SelectionMode.NONE}
+        homogeneous={false}
+        minChildrenPerLine={3}
+        maxChildrenPerLine={7}
+      >
+        {FILTER_GROUPS.map((group) => (
+          <menubutton class="workshop-filter">
+            {/* The button says what is chosen, not what the group is called:
+                a row of "Type / Age / Genre" tells you nothing about the
+                query you are actually looking at. */}
+            <label
+              label={filters((f) => f[group.label] ?? group.label)}
+              maxWidthChars={16}
+              ellipsize={Pango.EllipsizeMode.END}
+            />
+            <popover position={Gtk.PositionType.BOTTOM}>
+              <scrolledwindow
+                hscrollbarPolicy={Gtk.PolicyType.NEVER}
+                maxContentHeight={360}
+                propagateNaturalHeight
+              >
+                <box orientation={Gtk.Orientation.VERTICAL} class="popover">
+                  <button
+                    class="clear"
+                    label={`Any ${group.label.toLowerCase()}`}
+                    onClicked={(self: Gtk.Button) => {
+                      (self.get_ancestor(Gtk.Popover) as Gtk.Popover)?.popdown();
+                      setFilter(group.label, "");
+                    }}
+                  />
+                  {group.tags.map((tag) => (
+                    <button
+                      class={filters((f) =>
+                        f[group.label] === tag ? "selected" : "",
+                      )}
+                      label={tag}
+                      onClicked={(self: Gtk.Button) => {
+                        (self.get_ancestor(Gtk.Popover) as Gtk.Popover)?.popdown();
+                        setFilter(group.label, tag);
+                      }}
+                    />
+                  ))}
+                </box>
+              </scrolledwindow>
+            </popover>
+          </menubutton>
         ))}
-        <box hexpand />
         <togglebutton
           class="adult"
           label="18+"
@@ -362,7 +519,16 @@ export default function WorkshopBrowser({
             search(1);
           }}
         />
-      </box>
+        <button
+          class="clear-filters"
+          label="Clear"
+          tooltipText="Drop every filter"
+          onClicked={() => {
+            setFilters({});
+            search(1);
+          }}
+        />
+      </Gtk.FlowBox>
 
       <scrolledwindow vexpand hscrollbarPolicy={Gtk.PolicyType.NEVER}>
         <With value={items}>
@@ -372,8 +538,8 @@ export default function WorkshopBrowser({
               rowSpacing={8}
               homogeneous={true}
               selectionMode={Gtk.SelectionMode.NONE}
-              minChildrenPerLine={2}
-              maxChildrenPerLine={4}
+              minChildrenPerLine={COLUMNS}
+              maxChildrenPerLine={COLUMNS}
             >
               {list.map(card)}
             </Gtk.FlowBox>
