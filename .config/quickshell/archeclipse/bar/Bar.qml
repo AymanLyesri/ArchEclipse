@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.theme
 import qs.services
+import qs.bar
 
 // Port of widgets/bar/Bar.tsx — the floating ArchEclipse bar pill.
 //

@@ -30,6 +30,14 @@ QtObject {
     property bool notifDnd: false
     property bool leftPanelLock: false
     property bool rightPanelLock: false
+    property int leftPanelWidth: 400
+    property int rightPanelWidth: 250
+    property bool autoWorkspaceSwitching: true
+    property var booru: ({ pins: [], api: ({ value: "danbooru" }) })
+    // Blur settings
+    property bool barBlur: true
+    property int barBlurPasses: 3
+    property int barBlurSize: 4
 
     function fmt(d, f) {
         const p = (n) => n.toString().padStart(2, "0");
@@ -65,8 +73,17 @@ QtObject {
                 root.leftPanelHotZone = s.leftPanel.hotZone?.value ?? true;
                 root.rightPanelHotZone = s.rightPanel.hotZone?.value ?? true;
                 root.leftPanelLock = !!s.leftPanel.lock;
-                root.notifDnd = !!s.notifications?.dnd;
                 root.rightPanelLock = !!s.rightPanel.lock;
+                root.leftPanelWidth = s.leftPanel.width?.value ?? 400;
+                root.rightPanelWidth = s.rightPanel.width?.value ?? 250;
+                root.autoWorkspaceSwitching = s.autoWorkspaceSwitching?.value ?? true;
+                root.booru.pins = s.booru?.pins ?? [];
+                root.booru.api = s.booru?.api ?? { value: "danbooru" };
+                // Blur settings
+                root.barBlur = s.bar.blur?.value ?? true;
+                root.barBlurPasses = s.bar.blurPasses?.value ?? 3;
+                root.barBlurSize = s.bar.blurSize?.value ?? 4;
+                root.notifDnd = !!s.notifications?.dnd;
             } catch (e) {
                 console.warn("[Settings] parse failed:", e);
             }

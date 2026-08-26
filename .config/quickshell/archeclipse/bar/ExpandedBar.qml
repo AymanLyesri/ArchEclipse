@@ -1,6 +1,7 @@
 import QtQuick
 import qs.theme
 import qs.services
+import qs.bar
 
 // Port of barStates/ExpandedBar.tsx — centerbox: workspaces | information | utilities,
 // each section toggleable via settings bar.layout[].enabled.

@@ -24,7 +24,7 @@ Row {
     Text {
         visible: root.firstPlayable !== null
         anchors.verticalCenter: parent.verticalCenter
-        text: root.firstPlayable ? `${root.firstPlayable.playbackState === MprisPlaybackState.Playing ? "\u{F03E5}" : "\u{F040A}"} ${root.firstPlayable.trackTitle}` : ""
+        text: root.firstPlayable ? (root.firstPlayable.playbackState === MprisPlaybackState.Playing ? "\uF03E5" : "\uF040A") + " " + root.firstPlayable.trackTitle : ""
         elide: Text.ElideRight
         width: Math.min(implicitWidth, 200)
         color: Theme.foreground
@@ -37,9 +37,7 @@ Row {
         height: 22
     }
 
-    KeyboardLayout {
-        anchors.verticalCenter: parent.verticalCenter
-        height: 22
+    KeyboardLayoutWidget {
     }
 
     // ---- bandwidth (Bandwidth.tsx compact form) ----
@@ -47,8 +45,8 @@ Row {
         spacing: 4
         anchors.verticalCenter: parent.verticalCenter
         Text { text: SysInfo.bandwidth[0] + ""; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
-        Text { text: "\u{F062}"; color: Theme.secondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize - 2 }
+        Text { text: "\uF062"; color: Theme.secondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize - 2 }
         Text { text: SysInfo.bandwidth[1] + ""; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
-        Text { text: "\u{F063}"; color: Theme.secondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize - 2 }
+        Text { text: "\uF063"; color: Theme.secondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize - 2 }
     }
 }

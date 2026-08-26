@@ -8,6 +8,8 @@ import Quickshell.Io
 // so switching wallpaper palettes affects both bars identically.
 // Fallback = scss/defaultColors.scss.
 QtObject {
+    id: root
+
     // --- raw palette (parsed from cwal colors.scss) ---
     property string background: "#08080c"
     property string foreground: "#aaabb2"
@@ -29,8 +31,10 @@ QtObject {
                    + Math.round(c.b*255).toString(16).padStart(2,"0");
     }
     function rgba(hex: string, alpha: real): string {
-        return Qt.rgba(parseInt(hex.slice(1,3),16)/255, parseInt(hex.slice(3,5),16)/255,
-                       parseInt(hex.slice(5,7),16)/255, alpha).toString();
+        const r = parseInt(hex.slice(1,3),16)/255;
+        const g = parseInt(hex.slice(3,5),16)/255;
+        const b = parseInt(hex.slice(5,7),16)/255;
+        return Qt.rgba(r, g, b, alpha).toString();
     }
 
     // $secondary: mix($color2,$foreground,$phi-percentage) — note t>1 clamps naturally
@@ -55,6 +59,14 @@ QtObject {
     readonly property string buttonCheckedFg: background
     readonly property string buttonHoverBg: background
 
+    // Panel-specific colors
+    readonly property string accent: foreground
+    readonly property string accentBg: mix(background, foreground, 0.1)
+    readonly property string fgDim: Qt.rgba(parseInt(foreground.slice(1,3),16)/255, parseInt(foreground.slice(3,5),16)/255, parseInt(foreground.slice(5,7),16)/255, 0.5).toString()
+    readonly property string border: Qt.rgba(parseInt(foreground.slice(1,3),16)/255, parseInt(foreground.slice(3,5),16)/255, parseInt(foreground.slice(5,7),16)/255, 0.15).toString()
+    readonly property string fg: foreground
+    readonly property string bg: background
+
     property FileView _cwal: FileView {
         path: `${Quickshell.env("HOME")}/.cache/cwal/colors.scss`
         watchChanges: true
@@ -72,5 +84,4 @@ QtObject {
             root.color3 = grab("color3", "#4e505d");
         }
     }
-    id: root
 }

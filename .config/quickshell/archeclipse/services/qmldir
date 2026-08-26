@@ -7,3 +7,8 @@ singleton Launcher 1.0 Launcher.qml
 singleton Notifications 1.0 Notifications.qml
 singleton Weather 1.0 Weather.qml
 singleton Registry 1.0 Registry.qml
+singleton KeyboardLayout 1.0 KeyboardLayout.qml
+singleton AutoWorkspaceSwitching 1.0 AutoWorkspaceSwitching.qml
+singleton FastfetchPins 1.0 FastfetchPins.qml
+singleton Brightness 1.0 Brightness.qml
+singleton ScreenRecorder 1.0 ScreenRecorder.qml

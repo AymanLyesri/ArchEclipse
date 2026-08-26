@@ -1,0 +1,29 @@
+module qs.bar
+
+Bar 1.0 Bar.qml
+CompactBar 1.0 CompactBar.qml
+ExpandedBar 1.0 ExpandedBar.qml
+SearchBar 1.0 SearchBar.qml
+Workspaces 1.0 Workspaces.qml
+Information 1.0 Information.qml
+Utilities 1.0 Utilities.qml
+Volume 1.0 Volume.qml
+VolumePulse 1.0 VolumePulse.qml
+Brightness 1.0 Brightness.qml
+BrightnessPulse 1.0 BrightnessPulse.qml
+RecordingIndicator 1.0 RecordingIndicator.qml
+PlayerPulse 1.0 PlayerPulse.qml
+KeyboardLayoutWidget 1.0 KeyboardLayoutWidget.qml
+Clock 1.0 Clock.qml
+Tray 1.0 Tray.qml
+NotificationPopups 1.0 NotificationPopups.qml
+WallpaperSwitcher 1.0 WallpaperSwitcher.qml
+ControlPanelButton 1.0 ControlPanelButton.qml
+AlwaysOnWidget 1.0 AlwaysOnWidget.qml
+UserPanel 1.0 UserPanel.qml
+LeftPanel 1.0 LeftPanel.qml
+RightPanel 1.0 RightPanel.qml
+HotZone 1.0 HotZone.qml
+ResourceMonitor 1.0 ResourceMonitor.qml
+LauncherPanel 1.0 LauncherPanel.qml
+Battery 1.0 Battery.qml

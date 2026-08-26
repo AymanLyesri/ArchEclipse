@@ -56,10 +56,10 @@ hl.bind(mainMod .. " + ALT_L", hl.dsp.exec_cmd(qsIpc .. "toggleBar " .. monitor)
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd(qsIpc .. "toggleSearch"))
 --- toggle media panel
 hl.bind(mainMod .. " + m", hl.dsp.exec_cmd("ags toggle media-" .. monitor))
---- toggle right panel
-hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("ags toggle right-panel-" .. monitor))
---- toggle left panel
-hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("ags toggle left-panel-" .. monitor))
+--- toggle right panel (SUPER+R)
+hl.bind(mainMod .. " + r", hl.dsp.exec_cmd(qsIpc .. "toggleRightPanel " .. monitor))
+--- toggle left panel (SUPER+L)
+hl.bind(mainMod .. " + l", hl.dsp.exec_cmd(qsIpc .. "toggleLeftPanel " .. monitor))
 --- toggle wallpaper switcher
 hl.bind(mainMod .. " + w", hl.dsp.exec_cmd(qsIpc .. "togglePanel wallpaper-switcher " .. monitor))
 --- toggle user panel

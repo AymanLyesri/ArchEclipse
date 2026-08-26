@@ -8,6 +8,8 @@ import qs.services
 //
 //   super+super_l -> qs -p <cfg> ipc call bar toggleSearch
 //   super+alt_l   -> qs -p <cfg> ipc call bar togglebar <monitor>
+//   super+l       -> qs -p <cfg> ipc call bar toggleLeftPanel <monitor>
+//   super+r       -> qs -p <cfg> ipc call bar toggleRightPanel <monitor>
 Item {
     IpcHandler {
         target: "bar"
@@ -24,6 +26,20 @@ Item {
         function toggleBar(monitor: string): string {
             BarState.toggleBarShown(monitor);
             return "bar toggled";
+        }
+
+        function toggleLeftPanel(monitor: string): string {
+            const key = `left-panel-${monitor}`;
+            const w = Registry.windows[key];
+            if (w) { w.visible = !w.visible; return key + " toggled"; }
+            return "window not found: " + key;
+        }
+
+        function toggleRightPanel(monitor: string): string {
+            const key = `right-panel-${monitor}`;
+            const w = Registry.windows[key];
+            if (w) { w.visible = !w.visible; return key + " toggled"; }
+            return "window not found: " + key;
         }
 
         function screenrecord(mode: string): string {

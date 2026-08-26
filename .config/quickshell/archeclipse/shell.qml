@@ -43,6 +43,26 @@ ShellRoot {
         }
     }
 
+    // Left panel (SUPER+L, hot-zone, IPC)
+    Variants {
+        model: Quickshell.screens
+
+        LeftPanel {
+            required property ShellScreen modelData
+            screen: modelData
+        }
+    }
+
+    // Right panel (SUPER+R, hot-zone, IPC)
+    Variants {
+        model: Quickshell.screens
+
+        RightPanel {
+            required property ShellScreen modelData
+            screen: modelData
+        }
+    }
+
     Variants {
         model: Quickshell.screens
 

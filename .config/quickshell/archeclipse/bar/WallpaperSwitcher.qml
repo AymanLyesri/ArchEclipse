@@ -125,12 +125,12 @@ PanelWindow {
                     border.color: ma.containsMouse ? Theme.foregroundSecondary : "transparent"
 
                     Image {
-                        anchors.fill: parent
-                        anchors.margins: 3
-                        source: "file://" + root.modelData.replace("/.config/wallpapers/", "/.config/ags/cache/thumbnails/").replace(/\.[^/.]+$/, ".jpg")
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                    }
+                                            anchors.fill: parent
+                                            anchors.margins: 3
+                                            source: "file://" + root.modelData.replace("/home/ayman/.config/wallpapers/", "/home/ayman/.config/ags/cache/thumbnails/").replace(/\.[^/.]+$/, ".jpg")
+                                            fillMode: Image.PreserveAspectCrop
+                                            asynchronous: true
+                                        }
                     Text {
                         anchors.bottom: parent.bottom
                         anchors.right: parent.right
