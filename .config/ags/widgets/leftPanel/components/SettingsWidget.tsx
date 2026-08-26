@@ -1098,12 +1098,15 @@ export default () => {
             />
           </box>
           {/* Same gate as the switcher's engine controls: kirie without
-              Wallpaper Engine's assets has nothing to apply these to. */}
-          {weInstalled.get() && (
+              Wallpaper Engine's assets has nothing to apply these to. Bound
+              rather than read once — the check is async, so a plain read is
+              always false at render and the section never appears. */}
+          {(
             <box
               class={"category"}
               orientation={Gtk.Orientation.VERTICAL}
               spacing={16}
+              visible={weInstalled((installed) => installed)}
             >
               <label label="Wallpaper Engine" halign={Gtk.Align.START} />
               <EngineSetting setting="fps" />
