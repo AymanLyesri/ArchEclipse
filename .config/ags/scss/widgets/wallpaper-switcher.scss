@@ -248,6 +248,14 @@
     padding: 6px;
   }
 
+  .filter-search {
+    margin: 2px 4px 0 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    min-height: 0;
+  }
+
   .workshop-filter .popover button,
   .workshop-sort .popover button {
     padding: 4px 12px;

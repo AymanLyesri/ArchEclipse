@@ -218,6 +218,10 @@ const ensurePreview = async (item: KirieWorkshopItem): Promise<string | null> =>
   return GLib.file_test(path, GLib.FileTest.EXISTS) ? path : null;
 };
 
+/// Groups longer than this get a box to narrow them down; scrolling 25 genres
+/// or 21 resolutions to find one is worse than typing three letters.
+const SEARCHABLE_FROM = 8;
+
 export default function WorkshopBrowser({
   onApply,
   onInstalled,
@@ -337,6 +341,74 @@ export default function WorkshopBrowser({
       }}
     />
   ) as Gtk.Entry;
+
+  /// One filter group's popover: its tags as a list, and — for the long ones —
+  /// a box that narrows the list as it is typed into.
+  const filterPopover = (group: (typeof FILTER_GROUPS)[number]) => {
+    const rows: Gtk.Button[] = [];
+
+    const choose = (tag: string) => (self: Gtk.Button) => {
+      (self.get_ancestor(Gtk.Popover) as Gtk.Popover)?.popdown();
+      setFilter(group.label, tag);
+    };
+
+    const any = (
+      <button class="clear" label={`Any ${group.label.toLowerCase()}`} onClicked={choose("")} />
+    ) as Gtk.Button;
+
+    for (const tag of group.tags) {
+      rows.push(
+        (
+          <button
+            class={filters((f) => (f[group.label] === tag ? "selected" : ""))}
+            label={tag}
+            onClicked={choose(tag)}
+          />
+        ) as Gtk.Button,
+      );
+    }
+
+    const list = (
+      <box orientation={Gtk.Orientation.VERTICAL} class="popover">
+        {any}
+        {rows}
+      </box>
+    ) as Gtk.Widget;
+
+    const narrow = (
+      <entry
+        class="filter-search"
+        placeholderText="Filter…"
+        maxWidthChars={1}
+        $={(self: Gtk.Entry) =>
+          self.connect("changed", () => {
+            const needle = self.text.trim().toLowerCase();
+            for (const row of rows) {
+              row.visible = row.label!.toLowerCase().includes(needle);
+            }
+            // "Any …" is how the group is cleared, so it only hides once the
+            // user is clearly hunting for a specific tag.
+            any.visible = needle === "";
+          })
+        }
+      />
+    ) as Gtk.Widget;
+
+    return (
+      <popover position={Gtk.PositionType.BOTTOM}>
+        <box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
+          {group.tags.length >= SEARCHABLE_FROM ? narrow : <box visible={false} />}
+          <scrolledwindow
+            hscrollbarPolicy={Gtk.PolicyType.NEVER}
+            maxContentHeight={320}
+            propagateNaturalHeight
+          >
+            {list}
+          </scrolledwindow>
+        </box>
+      </popover>
+    );
+  };
 
   const card = (item: KirieWorkshopItem) => {
     const preview = new Gtk.Picture({
@@ -491,36 +563,7 @@ export default function WorkshopBrowser({
               />
               <label class="chevron" label="▾" />
             </box>
-            <popover position={Gtk.PositionType.BOTTOM}>
-              <scrolledwindow
-                hscrollbarPolicy={Gtk.PolicyType.NEVER}
-                maxContentHeight={360}
-                propagateNaturalHeight
-              >
-                <box orientation={Gtk.Orientation.VERTICAL} class="popover">
-                  <button
-                    class="clear"
-                    label={`Any ${group.label.toLowerCase()}`}
-                    onClicked={(self: Gtk.Button) => {
-                      (self.get_ancestor(Gtk.Popover) as Gtk.Popover)?.popdown();
-                      setFilter(group.label, "");
-                    }}
-                  />
-                  {group.tags.map((tag) => (
-                    <button
-                      class={filters((f) =>
-                        f[group.label] === tag ? "selected" : "",
-                      )}
-                      label={tag}
-                      onClicked={(self: Gtk.Button) => {
-                        (self.get_ancestor(Gtk.Popover) as Gtk.Popover)?.popdown();
-                        setFilter(group.label, tag);
-                      }}
-                    />
-                  ))}
-                </box>
-              </scrolledwindow>
-            </popover>
+            {filterPopover(group)}
           </menubutton>
         ))}
         <togglebutton

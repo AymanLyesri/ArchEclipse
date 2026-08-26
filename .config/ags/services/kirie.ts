@@ -1,6 +1,7 @@
 import Gio from "gi://Gio";
 import GLib from "gi://GLib";
 import { execAsync } from "ags/process";
+import { timeout } from "ags/time";
 
 // Client for the kirie wallpaper engine (Wallpaper Engine renderer).
 //
@@ -211,9 +212,35 @@ export function kirieLines(
   });
 }
 
-/** Send one command and resolve with its first reply line. */
+/** Whether a failure is the engine having gone away mid-conversation.
+ *
+ * A restart (or a reload of the wallpaper daemon) closes the socket under any
+ * request already in flight, which surfaces as a broken pipe or a refused
+ * connection — worth one retry, since by then the new engine is usually up. */
+const engineWentAway = (err: unknown) =>
+  /Broken pipe|Connection refused|not reachable|closed/i.test(String(err));
+
+/** Send one command and resolve with its first reply line.
+ *
+ * Retries once when the engine went away: the alternative is showing the user
+ * a Gio error for something that fixes itself in a few hundred milliseconds. */
 export const kirieSend = (cmd: string, timeoutMs?: number): Promise<string> =>
-  kirieLines(cmd, timeoutMs).then((lines) => lines[0] ?? "");
+  kirieLines(cmd, timeoutMs)
+    .catch((err) => {
+      if (!engineWentAway(err)) throw err;
+      return new Promise<string[]>((resolve, reject) => {
+        timeout(400, () => kirieLines(cmd, timeoutMs).then(resolve, reject));
+      });
+    })
+    .then((lines) => lines[0] ?? "")
+    .catch((err) => {
+      // Rephrase the transport's own words: "Error sending data: Broken pipe"
+      // says nothing a user can act on.
+      if (engineWentAway(err)) {
+        throw new Error("the wallpaper engine is not running");
+      }
+      throw err;
+    });
 
 /** Send one command and resolve `true` when the engine accepted it. */
 export const kirieOk = (cmd: string, timeoutMs?: number): Promise<boolean> =>
