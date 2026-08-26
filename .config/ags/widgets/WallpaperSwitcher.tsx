@@ -130,12 +130,58 @@ export default ({
   // still falls back to whatever is on this monitor.
   let pickedItem = false;
 
+  /// How the strip is ordered. "Newest" is what a growing library wants —
+  /// something just subscribed to is at the end of a scan and off the side of
+  /// the screen otherwise.
+  const ORDERS = ["Newest", "Oldest", "Name", "Type"] as const;
+  const [order, setOrder] = createState<(typeof ORDERS)[number]>("Newest");
+
+  /// When the file (or item directory) was last written, as a Unix time.
+  ///
+  /// Steam writes the directory as it downloads, so for a Workshop item this
+  /// is when it arrived on this machine, which is what "newest" should mean
+  /// here — not when its author last published it.
+  const writtenAt = (path: string): number => {
+    try {
+      return (
+        Gio.File.new_for_path(path)
+          .query_info("time::modified", Gio.FileQueryInfoFlags.NONE, null)
+          .get_attribute_uint64("time::modified") || 0
+      );
+    } catch (_err) {
+      return 0;
+    }
+  };
+
+  const nameOf = (path: string) =>
+    (engineItem(path)?.title ?? path.split("/").pop() ?? path).toLowerCase();
+
   const selectedWallpapers = createComputed(() => {
-    return (
-      wallpapers()[
+    const paths = [
+      ...(wallpapers()[
         globalSettings(({ wallpaperSwitcher }) => wallpaperSwitcher.category)()
-      ] || []
-    );
+      ] || []),
+    ];
+
+    switch (order()) {
+      case "Newest":
+        return paths.sort((a, b) => writtenAt(b) - writtenAt(a));
+      case "Oldest":
+        return paths.sort((a, b) => writtenAt(a) - writtenAt(b));
+      case "Name":
+        return paths.sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+      case "Type":
+        // Group the engine's kinds together, then name within each kind.
+        return paths.sort((a, b) => {
+          const kind = (path: string) =>
+            engineItem(path)?.type ?? path.split(".").pop() ?? "";
+          return (
+            kind(a).localeCompare(kind(b)) || nameOf(a).localeCompare(nameOf(b))
+          );
+        });
+      default:
+        return paths;
+    }
   });
 
   async function FetchWallpapers() {
@@ -151,6 +197,32 @@ export default ({
       print("Error fetching wallpapers: " + String(err));
     }
   }
+
+  /// Drop one wallpaper from the list without waiting for a rescan.
+  ///
+  /// Unsubscribing tells Steam to let go; Steam then deletes the files when it
+  /// gets to it, usually seconds later. Rescanning immediately therefore finds
+  /// the item still on disk and puts it straight back — it took a second
+  /// unsubscribe to make it go, which was the shell lagging behind the user
+  /// rather than anything being wrong.
+  const forget = (path: string) => {
+    const next: Record<string, string[]> = {};
+    for (const [category, paths] of Object.entries(wallpapers.peek())) {
+      next[category] = paths.filter((entry) => entry !== path);
+    }
+    setWallpapers(next);
+  };
+
+  /// Rescan once the directory has actually gone, so the list settles on the
+  /// truth rather than on the optimistic removal above. Gives up after 15s;
+  /// Steam has its own ideas about when to tidy up.
+  const rescanWhenGone = (path: string, attemptsLeft = 15) => {
+    if (attemptsLeft <= 0 || !GLib.file_test(path, GLib.FileTest.EXISTS)) {
+      FetchWallpapers();
+      return;
+    }
+    timeout(1000, () => rescanWhenGone(path, attemptsLeft - 1));
+  };
 
   const [currentWallpapers, setCurrentWallpapers] = createState<string[]>([]);
 
@@ -398,20 +470,21 @@ export default ({
                         () => {
                           setProgressStatus("loading");
                           kirieWorkshopUnsubscribe(item.id)
-                            .then(() =>
+                            .then(() => {
+                              // Gone from the list now, gone from disk when
+                              // Steam catches up.
+                              forget(wallpaper);
+                              rescanWhenGone(wallpaper);
                               notify({
                                 summary: "Unsubscribed",
-                                body: `${item.title}
-Steam removes the files when it next runs.`,
-                              }),
-                            )
-                            .catch((err) =>
-                              notify({ summary: "Error", body: String(err) }),
-                            )
-                            .finally(() => {
+                                body: item.title,
+                              });
+                            })
+                            .catch((err) => {
+                              notify({ summary: "Error", body: String(err) });
                               FetchWallpapers();
-                              setProgressStatus("success");
-                            });
+                            })
+                            .finally(() => setProgressStatus("success"));
                         },
                         "destructive",
                       ),
@@ -820,6 +893,29 @@ Steam removes the files when it next runs.`,
       </menubutton>
     );
 
+    const orderSelector = (
+      <menubutton class="order-selector" tooltipMarkup="Order the wallpapers">
+        <box spacing={4}>
+          <label label={order((o) => o)} />
+          <label class="chevron" label="▾" />
+        </box>
+        <popover position={Gtk.PositionType.TOP}>
+          <box orientation={Gtk.Orientation.VERTICAL} class="popover">
+            {ORDERS.map((option) => (
+              <button
+                class={order((o) => (o === option ? "selected" : ""))}
+                label={option}
+                onClicked={(self: Gtk.Button) => {
+                  (self.get_ancestor(Gtk.Popover) as Gtk.Popover)?.popdown();
+                  setOrder(option);
+                }}
+              />
+            ))}
+          </box>
+        </popover>
+      </menubutton>
+    );
+
     const actions = (
       <box
         class="actions"
@@ -831,6 +927,7 @@ Steam removes the files when it next runs.`,
         {selectedWorkspaceLabel}
         {displayColorScheme}
         {categorySelector}
+        {orderSelector}
         {propertiesSelector}
         {workshopSelector}
         {randomButton}

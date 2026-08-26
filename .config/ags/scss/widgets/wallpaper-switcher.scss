@@ -333,3 +333,45 @@
     }
   }
 }
+
+// The library's own order control, matching the browser's dropdowns.
+.order-selector {
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 0.85em;
+  min-height: 0;
+  background: $background-secondary;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  popover > contents {
+    background: $background;
+    border: 1px solid $background-secondary;
+    border-radius: 10px;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.55);
+    padding: 6px;
+  }
+
+  .popover {
+    background: transparent;
+
+    button {
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: transparent;
+
+      &:hover {
+        background: $background-secondary;
+      }
+
+      &.selected {
+        background: $secondary;
+        color: $background;
+        font-weight: bold;
+      }
+    }
+  }
+}
