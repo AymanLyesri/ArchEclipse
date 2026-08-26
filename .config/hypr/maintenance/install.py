@@ -70,13 +70,21 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
     return components
 
 
-def parse_branch(argv: list[str]) -> str:
+DEFAULT_REPO = "https://github.com/AymanLyesri/ArchEclipse.git"
+
+
+def parse_branch(argv: list[str]) -> tuple[str, str]:
     """
     Branch precedence:
     - `--branch/-b <name>`
     - legacy positional `<branch>` (argv[1])
     - env `ARCHECLIPSE_BRANCH`
     - default: `master`
+
+    Repository precedence: `--repo/-r`, env `ARCHECLIPSE_REPO`, then upstream.
+    A branch only exists somewhere, so pinning the branch without being able to
+    pin the repo made a fork impossible to install from — including for the
+    person testing their own before opening a pull request.
     """
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument(
@@ -84,6 +92,12 @@ def parse_branch(argv: list[str]) -> str:
         "--branch",
         default=None,
         help="ArchEclipse git branch to clone (default: master)",
+    )
+    parser.add_argument(
+        "-r",
+        "--repo",
+        default=None,
+        help=f"ArchEclipse git repository to clone (default: {DEFAULT_REPO})",
     )
     parser.add_argument(
         "legacy_branch",
@@ -94,17 +108,25 @@ def parse_branch(argv: list[str]) -> str:
 
     args = parser.parse_args(argv[1:])
 
+    branch = "master"
     if args.branch:
-        return str(args.branch)
-    if args.legacy_branch:
-        return str(args.legacy_branch)
-    if os.environ.get("ARCHECLIPSE_BRANCH"):
-        return str(os.environ["ARCHECLIPSE_BRANCH"])
-    return "master"
+        branch = str(args.branch)
+    elif args.legacy_branch:
+        branch = str(args.legacy_branch)
+    elif os.environ.get("ARCHECLIPSE_BRANCH"):
+        branch = str(os.environ["ARCHECLIPSE_BRANCH"])
+
+    repo = str(args.repo or os.environ.get("ARCHECLIPSE_REPO") or DEFAULT_REPO)
+    return branch, repo
 
 
 def main() -> None:
     conf_dir = Path.home() / "ArchEclipse"
+
+    # Arguments first, and nothing destructive before them: the clone used to
+    # be deleted before argparse ran, so `install.py --help` — which only ever
+    # prints usage and exits — wiped ~/ArchEclipse on the way there.
+    branch, repo = parse_branch(sys.argv)
 
     try:
         run_cmd(["curl", "-s", "-o", "/dev/null", COUNTER_URL], check=False)
@@ -119,9 +141,7 @@ def main() -> None:
         print(f"Repository already exists at {conf_dir}; overwriting")
         shutil.rmtree(conf_dir)
 
-    branch = parse_branch(sys.argv)
-
-    print("Cloning ArchEclipse repository (latest commit only)...")
+    print(f"Cloning {repo} ({branch}, latest commit only)...")
     run_cmd(
         [
             "git",
@@ -131,7 +151,7 @@ def main() -> None:
             "--single-branch",
             "--branch",
             branch,
-            "https://github.com/AymanLyesri/ArchEclipse.git",
+            repo,
             str(conf_dir),
         ]
     )
