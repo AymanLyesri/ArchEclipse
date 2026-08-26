@@ -24,6 +24,7 @@ import {
   kirieCurrentItem,
   kirieInstalled,
   kirieList,
+  kirieWallpaperEngineInstalled,
   kirieWorkshopUnsubscribe,
 } from "../services/kirie";
 import WallpaperEngineProperties from "./WallpaperEngineProperties";
@@ -236,6 +237,12 @@ export default ({
     }
     timeout(1000, () => rescanWhenGone(path, attemptsLeft - 1));
   };
+
+  // kirie being installed is not enough to offer its surface: every scene
+  // wallpaper needs Wallpaper Engine's shared assets, so without them these
+  // controls act on nothing.
+  const [engineReady, setEngineReady] = createState<boolean>(false);
+  kirieWallpaperEngineInstalled().then(setEngineReady);
 
   const [currentWallpapers, setCurrentWallpapers] = createState<string[]>([]);
 
@@ -835,7 +842,7 @@ export default ({
       <menubutton
         class="wallpaper-properties"
         valign={Gtk.Align.CENTER}
-        visible={kirieInstalled()}
+        visible={engineReady((ready) => ready)}
         tooltipMarkup="<b>Wallpaper Engine</b> settings for this wallpaper"
         $={(self) => {
           propertiesButton = self;
@@ -879,7 +886,7 @@ export default ({
     const workshopSelector = (
       <menubutton
         class="workshop"
-        visible={kirieInstalled()}
+        visible={engineReady((ready) => ready)}
         tooltipMarkup="Browse the <b>Steam Workshop</b>"
       >
         {/* Steam's own mark, alone. A download arrow said "fetch something"

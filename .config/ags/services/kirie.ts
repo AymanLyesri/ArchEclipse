@@ -105,6 +105,21 @@ const kirieBin = (): string | null =>
 /** Whether the engine binary is installed at all. */
 export const kirieInstalled = () => kirieBin() !== null;
 
+/** Whether Wallpaper Engine's shared assets are on this machine.
+ *
+ * Every scene wallpaper needs them, so a machine with kirie but without
+ * Wallpaper Engine has nothing for the engine surface to act on. Asked once
+ * and cached: it is a directory probe, but the panels ask on every rebuild. */
+let weAssets: Promise<boolean> | null = null;
+export const kirieWallpaperEngineInstalled = (): Promise<boolean> => {
+  if (!kirieInstalled()) return Promise.resolve(false);
+  weAssets ??= execAsync([kirieBin() ?? "kirie", "assets", "--json"])
+    .then((json) => Boolean(JSON.parse(json).installed))
+    // Non-zero exit means "not installed", which is an answer, not a failure.
+    .catch(() => false);
+  return weAssets;
+};
+
 /** Run the engine CLI and parse its JSON output. */
 const kirieJson = <T,>(args: string[]): Promise<T> =>
   execAsync([kirieBin() ?? "kirie", ...args]).then((json) => JSON.parse(json));

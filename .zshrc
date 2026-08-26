@@ -1,3 +1,10 @@
+# Anything installed per-user lands in ~/.local/bin (kirie, pipx, cargo
+# install --root ~/.local). Without this it is installed and not callable.
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 (cat ~/.cache/cwal/sequences &)
 
 eval "$(starship init zsh)"

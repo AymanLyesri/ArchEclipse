@@ -34,6 +34,7 @@ import {
   kirieGpus,
   kirieInstalled,
   kirieOk,
+  kirieWallpaperEngineInstalled,
 } from "../../../services/kirie";
 const hyprland = Hyprland.get_default();
 
@@ -815,6 +816,9 @@ const restartEngineSoon = () => {
   });
 };
 
+const [weInstalled, setWeInstalled] = createState<boolean>(false);
+kirieWallpaperEngineInstalled().then(setWeInstalled);
+
 const applyEngineSetting = (key: string, value: any) => {
   // Scaling and edge handling are per screen in the engine; the panel keeps
   // one value and applies it to every monitor.
@@ -1093,7 +1097,9 @@ export default () => {
               ]}
             />
           </box>
-          {kirieInstalled() && (
+          {/* Same gate as the switcher's engine controls: kirie without
+              Wallpaper Engine's assets has nothing to apply these to. */}
+          {weInstalled.get() && (
             <box
               class={"category"}
               orientation={Gtk.Orientation.VERTICAL}
