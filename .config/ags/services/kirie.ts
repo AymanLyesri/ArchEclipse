@@ -334,6 +334,15 @@ export const kirieWorkshopSubscribe = (id: string): Promise<number> =>
 export const kirieWorkshopJob = (job: number): Promise<KirieWorkshopJob> =>
   kirieSend(`workshop job ${job}`).then(workshopJson<KirieWorkshopJob>);
 
+/** `workshop unsubscribe <id>` → the item's state once Steam has accepted.
+ *
+ * Steam deletes the files on its own schedule, so the reply can still carry a
+ * directory: the subscription is what changed. */
+export const kirieWorkshopUnsubscribe = (id: string): Promise<KirieWorkshopItem> =>
+  kirieSend(`workshop unsubscribe ${id}`, WORKSHOP_TIMEOUT).then(
+    (reply) => workshopJson<KirieWorkshopItem[]>(reply)[0],
+  );
+
 /** `workshop state <id>` → subscribed/installed/where, Steam or no Steam. */
 export const kirieWorkshopState = (id: string): Promise<KirieWorkshopItem> =>
   kirieSend(`workshop state ${id}`, WORKSHOP_TIMEOUT).then(

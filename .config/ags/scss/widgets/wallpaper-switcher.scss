@@ -186,9 +186,9 @@
   .workshop-card {
     // Fixed width, or a long title stretches its column and the grid stops
     // being a grid.
-    min-width: 190px;
-    padding: 6px;
-    border-radius: 10px;
+    min-width: 148px;
+    padding: 4px;
+    border-radius: 8px;
     background: $background-semi-transparent;
 
     &:hover {
@@ -202,16 +202,38 @@
     // so the grid does not reflow as previews come in. Square, because that
     // is the shape Steam serves.
     background: $background-secondary;
-    min-height: 190px;
-    min-width: 190px;
+    min-height: 148px;
+    min-width: 148px;
   }
 
+  // These are dropdowns, and they have to look like it: as bare labels in a
+  // row they read as a heading strip rather than as controls.
   .workshop-filter,
+  .workshop-sort,
   .clear-filters,
   .adult {
-    padding: 2px 10px;
-    border-radius: 6px;
-    font-size: 0.9em;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 0.82em;
+    min-height: 0;
+    background: $background-secondary;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .chevron {
+    opacity: 0.55;
+    font-size: 0.8em;
+  }
+
+  // A group with a tag in force is part of the current query, so it stops
+  // looking like the rest of the row.
+  .workshop-filter .chosen {
+    color: $secondary;
+    font-weight: bold;
   }
 
   .workshop-filter popover > contents,
@@ -243,12 +265,12 @@
 
   .workshop-title {
     font-weight: bold;
+    font-size: 0.88em;
   }
 
-  .workshop-kind,
   .workshop-meta {
-    opacity: 0.7;
-    font-size: 0.85em;
+    opacity: 0.65;
+    font-size: 0.78em;
   }
 
   .workshop-warning {
@@ -257,8 +279,9 @@
   }
 
   .subscribe {
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 0.85em;
 
     // An item already on disk is one click from being shown, so it stops
     // looking like a download.
@@ -273,4 +296,40 @@
   }
 
 
+}
+
+// Right-click menu on a wallpaper: apply, copy, open, and the one entry that
+// takes something away, marked so it cannot be hit by accident.
+.wallpaper-menu {
+  > contents {
+    background: $background;
+    border: 1px solid $background-secondary;
+    border-radius: 10px;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.55);
+    padding: 6px;
+  }
+
+  .popover {
+    background: transparent;
+    min-width: 170px;
+  }
+
+  button {
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: transparent;
+
+    &:hover {
+      background: $background-secondary;
+    }
+
+    &.destructive {
+      color: $red;
+
+      &:hover {
+        background: $red;
+        color: $background;
+      }
+    }
+  }
 }

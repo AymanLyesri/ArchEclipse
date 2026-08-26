@@ -24,6 +24,7 @@ import {
   kirieCurrentItem,
   kirieInstalled,
   kirieList,
+  kirieWorkshopUnsubscribe,
 } from "../services/kirie";
 import WallpaperEngineProperties from "./WallpaperEngineProperties";
 import WorkshopBrowser from "./WorkshopBrowser";
@@ -297,38 +298,148 @@ export default ({
                     });
                 };
 
-                const handleRightClick = () => {
-                  // Steam owns the engine items, so right-click opens their
-                  // settings instead of deleting them.
-                  const item = engineItem(wallpaper);
-                  if (item) {
-                    pickedItem = true;
-                    setPropertiesItem(item);
-                    propertiesButton?.popup();
-                    return;
-                  }
-
+                // Right-click used to mean two different things depending on
+                // what was under the cursor — settings for an engine item,
+                // and an *unconfirmed delete* for anything else. It opens a
+                // menu instead: the destructive entries are then something
+                // chosen rather than something triggered.
+                const deleteWallpaper = () => {
                   setProgressStatus("loading");
-                  execAsync(
-                    `bash -c "rm -f '${toThumbnailPath(
-                      wallpaper,
-                    )}' && rm -f '${wallpaper}'"`,
-                  )
+                  execAsync([
+                    "bash",
+                    "-c",
+                    `rm -f '${toThumbnailPath(wallpaper)}' && rm -f '${wallpaper}'`,
+                  ])
                     .then(() =>
-                      notify({
-                        summary: "Success",
-                        body: "Wallpaper deleted successfully!",
-                      }),
+                      notify({ summary: "Wallpaper", body: "Deleted." }),
                     )
                     .catch((err) => {
                       setProgressStatus("error");
                       notify({ summary: "Error", body: String(err) });
-                      throw err;
                     })
                     .finally(() => {
                       FetchWallpapers();
                       setProgressStatus("success");
                     });
+                };
+
+                const copy = (text: string, what: string) =>
+                  execAsync(["wl-copy", text])
+                    .then(() => notify({ summary: what, body: text }))
+                    .catch((err) =>
+                      notify({ summary: "Error", body: String(err) }),
+                    );
+
+                const menuEntry = (
+                  label: string,
+                  action: () => void,
+                  cssClass = "",
+                ) =>
+                  (
+                    <button
+                      class={cssClass}
+                      label={label}
+                      onClicked={(self: Gtk.Button) => {
+                        (
+                          self.get_ancestor(Gtk.Popover) as Gtk.Popover
+                        )?.popdown();
+                        action();
+                      }}
+                    />
+                  ) as Gtk.Widget;
+
+                /// The menu for one wallpaper, built on first right-click.
+                const buildMenu = (button: Gtk.Widget) => {
+                  const item = engineItem(wallpaper);
+                  const entries: Gtk.Widget[] = [];
+
+                  if (item) {
+                    entries.push(
+                      menuEntry("Settings", () => {
+                        pickedItem = true;
+                        setPropertiesItem(item);
+                        propertiesButton?.popup();
+                      }),
+                      menuEntry("Copy Workshop link", () =>
+                        copy(
+                          `https://steamcommunity.com/sharedfiles/filedetails/?id=${item.id}`,
+                          "Workshop link",
+                        ),
+                      ),
+                      menuEntry("Open in Steam", () =>
+                        execAsync([
+                          "xdg-open",
+                          `steam://url/CommunityFilePage/${item.id}`,
+                        ]).catch((err) =>
+                          notify({ summary: "Error", body: String(err) }),
+                        ),
+                      ),
+                    );
+                  }
+
+                  entries.push(
+                    menuEntry("Copy path", () => copy(wallpaper, "Path")),
+                    menuEntry("Open folder", () =>
+                      execAsync([
+                        "xdg-open",
+                        item ? wallpaper : wallpaper.split("/").slice(0, -1).join("/"),
+                      ]).catch((err) =>
+                        notify({ summary: "Error", body: String(err) }),
+                      ),
+                    ),
+                  );
+
+                  if (item) {
+                    // Steam owns these files; unsubscribing is how they go,
+                    // and Steam removes them on its own schedule afterwards.
+                    entries.push(
+                      menuEntry(
+                        "Unsubscribe",
+                        () => {
+                          setProgressStatus("loading");
+                          kirieWorkshopUnsubscribe(item.id)
+                            .then(() =>
+                              notify({
+                                summary: "Unsubscribed",
+                                body: `${item.title}
+Steam removes the files when it next runs.`,
+                              }),
+                            )
+                            .catch((err) =>
+                              notify({ summary: "Error", body: String(err) }),
+                            )
+                            .finally(() => {
+                              FetchWallpapers();
+                              setProgressStatus("success");
+                            });
+                        },
+                        "destructive",
+                      ),
+                    );
+                  } else {
+                    entries.push(
+                      menuEntry("Delete", deleteWallpaper, "destructive"),
+                    );
+                  }
+
+                  const popover = new Gtk.Popover({
+                    cssClasses: ["wallpaper-menu"],
+                    position: Gtk.PositionType.TOP,
+                  });
+                  const box = new Gtk.Box({
+                    orientation: Gtk.Orientation.VERTICAL,
+                    cssClasses: ["popover"],
+                  });
+                  for (const entry of entries) box.append(entry);
+                  popover.set_child(box);
+                  popover.set_parent(button);
+                  return popover;
+                };
+
+                let menu: Gtk.Popover | null = null;
+                const handleRightClick = (button: Gtk.Widget) => {
+                  menu ??= buildMenu(button);
+                  menu.popup();
                 };
 
                 const fileSize = (path: string) => {
@@ -360,7 +471,7 @@ export default ({
                       });
 
                       gesture.connect("pressed", () => {
-                        handleRightClick();
+                        handleRightClick(self);
                       });
 
                       self.add_controller(gesture);
@@ -370,7 +481,7 @@ export default ({
                       if (item)
                         return (
                           `Click to set as <b>${type}</b> wallpaper.` +
-                          "\nRight-click for its settings." +
+                          "\nRight-click to manage it." +
                           `\n ${item.title}` +
                           `\n Wallpaper Engine ${item.type}`
                         );
@@ -378,7 +489,7 @@ export default ({
                       return (
                         "Click to set as <b>" +
                         type +
-                        "</b> wallpaper.\nRight-click to delete." +
+                        "</b> wallpaper.\nRight-click to manage it." +
                         // get filename from path
                         `\n ${wallpaper.split("/").pop()}` +
                         // file size
@@ -688,6 +799,7 @@ export default ({
         <label label="󰇚" />
         <popover position={Gtk.PositionType.TOP}>
           <WorkshopBrowser
+            onInstalled={() => FetchWallpapers()}
             onApply={(dir) => {
               setProgressStatus("loading");
               execAsync([

@@ -40,7 +40,9 @@ const ROWS = 4;
 const PAGE_SIZE = COLUMNS * ROWS;
 
 /// Thumbnail edge. Steam serves square preview images, so the card is square.
-const TILE = 190;
+/// Small on purpose: the panel sits over the desktop, and twelve tiles plus
+/// their filters have to leave the wallpaper behind them visible.
+const TILE = 148;
 
 /// Where downloaded preview thumbnails live.
 const PREVIEW_DIR = `${GLib.get_user_cache_dir()}/ags/workshop-previews`;
@@ -218,9 +220,13 @@ const ensurePreview = async (item: KirieWorkshopItem): Promise<string | null> =>
 
 export default function WorkshopBrowser({
   onApply,
+  onInstalled,
 }: {
   /// Show an installed item. The caller owns which screen and slot that means.
   onApply: (dir: string) => void;
+  /// A subscription finished downloading, so the library behind this panel is
+  /// now a wallpaper short of the truth.
+  onInstalled?: () => void;
 }) {
   const [items, setItems] = createState<KirieWorkshopItem[]>([]);
   const [status, setStatus] = createState<string>("");
@@ -296,6 +302,7 @@ export default function WorkshopBrowser({
             button.set_css_classes(["subscribe", "ready"]);
             if (state.dir) ready(state.dir);
             setStatus(`${item.title} installed`);
+            onInstalled?.();
             return;
           case "error":
             button.label = "Failed";
@@ -386,22 +393,22 @@ export default function WorkshopBrowser({
     ) as Gtk.Button;
 
     return (
-      <box class="workshop-card" orientation={Gtk.Orientation.VERTICAL} spacing={4}>
+      <box class="workshop-card" orientation={Gtk.Orientation.VERTICAL} spacing={2}>
         {preview}
         <label
           class="workshop-title"
           label={item.title}
-          maxWidthChars={18}
+          maxWidthChars={16}
           ellipsize={Pango.EllipsizeMode.END}
           tooltipText={item.title}
         />
-        <box spacing={6} halign={Gtk.Align.CENTER}>
-          <label class="workshop-kind" label={item.type} />
-          <label
-            class="workshop-meta"
-            label={`${Math.round((item.score ?? 0) * 100)}% · ${humanSize(item.size ?? 0)}`}
-          />
-        </box>
+        {/* One line: type, rating and size are all the same kind of fact
+            about the item, and three separate rows made the card twice as
+            tall as its own thumbnail. */}
+        <label
+          class="workshop-meta"
+          label={`${item.type} · ${Math.round((item.score ?? 0) * 100)}% · ${humanSize(item.size ?? 0)}`}
+        />
         {/* Steam knows what the item is; kirie knows whether this build can
             render it, which is the part worth saying before installing. */}
         {!item.renderable && (
@@ -432,14 +439,17 @@ export default function WorkshopBrowser({
     <box
       class="workshop-browser"
       orientation={Gtk.Orientation.VERTICAL}
-      spacing={8}
-      widthRequest={COLUMNS * (TILE + 26)}
-      heightRequest={ROWS * (TILE + 96)}
+      spacing={5}
+      widthRequest={COLUMNS * (TILE + 22)}
+      heightRequest={ROWS * (TILE + 62) + 84}
     >
-      <box spacing={6}>
+      <box spacing={4}>
         {searchEntry}
         <menubutton class="workshop-sort">
-          <label label={sort((s) => SORTS.find((o) => o.value === s)!.label)} />
+          <box spacing={4}>
+            <label label={sort((s) => SORTS.find((o) => o.value === s)!.label)} />
+            <label class="chevron" label="▾" />
+          </box>
           <popover position={Gtk.PositionType.BOTTOM}>
             <box orientation={Gtk.Orientation.VERTICAL} class="popover">
               {SORTS.map((option) => (
@@ -459,23 +469,28 @@ export default function WorkshopBrowser({
 
       <Gtk.FlowBox
         class="workshop-filters"
-        columnSpacing={6}
-        rowSpacing={6}
+        columnSpacing={4}
+        rowSpacing={4}
         selectionMode={Gtk.SelectionMode.NONE}
         homogeneous={false}
-        minChildrenPerLine={3}
-        maxChildrenPerLine={7}
+        minChildrenPerLine={4}
+        maxChildrenPerLine={8}
       >
         {FILTER_GROUPS.map((group) => (
           <menubutton class="workshop-filter">
             {/* The button says what is chosen, not what the group is called:
                 a row of "Type / Age / Genre" tells you nothing about the
-                query you are actually looking at. */}
-            <label
-              label={filters((f) => f[group.label] ?? group.label)}
-              maxWidthChars={16}
-              ellipsize={Pango.EllipsizeMode.END}
-            />
+                query you are actually looking at. The chevron is what says
+                it opens — without one these read as plain labels. */}
+            <box spacing={4}>
+              <label
+                class={filters((f) => (f[group.label] ? "chosen" : ""))}
+                label={filters((f) => f[group.label] ?? group.label)}
+                maxWidthChars={16}
+                ellipsize={Pango.EllipsizeMode.END}
+              />
+              <label class="chevron" label="▾" />
+            </box>
             <popover position={Gtk.PositionType.BOTTOM}>
               <scrolledwindow
                 hscrollbarPolicy={Gtk.PolicyType.NEVER}
@@ -534,8 +549,8 @@ export default function WorkshopBrowser({
         <With value={items}>
           {(list) => (
             <Gtk.FlowBox
-              columnSpacing={8}
-              rowSpacing={8}
+              columnSpacing={6}
+              rowSpacing={6}
               homogeneous={true}
               selectionMode={Gtk.SelectionMode.NONE}
               minChildrenPerLine={COLUMNS}
