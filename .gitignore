@@ -28,6 +28,8 @@
 !.config/starship.toml
 # include btop config
 !.config/btop/
+# Include quickshell
+!.config/quickshell
 
 # include icons (cursort theme)
 !.icons/

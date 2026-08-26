@@ -13,6 +13,10 @@ local monitor = "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) |
 local resizeAmount = 25
 local changeBrightness = scriptsDir .. "/change-brightness.sh"
 
+-- Quickshell bar (migration from AGS): IPC calls target the QS config
+local qsCfg = home .. "/.config/quickshell/archeclipse"
+local qsIpc = "qs -p " .. qsCfg .. " ipc call bar "
+
 hl.config({
     binds = {
         workspace_back_and_forth = 1,
@@ -47,9 +51,9 @@ hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("[workspace 5] " .. terminal .. " bto
 --- restart status bar
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(statusBar))
 --- toggle status bar visibility
-hl.bind(mainMod .. " + ALT_L", hl.dsp.exec_cmd("ags request bar " .. monitor))
+hl.bind(mainMod .. " + ALT_L", hl.dsp.exec_cmd(qsIpc .. "toggleBar " .. monitor))
 --- toggle app launcher
-hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("ags request search " .. monitor))
+hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd(qsIpc .. "toggleSearch"))
 --- toggle media panel
 hl.bind(mainMod .. " + m", hl.dsp.exec_cmd("ags toggle media-" .. monitor))
 --- toggle right panel

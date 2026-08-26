@@ -1,0 +1,5 @@
+singleton BarState 1.0 BarState.qml
+singleton WorkspaceIcons 1.0 WorkspaceIcons.qml
+singleton SysInfo 1.0 SysInfo.qml
+singleton VolumeWatcher 1.0 VolumeWatcher.qml
+Ipc 1.0 Ipc.qml
