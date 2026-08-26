@@ -4,3 +4,6 @@ singleton SysInfo 1.0 SysInfo.qml
 singleton VolumeWatcher 1.0 VolumeWatcher.qml
 Ipc 1.0 Ipc.qml
 singleton Launcher 1.0 Launcher.qml
+singleton Notifications 1.0 Notifications.qml
+singleton Weather 1.0 Weather.qml
+singleton Registry 1.0 Registry.qml

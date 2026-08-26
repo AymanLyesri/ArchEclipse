@@ -9,7 +9,7 @@ Rectangle {
     id: root
 
     width: 520
-    height: Math.min(content.childrenRect.height + 20, 480)
+    height: 360   // fixed; ListView scrolls inside (childrenRect feedback loop avoided)
     radius: Theme.radius
     color: Theme.moduleBg
     visible: true   // popup visibility driven by BarState.state; content switches help/results

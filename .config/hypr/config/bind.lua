@@ -61,17 +61,17 @@ hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("ags toggle right-panel-" .. monitor)
 --- toggle left panel
 hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("ags toggle left-panel-" .. monitor))
 --- toggle wallpaper switcher
-hl.bind(mainMod .. " + w", hl.dsp.exec_cmd("ags toggle wallpaper-switcher-" .. monitor))
+hl.bind(mainMod .. " + w", hl.dsp.exec_cmd(qsIpc .. "togglePanel wallpaper-switcher " .. monitor))
 --- toggle user panel
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("ags toggle user-panel-" .. monitor))
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(qsIpc .. "togglePanel user-panel " .. monitor))
 --- open clipboard manager
-hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd("ags request clipboard " .. monitor))
+hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd(qsIpc .. "clipboard"))
 --- open emoji picker
-hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("ags request emojis " .. monitor))
+hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(qsIpc .. "emojis"))
 --- open notes app
-hl.bind(mainMod .. " + SHIFT + n", hl.dsp.exec_cmd("ags request notes " .. monitor))
+hl.bind(mainMod .. " + SHIFT + n", hl.dsp.exec_cmd(qsIpc .. "notes"))
 --- open all apps
-hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("ags request apps " .. monitor))
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(qsIpc .. "apps"))
 
 -- Screenshot and Screen Record Keybinds
 --- screenshot workspace
@@ -79,9 +79,9 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --now"))
 --- screenshot area
 hl.bind(mainMod .. " + CTRL + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --area"))
 --- screen record workspace
-hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("ags request screenrecord now"))
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord now"))
 --- screen record area
-hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd("ags request screenrecord area"))
+hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord area"))
 
 -- Special Workspace Keybinds
 --- move to special workspace

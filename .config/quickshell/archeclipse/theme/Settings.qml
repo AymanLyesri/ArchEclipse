@@ -27,6 +27,7 @@ QtObject {
     property real rightPanelHotZoneSize: 5
     property bool leftPanelHotZone: true
     property bool rightPanelHotZone: true
+    property bool notifDnd: false
     property bool leftPanelLock: false
     property bool rightPanelLock: false
 
@@ -64,6 +65,7 @@ QtObject {
                 root.leftPanelHotZone = s.leftPanel.hotZone?.value ?? true;
                 root.rightPanelHotZone = s.rightPanel.hotZone?.value ?? true;
                 root.leftPanelLock = !!s.leftPanel.lock;
+                root.notifDnd = !!s.notifications?.dnd;
                 root.rightPanelLock = !!s.rightPanel.lock;
             } catch (e) {
                 console.warn("[Settings] parse failed:", e);
