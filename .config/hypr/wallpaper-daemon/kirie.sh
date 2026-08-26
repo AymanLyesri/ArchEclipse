@@ -18,6 +18,14 @@ runtime="${XDG_RUNTIME_DIR:-/tmp}"
 socket="$runtime/lwe.sock"
 pidFile="$runtime/kirie.pid"
 logFile="$runtime/kirie.log"
+lockFile="$runtime/kirie.lock"
+
+# One engine serves every screen, so only one invocation may decide whether to
+# launch one. Applying a wallpaper to two monitors at once — which is exactly
+# what happens at login — otherwise has both calls find no engine running and
+# start their own, leaving a process per monitor, each owning one screen.
+exec 9>"$lockFile"
+flock 9
 
 # The engine is installed per user, and the session PATH does not always carry
 # ~/.local/bin when the compositor spawns the wallpaper daemon.
@@ -78,7 +86,18 @@ flag_bool() {
 
 # The screens the running engine owns, as `<monitor> <item>` lines.
 screens() {
-    send status 5 2>/dev/null | sed -n 's/^screen=\(.*\) bg=\(.*\)$/\1 \2/p'
+    local out
+    # A freshly launched engine answers `ping` before it has registered its
+    # screens, so an immediate `status` comes back empty — and a caller adding
+    # a second monitor would then relaunch with only its own, dropping the
+    # wallpaper that was already up. Give it a moment to name them.
+    for _ in $(seq 1 10); do
+        out="$(send status 5 2>/dev/null | sed -n 's/^screen=\(.*\) bg=\(.*\)$/\1 \2/p')"
+        [ -n "$out" ] && break
+        alive || break
+        sleep 0.3
+    done
+    printf '%s' "$out"
 }
 
 # The property overrides saved for an item, as `<key> <value>` lines.
@@ -104,7 +123,9 @@ stop_engine() {
     done
 }
 
-# Launch one engine for every `<monitor> <item>` line in $1.
+# Launch ONE engine owning every `<monitor> <item>` line in $1: each becomes a
+# `--screen-root`/`--bg` pair. kirie drives every screen from one process, and
+# a second instance would fight it for the same control socket.
 launch() {
     local lines="$1"
     local args=() globals=() first=1 monitor item
@@ -151,7 +172,10 @@ launch() {
         fi
     done <<<"$lines"
 
-    setsid "$kirieBin" "${args[@]}" >"$logFile" 2>&1 &
+    # 9>&- closes the lock fd in the engine: it inherits every open descriptor,
+    # and an engine holding the lock for its whole life blocks every later
+    # invocation of this script forever.
+    setsid "$kirieBin" "${args[@]}" >"$logFile" 2>&1 9>&- &
 
     local ready=1
     for _ in $(seq 1 50); do
