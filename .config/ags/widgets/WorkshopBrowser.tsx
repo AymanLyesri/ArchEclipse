@@ -64,6 +64,32 @@ const humanSize = (bytes: number) => {
   return `${bytes}B`;
 };
 
+/// How many preview downloads may be in flight at once.
+///
+/// A page is 24 items and they all want their thumbnail at the same moment;
+/// firing every request together makes the first screenful arrive *slower*,
+/// because none of them finish first.
+const PREVIEW_PARALLEL = 6;
+
+let previewsRunning = 0;
+const previewQueue: (() => void)[] = [];
+
+/// Run `task` when a download slot is free.
+const queued = <T,>(task: () => Promise<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const start = () => {
+      previewsRunning += 1;
+      task()
+        .then(resolve, reject)
+        .finally(() => {
+          previewsRunning -= 1;
+          previewQueue.shift()?.();
+        });
+    };
+    if (previewsRunning < PREVIEW_PARALLEL) start();
+    else previewQueue.push(start);
+  });
+
 /// Fetch an item's preview image once, and answer with its local path.
 ///
 /// Hardened the same way the engine's own image fetches are: http(s) only,
@@ -76,23 +102,25 @@ const ensurePreview = async (item: KirieWorkshopItem): Promise<string | null> =>
 
   GLib.mkdir_with_parents(PREVIEW_DIR, 0o755);
   try {
-    await execAsync([
-      "curl",
-      "--silent",
-      "--fail",
-      "--location",
-      "--proto",
-      "=http,https",
-      "--proto-redir",
-      "=http,https",
-      "--max-time",
-      "20",
-      "--max-filesize",
-      "8000000",
-      "--output",
-      path,
-      item.preview,
-    ]);
+    await queued(() =>
+      execAsync([
+        "curl",
+        "--silent",
+        "--fail",
+        "--location",
+        "--proto",
+        "=http,https",
+        "--proto-redir",
+        "=http,https",
+        "--max-time",
+        "20",
+        "--max-filesize",
+        "8000000",
+        "--output",
+        path,
+        item.preview!,
+      ]),
+    );
   } catch (_err) {
     // A missing thumbnail is not worth a notification: the card still says
     // what the item is.
