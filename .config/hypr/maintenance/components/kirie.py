@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import subprocess
 import sys
 import urllib.request
@@ -96,9 +95,12 @@ def _ensure_on_path() -> None:
     nobody's PATH — so `kirie` answers "command not found" on a machine that
     has it.
     """
+    # Deliberately not `shutil.which`: that answers for the *installer's*
+    # environment, and this runs from whatever shell the user started it in.
+    # A login zsh can be missing the directory while the bash running this has
+    # it. What matters is whether the persistent config mentions it.
     bin_dir = INSTALL_PATH.parent
-    if shutil.which("kirie"):
-        return
+    changed = False
 
     # The systemd user session: what SDDM starts, and therefore what the panel
     # and every launcher inherit.
@@ -106,6 +108,7 @@ def _ensure_on_path() -> None:
     ensure_dir(env_file.parent)
     if not env_file.is_file() or "local/bin" not in env_file.read_text():
         env_file.write_text(f'PATH="{bin_dir}:$PATH"\n')
+        changed = True
 
     # Interactive shells. ArchEclipse ships its own .zshrc with this already,
     # so only files it does not own are appended to — and only when the
@@ -118,9 +121,11 @@ def _ensure_on_path() -> None:
             continue
         with rc.open("a") as handle:
             handle.write(f'\nexport PATH="{bin_dir}:$PATH"\n')
+        changed = True
 
-    print(f"  ! {bin_dir} was not on PATH; added it.")
-    print("    Open a new shell or log out and back in for `kirie` to resolve.")
+    if changed:
+        print(f"  Added {bin_dir} to PATH.")
+        print("  Open a new shell or log out and back in for `kirie` to resolve.")
 
 
 def _report_readiness() -> None:
