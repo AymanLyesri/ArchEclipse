@@ -869,7 +869,12 @@ export default ({
         visible={kirieInstalled()}
         tooltipMarkup="Browse the <b>Steam Workshop</b>"
       >
-        <label label="󰇚" />
+        {/* Steam's own mark with a magnifier beside it: a download arrow said
+            "fetch something", not "go and look through the Workshop". */}
+        <box class="workshop-icon" spacing={1}>
+          <label class="steam" label="" />
+          <label class="lens" label="󰍉" />
+        </box>
         <popover position={Gtk.PositionType.TOP}>
           <WorkshopBrowser
             onInstalled={() => FetchWallpapers()}

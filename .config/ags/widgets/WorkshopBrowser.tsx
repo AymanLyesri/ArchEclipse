@@ -141,6 +141,18 @@ const FILTER_GROUPS: { label: string; tags: string[] }[] = [
 /// this panel opens over a desktop.
 const ADULT = ["Mature", "Questionable"];
 
+/// One line of readable text from an author-written title.
+///
+/// Workshop titles carry HTML often enough to matter — banners, credit links
+/// — and a card is 148px wide.
+const plainTitle = (raw: string) =>
+  raw
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 /// Bytes as a short human string.
 const humanSize = (bytes: number) => {
   for (const [unit, scale] of [
@@ -469,7 +481,7 @@ export default function WorkshopBrowser({
         {preview}
         <label
           class="workshop-title"
-          label={item.title}
+          label={plainTitle(item.title) || item.id}
           maxWidthChars={16}
           ellipsize={Pango.EllipsizeMode.END}
           tooltipText={item.title}

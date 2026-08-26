@@ -44,8 +44,31 @@ const wireValue = (value: any): string => String(value);
 
 /** Wallpapers that were translated carry a localization key where their label
  * should be ("ui_browse_properties_scheme_color"); show something readable. */
+/// Turn a wallpaper author's label into one line of readable text.
+///
+/// A `project.json` label is whatever its author typed, and plenty of them are
+/// HTML — banners, credit links, whole `<img>` tags. GTK renders that verbatim
+/// on one enormous line, so the panel ended up wider than the screen showing
+/// markup nobody can read. Tags come out, entities are decoded, whitespace
+/// collapses, and a label that was *only* markup falls back to its key.
+function plainText(raw: string): string {
+  const stripped = raw
+    // Anything inside a tag goes; an <img> or <a> carries no text of its own.
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  // A bare URL left behind by a stripped link is not a label either.
+  return /^https?:\/\/\S*$/.test(stripped) ? "" : stripped;
+}
+
 function propertyLabel(property: KirieProperty): string {
-  const text = property.text || property.key;
+  const text = plainText(property.text || "") || property.key;
   if (!text.startsWith("ui_")) return text;
 
   return text
@@ -127,7 +150,12 @@ export default function WallpaperEngineProperties({
         class="property-name"
         hexpand
         xalign={0}
+        // Wrapped and capped: a long label is the author's business, but a row
+        // that sets the panel's width is ours.
+        wrap={true}
+        maxWidthChars={28}
         label={propertyLabel(property)}
+        tooltipText={propertyLabel(property)}
       />
     );
 
@@ -283,7 +311,16 @@ export default function WallpaperEngineProperties({
       $={load}
     >
       <box spacing={10}>
-        <label class="title" hexpand xalign={0} label={item.title} />
+        {/* Item titles carry the same author-written markup the labels do. */}
+        <label
+          class="title"
+          hexpand
+          xalign={0}
+          wrap={true}
+          maxWidthChars={30}
+          label={plainText(item.title) || item.id}
+          tooltipText={plainText(item.title) || item.id}
+        />
         <button
           class="reset"
           label="󰑐"
