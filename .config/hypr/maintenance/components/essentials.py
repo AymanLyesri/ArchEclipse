@@ -42,7 +42,14 @@ def install_core_tools() -> None:
 
     if packages_to_install:
         print(f"Installing: {' '.join(packages_to_install)}")
-        run_cmd(["sudo", "pacman", "-S", "--noconfirm", *packages_to_install])
+        # -Syu, not -S: a machine whose package database is older than the
+        # mirrors asks for versions that have already been superseded and
+        # removed, and every mirror answers 404 — which is how the very first
+        # step of a fresh install failed. Refreshing without upgrading (-Sy)
+        # would leave a partial upgrade behind instead, so it is the full one.
+        run_cmd(
+            ["sudo", "pacman", "-Syu", "--needed", "--noconfirm", *packages_to_install]
+        )
         print("Core tools installation completed.")
     else:
         print("All core tools are already installed.")
