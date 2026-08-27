@@ -4,6 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.theme
 import qs.services
+import qs.widgets
 import QtQuick.Controls
 
 // Port of widgets/leftPanel/LeftPanel.tsx — side panel on the left edge.

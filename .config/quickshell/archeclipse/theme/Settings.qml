@@ -1,12 +1,12 @@
 pragma Singleton
-import QtQuick
 import Quickshell
+import QtQuick
 import Quickshell.Io
 
 // Mirrors the subset of ArchEclipse settings.json (cache/settings/settings.json)
 // that the bar consumes. Values are read once at startup — the AGS settings UI
 // remains the editor; this shell follows the same file so both stay in sync.
-QtObject {
+Singleton {
     id: root
 
     // defaults matching constants/settings.constants.ts
@@ -48,13 +48,19 @@ QtObject {
         return `${p(d.getHours())}:${p(d.getMinutes())}`;
     }
 
+    // FileView for settings
     property FileView _file: FileView {
         path: `${Quickshell.env("HOME")}/.config/ags/cache/settings/settings.json`
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: {
-            try {
-                const s = JSON.parse(text());
+        onLoaded: reload()
+    }
+
+    function reload() {
+        try {
+            const text = _file.text()
+            if (text !== "" && text.trim().startsWith("{")) {
+                const s = JSON.parse(text);
                 root.barLock = s.bar.lock.value;
                 root.barSmartHide = s.bar.smartHide.value;
                 root.barExpanded = s.bar.expanded.value;
@@ -84,9 +90,13 @@ QtObject {
                 root.barBlurPasses = s.bar.blurPasses?.value ?? 3;
                 root.barBlurSize = s.bar.blurSize?.value ?? 4;
                 root.notifDnd = !!s.notifications?.dnd;
-            } catch (e) {
-                console.warn("[Settings] parse failed:", e);
             }
+        } catch (e) {
+            console.warn("[Settings] parse failed:", e);
         }
+    }
+
+    Component.onCompleted: {
+        reload()
     }
 }

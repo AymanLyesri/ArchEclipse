@@ -7,11 +7,6 @@ import qs.services
 import qs.bar
 
 // Port of widgets/bar/Bar.tsx — the floating ArchEclipse bar pill.
-//
-// One PanelWindow per monitor, top or bottom per bar.orientation.
-// The window is a full-width strip; the visible pill is centered inside it,
-// which reproduces the AGS floating-pill look while keeping the exclusive
-// zone simple (AGS reserves via the same full-width window).
 PanelWindow {
     id: root
 
@@ -22,25 +17,23 @@ PanelWindow {
     }
 
     // --- window geometry / layer ---
-    anchors { left: true; right: true; top: Settings.barOrientation; bottom: !Settings.barOrientation }
+    anchors { left: true; right: true; top: qs.theme.Settings.barOrientation; bottom: !qs.theme.Settings.barOrientation }
 
-    // layer-shell keyboard grab while the search island is open (AGS legacy
-    // keymode EXCLUSIVE equivalent); OnDemand otherwise so clicks still land.
+    // layer-shell keyboard grab while the search island is open
     WlrLayershell.keyboardFocus: BarState.state === "search"
         ? WlrKeyboardFocus.Exclusive
         : WlrKeyboardFocus.OnDemand
-    exclusiveZone: Settings.barLock ? implicitHeight : -1  // unlocked = overlay (ExclusionMode.Ignore equivalent)
+    exclusiveZone: Settings.barLock ? implicitHeight : -1
     color: "transparent"
     aboveWindows: true
 
     readonly property int barHeight: 34
-    implicitHeight: barHeight + (Settings.barOrientation ? 6 : 0)   // small gap on the screen edge
+    implicitHeight: barHeight + (Settings.barOrientation ? 6 : 0)
 
     readonly property bool fullWidth: Settings.barFullWidth
 
     // visibility: fullscreen client hides; search pins; override wins;
-    // otherwise lock/smart-hide logic. Smart-hide room check against live
-    // Hyprland clients is approximated by toplevels on this workspace.
+    // otherwise lock/smart-hide logic.
     readonly property bool fullscreenActive: {
         const mon = Hyprland.monitorFor(screen);
         const ws = mon?.activeWorkspace;
@@ -49,7 +42,7 @@ PanelWindow {
         return tops.some(t => t.lastIpcObject?.fullscreen?.client > 0 || t.lastIpcObject?.fullscreen === 2);
     }
     readonly property bool smartHideBlocked: {
-        BarState.hyprlandTick; // reactive dep on hyprland events
+        BarState.hyprlandTick;
         if (!Settings.barSmartHide) return false;
         const mon = Hyprland.monitorFor(screen);
         const ws = mon?.activeWorkspace;
@@ -87,7 +80,7 @@ PanelWindow {
         }
     }
 
-    // idle watchdog for hover-reveal overrides (Bar.tsx pointerOnBar check)
+    // idle watchdog for hover-reveal overrides
     Connections {
         target: BarState
         function onBarShownChanged() {
@@ -111,11 +104,9 @@ PanelWindow {
         id: stripRoot
         anchors.fill: parent
 
-        // Hover detection lives on this stable container (never rebuilt by
-        // page swaps) — mirrors Bar.tsx's window-level EventControllerMotion.
+        // Hover detection lives on this stable container
         HoverHandler {
             id: pillHover
-            // Only count as "on the bar" when actually over the pill area
             enabled: true
         }
         readonly property bool pointerOnPill: {
@@ -138,11 +129,11 @@ PanelWindow {
             Behavior on width {
                 NumberAnimation {
                     duration: 300
-                    easing.type: Easing.OutBack   // springy width change ≈ AGS spring
+                    easing.type: Easing.OutBack
                 }
             }
 
-            // ---- state stack with crossfade (Gtk.Stack CROSSFADE 250ms) ----
+            // ---- state stack with crossfade ----
             Item {
                 id: stack
                 anchors.centerIn: parent
@@ -169,43 +160,22 @@ PanelWindow {
                         case "recording": return recordingPage;
                         case "player": return playerPage;
                         case "search": return searchPage;
-                        default: return compactPage;   // compact is base
+                        default: return compactPage;
                         }
                     }
                 }
 
-                Component {
-                    id: compactPage
-                    CompactBar {}
-                }
-                Component {
-                    id: expandedPage
-                    ExpandedBar {}
-                }
-                Component {
-                    id: volumePage
-                    VolumePulse {}
-                }
-                Component {
-                    id: brightnessPage
-                    BrightnessPulse {}
-                }
-                Component {
-                    id: recordingPage
-                    RecordingIndicator {}
-                }
-                Component {
-                    id: playerPage
-                    PlayerPulse {}
-                }
-                Component {
-                    id: searchPage
-                    SearchBar {}
-                }
+                Component { id: compactPage; CompactBar {} }
+                Component { id: expandedPage; ExpandedBar {} }
+                Component { id: volumePage; VolumePulse {} }
+                Component { id: brightnessPage; BrightnessPulse {} }
+                Component { id: recordingPage; RecordingIndicator {} }
+                Component { id: playerPage; PlayerPulse {} }
+                Component { id: searchPage; SearchBar {} }
             }
         }
 
-        // ---- launcher results popup (below/above pill while search open) ----
+        // ---- launcher results popup ----
         PopupWindow {
             id: launcherPopup
             visible: BarState.state === "search"
@@ -223,15 +193,15 @@ PanelWindow {
         // ---- hot zones (left/right panel reveal strips) ----
         HotZone {
             side: "left"
-            size: Settings.leftPanelHotZoneSize
-            enabled: Settings.leftPanelHotZone
-            panelLock: Settings.leftPanelLock
+            size: qs.theme.Settings.leftPanelHotZoneSize
+            enabled: qs.theme.Settings.leftPanelHotZone
+            panelLock: qs.theme.Settings.leftPanelLock
         }
         HotZone {
             side: "right"
-            size: Settings.rightPanelHotZoneSize
-            enabled: Settings.rightPanelHotZone
-            panelLock: Settings.rightPanelLock
+            size: qs.theme.Settings.rightPanelHotZoneSize
+            enabled: qs.theme.Settings.rightPanelHotZone
+            panelLock: qs.theme.Settings.rightPanelLock
         }
     }
 

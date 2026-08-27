@@ -16,8 +16,8 @@ Rectangle {
 
     anchors.left: side === "left" ? parent.left : undefined
     anchors.right: side === "right" ? parent.right : undefined
-    anchors.top: Settings.barOrientation ? parent.top : undefined
-    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+    anchors.top: qs.theme.Settings.barOrientation ? parent.top : undefined
+    anchors.bottom: qs.theme.Settings.barOrientation ? undefined : parent.bottom
     width: size
     height: parent.height
     color: preview ? Qt.rgba(1, 0.33, 0.33, 0.4) : "transparent"
