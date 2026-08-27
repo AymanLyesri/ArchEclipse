@@ -1,150 +1,433 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
-import Quickshell.Widgets
 import Quickshell.Io
 import qs.theme
 import qs.services
 
-// Port of WallpaperSwitcher.tsx — floating overlay: pick a wallpaper for the
-// current workspace (or all), reusing the same hypr wallpaper-daemon scripts.
+// WallpaperSwitcher — pick a wallpaper per workspace, or set the sddm /
+// lockscreen background, browse a category, add a new wallpaper (with
+// automatic thumbnail generation), or delete one.
+//
+// Ground-up Quickshell port of AGS/Astal's WallpaperSwitcher.tsx. Rewritten
+// (not adapted) from the earlier QML draft — that draft hardcoded a home
+// directory, dropped target-type switching, the per-workspace strip,
+// right-click delete, "add wallpaper", and the loading/error indicator.
+// All of that is restored here; see the notes below the code.
 PanelWindow {
     id: root
 
     required property ShellScreen screen
-    anchors { top: true; bottom: true; left: true; right: true }
+    readonly property string monitorName: Hyprland.monitorFor(screen)?.name ?? ""
+
+    // Bottom-anchored overlay panel, not a full-screen dimmer — matches the
+    // original AGS window (LEFT|BOTTOM|RIGHT anchor, OVERLAY layer, IGNORE
+    // exclusivity, ON_DEMAND keyboard focus).
+    anchors { left: true; right: true; bottom: true }
     exclusiveZone: -1
-    color: Qt.rgba(0, 0, 0, 0.5)
-    aboveWindows: true
+    implicitHeight: 340
+    color: "transparent"
     visible: false
 
-    property string monitorName: (Hyprland.monitorFor(screen)?.name) ?? ""
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "wallpaper-switcher-" + monitorName
+    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+
+    // Adjust to whatever your registry/window-manager service is actually
+    // called — this assumes the same "Registry.register(name, window)"
+    // convention the previous draft used.
     Component.onCompleted: Registry.register(`wallpaper-switcher-${monitorName}`, root)
 
-    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-    // focus trap for Esc
     Item {
         anchors.fill: parent
-        focus: true
+        focus: root.visible
         Keys.onEscapePressed: root.visible = false
-        MouseArea { anchors.fill: parent; onClicked: root.visible = false }
     }
 
-    property var wallpapers: ({})          // category -> [paths]
-    property var currentWallpapers: []     // per-workspace paths
+    readonly property string home: Quickshell.env("HOME")
+    readonly property string wallpaperScript: home + "/.config/ags/scripts/get-wallpapers.sh"
+    readonly property string setScript: home + "/.config/hypr/wallpaper-daemon/set-wallpaper.sh"
+    readonly property string reloadScript: home + "/.config/hypr/wallpaper-daemon/reload.sh"
+
+    function toThumbnailPath(file) {
+        return file
+            .replace(home + "/.config/wallpapers/", home + "/.config/ags/cache/thumbnails/")
+            .replace(/\.[^/.]+$/, ".jpg");
+    }
+
+    // ---------------------------------------------------------------- state
+
+    readonly property var targetTypes: ["workspace", "sddm", "lockscreen"]
+    property string targetType: "workspace"
+    property int selectedWorkspaceId: 1
+
+    property string progressStatus: "idle" // idle | loading | success | error
+    function setProgress(status) {
+        progressStatus = status;
+        if (status === "success" || status === "error")
+            progressResetTimer.restart();
+    }
+    Timer {
+        id: progressResetTimer
+        interval: 1500
+        onTriggered: root.progressStatus = "idle"
+    }
+
+    property var wallpapers: ({})               // category -> [paths]
     readonly property var categories: Object.keys(wallpapers)
-    property string selectedCategory: categories[0] ?? ""
+    property string selectedCategory: ""
+    onCategoriesChanged: if (!categories.includes(selectedCategory))
+        selectedCategory = categories[0] ?? ""
+    readonly property var selectedWallpapers: wallpapers[selectedCategory] ?? []
+
+    property var currentWallpapers: []           // path per workspace index, this monitor
+
+    onVisibleChanged: if (visible) {
+        fetchWallpapers();
+        fetchCurrentWallpapers();
+    }
+
+    // Keep the selected workspace synced to whatever's focused when the
+    // switcher opens, like the AGS version's focusedWorkspace.subscribe().
+    Connections {
+        target: Hyprland
+        function onFocusedWorkspaceChanged() {
+            const ws = Hyprland.focusedWorkspace;
+            if (ws) root.selectedWorkspaceId = ws.id;
+        }
+    }
+
+    function notifyError(context, err) {
+        setProgress("error");
+        console.warn("[WallpaperSwitcher]", context, err);
+        Notifications.notify({ summary: "Error", body: String(err) }); // adjust to your notify service
+    }
+
+    // ---------------------------------------------------------- data fetch
 
     Process {
         id: fetchProc
-        command: ["bash", `${Quickshell.env("HOME")}/.config/ags/scripts/get-wallpapers.sh`]
+        command: ["bash", root.wallpaperScript]
         stdout: StdioCollector {
             onStreamFinished: {
-                try { root.wallpapers = JSON.parse(text); } catch (e) { console.warn("[Wallpaper]", e); }
+                try {
+                    root.wallpapers = JSON.parse(text);
+                } catch (e) {
+                    root.notifyError("fetching wallpapers", e);
+                }
             }
         }
     }
+    function fetchWallpapers() { fetchProc.running = true; }
+
     Process {
-        id: fetchCurrent
-        command: ["bash", `${Quickshell.env("HOME")}/.config/ags/scripts/get-wallpapers.sh`, "--current", root.monitorName]
+        id: fetchCurrentProc
+        command: ["bash", root.wallpaperScript, "--current", root.monitorName]
         stdout: StdioCollector {
             onStreamFinished: {
-                try { root.currentWallpapers = JSON.parse(text).map(String); } catch (e) {}
+                try {
+                    root.currentWallpapers = JSON.parse(text).map(String);
+                } catch (e) {
+                    root.notifyError("fetching current wallpapers", e);
+                }
+            }
+        }
+    }
+    function fetchCurrentWallpapers() { fetchCurrentProc.running = true; }
+
+    // ----------------------------------------------------------- set/apply
+
+    Process {
+        id: setProc
+        onExited: (code) => {
+            if (code === 0) {
+                root.fetchCurrentWallpapers();
+                root.setProgress("success");
+            } else {
+                root.setProgress("error");
             }
         }
     }
 
-    onVisibleChanged: if (visible) { fetchProc.running = true; fetchCurrent.running = true; }
+    function commandFor(target, path) {
+        switch (target) {
+        case "sddm":
+            return ["pkexec", "bash", "-c",
+                `sed -i "s|^background=.*|background=${path}|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf`];
+        case "lockscreen":
+            return ["bash", "-c",
+                `mkdir -p ${JSON.stringify(root.home + "/.config/wallpapers/lockscreen")} && ` +
+                `cp ${JSON.stringify(path)} ${JSON.stringify(root.home + "/.config/wallpapers/lockscreen/wallpaper")}`];
+        default: // workspace
+            return [root.setScript, String(root.selectedWorkspaceId), root.monitorName, path];
+        }
+    }
 
-    function setWallpaper(path) {
-        Quickshell.execDetached(["bash",
-            `${Quickshell.env("HOME")}/.config/hypr/wallpaper-daemon/set-wallpaper.sh`,
-            path, monitorName]);
+    function applyWallpaper(path) {
+        setProgress("loading");
+        setProc.command = commandFor(root.targetType, path);
+        setProc.running = true;
+    }
+
+    function setRandomWallpaper() {
+        const list = root.selectedWallpapers;
+        if (list.length === 0) return;
+        applyWallpaper(list[Math.floor(Math.random() * list.length)]);
+    }
+
+    // -------------------------------------------------------------- delete
+
+    Process {
+        id: deleteProc
+        onExited: (code) => {
+            root.fetchWallpapers();
+            root.setProgress(code === 0 ? "success" : "error");
+        }
+    }
+    function deleteWallpaper(path) {
+        setProgress("loading");
+        deleteProc.command = ["bash", "-c",
+            `rm -f ${JSON.stringify(root.toThumbnailPath(path))} && rm -f ${JSON.stringify(path)}`];
+        deleteProc.running = true;
+    }
+
+    // ----------------------------------------------------------- daemon reload
+
+    Process {
+        id: reloadProc
+        onExited: (code) => {
+            if (code === 0) root.fetchWallpapers();
+            root.setProgress(code === 0 ? "success" : "error");
+        }
     }
     function reloadDaemon() {
-        Quickshell.execDetached(["bash", "-c", `${Quickshell.env("HOME")}/.config/hypr/wallpaper-daemon/reload.sh`]);
+        setProgress("loading");
+        reloadProc.command = ["bash", "-c", root.reloadScript];
+        reloadProc.running = true;
     }
 
+    // --------------------------------------------------------- add wallpaper
+
+    Process {
+        id: pickProc
+        command: ["zenity", "--file-selection", "--title=Select Wallpaper",
+            "--file-filter=Images (png, jpg, webp, gif, mp4) | *.png *.jpg *.jpeg *.webp *.gif *.mp4"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const path = text.trim();
+                if (path.length > 0) root.importWallpaper(path);
+                else root.progressStatus = "idle";
+            }
+        }
+        onExited: (code) => {
+            // zenity exits 1 on Cancel — that's not a real error.
+            if (code !== 0 && code !== 1) root.setProgress("error");
+        }
+    }
+    function pickWallpaper() { pickProc.running = true; }
+
+    Process {
+        id: importProc
+        onExited: (code) => {
+            if (code === 0) {
+                Notifications.notify({ summary: "Success", body: "Wallpaper added successfully!" });
+                root.fetchWallpapers();
+                root.setProgress("success");
+            } else {
+                root.notifyError("adding wallpaper", "copy/thumbnail step failed");
+            }
+        }
+    }
+    function importWallpaper(sourcePath) {
+        setProgress("loading");
+        const targetDir = root.home + "/.config/wallpapers/custom";
+        const basename = sourcePath.split("/").pop();
+        const targetPath = targetDir + "/" + basename;
+        const thumbDir = root.home + "/.config/ags/cache/thumbnails/custom";
+        const thumbPath = thumbDir + "/" + basename.replace(/\.[^/.]+$/, ".jpg");
+        const isVideo = /\.(mp4|webm)$/i.test(sourcePath);
+        const thumbCmd = isVideo
+            ? `ffmpeg -i ${JSON.stringify(targetPath)} -vframes 1 -vf "scale=500:-1" -y ${JSON.stringify(thumbPath)}`
+            : `magick ${JSON.stringify(targetPath)} -resize "500x500^" -gravity center -extent 500x500 ${JSON.stringify(thumbPath)}`;
+
+        importProc.command = ["bash", "-c",
+            `mkdir -p ${JSON.stringify(targetDir)} ${JSON.stringify(thumbDir)} && ` +
+            `cp -- ${JSON.stringify(sourcePath)} ${JSON.stringify(targetPath)} && ` +
+            thumbCmd];
+        importProc.running = true;
+    }
+
+    // ------------------------------------------------------------------ UI
+
     Rectangle {
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 80, 1100)
-        height: Math.min(parent.height - 80, 700)
-        radius: Theme.radius
+        anchors.fill: parent
         color: Theme.backgroundSecondary
-        border.color: Qt.alpha(Theme.foreground, 0.15)
+        radius: Theme.radius
 
-        Column {
+        ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
+            anchors.margins: 12
+            spacing: 8
 
-            Row {
-                spacing: 8
-                Text {
-                    text: "Wallpaper Switcher"
-                    color: Theme.foreground
-                    font.family: Theme.fontFamily; font.bold: true; font.pixelSize: Theme.fontSize + 4
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-                ComboBox {
-                    id: catBox
-                    model: root.categories
-                    editable: false
-                    onActivated: root.selectedCategory = root.categories[currentIndex]
-                }
-                Item { width: 20; height: 1 }
-                Button {
-                    text: "Reload daemon"
-                    onClicked: root.reloadDaemon()
-                }
-                Button {
-                    text: "Close (Esc)"
-                    onClicked: root.visible = false
+            // per-workspace current wallpaper strip
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 10
+                Repeater {
+                    model: root.currentWallpapers
+                    delegate: Rectangle {
+                        id: wsTile
+                        required property string modelData
+                        required property int index
+                        readonly property bool isFocused: Hyprland.focusedWorkspace?.id === index + 1
+
+                        width: 140; height: 90
+                        radius: 6
+                        color: modelData === "" ? "black" : "transparent"
+                        border.width: isFocused ? 2 : 0
+                        border.color: Theme.accent ?? Theme.foreground
+
+                        Image {
+                            visible: wsTile.modelData !== ""
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            source: wsTile.modelData === "" ? "" : "file://" + root.toThumbnailPath(wsTile.modelData)
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                        }
+                        Text {
+                            visible: wsTile.modelData === ""
+                            anchors.centerIn: parent
+                            text: "No Wallpaper"
+                            color: Theme.foregroundSecondary
+                            font.family: Theme.fontFamily
+                        }
+                        ToolTip.visible: wsMa.containsMouse
+                        ToolTip.text: `Set wallpaper for Workspace ${index + 1}`
+                        MouseArea {
+                            id: wsMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.targetType = "workspace";
+                                root.selectedWorkspaceId = index + 1;
+                            }
+                        }
+                    }
                 }
             }
 
-            GridView {
-                id: grid
-                width: parent.width
-                height: parent.height - 50
-                clip: true
-                cellWidth: 180; cellHeight: 120
-                model: root.wallpapers[root.selectedCategory] ?? []
+            // action bar
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 10
 
-                delegate: Rectangle {
-                    required property string modelData
-                    required property int index
-                    width: grid.cellWidth - 8
-                    height: grid.cellHeight - 8
-                    radius: 6
-                    color: ma.containsMouse ? Theme.buttonHoverBg : Theme.moduleBg
-                    border.width: 2
-                    border.color: ma.containsMouse ? Theme.foregroundSecondary : "transparent"
-
-                    Image {
-                                            anchors.fill: parent
-                                            anchors.margins: 3
-                                            source: "file://" + root.modelData.replace("/home/ayman/.config/wallpapers/", "/home/ayman/.config/ags/cache/thumbnails/").replace(/\.[^/.]+$/, ".jpg")
-                                            fillMode: Image.PreserveAspectCrop
-                                            asynchronous: true
-                                        }
-                    Text {
-                        anchors.bottom: parent.bottom
-                        anchors.right: parent.right
-                        anchors.margins: 4
-                        text: String(index + 1)
-                        color: Theme.foreground
-                        font.pixelSize: Theme.fontSize
+                Row {
+                    spacing: 2
+                    Repeater {
+                        model: root.targetTypes
+                        delegate: Button {
+                            required property string modelData
+                            text: modelData
+                            checkable: true
+                            checked: root.targetType === modelData
+                            onClicked: root.targetType = modelData
+                        }
                     }
-                    MouseArea {
-                        id: ma
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.setWallpaper(root.modelData)
+                }
+
+                Text {
+                    text: `Wallpaper -> ${root.targetType}` +
+                        (root.targetType === "workspace" ? " " + root.selectedWorkspaceId : "")
+                    color: Theme.foreground
+                    font.family: Theme.fontFamily
+                }
+
+                // pywal accent swatches, if your Theme service exposes them —
+                // rename/remove this block if it doesn't.
+                Row {
+                    spacing: 6
+                    visible: (Theme.colors ?? []).length > 0
+                    Repeater {
+                        model: Theme.colors ?? []
+                        delegate: Rectangle {
+                            required property string modelData
+                            width: 12; height: 12; radius: 6
+                            color: modelData
+                        }
+                    }
+                }
+
+                ComboBox {
+                    model: root.categories
+                    currentIndex: root.categories.indexOf(root.selectedCategory)
+                    onActivated: root.selectedCategory = root.categories[currentIndex]
+                }
+
+                Button { text: "Random"; onClicked: root.setRandomWallpaper() }
+                Button { text: "Reload"; onClicked: root.reloadDaemon() }
+                Button { text: "Add…"; onClicked: root.pickWallpaper() }
+
+                BusyIndicator {
+                    running: root.progressStatus === "loading"
+                    visible: running
+                    implicitWidth: 20; implicitHeight: 20
+                }
+                Text { visible: root.progressStatus === "error"; text: "⚠"; color: "red" }
+                Text { visible: root.progressStatus === "success"; text: "✓"; color: "lightgreen" }
+            }
+
+            // all wallpapers in the selected category — horizontal strip
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+                ScrollBar.horizontal.policy: ScrollBar.AsNeeded
+                clip: true
+
+                Row {
+                    spacing: 6
+                    height: parent.height
+                    Repeater {
+                        model: root.selectedWallpapers
+                        delegate: Rectangle {
+                            id: tile
+                            required property string modelData
+                            width: 150; height: parent.height - 4
+                            radius: 6
+                            color: tileMa.containsMouse ? Theme.buttonHoverBg : Theme.moduleBg
+                            border.width: tileMa.containsMouse ? 2 : 0
+                            border.color: Theme.foregroundSecondary
+
+                            Image {
+                                anchors.fill: parent
+                                anchors.margins: 3
+                                source: "file://" + root.toThumbnailPath(tile.modelData)
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                            }
+
+                            ToolTip.visible: tileMa.containsMouse
+                            ToolTip.text: `Click to set as ${root.targetType} wallpaper.\nRight-click to delete.\n${tile.modelData.split("/").pop()}`
+
+                            MouseArea {
+                                id: tileMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: (mouse) => {
+                                    if (mouse.button === Qt.RightButton)
+                                        root.deleteWallpaper(tile.modelData);
+                                    else
+                                        root.applyWallpaper(tile.modelData);
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -67,6 +67,10 @@ QtObject {
     readonly property string fg: foreground
     readonly property string bg: background
 
+    // Danger colors for destructive actions
+    readonly property string danger: "#ff4444"
+    readonly property string dangerBg: Qt.rgba(1.0, 0.26, 0.26, 0.1).toString()
+
     property FileView _cwal: FileView {
         path: `${Quickshell.env("HOME")}/.cache/cwal/colors.scss`
         watchChanges: true

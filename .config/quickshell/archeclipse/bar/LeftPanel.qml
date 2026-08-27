@@ -24,10 +24,11 @@ PanelWindow {
     color: "transparent"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     WlrLayershell.exclusiveZone: Settings.leftPanelLock ? width : -1
-    WlrLayershell.layer: WlrLayershell.Layer.Top
+    WlrLayershell.layer: WlrLayer.Top
 
     // Visibility: controlled by HotZone, keybind, or IPC
-    property bool visible: false
+    // Don't declare local 'visible' property - it shadows WindowInterface.visible
+    // The actual window visibility is controlled by the PanelWindow's visible property
 
     // Selected widget state
     property string selectedWidget: "UserProfile"
@@ -35,6 +36,8 @@ PanelWindow {
     // Register with Registry for IPC togglePanel
     Component.onCompleted: {
         Registry.register(`left-panel-${root.monitorName}`, root);
+        // Start hidden
+        visible = false;
     }
     Component.onDestruction: {
         Registry.unregister(`left-panel-${root.monitorName}`);
@@ -65,17 +68,12 @@ PanelWindow {
         anchors.fill: parent
         color: Theme.moduleBg
         radius: Theme.radius
-        border.width: 1
-        border.color: Theme.border
 
         // Left sidebar with widget selectors
         Rectangle {
             id: sidebar
-            width: 56
+            width: 48
             height: parent.height
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
             color: Theme.bg
             radius: Theme.radius
             clip: true
@@ -101,10 +99,9 @@ PanelWindow {
                     ]
                     delegate: Button {
                         id: selectorBtn
-                        width: parent.width
-                        height: 40
                         checkable: true
                         checked: root.selectedWidget === modelData.name
+                        padding: 10
                         contentItem: Text {
                             anchors.centerIn: parent
                             text: modelData.icon
@@ -175,87 +172,51 @@ PanelWindow {
                 }
             }
 
-            // Placeholder components for each widget
+            // Placeholder components for each widget - use actual widget implementations
             Component {
                 id: userProfileWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "User Profile"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "User profile widget"; color: Theme.fgDim }
-                }
+                UserProfileWidget {}
             }
             Component {
                 id: booruViewerWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "Booru Viewer"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "Booru viewer widget"; color: Theme.fgDim }
-                }
+                BooruViewerWidget {}
             }
             Component {
                 id: chatBotWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "Chat Bot"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "Chat bot widget"; color: Theme.fgDim }
-                }
+                ChatBotWidget {}
             }
             Component {
                 id: customScriptsWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "Custom Scripts"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "Custom scripts widget"; color: Theme.fgDim }
-                }
+                CustomScriptsWidget {}
             }
             Component {
                 id: donationsWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "Donations"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "Donations widget"; color: Theme.fgDim }
-                }
+                DonationsWidget {}
             }
             Component {
                 id: keyBindsWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "Key Binds"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "Key binds widget"; color: Theme.fgDim }
-                }
+                KeyBindsWidget {}
             }
             Component {
                 id: mangaViewerWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "Manga Viewer"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "Manga viewer widget"; color: Theme.fgDim }
-                }
+                MangaViewerWidget {}
             }
             Component {
                 id: settingsWidget
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 16
-                    Text { text: "Settings"; font.pixelSize: 24; color: Theme.fg }
-                    Text { text: "Settings widget"; color: Theme.fgDim }
-                }
+                SettingsWidget {}
             }
         }
     }
 
-    // Escape key closes panel
-    Keys.onEscapePressed: {
-        if (visible) {
-            visible = false;
-            event.accepted = true;
+    // Escape key closes panel - handled by focus scope
+    Item {
+        id: keyHandler
+        focus: true
+        Keys.onEscapePressed: {
+            if (root.visible) {
+                root.visible = false;
+                event.accepted = true;
+            }
         }
     }
 }
