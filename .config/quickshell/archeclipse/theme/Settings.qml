@@ -38,6 +38,8 @@ Singleton {
     property bool barBlur: true
     property int barBlurPasses: 3
     property int barBlurSize: 4
+    // Profile picture path
+    property string profilePicturePath: ""
 
     function fmt(d, f) {
         const p = (n) => n.toString().padStart(2, "0");

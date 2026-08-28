@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.theme
+import qs.services
 
 // Hot-zone strips at the bar's left/right ends — reveal the left/right panels
 // after a 500ms dwell (Bar.tsx hot-zone motion controllers). The panels
@@ -16,8 +17,8 @@ Rectangle {
 
     anchors.left: side === "left" ? parent.left : undefined
     anchors.right: side === "right" ? parent.right : undefined
-    anchors.top: qs.theme.Settings.barOrientation ? parent.top : undefined
-    anchors.bottom: qs.theme.Settings.barOrientation ? undefined : parent.bottom
+    anchors.top: Settings.barOrientation ? parent.top : undefined
+    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
     width: size
     height: parent.height
     color: preview ? Qt.rgba(1, 0.33, 0.33, 0.4) : "transparent"

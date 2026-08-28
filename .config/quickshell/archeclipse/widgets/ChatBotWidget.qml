@@ -1,7 +1,9 @@
-import Quickshell
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import qs.theme
 import qs.services
+import Quickshell
 import Quickshell.Io
 
 Item {
@@ -18,41 +20,42 @@ Item {
     property bool loading: false
 
     // Send message
-        function sendMessage() {
-            if (!root.inputText.trim() || root.loading) return
+    function sendMessage() {
+        if (!root.inputText.trim() || root.loading) return
 
-            const userMessage = { role: "user", content: root.inputText }
-            root.messages = [...root.messages, userMessage]
-            const query = root.inputText
-            root.inputText = ""
-            root.loading = true
+        const userMessage = { role: "user", content: root.inputText }
+        root.messages = [...root.messages, userMessage]
+        const query = root.inputText
+        root.inputText = ""
+        root.loading = true
 
-            // Call AI API (simplified - would use actual API)
-            const jsonPayload = JSON.stringify({
-                model: root.model,
-                messages: root.messages
-            })
-            const escapedPayload = jsonPayload.replace(/"/g, '\\"')
-            const proc = Qt.createQmlObject(
-                'import Quickshell.Io; Process { command: ["curl", "-fsSL", "-X", "POST", "https://api.openai.com/v1/chat/completions", "-H", "Content-Type: application/json", "-d", "' + escapedPayload + '"] }',
-                root
-            )
-            proc.running = true
-            proc.stdout = StdioCollector {
-                onStreamFinished: {
-                    try {
-                        const response = JSON.parse(text)
-                        const aiMessage = { role: "assistant", content: response.choices[0]?.message?.content ?? "Error" }
-                        root.messages = [...root.messages, aiMessage]
-                        root.loading = false
-                    } catch (e) {
-                        console.error("Chat API error:", e)
-                        root.messages = [...root.messages, { role: "assistant", content: "Error: " + e.message }]
-                        root.loading = false
-                    }
-                }
+        // Call AI API (simplified - would use actual API)
+        const jsonPayload = JSON.stringify({
+            model: root.model,
+            messages: root.messages
+        })
+        const escapedPayload = jsonPayload.replace(/\"/g, '\\\\\"')
+        const proc = Qt.createQmlObject(
+            'import Quickshell.Io; Process { command: ["curl", "-fsSL", "-X", "POST", "https://api.openai.com/v1/chat/completions", "-H", "Content-Type: application/json", "-d", "' + escapedPayload + '"] }',
+            root
+        )
+        proc.running = true
+        const collector = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        collector.onStreamFinished = function() {
+            const resultText = collector.text
+            try {
+                const response = JSON.parse(resultText)
+                const aiMessage = { role: "assistant", content: response.choices[0]?.message?.content ?? "Error" }
+                root.messages = [...root.messages, aiMessage]
+                root.loading = false
+            } catch (e) {
+                console.error("Chat API error:", e)
+                root.messages = [...root.messages, { role: "assistant", content: "Error: " + e.message }]
+                root.loading = false
             }
         }
+        proc.stdout = collector
+    }
 
     Column {
         anchors.fill: parent
@@ -126,7 +129,7 @@ Item {
         // Input area
         Row {
             spacing: 10
-            TextInput {
+            TextField {
                 id: input
                 text: root.inputText
                 onTextChanged: root.inputText = text

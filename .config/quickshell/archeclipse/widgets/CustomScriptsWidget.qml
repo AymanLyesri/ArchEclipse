@@ -1,5 +1,6 @@
-import Quickshell
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import qs.theme
 import qs.services
 import Quickshell.Io
@@ -98,7 +99,7 @@ Item {
 
                 Column { spacing: 4
                     Text { text: "Name"; font.family: "JetBrainsMono NFP"; font.pixelSize: 11; color: qs.theme.Theme.foreground }
-                    TextInput {
+                    TextField {
                         text: form.name
                         onTextChanged: form.name = text
                         placeholderText: "Script name"
@@ -111,7 +112,7 @@ Item {
 
                 Column { spacing: 4
                     Text { text: "Command"; font.family: "JetBrainsMono NFP"; font.pixelSize: 11; color: qs.theme.Theme.foreground }
-                    TextInput {
+                    TextField {
                         text: form.command
                         onTextChanged: form.command = text
                         placeholderText: "bash command"
@@ -169,16 +170,16 @@ Item {
                 Row {
                     spacing: 8
                     Column {
-                        Text { text: root.script.name; font.family: "JetBrainsMono NFP"; font.pixelSize: 13; font.bold: true; color: qs.theme.Theme.foreground }
-                        Text { text: root.script.category; font.family: "JetBrainsMono NFP"; font.pixelSize: 10; color: qs.theme.Theme.color8 }
+                        Text { text: entryItem.script.name; font.family: "JetBrainsMono NFP"; font.pixelSize: 13; font.bold: true; color: qs.theme.Theme.foreground }
+                        Text { text: entryItem.script.category; font.family: "JetBrainsMono NFP"; font.pixelSize: 10; color: qs.theme.Theme.color8 }
                     }
                     Item { Layout.fillWidth: true }
                     Row {
                         visible: entryItem.hovered
                         spacing: 4
-                        Button { text: "▶"; onClicked: root.runScript(root.script); font.pixelSize: 12 }
-                        Button { text: "✏"; onClicked: { root.editingScript = root.script; root.showAddForm = true }; font.pixelSize: 12 }
-                        Button { text: "✕"; onClicked: root.deleteScript(root.script.id); font.pixelSize: 12 }
+                        Button { text: "\u{25B6}"; onClicked: root.runScript(entryItem.script); font.pixelSize: 12 }
+                        Button { text: "\u{270F}"; onClicked: { root.editingScript = entryItem.script; root.showAddForm = true } font.pixelSize: 12 }
+                        Button { text: "\u{2715}"; onClicked: root.deleteScript(entryItem.script.id); font.pixelSize: 12 }
                     }
                 }
 
@@ -193,7 +194,7 @@ Item {
                     Text {
                         anchors.fill: parent
                         anchors.margins: 8
-                        text: root.script.command
+                        text: entryItem.script.command
                         font.family: "JetBrainsMono NFP"
                         font.pixelSize: 10
                         color: qs.theme.Theme.color8

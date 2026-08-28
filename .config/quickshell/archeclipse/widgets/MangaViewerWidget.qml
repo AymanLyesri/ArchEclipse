@@ -1,5 +1,7 @@
 import Quickshell
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import qs.theme
 import qs.services
 import Quickshell.Io
@@ -35,17 +37,18 @@ Item {
             root
         )
         proc.running = true
-        proc.stdout = StdioCollector {
-            onStreamFinished: {
-                try {
-                    root.mangas = JSON.parse(text)
-                    root.loading = false
-                } catch (e) {
-                    console.error("Failed to parse manga results:", e)
-                    root.loading = false
-                }
+        const collector = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        collector.onStreamFinished = function() {
+            const text = collector.text
+            try {
+                root.mangas = JSON.parse(text)
+                root.loading = false
+            } catch (e) {
+                console.error("Failed to parse manga results:", e)
+                root.loading = false
             }
         }
+        proc.stdout = collector
     }
 
     Column {
@@ -56,7 +59,7 @@ Item {
         // Search bar
         Row {
             spacing: 10
-            TextInput {
+            TextField {
                 text: root.searchQuery
                 onTextChanged: root.searchQuery = text
                 onAccepted: root.search()
@@ -96,19 +99,23 @@ Item {
                         anchors.margins: 10
 
                         // Cover
-                        Image {
+                        Rectangle {
                             width: 80
                             height: 100
-                            fillMode: Image.PreserveAspectFit
-                            source: modelData.preview
                             radius: 4
+                            clip: true
+                            Image {
+                                anchors.fill: parent
+                                fillMode: Image.PreserveAspectFit
+                                source: modelData.preview
+                            }
                         }
 
                         // Info
                         Column {
                             Layout.fillWidth: true
                             spacing: 4
-                            verticalAlignment: AlignVCenter
+                            anchors.verticalCenter: parent.verticalCenter
 
                             Text {
                                 text: modelData.tags.join(", ").slice(0, 50)
@@ -140,7 +147,7 @@ Item {
                         // Actions
                         Column {
                             spacing: 4
-                            verticalAlignment: AlignVCenter
+                            anchors.verticalCenter: parent.verticalCenter
                             Button {
                                 text: "Read"
                                 onClicked: {

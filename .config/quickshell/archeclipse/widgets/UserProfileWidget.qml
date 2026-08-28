@@ -1,7 +1,8 @@
 import Quickshell
 import QtQuick
-import qs.theme
 import QtQuick.Controls
+import qs.theme
+import qs.services
 
 Item {
     id: root
@@ -9,7 +10,7 @@ Item {
     property string className: ""
 
     // User profile data
-    property string profilePicture: qs.theme.Settings.profilePicturePath
+    property string profilePicture: Settings.profilePicturePath
     property string username: "ayman"
     property string email: "user@example.com"
     property bool isSupporter: false
@@ -37,7 +38,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: 50
-                border.color: qs.theme.Theme.accent
+                border.color: Theme.accent
                 border.width: 3
             }
         }
@@ -48,7 +49,7 @@ Item {
             font.family: "JetBrainsMono NFP"
             font.pixelSize: 18
             font.bold: true
-            color: qs.theme.Theme.foreground
+            color: Theme.foreground
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
@@ -57,7 +58,7 @@ Item {
             text: root.email
             font.family: "JetBrainsMono NFP"
             font.pixelSize: 11
-            color: qs.theme.Theme.color8
+            color: Theme.color8
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
@@ -67,17 +68,17 @@ Item {
             width: 100
             height: 28
             radius: 14
-            color: qs.theme.Theme.accentBg
-            border.color: qs.theme.Theme.accent
+            color: Theme.accentBg
+            border.color: Theme.accent
             border.width: 1
             anchors.horizontalCenter: parent.horizontalCenter
 
             Text {
                 anchors.centerIn: parent
-                text: "❤ Supporter"
+                text: "\u{2764} Supporter"
                 font.family: "JetBrainsMono NFP"
                 font.pixelSize: 10
-                color: qs.theme.Theme.accent
+                color: Theme.accent
             }
         }
 
@@ -94,7 +95,7 @@ Item {
                 }
                 font.family: "JetBrainsMono NFP"
                 font.pixelSize: 12
-                background: Rectangle { color: qs.theme.Theme.accentBg; border.color: qs.theme.Theme.accent; border.width: 1; radius: 4 }
+                background: Rectangle { color: Theme.accentBg; border.color: Theme.accent; border.width: 1; radius: 4 }
                 padding: 10
             }
 
@@ -106,7 +107,7 @@ Item {
                 }
                 font.family: "JetBrainsMono NFP"
                 font.pixelSize: 12
-                background: Rectangle { color: qs.theme.Theme.color0; border.color: qs.theme.Theme.color8; border.width: 1; radius: 4 }
+                background: Rectangle { color: Theme.color0; border.color: Theme.color8; border.width: 1; radius: 4 }
                 padding: 10
             }
         }

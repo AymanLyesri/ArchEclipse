@@ -1,7 +1,10 @@
 pragma Singleton
-import Quickshell
 import QtQuick
+import Quickshell
+import Quickshell.Services.Pipewire
+import Quickshell.Services.Mpris
 import qs.theme
+import qs.services
 
 Singleton {
     id: root
@@ -46,6 +49,23 @@ Singleton {
     property bool smartHide: false
     property bool fullWidth: false
 
+    // Volume pulse tracking
+    property real _lastVolume: 0
+    property bool _volumeFirstRender: true
+
+    // Brightness pulse tracking
+    property real _lastBrightness: 0
+    property bool _brightnessFirstRender: true
+
+    // Player pulse tracking
+    property var _activePlayer: null
+    property bool _playerFirstRender: true
+
+    // Volume watcher
+    property PwObjectTracker _volumeTracker: PwObjectTracker {
+        objects: [Pipewire.defaultAudioSink]
+    }
+
     Component.onCompleted: {
         root.settings = Settings
         root.lock = Settings.barLock ?? true
@@ -60,6 +80,105 @@ Singleton {
         if (root.expanded) {
             root.activate("expanded", 0)
         }
+
+        // Setup volume watcher (pipewire sink)
+        setupVolumeWatcher()
+        // Setup brightness watcher
+        setupBrightnessWatcher()
+        // Setup MPRIS player watcher
+        setupPlayerWatcher()
+    }
+
+    // ===== Volume watcher =====
+    function setupVolumeWatcher() {
+        const sink = Pipewire.defaultAudioSink
+        if (!sink) return
+
+        // Skip first render
+        if (root._volumeFirstRender) {
+            root._volumeFirstRender = false
+            root._lastVolume = sink.audio?.volume ?? 0
+            return
+        }
+
+        sink.volumesChanged.connect(() => {
+            if (!sink.audio) return
+            const vol = sink.audio.volume
+            if (isNaN(vol) || vol < 0 || vol > 1) return
+
+            // Ignore spurious notifications
+            if (vol === root._lastVolume) return
+            root._lastVolume = vol
+
+            root.activate("volume", 2000)
+        })
+    }
+
+    // ===== Brightness watcher =====
+    function setupBrightnessWatcher() {
+        // Use a timer to poll brightness directly via brightnessctl (same as Brightness service)
+        const timer = Qt.createQmlObject('import QtQuick; Timer { interval: 2000; running: true; repeat: true }', root)
+        timer.onTriggered.connect(function() {
+            const proc = Qt.createQmlObject('import Quickshell.Io; Process { command: ["brightnessctl", "-m", "info"] }', root)
+            proc.running = true
+            proc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+            proc.stdout.onStreamFinished.connect(function() {
+                const text = proc.stdout.text
+                const lines = text.trim().split("\n")
+                if (lines.length > 0) {
+                    const fields = lines[0].split(",")
+                    if (fields.length >= 4) {
+                        const current = parseInt(fields[2]) || 0
+                        const max = parseInt(fields[3]) || 1
+                        const val = current / max
+                        if (root._brightnessFirstRender) {
+                            root._brightnessFirstRender = false
+                            root._lastBrightness = val
+                            return
+                        }
+                        if (val !== root._lastBrightness) {
+                            root._lastBrightness = val
+                            root.activate("brightness", 2000)
+                        }
+                    }
+                }
+            })
+        })
+    }
+
+    // ===== MPRIS player watcher =====
+    function setupPlayerWatcher() {
+        // Find first playable player
+        function findPlayablePlayer() {
+            for (const p of Mpris.players.values) {
+                if ((p.trackTitle ?? "").trim() !== "" || p.playbackState === MprisPlaybackState.Playing) {
+                    return p
+                }
+            }
+            return null
+        }
+
+        // Watch for player changes using a timer since QtObject properties don't auto-emit signals
+        const playerTimer = Qt.createQmlObject('import QtQuick; Timer { interval: 2000; running: true; repeat: true }', root)
+        playerTimer.onTriggered.connect(function() {
+            const player = findPlayablePlayer()
+            if (!player) return
+
+            // Skip first render
+            if (root._playerFirstRender) {
+                root._playerFirstRender = false
+                root._activePlayer = player
+                return
+            }
+
+            // Ignore if same player and no title change
+            if (root._activePlayer === player && player.trackTitle === root._activePlayer?.trackTitle) {
+                return
+            }
+            root._activePlayer = player
+
+            root.activate("player", 2500)
+        })
     }
 
     // Resolve highest priority active state
@@ -132,5 +251,14 @@ Singleton {
     // Conceal bar for a monitor
     function concealBar(monitorName) {
         delete root.barShown[monitorName]
+    }
+
+    // Public API for IPC
+    function activateState(name, holdMs) { root.activate(name, holdMs) }
+    function deactivateState(name) { root.deactivate(name) }
+    function setBarState(name) { root.activate(name, 0) }
+    function toggleBarShown(monitorName) {
+        const current = root.barShown[monitorName] ?? (Settings.barLock || root.smartHideBlocked)
+        root.barShown[monitorName] = !current
     }
 }

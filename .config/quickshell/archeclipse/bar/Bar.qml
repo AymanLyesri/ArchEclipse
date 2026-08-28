@@ -13,11 +13,13 @@ PanelWindow {
     required property ShellScreen screen
     readonly property string monitorName: {
         const hmon = Hyprland.monitorFor(screen);
-        return hmon ? hmon.name : screen.name;
+        if (hmon && hmon.name) return hmon.name;
+        // fallback: try to get monitor name from screen
+        return screen?.name ?? "unknown";
     }
 
     // --- window geometry / layer ---
-    anchors { left: true; right: true; top: qs.theme.Settings.barOrientation; bottom: !qs.theme.Settings.barOrientation }
+    anchors { left: true; right: true; top: Settings.barOrientation; bottom: !Settings.barOrientation }
 
     // layer-shell keyboard grab while the search island is open
     WlrLayershell.keyboardFocus: BarState.state === "search"
@@ -193,15 +195,15 @@ PanelWindow {
         // ---- hot zones (left/right panel reveal strips) ----
         HotZone {
             side: "left"
-            size: qs.theme.Settings.leftPanelHotZoneSize
-            enabled: qs.theme.Settings.leftPanelHotZone
-            panelLock: qs.theme.Settings.leftPanelLock
+            size: Settings.leftPanelHotZoneSize
+            enabled: Settings.leftPanelHotZone
+            panelLock: Settings.leftPanelLock
         }
         HotZone {
             side: "right"
-            size: qs.theme.Settings.rightPanelHotZoneSize
-            enabled: qs.theme.Settings.rightPanelHotZone
-            panelLock: qs.theme.Settings.rightPanelLock
+            size: Settings.rightPanelHotZoneSize
+            enabled: Settings.rightPanelHotZone
+            panelLock: Settings.rightPanelLock
         }
     }
 

@@ -1,5 +1,7 @@
 import Quickshell
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import qs.theme
 
 Item {
@@ -64,12 +66,12 @@ Item {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 20
-        verticalAlignment: AlignVCenter
+        anchors.verticalCenter: parent.verticalCenter
 
         // Header
         Column {
             spacing: 8
-            horizontalAlignment: AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
 
             Text {
                 text: "Support This Project"
@@ -94,10 +96,8 @@ Item {
         GridView {
             width: parent.width
             height: 300
-            cellWidth: 200
-            cellHeight: 120
-            columnSpacing: 15
-            rowSpacing: 15
+            cellWidth: 215
+            cellHeight: 135
             model: root.platforms
 
             delegate: Rectangle {

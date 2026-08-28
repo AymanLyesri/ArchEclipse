@@ -16,6 +16,9 @@ QtObject {
     property string color1: "#493028"
     property string color2: "#413945"
     property string color3: "#4e505d"
+    property string color4: "#5a5a7a"
+    property string color8: "#888888"
+    property string color0: "#1a1a2a"
 
     // --- derived, mirroring colors.scss ---
     readonly property real phi: 1.618
