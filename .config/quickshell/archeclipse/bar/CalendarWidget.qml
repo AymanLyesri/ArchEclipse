@@ -2,14 +2,26 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-// Calendar widget ported from widgets/rightPanel/components/Calendar.tsx
+// Calendar widget — month view with day-of-week header and date grid.
+// Mirrors AGS Calendar.tsx which used Gtk.Calendar, but rendered natively.
 Item {
     id: root
     property int widgetWidth: parent.width
     property string className: ""
 
+    readonly property date today: new Date()
+    readonly property var monthNames: ["January", "February", "March", "April",
+        "May", "June", "July", "August", "September", "October", "November", "December"]
+
+    // First day of current month at 00:00
+    readonly property date monthStart: new Date(today.getFullYear(), today.getMonth(), 1)
+    readonly property int firstDayOfWeek: (monthStart.getDay() + 6) % 7  // 0=Mon
+    readonly property int daysInMonth: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+
+    // Total cells: 4 weeks min → 28 + offset + days, round up to full weeks
+    readonly property int totalCells: Math.ceil((firstDayOfWeek + daysInMonth) / 7) * 7
+
     Rectangle {
-        id: container
         anchors.fill: parent
         color: "transparent"
 
@@ -17,54 +29,60 @@ Item {
             anchors.centerIn: parent
             spacing: 8
 
-            // Simple calendar header
-            Row {
+            // Month header
+            Text {
+                text: monthNames[root.today.getMonth()] + " " + root.today.getFullYear()
+                font.pixelSize: Theme.fontSize + 2
+                font.bold: true
+                color: Theme.fg
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            // Day-of-week headers
+            Grid {
+                columns: 7
                 spacing: 4
                 Repeater {
-                    model: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-                    delegate: Label {
+                    model: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                    delegate: Text {
                         text: modelData
+                        width: 34
+                        height: 22
                         font.pixelSize: Theme.fontSize - 1
-                        font.bold: true
                         color: Theme.fgDim
-                        width: 40
+                        font.bold: true
                         horizontalAlignment: Text.AlignHCenter
                     }
                 }
             }
 
-            // Simple calendar grid
+            // Date grid
             Grid {
                 columns: 7
                 spacing: 4
                 Repeater {
-                    model: 42  // 6 weeks * 7 days
+                    model: root.totalCells
                     delegate: Item {
-                        width: 40
-                        height: 40
-                        property int day: index + 1
-                        property bool isCurrentMonth: day >= 1 && day <= 31
+                        width: 34; height: 24
+                        property int day: index - root.firstDayOfWeek + 1
+                        property bool isCurrentMonth: day >= 1 && day <= root.daysInMonth
+                        property bool isToday: isCurrentMonth && day === root.today.getDate()
 
                         Rectangle {
                             anchors.fill: parent
+                            anchors.margins: 1
+                            radius: parent.isToday ? 4 : 0
                             color: "transparent"
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.border
+                            border.color: parent.isToday ? Theme.accent : "transparent"
+                            border.width: parent.isToday ? 1 : 0
                         }
 
                         Text {
                             anchors.centerIn: parent
-                            text: isCurrentMonth ? day : ""
-                            color: Theme.fg
+                            text: parent.isCurrentMonth ? parent.day : ""
+                            color: parent.isCurrentMonth ? (parent.isToday ? Theme.accent : Theme.fg) : Theme.fgDim
                             font.pixelSize: Theme.fontSize
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                // Could select date here
-                            }
+                            font.bold: parent.isToday
                         }
                     }
                 }

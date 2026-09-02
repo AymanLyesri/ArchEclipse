@@ -1,10 +1,34 @@
 pragma Singleton
 import QtQuick
+import Quickshell
 
-// Name -> window registry so `qs ipc` binds can toggle windows by AGS-style
-// names (user-panel-<mon>, left-panel-<mon>, wallpaper-switcher-<mon>, …).
+// Registry — tracks panel windows by monitor name for IPC lookup.
+// Panels register themselves on Component.onCompleted with a key like
+// "left-panel-<monitorName>" so Ipc.togglePanel and HotZone can find them.
 QtObject {
-    property var windows: ({})
-    function register(name, win) { const n = Object.assign({}, windows); n[name] = win; windows = n; }
-    function unregister(name) { const n = Object.assign({}, windows); delete n[name]; windows = n; }
+    id: root
+
+    readonly property string monitorName: {
+        const mon = Quickshell.Hyprland?.focusedMonitor
+        return mon ? mon.name : Quickshell.env("MONITOR_NAME") || "eDP-1"
+    }
+
+    property var _windows: ({})
+
+    function register(name, window) {
+        root._windows[name] = window
+    }
+
+    function unregister(name) {
+        delete root._windows[name]
+    }
+
+    function get(name) {
+        return root._windows[name] || null
+    }
+
+    function toggle(name) {
+        const w = root.get(name)
+        if (w) w.visible = !w.visible
+    }
 }

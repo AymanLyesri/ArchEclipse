@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Quickshell
 import qs.theme
 
 // Script Timer widget ported from widgets/rightPanel/components/ScriptTimer.tsx
@@ -85,6 +86,7 @@ Item {
             const process = Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "' + task.command.replace(/"/g, '\\"') + '"] }', root);
             process.start();
             console.log("[ScriptTimer] Executed task:", task.name);
+            Quickshell.execDetached(["notify-send", "Script Timer", `Task "${task.name}" executed`]);
             
             if (task.type === false) {
                 // One-time task - remove after execution

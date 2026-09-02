@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Wayland
 import qs.bar
 import qs.services
 import qs.theme
@@ -13,6 +14,7 @@ PanelWindow {
     required property ShellScreen screen
     anchors { left: true; bottom: true }
     exclusiveZone: -1
+    WlrLayershell.layer: WlrLayer.Overlay
     color: "transparent"
     margins { left: 10; bottom: 10 }
     implicitWidth: weatherCard.implicitWidth + 24

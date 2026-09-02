@@ -9,8 +9,8 @@ Item {
 
     // Hyprland workspaces model
     property var workspaceModel: Hyprland.workspaces
-    property var icons: qs.services.WorkspaceIcons
-    property bool showNumbers: qs.theme.Settings.bar.workspaceNumbers.value ?? false
+    property var icons: WorkspaceIcons
+    property bool showNumbers: Settings.workspaceNumbers
 
     // Compact: single row of all workspaces (occupied first, then empty singles)
     property var allWorkspaces: []
@@ -56,8 +56,8 @@ Item {
                     anchors.fill: parent
                     anchors.margins: 3
                     radius: 5
-                    color: isFocused ? qs.theme.Theme.accent : (hasWindows ? qs.theme.Theme.color8 : "transparent")
-                    border.color: hasWindows && !isFocused ? qs.theme.Theme.color4 : "transparent"
+                    color: isFocused ? Theme.accent : (hasWindows ? Theme.color8 : "transparent")
+                    border.color: hasWindows && !isFocused ? Theme.color4 : "transparent"
                     border.width: hasWindows && !isFocused ? 1 : 0
 
                     Text {
@@ -65,7 +65,7 @@ Item {
                         text: icons.getIcon(workspace.id, workspace.name)
                         font.family: "JetBrainsMono NFP"
                         font.pixelSize: 12
-                        color: isFocused ? qs.theme.Theme.background : qs.theme.Theme.foreground
+                        color: isFocused ? Theme.background : Theme.foreground
                     }
                 }
 
@@ -74,7 +74,7 @@ Item {
                     anchors.bottom: bg.bottom
                     anchors.right: bg.right
                     font.pixelSize: 7
-                    color: qs.theme.Theme.color8
+                    color: Theme.color8
                     text: workspace.id.toString()
                 }
             }

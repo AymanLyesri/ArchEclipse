@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Quickshell.Services.Mpris
 import qs.theme
 import qs.services
 
@@ -141,7 +142,11 @@ Item {
                                 elide: Text.ElideRight
                             }
                             Label {
-                                text: modelData.metadata.artist ? modelData.metadata.artist.join(", ") : "Unknown Artist"
+                                text: modelData.metadata.artist
+                                    ? (Array.isArray(modelData.metadata.artist)
+                                        ? modelData.metadata.artist.join(", ")
+                                        : modelData.metadata.artist)
+                                    : "Unknown Artist"
                                 font.pixelSize: Theme.fontSize - 1
                                 color: Theme.fgDim
                                 elide: Text.ElideRight
@@ -175,11 +180,12 @@ Item {
                         }
 
                         Slider {
+                            id: positionSlider
                             from: 0
                             to: modelData.metadata.length || 100
                             value: modelData.position
                             onValueChanged: {
-                                if (pressed) {
+                                if (positionSlider.pressed) {
                                     modelData.position = value
                                 }
                             }

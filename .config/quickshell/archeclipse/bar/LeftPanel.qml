@@ -4,7 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.theme
 import qs.services
-import qs.widgets
+import qs.bar
 import QtQuick.Controls
 
 // Port of widgets/leftPanel/LeftPanel.tsx — side panel on the left edge.
@@ -15,8 +15,8 @@ PanelWindow {
 
     required property ShellScreen screen
     readonly property string monitorName: {
-        const hmon = Hyprland.monitorFor(screen);
-        return hmon ? hmon.name : screen.name;
+        const hmon = Hyprland.monitorFor(screen)
+        return hmon ? hmon.name : screen.name
     }
 
     // Window geometry / layer
@@ -27,21 +27,16 @@ PanelWindow {
     WlrLayershell.exclusiveZone: Settings.leftPanelLock ? width : -1
     WlrLayershell.layer: WlrLayer.Top
 
-    // Visibility: controlled by HotZone, keybind, or IPC
-    // Don't declare local 'visible' property - it shadows WindowInterface.visible
-    // The actual window visibility is controlled by the PanelWindow's visible property
-
     // Selected widget state
     property string selectedWidget: "UserProfile"
 
     // Register with Registry for IPC togglePanel
     Component.onCompleted: {
-        Registry.register(`left-panel-${root.monitorName}`, root);
-        // Start hidden
-        visible = false;
+        Registry.register(`left-panel-${root.monitorName}`, root)
+        visible = false
     }
     Component.onDestruction: {
-        Registry.unregister(`left-panel-${root.monitorName}`);
+        Registry.unregister(`left-panel-${root.monitorName}`)
     }
 
     // Idle hide timer (when not locked)
@@ -49,7 +44,7 @@ PanelWindow {
         id: hideTimer
         interval: 300
         onTriggered: {
-            if (!Settings.leftPanelLock) root.visible = false;
+            if (!Settings.leftPanelLock) root.visible = false
         }
     }
 
@@ -58,8 +53,8 @@ PanelWindow {
         id: panelHover
         enabled: true
         onHoveredChanged: {
-            if (hovered) hideTimer.stop();
-            else if (!Settings.leftPanelLock) hideTimer.restart();
+            if (hovered) hideTimer.stop()
+            else if (!Settings.leftPanelLock) hideTimer.restart()
         }
     }
 
@@ -89,14 +84,14 @@ PanelWindow {
 
                 Repeater {
                     model: [
-                        { name: "UserProfile", icon: "\uf007" },
-                        { name: "BooruViewer", icon: "\uf03e" },
-                        { name: "ChatBot", icon: "\uf4b8" },
-                        { name: "CustomScripts", icon: "\uf121" },
-                        { name: "Donations", icon: "\u2665" },
-                        { name: "KeyBinds", icon: "\uf11c" },
-                        { name: "MangaViewer", icon: "\uf02d" },
-                        { name: "SettingsWidget", icon: "\uf013" }
+                        { name: "UserProfile",     icon: "\u{F007}" },
+                        { name: "BooruViewer",     icon: "\u{F03E}" },
+                        { name: "ChatBot",         icon: "\u{F4B8}" },
+                        { name: "CustomScripts",   icon: "\u{F121}" },
+                        { name: "Donations",       icon: "\u{2764}" },
+                        { name: "KeyBinds",        icon: "\u{F11C}" },
+                        { name: "MangaViewer",     icon: "\u{F02D}" },
+                        { name: "SettingsWidget",  icon: "\u{F013}" }
                     ]
                     delegate: Button {
                         id: selectorBtn
@@ -118,14 +113,14 @@ PanelWindow {
                             border.color: Theme.accent
                         }
                         onClicked: {
-                            root.selectedWidget = modelData.name;
+                            root.selectedWidget = modelData.name
                         }
                     }
                 }
             }
         }
 
-        // Main content area (widget stack)
+        // Main content area
         Item {
             id: contentArea
             anchors.left: sidebar.right
@@ -137,20 +132,20 @@ PanelWindow {
             anchors.topMargin: 8
             anchors.bottomMargin: 8
 
-            // Widget stack - only one visible at a time
+            // Widget stack — only one visible at a time
             Loader {
                 id: widgetLoader
                 anchors.fill: parent
                 sourceComponent: {
                     switch (root.selectedWidget) {
-                    case "UserProfile": return userProfileWidget;
-                    case "BooruViewer": return booruViewerWidget;
-                    case "ChatBot": return chatBotWidget;
-                    case "CustomScripts": return customScriptsWidget;
-                    case "Donations": return donationsWidget;
-                    case "KeyBinds": return keyBindsWidget;
-                    case "MangaViewer": return mangaViewerWidget;
-                    case "SettingsWidget": return settingsWidget;
+                    case "UserProfile":     return userProfileWidget;
+                    case "BooruViewer":     return booruViewerWidget;
+                    case "ChatBot":         return chatBotWidget;
+                    case "CustomScripts":   return customScriptsWidget;
+                    case "Donations":       return donationsWidget;
+                    case "KeyBinds":        return keyBindsWidget;
+                    case "MangaViewer":     return mangaViewerWidget;
+                    case "SettingsWidget":  return settingsWidget;
                     default: return defaultWidget;
                     }
                 }
@@ -173,50 +168,25 @@ PanelWindow {
                 }
             }
 
-            // Placeholder components for each widget - use actual widget implementations
-            Component {
-                id: userProfileWidget
-                UserProfileWidget {}
-            }
-            Component {
-                id: booruViewerWidget
-                BooruViewerWidget {}
-            }
-            Component {
-                id: chatBotWidget
-                ChatBotWidget {}
-            }
-            Component {
-                id: customScriptsWidget
-                CustomScriptsWidget {}
-            }
-            Component {
-                id: donationsWidget
-                DonationsWidget {}
-            }
-            Component {
-                id: keyBindsWidget
-                KeyBindsWidget {}
-            }
-            Component {
-                id: mangaViewerWidget
-                MangaViewerWidget {}
-            }
-            Component {
-                id: settingsWidget
-                SettingsWidget {}
-            }
+            Component { id: userProfileWidget;    UserProfileWidget {} }
+            Component { id: booruViewerWidget;    BooruViewerWidget {} }
+            Component { id: chatBotWidget;        ChatBotWidget {} }
+            Component { id: customScriptsWidget;  CustomScriptsWidget {} }
+            Component { id: donationsWidget;      DonationsWidget {} }
+            Component { id: keyBindsWidget;       KeyBindsWidget {} }
+            Component { id: mangaViewerWidget;     MangaViewerWidget {} }
+            Component { id: settingsWidget;       SettingsWidget {} }
         }
     }
 
-    // Escape key closes panel - handled by focus scope
+    // Escape key closes panel
     Item {
         id: keyHandler
         focus: true
         Keys.onEscapePressed: {
             if (root.visible) {
-                root.visible = false;
-                event.accepted = true;
+                root.visible = false
+                event.accepted = true
             }
         }
     }

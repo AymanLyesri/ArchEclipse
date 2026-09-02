@@ -258,7 +258,7 @@ Singleton {
     function deactivateState(name) { root.deactivate(name) }
     function setBarState(name) { root.activate(name, 0) }
     function toggleBarShown(monitorName) {
-        const current = root.barShown[monitorName] ?? (Settings.barLock || root.smartHideBlocked)
-        root.barShown[monitorName] = !current
+        root.barShown[monitorName] = !(root.barShown[monitorName] ?? false)
     }
+    function toggleBar(monitorName) { root.toggleBarShown(monitorName) }
 }

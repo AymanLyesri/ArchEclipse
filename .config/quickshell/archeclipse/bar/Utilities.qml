@@ -1,46 +1,58 @@
 import Quickshell
 import QtQuick
 import qs.theme
-import Quickshell.Hyprland
+import qs.bar
 import Quickshell.Services.SystemTray
+import Quickshell.Hyprland
 
+// Utilities section: Battery, BrightnessWidget, Volume, SystemTray, ResourceMonitor,
+// ControlPanelButton. Mirrors AGS widgets/bar/components/Utilities.tsx
 Item {
     id: root
 
-    // System tray
-    property var trayBox: Item {
-        id: tray
-        visible: Quickshell.Services.SystemTray.items.length > 0
-
-        qs.widgets.SystemTray {
-            id: systemTray
-            maxItems: 3
-            icons: Quickshell.Services.SystemTray.items
-        }
-    }
-
-    // Power profiles (placeholder)
-    property var powerBox: Item {
-        id: power
-        visible: false
-        // Power profiles popover would go here
-    }
-
-    // Focused client title (optional)
-    property var clientBox: Item {
-        id: client
-        visible: false
-        // Focused window title
-    }
+    property alias batteryPercent: battery.pct
+    property alias volumePercent: volume.pct
+    property alias brightnessPercent: brightness.pct
 
     Row {
         id: row
         anchors.fill: parent
         spacing: 5
 
-        Loader { sourceComponent: trayBox }
-        Loader { sourceComponent: powerBox }
-        Loader { sourceComponent: clientBox }
+        Battery { id: battery }
+        Brightness { id: brightness }
+        Volume { id: volume }
+
+        // System tray (max 3 visible, overflow in popover)
+        Item {
+            id: trayContainer
+            visible: Quickshell.Services.SystemTray.items.length > 0
+            width: childrenRect.width
+            height: 24
+            Row {
+                spacing: 2
+                Repeater {
+                    model: Quickshell.Services.SystemTray.items
+                    delegate: Quickshell.Services.SystemTray.Item {
+                        id: trayItem
+                        iconName: model.iconName
+                        tooltipText: model.tooltipText
+                    }
+                }
+            }
+        }
+
+        // Resource monitor (click → workspace 5)
+        MouseArea {
+            id: resourceMonitorArea
+            width: 60
+            height: 24
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Hyprland.dispatch("workspace", "5")
+        }
+
+        ControlPanelButton {}
     }
 
     function measureWidth() {

@@ -29,7 +29,7 @@ Item {
             }
             Label {
                 id: updatedLabel
-                text: "Updated: --"
+                text: root.stats ? "Updated: " + (root.stats.updatedAt || "--") : "Updated: --"
                 font.pixelSize: Theme.fontSize - 2
                 color: Theme.fgDim
             }

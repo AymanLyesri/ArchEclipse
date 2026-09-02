@@ -7,9 +7,12 @@ import qs.services
 // `qs ipc` instead of `ags request`.
 //
 //   super+super_l -> qs -p <cfg> ipc call bar toggleSearch
-//   super+alt_l   -> qs -p <cfg> ipc call bar togglebar <monitor>
+//   super+alt_l   -> qs -p <cfg> ipc call bar toggleBar <monitor>
 //   super+l       -> qs -p <cfg> ipc call bar toggleLeftPanel <monitor>
 //   super+r       -> qs -p <cfg> ipc call bar toggleRightPanel <monitor>
+//
+// This object must be instantiated (it's a child of ShellRoot in shell.qml,
+// not a singleton — Quickshell requires non-singleton IpcHandler roots).
 Item {
     IpcHandler {
         target: "bar"
@@ -30,14 +33,14 @@ Item {
 
         function toggleLeftPanel(monitor: string): string {
             const key = `left-panel-${monitor}`;
-            const w = Registry.windows[key];
+            const w = Registry.get(key);
             if (w) { w.visible = !w.visible; return key + " toggled"; }
             return "window not found: " + key;
         }
 
         function toggleRightPanel(monitor: string): string {
             const key = `right-panel-${monitor}`;
-            const w = Registry.windows[key];
+            const w = Registry.get(key);
             if (w) { w.visible = !w.visible; return key + " toggled"; }
             return "window not found: " + key;
         }
@@ -49,21 +52,24 @@ Item {
             return "recording " + mode;
         }
 
-        function clipboard(): string {   // cb prefix -> search island
+        function clipboard(): string {
             Launcher.runQuery("cb ");
             BarState.activate("search", 0);
             return "clipboard widget opened";
         }
+
         function emojis(): string {
             Launcher.runQuery("emoji ");
             BarState.activate("search", 0);
             return "emoji picker opened";
         }
+
         function notes(): string {
             Launcher.runQuery("note ");
             BarState.activate("search", 0);
             return "notes opened";
         }
+
         function apps(): string {
             Launcher.runQuery("apps ");
             BarState.activate("search", 0);
@@ -72,7 +78,7 @@ Item {
 
         function togglePanel(name: string, monitor: string): string {
             const key = `${name}-${monitor}`;
-            const w = Registry.windows[key];
+            const w = Registry.get(key);
             if (w) { w.visible = !w.visible; return key + " toggled"; }
             return "window not found: " + key;
         }

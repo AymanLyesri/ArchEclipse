@@ -50,10 +50,6 @@ Row {
                         ctx.stroke();
                     }
                 }
-                Connections {
-                    target: SysInfo
-                    function onSystemResourcesChanged() { canvas.requestPaint(); }
-                }
             }
 
             Text {

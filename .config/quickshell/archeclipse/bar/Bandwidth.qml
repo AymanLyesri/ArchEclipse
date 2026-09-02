@@ -33,8 +33,8 @@ Item {
         id: bg
         anchors.fill: parent
         radius: 8
-        color: qs.theme.Theme.color0
-        border.color: qs.theme.Theme.color8
+        color: Theme.color0
+        border.color: Theme.color8
         border.width: 1
 
         Row {
@@ -49,13 +49,13 @@ Item {
                     text: "↓"
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 12
-                    color: qs.theme.Theme.color2
+                    color: Theme.color2
                 }
                 Text {
                     text: root.formatSpeed(root.downloadSpeed)
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 10
-                    color: qs.theme.Theme.foreground
+                    color: Theme.foreground
                 }
             }
 
@@ -66,13 +66,13 @@ Item {
                     text: "↑"
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 12
-                    color: qs.theme.Theme.color1
+                    color: Theme.color1
                 }
                 Text {
                     text: root.formatSpeed(root.uploadSpeed)
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 10
-                    color: qs.theme.Theme.foreground
+                    color: Theme.foreground
                 }
             }
         }

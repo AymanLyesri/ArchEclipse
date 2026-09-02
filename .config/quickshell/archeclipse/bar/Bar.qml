@@ -55,7 +55,7 @@ PanelWindow {
     readonly property bool barVisible: {
         if (fullscreenActive) return false;
         if (BarState.state === "search") return true;
-        const override = BarState.barShown[monitorName];
+        const override = (BarState.barShown || {})[monitorName];
         if (override !== undefined) return override;
         return Settings.barLock || smartHideBlocked;
     }
@@ -93,7 +93,7 @@ PanelWindow {
     Timer {
         id: idleTimer
         interval: 1500
-        running: BarState.barShown[root.monitorName] === true
+        running: (BarState.barShown || {})[root.monitorName] === true
         onTriggered: {
             if (Settings.barLock) return;
             if (BarState.state === "search") { idleTimer.restart(); return; }
@@ -198,12 +198,14 @@ PanelWindow {
             size: Settings.leftPanelHotZoneSize
             enabled: Settings.leftPanelHotZone
             panelLock: Settings.leftPanelLock
+            monitorName: root.monitorName
         }
         HotZone {
             side: "right"
             size: Settings.rightPanelHotZoneSize
             enabled: Settings.rightPanelHotZone
             panelLock: Settings.rightPanelLock
+            monitorName: root.monitorName
         }
     }
 

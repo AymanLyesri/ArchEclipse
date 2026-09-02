@@ -45,8 +45,8 @@ Item {
         id: bg
         anchors.fill: parent
         radius: 8
-        color: qs.theme.Theme.color0
-        border.color: qs.theme.Theme.color8
+        color: Theme.color0
+        border.color: Theme.color8
         border.width: 1
 
         Row {
@@ -61,7 +61,7 @@ Item {
                 width: 40
                 height: 40
                 radius: 4
-                color: qs.theme.Theme.accentBg
+                color: Theme.accentBg
                 visible: root.artUrl !== ""
 
                 // Image would go here if artUrl available
@@ -76,7 +76,7 @@ Item {
                     text: root.title
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 11
-                    color: qs.theme.Theme.foreground
+                    color: Theme.foreground
                     elide: Text.ElideRight
                     width: 200
                 }
@@ -85,7 +85,7 @@ Item {
                     text: root.artist
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 9
-                    color: qs.theme.Theme.color8
+                    color: Theme.color8
                     elide: Text.ElideRight
                     width: 200
                 }
@@ -97,7 +97,7 @@ Item {
                 verticalAlignment: Text.AlignVCenter
 
                 Button {
-                    text: "󰒮" // previous
+                    text: "\u{F040}" // previous
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 14
                     onClicked: activePlayer?.previous()
@@ -105,7 +105,7 @@ Item {
                 }
 
                 Button {
-                    text: status === "Playing" ? "󰏤" : "󰐊" // pause/play
+                    text: status === "Playing" ? "\u{F04C}" : "\u{F04B}" // pause/play
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 14
                     onClicked: activePlayer?.playPause()
@@ -113,7 +113,7 @@ Item {
                 }
 
                 Button {
-                    text: "󰒭" // next
+                    text: "\u{F041}" // next
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 14
                     onClicked: activePlayer?.next()
@@ -127,13 +127,13 @@ Item {
                 width: 100
                 height: 3
                 radius: 1.5
-                color: qs.theme.Theme.color8
+                color: Theme.color8
 
                 Rectangle {
                     width: progressBg.width * (root.length > 0 ? root.position / root.length : 0)
                     height: 3
                     radius: 1.5
-                    color: qs.theme.Theme.accent
+                    color: Theme.accent
                 }
             }
         }
@@ -141,6 +141,6 @@ Item {
 
     // Hover handler for pulse
     HoverHandler {
-        onEntered: qs.services.BarState.activateState("player", 2500)
+        onEntered: BarState.activate("player", 2500)
     }
 }

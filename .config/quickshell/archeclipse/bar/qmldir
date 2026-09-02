@@ -32,6 +32,8 @@ SystemResourcesWidget 1.0 SystemResourcesWidget.qml
 NotificationHistoryWidget 1.0 NotificationHistoryWidget.qml
 CalendarWidget 1.0 CalendarWidget.qml
 CryptoWidget 1.0 CryptoWidget.qml
+CryptoItem 1.0 CryptoItem.qml
+CryptoEntryItem 1.0 CryptoEntryItem.qml
 WaifuWidget 1.0 WaifuWidget.qml
 EntryItem 1.0 EntryItem.qml
 StackItem 1.0 StackItem.qml

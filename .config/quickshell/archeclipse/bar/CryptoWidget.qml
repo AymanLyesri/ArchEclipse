@@ -123,7 +123,7 @@ Item {
 
                 Repeater {
                     model: cryptoEntries
-                    delegate: EntryItem {
+                    delegate: CryptoEntryItem {
                         width: parent.width
                         entry: modelData
                         onDeleteClicked: deleteEntry(modelData.id)
