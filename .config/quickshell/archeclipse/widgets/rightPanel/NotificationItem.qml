@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Widgets
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // Single Notification Item component — port of NotificationWidget from
 // widgets/rightPanel/components/Notification.tsx. Shows app name/icon, summary,
@@ -109,40 +110,44 @@ Item {
 
                 // Copy to clipboard (AGS copyNotificationContent: image payload
                 // via wl-copy --type image/png with Copied/Error toast, else text)
-                Button {
+                AppButton {
                     id: copyBtn
-                    text: "\u{f0c5}"
+                    icon: "󰃅"
                     width: 24; height: 24
-                    ToolTip.visible: hovered; ToolTip.delay: 500
-                    ToolTip.text: "Copy text"
+                    pixelSize: 11
+                    cornerRadius: 4
+                    idleBg: Theme.moduleBg
+                    outlined: true
+                    tooltipText: "Copy text"
                     visible: root.isHovered
                     onClicked: root.copyContent()
-                    background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-                    contentItem: Text { color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
                 }
 
                 // Expand/collapse body
-                Button {
+                AppButton {
                     id: expandBtn
-                    text: root.bodyExpanded ? "\u{f07e}" : "\u{f07c}"
+                    icon: root.bodyExpanded ? "󰁾" : "󰁼"
                     width: 24; height: 24
+                    pixelSize: 11
+                    cornerRadius: 4
+                    idleBg: Theme.moduleBg
+                    outlined: true
                     visible: root.notification && root.notification.body && root.notification.body.length > 100
                     onClicked: root.bodyExpanded = !root.bodyExpanded
-                    background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-                    contentItem: Text { color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
                 }
 
                 // Dismiss (AGS dismissNotification → n.dismiss())
-                Button {
-                    text: "\u{f00d}"
+                AppButton {
+                    icon: "󰀍"
                     width: 24; height: 24
-                    ToolTip.visible: hovered; ToolTip.delay: 500
-                    ToolTip.text: "Dismiss"
+                    pixelSize: 11
+                    cornerRadius: 4
+                    idleBg: Theme.moduleBg
+                    outlined: true
+                    tooltipText: "Dismiss"
                     onClicked: {
                         try { if (root.notification) root.notification.dismiss(); } catch (e) {}
                     }
-                    background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-                    contentItem: Text { color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
                 }
             }
 
@@ -185,22 +190,17 @@ Item {
                 visible: (root.notification && Notifications.liveActions(root.notification).length) > 0
                 Repeater {
                     model: root.notification ? Notifications.liveActions(root.notification) : []
-                    delegate: Button {
+                    delegate: AppButton {
                         required property var modelData
                         text: Notifications.actionLabel(modelData)
                         height: 24
-                        font.pixelSize: Theme.fontSize - 2
+                        pixelSize: Theme.fontSize - 2
+                        cornerRadius: 4
+                        idleBg: Theme.accentBg
+                        idleFg: Theme.accent
+                        outlined: true
+                        outlineColor: Theme.accent
                         onClicked: { try { modelData.invoke(); } catch (e) {} }
-                        background: Rectangle {
-                            color: Theme.accentBg
-                            radius: 4
-                            border.color: Theme.accent
-                        }
-                        contentItem: Text {
-                            color: Theme.accent
-                            font.pixelSize: Theme.fontSize - 2
-                            anchors.centerIn: parent
-                        }
                     }
                 }
             }

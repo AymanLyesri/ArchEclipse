@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs.theme
+import qs.widgets.shared
 import qs.services
 
 // Settings Widget — full AGS parity port
@@ -124,21 +125,17 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.rightMargin: 4
                                 spacing: 2
-                                Button {
+                                AppButton {
                                     text: "\u{F106}"
                                     width: 24; height: 24
                                     enabled: index > 0
                                     onClicked: root.reorderBarLayout(index, index - 1)
-                                    background: Rectangle { color: "transparent" }
-                                    contentItem: Text { anchors.centerIn: parent; text: parent.text; color: Theme.fgDim; font.pixelSize: 10 }
                                 }
-                                Button {
+                                AppButton {
                                     text: "\u{F107}"
                                     width: 24; height: 24
                                     enabled: index < root.barLayoutModelList.length - 1
                                     onClicked: root.reorderBarLayout(index, index + 1)
-                                    background: Rectangle { color: "transparent" }
-                                    contentItem: Text { anchors.centerIn: parent; text: parent.text; color: Theme.fgDim; font.pixelSize: 10 }
                                 }
                             }
                         }
@@ -216,11 +213,9 @@ Item {
                                 onValueChanged: Settings.rightPanelHotZoneSize = value
                             }
                         }
-                        Button {
+                        AppButton {
                             text: "Preview Hot Zones"
                             onClicked: root.previewHotZones()
-                            background: Rectangle { color: Theme.accentBg; radius: 4; border.color: Theme.accent; border.width: 1 }
-                            contentItem: Text { color: Theme.accent; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
                         }
                     }
                 }
@@ -361,20 +356,16 @@ Item {
                                         }
                                         background: Rectangle { color: "transparent" }
                                     }
-                                    Button {
+                                    AppButton {
                                         text: parent.parent.reveal ? "hide" : "show"
                                         width: 44; height: 24
                                         visible: keyField.text !== ""
                                         onClicked: parent.parent.reveal = !parent.parent.reveal
-                                        background: Rectangle { color: Theme.accentBg; radius: 3 }
-                                        contentItem: Text { anchors.centerIn: parent; color: Theme.accent; font.pixelSize: 10; text: parent.parent.reveal ? "hide" : "show" }
                                     }
-                                    Button {
+                                    AppButton {
                                         text: "copy"
                                         width: 44; height: 24
                                         onClicked: root.copyText(keyField.text)
-                                        background: Rectangle { color: Theme.accentBg; radius: 3 }
-                                        contentItem: Text { anchors.centerIn: parent; color: Theme.accent; font.pixelSize: 10; text: "copy" }
                                     }
                                 }
                             }
@@ -546,17 +537,13 @@ Item {
                         // Apply / Reset
                         Row {
                             spacing: 8
-                            Button {
+                            AppButton {
                                 text: "Apply Hyprland Settings"
                                 onClicked: root.applyHyprlandSettings()
-                                background: Rectangle { color: Theme.accentBg; radius: 4; border.color: Theme.accent; border.width: 1 }
-                                contentItem: Text { color: Theme.accent; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
                             }
-                            Button {
+                            AppButton {
                                 text: "Reset to Default"
                                 onClicked: root.resetToDefaults()
-                                background: Rectangle { color: Theme.dangerBg; radius: 4; border.color: Theme.danger; border.width: 1 }
-                                contentItem: Text { color: Theme.danger; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
                             }
                         }
                     }

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.theme
+import qs.widgets.shared
 import qs.services
 
 // ChatBot widget — port of ChatBot.tsx
@@ -350,27 +351,21 @@ Item {
                     anchors.right: parent.right
                     anchors.margins: 6
                     spacing: 4
-                    Button {
+                    AppButton {
                         text: "1. Visit openrouter and Sign-up for FREE  \u{f08e}"
                         width: parent.width
                         implicitHeight: 28
                         onClicked: Quickshell.execDetached(["xdg-open", "https://openrouter.ai/"])
-                        background: Rectangle { color: "transparent"; radius: 4 }
-                        contentItem: Text { anchors.centerIn: parent; color: Theme.accent; font.pixelSize: Theme.fontSize - 1; text: "1. Visit openrouter and Sign-up for FREE  \u{f08e}" }
                     }
-                    Button {
+                    AppButton {
                         width: parent.width
                         implicitHeight: 28
                         onClicked: Quickshell.execDetached(["xdg-open", "https://openrouter.ai/settings/keys"])
-                        background: Rectangle { color: "transparent"; radius: 4 }
-                        contentItem: Text { anchors.centerIn: parent; color: Theme.accent; font.pixelSize: Theme.fontSize - 1; text: "2. Generate a FREE API key  \u{f08e}" }
                     }
-                    Button {
+                    AppButton {
                         width: parent.width
                         implicitHeight: 28
                         onClicked: root.goToSettings()
-                        background: Rectangle { color: "transparent"; radius: 4 }
-                        contentItem: Text { anchors.centerIn: parent; color: Theme.accent; font.pixelSize: Theme.fontSize - 1; text: "3. Copy & Paste it in the settings" }
                     }
                 }
             }
@@ -545,29 +540,23 @@ Item {
                         event.accepted = true
                     }
                 }
-                Button {
+                AppButton {
                     implicitWidth: 36; implicitHeight: 40
                     text: "\u{F2ED}"
                     onClicked: root.clearMessages()
-                    ToolTip.visible: hovered
-                    ToolTip.text: "Clear current session messages"
-                    background: Rectangle { color: Theme.moduleBg; radius: 8; border.width: 1; border.color: Theme.border }
-                    contentItem: Text { anchors.centerIn: parent; color: Theme.fg; font.pixelSize: Theme.fontSize; font.family: Theme.fontFamily }
+                    tooltipText: "Clear current session messages"
                 }
-                Button {
+                AppButton {
                     id: imageGenBtn
                     implicitWidth: 36; implicitHeight: 40
                     // AGS ImageGenerationSwitch label is the image glyph (F03E)
                     text: "\u{F03E}"
-                    checkable: true
+                    toggle: true
                     checked: root.imageGeneration
                     enabled: root.currentImageGenSupport()
                     opacity: root.currentImageGenSupport() ? 1 : 0.4
-                    onToggled: { root.imageGeneration = checked; Settings.chatBotImageGeneration = checked }
-                    ToolTip.visible: hovered
-                    ToolTip.text: "Image generation" + (root.currentImageGenSupport() ? "" : " (not supported by this model)")
-                    background: Rectangle { color: Theme.moduleBg; radius: 8; border.width: 1; border.color: imageGenBtn.checked ? Theme.accent : Theme.border }
-                    contentItem: Text { anchors.centerIn: parent; text: "\u{F03E}"; color: imageGenBtn.checked ? Theme.accent : Theme.fg; font.pixelSize: Theme.fontSize; font.family: Theme.fontFamily }
+                    onClicked: { root.imageGeneration = !checked; Settings.chatBotImageGeneration = !checked; checked = !checked }
+                    tooltipText: "Image generation" + (root.currentImageGenSupport() ? "" : " (not supported by this model)")
                 }
             }
 
@@ -580,32 +569,25 @@ Item {
                     spacing: 4
                     Repeater {
                         model: root.sessions
-                        delegate: Button {
-                            checkable: true
+                        delegate: AppButton {
+                            toggle: true
                             checked: modelData.id === root.activeSessionId
                             implicitHeight: 26
-                            padding: 8
-                            contentItem: Text { anchors.centerIn: parent; text: modelData.name; font.pixelSize: Theme.fontSize - 1; color: checked ? Theme.accent : Theme.fg }
-                            background: Rectangle { anchors.fill: parent; color: checked ? Theme.accentBg : "transparent"; radius: 4; border.width: checked ? 1 : 0; border.color: Theme.accent }
                             onClicked: { root.activeSessionId = modelData.id; root.loadMessages() }
                             // Right-click to delete
                             MouseArea { anchors.fill: parent; acceptedButtons: Qt.RightButton; onClicked: root.deleteSession(modelData.id) }
                             // Tooltip with first-message context (AGS session tooltip
                             // shows "Right-click to delete\nContext: {first message}")
                             HoverHandler { onHoveredChanged: if (hovered) root.fetchFirstMessage(modelData.id) }
-                            ToolTip.visible: hovered
-                            ToolTip.text: "<b>Right-click to delete</b>" + (root.sessionFirsts[modelData.id] ? "\n\n<b>Context:</b> " + root.sessionFirsts[modelData.id] : "")
+                            tooltipText: "<b>Right-click to delete</b>" + (root.sessionFirsts[modelData.id] ? "\n\n<b>Context:</b> " + root.sessionFirsts[modelData.id] : "")
                         }
                     }
                 }
-                Button {
+                AppButton {
                     width: 32; implicitHeight: 26
                     text: "\u{F067}"
-                    ToolTip.visible: hovered
-                    ToolTip.text: "Create new session"
+                    tooltipText: "Create new session"
                     onClicked: root.createSession()
-                    background: Rectangle { color: Theme.accentBg; radius: 4; border.color: Theme.accent; border.width: 1 }
-                    contentItem: Text { anchors.centerIn: parent; color: Theme.accent; font.pixelSize: Theme.fontSize - 1 }
                 }
             }
 
@@ -615,15 +597,12 @@ Item {
                 spacing: 4
                 Repeater {
                     model: root.providers
-                    delegate: Button {
-                        checkable: true
+                    delegate: AppButton {
+                        toggle: true
                         checked: modelData.value === root.currentApiModel
                         implicitHeight: 30
-                        contentItem: Text { anchors.centerIn: parent; text: modelData.icon; font.pixelSize: Theme.fontSize; color: checked ? Theme.accent : Theme.fg }
-                        background: Rectangle { anchors.fill: parent; color: checked ? Theme.accentBg : "transparent"; radius: 6; border.width: checked ? 1 : 0; border.color: Theme.accent }
                         onClicked: { root.currentApiModel = modelData.value; Settings.chatBotApi = modelData.value; root.loadSessions() }
-                        ToolTip.visible: hovered
-                        ToolTip.text: "<b>" + modelData.name + "</b>\n" + modelData.description
+                        tooltipText: "<b>" + modelData.name + "</b>\n" + modelData.description
                     }
                 }
             }

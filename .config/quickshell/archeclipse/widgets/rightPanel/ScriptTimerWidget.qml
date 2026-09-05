@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.theme
+import qs.widgets.shared
 
 // Script Timer widget ported from widgets/rightPanel/components/ScriptTimer.tsx
 Item {
@@ -168,21 +169,16 @@ Item {
                 color: Theme.fg
                 Layout.fillWidth: true
             }
-            Button {
+            AppButton {
                 text: showAddForm ? "✕" : "+"
+                pixelSize: Theme.fontSize
+                cornerRadius: 4
+                idleBg: showAddForm ? Theme.dangerBg : Theme.accentBg
+                idleFg: showAddForm ? Theme.danger : Theme.accent
+                outlined: true
+                outlineColor: showAddForm ? Theme.danger : Theme.accent
+                implicitWidth: 40
                 onClicked: toggleForm()
-                Layout.preferredWidth: 40
-                background: Rectangle {
-                    color: showAddForm ? Theme.dangerBg : Theme.accentBg
-                    radius: 4
-                    border.width: 1
-                    border.color: showAddForm ? Theme.danger : Theme.accent
-                }
-                contentItem: Text {
-                    anchors.centerIn: parent
-                    color: showAddForm ? Theme.danger : Theme.accent
-                    font.pixelSize: Theme.fontSize
-                }
             }
         }
 
@@ -289,21 +285,14 @@ Item {
                         spacing: 2
                         Repeater {
                             model: root.predefinedCommands.filter(cmd => cmd.label.toLowerCase().includes(commandField.text.toLowerCase()))
-                            delegate: Button {
+                            delegate: AppButton {
                                 text: modelData.label
+                                pixelSize: Theme.fontSize
+                                cornerRadius: 4
+                                idleBg: Theme.bg
+                                outlined: true
                                 Layout.fillWidth: true
                                 onClicked: commandField.text = modelData.command
-                                background: Rectangle {
-                                    color: Theme.bg
-                                    radius: 4
-                                    border.width: 1
-                                    border.color: Theme.border
-                                }
-                                contentItem: Text {
-                                    anchors.centerIn: parent
-                                    color: Theme.fg
-                                    font.pixelSize: Theme.fontSize
-                                }
                             }
                         }
                     }
@@ -338,8 +327,14 @@ Item {
                 Row {
                     spacing: 8
                     Layout.fillWidth: true
-                    Button {
+                    AppButton {
                         text: editingTask ? "✓ Update" : "+ Add Task"
+                        pixelSize: Theme.fontSize
+                        cornerRadius: 4
+                        idleBg: Theme.accentBg
+                        idleFg: Theme.accent
+                        outlined: true
+                        outlineColor: Theme.accent
                         Layout.fillWidth: true
                         onClicked: {
                             const name = nameField.text.trim();
@@ -368,32 +363,16 @@ Item {
                             }
                             toggleForm();
                         }
-                        background: Rectangle {
-                            color: Theme.accentBg
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.accent
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: Theme.accent
-                            font.pixelSize: Theme.fontSize
-                        }
                     }
-                    Button {
+                    AppButton {
                         text: "✕ Cancel"
+                        pixelSize: Theme.fontSize
+                        cornerRadius: 4
+                        idleBg: Theme.dangerBg
+                        idleFg: Theme.danger
+                        outlined: true
+                        outlineColor: Theme.danger
                         onClicked: toggleForm()
-                        background: Rectangle {
-                            color: Theme.dangerBg
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.danger
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: Theme.danger
-                            font.pixelSize: Theme.fontSize
-                        }
                     }
                 }
             }

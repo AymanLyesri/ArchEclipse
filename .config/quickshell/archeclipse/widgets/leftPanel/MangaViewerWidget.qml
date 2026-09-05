@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.theme
+import qs.widgets.shared
 import qs.services
 
 // Manga Viewer widget — full port of MangaViewer.tsx
@@ -256,16 +257,13 @@ Item {
                 spacing: 2
                 Repeater {
                     model: ["Manga", "Chapters", "Pages"]
-                    delegate: Button {
-                        checkable: true
+                    delegate: AppButton {
+                        toggle: true
                         checked: root.currentTab === modelData
                         enabled: modelData === "Manga" ? true
                                : modelData === "Chapters" ? (root.selectedManga !== null) && (root.selectedManga !== undefined)
                                : (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
                         implicitHeight: 28
-                        padding: 8
-                        contentItem: Text { anchors.centerIn: parent; text: modelData; font.pixelSize: Theme.fontSize - 1; color: (enabled && checked) ? Theme.accent : (enabled ? Theme.fg : Theme.fgDim) }
-                        background: Rectangle { anchors.fill: parent; color: (enabled && checked) ? Theme.accentBg : "transparent"; radius: 4; border.width: (enabled && checked) ? 1 : 0; border.color: Theme.accent }
                         onClicked: { if (enabled) root.currentTab = modelData }
                     }
                 }
@@ -407,28 +405,13 @@ Item {
                             border.color: Theme.border
                             anchors.leftMargin: modelData.isAttachment ? 25 : 0
 
-                            Button {
+                            AppButton {
                                 anchors.fill: parent
                                 anchors.leftMargin: modelData.isAttachment ? 25 : 0
                                 text: root.formatChapterLabel(modelData, modelData.isAttachment)
                                 onClicked: {
                                     root.selectedChapter = modelData
                                     root.fetchPages(modelData.id)
-                                }
-                                background: Rectangle {
-                                    anchors.fill: parent
-                                    color: "transparent"
-                                    radius: 6
-                                    border.width: 0
-                                }
-                                contentItem: Text {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: parent.text
-                                    font.pixelSize: Theme.fontSize - 1
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
                                 }
                             }
                         }
@@ -474,21 +457,17 @@ Item {
                 Row {
                     width: parent.width
                     spacing: 10
-                    Button {
+                    AppButton {
                         Layout.fillWidth: true
                         text: "\u25C0 Previous Page"
                         enabled: root.currentPageIndex > 0
                         onClicked: root.navigatePage("prev")
-                        background: Rectangle { color: Theme.moduleBg; radius: 6; border.width: 1; border.color: Theme.border }
-                        contentItem: Text { anchors.centerIn: parent; text: "\u25C0 Previous Page"; color: enabled ? Theme.fg : Theme.fgDim; font.pixelSize: Theme.fontSize - 1 }
                     }
-                    Button {
+                    AppButton {
                         Layout.fillWidth: true
                         text: "Next Page \u25B6"
                         enabled: root.pages.length > 0 && root.currentPageIndex < root.pages.length - 1
                         onClicked: root.navigatePage("next")
-                        background: Rectangle { color: Theme.moduleBg; radius: 6; border.width: 1; border.color: Theme.border }
-                        contentItem: Text { anchors.centerIn: parent; text: "Next Page \u25B6"; color: enabled ? Theme.fg : Theme.fgDim; font.pixelSize: Theme.fontSize - 1 }
                     }
                 }
 
@@ -507,12 +486,10 @@ Item {
         Row {
             width: parent.width
             spacing: 10
-            Button {
+            AppButton {
                 Layout.fillWidth: true
                 text: root.bottomRevealed ? "\u{F07E}" : "\u{F07C}"
                 onClicked: root.bottomRevealed = !root.bottomRevealed
-                background: Rectangle { color: Theme.moduleBg; radius: 6; border.width: 1; border.color: Theme.border }
-                contentItem: Text { anchors.centerIn: parent; text: root.bottomRevealed ? "\u{F07E}" : "\u{F07C}"; color: Theme.fg; font.pixelSize: Theme.fontSize }
             }
         }
 
@@ -535,19 +512,15 @@ Item {
             Row {
                 spacing: 8
                 width: parent.width
-                Button {
+                AppButton {
                     Layout.fillWidth: true
                     text: "\u{F0580} Search"
                     onClicked: root.searchManga(root.searchQuery)
-                    background: Rectangle { color: Theme.accentBg; radius: 6; border.width: 1; border.color: Theme.accent }
-                    contentItem: Text { anchors.centerIn: parent; text: "\u{F0580} Search"; color: Theme.accent; font.pixelSize: Theme.fontSize - 1 }
                 }
-                Button {
+                AppButton {
                     Layout.fillWidth: true
                     text: "\u{F0580} Popular"
                     onClicked: root.fetchPopular()
-                    background: Rectangle { color: Theme.moduleBg; radius: 6; border.width: 1; border.color: Theme.border }
-                    contentItem: Text { anchors.centerIn: parent; text: "\u{F0580} Popular"; color: Theme.fg; font.pixelSize: Theme.fontSize - 1 }
                 }
             }
         }
@@ -556,21 +529,17 @@ Item {
         Row {
             width: parent.width
             spacing: 10
-            Button {
+            AppButton {
                 Layout.fillWidth: true
                 text: "\u25C0 Previous Chapter"
                 enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
                 onClicked: root.goToChapter("prev")
-                background: Rectangle { color: Theme.moduleBg; radius: 6; border.width: 1; border.color: Theme.border }
-                contentItem: Text { anchors.centerIn: parent; text: "\u25C0 Previous Chapter"; color: enabled ? Theme.fg : Theme.fgDim; font.pixelSize: Theme.fontSize - 1 }
             }
-            Button {
+            AppButton {
                 Layout.fillWidth: true
                 text: "Next Chapter \u25B6"
                 enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
                 onClicked: root.goToChapter("next")
-                background: Rectangle { color: Theme.moduleBg; radius: 6; border.width: 1; border.color: Theme.border }
-                contentItem: Text { anchors.centerIn: parent; text: "Next Chapter \u25B6"; color: enabled ? Theme.fg : Theme.fgDim; font.pixelSize: Theme.fontSize - 1 }
             }
         }
         Label {
@@ -613,15 +582,13 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                 }
             }
-            Button {
+            AppButton {
                 text: "\u{F07B7} Copy"
                 onClicked: {
                     const url = root.getUrl()
                     console.log("[Manga] copy url:", url)
                     Quickshell.execDetached(["bash", "-c", "echo -n '" + url + "' | wl-copy 2>/dev/null || echo -n '" + url + "' | xclip -selection clipboard"])
                 }
-                background: Rectangle { color: Theme.moduleBg; radius: 4; border.width: 1; border.color: Theme.border }
-                contentItem: Text { anchors.centerIn: parent; text: "\u{F07B7} Copy"; color: Theme.fg; font.pixelSize: Theme.fontSize - 2 }
             }
         }
 
@@ -631,14 +598,12 @@ Item {
             spacing: 4
             Repeater {
                 model: root.providers
-                delegate: Button {
-                    checkable: true
+                delegate: AppButton {
+                    toggle: true
                     checked: root.provider === modelData.id
                     Layout.fillWidth: true
                     implicitHeight: 26
                     text: modelData.label
-                    contentItem: Text { anchors.centerIn: parent; text: modelData.label; font.pixelSize: Theme.fontSize - 1; color: checked ? Theme.accent : Theme.fg }
-                    background: Rectangle { anchors.fill: parent; color: checked ? Theme.accentBg : "transparent"; radius: 4; border.width: checked ? 1 : 0; border.color: Theme.accent }
                     onClicked: root.switchProvider(modelData.id)
                 }
             }

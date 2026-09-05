@@ -3,6 +3,7 @@ import Quickshell.Io
 import QtQuick
 import qs.theme
 import qs.widgets.bar
+import qs.widgets.shared
 import Quickshell.Services.Mpris
 import qs.services
 
@@ -137,28 +138,20 @@ Item {
                 spacing: 8
                 verticalAlignment: Text.AlignVCenter
 
-                Button {
-                    text: "\u{F040}" // previous
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 14
+                AppButton {
+                    icon: "" // previous
+                    pixelSize: 14
                     onClicked: activePlayer?.previous()
-                    background: Rectangle { color: "transparent" }
                 }
-
-                Button {
-                    text: root.isPlaying ? "\u{F04C}" : "\u{F04B}" // pause/play
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 14
+                AppButton {
+                    icon: root.isPlaying ? "" : "" // pause/play
+                    pixelSize: 14
                     onClicked: activePlayer?.togglePlaying()
-                    background: Rectangle { color: "transparent" }
                 }
-
-                Button {
-                    text: "\u{F041}" // next
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 14
+                AppButton {
+                    icon: "" // next
+                    pixelSize: 14
                     onClicked: activePlayer?.next()
-                    background: Rectangle { color: "transparent" }
                 }
             }
 

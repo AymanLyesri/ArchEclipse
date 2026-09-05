@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell.Services.Mpris
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // Media Widget — port of widgets/MediaWidget.tsx + widgets/Player.tsx.
 // Shows the active (playing-else-first) player with the rich Player layout:
@@ -225,28 +226,30 @@ Item {
                     Item { Layout.fillWidth: true }
 
                     // prev
-                    Button {
+                    AppButton {
                         enabled: root.player?.canGoPrevious ?? false
-                        text: "\u23EE"
+                        icon: "⏪"
+                        pixelSize: 14
                         onClicked: root.player?.previous()
-                        background: Rectangle { color: "transparent" }
-                        contentItem: Text { text: root.iconText("\u23EE"); font.pixelSize: 14; color: enabled ? Theme.fg : Qt.alpha(Theme.fg, 0.3) }
                     }
                     // play/pause
-                    Button {
+                    AppButton {
                         enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
-                        text: root.playing ? "\u23F8" : "\u25B6"
+                        icon: root.playing ? "⏸" : "▶"
+                        pixelSize: 14
+                        cornerRadius: 16
+                        implicitWidth: 30
+                        implicitHeight: 30
+                        idleBg: Theme.accentBg
+                        idleFg: Theme.accent
                         onClicked: { if (root.playing) root.player?.pause(); else root.player?.play() }
-                        background: Rectangle { color: Theme.accentBg; radius: 16; implicitHeight: 30; implicitWidth: 30 }
-                        contentItem: Text { horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: root.playing ? "\u23F8" : "\u25B6"; font.pixelSize: 14; color: Theme.accent }
                     }
                     // next
-                    Button {
+                    AppButton {
                         enabled: root.player?.canGoNext ?? false
-                        text: "\u23ED"
+                        icon: "⏩"
+                        pixelSize: 14
                         onClicked: root.player?.next()
-                        background: Rectangle { color: "transparent" }
-                        contentItem: Text { text: "\u23ED"; font.pixelSize: 14; color: enabled ? Theme.fg : Qt.alpha(Theme.fg, 0.3) }
                     }
 
                     Item { Layout.fillWidth: true }
@@ -308,5 +311,6 @@ Item {
         }
     }
 
-    function iconText(ch) { return ch }
+
+
 }

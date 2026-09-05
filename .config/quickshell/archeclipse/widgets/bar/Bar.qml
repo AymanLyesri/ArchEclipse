@@ -31,7 +31,7 @@ PanelWindow {
     color: "transparent"
     aboveWindows: true
 
-    readonly property int barHeight: 34
+    readonly property int barHeight: 32
     implicitHeight: barHeight + (Settings.barOrientation ? 6 : 0)
 
     readonly property bool fullWidth: Settings.barFullWidth

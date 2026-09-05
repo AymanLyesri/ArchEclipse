@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import qs.theme
 import qs.services
 import qs.widgets.bar
+import qs.widgets.shared
 
 // Crypto entry item — combines CryptoItem (price/graph) with entry management
 // (bookmark/pin, edit, delete). Port of CryptoViewer.tsx CryptoEntryItem.
@@ -42,38 +43,44 @@ Item {
             visible: root.isHovered
             anchors.right: parent.right
 
-            Button {
-                text: "\u{f091}"  // pin
+            AppButton {
+                icon: "\u{F091}"
                 width: 28; height: 24
-                ToolTip.visible: hovered; ToolTip.delay: 500
-                ToolTip.text: "Pin to bar"
+                pixelSize: 11
+                cornerRadius: 4
+                idleBg: Theme.moduleBg
+                idleFg: Theme.accent
+                outlined: true
+                tooltipText: "Pin to bar"
                 onClicked: {
                     Settings.cryptoFavorite = { symbol: root.entry.symbol, timeframe: root.entry.timeframe }
                     Settings.updateSetting("crypto.favorite", Settings.cryptoFavorite)
                     Quickshell.execDetached(["notify-send", "Crypto Display", (root.entry.symbol || "").toUpperCase() + " pinned to top bar"])
                 }
-                background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-                contentItem: Text { color: Theme.accent; font.pixelSize: 11; anchors.centerIn: parent }
             }
 
-            Button {
-                text: "\u{f044}"  // edit/pencil (using Nerd Font icon)
+            AppButton {
+                icon: "\u{F044}"
                 width: 28; height: 24
-                ToolTip.visible: hovered; ToolTip.delay: 500
-                ToolTip.text: "Edit"
+                pixelSize: 11
+                cornerRadius: 4
+                idleBg: Theme.moduleBg
+                outlined: true
+                tooltipText: "Edit"
                 onClicked: root.editClicked(root.entry)
-                background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-                contentItem: Text { color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
             }
 
-            Button {
-                text: "\u{f00d}"  // x
+            AppButton {
+                icon: "\u{F00D}"
                 width: 28; height: 24
-                ToolTip.visible: hovered; ToolTip.delay: 500
-                ToolTip.text: "Delete"
+                pixelSize: 11
+                cornerRadius: 4
+                idleBg: Theme.dangerBg
+                idleFg: Theme.danger
+                outlined: true
+                outlineColor: Theme.danger
+                tooltipText: "Delete"
                 onClicked: root.deleteClicked(root.entry.id)
-                background: Rectangle { color: Theme.dangerBg; radius: 4; border.color: Theme.danger }
-                contentItem: Text { color: Theme.danger; font.pixelSize: 11; anchors.centerIn: parent }
             }
         }
 

@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import Quickshell.Io
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // WallpaperSwitcher — pick a wallpaper per workspace, or set the sddm /
 // lockscreen background, browse a category, add a new wallpaper (with
@@ -399,10 +400,10 @@ PanelWindow {
                     spacing: 2
                     Repeater {
                         model: root.targetTypes
-                        delegate: Button {
+                        delegate: AppButton {
                             required property string modelData
                             text: modelData
-                            checkable: true
+                            toggle: true
                             checked: root.targetType === modelData
                             onClicked: root.targetType = modelData
                         }
@@ -435,9 +436,9 @@ PanelWindow {
                     onActivated: root.selectedCategory = root.categories[currentIndex]
                 }
 
-                Button { text: "Random"; onClicked: root.setRandomWallpaper() }
-                Button { text: "Reload"; onClicked: root.reloadDaemon() }
-                Button { text: "Add…"; onClicked: root.pickWallpaper() }
+                AppButton { text: "Random"; onClicked: root.setRandomWallpaper() }
+                AppButton { text: "Reload"; onClicked: root.reloadDaemon() }
+                AppButton { text: "Add…"; onClicked: root.pickWallpaper() }
 
                 BusyIndicator {
                     running: root.progressStatus === "loading"

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.theme
+import qs.widgets.shared
 import qs.services
 import qs.widgets.media
 
@@ -456,15 +457,15 @@ Item {
 
             Repeater {
                 model: root.booruApis
-                delegate: Button {
+                delegate: AppButton {
                     id: apiTabBtn
                     text: modelData.name
                     width: (parent.width - 20) / 5  // 3 APIs + Bookmarks + Pins = 5 tabs
                     height: 28
-                    checkable: true
+                    toggle: true
                     checked: root.selectedTab === modelData.name
                     enabled: root.progressStatus !== "loading"
-                    font.pixelSize: Theme.fontSize - 2
+                    pixelSize: Theme.fontSize - 2
                     onClicked: {
                         Settings.booru.api = modelData
                         Settings.updateSetting("booru.api", modelData)
@@ -476,31 +477,19 @@ Item {
                         Settings.updateSetting("booru.page", 1)
                         root.fetchImages()
                     }
-                    background: Rectangle {
-                        color: apiTabBtn.checked ? Theme.accentBg : Theme.moduleBg
-                        radius: 4
-                        border.color: apiTabBtn.checked ? Theme.accent : Theme.border
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: apiTabBtn.checked ? Theme.accent : Theme.fg
-                        font.pixelSize: Theme.fontSize - 2
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
                 }
             }
 
             // Bookmark tab (AGS label F02E)
-            Button {
+            AppButton {
                 id: bookmarkBtn
                 text: "\u{F02E}"
                 width: (parent.width - 20) / 5
                 height: 28
-                checkable: true
+                toggle: true
                 checked: root.selectedTab === "Bookmarks"
                 enabled: root.progressStatus !== "loading"
-                font.pixelSize: Theme.fontSize - 2
+                pixelSize: Theme.fontSize - 2
                 onClicked: {
                     root.selectedTab = "Bookmarks"
                     Settings.booru.selectedTab = "Bookmarks"
@@ -511,30 +500,18 @@ Item {
                     // Load bookmarks (AGS: paginate + download previews)
                     root.loadBookmarks()
                 }
-                background: Rectangle {
-                    color: bookmarkBtn.checked ? Theme.accentBg : Theme.moduleBg
-                    radius: 4
-                    border.color: bookmarkBtn.checked ? Theme.accent : Theme.border
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: bookmarkBtn.checked ? Theme.accent : Theme.fg
-                    font.pixelSize: Theme.fontSize - 2
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
             }
 
             // Pins tab (AGS label F435)
-            Button {
+            AppButton {
                 id: pinsBtn
                 text: "\u{F435}"
                 width: (parent.width - 20) / 5
                 height: 28
-                checkable: true
+                toggle: true
                 checked: root.selectedTab === "Pins"
                 enabled: root.progressStatus !== "loading"
-                font.pixelSize: Theme.fontSize - 2
+                pixelSize: Theme.fontSize - 2
                 onClicked: {
                     root.selectedTab = "Pins"
                     Settings.booru.selectedTab = "Pins"
@@ -544,18 +521,6 @@ Item {
                     Settings.updateSetting("booru.page", 1)
                     // Load pins (AGS: paginate + download previews)
                     root.loadPins()
-                }
-                background: Rectangle {
-                    color: pinsBtn.checked ? Theme.accentBg : Theme.moduleBg
-                    radius: 4
-                    border.color: pinsBtn.checked ? Theme.accent : Theme.border
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: pinsBtn.checked ? Theme.accent : Theme.fg
-                    font.pixelSize: Theme.fontSize - 2
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
                 }
             }
         }
@@ -748,26 +713,14 @@ Item {
                 // First-page button + ellipsis when page > 3 (AGS logic)
                 Repeater {
                     model: root.buildPageButtons()
-                    delegate: Button {
+                    delegate: AppButton {
                         readonly property var modelDataObj: modelData  // {label, active}
                         text: modelData.label
                         width: modelData.active ? 40 : 28
                         height: 28
                         enabled: root.progressStatus !== "loading" && modelData.page > 0
-                        font.pixelSize: Theme.fontSize - 2
+                        pixelSize: Theme.fontSize - 2
                         onClicked: root.gotoPage(modelData.page)
-                        background: Rectangle {
-                            color: modelData.active ? Theme.accentBg : Theme.moduleBg
-                            radius: 4
-                            border.color: modelData.active ? Theme.accent : Theme.border
-                        }
-                        contentItem: Text {
-                            text: modelData.label
-                            color: modelData.active ? Theme.accent : Theme.fg
-                            font.pixelSize: Theme.fontSize - 2
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
                     }
                 }
             }
@@ -778,7 +731,7 @@ Item {
                 width: parent.width
                 height: 28
 
-                Button {
+                AppButton {
                     text: "\u{F053}"  // chevron left (AGS prev)
                     width: 32; height: 28
                     enabled: root.progressStatus !== "loading"
@@ -791,29 +744,15 @@ Item {
                             root.fetchImages()
                         }
                     }
-                    background: Rectangle {
-                        color: Theme.moduleBg; radius: 4; border.color: Theme.border
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent
-                    }
                 }
 
-                Button {
+                AppButton {
                     text: root.bottomRevealed ? "\u{f07e}" : "\u{f07c}"  // down/up chevron
                     width: 32; height: 28
                     onClicked: root.bottomRevealed = !root.bottomRevealed
-                    background: Rectangle {
-                        color: Theme.moduleBg; radius: 4; border.color: Theme.border
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent
-                    }
                 }
 
-                Button {
+                AppButton {
                     text: "\u{F054}"  // chevron right (AGS next)
                     width: 32; height: 28
                     enabled: root.progressStatus !== "loading"
@@ -823,13 +762,6 @@ Item {
                         Settings.booru.page = root.page
                         Settings.updateSetting("booru.page", root.page)
                         root.fetchImages()
-                    }
-                    background: Rectangle {
-                        color: Theme.moduleBg; radius: 4; border.color: Theme.border
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent
                     }
                 }
 
@@ -996,14 +928,11 @@ Item {
                                     }
                                 }
                             }
-                            Button {
+                            AppButton {
                                 text: root.cacheSize
                                 width: 50; height: 24
-                                ToolTip.visible: hovered; ToolTip.delay: 500
-                                ToolTip.text: "Clear cache"
+                                tooltipText: "Clear cache"
                                 onClicked: root.cleanCache()
-                                background: Rectangle { color: Theme.bg; radius: 4; border.color: Theme.border }
-                                contentItem: Text { text: parent.text; color: Theme.fgDim; font.pixelSize: Theme.fontSize - 2; anchors.centerIn: parent }
                             }
                         }
 
@@ -1014,11 +943,11 @@ Item {
                             visible: root.fetchedTags.length > 0
                             Repeater {
                                 model: root.fetchedTags
-                                delegate: Button {
+                                delegate: AppButton {
                                     text: modelData
                                     width: tagText2.implicitWidth + 12
                                     height: 20
-                                    font.pixelSize: Theme.fontSize - 3
+                                    pixelSize: Theme.fontSize - 3
                                     onClicked: {
                                         const newTags = [...new Set([...root.currentTags, modelData])]
                                         root.currentTags = newTags
@@ -1026,8 +955,6 @@ Item {
                                         Settings.updateSetting("booru.tags", newTags)
                                         root.fetchedTags = []
                                     }
-                                    background: Rectangle { color: Theme.bg; radius: 3; border.color: Theme.border }
-                                    contentItem: Text { text: parent.text; color: Theme.fgDim; font.pixelSize: Theme.fontSize - 2; anchors.centerIn: parent }
                                 }
                             }
                         }
@@ -1301,14 +1228,13 @@ Item {
                     Row {
                         width: parent.width
                         spacing: 6
-                        Button { text: "\u{f31b} Browser"; Layout.fillWidth: true; onClicked: root.openInBrowser(root.dialogImage) }
-                        Button {
-                            text: (root.isBookmarked(root.dialogImage) ? "\u{f02e} Unbookmark" : "\u{f02e} Bookmark")
+                        AppButton {
+                            text: (root.isBookmarked(root.dialogImage) ? "󰀮 Unbookmark" : "󰀮 Bookmark")
                             Layout.fillWidth: true
                             onClicked: root.toggleBookmark(root.dialogImage)
                         }
-                        Button {
-                            text: (root.isPinned(root.dialogImage) ? "\u{f96c} Unpin" : "\u{f96c} Pin")
+                        AppButton {
+                            text: (root.isPinned(root.dialogImage) ? "󰥬 Unpin" : "󰥬 Pin")
                             Layout.fillWidth: true
                             onClicked: root.togglePinned(root.dialogImage)
                         }
@@ -1316,18 +1242,18 @@ Item {
                     Row {
                         width: parent.width
                         spacing: 6
-                        Button {
+                        AppButton {
                             text: "\u{f019} Download"
                             Layout.fillWidth: true
                             enabled: !root.isDownloaded(root.dialogImage)
                             onClicked: root.downloadImage(root.dialogImage)
                         }
-                        Button {
+                        AppButton {
                             text: (root.isCurrentWaifu(root.dialogImage) ? "\u{f004} Current waifu" : "\u{f004} Set waifu")
                             Layout.fillWidth: true
                             onClicked: root.setAsWaifu(root.dialogImage)
                         }
-                        Button {
+                        AppButton {
                             text: "\u{f05e} Close"
                             Layout.fillWidth: true
                             onClicked: root.dialogImage = null

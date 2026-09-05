@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.theme
+import qs.widgets.shared
 
 // Notification Stack Item component
 Item {
@@ -33,39 +34,27 @@ Item {
                 spacing: 5
                 // Expand chevron only for multi-item stacks; the clear button
                 // ALWAYS renders (AGS ClearNotifications, no length guard).
-                Button {
+                AppButton {
                     visible: stack.notifications.length > 1
-                    text: isExpanded ? "▲" : "▼"
+                    icon: isExpanded ? "▲" : "▼"
+                    pixelSize: Theme.fontSize - 2
+                    cornerRadius: 4
+                    idleBg: Theme.accentBg
+                    idleFg: Theme.accent
+                    outlined: true
+                    outlineColor: Theme.accent
                     onClicked: root.toggleExpanded()
-                    background: Rectangle {
-                        color: Theme.accentBg
-                        radius: 4
-                        border.width: 1
-                        border.color: Theme.accent
-                    }
-                    contentItem: Text {
-                        anchors.centerIn: parent
-                        color: Theme.accent
-                        font.pixelSize: Theme.fontSize - 2
-                    }
                 }
-                Button {
-                    text: "🗑"
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 500
-                    ToolTip.text: "Clear all"
+                AppButton {
+                    icon: "🗑"
+                    pixelSize: Theme.fontSize - 2
+                    cornerRadius: 4
+                    idleBg: Theme.dangerBg
+                    idleFg: Theme.danger
+                    outlined: true
+                    outlineColor: Theme.danger
+                    tooltipText: "Clear all"
                     onClicked: root.clearStack()
-                    background: Rectangle {
-                        color: Theme.dangerBg
-                        radius: 4
-                        border.width: 1
-                        border.color: Theme.danger
-                    }
-                    contentItem: Text {
-                        anchors.centerIn: parent
-                        color: Theme.danger
-                        font.pixelSize: Theme.fontSize - 2
-                    }
                 }
             }
         }

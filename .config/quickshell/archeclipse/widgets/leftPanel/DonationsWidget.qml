@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.theme
+import qs.widgets.shared
 import qs.services
 import qs.widgets.bar
 
@@ -98,7 +99,7 @@ Item {
                                 // Main action button (AGS brand gradients:
                                 // kofi #72a5f2→#ff6433, paypal #00457c→#0070ba,
                                 // reversed on hover with glow border)
-                                Button {
+                                AppButton {
                                     id: donateBtn
                                     width: parent.width
                                     property string addr: modelData.address ?? ""
@@ -110,63 +111,19 @@ Item {
                                             openUrl(url)
                                         }
                                     }
-                                    ToolTip.visible: hovered
-                                    ToolTip.text: modelData.type === "crypto" && addr
+                                    tooltipText: modelData.type === "crypto" && addr
                                         ? "Copy " + modelData.name + " address\n" + addr
                                         : "Donate via " + modelData.name + "\n" + url
-                                    background: Rectangle {
-                                        radius: 8
-                                        border.width: 1
-                                        border.color: {
-                                            if (!donateBtn.hovered) return Theme.border
-                                            if (modelData.class === "kofi") return "#ff5e5b"
-                                            if (modelData.class === "paypal") return "#0070ba"
-                                            return Theme.accent
-                                        }
-                                        gradient: Gradient {
-                                            GradientStop {
-                                                position: 0
-                                                color: modelData.class === "kofi" ? (donateBtn.hovered ? "#ff6433" : "#72a5f2")
-                                                    : modelData.class === "paypal" ? (donateBtn.hovered ? "#0070ba" : "#00457c")
-                                                    : modelData.color
-                                            }
-                                            GradientStop {
-                                                position: 1
-                                                color: modelData.class === "kofi" ? (donateBtn.hovered ? "#72a5f2" : "#ff6433")
-                                                    : modelData.class === "paypal" ? (donateBtn.hovered ? "#00457c" : "#0070ba")
-                                                    : modelData.color
-                                            }
-                                        }
-                                    }
-                                    contentItem: Row {
-                                        spacing: 8
-                                        anchors.centerIn: parent
-                                        Label { text: modelData.icon; font.pixelSize: Theme.fontSize + 4; color: "white" }
-                                        Label { text: modelData.name; font.pixelSize: Theme.fontSize; font.bold: true; color: "white" }
-                                    }
                                 }
 
                                 // QR Code button
-                                Button {
+                                AppButton {
                                     width: parent.width
                                     property string qrData: modelData.address ?? modelData.url ?? ""
                                     onClicked: {
                                         if (qrData) showQRCode(qrData, modelData.name)
                                     }
-                                    ToolTip.visible: hovered
-                                    ToolTip.text: "Show QR Code"
-                                    background: Rectangle {
-                                        color: Theme.moduleBg
-                                        radius: 8
-                                        border.width: 1
-                                        border.color: Theme.border
-                                    }
-                                    contentItem: Label {
-                                        anchors.centerIn: parent
-                                        text: "\u{F029}"
-                                        font.pixelSize: Theme.fontSize + 2
-                                        color: Theme.accent
-                                    }
+                                    tooltipText: "Show QR Code"
                                 }
                             }
                         }

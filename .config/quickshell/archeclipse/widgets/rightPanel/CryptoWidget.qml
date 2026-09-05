@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import qs.services
 import qs.theme
 import Quickshell
+import qs.widgets.shared
 
 // Crypto Viewer widget ported from widgets/rightPanel/components/CryptoViewer.tsx
 Item {
@@ -93,21 +94,16 @@ Item {
                 color: Theme.fg
                 Layout.fillWidth: true
             }
-            Button {
+            AppButton {
                 text: showAddForm ? "✕" : "+"
+                pixelSize: Theme.fontSize
+                cornerRadius: 4
+                idleBg: showAddForm ? Theme.dangerBg : Theme.accentBg
+                idleFg: showAddForm ? Theme.danger : Theme.accent
+                outlined: true
+                outlineColor: showAddForm ? Theme.danger : Theme.accent
+                implicitWidth: 40
                 onClicked: toggleForm()
-                Layout.preferredWidth: 40
-                background: Rectangle {
-                    color: showAddForm ? Theme.dangerBg : Theme.accentBg
-                    radius: 4
-                    border.width: 1
-                    border.color: showAddForm ? Theme.danger : Theme.accent
-                }
-                contentItem: Text {
-                    anchors.centerIn: parent
-                    color: showAddForm ? Theme.danger : Theme.accent
-                    font.pixelSize: Theme.fontSize
-                }
             }
         }
 
@@ -191,26 +187,14 @@ Item {
                         spacing: 4
                         Repeater {
                             model: root.timeframes
-                            delegate: Button {
-                                checkable: true
+                            delegate: AppButton {
+                                toggle: true
                                 text: modelData
+                                pixelSize: Theme.fontSize - 1
+                                cornerRadius: 4
                                 implicitHeight: 26
-                                padding: 8
                                 checked: root._selectedTimeframe === modelData
                                 onClicked: root._selectedTimeframe = modelData
-                                background: Rectangle {
-                                    anchors.fill: parent
-                                    color: checked ? Theme.accentBg : "transparent"
-                                    radius: 4
-                                    border.width: checked ? 1 : 0
-                                    border.color: Theme.accent
-                                }
-                                contentItem: Text {
-                                    anchors.centerIn: parent
-                                    text: modelData
-                                    color: checked ? Theme.accent : Theme.fg
-                                    font.pixelSize: Theme.fontSize - 1
-                                }
                             }
                         }
                     }
@@ -245,8 +229,14 @@ Item {
                 Row {
                     spacing: 8
                     Layout.fillWidth: true
-                    Button {
+                    AppButton {
                         text: editingEntry ? "✓ Update" : "+ Add Crypto"
+                        pixelSize: Theme.fontSize
+                        cornerRadius: 4
+                        idleBg: Theme.accentBg
+                        idleFg: Theme.accent
+                        outlined: true
+                        outlineColor: Theme.accent
                         Layout.fillWidth: true
                         onClicked: {
                             const symbol = symbolField.text.trim().toLowerCase();
@@ -271,32 +261,16 @@ Item {
                             Quickshell.execDetached(["notify-send", "Crypto Display", symbol.toUpperCase() + " " + (editingEntry ? "updated" : "added") + " successfully"]);
                             toggleForm();
                         }
-                        background: Rectangle {
-                            color: Theme.accentBg
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.accent
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: Theme.accent
-                            font.pixelSize: Theme.fontSize
-                        }
                     }
-                    Button {
+                    AppButton {
                         text: "✕ Cancel"
+                        pixelSize: Theme.fontSize
+                        cornerRadius: 4
+                        idleBg: Theme.dangerBg
+                        idleFg: Theme.danger
+                        outlined: true
+                        outlineColor: Theme.danger
                         onClicked: toggleForm()
-                        background: Rectangle {
-                            color: Theme.dangerBg
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.danger
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: Theme.danger
-                            font.pixelSize: Theme.fontSize
-                        }
                     }
                 }
             }

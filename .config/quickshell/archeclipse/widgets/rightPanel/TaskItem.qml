@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.theme
+import qs.widgets.shared
 
 // Script Timer Task Item component
 Item {
@@ -71,41 +72,23 @@ Item {
                         checked: task.active
                         onToggled: root.toggleClicked(task.id)
                     }
-                    Button {
-                        text: "✏"
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 500
-                        ToolTip.text: "Edit"
+                    AppButton {
+                        icon: "✏"
+                        idleBg: Theme.accentBg
+                        idleFg: Theme.accent
+                        outlined: true
+                        outlineColor: Theme.accent
+                        tooltipText: "Edit"
                         onClicked: root.editClicked(task)
-                        background: Rectangle {
-                            color: Theme.accentBg
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.accent
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: Theme.accent
-                            font.pixelSize: Theme.fontSize
-                        }
                     }
-                    Button {
-                        text: "✕"
-                        ToolTip.visible: hovered
-                        ToolTip.delay: 500
-                        ToolTip.text: "Delete"
+                    AppButton {
+                        icon: "✕"
+                        idleBg: Theme.dangerBg
+                        idleFg: Theme.danger
+                        outlined: true
+                        outlineColor: Theme.danger
+                        tooltipText: "Delete"
                         onClicked: root.deleteClicked(task.id)
-                        background: Rectangle {
-                            color: Theme.dangerBg
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.danger
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: Theme.danger
-                            font.pixelSize: Theme.fontSize
-                        }
                     }
                 }
             }

@@ -7,6 +7,7 @@ import qs.theme
 import qs.services
 import qs.widgets.bar
 import qs.widgets.media
+import qs.widgets.shared
 
 // Results panel for the search island — port of AppLauncher.tsx.
 // AGS renders a 3-column launcher: left = media Player card (300),
@@ -218,14 +219,15 @@ Rectangle {
                         spacing: 4
                         Repeater {
                             model: modelData.actions
-                            delegate: Button {
+                            delegate: AppButton {
                                 text: modelData.label
                                 height: 26
-                                padding: 6
-                                ToolTip.text: modelData.tooltip || modelData.label
+                                pixelSize: Theme.fontSize - 1
+                                cornerRadius: 4
+                                idleBg: Theme.moduleBg
+                                outlined: true
+                                tooltipText: modelData.tooltip || modelData.label
                                 onClicked: modelData.onClick()
-                                background: Rectangle { color: Theme.moduleBg; radius: 4; border.width: 1; border.color: Theme.border }
-                                contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize - 1; anchors.centerIn: parent }
                             }
                         }
                     }

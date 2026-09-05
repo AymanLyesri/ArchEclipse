@@ -8,6 +8,7 @@ import Quickshell.Wayland
 import qs.theme
 import qs.services
 import qs.widgets.bar
+import qs.widgets.shared
 import qs.widgets.media
 
 // Port of widgets/rightPanel/RightPanel.tsx — data-driven side panel on the
@@ -105,27 +106,37 @@ PanelWindow {
                             height: 40
 
                             // --- Drag to reorder (AGS WidgetActions drag) ---
-                            property bool dragging: false
-                            Drag.active: dragArea.drag.active
+                            Drag.active: cellBtn.dragActive
                             Drag.hotSpot: Qt.point(width / 2, height / 2)
                             Drag.source: selectorItem
                             Drag.mimeData: { "text/plain": String(index) }
 
-                            Rectangle {
-                                id: dragVisual
+                            AppButton {
+                                id: cellBtn
                                 anchors.fill: parent
-                                color: modelData.enabled ? (selectorItem.dragging ? Theme.accent : Theme.accentBg) : "transparent"
-                                radius: 8
-                                border.width: modelData.enabled ? 1 : 0
-                                border.color: selectorItem.dragging ? Theme.accent : Theme.accent
-                                opacity: selectorItem.dragging ? 0.6 : 1
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.icon
-                                    font.pixelSize: 20
-                                    font.family: "Font Awesome 6 Free"
-                                    color: modelData.enabled ? Theme.accent : Theme.fg
+                                icon: modelData.icon
+                                toggle: true
+                                checked: modelData.enabled
+                                tooltipText: modelData.name
+                                draggable: true
+                                dragTarget: selectorItem
+                                dragAxis: Drag.YAxis
+                                dragMinimum: -selectorItem.index * 48
+                                dragMaximum: (Settings.rightPanelWidgets.length - 1 - selectorItem.index) * 48
+                                onPressed: cellBtn.dragging = true
+                                onReleased: {
+                                    cellBtn.dragging = false
+                                    selectorItem.x = 0
+                                    selectorItem.y = 0
+                                }
+                                onClicked: {
+                                    const widgets = Settings.rightPanelWidgets.slice()
+                                    const w = widgets[index]
+                                    const newWidgets = widgets.map(item =>
+                                        item.name === w.name ? Object.assign({}, item, { enabled: !item.enabled }) : item
+                                    )
+                                    Settings.rightPanelWidgets = newWidgets
+                                    Settings.updateSetting("rightPanel.widgets", newWidgets)
                                 }
 
                                 DropArea {
@@ -143,33 +154,6 @@ PanelWindow {
                                     }
                                 }
 
-                                MouseArea {
-                                    id: dragArea
-                                    anchors.fill: parent
-                                    drag.target: selectorItem
-                                    drag.axis: Drag.YAxis
-                                    drag.minimumY: -selectorItem.index * 48
-                                    drag.maximumY: (Settings.rightPanelWidgets.length - 1 - selectorItem.index) * 48
-                                    hoverEnabled: true
-                                    acceptedButtons: Qt.LeftButton
-
-                                    onPressed: selectorItem.dragging = true
-                                    onReleased: {
-                                        selectorItem.dragging = false
-                                        selectorItem.x = 0
-                                        selectorItem.y = 0
-                                    }
-
-                                    onClicked: {
-                                        const widgets = Settings.rightPanelWidgets.slice()
-                                        const w = widgets[index]
-                                        const newWidgets = widgets.map(item =>
-                                            item.name === w.name ? Object.assign({}, item, { enabled: !item.enabled }) : item
-                                        )
-                                        Settings.rightPanelWidgets = newWidgets
-                                        Settings.updateSetting("rightPanel.widgets", newWidgets)
-                                    }
-                                }
                             }
                         }
                     }
@@ -186,60 +170,68 @@ PanelWindow {
                         spacing: 4
 
                         // Expand (+50 to max 1500)
-                        Button {
+                        AppButton {
                             width: parent.width
-                            padding: 8
-                            contentItem: Text { anchors.centerIn: parent; text: "\u{F067}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: parent.parent.hovered ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                            background: Rectangle { anchors.fill: parent; color: parent.hovered ? Theme.moduleBg : "transparent"; radius: 6 }
-                            ToolTip.visible: hovered; ToolTip.text: "Expand panel"; ToolTip.delay: 600
+                            icon: "\u{F067}"
+                            pixelSize: 14
+                            cornerRadius: 6
+                            hoverBg: Theme.moduleBg
+                            hoverFg: Theme.accent
+                            tooltipText: "Expand panel"
                             onClicked: {
                                 const w = Settings.rightPanelWidth
                                 Settings.rightPanelWidth = w < 1500 ? w + 50 : 1500
                             }
                         }
-                        // Shrink (−50 to min 250)
-                        Button {
+                        // Shrink (-50 to min 250)
+                        AppButton {
                             width: parent.width
-                            padding: 8
-                            contentItem: Text { anchors.centerIn: parent; text: "\u{F068}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: parent.parent.hovered ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                            background: Rectangle { anchors.fill: parent; color: parent.hovered ? Theme.moduleBg : "transparent"; radius: 6 }
-                            ToolTip.visible: hovered; ToolTip.text: "Shrink panel"; ToolTip.delay: 600
+                            icon: "\u{F068}"
+                            pixelSize: 14
+                            cornerRadius: 6
+                            hoverBg: Theme.moduleBg
+                            hoverFg: Theme.accent
+                            tooltipText: "Shrink panel"
                             onClicked: {
                                 const w = Settings.rightPanelWidth
                                 Settings.rightPanelWidth = w > 250 ? w - 50 : 250
                             }
                         }
                         // Exclusivity (AGS: active = non-exclusive, inverted)
-                        Button {
-                            id: exclBtn
+                        AppButton {
                             width: parent.width
-                            checkable: true
+                            icon: "\u{F2E0}"
+                            pixelSize: 14
+                            cornerRadius: 6
+                            toggle: true
                             checked: !Settings.rightPanelExclusivity
-                            padding: 8
-                            contentItem: Text { anchors.centerIn: parent; text: "\u{F2E0}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: exclBtn.checked ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                            background: Rectangle { anchors.fill: parent; color: exclBtn.hovered ? Theme.moduleBg : (exclBtn.checked ? Theme.accentBg : "transparent"); radius: 6 }
-                            ToolTip.visible: hovered; ToolTip.text: Settings.rightPanelExclusivity ? "Exclusive zone: on" : "Exclusive zone: off"; ToolTip.delay: 600
-                            onToggled: Settings.rightPanelExclusivity = !checked
+                            hoverBg: Theme.moduleBg
+                            tooltipText: Settings.rightPanelExclusivity ? "Exclusive zone: on" : "Exclusive zone: off"
+                            // checked is the inverse of the setting: writing it
+                            // back as-is toggles exclusivity.
+                            onClicked: Settings.rightPanelExclusivity = checked
                         }
                         // Lock
-                        Button {
-                            id: lockBtn
+                        AppButton {
                             width: parent.width
-                            checkable: true
+                            icon: Settings.rightPanelLock ? "\u{F023}" : "\u{F2DC}"
+                            pixelSize: 14
+                            cornerRadius: 6
+                            toggle: true
                             checked: Settings.rightPanelLock
-                            padding: 8
-                            contentItem: Text { anchors.centerIn: parent; text: lockBtn.checked ? "\u{F023}" : "\u{F2DC}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: lockBtn.checked ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                            background: Rectangle { anchors.fill: parent; color: lockBtn.hovered ? Theme.moduleBg : (lockBtn.checked ? Theme.accentBg : "transparent"); radius: 6 }
-                            ToolTip.visible: hovered; ToolTip.text: Settings.rightPanelLock ? "Unlock panel" : "Lock panel"; ToolTip.delay: 600
-                            onToggled: Settings.rightPanelLock = checked
+                            hoverBg: Theme.moduleBg
+                            tooltipText: Settings.rightPanelLock ? "Unlock panel" : "Lock panel"
+                            onClicked: Settings.rightPanelLock = !checked
                         }
                         // Close
-                        Button {
+                        AppButton {
                             width: parent.width
-                            padding: 8
-                            contentItem: Text { anchors.centerIn: parent; text: "\u{F00D}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: parent.parent.hovered ? Theme.danger : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                            background: Rectangle { anchors.fill: parent; color: parent.hovered ? Theme.moduleBg : "transparent"; radius: 6 }
-                            ToolTip.visible: hovered; ToolTip.text: "Close panel"; ToolTip.delay: 600
+                            icon: "\u{F00D}"
+                            pixelSize: 14
+                            cornerRadius: 6
+                            hoverBg: Theme.moduleBg
+                            hoverFg: Theme.danger
+                            tooltipText: "Close panel"
                             onClicked: root.visible = false
                         }
                     }

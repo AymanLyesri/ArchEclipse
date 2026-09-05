@@ -5,6 +5,7 @@ import Quickshell.Wayland
 import qs.theme
 import qs.services
 import qs.widgets.bar
+import qs.widgets.shared
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -145,46 +146,19 @@ PanelWindow {
                         required property var modelData
                         width: selectorColumn.width
                         height: 40
-                        Button {
-                            id: selectorBtn
+                        AppButton {
                             anchors.fill: parent
-                            checkable: true
+                            icon: modelData.icon
+                            toggle: true
                             checked: root.selectedWidget === modelData.name
-                            contentItem: Text {
-                                anchors.centerIn: parent
-                                text: modelData.icon
-                                font.pixelSize: 20
-                                font.family: "Font Awesome 6 Free"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                // AGS: Donations not(:checked) text is dark blue on red bg
-                                color: {
-                                    if (selectorBtn.checked) return Theme.accent
-                                    if (modelData.name === "Donations") return "#052d49"
-                                    return Theme.fg
-                                }
-                            }
-                            background: Rectangle {
-                                anchors.fill: parent
-                                // AGS: .widget-actions .Donations:not(:checked) special red color
-                                // to nudge users toward the support widget.
-                                color: {
-                                    if (selectorBtn.checked) return Theme.accentBg
-                                    if (modelData.name === "Donations") return "#f96854"
-                                    return "transparent"
-                                }
-                                radius: 8
-                                border.width: selectorBtn.checked ? 1 : 0
-                                border.color: selectorBtn.checked ? Theme.accent
-                                    : (modelData.name === "Donations" ? "#f96854" : Theme.border)
-                            }
-                            ToolTip.visible: selectorBtn.hovered && selectorBtn.enabled
-                            ToolTip.text: {
-                                if (modelData.name === "Donations")
-                                    return "Click to open Donations\n<b>＼(o￣∇￣)／</b> — Support the project"
-                                return "Click to open " + modelData.name
-                            }
-                            ToolTip.delay: 600
+                            // AGS: .widget-actions .Donations special red color
+                            // to nudge users toward the support widget.
+                            idleBg: modelData.name === "Donations" ? "#f96854" : "transparent"
+                            idleFg: modelData.name === "Donations" ? "#052d49" : Theme.fg
+                            borderColor: modelData.name === "Donations" ? "#f96854" : Theme.accent
+                            tooltipText: modelData.name === "Donations"
+                                ? "Click to open Donations\n<b>＼(o￣∇￣)／</b> — Support the project"
+                                : "Click to open " + modelData.name
                             onClicked: {
                                 root.selectedWidget = modelData.name
                             }
@@ -203,56 +177,64 @@ PanelWindow {
                 spacing: 4
                     Item { width: 1; height: 8 } // spacer
                     // Expand (+50 to max 1500, AGS WindowActions defaults)
-                    Button {
+                    AppButton {
                         width: parent.width
-                        padding: 8
-                        contentItem: Text { anchors.centerIn: parent; text: "\u{F067}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: parent.parent.hovered ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                        background: Rectangle { anchors.fill: parent; color: parent.hovered ? Theme.moduleBg : "transparent"; radius: 6 }
-                        ToolTip.visible: hovered; ToolTip.text: "Expand panel"; ToolTip.delay: 600
+                        icon: "\u{F067}"
+                        pixelSize: 14
+                        cornerRadius: 6
+                        hoverBg: Theme.moduleBg
+                        hoverFg: Theme.accent
+                        tooltipText: "Expand panel"
                         // implicitWidth tracks Settings via binding — only
                         // write the setting (AGS setGlobalSetting + queueResize).
                         onClicked: Settings.leftPanelWidth = Math.min(1500, Settings.leftPanelWidth + 50)
                     }
                     // Shrink (−50 to min 400, AGS LeftPanel minPanelWidth={400})
-                    Button {
+                    AppButton {
                         width: parent.width
-                        padding: 8
-                        contentItem: Text { anchors.centerIn: parent; text: "\u{F068}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: parent.parent.hovered ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                        background: Rectangle { anchors.fill: parent; color: parent.hovered ? Theme.moduleBg : "transparent"; radius: 6 }
-                        ToolTip.visible: hovered; ToolTip.text: "Shrink panel"; ToolTip.delay: 600
+                        icon: "\u{F068}"
+                        pixelSize: 14
+                        cornerRadius: 6
+                        hoverBg: Theme.moduleBg
+                        hoverFg: Theme.accent
+                        tooltipText: "Shrink panel"
                         onClicked: Settings.leftPanelWidth = Math.max(400, Settings.leftPanelWidth - 50)
                     }
                     // Exclusivity (AGS: active = non-exclusive, inverted)
-                    Button {
-                        id: exclBtn
+                    AppButton {
                         width: parent.width
-                        checkable: true
+                        icon: "\u{F2D2}"
+                        pixelSize: 14
+                        cornerRadius: 6
+                        toggle: true
                         checked: !Settings.leftPanelExclusivity
-                        padding: 8
-                        contentItem: Text { anchors.centerIn: parent; text: "\u{F2D2}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: exclBtn.checked ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                        background: Rectangle { anchors.fill: parent; color: exclBtn.hovered ? Theme.moduleBg : (exclBtn.checked ? Theme.accentBg : "transparent"); radius: 6 }
-                        ToolTip.visible: hovered; ToolTip.text: Settings.leftPanelExclusivity ? "Exclusive zone: on" : "Exclusive zone: off"; ToolTip.delay: 600
-                        onToggled: Settings.leftPanelExclusivity = !checked
+                        hoverBg: Theme.moduleBg
+                        tooltipText: Settings.leftPanelExclusivity ? "Exclusive zone: on" : "Exclusive zone: off"
+                        // checked is the inverse of the setting: writing it
+                        // back as-is toggles exclusivity.
+                        onClicked: Settings.leftPanelExclusivity = checked
                     }
                     // Lock (AGS FA lock F023 / unlock F2FC)
-                    Button {
-                        id: lockBtn
+                    AppButton {
                         width: parent.width
-                        checkable: true
+                        icon: Settings.leftPanelLock ? "\u{F023}" : "\u{F2FC}"
+                        pixelSize: 14
+                        cornerRadius: 6
+                        toggle: true
                         checked: Settings.leftPanelLock
-                        padding: 8
-                        contentItem: Text { anchors.centerIn: parent; text: lockBtn.checked ? "\u{F023}" : "\u{F2FC}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: lockBtn.checked ? Theme.accent : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                        background: Rectangle { anchors.fill: parent; color: lockBtn.hovered ? Theme.moduleBg : (lockBtn.checked ? Theme.accentBg : "transparent"); radius: 6 }
-                        ToolTip.visible: hovered; ToolTip.text: Settings.leftPanelLock ? "Unlock panel" : "Lock panel"; ToolTip.delay: 600
-                        onToggled: Settings.leftPanelLock = checked
+                        hoverBg: Theme.moduleBg
+                        tooltipText: Settings.leftPanelLock ? "Unlock panel" : "Lock panel"
+                        onClicked: Settings.leftPanelLock = !checked
                     }
                     // Close (AGS WindowActions close F00D)
-                    Button {
+                    AppButton {
                         width: parent.width
-                        padding: 8
-                        contentItem: Text { anchors.centerIn: parent; text: "\u{F00D}"; font.family: "JetBrainsMono NFP"; font.pixelSize: 14; color: parent.parent.hovered ? Theme.danger : Theme.fg; horizontalAlignment: Text.AlignHCenter }
-                        background: Rectangle { anchors.fill: parent; color: parent.hovered ? Theme.moduleBg : "transparent"; radius: 6 }
-                        ToolTip.visible: hovered; ToolTip.text: "Close panel"; ToolTip.delay: 600
+                        icon: "\u{F00D}"
+                        pixelSize: 14
+                        cornerRadius: 6
+                        hoverBg: Theme.moduleBg
+                        hoverFg: Theme.danger
+                        tooltipText: "Close panel"
                         onClicked: root.visible = false
                     }
                 } // WindowActions (bottom-pinned)

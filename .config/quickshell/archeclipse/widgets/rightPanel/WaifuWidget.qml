@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.theme
+import qs.widgets.shared
 import qs.services
 import qs.widgets.media
 
@@ -112,18 +113,8 @@ Item {
                 color: Theme.fgDim
                 font.pixelSize: Theme.fontSize
             }
-            Button {
+            AppButton {
                 text: "Open Booru Viewer"
-                background: Rectangle {
-                    color: Theme.accentBg
-                    radius: 4
-                    border.color: Theme.accent
-                }
-                contentItem: Text {
-                    color: Theme.accent
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize
-                }
                 onClicked: {
                     // Switch left panel to BooruViewer
                     Ipc.handler("bar").call("toggleLeftPanel", Registry.monitorName)
@@ -236,13 +227,12 @@ Item {
         visible: root.hasWaifu
 
         // Bookmark toggle
-        Button {
+        AppButton {
             property bool bookmarked: (Settings.booru.bookmarks || []).some(b =>
                 b.id === root.wd_id && b.api?.value === root.wd_apiValue)
             text: root.bookmarked ? "\u{f004}" : "\u{f0160}"
             width: 36; height: 24
-            ToolTip.visible: hovered; ToolTip.delay: 500
-            ToolTip.text: "Bookmark"
+            tooltipText: "Bookmark"
             onClicked: {
                 const bookmarks = Settings.booru.bookmarks || []
                 const idx = bookmarks.findIndex(b =>
@@ -256,18 +246,15 @@ Item {
                 }
                 Settings.persist()
             }
-            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-            contentItem: Text { color: Theme.accent; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
         // Pin to terminal
-        Button {
+        AppButton {
             property bool pinned: (Settings.booru.pins || []).some(p =>
                 p.id === root.wd_id && p.api?.value === root.wd_apiValue)
             text: pinned ? "\u{f44c}" : "\u{f98b}"
             width: 36; height: 24
-            ToolTip.visible: hovered; ToolTip.delay: 500
-            ToolTip.text: root.isVideo ? "Cannot pin videos" : "Pin to terminal"
+            tooltipText: root.isVideo ? "Cannot pin videos" : "Pin to terminal"
             enabled: !root.isVideo
             onClicked: {
                 const pins = Settings.booru.pins || []
@@ -282,68 +269,51 @@ Item {
                 }
                 Settings.persist()
             }
-            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-            contentItem: Text { color: Theme.accent; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
         // Open in viewer
-        Button {
+        AppButton {
             text: "\u{f07c}"
             width: 36; height: 24
-            ToolTip.visible: hovered; ToolTip.delay: 500
-            ToolTip.text: "Open in viewer"
+            tooltipText: "Open in viewer"
             onClicked: Quickshell.execDetached(["xdg-open", root.imagePath])
-            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-            contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
         // Open in browser
-        Button {
+        AppButton {
             text: "\u{f08e}"
             width: 36; height: 24
-            ToolTip.visible: hovered; ToolTip.delay: 500
-            ToolTip.text: "Open in browser"
+            tooltipText: "Open in browser"
             onClicked: {
                 const api = root.booruApis[root.selectedApiIndex]
                 Quickshell.execDetached(["xdg-open", api.idSearchUrl + root.wd_id])
             }
-            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-            contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
         // Copy to clipboard
-        Button {
+        AppButton {
             text: "\u{f0c5}"
             width: 36; height: 24
-            ToolTip.visible: hovered; ToolTip.delay: 500
-            ToolTip.text: "Copy to clipboard"
+            tooltipText: "Copy to clipboard"
             enabled: !root.isVideo
             onClicked: Quickshell.execDetached(["bash", "-c", `wl-copy --type image/png < '${root.imagePath}'`])
-            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-            contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
         // Search by ID
-        Button {
+        AppButton {
             text: "\u{f002}"
             width: 36; height: 24
-            ToolTip.visible: hovered; ToolTip.delay: 500
-            ToolTip.text: "Search by post ID"
+            tooltipText: "Search by post ID"
             onClicked: root.idSearchField.forceActiveFocus()
-            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-            contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
         // Upload custom image (AGS upload button: zenity select → identify dims
         // → copy to custom/images/-1.<ext> → set as current waifu)
-        Button {
+        AppButton {
             text: "\u{f093}"
             width: 36; height: 24
-            ToolTip.visible: hovered; ToolTip.delay: 500
-            ToolTip.text: "Upload custom image"
+            tooltipText: "Upload custom image"
             onClicked: root.uploadCustomImage()
-            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
-            contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
         TextField {
@@ -400,19 +370,13 @@ Item {
             spacing: 2
             Repeater {
                 model: root.booruApis
-                delegate: Button {
+                delegate: AppButton {
                     text: modelData.name
                     width: 80; height: 24
-                    checkable: true
+                    toggle: true
                     checked: root.selectedApiIndex === index
                     onClicked: root.selectedApiIndex = index
-                    font.pixelSize: Theme.fontSize - 2
-                    background: Rectangle {
-                        color: checked ? Theme.accentBg : Theme.moduleBg
-                        radius: 4
-                        border.color: checked ? Theme.accent : Theme.border
-                    }
-                    contentItem: Text { color: checked ? Theme.accent : Theme.fg; font.pixelSize: Theme.fontSize - 2; anchors.centerIn: parent }
+                    pixelSize: Theme.fontSize - 2
                 }
             }
         }

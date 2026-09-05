@@ -6,6 +6,7 @@ import Quickshell.Services.Notifications
 import Quickshell.Widgets
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // Port of NotificationPopups.tsx window — top-right stack of popup cards,
 // overlay layer, hidden when empty. One per monitor like AGS.
@@ -152,21 +153,15 @@ PanelWindow {
                         spacing: 4
                         Repeater {
                             model: card.notif ? Notifications.liveActions(card.notif) : []
-                            delegate: Button {
+                            delegate: AppButton {
                                 required property var modelData
                                 text: Notifications.actionLabel(modelData)
                                 height: 24
+                                pixelSize: Theme.fontSize - 2
+                                cornerRadius: 4
+                                idleBg: Theme.moduleBg
+                                outlined: true
                                 onClicked: { try { modelData.invoke(); } catch (e) {} }
-                                background: Rectangle {
-                                    color: Theme.moduleBg
-                                    border.color: Theme.border
-                                    radius: 4
-                                }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: Theme.fg
-                                    font.pixelSize: Theme.fontSize - 2
-                                }
                             }
                         }
                     }
@@ -176,8 +171,12 @@ PanelWindow {
                         id: buttonsRow
                         visible: card.isHovered
                         spacing: 4
-                        Button {
-                            text: "\u{f0c5}"
+                        AppButton {
+                            icon: "󰃅"
+                            pixelSize: 11
+                            cornerRadius: 4
+                            idleBg: Theme.moduleBg
+                            outlined: true
                             onClicked: {
                                 const n = card.notif;
                                 if (!n) return;
@@ -197,21 +196,23 @@ PanelWindow {
                                 const t = n.body || n.summary;
                                 if (t) Quickshell.execDetached(["wl-copy", t]);
                             }
-                            contentItem: Text { text: parent.text; color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
-                            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
                         }
-                        Button {
-                            text: card.bodyExpanded ? "\u{f07e}" : "\u{f07c}"
+                        AppButton {
+                            icon: card.bodyExpanded ? "󰁾" : "󰁼"
+                            pixelSize: 11
+                            cornerRadius: 4
+                            idleBg: Theme.moduleBg
+                            outlined: true
                             visible: (card.notif && (card.notif.body || "")).length > 60
                             onClicked: card.bodyExpanded = !card.bodyExpanded
-                            contentItem: Text { text: parent.text; color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
-                            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
                         }
-                        Button {
-                            text: "\u{f00d}"
+                        AppButton {
+                            icon: "󰀍"
+                            pixelSize: 11
+                            cornerRadius: 4
+                            idleBg: Theme.moduleBg
+                            outlined: true
                             onClicked: Notifications.closePopup(card.modelData.id, true)
-                            contentItem: Text { text: parent.text; color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
-                            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
                         }
                     }
                 }

@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import qs.theme
+import qs.widgets.shared
 import qs.services
 
 // Custom Scripts widget — port of CustomScripts.tsx + customScript.constant.ts.
@@ -290,42 +291,26 @@ Item {
                                 }
 
                                 // Install button (only when app missing)
-                                Button {
+                                AppButton {
                                     id: installBtn
                                     visible: modelData.app !== undefined && !root.appInstalled(modelData)
                                     width: visible ? 32 : 0
                                     text: ""
                                     anchors.verticalCenter: parent.verticalCenter
-                                    ToolTip.visible: hovered
-                                    ToolTip.text: "Install " + (modelData.package || modelData.app)
+                                    tooltipText: "Install " + (modelData.package || modelData.app)
                                     onClicked: root.installApp(modelData)
-                                    background: Rectangle {
-                                        color: Theme.accentBg; radius: 4
-                                        border.width: 1; border.color: Theme.accent
-                                    }
                                 }
 
                                 // Run button
-                                Button {
+                                AppButton {
                                     id: runBtn
                                     width: 32
                                     anchors.verticalCenter: parent.verticalCenter
                                     enabled: root.appInstalled(modelData)
-                                    ToolTip.visible: hovered
-                                    ToolTip.text: modelData.description
+                                    tooltipText: modelData.description
                                     onClicked: {
                                         if (modelData.kind === "reset-settings") confirming = true;
                                         else root.runScript(modelData);
-                                    }
-                                    background: Rectangle {
-                                        color: Theme.accentBg; radius: 4
-                                        border.width: 1; border.color: Theme.accent
-                                    }
-                                    contentItem: Text {
-                                        anchors.centerIn: parent
-                                        text: ""
-                                        color: Theme.accent
-                                        font.pixelSize: Theme.fontSize
                                     }
                                 }
                             }
@@ -341,19 +326,15 @@ Item {
                                     font.pixelSize: Theme.fontSize
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
-                                Button {
+                                AppButton {
                                     text: "Yes"
                                     anchors.verticalCenter: parent.verticalCenter
                                     onClicked: { confirming = false; root.doReset(); }
-                                    background: Rectangle { color: Theme.dangerBg; radius: 4; border.width: 1; border.color: Theme.danger }
-                                    contentItem: Text { anchors.centerIn: parent; text: "Yes"; color: Theme.danger }
                                 }
-                                Button {
+                                AppButton {
                                     text: "No"
                                     anchors.verticalCenter: parent.verticalCenter
                                     onClicked: confirming = false
-                                    background: Rectangle { color: Theme.moduleBg; radius: 4; border.width: 1; border.color: Theme.border }
-                                    contentItem: Text { anchors.centerIn: parent; text: "No"; color: Theme.fg }
                                 }
                             }
                         }

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.theme
+import qs.widgets.shared
 import qs.services
 
 // User Profile widget - full port of UserProfile.tsx + Supabase.class.tsx
@@ -548,14 +549,12 @@ Item {
                     width: parent.width
                     spacing: 5
                     visible: !!root.profile
-                    Button {
+                    AppButton {
                         text: "Update"
                         Layout.fillWidth: true
                         onClicked: root.updateProfile()
-                        background: Rectangle { color: Theme.accentBg; radius: 4; border.width: 1; border.color: Theme.accent }
-                        contentItem: Text { anchors.centerIn: parent; text: "Update"; color: Theme.accent; font.pixelSize: Theme.fontSize }
                     }
-                    Button {
+                    AppButton {
                         text: "Refresh Profile"
                         Layout.fillWidth: true
                         enabled: !root.isRefreshing
@@ -569,15 +568,11 @@ Item {
                             root.progressText = "Refreshing profile..."
                             root.loadProfile()
                         }
-                        background: Rectangle { color: Theme.moduleBg; radius: 4; border.width: 1; border.color: Theme.border }
-                        contentItem: Text { anchors.centerIn: parent; text: "Refresh Profile"; color: Theme.fg; font.pixelSize: Theme.fontSize }
                     }
-                    Button {
+                    AppButton {
                         text: "Logout"
                         Layout.fillWidth: true
                         onClicked: root.logout()
-                        background: Rectangle { color: Theme.dangerBg; radius: 4; border.width: 1; border.color: Theme.danger }
-                        contentItem: Text { anchors.centerIn: parent; text: "Logout"; color: Theme.danger; font.pixelSize: Theme.fontSize }
                     }
                 }
 
@@ -589,19 +584,15 @@ Item {
                     Row {
                         width: parent.width
                         spacing: 8
-                        Button {
+                        AppButton {
                             Layout.fillWidth: true
                             text: "Download"
                             onClicked: root.syncSettings("download")
-                            background: Rectangle { color: Theme.accentBg; radius: 4; border.width: 1; border.color: Theme.accent }
-                            contentItem: Text { anchors.centerIn: parent; text: "Download"; color: Theme.accent; font.pixelSize: Theme.fontSize }
                         }
-                        Button {
+                        AppButton {
                             Layout.fillWidth: true
                             text: "Upload"
                             onClicked: root.syncSettings("upload")
-                            background: Rectangle { color: Theme.moduleBg; radius: 4; border.width: 1; border.color: Theme.border }
-                            contentItem: Text { anchors.centerIn: parent; text: "Upload"; color: Theme.fg; font.pixelSize: Theme.fontSize }
                         }
                     }
                     Label { text: "Last sync: " + root.lastSyncAt; font.pixelSize: Theme.fontSize - 1; color: Theme.fgDim }
@@ -661,13 +652,11 @@ Item {
                         onAccepted: root.sendMagicLink(emailField.text)
                         onTextChanged: { if (root.magicState !== "Send Magic Link") root.magicState = "Send Magic Link" }
                     }
-                    Button {
+                    AppButton {
                         text: root.magicState
                         Layout.fillWidth: true
                         enabled: emailField.text.trim().length > 0
                         onClicked: root.sendMagicLink(emailField.text)
-                        background: Rectangle { color: Theme.accentBg; radius: 4; border.width: 1; border.color: Theme.accent }
-                        contentItem: Text { anchors.centerIn: parent; text: parent.text; color: Theme.accent; font.pixelSize: Theme.fontSize }
                     }
                 }
                 }

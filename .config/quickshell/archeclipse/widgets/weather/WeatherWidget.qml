@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // Port of Weather.tsx <Weather /> — full current-conditions card with
 // sunrise/sunset, humidity/precip/wind, and a city search (apply/clear).
@@ -185,19 +186,31 @@ Item {
                             }
                             placeholderTextColor: "#CCFFFFFF"
                         }
-                        Button {
+                        AppButton {
                             width: 32; height: 30
+                            icon: "\u{F00C}"
+                            pixelSize: 14
+                            cornerRadius: 6
+                            idleBg: "#33000000"
+                            idleFg: "white"
+                            hoverBg: "#33000000"
+                            outlined: true
+                            outlineColor: "#55FFFFFF"
+                            tooltipText: "Search city"
                             onClicked: root.applyCity()
-                            ToolTip.visible: hovered; ToolTip.text: "Search city"
-                            background: Rectangle { color: "#33000000"; radius: 6; border.color: "#55FFFFFF" }
-                            contentItem: Text { text: "\u{F00C}"; color: "white"; font.pixelSize: 14; anchors.centerIn: parent }
                         }
-                        Button {
+                        AppButton {
                             width: 32; height: 30
+                            icon: "\u{F1A2}"
+                            pixelSize: 14
+                            cornerRadius: 6
+                            idleBg: "#33000000"
+                            idleFg: "white"
+                            hoverBg: "#33000000"
+                            outlined: true
+                            outlineColor: "#55FFFFFF"
+                            tooltipText: "Auto (IP)"
                             onClicked: root.clearCity()
-                            ToolTip.visible: hovered; ToolTip.text: "Auto (IP)"
-                            background: Rectangle { color: "#33000000"; radius: 6; border.color: "#55FFFFFF" }
-                            contentItem: Text { text: "\u{F1A2}"; color: "white"; font.pixelSize: 14; anchors.centerIn: parent }
                         }
                     }
                 }
