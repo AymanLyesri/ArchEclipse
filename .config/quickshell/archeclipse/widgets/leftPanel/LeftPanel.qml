@@ -23,7 +23,12 @@ PanelWindow {
 
     // Window geometry / layer
     anchors { left: true; top: true; bottom: true }
-    implicitWidth: Settings.leftPanelWidth
+    // +216 while the BooruViewer detail revealer is open (binding:
+    // auto-reverts on close/tab-switch, never persists, can't stack).
+    // Instant snap: the smooth motion is the internal detailW slide, NOT a
+    // panel-window resize (layer-shell renegotiates per frame = stutter).
+    readonly property bool detailOpen: !!(activeWidget && activeWidget._detailVisible === true)
+    implicitWidth: Settings.leftPanelWidth + (detailOpen ? 216 : 0)
     color: "transparent"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     WlrLayershell.exclusiveZone: Settings.leftPanelExclusivity ? width : -1
@@ -281,7 +286,7 @@ PanelWindow {
                     }
                 }
                 UserProfileWidget {}
-                BooruViewerWidget {}
+                BooruViewer {}
                 ChatBotWidget {}
                 MangaViewerWidget {}
                 SettingsWidget {}

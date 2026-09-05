@@ -1,6 +1,6 @@
 module qs.widgets.leftPanel
 
-BooruViewerWidget 1.0 BooruViewerWidget.qml
+BooruViewer 1.0 BooruViewer/BooruViewer.qml
 ChatBotWidget 1.0 ChatBotWidget.qml
 CustomScriptsWidget 1.0 CustomScriptsWidget.qml
 DonationsWidget 1.0 DonationsWidget.qml

@@ -177,7 +177,8 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             height: root.barHeight
             width: Math.max(stack.width + 10, 100)
-            radius: Theme.radius
+            bottomRightRadius: Theme.radius
+            bottomLeftRadius: Theme.radius
             color: Theme.moduleBg
             border.width: 0
 
