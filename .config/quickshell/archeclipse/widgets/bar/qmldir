@@ -1,0 +1,27 @@
+module qs.widgets.bar
+
+Bandwidth 1.0 Bandwidth.qml
+Bar 1.0 Bar.qml
+BarHoverWindow 1.0 BarHoverWindow.qml
+Battery 1.0 Battery.qml
+Brightness 1.0 Brightness.qml
+BrightnessPulse 1.0 BrightnessPulse.qml
+Clock 1.0 Clock.qml
+CompactBar 1.0 CompactBar.qml
+ControlPanelButton 1.0 ControlPanelButton.qml
+ExpandedBar 1.0 ExpandedBar.qml
+HotZone 1.0 HotZone.qml
+Information 1.0 Information.qml
+KeyboardLayoutWidget 1.0 KeyboardLayoutWidget.qml
+NetworkWidget 1.0 NetworkWidget.qml
+PlayerPulse 1.0 PlayerPulse.qml
+Recording 1.0 Recording.qml
+RecordingIndicator 1.0 RecordingIndicator.qml
+ResourceMonitor 1.0 ResourceMonitor.qml
+SearchBar 1.0 SearchBar.qml
+Tray 1.0 Tray.qml
+Volume 1.0 Volume.qml
+VolumePulse 1.0 VolumePulse.qml
+WorkspaceClientPopup 1.0 WorkspaceClientPopup.qml
+Workspaces 1.0 Workspaces.qml
+WorkspacesCompact 1.0 WorkspacesCompact.qml

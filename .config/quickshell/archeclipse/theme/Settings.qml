@@ -19,7 +19,9 @@ Singleton {
     property bool workspaceNumbers: false
 
     // bar layout toggles (AGS: bar.layout = [{name:"workspaces",enabled:true}, ...])
+    // barLayoutOrder preserves the drag-reorder sequence for persist().
     property var barLayout: ({ workspaces: true, information: true, utilities: true })
+    property var barLayoutOrder: ["workspaces", "information", "utilities"]
 
     property string dateFormat: "%H:%M"
     readonly property var dateFormats: ["%H:%M", "%I:%M %p"]
@@ -38,6 +40,10 @@ Singleton {
     property bool rightPanelExclusivity: true
     property int leftPanelWidth: 400
     property int rightPanelWidth: 250
+    // Selected left-panel tab (AGS leftPanel.widget.name, persisted)
+    property string leftPanelWidget: "UserProfile"
+    // Wallpaper switcher category (AGS wallpaperSwitcher.category, persisted)
+    property string wallpaperCategory: "defaults/sfw"
 
     // Right panel widgets — mirrors AGS rightPanel.widgets (datalist with enabled flag)
     property var rightPanelWidgets: [
@@ -142,12 +148,16 @@ Singleton {
     // Profile picture
     property string profilePicturePath: ""
 
-    // Hyprland settings (AGS: hyprland.decoration.rounding, etc.)
-    readonly property var hyprland: ({
-        general: { border_size: 0 },
+    // Hyprland settings (AGS settings.constants.ts hyprland schema, plain
+    // values internally; persist() writes the AGS {name,value,min,max,type}
+    // leaf shape so the shared settings.json stays AGS-compatible).
+    property var hyprland: ({
+        general: { border_size: 0, gaps_in: 7, gaps_out: 10 },
         decoration: {
             rounding: 16,
-            blur: { enabled: true, size: 4, passes: 3 },
+            active_opacity: 0.9,
+            inactive_opacity: 0.8,
+            blur: { enabled: true, size: 4, passes: 4, xray: false },
             shadow: { enabled: true, range: 15, render_power: 3 }
         }
     })
@@ -224,14 +234,40 @@ Singleton {
                 "leftPanel.exclusivity": root.leftPanelExclusivity,
                 "rightPanel.exclusivity": root.rightPanelExclusivity,
                 "leftPanel.width": { value: root.leftPanelWidth },
+                "leftPanel.widget": { name: root.leftPanelWidget },
+                "wallpaperSwitcher": { category: root.wallpaperCategory },
                 "rightPanel.width": { value: root.rightPanelWidth },
                 "rightPanel.widgets": root.rightPanelWidgets,
                 "autoWorkspaceSwitching": { value: root.autoWorkspaceSwitching },
-                "bar.layout": [
-                    { name: "workspaces", enabled: root.barLayout.workspaces },
-                    { name: "information", enabled: root.barLayout.information },
-                    { name: "utilities", enabled: root.barLayout.utilities }
-                ],
+                "bar.layout": (root.barLayoutOrder || ["workspaces", "information", "utilities"]).map(n => (
+                    { name: n, enabled: (root.barLayout || {})[n] ?? true }
+                )),
+                // AGS leaf shape {name,value,min,max,type} — shared file must
+                // stay readable by AGS createHyprlandSettings (plain numbers
+                // would be mistaken for nested groups and render nothing).
+                "hyprland": {
+                    general: {
+                        border_size: { name: "Border Size", value: root.hyprland?.general?.border_size ?? 0, min: 0, max: 10, type: "int" },
+                        gaps_in: { name: "Gaps In", value: root.hyprland?.general?.gaps_in ?? 7, min: 0, max: 20, type: "int" },
+                        gaps_out: { name: "Gaps Out", value: root.hyprland?.general?.gaps_out ?? 10, min: 0, max: 40, type: "int" }
+                    },
+                    decoration: {
+                        rounding: { name: "Rounding", value: root.hyprland?.decoration?.rounding ?? 16, min: 0, max: 50, type: "int" },
+                        active_opacity: { name: "Active Opacity", value: root.hyprland?.decoration?.active_opacity ?? 0.9, min: 0, max: 1, type: "float" },
+                        inactive_opacity: { name: "Inactive Opacity", value: root.hyprland?.decoration?.inactive_opacity ?? 0.8, min: 0, max: 1, type: "float" },
+                        blur: {
+                            enabled: { name: "Blur Enabled", value: root.hyprland?.decoration?.blur?.enabled ?? true, type: "bool", min: 0, max: 1 },
+                            size: { name: "Blur Size", value: root.hyprland?.decoration?.blur?.size ?? 4, type: "int", min: 0, max: 10 },
+                            passes: { name: "Blur Passes", value: root.hyprland?.decoration?.blur?.passes ?? 4, type: "int", min: 0, max: 10 },
+                            xray: { name: "Blur Xray", value: root.hyprland?.decoration?.blur?.xray ?? false, type: "bool", min: 0, max: 1 }
+                        },
+                        shadow: {
+                            enabled: { name: "Shadow Enabled", value: root.hyprland?.decoration?.shadow?.enabled ?? true, type: "bool", min: 0, max: 1 },
+                            range: { name: "Shadow Range", value: root.hyprland?.decoration?.shadow?.range ?? 15, type: "int", min: 0, max: 20 },
+                            render_power: { name: "Shadow Render Power", value: root.hyprland?.decoration?.shadow?.render_power ?? 3, type: "int", min: 0, max: 20 }
+                        }
+                    }
+                },
                 "dynamicThemeColors": root.dynamicThemeColors,
                 "dynamicThemeVariants": root.dynamicThemeVariants,
                 "alwaysOnWidget": { "visibility": { value: root.alwaysOnWidgetVisibility } },
@@ -304,6 +340,14 @@ Singleton {
                     }
                 }
                 root.barLayout = { workspaces: layout.workspaces ?? true, information: layout.information ?? true, utilities: layout.utilities ?? true };
+                // Preserve the file's widget order (drag-reorder sequence);
+                // fall back to the default order on unknown entries.
+                if (Array.isArray(s.bar?.layout) && s.bar.layout.length > 0) {
+                    const known = ["workspaces", "information", "utilities"]
+                    const ordered = s.bar.layout.map(w => w.name).filter(n => known.includes(n))
+                    for (const n of known) if (!ordered.includes(n)) ordered.push(n)
+                    root.barLayoutOrder = ordered
+                }
 
                 root.dateFormat = s.dateFormat ?? "%H:%M"
                 root.cryptoFavorite = s.crypto?.favorite ?? { symbol: "", timeframe: "" }
@@ -321,6 +365,10 @@ Singleton {
                 root.leftPanelExclusivity = s.leftPanel?.exclusivity ?? true
                 root.rightPanelExclusivity = s.rightPanel?.exclusivity ?? true
                 root.leftPanelWidth = s.leftPanel?.width?.value ?? 400
+                // AGS stores the selector object {name, icon}; QS writes {name}
+                const _lpw = s["leftPanel.widget"]
+                root.leftPanelWidget = (typeof _lpw === "string" ? _lpw : _lpw?.name) ?? "UserProfile"
+                root.wallpaperCategory = s.wallpaperSwitcher?.category ?? "defaults/sfw"
                 root.rightPanelWidth = s.rightPanel?.width?.value ?? 250
                 root.rightPanelWidgets = s.rightPanel?.widgets ?? root.rightPanelWidgets
                 root.autoWorkspaceSwitching = s.autoWorkspaceSwitching?.value ?? true
@@ -366,15 +414,24 @@ Singleton {
                 // Profile picture path
                 root.profilePicturePath = s.profilePicturePath ?? ""
 
-                // Hyprland settings
+                // Hyprland settings (full AGS schema incl. blur passes 4,
+                // xray, gaps, opacities — previously partial, which reset
+                // missing keys to 0/false on every reload)
                 root.hyprland = {
-                    general: { border_size: s.hyprland?.general?.border_size?.value ?? 0 },
+                    general: {
+                        border_size: s.hyprland?.general?.border_size?.value ?? 0,
+                        gaps_in: s.hyprland?.general?.gaps_in?.value ?? 7,
+                        gaps_out: s.hyprland?.general?.gaps_out?.value ?? 10
+                    },
                     decoration: {
                         rounding: s.hyprland?.decoration?.rounding?.value ?? 16,
+                        active_opacity: s.hyprland?.decoration?.active_opacity?.value ?? 0.9,
+                        inactive_opacity: s.hyprland?.decoration?.inactive_opacity?.value ?? 0.8,
                         blur: {
                             enabled: s.hyprland?.decoration?.blur?.enabled?.value ?? true,
                             size: s.hyprland?.decoration?.blur?.size?.value ?? 4,
-                            passes: s.hyprland?.decoration?.blur?.passes?.value ?? 3
+                            passes: s.hyprland?.decoration?.blur?.passes?.value ?? 4,
+                            xray: s.hyprland?.decoration?.blur?.xray?.value ?? false
                         },
                         shadow: {
                             enabled: s.hyprland?.decoration?.shadow?.enabled?.value ?? true,
@@ -411,6 +468,7 @@ Singleton {
         function onRevealPressureChanged() { root.schedulePersist() }
         function onBarOrientationChanged() { root.schedulePersist() }
         function onWorkspaceNumbersChanged() { root.schedulePersist() }
+        function onBarLayoutOrderChanged() { root.schedulePersist() }
         function onDateFormatChanged() { root.schedulePersist() }
         function onUiOpacityChanged() { root.schedulePersist() }
         function onUiScaleChanged() { root.schedulePersist() }
@@ -423,8 +481,11 @@ Singleton {
         function onLeftPanelLockChanged() { root.schedulePersist() }
         function onRightPanelLockChanged() { root.schedulePersist() }
         function onLeftPanelWidthChanged() { root.schedulePersist() }
+        function onLeftPanelWidgetChanged() { root.schedulePersist() }
+        function onWallpaperCategoryChanged() { root.schedulePersist() }
         function onRightPanelWidthChanged() { root.schedulePersist() }
         function onAutoWorkspaceSwitchingChanged() { root.schedulePersist() }
+        function onHyprlandChanged() { root.schedulePersist() }
         function onBarBlurChanged() { root.schedulePersist() }
         function onBarBlurPassesChanged() { root.schedulePersist() }
         function onBarBlurSizeChanged() { root.schedulePersist() }

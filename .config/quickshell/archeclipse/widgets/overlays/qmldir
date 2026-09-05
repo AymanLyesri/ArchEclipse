@@ -1,0 +1,5 @@
+module qs.widgets.overlays
+
+AlwaysOnWidget 1.0 AlwaysOnWidget.qml
+KeyStrokeVisualizer 1.0 KeyStrokeVisualizer.qml
+WallpaperSwitcher 1.0 WallpaperSwitcher.qml

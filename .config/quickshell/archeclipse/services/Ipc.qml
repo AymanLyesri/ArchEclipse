@@ -157,9 +157,13 @@ Item {
         }
 
         function showWidget(name: string, monitor: string): string {
+            const valid = ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"];
+            if (valid.indexOf(name) === -1) return "unknown widget: " + name;
             const key = `left-panel-${monitor}`;
             const w = Registry.get(key);
-            if (w) { w.selectedWidget = name; w.visible = true; return key + " showing " + name; }
+            // Write through Settings so the panel binding (and persistence)
+            // stays intact — matches AGS setGlobalSetting("leftPanel.widget").
+            if (w) { Settings.leftPanelWidget = name; w.visible = true; return key + " showing " + name; }
             return "window not found: " + key;
         }
 
@@ -305,6 +309,36 @@ Item {
             }
         }
 
+        // Wallpaper-switcher probe for parity QA. query is one of:
+        //   "visible", "categories", "selected", "count", "current",
+        //   "target", "workspace", "progress", or "setCategory:<name>".
+        // monitor selects the per-monitor window (default eDP-1).
+        function wallpaperDiag(query: string, monitor: string): string {
+            try {
+                const mon = (monitor && monitor !== "") ? monitor : "eDP-1";
+                const w = Registry.get(`wallpaper-switcher-${mon}`);
+                if (!w) return "no window: wallpaper-switcher-" + mon;
+                if (query === "visible") return "visible=" + w.visible;
+                if (query === "categories") return "categories=" + (w.categories || []).join(",");
+                if (query === "selected") return "selected=" + w.selectedCategory;
+                if (query === "count") return "count=" + (w.selectedWallpapers || []).length;
+                if (query === "current") return "current=" + (w.currentWallpapers || []).length;
+                if (query === "target") return "target=" + w.targetType + " ws=" + w.selectedWorkspaceId;
+                if (query === "progress") return "progress=" + w.progressStatus;
+                if (query === "theme") return "dynamicColors=" + Settings.dynamicThemeColors
+                    + " variant=" + (GlobalTheme.currentTheme ? "light" : "dark");
+                if (query.startsWith("setCategory:")) {
+                    w.selectedCategory = query.substring(12);
+                    return "selected=" + w.selectedCategory;
+                }
+                if (query === "show") { w.visible = true; return "shown"; }
+                if (query === "hide") { w.visible = false; return "hidden"; }
+                return "unknown query";
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
         // TEMP diagnostic — exercises launcher query pipeline. Remove after verification.
         function launcherDiag(kind: string): string {
             try {
@@ -340,6 +374,15 @@ Item {
                     Launcher.runQuery(q);
                     const r = Launcher.results || [];
                     return `results(${q})=${r.length}: ` + r.slice(0, 4).map(x => x.name).join(" || ");
+                }
+                if (kind.startsWith("debounced:")) {
+                    const q = kind.substring(10);
+                    Launcher.runQueryDebounced(q);
+                    return "debounced-armed:" + q;
+                }
+                if (kind === "debouncedRead") {
+                    const r = Launcher.results || [];
+                    return `debounced(last=${Launcher.lastQuery})=${r.length}: ` + r.slice(0, 4).map(x => x.name).join(" || ");
                 }
                 return "unknown kind";
             } catch (e) {

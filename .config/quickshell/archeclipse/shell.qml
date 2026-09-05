@@ -1,8 +1,16 @@
 //@ pragma UseQApplication
 import QtQuick
 import Quickshell
-import qs.bar
+import qs.widgets.bar
+import qs.widgets.launcher
+import qs.widgets.media
 import qs.services
+import qs.widgets.controlPanel
+import qs.widgets.leftPanel
+import qs.widgets.notifications
+import qs.widgets.overlays
+import qs.widgets.rightPanel
+import qs.widgets.userPanel
 
 // ArchEclipse shell — multi-monitor via Variants over Quickshell.screens.
 // Each window is instantiated once per monitor (matching AGS perMonitorDisplay).
@@ -37,13 +45,13 @@ ShellRoot {
     }
 
     // per-monitor always-on widget (weather card, bottom-left)
-    Variants {
-        model: Quickshell.screens
-        AlwaysOnWidget {
-            required property ShellScreen modelData
-            screen: modelData
-        }
-    }
+    // Variants {
+    //     model: Quickshell.screens
+    //     AlwaysOnWidget {
+    //         required property ShellScreen modelData
+    //         screen: modelData
+    //     }
+    // }
 
     // per-monitor wallpaper switcher (bottom overlay)
     Variants {
@@ -91,20 +99,20 @@ ShellRoot {
     }
 
     // per-monitor keystroke visualizer overlay
-    Variants {
-        model: Quickshell.screens
-        KeyStrokeVisualizer {
-            required property ShellScreen modelData
-            screen: modelData
-        }
-    }
+    // Variants {
+    //     model: Quickshell.screens
+    //     KeyStrokeVisualizer {
+    //         required property ShellScreen modelData
+    //         screen: modelData
+    //     }
+    // }
 
     // per-monitor media window (SUPER+m) — standalone player control
-    Variants {
-        model: Quickshell.screens
-        MediaWindow {
-            required property ShellScreen modelData
-            screen: modelData
-        }
-    }
+    // Variants {
+    //     model: Quickshell.screens
+    //     MediaWindow {
+    //         required property ShellScreen modelData
+    //         screen: modelData
+    //     }
+    // }
 }

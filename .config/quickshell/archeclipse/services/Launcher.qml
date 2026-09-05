@@ -375,10 +375,17 @@ QtObject {
     }
 
     // ---- main entry — mirrors handleEntryChanged() (debounced 100ms like AGS) ----
-    property var _debounce: null
+    // NOTE: QML has no setTimeout/clearTimeout — use a restartable Timer.
+    // QtObject singletons cannot host bare Timer children, so property form.
+    property Timer _debounceTimer: Timer {
+        interval: 100
+        repeat: false
+        property string pendingText: ""
+        onTriggered: root.runQuery(pendingText)
+    }
     function runQueryDebounced(text) {
-        if (_debounce) clearTimeout(_debounce)
-        _debounce = setTimeout(function() { runQuery(text) }, 100)
+        _debounceTimer.pendingText = text;
+        _debounceTimer.restart();
     }
     function runQuery(text) {
         lastQuery = text;

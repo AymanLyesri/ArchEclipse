@@ -1,0 +1,7 @@
+module qs.widgets.media
+
+MediaVideo 1.0 MediaVideo.qml
+MediaWidget 1.0 MediaWidget.qml
+MediaWindow 1.0 MediaWindow.qml
+PlayerWidget 1.0 PlayerWidget.qml
+WaveVisualizer 1.0 WaveVisualizer.qml
