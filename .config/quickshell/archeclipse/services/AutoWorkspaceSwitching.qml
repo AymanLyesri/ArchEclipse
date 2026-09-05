@@ -17,8 +17,11 @@ QtObject {
     property Connections _hyprConn: Connections {
         target: Hyprland
         function onRawEvent(event) {
-            if (event.startsWith("openwindow") || event.startsWith("closewindow") ||
-                event.startsWith("movewindow") || event.startsWith("workspace")) {
+            // event is a HyprlandIpcEvent object with .name and .data,
+            // NOT a string — do not call .startsWith on it.
+            const n = event?.name ?? "";
+            if (n === "openwindow" || n === "closewindow" ||
+                n === "movewindow" || n === "workspace") {
                 checkGamingWorkspace();
             }
         }

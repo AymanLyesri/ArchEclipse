@@ -27,6 +27,7 @@ Singleton {
         persistenceSupported: false
 
         onNotification: notification => {
+            root.notified(notification);          // emit for ControlPanel DND ping etc.
             if (root.dnd) {
                 notification.tracked = false;   // drop silently in DND (history kept by sender)
                 return;
@@ -34,6 +35,10 @@ Singleton {
             root.addPopup(notification);
         }
     }
+
+    // Emitted on every incoming notification (even when DND drops it),
+    // mirrors AGS notifd "notified" handler used by the DND ping.
+    signal notified(var notification)
 
     function addPopup(n) {
         n.tracked = true;
@@ -45,7 +50,7 @@ Singleton {
             appIcon: n.appIcon || "",
             image: n.image || "",
             urgency: n.urgency,
-            actions: n.actions.values.filter(a => a.identifier !== "default").map(a => ({ text: a.text, invoke: () => a.invoke() })),
+            actions: Array.from(n.actions.values()).filter(a => a.identifier !== "default").map(a => ({ text: a.text, invoke: () => a.invoke() })),
             notif: n
         };
         const next = [entry].concat(root.popups);
@@ -84,5 +89,17 @@ Singleton {
         const entry = popups.find(p => p.id === id);
         if (entry && entry.actions[index]) entry.actions[index].invoke();
         closePopup(id, true);
+    }
+
+    // Convenience API used by widgets (WallpaperSwitcher, CustomScripts, etc.)
+    // to raise a toast notification. Uses notify-send so it flows through the
+    // system notification daemon (which this NotificationServer backs), so the
+    // popup appears identically to any external notification.
+    function notify(opts) {
+        const args = ["notify-send"];
+        if (opts.appName) { args.push("-a"); args.push(opts.appName); }
+        if (opts.summary) args.push(opts.summary);
+        if (opts.body) args.push(opts.body);
+        Quickshell.execDetached(args);
     }
 }

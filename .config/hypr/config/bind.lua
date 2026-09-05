@@ -55,7 +55,7 @@ hl.bind(mainMod .. " + ALT_L", hl.dsp.exec_cmd(qsIpc .. "toggleBar " .. monitor)
 --- toggle app launcher
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd(qsIpc .. "toggleSearch"))
 --- toggle media panel
-hl.bind(mainMod .. " + m", hl.dsp.exec_cmd("ags toggle media-" .. monitor))
+hl.bind(mainMod .. " + m", hl.dsp.exec_cmd(qsIpc .. "togglePanel media-panel " .. monitor))
 --- toggle right panel (SUPER+R)
 hl.bind(mainMod .. " + r", hl.dsp.exec_cmd(qsIpc .. "toggleRightPanel " .. monitor))
 --- toggle left panel (SUPER+L)

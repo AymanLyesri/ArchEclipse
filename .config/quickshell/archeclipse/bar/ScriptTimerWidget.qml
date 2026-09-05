@@ -81,13 +81,19 @@ Item {
     }
 
     function executeTask(task) {
-        try {
-            // Execute the command using Process
-            const process = Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "' + task.command.replace(/"/g, '\\"') + '"] }', root);
-            process.start();
+        // Execute the command; on failure notify (AGS "Script Timer Error"):
+        // only remove/reschedule a task after the command actually succeeded.
+        const process = Qt.createQmlObject('import Quickshell.Io; Process { }', root);
+        process.command = ["bash", "-c", task.command];
+        const success = (exitCode) => {
+            if (exitCode !== 0) {
+                console.error("[ScriptTimer] Task failed:", task.name, "exit", exitCode);
+                Quickshell.execDetached(["notify-send", "Script Timer Error", `Failed to execute "${task.name}"`]);
+                return;
+            }
             console.log("[ScriptTimer] Executed task:", task.name);
             Quickshell.execDetached(["notify-send", "Script Timer", `Task "${task.name}" executed`]);
-            
+
             if (task.type === false) {
                 // One-time task - remove after execution
                 scriptTasks = scriptTasks.filter(t => t.id !== task.id);
@@ -97,9 +103,9 @@ Item {
                 scriptTasks = scriptTasks.map(t => t.id === task.id ? updatedTask : t);
             }
             saveTasks();
-        } catch (e) {
-            console.error("[ScriptTimer] Failed to execute task:", e);
-        }
+        };
+        process.finished.connect(success);
+        process.start();
     }
 
     function addTask(task) {
@@ -183,13 +189,15 @@ Item {
         // Add/Edit Form
         Loader {
             sourceComponent: showAddForm ? formComponent : null
-            Layout.fillWidth: true
+            width: parent.width
+            height: showAddForm ? 350 : 0
         }
 
         // Task List
         ScrollView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            width: parent.width
+            // Guarded: a negative height sends Flickable into a silent polish loop
+            height: Math.max(0, parent.height - y - 8)
             clip: true
 
             Column {
@@ -339,7 +347,10 @@ Item {
                             const command = commandField.text.trim();
                             const type = dailyCheck.checked;
 
-                            if (!name || !command || !time.match(/^\d{2}:\d{2}$/)) return;
+                            if (!name || !command || !time.match(/^\d{2}:\d{2}$/)) {
+                                Quickshell.execDetached(["notify-send", "Script Timer", "Please fill all fields correctly"]);
+                                return;
+                            }
 
                             const task = {
                                 id: editingTask ? editingTask.id : Date.now().toString(),

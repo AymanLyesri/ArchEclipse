@@ -136,17 +136,23 @@ Item {
                 font.pixelSize: Theme.fontSize
                 color: Theme.fg
                 visible: root.loadingState !== "loading"
+                // Guarded: 0-wide item before Loader stretch must not go negative
+                width: Math.max(0, parent.width - 120)
+                elide: Text.ElideRight
             }
 
             Item { Layout.fillWidth: true }
 
-            // Change
+            // Change — AGS Crypto.tsx has this COMMENTED OUT (lines 176-179).
+            // We hide it to match AGS visual behavior exactly.
+            /*
             Label {
                 text: root.formattedChange
                 font.pixelSize: Theme.fontSize - 1
                 color: root.trendColor === "up" ? "#4ade80" : root.trendColor === "down" ? "#f87171" : Theme.fgDim
                 visible: root.loadingState === "success" && root.prices.length >= 2
             }
+            */
         }
 
         // Graph

@@ -35,10 +35,19 @@ Item {
             }
         }
 
-        // CPU, RAM, GPU columns
+        // CPU, RAM, GPU columns — AGS responsive: width<400 -> VERTICAL,
+        // width>=400 -> HORIZONTAL. AGS uses globalSettings(({ rightPanel }) =>
+        // rightPanel.width).
+        Loader {
+            anchors.fill: parent
+            sourceComponent: Settings.rightPanelWidth < 400 ? colLayout : rowLayout
+        }
+    }
+    Component {
+        id: rowLayout
         Row {
             spacing: 8
-            Layout.fillWidth: true
+            anchors.fill: parent
 
             // CPU Column
             Column {
@@ -95,6 +104,104 @@ Item {
             }
 
             // GPU Columns (dynamic)
+            Repeater {
+                model: root.stats && root.stats.gpus ? root.stats.gpus : []
+                Column {
+                    Layout.fillWidth: true
+                    spacing: 4
+                    Label {
+                        text: modelData.label
+                        font.pixelSize: Theme.fontSize
+                        font.bold: true
+                        color: Theme.fg
+                    }
+                    Label {
+                        text: "Driver: " + modelData.driver
+                        font.pixelSize: Theme.fontSize
+                        color: Theme.fg
+                    }
+                    Label {
+                        text: modelData.load !== null ? "Load: " + modelData.load.toFixed(1) + "%" : "Load: N/A"
+                        font.pixelSize: Theme.fontSize
+                        color: Theme.fg
+                    }
+                    Label {
+                        text: modelData.memoryUsedGB !== null && modelData.memoryTotalGB !== null
+                            ? "Memory: " + modelData.memoryUsedGB.toFixed(2) + "/" + modelData.memoryTotalGB.toFixed(2) + " GB"
+                            : modelData.memoryUsedGB !== null ? "Memory: " + modelData.memoryUsedGB.toFixed(2) + " GB" : "Memory: N/A"
+                        font.pixelSize: Theme.fontSize
+                        color: Theme.fg
+                    }
+                    Label {
+                        text: modelData.tempC !== null ? "Temp: " + modelData.tempC.toFixed(1) + "°C" : "Temp: N/A"
+                        font.pixelSize: Theme.fontSize
+                        color: Theme.fg
+                    }
+                }
+            }
+        }
+    }
+    Component {
+        id: colLayout
+        Column {
+            spacing: 8
+            anchors.fill: parent
+
+            // CPU Column
+            Column {
+                Layout.fillWidth: true
+                spacing: 4
+                Label {
+                    text: "CPU"
+                    font.pixelSize: Theme.fontSize
+                    font.bold: true
+                    color: Theme.fg
+                }
+                Label {
+                    text: root.stats ? "Load: " + root.stats.cpuLoad.toFixed(1) + "%" : "Load: N/A"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+                Label {
+                    text: root.stats ? "Clock: " + root.stats.clockGHz.toFixed(2) + " GHz" : "Clock: N/A"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+                Label {
+                    text: root.stats && root.stats.cpuTempC !== null ? "Temp: " + root.stats.cpuTempC.toFixed(1) + "°C" : "Temp: N/A"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+            }
+
+            // RAM Column
+            Column {
+                Layout.fillWidth: true
+                spacing: 4
+                Label {
+                    text: "RAM"
+                    font.pixelSize: Theme.fontSize
+                    font.bold: true
+                    color: Theme.fg
+                }
+                Label {
+                    text: root.stats ? "Total: " + root.stats.ramTotalGB.toFixed(2) + " GB" : "Total: N/A"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+                Label {
+                    text: root.stats ? "Used: " + root.stats.ramUsedGB.toFixed(2) + " GB" : "Used: N/A"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+                Label {
+                    text: root.stats ? "Free: " + root.stats.ramFreeGB.toFixed(2) + " GB" : "Free: N/A"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+            }
+
+            // GPU Columns (dynamic) — same children in stacked mode
             Repeater {
                 model: root.stats && root.stats.gpus ? root.stats.gpus : []
                 Column {

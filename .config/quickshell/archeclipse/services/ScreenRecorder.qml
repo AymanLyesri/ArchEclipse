@@ -10,6 +10,10 @@ QtObject {
 
     property bool isRecording: false
 
+    // Epoch ms when the current recording started (0 when not recording).
+    // AGS Recording.tsx computes elapsed as Date.now() - start.
+    property double startTimestamp: 0
+
     readonly property string scriptPath: Quickshell.env("HOME") + "/.config/hypr/scripts/screenrecord.sh"
 
     // Process for checking recording state
@@ -19,6 +23,8 @@ QtObject {
             onStreamFinished: {
                 const running = text.trim().length > 0;
                 if (running !== root.isRecording) {
+                    // Capture the start moment on the 0->1 edge (AGS: Date.now() - start).
+                    if (running) root.startTimestamp = Date.now();
                     root.isRecording = running;
                 }
             }

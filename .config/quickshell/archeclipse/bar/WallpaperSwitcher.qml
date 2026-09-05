@@ -260,6 +260,31 @@ PanelWindow {
         importProc.running = true;
     }
 
+    // cached file sizes for tooltip (path -> bytes)
+    property var fileSizes: ({})
+    function getFileSize(path) {
+        if (root.fileSizes[path] !== undefined) return root.fileSizes[path]
+        const p = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root)
+        p.command = ["bash", "-c", `stat -c %s '${path}' 2>/dev/null || echo 0`]
+        p.running = true
+        p.stdout.onStreamFinished.connect(function() {
+            const sz = parseInt(p.stdout.text.trim()) || 0
+            const fs = root.fileSizes
+            fs[path] = sz
+            root.fileSizes = fs
+            p.destroy()
+        })
+        return 0
+    }
+    function formatBytes(bytes) {
+        if (bytes === 0) return "N/A"
+        const units = ["B", "KB", "MB", "GB"]
+        let i = 0
+        let b = bytes
+        while (b >= 1024 && i < units.length - 1) { b /= 1024; i++ }
+        return b.toFixed(i === 0 ? 0 : 1) + " " + units[i]
+    }
+
     // ------------------------------------------------------------------ UI
 
     Rectangle {
@@ -412,7 +437,7 @@ PanelWindow {
                             }
 
                             ToolTip.visible: tileMa.containsMouse
-                            ToolTip.text: `Click to set as ${root.targetType} wallpaper.\nRight-click to delete.\n${tile.modelData.split("/").pop()}`
+                            ToolTip.text: `Click to set as ${root.targetType} wallpaper.\nRight-click to delete.\n${tile.modelData.split("/").pop()}\nSize: ${root.formatBytes(root.getFileSize(tile.modelData))}`
 
                             MouseArea {
                                 id: tileMa

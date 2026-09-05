@@ -12,3 +12,4 @@ singleton AutoWorkspaceSwitching 1.0 AutoWorkspaceSwitching.qml
 singleton FastfetchPins 1.0 FastfetchPins.qml
 singleton Brightness 1.0 Brightness.qml
 singleton ScreenRecorder 1.0 ScreenRecorder.qml
+singleton GlobalTheme 1.0 GlobalTheme.qml

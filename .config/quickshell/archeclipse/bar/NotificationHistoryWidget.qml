@@ -80,9 +80,29 @@ Item {
 
         // Notification List
         ScrollView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            id: nScroll
+            width: parent.width
+            // Guarded: a negative height sends Flickable into a silent polish loop
+            height: Math.max(0, parent.height - y - 8)
             clip: true
+
+            // Scroll position save/restore across notification changes
+            // (AGS NotificationHistory savedScrollPosition + idle_add).
+            property real savedPosition: 0
+            onContentItemChanged: {
+                if (contentItem) contentItem.contentYChanged.connect(function(){
+                    nScroll.savedPosition = contentItem.contentY
+                })
+            }
+            onContentHeightChanged: {
+                // model updated → restore (clamped) scroll position
+                Qt.callLater(function(){
+                    const c = nScroll.contentItem
+                    if (!c) return
+                    const max = Math.max(0, c.contentHeight - nScroll.height)
+                    c.contentY = Math.min(nScroll.savedPosition, max)
+                })
+            }
 
             Column {
                 id: listColumn

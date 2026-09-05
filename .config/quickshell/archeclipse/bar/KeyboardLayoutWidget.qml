@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import Quickshell.Io
 import qs.theme
 import qs.services
@@ -32,6 +33,7 @@ Item {
             width: text.width
             height: parent.height
             acceptedButtons: Qt.LeftButton | Qt.RightButton
+            hoverEnabled: true
             onClicked: {
                 if (mouse.button === Qt.RightButton) {
                     root.showFlag = !root.showFlag;
@@ -39,6 +41,8 @@ Item {
                     root._switchLayoutProc.running = true;
                 }
             }
+            ToolTip.visible: hovered
+            ToolTip.text: KeyboardLayout.layoutName
         }
 
         Text {

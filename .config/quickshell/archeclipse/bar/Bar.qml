@@ -34,8 +34,8 @@ PanelWindow {
 
     readonly property bool fullWidth: Settings.barFullWidth
 
-    // visibility: fullscreen client hides; search pins; override wins;
-    // otherwise lock/smart-hide logic.
+    // visibility: fullscreen focused client hides; search pins; override wins;
+    // otherwise lock/smart-hide geometric room-check (matches AGS Bar.tsx).
     readonly property bool fullscreenActive: {
         const mon = Hyprland.monitorFor(screen);
         const ws = mon?.activeWorkspace;
@@ -43,21 +43,16 @@ PanelWindow {
         const tops = Hyprland.toplevels.values.filter(t => t.workspace === ws);
         return tops.some(t => t.lastIpcObject?.fullscreen?.client > 0 || t.lastIpcObject?.fullscreen === 2);
     }
-    readonly property bool smartHideBlocked: {
-        BarState.hyprlandTick;
-        if (!Settings.barSmartHide) return false;
-        const mon = Hyprland.monitorFor(screen);
-        const ws = mon?.activeWorkspace;
-        if (!ws) return false;
-        return Hyprland.toplevels.values.some(t => t.workspace === ws);
-    }
+    // Re-evaluate when Hyprland geometry events arrive (clients move/resize).
+    readonly property bool roomCheckLive: BarState.hyprlandTick >= 0
 
     readonly property bool barVisible: {
         if (fullscreenActive) return false;
         if (BarState.state === "search") return true;
         const override = (BarState.barShown || {})[monitorName];
         if (override !== undefined) return override;
-        return Settings.barLock || smartHideBlocked;
+        BarState.hyprlandTick; // reap the reactive dependency
+        return BarState.barVisibleFor(monitorName);
     }
 
     // --- hover: expand on enter, collapse after leave delay ---
@@ -97,6 +92,11 @@ PanelWindow {
         onTriggered: {
             if (Settings.barLock) return;
             if (BarState.state === "search") { idleTimer.restart(); return; }
+            // Guard the reveal override: only conceal once the pointer is
+            // genuinely off the pill AND no popup/pulse is holding it up.
+            // (Reveals can fire without a clean enter/leave when the pointer
+            // crosses a hot zone quickly, so we don't conceal on a stale
+            // hover read — matches AGS's "don't conceal blindly".)
             if (!root.hovered) BarState.concealBar(root.monitorName);
             else idleTimer.restart();
         }
@@ -128,10 +128,34 @@ PanelWindow {
             color: Theme.moduleBg
             border.width: 0
 
-            Behavior on width {
-                NumberAnimation {
-                    duration: 300
-                    easing.type: Easing.OutBack
+            // Spring-physics width animation (matches AGS stiffness=500, damping=24, mass=5)
+            property real targetWidth: Math.max(stack.width + 10, 100)
+            property real springVelocity: 0
+            property real springStiffness: 500
+            property real springDamping: 24
+            property real springMass: 5
+            property bool springActive: false
+
+            onTargetWidthChanged: springActive = true
+
+            Timer {
+                id: springTimer
+                running: pill.springActive
+                interval: 16
+                repeat: true
+                onTriggered: {
+                    var displacement = pill.targetWidth - pill.width
+                    var springForce = -pill.springStiffness * displacement
+                    var dampingForce = -pill.springDamping * pill.springVelocity
+                    var acceleration = (springForce + dampingForce) / pill.springMass
+                    pill.springVelocity += acceleration * 0.016
+                    var next = pill.width + pill.springVelocity * 0.016
+                    pill.width = next
+                    if (Math.abs(next - pill.targetWidth) < 0.5 && Math.abs(pill.springVelocity) < 0.5) {
+                        pill.width = pill.targetWidth
+                        pill.springVelocity = 0
+                        pill.springActive = false
+                    }
                 }
             }
 
@@ -161,6 +185,7 @@ PanelWindow {
                         case "brightness": return brightnessPage;
                         case "recording": return recordingPage;
                         case "player": return playerPage;
+                        case "network": return networkPage;
                         case "search": return searchPage;
                         default: return compactPage;
                         }
@@ -173,6 +198,7 @@ PanelWindow {
                 Component { id: brightnessPage; BrightnessPulse {} }
                 Component { id: recordingPage; RecordingIndicator {} }
                 Component { id: playerPage; PlayerPulse {} }
+                Component { id: networkPage; NetworkWidget {} }
                 Component { id: searchPage; SearchBar {} }
             }
         }
@@ -187,8 +213,8 @@ PanelWindow {
             anchor.gravity: Edges.Bottom
             anchor.margins.top: 8
             color: "transparent"
-            implicitWidth: 520
-            implicitHeight: Math.min(launcherPanel.height + 4, 480)
+            implicitWidth: 1100
+            implicitHeight: Math.min(launcherPanel.height + 4, 520)
             LauncherPanel { id: launcherPanel }
         }
 

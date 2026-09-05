@@ -45,6 +45,52 @@ Item {
         { name: "Safebooru", value: "safebooru", url: "https://safebooru.donmai.us/",     idSearchUrl: "https://safebooru.donmai.us/posts/" },
     ]
 
+    // Upload a custom local image as the current waifu (AGS upload button:
+    // zenity file-selection → identify dims → copy to custom/images/-1.<ext>).
+    function uploadCustomImage() {
+        const pick = Qt.createQmlObject(
+            'import Quickshell.Io; Process { command: ["zenity", "--file-selection", "--title=Select Image", "--file-filter=Images (png, jpg, webp, gif) | *.png *.jpg *.jpeg *.webp *.gif"] }',
+            root)
+        pick.running = true
+        pick.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        pick.finished.connect(function(code) {
+            const path = pick.stdout.text.trim()
+            if (!path) { pick.destroy(); return }
+            const ext = (path.split(".").pop() || "png").toLowerCase()
+            // identify dims
+            const idProc = Qt.createQmlObject(
+                'import Quickshell.Io; Process { command: ["identify", "-format", "%h %w", "' + path.replace(/'/g, "'\\''") + '"] }',
+                root)
+            idProc.running = true
+            idProc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+            idProc.finished.connect(function() {
+                const dims = idProc.stdout.text.trim().split(" ").map(Number)
+                const h = dims[0] || 0, w = dims[1] || 0
+                // mkdir + copy
+                const dest = `${root.booruPath}/custom/images/-1.${ext}`
+                const cp = Qt.createQmlObject(
+                    'import Quickshell.Io; Process { running: false }',
+                    root)
+                cp.command = ["bash", "-c", `mkdir -p '${root.booruPath}/custom/images' && cp -- '${path}' '${dest}'`]
+                cp.finished.connect(function() {
+                    const newWaifu = {
+                        id: -1, width: w, height: h,
+                        api: { name: "Custom", value: "custom" },
+                        extension: ext, tags: ["custom"],
+                        url: dest, preview: dest,
+                    }
+                    Settings.waifu = newWaifu
+                    Settings.persist()
+                    Notifications.notify({ summary: "Waifu", body: "Custom image set" })
+                    cp.destroy(); idProc.destroy(); pick.destroy()
+                })
+                cp.running = true
+            })
+            idProc.running = true
+        })
+        pick.running = true
+    }
+
     // ---- placeholder: no image selected ----
     Item {
         anchors.fill: parent
@@ -106,13 +152,45 @@ Item {
             visible: !root.isVideo
         }
 
-        // Video fallback
-        Text {
+        // Video fallback — playable via QtMultimedia (AGS Video.tsx Gtk.Video)
+        MediaVideo {
+            anchors.fill: parent
+            anchors.margins: 4
+            source: root.imagePath
+            autoplay: true
+            loop: true
+            fill: true
+            visible: root.isVideo && root.wd_extension.toLowerCase() !== "zip"
+        }
+
+        // Zip/ugoira placeholder (AGS MediaDisplay isZip branch)
+        Column {
             anchors.centerIn: parent
-            text: root.isVideo ? "Video: " + root.imagePath : ""
-            color: Theme.fgDim
-            font.pixelSize: Theme.fontSize
-            visible: root.isVideo
+            spacing: 8
+            visible: root.wd_extension.toLowerCase() === "zip"
+            Text { text: "\u{F13C6}"; color: Theme.fgDim; font.pixelSize: 40; anchors.horizontalCenter: parent.horizontalCenter }
+            Text { text: "This type of video file cannot be played."; color: Theme.fgDim; font.pixelSize: Theme.fontSize; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
+            Text { text: "Open in browser to view media."; color: Theme.fgDim; font.pixelSize: Theme.fontSize - 2; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap }
+        }
+
+        // Progress indicator (AGS Progress bound to _loadingState)
+        Rectangle {
+            id: progressBadge
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.margins: 6
+            width: 64; height: 20
+            radius: 4
+            color: root.loadingState === "error" ? Theme.danger : (root.loadingState === "success" ? Theme.accentBg : Theme.bg)
+            border.color: root.loadingState === "error" ? Theme.danger : Theme.border
+            visible: root.loadingState !== "idle"
+            Text {
+                anchors.centerIn: parent
+                text: root.loadingState === "loading" ? "Loading..." :
+                      (root.loadingState === "error" ? "Error" : "Ready")
+                color: root.loadingState === "loading" ? Theme.fgDim : (root.loadingState === "error" ? "#fff" : Theme.accent)
+                font.pixelSize: 11
+            }
         }
 
         Text {
@@ -255,10 +333,23 @@ Item {
             contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
         }
 
+        // Upload custom image (AGS upload button: zenity select → identify dims
+        // → copy to custom/images/-1.<ext> → set as current waifu)
+        Button {
+            text: "\u{f093}"
+            width: 36; height: 24
+            ToolTip.visible: hovered; ToolTip.delay: 500
+            ToolTip.text: "Upload custom image"
+            onClicked: root.uploadCustomImage()
+            background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
+            contentItem: Text { color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent }
+        }
+
         TextField {
             id: idSearchField
             width: 120; height: 24
             placeholderText: "Post ID..."
+            text: root.wd && root.wd.input_history ? root.wd.input_history : ""
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
             visible: root.hasWaifu
@@ -288,6 +379,7 @@ Item {
                                     extension: img.extension,
                                     url: img.url,
                                     preview: img.preview,
+                                    input_history: text,   // persist last ID (AGS waifuWidget.input_history)
                                 }
                                 Settings.waifu = newWaifu
                                 Settings.persist()

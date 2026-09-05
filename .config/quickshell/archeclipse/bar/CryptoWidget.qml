@@ -15,6 +15,7 @@ Item {
     property var cryptoEntries: []
     property bool showAddForm: false
     property var editingEntry: null
+    property string _selectedTimeframe: "7d"
 
     // Load entries from settings file on startup
     Component.onCompleted: {
@@ -57,12 +58,18 @@ Item {
     }
 
     function deleteEntry(id) {
+        const entry = cryptoEntries.find(e => e.id === id);
         cryptoEntries = cryptoEntries.filter(e => e.id !== id);
         saveEntries();
+        if (entry && entry.symbol) {
+            Quickshell.execDetached(["notify-send", "Crypto Display", entry.symbol.toUpperCase() + " removed"]);
+        }
     }
 
     function toggleForm(editEntry = null) {
         editingEntry = editEntry;
+        // Initialize the selected timeframe for the form (AGS default 7d)
+        root._selectedTimeframe = editEntry && editEntry.timeframe ? editEntry.timeframe : "7d";
         showAddForm = !showAddForm;
         if (!showAddForm) {
             editingEntry = null;
@@ -107,13 +114,15 @@ Item {
         // Add/Edit Form
         Loader {
             sourceComponent: showAddForm ? formComponent : null
-            Layout.fillWidth: true
+            width: parent.width
+            height: showAddForm ? 350 : 0
         }
 
         // Crypto List
         ScrollView {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            width: parent.width
+            // Guarded: a negative height sends Flickable into a silent polish loop
+            height: Math.max(0, parent.height - y - 8)
             clip: true
 
             Column {
@@ -170,7 +179,7 @@ Item {
                     }
                 }
 
-                // Timeframe
+                // Timeframe (AGS uses a row of toggle buttons, not a dropdown)
                 Column {
                     spacing: 4
                     Label {
@@ -178,23 +187,31 @@ Item {
                         font.pixelSize: Theme.fontSize
                         color: Theme.fg
                     }
-                    ComboBox {
-                        id: timeframeCombo
-                        model: root.timeframes
-                        currentIndex: editingEntry ? root.timeframes.indexOf(editingEntry.timeframe) : 2
-                        Layout.fillWidth: true
-                        background: Rectangle {
-                            color: Theme.bg
-                            radius: 4
-                            border.width: 1
-                            border.color: Theme.border
-                        }
-                        contentItem: Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: model[timeframeCombo.currentIndex]
-                            font.pixelSize: Theme.fontSize
-                            color: Theme.fg
+                    Row {
+                        spacing: 4
+                        Repeater {
+                            model: root.timeframes
+                            delegate: Button {
+                                checkable: true
+                                text: modelData
+                                implicitHeight: 26
+                                padding: 8
+                                checked: root._selectedTimeframe === modelData
+                                onClicked: root._selectedTimeframe = modelData
+                                background: Rectangle {
+                                    anchors.fill: parent
+                                    color: checked ? Theme.accentBg : "transparent"
+                                    radius: 4
+                                    border.width: checked ? 1 : 0
+                                    border.color: Theme.accent
+                                }
+                                contentItem: Text {
+                                    anchors.centerIn: parent
+                                    text: modelData
+                                    color: checked ? Theme.accent : Theme.fg
+                                    font.pixelSize: Theme.fontSize - 1
+                                }
+                            }
                         }
                     }
                 }
@@ -233,12 +250,15 @@ Item {
                         Layout.fillWidth: true
                         onClicked: {
                             const symbol = symbolField.text.trim().toLowerCase();
-                            if (!symbol) return;
+                            if (!symbol) {
+                                Quickshell.execDetached(["notify-send", "Crypto Display", "Please enter a valid symbol"]);
+                                return;
+                            }
 
                             const entry = {
                                 id: editingEntry ? editingEntry.id : Date.now().toString(),
                                 symbol: symbol,
-                                timeframe: timeframeCombo.currentText,
+                                timeframe: root._selectedTimeframe,
                                 showPrice: showPriceCheck.checked,
                                 showGraph: showGraphCheck.checked
                             };
@@ -248,6 +268,7 @@ Item {
                             } else {
                                 addEntry(entry);
                             }
+                            Quickshell.execDetached(["notify-send", "Crypto Display", symbol.toUpperCase() + " " + (editingEntry ? "updated" : "added") + " successfully"]);
                             toggleForm();
                         }
                         background: Rectangle {

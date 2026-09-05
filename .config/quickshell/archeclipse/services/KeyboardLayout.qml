@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 
 // Port of services/keyboard-layout.ts — watches Hyprland keyboard layout changes
 // and exposes the current layout code (e.g. "US", "DV") and full name.
@@ -67,6 +68,22 @@ QtObject {
     Component.onCompleted: {
         root._loadCodesProc.running = true;
         loadInitialLayout();
+    }
+
+    // Live layout tracking: listen for Hyprland activelayout>> events
+    // so the bar reflects keyboard layout changes instantly.
+    property Connections _hyprConn: Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (event?.name !== "activelayout") return;
+            // event.data format: "device_name,layout_name"
+            const d = event.data ?? "";
+            const sep = d.indexOf(",");
+            if (sep === -1) return;
+            const device = d.slice(0, sep);
+            const layoutName = d.slice(sep + 1);
+            root.setActiveLayout(layoutName, device);
+        }
     }
 
     function parseXkbSection(text, section, map) {

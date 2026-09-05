@@ -42,15 +42,34 @@ Item {
                 spacing: 6
                 width: parent.width
 
-                Text {
-                    id: appIcon
+                // App icon — renders an actual image when appIcon is a file
+                // path, else a themed icon name (AGS getNotificationIcon chain:
+                // app_icon path/image → icon name → desktopEntry → urgency).
+                Item {
+                    id: appIconWrap
                     width: 20; height: 20
-                    font.pixelSize: 16
-                    text: root.notification.appIcon || "●"
-                    color: Theme.accent
-                    visible: text !== ""
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    visible: root.notification.appIcon !== "" || root.notification.image !== ""
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        source: (root.notification.appIcon && root.notification.appIcon.startsWith("/"))
+                            ? root.notification.appIcon
+                            : (root.notification.image && root.notification.image.startsWith("/")) ? root.notification.image : ""
+                        fillMode: Image.PreserveAspectFit
+                        sourceSize.width: 20
+                        sourceSize.height: 20
+                        visible: source !== ""
+                        asynchronous: true
+                    }
+                    Text {
+                        anchors.fill: parent
+                        visible: parent.visible && !(root.notification.appIcon && root.notification.appIcon.startsWith("/")) && !(root.notification.image && root.notification.image.startsWith("/"))
+                        text: root.notification.appIcon || "●"
+                        font.pixelSize: 16
+                        color: Theme.accent
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
 
                 Text {
@@ -59,7 +78,7 @@ Item {
                     font.pixelSize: Theme.fontSize
                     font.bold: true
                     color: Theme.accent
-                    width: appIcon.visible ? parent.width - 20 - 8 : parent.width
+                    width: appIconWrap.visible ? parent.width - 20 - 8 : parent.width
                     elide: Text.ElideRight
                 }
 
@@ -125,6 +144,7 @@ Item {
             Text {
                 text: root.notification.summary || ""
                 font.pixelSize: Theme.fontSize
+                font.bold: true
                 color: Theme.fg
                 width: parent.width
                 wrapMode: Text.WordWrap
@@ -137,7 +157,43 @@ Item {
                 color: Theme.fgDim
                 width: parent.width
                 wrapMode: Text.WordWrap
+                maximumLineCount: root.bodyExpanded ? undefined : 3
+                elide: root.bodyExpanded ? Text.ElideNone : Text.ElideRight
                 visible: text !== ""
+
+                // "more" hint when collapsed and truncated
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.bodyExpanded = !root.bodyExpanded
+                }
+            }
+
+            // Notification action buttons (AGS NotificationWidget.getActions —
+            // each action invokes n.invoke(action.id), label = last colon segment).
+            Row {
+                spacing: 6
+                width: parent.width
+                visible: root.notification.actions && root.notification.actions.length > 0
+                Repeater {
+                    model: root.notification.actions
+                    delegate: Button {
+                        text: modelData.text || "Action"
+                        height: 24
+                        font.pixelSize: Theme.fontSize - 2
+                        onClicked: modelData.invoke()
+                        background: Rectangle {
+                            color: Theme.accentBg
+                            radius: 4
+                            border.color: Theme.accent
+                        }
+                        contentItem: Text {
+                            color: Theme.accent
+                            font.pixelSize: Theme.fontSize - 2
+                            anchors.centerIn: parent
+                        }
+                    }
+                }
             }
         }
 

@@ -1,7 +1,11 @@
 import QtQuick
+import QtQuick.Controls
+import QtQuick.Window
+import Quickshell
 import Quickshell.Hyprland
 import qs.theme
 import qs.services
+import qs.bar
 
 // Port of Workspaces.tsx (full, grouped) and WorkspacesCompact.
 //
@@ -63,7 +67,24 @@ Row {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: Hyprland.dispatch("workspace togglespecialworkspace")
+            onClicked: Hyprland.dispatch("hl.dsp.workspace.toggle_special()")
+        }
+        // Drop target — move a dragged client to the special workspace.
+        DropArea {
+            anchors.fill: parent
+            keys: ["application/x-qs-client"]
+            onEntered: { parent.color = Qt.lighter(Theme.accentBg, 1.15) }
+            onExited: { parent.color = root.specialActive ? Theme.buttonCheckedBg : "transparent" }
+            onDropped: function(drop) {
+                drop.accepted = true
+                const data = drop.mimeData.getData("application/x-qs-client")
+                const pid = (data.match(/pid:(\d+)/) || [])[1] || ""
+                if (pid) {
+                    console.log("[Workspaces] drag-drop move pid", pid, "to special workspace")
+                    Quickshell.execDetached(["hyprctl", "dispatch", `hl.dsp.window.move({workspace="special",window="pid:${pid}"})`])
+                }
+                parent.color = root.specialActive ? Theme.buttonCheckedBg : "transparent"
+            }
         }
     }
 
@@ -84,7 +105,7 @@ Row {
                 radius: Theme.radius
                 color: focused ? (root.compact ? Theme.background : Theme.buttonCheckedBg) : "transparent"
                 opacity: !exists ? 0.4 : 1.0
-                implicitWidth: label.implicitWidth + (focused ? 24 : 8)   // is-focused min-width 50px feel
+                implicitWidth: label.implicitWidth + (focused ? 24 : 8)
                 implicitHeight: root.height > 0 ? root.height - 6 : 22
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -106,8 +127,71 @@ Row {
 
                 MouseArea {
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Hyprland.dispatch(`workspace ${btn.wid}`)
+                    onClicked: Hyprland.dispatch(`hl.dsp.focus({workspace=${btn.wid}})`)
+                    onContainsMouseChanged: {
+                        if (containsMouse) wsHoverTimer.restart()
+                        else { wsHoverTimer.stop(); wsPopup.close() }
+                    }
+                }
+
+                // Drop target — accepts a client tile dragged from another
+                // workspace preview and moves it here (AGS Gtk.DropTarget).
+                DropArea {
+                    id: wsDrop
+                    anchors.fill: parent
+                    keys: ["application/x-qs-client"]
+                    onEntered: {
+                        btn.color = Qt.lighter(Theme.accentBg, 1.15)
+                        btn.scale = 1.08
+                    }
+                    onExited: {
+                        btn.color = btn.focused ? (root.compact ? Theme.background : Theme.buttonCheckedBg) : "transparent"
+                        btn.scale = 1.0
+                    }
+                    onDropped: function(drop) {
+                        drop.accepted = true
+                        const data = drop.mimeData.getData("application/x-qs-client")
+                        const pid = (data.match(/pid:(\d+)/) || [])[1] || ""
+                        if (pid) {
+                            console.log("[Workspaces] drag-drop move pid", pid, "to workspace", btn.wid)
+                            Quickshell.execDetached(["hyprctl", "dispatch", `hl.dsp.window.move({workspace=${btn.wid},window="pid:${pid}"})`])
+                        }
+                        btn.color = btn.focused ? (root.compact ? Theme.background : Theme.buttonCheckedBg) : "transparent"
+                        btn.scale = 1.0
+                    }
+                }
+
+                // Hover delay before showing popup (matches AGS 50ms)
+                Timer {
+                    id: wsHoverTimer
+                    interval: 80
+                    onTriggered: wsPopup.open()
+                }
+
+                // Workspace client preview popup (AGS workspaceClientLayout popover)
+                Popup {
+                    id: wsPopup
+                    x: (btn.width - implicitWidth) / 2
+                    y: -implicitHeight - 6
+                    width: Math.min(280, Screen.width * 0.3)
+                    height: Math.min(200, Screen.height * 0.3)
+                    closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnReleaseOutside
+                    margins: 8
+
+                    background: Rectangle {
+                        color: Theme.moduleBg
+                        radius: Theme.radius
+                        border.width: 1
+                        border.color: Theme.border
+                    }
+
+                    contentItem: WorkspaceClientPopup {
+                        anchors.fill: parent
+                        workspaceId: btn.wid
+                        Component.onCompleted: fetchClients()
+                    }
                 }
             }
         }

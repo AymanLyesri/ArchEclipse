@@ -27,6 +27,15 @@ ShellRoot {
         }
     }
 
+    // per-monitor bar edge-hover strip (dwell-reveals the auto-hidden bar)
+    Variants {
+        model: Quickshell.screens
+        BarHoverWindow {
+            required property ShellScreen modelData
+            screen: modelData
+        }
+    }
+
     // per-monitor always-on widget (weather card, bottom-left)
     Variants {
         model: Quickshell.screens
@@ -54,6 +63,15 @@ ShellRoot {
         }
     }
 
+    // per-monitor control panel (quick-settings sidebar)
+    Variants {
+        model: Quickshell.screens
+        ControlPanel {
+            required property ShellScreen modelData
+            screen: modelData
+        }
+    }
+
     // Left panel (SUPER+L, hot-zone, IPC)
     Variants {
         model: Quickshell.screens
@@ -67,6 +85,24 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         RightPanel {
+            required property ShellScreen modelData
+            screen: modelData
+        }
+    }
+
+    // per-monitor keystroke visualizer overlay
+    Variants {
+        model: Quickshell.screens
+        KeyStrokeVisualizer {
+            required property ShellScreen modelData
+            screen: modelData
+        }
+    }
+
+    // per-monitor media window (SUPER+m) — standalone player control
+    Variants {
+        model: Quickshell.screens
+        MediaWindow {
             required property ShellScreen modelData
             screen: modelData
         }

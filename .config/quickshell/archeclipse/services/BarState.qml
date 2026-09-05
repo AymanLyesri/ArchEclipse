@@ -1,8 +1,10 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Services.Pipewire
 import Quickshell.Services.Mpris
+import Quickshell.Networking
 import qs.theme
 import qs.services
 
@@ -29,6 +31,13 @@ Singleton {
 
     // Hyprland tick for reactive deps
     property int hyprlandTick: 0
+    property var _tickTimer: null
+
+    // Geometric room-check results per monitor name (matches AGS barBlocked).
+    // Populated by _roomProc from `hyprctl j/clients` + `hyprctl j/monitors`.
+    property var blockedMonitors: {}
+    // Current bar height used for the band check (matches AGS currentBarHeight)
+    property int barHeight: 34
 
     // Current resolved state
     property string state: "compact"
@@ -61,6 +70,11 @@ Singleton {
     property var _activePlayer: null
     property bool _playerFirstRender: true
 
+    // Network pulse tracking
+    property var _networkDevice: null
+    property bool _networkFirstRender: true
+    property var _lastNetSig: {}
+
     // Volume watcher
     property PwObjectTracker _volumeTracker: PwObjectTracker {
         objects: [Pipewire.defaultAudioSink]
@@ -87,6 +101,97 @@ Singleton {
         setupBrightnessWatcher()
         // Setup MPRIS player watcher
         setupPlayerWatcher()
+        // Setup network watcher
+        setupNetworkWatcher()
+
+        // Hyprland event tick — re-evaluates the geometric smart-hide room
+        // check when clients move/resize (client moves don't re-emit a
+        // change to the static toplevel list, so we tick on the raw event
+        // stream, debounced, exactly like AGS Bar.tsx).
+        Hyprland.rawEvent.connect((event) => {
+            if (!root._tickTimer) {
+                root._tickTimer = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: 100 }', root)
+                root._tickTimer.triggered.connect(() => {
+                    root._tickTimer = null
+                    root.hyprlandTick++
+                    root.updateRoomCheck()
+                })
+                root._tickTimer.start()
+            }
+        })
+
+        // Initial room check
+        root.updateRoomCheck()
+    }
+
+    // -----------------------------------------------------------------
+    // Geometric smart-hide room check (AGS barBlocked).
+    // A client "blocks" the bar band if it overlaps the top/bottom barHeight
+    // pixels of a monitor on the monitor's active workspace. Queried from
+    // hyprctl so geometry is always current (client .at/.size in the cached
+    // toplevel list lags behind moves/resizes, exactly as AGS notes).
+    // -----------------------------------------------------------------
+    property var _roomClientText: ""
+    property var _roomMonitorText: ""
+
+    function updateRoomCheck() {
+        const pc = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
+        pc.command = ["hyprctl", "clients", "-j"]
+        pc.running = true
+        pc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        pc.stdout.onStreamFinished.connect(() => {
+            root._roomClientText = pc.stdout.text
+            root.finishRoomCheck()
+        })
+    }
+
+    function finishRoomCheck() {
+        // Query monitors only after clients arrive; then compute blockage.
+        const pm = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
+        pm.command = ["hyprctl", "monitors", "-j"]
+        pm.running = true
+        pm.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        pm.stdout.onStreamFinished.connect(() => {
+            root.computeRoomCheck(root._roomClientText, pm.stdout.text)
+        })
+    }
+
+    function computeRoomCheck(clientsText, monitorsText) {
+        let clients = []
+        let monitors = []
+        try { clients = JSON.parse(clientsText) } catch(e) { return }
+        try { monitors = JSON.parse(monitorsText) } catch(e) { return }
+
+        const blocked = {}
+        const onTop = root.orientation
+        const h = root.barHeight
+
+        for (const m of monitors) {
+            if (!m || m.name === undefined) continue
+            const wsId = m.activeWorkspace?.id
+            if (wsId === undefined) { blocked[m.name] = false; continue }
+            const bandStart = onTop ? m.y : m.y + m.height - h
+            const bandEnd = bandStart + h
+            const hit = clients.some((c) => {
+                if (!c || !c.mapped) return false
+                if (c.workspace?.id !== wsId) return false
+                const top = c.at?.[1] ?? 0
+                const bottom = top + (c.size?.[1] ?? 0)
+                return bottom > bandStart && top < bandEnd
+            })
+            blocked[m.name] = hit
+        }
+        root.blockedMonitors = blocked
+        // [RoomCheck] diagnostic — verify geometric smart-hide computes
+        console.log("[RoomCheck] monitors:", JSON.stringify(blocked))
+    }
+
+    // AGS barAutoVisible core: lock => always visible; else smart-hide =>
+    // visible iff nothing geometrically overlaps the bar band.
+    function barVisibleFor(monitorName) {
+        if (root.lock) return true
+        if (!root.smartHide) return false
+        return !(root.blockedMonitors[monitorName] ?? false)
     }
 
     // ===== Volume watcher =====
@@ -181,6 +286,58 @@ Singleton {
         })
     }
 
+    // ===== Network watcher =====
+    // Mirrors AGS NetworkWidget.tsx: pulses the bar-wide "network" state for
+    // ~3s whenever the active network connection changes (wifi connect,
+    // disconnect, ssid change, signal re-association).
+    function setupNetworkWatcher() {
+        function primaryDevice() {
+            if (!Networking.devices?.values) return null
+            for (const d of Networking.devices.values) {
+                if (d && d.connected) return d
+            }
+            return Networking.devices.values.length > 0 ? Networking.devices.values[0] : null
+        }
+
+        function track(device) {
+            if (!device) return
+            root._networkDevice = device
+
+            // Skip first render
+            if (root._networkFirstRender) {
+                root._networkFirstRender = false
+                root._lastNetSig = {
+                    state: device.state,
+                    connected: device.connected
+                }
+                return
+            }
+
+            const changed = device.connected !== root._lastNetSig.connected ||
+                            device.state !== root._lastNetSig.state
+
+            root._lastNetSig = {
+                state: device.state,
+                connected: device.connected
+            }
+            if (changed) root.activate("network", 3000)
+        }
+
+        // Poll primary device each 2s for state changes (reactive, no spurious
+        // signal churn — NetworkManager events are coalesced here).
+        const netTimer = Qt.createQmlObject('import QtQuick; Timer { interval: 2000; running: true; repeat: true }', root)
+        netTimer.onTriggered.connect(function() {
+            const dev = primaryDevice()
+            if (dev !== root._networkDevice) {
+                root._networkDevice = dev
+                if (!dev) return
+                // First contact with a new device: don't pulse yet
+                root._networkFirstRender = true
+            }
+            track(dev)
+        })
+    }
+
     // Resolve highest priority active state
     function resolveState(): string {
         var best = "compact"
@@ -200,18 +357,25 @@ Singleton {
         var priority = root.priority[name]
         if (priority === undefined) return
 
+        const timers = root.holdTimers || {}
         // Cancel existing timer for this state
-        if (root.holdTimers[name]) {
-            root.holdTimers[name].stop()
-            root.holdTimers[name] = null
+        if (timers[name]) {
+            timers[name].stop()
+            timers[name] = null
         }
+        root.holdTimers = timers
 
+        root.activeStates = root.activeStates || {}
         root.activeStates[name] = { priority: priority }
 
         if (holdMs !== undefined) {
-            root.holdTimers[name] = Timer.singleShot(holdMs, () => {
+            const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: ' + holdMs + ' }', root)
+            t.triggered.connect(() => {
                 root.deactivate(name)
+                t.destroy()
             })
+            t.start()
+            timers[name] = t
         }
 
         root.debounceResolve()
@@ -224,11 +388,14 @@ Singleton {
         // Don't deactivate expanded if lock is on
         if (name === "expanded" && root.expanded) return
 
-        if (root.holdTimers[name]) {
-            root.holdTimers[name].stop()
-            root.holdTimers[name] = null
+        const timers = root.holdTimers || {}
+        if (timers[name]) {
+            timers[name].stop()
+            timers[name] = null
         }
+        root.holdTimers = timers
 
+        root.activeStates = root.activeStates || {}
         delete root.activeStates[name]
         root.debounceResolve()
     }
@@ -237,10 +404,15 @@ Singleton {
     function debounceResolve() {
         if (root.debounceTimer) {
             root.debounceTimer.stop()
+            root.debounceTimer.destroy()
         }
-        root.debounceTimer = Timer.singleShot(100, () => {
+        const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: 100 }', root)
+        t.triggered.connect(() => {
             root.state = root.resolveState()
+            t.destroy()
         })
+        t.start()
+        root.debounceTimer = t
     }
 
     // Reveal bar for a monitor

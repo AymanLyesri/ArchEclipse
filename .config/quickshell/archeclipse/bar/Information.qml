@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Services.Mpris
 import qs.theme
@@ -48,5 +49,41 @@ Row {
         Text { text: "\uF062"; color: Theme.secondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize - 2 }
         Text { text: SysInfo.bandwidth[1] + ""; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
         Text { text: "\uF063"; color: Theme.secondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize - 2 }
+    }
+
+    // ---- weather button (AGS WeatherButton) ----
+    WeatherButton {
+        anchors.verticalCenter: parent.verticalCenter
+    }
+
+    // ---- pinned crypto favorite (AGS Information crypto.favorite, click-to-remove) ----
+    Item {
+        id: favBox
+        visible: Settings.cryptoFavorite && (Settings.cryptoFavorite.symbol || "") !== ""
+        width: favItem.width + 4
+        height: 22
+        anchors.verticalCenter: parent.verticalCenter
+
+        CryptoItem {
+            id: favItem
+            anchors.verticalCenter: parent.verticalCenter
+            width: 170
+            entry: Settings.cryptoFavorite
+            property bool horizontal: true
+            itemWidth: 170
+            anchors.left: parent.left
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                Settings.cryptoFavorite = { symbol: "", timeframe: "" }
+                Settings.updateSetting("crypto.favorite", Settings.cryptoFavorite)
+            }
+            ToolTip.visible: hovered
+            ToolTip.text: "click to remove"
+        }
     }
 }

@@ -11,7 +11,7 @@ Item {
     signal toggleExpanded()
     signal clearStack()
 
-    property bool isExpanded: expandedStacks[stack.title] === true
+    property bool isExpanded: !!(stack && stack.title && expandedStacks && expandedStacks[stack.title] === true)
 
     Column {
         anchors.fill: parent
@@ -22,7 +22,7 @@ Item {
             spacing: 5
             Label {
                 id: titleLabel
-                text: "(" + stack.notifications.length + ") " + stack.title
+                text: stack ? "(" + stack.notifications.length + ") " + stack.title : ""
                 font.pixelSize: Theme.fontSize
                 color: Theme.fg
                 elide: Text.ElideRight
@@ -89,11 +89,23 @@ Item {
         id: expandedContent
         Column {
             spacing: 5
-            Repeater {
-                model: stack.notifications
-                delegate: NotificationItem {
+            // Per-stack scrollable content (AGS notification-stack scrolledwindow
+            // with "expanded"/"collapsed" class) — caps expanded height so a huge
+            // stack scrolls within itself instead of blowing out the panel.
+            ScrollView {
+                width: parent.width
+                height: Math.min(220, stack.notifications.length * 68)
+                clip: true
+                Column {
                     width: parent.width
-                    notification: modelData
+                    spacing: 5
+                    Repeater {
+                        model: stack.notifications
+                        delegate: NotificationItem {
+                            width: parent.width
+                            notification: modelData
+                        }
+                    }
                 }
             }
         }

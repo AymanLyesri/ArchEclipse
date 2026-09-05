@@ -1,10 +1,11 @@
 import QtQuick
 import qs.theme
+import qs.services
 
-// Port of barStates Recording.tsx — pulsing dot + "Recording" + elapsed timer.
-// Driven by record.service (wl-screenrec/wf-recorder) — the service itself is
-// shared with AGS via the same recording state file; the pulse is activated
-// by BarState from the screenrecord IPC hook once wired to keybinds.
+// Port of barStates Recording.tsx — pulsing dot + "Recording" + TRUE elapsed
+// timer (mm:ss since the recording actually started). AGS computes
+// Date.now() - start; we use ScreenRecorder.startTimestamp captured on the
+// 0->1 recording-state edge. When not recording, elapsed resets to 00:00.
 Rectangle {
     width: 180; height: 24
     radius: Theme.radius
@@ -27,7 +28,14 @@ Rectangle {
             }
         }
         Text { text: "Recording"; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
-        Text { text: parent.parent.parent.elapsed; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
+        Text { text: parent.parent.elapsed; color: Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
+    }
+
+    function formatElapsed(ms) {
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const m = Math.floor(total / 60).toString().padStart(2, "0");
+        const s = (total % 60).toString().padStart(2, "0");
+        return m + ":" + s;
     }
 
     Timer {
@@ -35,6 +43,13 @@ Rectangle {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: parent.elapsed = Qt.formatDateTime(new Date(), "mm:ss")
+        onTriggered: {
+            // Real elapsed duration since recording start (AGS Date.now() - start).
+            if (ScreenRecorder.isRecording) {
+                parent.elapsed = parent.formatElapsed(Date.now() - ScreenRecorder.startTimestamp);
+            } else {
+                parent.elapsed = "00:00";
+            }
+        }
     }
 }

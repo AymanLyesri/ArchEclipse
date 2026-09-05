@@ -31,4 +31,17 @@ QtObject {
         const w = root.get(name)
         if (w) w.visible = !w.visible
     }
+
+    // Show the left panel for a monitor and switch its active tab
+    // (mirrors AGS QuickApps "Keybinds": show left-panel + setGlobalSetting leftPanel.widget).
+    function selectLeftTab(tabName) {
+        // find a registered left panel
+        let panel = null
+        for (const key in root._windows) {
+            if (key.startsWith("left-panel-")) { panel = root._windows[key]; break }
+        }
+        if (!panel) return
+        panel.visible = true
+        if (panel.selectTab) panel.selectTab(tabName)
+    }
 }

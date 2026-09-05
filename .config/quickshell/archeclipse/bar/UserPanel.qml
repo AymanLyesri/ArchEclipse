@@ -4,9 +4,11 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.theme
 import qs.services
+import qs.bar
 
 // Port of UserPanel.tsx — full-screen overlay power grid:
 // Logout | Shutdown / Sleep | Reboot, Esc closes.
+// Center overlay shows UserProfileWidget { minimal: true } (AGS UserProfileMinimal).
 PanelWindow {
     id: root
 
@@ -49,13 +51,20 @@ PanelWindow {
         }
     }
 
+    // Center: minimal user profile overlay (AGS <UserProfileMinimal /> in overlay)
+    UserProfileWidget {
+        id: centerProfile
+        anchors.centerIn: parent
+        minimal: true
+    }
+
     Grid {
         anchors.centerIn: parent
         columns: 2
         rows: 2
         spacing: 20
 
-        Loader { sourceComponent: actionButton; onLoaded: { item.glyph = "\u{F087B}"; item.tip = "logout"; item.onAct = () => Hyprland.dispatch("exit") } }
+        Loader { sourceComponent: actionButton; onLoaded: { item.glyph = "\u{F087B}"; item.tip = "logout"; item.onAct = () => Hyprland.dispatch("hl.dsp.exit()") } }
         Loader { sourceComponent: actionButton; onLoaded: { item.glyph = "\u{F0425}"; item.tip = "shutdown"; item.onAct = () => Quickshell.execDetached(["shutdown", "now"]) } }
         Loader { sourceComponent: actionButton; onLoaded: { item.glyph = "\u{F0923}"; item.tip = "sleep"; item.onAct = () => { root.visible = false; Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/hypr/scripts/hyprlock.sh suspend"]) } } }
         Loader { sourceComponent: actionButton; onLoaded: { item.glyph = "\u{F0709}"; item.tip = "reboot"; item.onAct = () => Quickshell.execDetached(["reboot"]) } }

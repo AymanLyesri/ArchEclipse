@@ -34,6 +34,8 @@ Singleton {
     property bool notifDnd: false
     property bool leftPanelLock: false
     property bool rightPanelLock: false
+    property bool leftPanelExclusivity: true
+    property bool rightPanelExclusivity: true
     property int leftPanelWidth: 400
     property int rightPanelWidth: 250
 
@@ -48,6 +50,9 @@ Singleton {
         { name: "SystemResources",     icon: "\u{f080}", enabled: true },
     ]
     property bool autoWorkspaceSwitching: true
+
+    // Bar-pinned crypto favorite (Information center), mirrors AGS crypto.favorite
+    property var cryptoFavorite: ({ symbol: "", timeframe: "" })
 
     property var booru: ({
         api: ({ name: "Danbooru", value: "danbooru", url: "https://danbooru.donmai.us/", idSearchUrl: "https://danbooru.donmai.us/posts/" }),
@@ -71,6 +76,17 @@ Singleton {
     // Theme variants
     property bool dynamicThemeColors: true
     property bool dynamicThemeVariants: true
+
+    // Always-on widget visibility
+    property bool alwaysOnWidgetVisibility: true
+
+    // KeyStrokeVisualizer settings
+    property bool keyStrokeVisualizerVisibility: false
+    property var keyStrokeVisualizerAnchor: ["bottom", "left"]
+
+    // File manager (detected + selected)
+    property var fileManagerOptions: []
+    property string fileManager: ""
 
     // Profile picture
     property string profilePicturePath: ""
@@ -98,19 +114,34 @@ Singleton {
 
     // Update a setting by dotted path and persist to settings.json
     function updateSetting(path, value) {
+        // AGS dotted paths that map to flat QS properties (Singleton cannot
+        // gain new properties at runtime, so root["rightPanel"] = {} throws).
+        const aliases = {
+            "rightPanel.widgets": "rightPanelWidgets",
+            "crypto.favorite": "cryptoFavorite"
+        };
+        if (aliases[path] !== undefined) {
+            root[aliases[path]] = value;
+            persist();
+            return;
+        }
         const parts = path.split(".");
         let obj = root;
         for (let i = 0; i < parts.length - 1; i++) {
             const p = parts[i];
             if (obj[p] === undefined || typeof obj[p] !== "object" || obj[p] === null) {
-                root[p] = {};
-                obj = root[p];
+                return;
             } else {
                 obj = obj[p];
             }
         }
         const key = parts[parts.length - 1];
         obj[key] = value;
+        // Reassign the top-level object so bindings on it re-evaluate
+        // (mutating a JS sub-object alone emits no change signal).
+        if (parts.length > 1) {
+            root[parts[0]] = obj;
+        }
         persist();
     }
 
@@ -126,6 +157,7 @@ Singleton {
                 "bar.orientation": { value: root.barOrientation },
                 "bar.workspaceNumbers": { value: root.workspaceNumbers },
                 "dateFormat": root.dateFormat,
+                "crypto.favorite": root.cryptoFavorite,
                 "ui.opacity": { value: root.uiOpacity },
                 "ui.scale": { value: root.uiScale },
                 "ui.fontSize": { value: root.uiFontSize },
@@ -136,6 +168,8 @@ Singleton {
                 "notifications.dnd": root.notifDnd,
                 "leftPanel.lock": root.leftPanelLock,
                 "rightPanel.lock": root.rightPanelLock,
+                "leftPanel.exclusivity": root.leftPanelExclusivity,
+                "rightPanel.exclusivity": root.rightPanelExclusivity,
                 "leftPanel.width": { value: root.leftPanelWidth },
                 "rightPanel.width": { value: root.rightPanelWidth },
                 "rightPanel.widgets": root.rightPanelWidgets,
@@ -147,6 +181,9 @@ Singleton {
                 ],
                 "dynamicThemeColors": root.dynamicThemeColors,
                 "dynamicThemeVariants": root.dynamicThemeVariants,
+                "alwaysOnWidget": { "visibility": { value: root.alwaysOnWidgetVisibility } },
+                "keyStrokeVisualizer": { "visibility": { value: root.keyStrokeVisualizerVisibility }, "anchor": root.keyStrokeVisualizerAnchor },
+                "fileManager": root.fileManager,
                 "bar.blur": { value: root.barBlur },
                 "bar.blurSize": { value: root.barBlurSize },
                 "bar.blurPasses": { value: root.barBlurPasses },
@@ -202,6 +239,7 @@ Singleton {
                 root.barLayout = { workspaces: layout.workspaces ?? true, information: layout.information ?? true, utilities: layout.utilities ?? true };
 
                 root.dateFormat = s.dateFormat ?? "%H:%M"
+                root.cryptoFavorite = s.crypto?.favorite ?? { symbol: "", timeframe: "" }
                 root.uiOpacity = s.ui?.opacity?.value ?? 0.618
                 root.uiScale = s.ui?.scale?.value ?? 10
                 root.uiFontSize = s.ui?.fontSize?.value ?? 12
@@ -213,6 +251,8 @@ Singleton {
                 root.notifDnd = s.notifications?.dnd ?? false
                 root.leftPanelLock = !!s.leftPanel?.lock
                 root.rightPanelLock = !!s.rightPanel?.lock
+                root.leftPanelExclusivity = s.leftPanel?.exclusivity ?? true
+                root.rightPanelExclusivity = s.rightPanel?.exclusivity ?? true
                 root.leftPanelWidth = s.leftPanel?.width?.value ?? 400
                 root.rightPanelWidth = s.rightPanel?.width?.value ?? 250
                 root.rightPanelWidgets = s.rightPanel?.widgets ?? root.rightPanelWidgets
@@ -239,6 +279,16 @@ Singleton {
 
                 root.dynamicThemeColors = s.dynamicThemeColors ?? true
                 root.dynamicThemeVariants = s.dynamicThemeVariants ?? true
+
+                // Always-on widget visibility
+                root.alwaysOnWidgetVisibility = s.alwaysOnWidget?.visibility?.value ?? true
+
+                // KeyStrokeVisualizer
+                root.keyStrokeVisualizerVisibility = s.keyStrokeVisualizer?.visibility?.value ?? false
+                root.keyStrokeVisualizerAnchor = s.keyStrokeVisualizer?.anchor ?? ["bottom", "left"]
+
+                // File manager
+                root.fileManager = s.fileManager ?? ""
 
                 // Profile picture path
                 root.profilePicturePath = s.profilePicturePath ?? ""
@@ -310,5 +360,9 @@ Singleton {
         function onProfilePicturePathChanged() { root.schedulePersist() }
         function onWaifuChanged() { root.schedulePersist() }
         function onBooruChanged() { root.schedulePersist() }
+        function onAlwaysOnWidgetVisibilityChanged() { root.schedulePersist() }
+        function onKeyStrokeVisualizerVisibilityChanged() { root.schedulePersist() }
+        function onKeyStrokeVisualizerAnchorChanged() { root.schedulePersist() }
+        function onFileManagerChanged() { root.schedulePersist() }
     }
 }

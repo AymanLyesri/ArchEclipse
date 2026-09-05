@@ -29,14 +29,132 @@ Item {
     property var currentTags: Settings.booru.tags ? Settings.booru.tags : ["-rating:explicit"]
     property int limit: Settings.booru.limit ? Settings.booru.limit : 100
     property int columns: Settings.booru.columns ? Settings.booru.columns : 3
+
+    // AGS renderAsImageDialog state — the currently open image dialog
+    property var dialogImage: null   // set to an image object to open the dialog
+
+    // --------- helpers for image dialog (mirror BooruImage.class) ---------
+    function getIconPath(img, which) {
+        // which: "previews" | "images"
+        return `${root.booruPath}/${img.api.value}/${which}/${img.id}.${img.extension}`
+    }
+    function isInArray(arr, img) {
+        return (arr || []).some(x => x && (String(x.id) === String(img.id)))
+    }
+    function isBookmarked(img) { return root.isInArray(Settings.booru.bookmarks, img) }
+    function isPinned(img)     { return root.isInArray(Settings.booru.pins, img) }
+    function isCurrentWaifu(img) {
+        const w = Settings.waifu
+        return w && (String(w.id) === String(img.id))
+    }
+    function isInfoTagged(img) { return root.isPinned(img) || root.isBookmarked(img) || root.isCurrentWaifu(img) }
+    function isVideo(img) {
+        return ["mp4","webm","mkv","gif","zip"].includes((img.extension||"").toLowerCase())
+    }
+    // Downloaded set: populated by downloadImage()'s completion poller (avoids
+    // needing a synchronous filesystem-exists primitive in QML).
+    property var downloadedIds: ({})
+    function isDownloaded(img) { return !!img && !!root.downloadedIds[String(img.id)] }
+    function imageFileUrl(img) {
+        if (!img) return ""
+        return root.isDownloaded(img)
+            ? "file://" + root.getIconPath(img, "images")
+            : (img.preview ? img.preview : "file://" + root.getIconPath(img, "previews"))
+    }
+    function openInBrowser(img) {
+        const base = img.api.idSearchUrl || "https://danbooru.donmai.us/posts/"
+        Quickshell.execDetached(["xdg-open", base + img.id])
+    }
+    function toggleBookmark(img) {
+        const arr = (Settings.booru.bookmarks || []).slice()
+        const i = arr.findIndex(x => x && String(x.id) === String(img.id))
+        if (i >= 0) { arr.splice(i, 1) } else { arr.push(img) }
+        Settings.booru.bookmarks = arr
+        Settings.schedulePersist()
+        return i < 0   // true = now bookmarked
+    }
+    function togglePinned(img) {
+        const arr = (Settings.booru.pins || []).slice()
+        const i = arr.findIndex(x => x && String(x.id) === String(img.id))
+        if (i >= 0) { arr.splice(i, 1) } else { arr.push(img) }
+        Settings.booru.pins = arr
+        Settings.schedulePersist()
+        FastfetchPins.scheduleSync()
+        return i < 0
+    }
+    function downloadImage(img) {
+        root.progressStatus = "loading"
+        const dir = `${root.booruPath}/${img.api.value}/images`
+        const target = `${dir}/${img.id}.${img.extension}`
+        Quickshell.execDetached(["bash", "-c",
+            `mkdir -p '${dir}' && curl -sL -o '${target}' '${img.url}'`])
+        // poll for a non-empty file to appear (network fetch may take time)
+        const poll = Qt.createQmlObject(
+            'import QtQuick; import Quickshell.Io; Timer { interval: 1200; repeat: true; ' +
+            'property var check: null }', root)
+        poll.triggered.connect(function() {
+            if (poll.check && poll.check.running) return   // one check at a time
+            poll.check = Qt.createQmlObject(
+                'import Quickshell.Io; Process { stdout: StdioCollector {} }', root)
+            const targetJson = JSON.stringify(target)
+            poll.check.command = ["bash", "-c", `[ -s ${targetJson} ] && echo yes`]
+            const p = poll.check
+            p.running = true
+            p.stdout.onStreamFinished.connect(function() {
+                if (p.stdout.text.trim() === "yes") {
+                    poll.stop(); poll.destroy()
+                    const ids = root.downloadedIds
+                    ids[String(img.id)] = true
+                    root.downloadedIds = ids
+                    root.progressStatus = "success"
+                    root.dialogVersion++
+                }
+                p.destroy()
+                poll.check = null
+            })
+        })
+        poll.start()
+    }
+    function setAsWaifu(img) {
+        Settings.waifu = img
+        Settings.schedulePersist()
+    }
+    function openTags(tag) { root.currentTags = [tag]; root.page = 1; root.fetchImages() }
+    function copyTag(tag) { Quickshell.execDetached(["bash","-c", "echo -n '" + tag + "' | wl-copy"]) }
+    function formatTagForDisplay(tag) { return tag }
+
+    // forces dialog overlay to recompute toggle states after downloads
+    property int dialogVersion: 0
     property bool bottomRevealed: false
     property bool keyEnabled: true
+    property Timer _limitDebounce: Timer { interval: 300; repeat: false; onTriggered: root.fetchImages() }
 
     readonly property var booruApis: [
         { name: "Danbooru",  value: "danbooru",  url: "https://danbooru.donmai.us/",    idSearchUrl: "https://danbooru.donmai.us/posts/" },
         { name: "Gelbooru",  value: "gelbooru",  url: "https://gelbooru.com/",            idSearchUrl: "https://gelbooru.com/index.php?page=post&s=view&id=" },
         { name: "Safebooru", value: "safebooru", url: "https://safebooru.donmai.us/",     idSearchUrl: "https://safebooru.donmai.us/posts/" },
     ]
+
+    // The currently selected API object (for preview path resolution in bookmark/pin tabs)
+    readonly property var currentApiObj: {
+        const v = Settings.booru.api ? Settings.booru.api.value : "danbooru"
+        return root.booruApis.find(a => a.value === v) || root.booruApis[0]
+    }
+
+    // Manual property copy (QML JS has no object-spread `{...obj}`), attaches the
+    // active API object so preview path resolution works for bookmark/pin items.
+    function clonify(img) {
+        return {
+            id: img.id,
+            width: img.width,
+            height: img.height,
+            tags: img.tags || [],
+            url: img.url,
+            preview: img.preview,
+            extension: img.extension,
+            api: root.currentApiObj,
+        }
+    }
 
     // --- helpers ---
 
@@ -100,13 +218,32 @@ Item {
         proc.running = true
         proc.stdout.onStreamFinished.connect(function() {
             const text = proc.stdout.text
-            if (!text || !text.trim().startsWith("[")) {
+            // AGS parseBooruArrayResponse: surface the script's error envelope
+            // message (e.g. missing API credentials) instead of a generic error
+            let parsed = null
+            try { parsed = text && text.trim() ? JSON.parse(text) : null } catch (e) { parsed = null }
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.error === true) {
                 root.progressStatus = "error"
+                const msg = (parsed.message && String(parsed.message).trim()) || "Unknown booru error"
+                Notifications.notify({ summary: "Booru error", body: msg })
+                proc.destroy()
+                return
+            }
+            if (!Array.isArray(parsed)) {
+                root.progressStatus = "error"
+                // AGS notifies per-tab error (bookmarks/pins/images)
+                const tab = root.selectedTab
+                const summary = tab === "Bookmarks" ? "Error loading bookmarks"
+                               : tab === "Pins" ? "Error loading pins" : "Error fetching images"
+                const body = tab === "Bookmarks" ? "Failed to load bookmarks"
+                             : tab === "Pins" ? "Failed to load pins" : "Failed to fetch images"
+                const detail = text && text.trim() ? text.trim().slice(0, 200) : body
+                Notifications.notify({ summary: summary, body: detail })
                 proc.destroy()
                 return
             }
             try {
-                const data = JSON.parse(text)
+                const data = parsed
                 root.images = data.map(img => ({
                     id: img.id || 0,
                     width: img.width || 0,
@@ -119,14 +256,15 @@ Item {
                 }))
                 root.calculateCacheSize()
                 root.progressStatus = "success"
+                // Download previews for the NEW images (was previously called
+                // on the stale list before the fetch completed)
+                root.downloadPreviews(root.images)
             } catch (e) {
                 root.progressStatus = "error"
+                Notifications.notify({ summary: "Error fetching images", body: String(e) })
             }
             proc.destroy()
         })
-
-        // Download all previews in parallel (unified approach)
-        root.downloadPreviews(root.images)
     }
 
     function downloadPreviews(imgList) {
@@ -172,6 +310,7 @@ Item {
             Repeater {
                 model: root.booruApis
                 delegate: Button {
+                    id: apiTabBtn
                     text: modelData.name
                     width: (parent.width - 20) / 5  // 3 APIs + Bookmarks + Pins = 5 tabs
                     height: 28
@@ -191,12 +330,12 @@ Item {
                         root.fetchImages()
                     }
                     background: Rectangle {
-                        color: checked ? Theme.accentBg : Theme.moduleBg
+                        color: apiTabBtn.checked ? Theme.accentBg : Theme.moduleBg
                         radius: 4
-                        border.color: checked ? Theme.accent : Theme.border
+                        border.color: apiTabBtn.checked ? Theme.accent : Theme.border
                     }
                     contentItem: Text {
-                        color: checked ? Theme.accent : Theme.fg
+                        color: apiTabBtn.checked ? Theme.accent : Theme.fg
                         font.pixelSize: Theme.fontSize - 2
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -206,6 +345,7 @@ Item {
 
             // Bookmark tab
             Button {
+                id: bookmarkBtn
                 text: "\u{f004}"  // heart
                 width: (parent.width - 20) / 5
                 height: 28
@@ -220,17 +360,16 @@ Item {
                     root.page = 1
                     Settings.booru.page = 1
                     Settings.updateSetting("booru.page", 1)
-                    // Load bookmarks
-                    root.images = Settings.booru.bookmarks || []
-                    root.progressStatus = "success"
+                    // Load bookmarks (AGS: paginate + download previews)
+                    root.loadBookmarks()
                 }
                 background: Rectangle {
-                    color: checked ? Theme.accentBg : Theme.moduleBg
+                    color: bookmarkBtn.checked ? Theme.accentBg : Theme.moduleBg
                     radius: 4
-                    border.color: checked ? Theme.accent : Theme.border
+                    border.color: bookmarkBtn.checked ? Theme.accent : Theme.border
                 }
                 contentItem: Text {
-                    color: checked ? Theme.accent : Theme.fg
+                    color: bookmarkBtn.checked ? Theme.accent : Theme.fg
                     font.pixelSize: Theme.fontSize - 2
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -239,6 +378,7 @@ Item {
 
             // Pins tab
             Button {
+                id: pinsBtn
                 text: "\u{f98b}"  // pin
                 width: (parent.width - 20) / 5
                 height: 28
@@ -250,19 +390,16 @@ Item {
                     root.selectedTab = "Pins"
                     Settings.booru.selectedTab = "Pins"
                     Settings.updateSetting("booru.selectedTab", "Pins")
-                    root.page = 1
-                    Settings.booru.page = 1
-                    Settings.updateSetting("booru.page", 1)
-                    root.images = Settings.booru.pins || []
-                    root.progressStatus = "success"
+                    // Load pins (AGS: paginate + download previews)
+                    root.loadPins()
                 }
                 background: Rectangle {
-                    color: checked ? Theme.accentBg : Theme.moduleBg
+                    color: pinsBtn.checked ? Theme.accentBg : Theme.moduleBg
                     radius: 4
-                    border.color: checked ? Theme.accent : Theme.border
+                    border.color: pinsBtn.checked ? Theme.accent : Theme.border
                 }
                 contentItem: Text {
-                    color: checked ? Theme.accent : Theme.fg
+                    color: pinsBtn.checked ? Theme.accent : Theme.fg
                     font.pixelSize: Theme.fontSize - 2
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -352,13 +489,42 @@ Item {
                         }
 
                         MouseArea {
+                            id: imgMa
                             anchors.fill: parent
-                            onClicked: {
-                                // Set as current waifu (like renderAsWaifuWidget)
-                                Settings.waifu = modelData
-                                Settings.persist()
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            onClicked: (mouse) => {
+                                if (mouse.button === Qt.RightButton) {
+                                    // Right-click: set as waifu (AGS renderAsWaifuWidget)
+                                    Settings.waifu = modelData
+                                    Settings.persist()
+                                } else {
+                                    // Left-click: open full AGS-style image dialog
+                                    root.dialogImage = modelData
+                                }
                             }
                         }
+
+                        // Pinned / bookmarked / waifu badges (AGS info icons)
+                        Rectangle {
+                            anchors.top: imgCard.top
+                            anchors.left: imgCard.left
+                            anchors.margins: 6
+                            height: 16; width: infoBadges.implicitWidth + 8
+                            radius: 8; color: Theme.accent
+                            visible: root.isInfoTagged(modelData)
+                            Row {
+                                id: infoBadges
+                                anchors.centerIn: parent
+                                spacing: 3
+                                Text { text: root.isPinned(modelData) ? "\u{f96c}" : "\u{f02e}"; color: "white"; font.pixelSize: 9 }
+                                Text { text: root.isCurrentWaifu(modelData) ? "\u{f004}" : ""; color: "white"; font.pixelSize: 9 }
+                            }
+                        }
+
+                        ToolTip.visible: imgMa.containsMouse
+                        ToolTip.text: `Click to Open\nID: ${modelData.id}  ${modelData.width}x${modelData.height}\nRight-click: Set as waifu`
                     }
                 }
             }
@@ -369,7 +535,53 @@ Item {
             width: parent.width
             spacing: 4
 
-            // Navigation row
+            // Loading/error/success progress indicator (AGS Progress component)
+            Rectangle {
+                width: parent.width
+                height: root.progressStatus === "idle" ? 0 : 4
+                radius: 2
+                color: root.progressStatus === "loading" ? Theme.accent
+                      : root.progressStatus === "error" ? Theme.danger : "transparent"
+                visible: root.progressStatus !== "idle" && root.progressStatus !== "success"
+                Behavior on height { NumberAnimation { duration: 150 } }
+            }
+
+            // Page number navigation bar (AGS PageDisplay)
+            Flow {
+                id: pageBar
+                width: parent.width
+                height: 28
+                spacing: 4
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                // First-page button + ellipsis when page > 3 (AGS logic)
+                Repeater {
+                    model: root.buildPageButtons()
+                    delegate: Button {
+                        readonly property var modelDataObj: modelData  // {label, active}
+                        text: modelData.label
+                        width: modelData.active ? 40 : 28
+                        height: 28
+                        enabled: root.progressStatus !== "loading"
+                        font.pixelSize: Theme.fontSize - 2
+                        onClicked: root.gotoPage(modelData.page)
+                        background: Rectangle {
+                            color: modelData.active ? Theme.accentBg : Theme.moduleBg
+                            radius: 4
+                            border.color: modelData.active ? Theme.accent : Theme.border
+                        }
+                        contentItem: Text {
+                            text: modelData.label
+                            color: modelData.active ? Theme.accent : Theme.fg
+                            font.pixelSize: Theme.fontSize - 2
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+            }
+
+            // Navigation row (prev / reveal / next)
             Row {
                 spacing: 8
                 width: parent.width
@@ -428,21 +640,27 @@ Item {
                 }
 
                 Text {
+                    id: pageLabel
                     text: "Page " + root.page
                     color: Theme.fgDim
                     font.pixelSize: Theme.fontSize - 1
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.leftMargin: 80
+                    height: parent.height
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                Item {
+                    id: navSpacer
+                    height: 1
+                    width: Math.max(0, parent.width - 96 - pageLabel.width - statusLabel.width - 40)
                 }
 
                 Text {
+                    id: statusLabel
                     text: root.progressStatus
                     color: Theme.accent
                     font.pixelSize: Theme.fontSize - 2
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.right: parent.right
-                    anchors.rightMargin: 8
+                    height: parent.height
+                    verticalAlignment: Text.AlignVCenter
                 }
             }
 
@@ -477,6 +695,8 @@ Item {
                                 root.limit = Math.round(limitSlider.value)
                                 Settings.booru.limit = root.limit
                                 Settings.updateSetting("booru.limit", root.limit)
+                                // AGS LimitDisplay setValue triggers fetchImages (debounced 300ms)
+                                root._limitDebounce.restart()
                             }
                         }
                     }
@@ -495,6 +715,8 @@ Item {
                                 root.columns = Math.round(columnsSlider.value)
                                 Settings.booru.columns = root.columns
                                 Settings.updateSetting("booru.columns", root.columns)
+                                // AGS ColumnDisplay setValue triggers fetchImages (debounced 300ms)
+                                root._limitDebounce.restart()
                             }
                         }
                     }
@@ -504,33 +726,50 @@ Item {
                         spacing: 4
                         width: parent.width
 
-                        // Tags flow
+                        // Tags flow (AGS TagDisplay)
                         Flow {
                             spacing: 4
                             width: parent.width
                             Repeater {
                                 model: root.currentTags
                                 delegate: Rectangle {
+                                    readonly property bool isRating: modelData.match(/[-]rating:explicit|rating:explicit/) !== null
                                     width: tagText.implicitWidth + 16
                                     height: 22
-                                    color: Theme.accentBg
+                                    color: isRating ? Theme.accentBg : Theme.bg
                                     radius: 4
-                                    border.color: Theme.accent
+                                    border.color: isRating ? Theme.accent : Theme.border
                                     border.width: 1
                                     Text {
                                         id: tagText
                                         anchors.centerIn: parent
                                         text: modelData
-                                        color: Theme.accent
+                                        color: isRating ? Theme.accent : Theme.fg
                                         font.pixelSize: Theme.fontSize - 2
                                     }
                                     MouseArea {
                                         anchors.fill: parent
                                         onClicked: {
-                                            const newTags = root.currentTags.filter(t => t !== modelData)
-                                            root.currentTags = newTags
-                                            Settings.booru.tags = newTags
-                                            Settings.updateSetting("booru.tags", newTags)
+                                            if (isRating) {
+                                                // AGS: toggle -rating:explicit <-> rating:explicit, move to front, refetch
+                                                const newRating = modelData.startsWith("-")
+                                                    ? "rating:explicit" : "-rating:explicit"
+                                                let newTags = root.currentTags.filter(t => !t.match(/[-]rating:explicit|rating:explicit/))
+                                                newTags.unshift(newRating)
+                                                root.currentTags = newTags
+                                                Settings.booru.tags = newTags
+                                                Settings.updateSetting("booru.tags", newTags)
+                                            } else {
+                                                // AGS: remove tag, refetch
+                                                const newTags = root.currentTags.filter(t => t !== modelData)
+                                                root.currentTags = newTags
+                                                Settings.booru.tags = newTags
+                                                Settings.updateSetting("booru.tags", newTags)
+                                            }
+                                            // AGS refetches except in Bookmarks/Pins tabs
+                                            if (root.selectedTab !== "Bookmarks" && root.selectedTab !== "Pins") {
+                                                root.fetchImages()
+                                            }
                                         }
                                     }
                                 }
@@ -660,6 +899,62 @@ Item {
         })
     }
 
+    // Build page-number buttons with AGS PageDisplay logic:
+    // show "1 ..." if page > 3, then a window of ~(width/100+2) pages;
+    // current page labelled with refresh glyph, others with the number.
+    function buildPageButtons() {
+        const buttons = []
+        const totalPagesToShow = Math.floor(root.widgetWidth / 100) + 2
+        const current = root.page
+        if (current > 3) {
+            buttons.push({ label: "1", page: 1, active: false })
+            buttons.push({ label: "...", page: -1, active: false })
+        }
+        let startPage = Math.max(1, current - Math.floor(totalPagesToShow / 2))
+        let endPage = startPage + totalPagesToShow - 1
+        if (endPage - startPage + 1 < totalPagesToShow) endPage = startPage + totalPagesToShow - 1
+        for (let p = startPage; p <= endPage; p++) {
+            buttons.push({ label: p === current ? "\u{F021}" : String(p), page: p, active: p === current })
+        }
+        return buttons
+    }
+
+    // Local tabs (AGS: paginate local list with (page-1)*limit offset)
+    function pagedSlice(list) {
+        if (!(root.limit > 0)) return list
+        const startIndex = (Math.max(1, root.page) - 1) * root.limit
+        return list.slice(startIndex, startIndex + root.limit)
+    }
+
+    function loadBookmarks() {
+        const bookmarks = Settings.booru.bookmarks || []
+        root.images = root.pagedSlice(bookmarks).map(b => root.clonify(b))
+        root.downloadPreviews(root.images)
+        root.progressStatus = "success"
+    }
+
+    function loadPins() {
+        const pins = Settings.booru.pins || []
+        root.images = root.pagedSlice(pins).map(p => root.clonify(p))
+        root.downloadPreviews(root.images)
+        root.progressStatus = "success"
+    }
+
+    function loadLocalTab() {
+        if (root.selectedTab === "Bookmarks") { root.loadBookmarks(); return true }
+        if (root.selectedTab === "Pins") { root.loadPins(); return true }
+        return false
+    }
+
+    function gotoPage(p) {
+        if (p < 1 || p === root.page) return
+        root.pageDirection = p > root.page ? "next" : "prev"
+        root.page = p
+        Settings.booru.page = p
+        Settings.updateSetting("booru.page", p)
+        if (!root.loadLocalTab()) root.fetchImages()
+    }
+
     // Initial fetch on load
     Component.onCompleted: {
         ensureRatingTagFirst()
@@ -667,5 +962,177 @@ Item {
         root.selectedTab = savedTab
         root.calculateCacheSize()
         root.fetchImages()
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Import dialog — full AGS-style image preview (renderAsImageDialog)
+    // ═══════════════════════════════════════════════════════════════
+    Item {
+        anchors.fill: parent
+        visible: root.dialogImage !== null
+        z: 100
+
+        // dimmer — close on click
+        MouseArea { anchors.fill: parent; onClicked: root.dialogImage = null }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 24, 560)
+            height: Math.min(parent.height - 24, Math.max(400, dialogMedia.height + dialogBottom.height + 60))
+            radius: Theme.radius
+            color: Theme.backgroundSecondary
+
+            Column {
+                id: dialogInner
+                anchors.centerIn: parent
+                width: parent.width - 24
+                spacing: 8
+
+                // media (image / video-placeholder / zip-placeholder)
+                Rectangle {
+                    id: dialogMedia
+                    width: parent.width
+                    height: 340
+                    radius: 6
+                    color: Theme.bg
+                    clip: true
+
+                    Image {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        source: root.dialogImage ? root.imageFileUrl(root.dialogImage) : ""
+                        fillMode: Image.PreserveAspectFit
+                        sourceSize.width: parent.width
+                        asynchronous: true
+                        visible: root.dialogImage ? !root.isVideo(root.dialogImage) : false
+                    }
+                    // video downloaded → playable via QtMultimedia (AGS Video.tsx)
+                    MediaVideo {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        source: root.dialogImage ? root.imageFileUrl(root.dialogImage).replace(/^file:\/\//, "") : ""
+                        autoplay: true
+                        loop: true
+                        fill: true
+                        visible: root.dialogImage ? root.isVideo(root.dialogImage) && root.isDownloaded(root.dialogImage) && (root.dialogImage.extension||"").toLowerCase() !== "zip" : false
+                    }
+                    // video not downloaded → placeholder
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: root.dialogImage ? root.isVideo(root.dialogImage) && !root.isDownloaded(root.dialogImage) : false
+                        color: "black"
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 6
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "\u{f03d}"; font.pixelSize: 48; color: Theme.fgDim }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.dialogImage && (root.dialogImage.extension||"").toLowerCase()==="zip" ? "This type of file cannot be played." : "Video — download to play"; color: Theme.fgDim; font.pixelSize: 12 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Open in browser to view media."; color: Theme.fgDim; font.pixelSize: 11 }
+                        }
+                    }
+                    // download progress overlay
+                    BusyIndicator {
+                        anchors.centerIn: parent
+                        running: root.progressStatus === "loading"
+                        visible: running
+                    }
+                    // zoom-to-full on click
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.openInBrowser(root.dialogImage)
+                    }
+                }
+
+                // caption bar: id + dimensions
+                Row {
+                    width: parent.width
+                    spacing: 6
+                    Text { text: "ID: " + (root.dialogImage ? root.dialogImage.id : ""); color: Theme.fg; font.pixelSize: 11; font.bold: true }
+                    Text { text: root.dialogImage ? `${root.dialogImage.width}x${root.dialogImage.height}` : ""; color: Theme.fgDim; font.pixelSize: 11 }
+                    Text { text: root.dialogImage && root.isDownloaded(root.dialogImage) ? "  \u{f019} Downloaded" : ""; color: "lightgreen"; font.pixelSize: 11 }
+                }
+
+                // tags flow
+                Flow {
+                    id: tagFlow
+                    width: parent.width
+                    height: 68
+                    spacing: 4
+                    clip: true
+                    Repeater {
+                        model: root.dialogImage && root.dialogImage.tags ? root.dialogImage.tags.slice(0, 8) : []
+                        delegate: Rectangle {
+                            width: tagDetail.implicitWidth + 12
+                            height: 20
+                            radius: 10
+                            color: tagDetailMa.containsMouse ? Theme.accentBg : Theme.moduleBg
+                            Text {
+                                id: tagDetail
+                                anchors.centerIn: parent
+                                text: modelData
+                                color: Theme.fgDim
+                                font.pixelSize: 10
+                                elide: Text.ElideRight
+                            }
+                            MouseArea {
+                                id: tagDetailMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.copyTag(modelData)
+                                onPressAndHold: root.openTags(modelData)
+                            }
+                        }
+                    }
+                }
+
+                // action rows
+                Column {
+                    id: dialogBottom
+                    width: parent.width
+                    spacing: 4
+
+                    Row {
+                        width: parent.width
+                        spacing: 6
+                        Button { text: "\u{f31b} Browser"; Layout.fillWidth: true; onClicked: root.openInBrowser(root.dialogImage) }
+                        Button {
+                            text: (root.isBookmarked(root.dialogImage) ? "\u{f02e} Unbookmark" : "\u{f02e} Bookmark")
+                            Layout.fillWidth: true
+                            onClicked: root.toggleBookmark(root.dialogImage)
+                        }
+                        Button {
+                            text: (root.isPinned(root.dialogImage) ? "\u{f96c} Unpin" : "\u{f96c} Pin")
+                            Layout.fillWidth: true
+                            onClicked: root.togglePinned(root.dialogImage)
+                        }
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: 6
+                        Button {
+                            text: "\u{f019} Download"
+                            Layout.fillWidth: true
+                            enabled: !root.isDownloaded(root.dialogImage)
+                            onClicked: root.downloadImage(root.dialogImage)
+                        }
+                        Button {
+                            text: (root.isCurrentWaifu(root.dialogImage) ? "\u{f004} Current waifu" : "\u{f004} Set waifu")
+                            Layout.fillWidth: true
+                            onClicked: root.setAsWaifu(root.dialogImage)
+                        }
+                        Button {
+                            text: "\u{f05e} Close"
+                            Layout.fillWidth: true
+                            onClicked: root.dialogImage = null
+                        }
+                    }
+                }
+            }
+        }
+
+        Keys.onEscapePressed: root.dialogImage = null
+        Keys.onEnterPressed: root.dialogImage = null
+        focus: visible
     }
 }

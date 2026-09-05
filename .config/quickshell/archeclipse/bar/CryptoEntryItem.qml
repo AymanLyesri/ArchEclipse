@@ -48,11 +48,9 @@ Item {
                 ToolTip.visible: hovered; ToolTip.delay: 500
                 ToolTip.text: "Pin to bar"
                 onClicked: {
-                    const crypto = Settings.crypto || {}
-                    Settings.crypto = Object.assign({}, crypto, {
-                        favorite: { symbol: root.entry.symbol, timeframe: root.entry.timeframe }
-                    })
-                    Settings.updateSetting("crypto.favorite", Settings.crypto.favorite)
+                    Settings.cryptoFavorite = { symbol: root.entry.symbol, timeframe: root.entry.timeframe }
+                    Settings.updateSetting("crypto.favorite", Settings.cryptoFavorite)
+                    Quickshell.execDetached(["notify-send", "Crypto Display", (root.entry.symbol || "").toUpperCase() + " pinned to top bar"])
                 }
                 background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }
                 contentItem: Text { color: Theme.accent; font.pixelSize: 11; anchors.centerIn: parent }

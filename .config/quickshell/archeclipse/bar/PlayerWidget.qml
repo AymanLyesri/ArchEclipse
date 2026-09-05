@@ -1,6 +1,8 @@
 import Quickshell
+import Quickshell.Io
 import QtQuick
 import qs.theme
+import qs.bar
 import Quickshell.Services.Mpris
 
 Item {
@@ -11,6 +13,10 @@ Item {
     // MPRIS players
     property var players: Quickshell.Services.Mpris.players.values
     property var activePlayer: null
+
+    // Cava audio visualizer points (from external cava CLI raw output)
+    property var visualizerPoints: []
+    readonly property bool isPlaying: root.activePlayer?.playbackStatus === Quickshell.Services.Mpris.MprisPlaybackState.Playing
 
     // Find active player (playing)
     function updateActivePlayer() {
@@ -29,6 +35,20 @@ Item {
     Component.onCompleted: {
         updateActivePlayer()
         Quickshell.Services.Mpris.players.onChanged = updateActivePlayer
+    }
+
+    // Cava process — runs only while a player is playing
+    Process {
+        id: cavaProc
+        running: root.isPlaying
+        command: ["cava", "-p", Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/cava/raw_output_config.txt"]
+        stdout: SplitParser {
+            onRead: function(data) {
+                // Parse `;`-separated values into visualizerPoints
+                const pts = data.split(";").map(p => parseFloat(p.trim())).filter(p => !isNaN(p))
+                if (pts.length > 0) root.visualizerPoints = pts
+            }
+        }
     }
 
     // Player info
@@ -55,7 +75,7 @@ Item {
             spacing: 10
             anchors.margins: 12
 
-            // Artwork (placeholder)
+            // Artwork with cava visualizer overlay
             Rectangle {
                 id: art
                 width: 40
@@ -64,7 +84,13 @@ Item {
                 color: Theme.accentBg
                 visible: root.artUrl !== ""
 
-                // Image would go here if artUrl available
+                WaveVisualizer {
+                    anchors.fill: parent
+                    live: root.isPlaying
+                    points: root.visualizerPoints
+                    color: Theme.accent
+                    visible: root.isPlaying
+                }
             }
 
             // Track info

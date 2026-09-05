@@ -1,306 +1,152 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import qs.theme
+import qs.services
+import qs.bar
 
-// Donations widget
+// Donations widget — full port of Donations.tsx (+ embeds General.tsx via GeneralTab)
+// Third-party: open URL in browser (xdg-open)
+// Crypto: copy address to clipboard (wl-copy) + show QR code (qrencode)
 Item {
     id: root
     property int widgetWidth: parent.width
     property string className: ""
 
-    Column {
+    property var donationOptions: [
+        { name: "Ko-fi", icon: "\u{F0C4}", type: "third-party", class: "kofi", url: "https://ko-fi.com/aymanlyesri", color: "#29ABE0" },
+        { name: "PayPal", icon: "\u{F1ED}", type: "third-party", class: "paypal", url: "https://paypal.me/LyesriAyman", color: "#00457C" },
+        { name: "Bitcoin", icon: "\u{F15A}", type: "crypto", address: "1JisW9xeatCFadtgsenjbpCcFePZGPyXow", color: "#F7931A" },
+        { name: "Ethereum", icon: "\u{F27E}", type: "crypto", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#627EEA" },
+        { name: "BSC (BEP20)", icon: "\u{F27E}", type: "crypto", description: "BNB Smart Chain", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#F3BA2F" }
+    ]
+
+    // Scrolled window wrapper (AGS <scrolledwindow hexpand vexpand>)
+    ScrollView {
         anchors.fill: parent
-        spacing: 16
+        clip: true
+        ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
-        // Header
         Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 8
+            width: parent.width
+            spacing: 16
+            topPadding: 4
 
-            Label {
-                text: "❤️"
-                font.pixelSize: 48
+            // General info section (avatar, version, links, stars) — AGS embeds General()
+            GeneralTab {
+                width: parent.width
+                widgetWidth: parent.width
             }
 
-            Label {
-                text: "Support this project"
-                font.pixelSize: Theme.fontSize + 4
-                font.bold: true
-                color: Theme.fg
+            // Separator
+            Rectangle { width: parent.width; height: 1; color: Theme.border }
+
+            // Header
+            Column {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 5
+
+                Label {
+                    text: "Support the Project"
+                    font.pixelSize: Theme.fontSize + 4
+                    font.bold: true
+                    color: Theme.fg
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                Label {
+                    text: "Your donations help keep this project alive"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fgDim
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
             }
 
-            Label {
-                text: "If ArchEclipse helped you, consider supporting its development"
-                font.pixelSize: Theme.fontSize
-                color: Theme.fgDim
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
-                width: parent.width * 0.8
-            }
-        }
-
-        // Donation options
+        // Donation options - render two-by-two like AGS
         Column {
             spacing: 12
             width: parent.width
 
-            // GitHub Sponsors
-            Rectangle {
-                width: parent.width
-                height: 100
-                color: Theme.moduleBg
-                radius: 12
-                border.width: 1
-                border.color: Theme.border
-
-                Row {
-                    spacing: 16
-                    anchors.centerIn: parent
-                    anchors.margins: 16
-
-                    Rectangle {
-                        width: 60
-                        height: 60
-                        color: "#24292e"
-                        radius: 8
-                        border.width: 1
-                        border.color: Theme.border
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "❤️"
-                            font.pixelSize: 24
-                        }
-                    }
-
-                    Column {
-                        spacing: 4
-                        Label {
-                            text: "GitHub Sponsors"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.fg
-                        }
-                        Label {
-                            text: "Monthly sponsorship with perks"
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.fgDim
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Button {
-                        text: "Sponsor"
-                        onClicked: {
-                            // Open GitHub Sponsors
-                        }
-                        background: Rectangle {
-                            color: "#24292e"
-                            radius: 6
-                            border.width: 1
-                            border.color: Theme.border
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: "#fff"
-                            font.pixelSize: Theme.fontSize
-                        }
-                    }
+            // pairs computed as a proper binding so the Repeater updates
+            property var pairs: {
+                const arr = root.donationOptions
+                const out = []
+                for (let i = 0; i < arr.length; i += 2) {
+                    out.push(arr.slice(i, i + 2))
                 }
+                return out
             }
 
-            // Ko-fi
-            Rectangle {
-                width: parent.width
-                height: 100
-                color: Theme.moduleBg
-                radius: 12
-                border.width: 1
-                border.color: Theme.border
-
-                Row {
-                    spacing: 16
-                    anchors.centerIn: parent
-                    anchors.margins: 16
-
-                    Rectangle {
-                        width: 60
-                        height: 60
-                        color: "#FF5E5B"
-                        radius: 8
-                        border.width: 1
-                        border.color: Theme.border
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "☕"
-                            font.pixelSize: 24
-                        }
-                    }
-
-                    Column {
-                        spacing: 4
-                        Label {
-                            text: "Ko-fi"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.fg
-                        }
-                        Label {
-                            text: "One-time coffee donation"
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.fgDim
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Button {
-                        text: "Donate"
-                        onClicked: {
-                            // Open Ko-fi
-                        }
-                        background: Rectangle {
-                            color: "#FF5E5B"
-                            radius: 6
-                            border.width: 1
-                            border.color: "#FF5E5B"
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: "#fff"
-                            font.pixelSize: Theme.fontSize
-                        }
-                    }
-                }
-            }
-
-            // Liberapay
-            Rectangle {
-                width: parent.width
-                height: 100
-                color: Theme.moduleBg
-                radius: 12
-                border.width: 1
-                border.color: Theme.border
-
-                Row {
-                    spacing: 16
-                    anchors.centerIn: parent
-                    anchors.margins: 16
-
-                    Rectangle {
-                        width: 60
-                        height: 60
-                        color: "#F6C915"
-                        radius: 8
-                        border.width: 1
-                        border.color: Theme.border
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "💝"
-                            font.pixelSize: 24
-                        }
-                    }
-
-                    Column {
-                        spacing: 4
-                        Label {
-                            text: "Liberapay"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.fg
-                        }
-                        Label {
-                            text: "Recurring donations, no fees"
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.fgDim
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Button {
-                        text: "Donate"
-                        onClicked: {
-                            // Open Liberapay
-                        }
-                        background: Rectangle {
-                            color: "#F6C915"
-                            radius: 6
-                            border.width: 1
-                            border.color: "#F6C915"
-                        }
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            color: "#000"
-                            font.pixelSize: Theme.fontSize
-                        }
-                    }
-                }
-            }
-
-            // Crypto
-            Rectangle {
-                width: parent.width
-                height: 120
-                color: Theme.moduleBg
-                radius: 12
-                border.width: 1
-                border.color: Theme.border
-
-                Column {
-                    anchors.fill: parent
-                    spacing: 8
-                    anchors.margins: 16
-
+            Repeater {
+                model: parent.pairs
+                delegate: Row {
+                    width: parent.width
+                    spacing: 10
                     Row {
-                        spacing: 8
-                        Label {
-                            text: "₿"
-                            font.pixelSize: 24
-                        }
-                        Label {
-                            text: "Cryptocurrency"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.fg
-                        }
-                    }
+                        spacing: 5
+                        width: parent.width / 2 - 5
+                        Repeater {
+                            model: modelData
+                            delegate: Column {
+                                spacing: 5
+                                width: parent.width
 
-                    Label {
-                        text: "BTC: bc1qexampleaddress..."
-                        font.pixelSize: Theme.fontSize - 1
-                        font.family: "JetBrainsMono NFP"
-                        color: Theme.fgDim
-                    }
+                                // Main action button
+                                Button {
+                                    width: parent.width
+                                    property string addr: modelData.address ?? ""
+                                    property string url: modelData.url ?? ""
+                                    onClicked: {
+                                        if (modelData.type === "crypto" && addr) {
+                                            copyToClipboard(addr, modelData.name)
+                                        } else if (url) {
+                                            openUrl(url)
+                                        }
+                                    }
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: modelData.type === "crypto" && addr
+                                        ? "Copy " + modelData.name + " address\n" + addr
+                                        : "Donate via " + modelData.name + "\n" + url
+                                    background: Rectangle {
+                                        color: modelData.color
+                                        radius: 8
+                                        border.width: 1
+                                        border.color: Theme.border
+                                    }
+                                    contentItem: Row {
+                                        spacing: 8
+                                        anchors.centerIn: parent
+                                        Label { text: modelData.icon; font.pixelSize: Theme.fontSize + 4; color: "white" }
+                                        Label { text: modelData.name; font.pixelSize: Theme.fontSize; font.bold: true; color: "white" }
+                                    }
+                                }
 
-                    Row {
-                        spacing: 8
-                        Label {
-                            text: "ETH: 0xexampleaddress..."
-                            font.pixelSize: Theme.fontSize - 1
-                            font.family: "JetBrainsMono NFP"
-                            color: Theme.fgDim
-                        }
-                        Button {
-                            text: "Copy"
-                            onClicked: {
-                                // Copy address
-                            }
-                            background: Rectangle {
-                                color: Theme.accentBg
-                                radius: 4
-                                border.width: 1
-                                border.color: Theme.accent
-                            }
-                            contentItem: Text {
-                                anchors.centerIn: parent
-                                color: Theme.accent
-                                font.pixelSize: Theme.fontSize - 1
+                                // QR Code button
+                                Button {
+                                    width: parent.width
+                                    property string qrData: modelData.address ?? modelData.url ?? ""
+                                    onClicked: {
+                                        if (qrData) showQRCode(qrData, modelData.name)
+                                    }
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: "Show QR Code"
+                                    background: Rectangle {
+                                        color: Theme.moduleBg
+                                        radius: 8
+                                        border.width: 1
+                                        border.color: Theme.border
+                                    }
+                                    contentItem: Label {
+                                        anchors.centerIn: parent
+                                        text: "\u{F029}"
+                                        font.pixelSize: Theme.fontSize + 2
+                                        color: Theme.accent
+                                    }
+                                }
                             }
                         }
                     }
@@ -308,36 +154,94 @@ Item {
             }
         }
 
-        // Supporter benefits
+        // Footer
         Column {
+            anchors.horizontalCenter: parent.horizontalCenter
             spacing: 8
             Label {
-                text: "Supporter Benefits"
-                font.pixelSize: Theme.fontSize + 2
+                text: "Thank you for your support! \u{1F496}"
+                font.pixelSize: Theme.fontSize + 1
                 font.bold: true
                 color: Theme.accent
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
             }
+        }
+    }
 
-            Column {
-                spacing: 4
-                Repeater {
-                    model: [
-                        "✨ Supporter badge in profile",
-                        "🎨 Access to exclusive themes",
-                        "🔧 Priority feature requests",
-                        "📊 Detailed usage statistics",
-                        "💬 Direct Discord channel access"
-                    ]
-                    delegate: Row {
-                        spacing: 8
-                        Label {
-                            text: modelData
-                            font.pixelSize: Theme.fontSize
-                            color: Theme.fg
-                        }
-                    }
+    // --- Helpers ---
+    function copyToClipboard(text, name) {
+        const proc = copyProcComp.createObject(root)
+        proc.command = ["bash", "-c", "echo -n " + JSON.stringify(text) + " | wl-copy"]
+        proc.running = true
+    }
+
+    property Component copyProcComp: Component {
+        Process {
+            onExited: (code) => {
+                if (code === 0) {
+                    Notifications.notify({ summary: "Copied to Clipboard", body: name + " address copied successfully!" })
+                } else {
+                    Notifications.notify({ summary: "Error", body: "Failed to copy to clipboard" })
                 }
             }
         }
     }
+
+    function openUrl(url) {
+        const proc = openProcComp.createObject(root)
+        proc.command = ["xdg-open", url]
+        proc.name = url.split("/").pop() || "link"
+        proc.running = true
+    }
+
+    property Component openProcComp: Component {
+        Process {
+            property string name: ""
+            command: ["xdg-open", ""]
+            onExited: (code) => {
+                if (code === 0) Notifications.notify({ summary: "Opening page", body: "Opening donation page in browser..." })
+                else Notifications.notify({ summary: "Error", body: "Failed to open URL" })
+            }
+        }
+    }
+
+    function showQRCode(data, name) {
+        const qrPath = "/tmp/donation_qr_" + name.toLowerCase().replace(/\s+/g, "_") + ".png"
+        const proc = qrProcComp.createObject(root)
+        proc.command = ["qrencode", "-o", qrPath, data]
+        proc.running = true
+        proc.qrPath = qrPath
+        proc.name = name
+    }
+
+    property Component qrProcComp: Component {
+        Process {
+            property string qrPath: ""
+            property string name: ""
+            onExited: (code) => {
+                if (code === 0) {
+                    // Open QR image with first available viewer
+                    const viewer = Qt.createQmlObject('import Quickshell.Io; Process { command: ["swayimg", qrPath] }', root)
+                    viewer.running = true
+                    viewer.onExited = (c) => {
+                        if (c !== 0) {
+                            const v2 = Qt.createQmlObject('import Quickshell.Io; Process { command: ["eog", qrPath] }', root)
+                            v2.running = true
+                            v2.onExited = (c2) => {
+                                if (c2 !== 0) {
+                                    const v3 = Qt.createQmlObject('import Quickshell.Io; Process { command: ["xdg-open", qrPath] }', root)
+                                    v3.running = true
+                                }
+                            }
+                        }
+                    }
+                    Notifications.notify({ summary: "QR Code Generated", body: "Scan the QR code to get " + name + " address!" })
+                } else {
+                    Notifications.notify({ summary: "Error", body: "QR code generation failed. Install 'qrencode' package." })
+                }
+            }
+        }
+    }
+}
 }

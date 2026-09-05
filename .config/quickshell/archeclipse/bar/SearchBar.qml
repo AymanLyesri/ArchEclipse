@@ -34,7 +34,7 @@ Rectangle {
         clip: true
         focus: true
 
-        onTextEdited: { root.queryChanged(text); Launcher.runQuery(text) }
+        onTextEdited: { root.queryChanged(text); Launcher.runQueryDebounced(text) }
         onAccepted: { root.activateRequested(); Launcher.activateSelected(); BarState.deactivate("search") }
 
         Keys.onEscapePressed: BarState.deactivate("search")

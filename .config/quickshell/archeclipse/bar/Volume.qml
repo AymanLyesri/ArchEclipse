@@ -6,6 +6,8 @@ import qs.theme
 
 // Port of sub-components/Volume.tsx — icon + %, click opens pavucontrol,
 // hover reveals slider. Also used as the transient "volume" pulse page.
+// Reproduces AGS behaviors: icon, %, change-triggered reveal w/ 2s auto-hide,
+// "Volume: N%" tooltip, click → pavucontrol.
 Rectangle {
     id: root
 
@@ -25,6 +27,27 @@ Rectangle {
         if (!sink?.audio) return 0;
         const v = sink.audio.volume;
         return isNaN(v) || v < 0 ? 0 : (v > 1 ? 1 : v);
+    }
+
+    // tooltip (AGS tooltipText "Volume: N%\nClick to open Volume Mixer")
+    ToolTip.visible: hover.hovered
+    ToolTip.text: "Volume: " + Math.round(root.vol * 100) + "%\nClick to open Volume Mixer"
+    ToolTip.delay: 400
+
+    // AGS: reveal slider on volume change, auto-hide after 2s (hover keeps open)
+    property bool sliderRevealed: false
+    property bool keepOpen: false
+    onVolChanged: {
+        if (!root.pulse) {
+            root.sliderRevealed = true
+            hideTimer.restart()
+        }
+    }
+    function hideSlider() { if (!root.keepOpen) root.sliderRevealed = false }
+    Timer {
+        id: hideTimer
+        interval: 2000
+        onTriggered: root.hideSlider()
     }
 
     Row {
@@ -48,7 +71,7 @@ Rectangle {
         }
         Slider {
             id: slider
-            visible: root.pulse || hover.hovered
+            visible: root.pulse || root.sliderRevealed || hover.hovered
             width: visible ? 100 : 0
             anchors.verticalCenter: parent.verticalCenter
             from: 0; to: 1; stepSize: 0.01
@@ -57,7 +80,13 @@ Rectangle {
         }
     }
 
-    HoverHandler { id: hover }
+    HoverHandler {
+        id: hover
+        onHoveredChanged: {
+            if (hover.hovered) { root.keepOpen = true; root.sliderRevealed = true; hideTimer.stop() }
+            else { root.keepOpen = false; hideTimer.restart() }
+        }
+    }
     MouseArea {
         anchors.fill: content
         acceptedButtons: Qt.LeftButton
