@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Quickshell
 import Quickshell.Io
 import qs.theme
 import qs.services
@@ -13,15 +14,22 @@ Item {
 
     property bool showFlag: false
 
-    // Process for switching layout
+    // Process for switching layout (AGS hyprctlCommand injects
+    // -i $HYPRLAND_INSTANCE_SIGNATURE — plain hyprctl breaks with
+    // multiple Hyprland instances).
     property Process _switchLayoutProc: Process {
-        command: ["hyprctl", "switchxkblayout", "current", "next"]
         stderr: StdioCollector {
             onStreamFinished: {
                 if (text.trim()) {
                     console.warn("[KeyboardLayout] Failed to switch layout: " + text);
                 }
             }
+        }
+        Component.onCompleted: {
+            const cmd = ["hyprctl", "switchxkblayout", "current", "next"];
+            const signature = Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE");
+            if (signature) cmd.splice(1, 0, "-i", signature);
+            command = cmd;
         }
     }
 

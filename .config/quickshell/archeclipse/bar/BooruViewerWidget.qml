@@ -20,6 +20,36 @@ Item {
 
     // --- state (per-instance, not singleton) ---
     property var images: []           // fetched image objects
+    property bool _firstImages: true
+    // AGS Images subscribe: slide new page in from the travel direction,
+    // scroll to top; first render appears without transition.
+    onImagesChanged: {
+        gridScroll.contentY = 0
+        if (root._firstImages) {
+            root._firstImages = false
+            return
+        }
+        slideAnim.stop()
+        masonryRow.x = root.pageDirection === "next" ? 60 : -60
+        slideAnim.start()
+    }
+    // AGS createImagesContent masonry: distribute to the shortest column by
+    // aspect ratio (NOT row-by-row Flow). NOTE: must live on root — a
+    // property declared among ColumnLayout children belongs to the layout.
+    readonly property var masonryColumns: {
+        const imgs = root.images || [];
+        const n = Math.max(1, root.columns);
+        const cols = [];
+        for (let i = 0; i < n; i++) cols.push({ h: 0, items: [] });
+        for (const im of imgs) {
+            const ratio = (im.width && im.height) ? im.height / im.width : 1;
+            let t = cols[0];
+            for (const c of cols) if (c.h < t.h) t = c;
+            t.items.push(im);
+            t.h += ratio;
+        }
+        return cols.map(c => c.items);
+    }
     property string progressStatus: "idle"  // "loading" | "error" | "success" | "idle"
     property string selectedTab: Settings.booru.api ? Settings.booru.api.name : "Danbooru"
     property int page: 1
@@ -30,6 +60,10 @@ Item {
     property int limit: Settings.booru.limit ? Settings.booru.limit : 100
     property int columns: Settings.booru.columns ? Settings.booru.columns : 3
 
+    // Diagnostic: last fetch command with secrets redacted (IPC-readable)
+    property string lastFetchCmd: ""
+    property string lastFetchError: ""
+
     // AGS renderAsImageDialog state — the currently open image dialog
     property var dialogImage: null   // set to an image object to open the dialog
 
@@ -39,6 +73,7 @@ Item {
         return `${root.booruPath}/${img.api.value}/${which}/${img.id}.${img.extension}`
     }
     function isInArray(arr, img) {
+        if (!img) return false
         return (arr || []).some(x => x && (String(x.id) === String(img.id)))
     }
     function isBookmarked(img) { return root.isInArray(Settings.booru.bookmarks, img) }
@@ -70,7 +105,8 @@ Item {
         const i = arr.findIndex(x => x && String(x.id) === String(img.id))
         if (i >= 0) { arr.splice(i, 1) } else { arr.push(img) }
         Settings.booru.bookmarks = arr
-        Settings.schedulePersist()
+        Settings.booru = Settings.booru  // touch parent var: nested field
+        Settings.schedulePersist()        // assignment does NOT emit booruChanged
         return i < 0   // true = now bookmarked
     }
     function togglePinned(img) {
@@ -78,6 +114,7 @@ Item {
         const i = arr.findIndex(x => x && String(x.id) === String(img.id))
         if (i >= 0) { arr.splice(i, 1) } else { arr.push(img) }
         Settings.booru.pins = arr
+        Settings.booru = Settings.booru  // touch parent var (see above)
         Settings.schedulePersist()
         FastfetchPins.scheduleSync()
         return i < 0
@@ -141,8 +178,10 @@ Item {
         return root.booruApis.find(a => a.value === v) || root.booruApis[0]
     }
 
-    // Manual property copy (QML JS has no object-spread `{...obj}`), attaches the
-    // active API object so preview path resolution works for bookmark/pin items.
+    // Manual property copy (QML JS has no object-spread `{...obj}`). AGS
+    // parity (BooruViewer.tsx:219-221 via new BooruImage(b)): preserve the
+    // item's own stored api so cross-API bookmarks/pins resolve to the right
+    // preview dir and idSearchUrl — never overwrite with the current tab.
     function clonify(img) {
         return {
             id: img.id,
@@ -152,7 +191,7 @@ Item {
             url: img.url,
             preview: img.preview,
             extension: img.extension,
-            api: root.currentApiObj,
+            api: img.api || root.currentApiObj,
         }
     }
 
@@ -172,16 +211,16 @@ Item {
     function calculateCacheSize() {
         const apiValue = Settings.booru.api ? Settings.booru.api.value : "danbooru"
         const proc = Qt.createQmlObject(
-            'import Quickshell.Io; Process { command: ["bash", "-c", "du -sb ' + root.booruPath + '/' + apiValue + '/previews 2>/dev/null | cut -f1"] }',
+            'import Quickshell.Io; Process { stdout: StdioCollector {} }',
             root
         )
-        proc.running = true
-        proc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        proc.command = ["bash", "-c", "du -sb " + JSON.stringify(root.booruPath + '/' + apiValue + '/previews') + " 2>/dev/null | cut -f1"]
         proc.stdout.onStreamFinished.connect(function() {
             const bytes = parseInt(proc.stdout.text.trim()) || 0
             root.cacheSize = Math.round(bytes / (1024 * 1024)) + "mb"
             proc.destroy()
         })
+        proc.running = true
     }
 
     function cleanCache() {
@@ -204,20 +243,47 @@ Item {
         let cmd = ["python", root.booruScript, "--api", apiValue, "--tags", tagsStr,
                    "--limit", String(root.limit), "--page", String(currentPage)]
 
-        // Add API credentials if available
-        const credentials = Settings.apiKeys && Settings.apiKeys[apiValue]
-        if (credentials && credentials.user && credentials.key) {
-            cmd.push("--api-user", credentials.user, "--api-key", credentials.key)
+        // Add API credentials if available (AGS: credentials.user.value /
+        // credentials.key.value; Settings.apiKey unwraps either shape and
+        // falls back to the shipped public defaults)
+        const apiUser = Settings.apiKey(apiValue, "user")
+        const apiPass = Settings.apiKey(apiValue, "key")
+        if (apiUser !== "" && apiPass !== "") {
+            cmd.push("--api-user", apiUser, "--api-key", apiPass)
         }
 
         const cmdJson = JSON.stringify(cmd)
+        root.lastFetchCmd = JSON.stringify(cmd.map((a, i) =>
+            (a === "--api-key" || a === "--api-user") ? a : (cmd[i-1] === "--api-key" || cmd[i-1] === "--api-user" ? "***" : a)))
+        root.lastFetchError = ""
         const proc = Qt.createQmlObject(
-            'import Quickshell.Io; Process { command: ' + cmdJson + '; stdout: StdioCollector {} }',
+            'import Quickshell.Io; Process { command: ' + cmdJson + ' }',
             root
         )
+        // Collectors must be attached before running (never after), and
+        // inline `stderr:` is rejected by the QML parser — assign here.
+        proc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        proc.stderr = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
         proc.running = true
-        proc.stdout.onStreamFinished.connect(function() {
+        // NOTE: read streams on process exit, NOT on stdout.onStreamFinished:
+        // stderr may not have flushed when stdout closes, which hid the
+        // script's real error envelope (empty stderr reads).
+        proc.exited.connect(function(exitCode, exitStatus) {
             const text = proc.stdout.text
+            // booru.py emit_error() writes to STDERR with empty stdout, so a
+            // credential rejection would otherwise surface as a generic error.
+            const errText = proc.stderr.text
+            if ((!text || !text.trim()) && errText && errText.trim()) {
+                root.progressStatus = "error"
+                let msg = errText.trim().slice(0, 300)
+                try {
+                    const ej = JSON.parse(errText.trim())
+                    if (ej && ej.message) msg = String(ej.message)
+                } catch (e) {}
+                Notifications.notify({ summary: "Booru error", body: msg })
+                proc.destroy()
+                return
+            }
             // AGS parseBooruArrayResponse: surface the script's error envelope
             // message (e.g. missing API credentials) instead of a generic error
             let parsed = null
@@ -238,6 +304,7 @@ Item {
                 const body = tab === "Bookmarks" ? "Failed to load bookmarks"
                              : tab === "Pins" ? "Failed to load pins" : "Failed to fetch images"
                 const detail = text && text.trim() ? text.trim().slice(0, 200) : body
+                root.lastFetchError = "stdout[" + (text ? text.trim().slice(0, 200) : "<empty>") + "] stderr[" + (errText ? errText.slice(0, 200) : "<empty>") + "]"
                 Notifications.notify({ summary: summary, body: detail })
                 proc.destroy()
                 return
@@ -267,43 +334,89 @@ Item {
         })
     }
 
+    // Local preview-file ids verified present on disk. Grid prefers these
+    // (AGS renders the downloaded local preview via getPreviewPath()).
+    property var previewIds: ({})
+    function isPreviewCached(img) { return !!img && !!root.previewIds[String(img.id)] }
+    // Grid source: full image file if downloaded, else cached preview file,
+    // else the remote preview URL.
+    function gridSource(img) {
+        if (!img) return ""
+        if (root.isDownloaded(img)) return "file://" + root.getIconPath(img, "images")
+        if (root.isPreviewCached(img)) return "file://" + root.getIconPath(img, "previews")
+        return img.preview ? img.preview : "file://" + root.getIconPath(img, "previews")
+    }
+
     function downloadPreviews(imgList) {
+        const pending = []
         imgList.forEach(img => {
             const previewDir = `${root.booruPath}/${img.api.value}/previews`
             const filePath = `${previewDir}/${img.id}.${img.extension}`
             const previewUrl = img.preview
 
             if (!previewUrl) return
+            pending.push({ id: String(img.id), path: filePath })
 
-            // Check if file exists, download if not
+            // Check if file exists, download if not. NOTE: the stdout
+            // collector must be attached in the constructor — setting
+            // running=true before assigning stdout races and drops output.
             const checkProc = Qt.createQmlObject(
-                'import Quickshell.Io; Process { command: ["bash", "-c", "test -f \\"' + filePath + '\\" && echo yes || echo no"] }', root
+                'import Quickshell.Io; Process { stdout: StdioCollector {} }', root
             )
-            checkProc.running = true
-            checkProc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+            checkProc.command = ["bash", "-c", "test -f " + JSON.stringify(filePath) + " && echo yes || echo no"]
             checkProc.stdout.onStreamFinished.connect(function() {
                 if (checkProc.stdout.text.trim() === "no") {
                     Quickshell.execDetached(["bash", "-c",
-                        `mkdir -p "${previewDir}" && ` +
-                        `curl -sSf -H "User-Agent: QuickshellBooru/1.0 (ArchLinux; Hyprland)" ` +
-                        `-H "Referer: ${img.api.url}" ` +
-                        `-H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" ` +
-                        `-o "${filePath}" "${previewUrl}"`])
+                        `mkdir -p \"${previewDir}\" && ` +
+                        `curl -sSf -H \"User-Agent: QuickshellBooru/1.0 (ArchLinux; Hyprland)\" ` +
+                        `-H \"Referer: ${img.api.url}\" ` +
+                        `-H \"Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8\" ` +
+                        `-o \"${filePath}\" \"${previewUrl}\"`])
+                } else {
+                    const ids = Object.assign({}, root.previewIds)
+                    ids[String(img.id)] = true
+                    root.previewIds = ids
                 }
                 checkProc.destroy()
             })
+            checkProc.running = true
         })
+        // Single delayed verification pass: curls run detached, so re-check
+        // the batch once and flip the grid to file:// URLs as files land.
+        if (pending.length === 0) return
+        const verify = Qt.createQmlObject(
+            'import QtQuick; Timer { repeat: false; interval: 6000 }', root)
+        verify.triggered.connect(function() {
+            const script = pending.map(p =>
+                "test -s " + JSON.stringify(p.path) + " && echo " + p.id).join(" || true; ")
+            const vp = Qt.createQmlObject(
+                'import Quickshell.Io; Process { stdout: StdioCollector {} }', root)
+            vp.command = ["bash", "-c", script + " || true"]
+            vp.stdout.onStreamFinished.connect(function() {
+                const ids = Object.assign({}, root.previewIds)
+                vp.stdout.text.trim().split(/\s+/).forEach(id => { if (id) ids[id] = true })
+                root.previewIds = ids
+                vp.destroy()
+            })
+            vp.running = true
+            verify.destroy()
+        })
+        verify.start()
     }
 
     // --- UI ---
 
-    Column {
+    // ColumnLayout (NOT Column): the ScrollView needs Layout.fillHeight to
+    // claim remaining space — in a plain Column fillHeight is ignored and
+    // the grid collapses to zero height (images "not displayed").
+    ColumnLayout {
         anchors.fill: parent
         spacing: 10
 
         // Tabs
         Row {
             id: tabRow
+            Layout.fillWidth: true
             spacing: 4
             width: parent.width
 
@@ -335,6 +448,7 @@ Item {
                         border.color: apiTabBtn.checked ? Theme.accent : Theme.border
                     }
                     contentItem: Text {
+                        text: parent.text
                         color: apiTabBtn.checked ? Theme.accent : Theme.fg
                         font.pixelSize: Theme.fontSize - 2
                         horizontalAlignment: Text.AlignHCenter
@@ -369,6 +483,7 @@ Item {
                     border.color: bookmarkBtn.checked ? Theme.accent : Theme.border
                 }
                 contentItem: Text {
+                    text: parent.text
                     color: bookmarkBtn.checked ? Theme.accent : Theme.fg
                     font.pixelSize: Theme.fontSize - 2
                     horizontalAlignment: Text.AlignHCenter
@@ -399,6 +514,7 @@ Item {
                     border.color: pinsBtn.checked ? Theme.accent : Theme.border
                 }
                 contentItem: Text {
+                    text: parent.text
                     color: pinsBtn.checked ? Theme.accent : Theme.fg
                     font.pixelSize: Theme.fontSize - 2
                     horizontalAlignment: Text.AlignHCenter
@@ -407,31 +523,59 @@ Item {
             }
         }
 
-        // Image masonry grid
-        ScrollView {
+    // --- grid (Flickable + masonry Row live in the ColumnLayout below) ---
+
+        // Image masonry grid (Flickable: ScrollView hides contentY, and AGS
+        // scrolls to top after every page transition)
+        Flickable {
+            id: gridScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            contentWidth: width
+            contentHeight: masonryRow.height
+            ScrollBar.vertical: ScrollBar {}
 
-            // Masonry grid: multiple columns, items flow to shortest column
-            Flow {
-                id: masonry
+            // Masonry row: N shortest-column Columns (AGS algorithm above)
+            Row {
+                id: masonryRow
                 width: parent.width
                 spacing: 6
-                padding: 4
+
+                // Slide transition on page change (AGS Gtk.Stack
+                // SLIDE_LEFT/RIGHT + scroll-to-top after transition)
+                NumberAnimation { id: slideAnim; target: masonryRow; property: "x"; duration: 200; to: 0 }
 
                 Repeater {
-                    model: root.images
-                    delegate: Rectangle {
-                        id: imgCard
+                    model: root.masonryColumns
+                    delegate: Column {
                         required property var modelData
-                        property bool isVideo: ["mp4", "webm", "mkv", "gif", "zip"]
-                            .includes((modelData.extension || "").toLowerCase())
+                        property var columnItems: modelData
+                        width: (masonryRow.width - (root.columns - 1) * 6) / root.columns
+                        spacing: 6
+                        Repeater {
+                            model: parent.columnItems
+                            delegate: imgCardComp
+                        }
+                    }
+                }
+            }
+        }
 
-                        width: (masonry.width - 20) / root.columns
-                        height: modelData.width && modelData.height
-                            ? Math.max(80, width * modelData.height / modelData.width)
-                            : width
+    // Grid card extracted as a Component so the masonry column Repeaters can
+    // instantiate it (AGS image.renderAsImageDialog per grid item).
+    Component {
+        id: imgCardComp
+        Rectangle {
+            id: imgCard
+            required property var modelData
+            property bool isVideo: ["mp4", "webm", "mkv", "gif", "zip"]
+                .includes((modelData.extension || "").toLowerCase())
+
+            width: parent ? parent.width : 0
+            height: modelData.width && modelData.height
+                ? Math.max(80, width * modelData.height / modelData.width)
+                : width
 
                         color: Theme.moduleBg
                         radius: 6
@@ -439,14 +583,14 @@ Item {
                         border.color: Theme.border
                         clip: true
 
-                        // Preview image (or placeholder)
+                        // Preview image (or placeholder). AGS renders the
+                        // downloaded local preview; prefer the local file once
+                        // cached instead of re-downloading the remote URL.
                         Image {
                             anchors.fill: parent
                             anchors.margins: 4
                             fillMode: Image.PreserveAspectFit
-                            source: modelData.preview
-                                ? modelData.preview
-                                : `${root.booruPath}/${modelData.api.value}/previews/${modelData.id}.${modelData.extension}`
+                            source: root.gridSource(modelData)
                             sourceSize.width: parent.width
                             asynchronous: true
                             cache: true
@@ -527,11 +671,10 @@ Item {
                         ToolTip.text: `Click to Open\nID: ${modelData.id}  ${modelData.width}x${modelData.height}\nRight-click: Set as waifu`
                     }
                 }
-            }
-        }
 
         // Bottom bar: navigation + revealable settings
         Column {
+            Layout.fillWidth: true
             width: parent.width
             spacing: 4
 
@@ -604,6 +747,7 @@ Item {
                         color: Theme.moduleBg; radius: 4; border.color: Theme.border
                     }
                     contentItem: Text {
+                        text: parent.text
                         color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent
                     }
                 }
@@ -616,6 +760,7 @@ Item {
                         color: Theme.moduleBg; radius: 4; border.color: Theme.border
                     }
                     contentItem: Text {
+                        text: parent.text
                         color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent
                     }
                 }
@@ -635,6 +780,7 @@ Item {
                         color: Theme.moduleBg; radius: 4; border.color: Theme.border
                     }
                     contentItem: Text {
+                        text: parent.text
                         color: Theme.fg; font.pixelSize: Theme.fontSize; anchors.centerIn: parent
                     }
                 }
@@ -688,7 +834,7 @@ Item {
                         Text { text: "Limit: " + root.limit; color: Theme.fg; font.pixelSize: Theme.fontSize - 2 }
                         Slider {
                             id: limitSlider
-                            from: 10; to: 500; stepSize: 1
+                            from: 0; to: 100; stepSize: 10
                             value: root.limit
                             Layout.fillWidth: true
                             onValueChanged: {
@@ -708,7 +854,7 @@ Item {
                         Text { text: "Columns: " + root.columns; color: Theme.fg; font.pixelSize: Theme.fontSize - 2 }
                         Slider {
                             id: columnsSlider
-                            from: 1; to: 6; stepSize: 1
+                            from: 1; to: 5; stepSize: 1
                             value: root.columns
                             Layout.fillWidth: true
                             onValueChanged: {
@@ -809,7 +955,7 @@ Item {
                                 ToolTip.text: "Clear cache"
                                 onClicked: root.cleanCache()
                                 background: Rectangle { color: Theme.bg; radius: 4; border.color: Theme.border }
-                                contentItem: Text { color: Theme.fgDim; font.pixelSize: Theme.fontSize - 2; anchors.centerIn: parent }
+                                contentItem: Text { text: parent.text; color: Theme.fgDim; font.pixelSize: Theme.fontSize - 2; anchors.centerIn: parent }
                             }
                         }
 
@@ -833,7 +979,7 @@ Item {
                                         root.fetchedTags = []
                                     }
                                     background: Rectangle { color: Theme.bg; radius: 3; border.color: Theme.border }
-                                    contentItem: Text { color: Theme.fgDim; font.pixelSize: Theme.fontSize - 2; anchors.centerIn: parent }
+                                    contentItem: Text { text: parent.text; color: Theme.fgDim; font.pixelSize: Theme.fontSize - 2; anchors.centerIn: parent }
                                 }
                             }
                         }
@@ -874,23 +1020,31 @@ Item {
     // --- fetch tag suggestions ---
     function fetchTags(tag) {
         const apiValue = Settings.booru.api ? Settings.booru.api.value : "danbooru"
-        const credentials = Settings.apiKeys && Settings.apiKeys[apiValue]
+        const apiUser = Settings.apiKey(apiValue, "user")
+        const apiPass = Settings.apiKey(apiValue, "key")
         let cmd = ["python", root.booruScript, "--api", apiValue, "--tag", tag]
-        if (credentials && credentials.user && credentials.key) {
-            cmd.push("--api-user", credentials.user, "--api-key", credentials.key)
+        if (apiUser !== "" && apiPass !== "") {
+            cmd.push("--api-user", apiUser, "--api-key", apiPass)
         }
         const proc = Qt.createQmlObject(
             'import Quickshell.Io; Process { command: ' + JSON.stringify(cmd) + ' }',
             root
         )
-        proc.running = true
         proc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        proc.stderr = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root)
+        proc.running = true
         proc.stdout.onStreamFinished.connect(function() {
             const text = proc.stdout.text
             try {
                 if (text && text.trim().startsWith("[")) {
                     const data = JSON.parse(text)
                     root.fetchedTags = data.slice(0, 10)
+                } else {
+                    // Surface script errors (stderr envelope) instead of
+                    // silently clearing suggestions
+                    const errText = (proc.stderr.text || "").trim()
+                    if (errText) console.warn("[Booru] fetchTags failed: " + errText.slice(0, 200))
+                    root.fetchedTags = []
                 }
             } catch (e) {
                 root.fetchedTags = []

@@ -230,8 +230,16 @@ Item {
                             v2.running = true
                             v2.onExited = (c2) => {
                                 if (c2 !== 0) {
-                                    const v3 = Qt.createQmlObject('import Quickshell.Io; Process { command: ["xdg-open", qrPath] }', root)
-                                    v3.running = true
+                                    // AGS Donations.tsx:113 tries gwenview
+                                    // before xdg-open — keep the full chain.
+                                    const v25 = Qt.createQmlObject('import Quickshell.Io; Process { command: ["gwenview", qrPath] }', root)
+                                    v25.running = true
+                                    v25.onExited = (c25) => {
+                                        if (c25 !== 0) {
+                                            const v3 = Qt.createQmlObject('import Quickshell.Io; Process { command: ["xdg-open", qrPath] }', root)
+                                            v3.running = true
+                                        }
+                                    }
                                 }
                             }
                         }

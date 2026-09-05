@@ -42,6 +42,12 @@ Singleton {
     // Current resolved state
     property string state: "compact"
 
+    // Open in-bar popovers (tray overflow/menu popups). Guards the
+    // hover-leave collapse (AGS Window.popupIsOpen()).
+    property int popupCount: 0
+    function holdPopup() { root.popupCount++ }
+    function releasePopup() { root.popupCount = Math.max(0, root.popupCount - 1) }
+
     // Hold timers
     property var holdTimers: {}
 
@@ -61,6 +67,7 @@ Singleton {
     // Volume pulse tracking
     property real _lastVolume: 0
     property bool _volumeFirstRender: true
+    property int volumeEvents: 0
 
     // Brightness pulse tracking
     property real _lastBrightness: 0
@@ -69,6 +76,7 @@ Singleton {
     // Player pulse tracking
     property var _activePlayer: null
     property bool _playerFirstRender: true
+    property int playerPolls: 0
 
     // Network pulse tracking
     property var _networkDevice: null
@@ -122,6 +130,10 @@ Singleton {
 
         // Initial room check
         root.updateRoomCheck()
+
+        // Sync persistent recording state at startup (AGS subscribes
+        // isRecording from mount; a recording already in progress must show)
+        if (ScreenRecorder.isRecording) root.activate("recording")
     }
 
     // -----------------------------------------------------------------
@@ -182,8 +194,6 @@ Singleton {
             blocked[m.name] = hit
         }
         root.blockedMonitors = blocked
-        // [RoomCheck] diagnostic — verify geometric smart-hide computes
-        console.log("[RoomCheck] monitors:", JSON.stringify(blocked))
     }
 
     // AGS barAutoVisible core: lock => always visible; else smart-hide =>
@@ -194,24 +204,38 @@ Singleton {
         return !(root.blockedMonitors[monitorName] ?? false)
     }
 
-    // ===== Volume watcher =====
+    // ===== Volume watcher (AGS watchTransient on notify::volume) =====
+    // NOTE: the signal must be CONNECTED first; the first-render guard lives
+    // inside the callback. Returning early before connect (as before) meant
+    // the pulse never fired at all.
+    property bool _volumeWired: false
     function setupVolumeWatcher() {
         const sink = Pipewire.defaultAudioSink
-        if (!sink) return
-
-        // Skip first render
-        if (root._volumeFirstRender) {
-            root._volumeFirstRender = false
-            root._lastVolume = sink.audio?.volume ?? 0
+        // volumesChanged lives on sink.audio (PwNodeAudioIface), which only
+        // exists once the node is bound — retry until then.
+        if (!sink || !sink.audio || root._volumeWired) {
+            if ((!sink || !sink.audio) && !root._volumeWired) {
+                const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: 1000 }', root)
+                t.triggered.connect(() => { t.destroy(); root.setupVolumeWatcher() })
+                t.start()
+            }
             return
         }
-
-        sink.volumesChanged.connect(() => {
+        root._volumeWired = true
+        root._lastVolume = sink.audio.volume ?? 0
+        sink.audio.volumesChanged.connect(() => {
+            root.volumeEvents++
             if (!sink.audio) return
             const vol = sink.audio.volume
-            if (isNaN(vol) || vol < 0 || vol > 1) return
+            if (vol === undefined || isNaN(vol) || vol < 0 || vol > 1) return
 
-            // Ignore spurious notifications
+            // Skip the initial notification on mount (AGS isFirst guard)
+            if (root._volumeFirstRender) {
+                root._volumeFirstRender = false
+                root._lastVolume = vol
+                return
+            }
+            // Ignore spurious notifications where the value didn't change
             if (vol === root._lastVolume) return
             root._lastVolume = vol
 
@@ -231,10 +255,11 @@ Singleton {
                 const text = proc.stdout.text
                 const lines = text.trim().split("\n")
                 if (lines.length > 0) {
+                    // brightnessctl -m: device,class,current,PERCENT,max
                     const fields = lines[0].split(",")
-                    if (fields.length >= 4) {
+                    if (fields.length >= 5) {
                         const current = parseInt(fields[2]) || 0
-                        const max = parseInt(fields[3]) || 1
+                        const max = parseInt(fields[4]) || 1
                         const val = current / max
                         if (root._brightnessFirstRender) {
                             root._brightnessFirstRender = false
@@ -266,6 +291,7 @@ Singleton {
         // Watch for player changes using a timer since QtObject properties don't auto-emit signals
         const playerTimer = Qt.createQmlObject('import QtQuick; Timer { interval: 2000; running: true; repeat: true }', root)
         playerTimer.onTriggered.connect(function() {
+            root.playerPolls++
             const player = findPlayablePlayer()
             if (!player) return
 
@@ -352,7 +378,10 @@ Singleton {
         return best
     }
 
-    // Activate a state (with optional holdMs for auto-deactivate)
+    // Activate a state (with optional holdMs for auto-deactivate).
+    // AGS parity: omit holdMs (or pass 0) for persistent states that stay
+    // active until explicitly deactivated (search toggle, recording,
+    // expanded-on-hover). Only holdMs > 0 arms an auto-deactivate timer.
     function activate(name, holdMs) {
         var priority = root.priority[name]
         if (priority === undefined) return
@@ -365,10 +394,11 @@ Singleton {
         }
         root.holdTimers = timers
 
-        root.activeStates = root.activeStates || {}
-        root.activeStates[name] = { priority: priority }
+        var next = Object.assign({}, root.activeStates || {})
+        next[name] = { priority: priority }
+        root.activeStates = next
 
-        if (holdMs !== undefined) {
+        if (holdMs !== undefined && holdMs > 0) {
             const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: ' + holdMs + ' }', root)
             t.triggered.connect(() => {
                 root.deactivate(name)
@@ -395,8 +425,9 @@ Singleton {
         }
         root.holdTimers = timers
 
-        root.activeStates = root.activeStates || {}
-        delete root.activeStates[name]
+        var next = Object.assign({}, root.activeStates || {})
+        delete next[name]
+        root.activeStates = next
         root.debounceResolve()
     }
 
@@ -415,22 +446,43 @@ Singleton {
         root.debounceTimer = t
     }
 
-    // Reveal bar for a monitor
+    // Reveal bar for a monitor (AGS revealBar: explicit override wins over
+    // the settings-driven auto visibility; conceal deletes the key).
     function revealBar(monitorName) {
-        root.barShown[monitorName] = true
+        var next = Object.assign({}, root.barShown || {})
+        next[monitorName] = true
+        root.barShown = next
     }
 
     // Conceal bar for a monitor
     function concealBar(monitorName) {
-        delete root.barShown[monitorName]
+        var next = Object.assign({}, root.barShown || {})
+        delete next[monitorName]
+        root.barShown = next
     }
 
     // Public API for IPC
     function activateState(name, holdMs) { root.activate(name, holdMs) }
     function deactivateState(name) { root.deactivate(name) }
-    function setBarState(name) { root.activate(name, 0) }
+    function setBarState(name) { root.activate(name) }
+    // AGS toggleBarShown: current = override ?? barAutoVisible, then set !current
     function toggleBarShown(monitorName) {
-        root.barShown[monitorName] = !(root.barShown[monitorName] ?? false)
+        var shown = root.barShown || {}
+        var current = shown[monitorName]
+        if (current === undefined) current = root.barVisibleFor(monitorName)
+        var next = Object.assign({}, shown)
+        next[monitorName] = !current
+        root.barShown = next
     }
     function toggleBar(monitorName) { root.toggleBarShown(monitorName) }
+
+    // Recording watcher (AGS: isRecording.subscribe -> activate/deactivate
+    // "recording" persistently). ScreenRecorder is a sibling singleton.
+    Connections {
+        target: ScreenRecorder
+        function onIsRecordingChanged() {
+            if (ScreenRecorder.isRecording) root.activate("recording")
+            else root.deactivate("recording")
+        }
+    }
 }

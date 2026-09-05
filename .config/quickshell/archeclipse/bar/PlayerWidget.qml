@@ -4,6 +4,7 @@ import QtQuick
 import qs.theme
 import qs.bar
 import Quickshell.Services.Mpris
+import qs.services
 
 Item {
     id: root
@@ -12,29 +13,36 @@ Item {
 
     // MPRIS players
     property var players: Quickshell.Services.Mpris.players.values
-    property var activePlayer: null
+    // Computed (not assigned): re-evaluates whenever the player list OR any
+    // player's title/playbackStatus changes — mirrors AGS playablePlayers
+    // createComputed which re-filters on title + playbackStatus bindings.
+    readonly property var activePlayer: {
+        let firstPlayable = null
+        for (const player of root.players) {
+            // touch reactive props so the binding re-fires on changes
+            const st = player.playbackState
+            const ti = player.trackTitle
+            if (st === Quickshell.Services.Mpris.MprisPlaybackState.Playing) return player
+            if (!firstPlayable && ((ti ?? "").trim() !== "")) firstPlayable = player
+        }
+        return firstPlayable
+    }
 
     // Cava audio visualizer points (from external cava CLI raw output)
     property var visualizerPoints: []
-    readonly property bool isPlaying: root.activePlayer?.playbackStatus === Quickshell.Services.Mpris.MprisPlaybackState.Playing
+    readonly property bool isPlaying: root.activePlayer?.isPlaying ?? false
 
-    // Find active player (playing)
-    function updateActivePlayer() {
-        for (const player of root.players) {
-            if (player.playbackStatus === Quickshell.Services.Mpris.MprisPlaybackState.Playing) {
-                root.activePlayer = player
-                return
-            }
-        }
-        // If none playing, use first available
-        if (root.players.length > 0) {
-            root.activePlayer = root.players[0]
-        }
+    // AGS isPlayablePlayer (PlayerWidget.tsx:18-29): browsers leave zombie
+    // mpris players behind after a media tab closes — no title, nothing
+    // playing — which would render as "Unknown Track" entries. Only players
+    // with real metadata or active playback count.
+    function isPlayablePlayer(p) {
+        return ((p.trackTitle ?? "").trim() !== "") ||
+            p.playbackState === Quickshell.Services.Mpris.MprisPlaybackState.Playing
     }
 
     Component.onCompleted: {
-        updateActivePlayer()
-        Quickshell.Services.Mpris.players.onChanged = updateActivePlayer
+        Quickshell.Services.Mpris.players.onChanged = function() { root.players = Quickshell.Services.Mpris.players.values }
     }
 
     // Cava process — runs only while a player is playing
@@ -52,10 +60,17 @@ Item {
     }
 
     // Player info
-    property string title: activePlayer?.title ?? ""
-    property string artist: activePlayer?.artist ?? ""
-    property string artUrl: activePlayer?.artUrl ?? ""
-    property string status: activePlayer?.playbackStatus ?? "Stopped"
+    property string title: activePlayer?.trackTitle ?? ""
+    property string artist: activePlayer?.trackArtist ?? ""
+    // AGS cover guard (PlayerWidget.tsx:54-60): YouTube clears coverArt
+    // transiently — keep the last valid cover instead of flickering.
+    property string _lastValidArt: ""
+    property string artUrl: {
+        const a = activePlayer?.trackArtUrl ?? ""
+        if (a && a.trim() !== "") root._lastValidArt = a
+        return (a && a.trim() !== "") ? a : root._lastValidArt
+    }
+    property string status: activePlayer?.playbackState ?? "Stopped"
     property real position: activePlayer?.position ?? 0
     property real length: activePlayer?.length ?? 0
     property real volume: activePlayer?.volume ?? 1
@@ -131,10 +146,10 @@ Item {
                 }
 
                 Button {
-                    text: status === "Playing" ? "\u{F04C}" : "\u{F04B}" // pause/play
+                    text: root.isPlaying ? "\u{F04C}" : "\u{F04B}" // pause/play
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: 14
-                    onClicked: activePlayer?.playPause()
+                    onClicked: activePlayer?.togglePlaying()
                     background: Rectangle { color: "transparent" }
                 }
 

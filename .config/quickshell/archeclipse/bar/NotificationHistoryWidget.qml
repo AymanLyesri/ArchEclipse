@@ -10,15 +10,17 @@ Item {
     property int widgetWidth: parent.width
     property string className: ""
 
-    // Get notifications from the service
-    property var notifications: []
+    // Retained history (NOT the ephemeral toasts): entries survive popup
+    // expiry exactly like AGS binding the daemon's notification list.
+    // Entry shape: {id, time (epoch s), notif (live NotificationObject)}.
+    property var notifications: Notifications.history
     property string filterText: ""
     property var expandedStacks: {}
 
     Connections {
         target: Notifications
-        function onPopupsChanged() {
-            root.notifications = Notifications.popups;
+        function onHistoryChanged() {
+            root.notifications = Notifications.history;
         }
     }
 
@@ -26,13 +28,15 @@ Item {
         const MAX_NOTIFICATIONS = 50;
         const stacks = new Map();
 
-        const sorted = [...notifications].sort((a, b) => b.notif.time - a.notif.time);
+        const sorted = [...notifications].sort((a, b) => b.time - a.time);
 
         sorted.forEach(n => {
-            if (filter && !n.summary.includes(filter) && !n.appName.includes(filter))
+            const summary = (n.notif && n.notif.summary) || "";
+            const appName = (n.notif && n.notif.appName) || "";
+            if (filter && !summary.includes(filter) && !appName.includes(filter))
                 return;
 
-            const key = n.summary || "Unknown";
+            const key = summary || "Unknown";
             if (!stacks.has(key)) stacks.set(key, []);
             stacks.get(key).push(n);
         });
@@ -42,7 +46,7 @@ Item {
         // Flatten manually since flatMap might not be available
         const flat = [];
         result.forEach(s => s.notifications.forEach(n => flat.push(n)));
-        flat.slice(MAX_NOTIFICATIONS).forEach(n => n.notif.dismiss());
+        flat.slice(MAX_NOTIFICATIONS).forEach(n => { try { n.notif.dismiss(); } catch (e) {} });
 
         return result;
     }

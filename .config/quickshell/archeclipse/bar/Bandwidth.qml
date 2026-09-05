@@ -20,8 +20,10 @@ Item {
     property real todayDownload: 0        // b[3] bytes
 
     // Persistent daemon — Spawns on load and restarts if it exits/crashes.
+    // NOTE: never hardcode /tmp/ags-<user> (breaks multi-user); SysInfo.qml
+    // builds /tmp/ags-$USER the same way.
     property Process _bandwidthProc: Process {
-        command: ["/tmp/ags-ayman/bandwidth-loop-ags"]
+        command: [`/tmp/ags-${Quickshell.env("USER")}/bandwidth-loop-ags`]
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (data) => root.parse(data)

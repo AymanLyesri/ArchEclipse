@@ -118,46 +118,55 @@ PanelWindow {
                         { name: "MangaViewer",     icon: "\u{F02D}" },
                         { name: "SettingsWidget",  icon: "\u{F013}" }
                     ]
-                    delegate: Button {
-                        id: selectorBtn
-                        checkable: true
-                        checked: root.selectedWidget === modelData.name
-                        padding: 10
-                        contentItem: Text {
-                            anchors.centerIn: parent
-                            text: modelData.icon
-                            font.pixelSize: 20
-                            font.family: "Font Awesome 6 Free"
-                            // AGS: Donations not(:checked) text is dark blue on red bg
-                            color: {
-                                if (selectorBtn.checked) return Theme.accent
-                                if (modelData.name === "Donations") return "#052d49"
-                                return Theme.fg
-                            }
-                        }
-                        background: Rectangle {
+                    // Same 40px cell structure as RightPanel's widget
+                    // selectors: fixed-height full-width cell, icon centered.
+                    delegate: Item {
+                        required property var modelData
+                        width: selectorColumn.width
+                        height: 40
+                        Button {
+                            id: selectorBtn
                             anchors.fill: parent
-                            // AGS: .widget-actions .Donations:not(:checked) special red color
-                            // to nudge users toward the support widget.
-                            color: {
-                                if (selectorBtn.checked) return Theme.accentBg
-                                if (modelData.name === "Donations") return "#f96854"
-                                return "transparent"
+                            checkable: true
+                            checked: root.selectedWidget === modelData.name
+                            contentItem: Text {
+                                anchors.centerIn: parent
+                                text: modelData.icon
+                                font.pixelSize: 20
+                                font.family: "Font Awesome 6 Free"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                // AGS: Donations not(:checked) text is dark blue on red bg
+                                color: {
+                                    if (selectorBtn.checked) return Theme.accent
+                                    if (modelData.name === "Donations") return "#052d49"
+                                    return Theme.fg
+                                }
                             }
-                            radius: 8
-                            border.width: selectorBtn.checked ? 1 : 0
-                            border.color: selectorBtn.checked ? Theme.accent
-                                : (modelData.name === "Donations" ? "#f96854" : Theme.border)
-                        }
-                        ToolTip.visible: selectorBtn.hovered && selectorBtn.enabled
-                        ToolTip.text: {
-                            if (modelData.name === "Donations")
-                                return "Click to open Donations\n<b>＼(o￣∇￣)／</b> — Support the project"
-                            return "Click to open " + modelData.name
-                        }
-                        ToolTip.delay: 600
-                        onClicked: {
-                            root.selectedWidget = modelData.name
+                            background: Rectangle {
+                                anchors.fill: parent
+                                // AGS: .widget-actions .Donations:not(:checked) special red color
+                                // to nudge users toward the support widget.
+                                color: {
+                                    if (selectorBtn.checked) return Theme.accentBg
+                                    if (modelData.name === "Donations") return "#f96854"
+                                    return "transparent"
+                                }
+                                radius: 8
+                                border.width: selectorBtn.checked ? 1 : 0
+                                border.color: selectorBtn.checked ? Theme.accent
+                                    : (modelData.name === "Donations" ? "#f96854" : Theme.border)
+                            }
+                            ToolTip.visible: selectorBtn.hovered && selectorBtn.enabled
+                            ToolTip.text: {
+                                if (modelData.name === "Donations")
+                                    return "Click to open Donations\n<b>＼(o￣∇￣)／</b> — Support the project"
+                                return "Click to open " + modelData.name
+                            }
+                            ToolTip.delay: 600
+                            onClicked: {
+                                root.selectedWidget = modelData.name
+                            }
                         }
                     }
                 }

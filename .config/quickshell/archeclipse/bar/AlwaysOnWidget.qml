@@ -19,7 +19,9 @@ color: "transparent"
 margins { left: 10; bottom: 10 }
 implicitWidth: 330
 implicitHeight: weatherBody.implicitHeight + 24
-visible: !fullscreenActive
+// AGS AlwaysOnWidget.tsx:23-27 — gated on the visibility setting AND no
+// fullscreen client.
+visible: Settings.alwaysOnWidgetVisibility && !fullscreenActive
 
 readonly property bool fullscreenActive: {
     BarState.hyprlandTick;

@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Mpris
+import Quickshell.Services.Pipewire
 import qs.services
 import qs.theme
 
@@ -15,6 +17,7 @@ import qs.theme
 // This object must be instantiated (it's a child of ShellRoot in shell.qml,
 // not a singleton — Quickshell requires non-singleton IpcHandler roots).
 Item {
+    property int _timerFired: 0
     IpcHandler {
         target: "bar"
 
@@ -31,6 +34,107 @@ Item {
         function pulseNetwork(): string {
             BarState.activate("network", 3000);
             return "network state pulsed";
+        }
+
+        // Notification probe for history/popup QA: "history" -> count + first
+        // summary, "popups" -> live toast count, "clear" -> dismiss all.
+        function notifDiag(query: string): string {
+            try {
+                if (query === "history")
+                    return "history=" + Notifications.history.length
+                        + (Notifications.history.length > 0 ? " first=" + (Notifications.history[0].notif.summary || "?") : "");
+                if (query === "popups") return "popups=" + Notifications.popups.length;
+                if (query === "clear") { Notifications.clearHistory(); return "cleared"; }
+                if (query === "dnd") return "dnd=" + Settings.notifDnd;
+                if (query === "dndon") { Settings.updateSetting("notifications.dnd", true); return "dnd=" + Settings.notifDnd; }
+                if (query === "dndoff") { Settings.updateSetting("notifications.dnd", false); return "dnd=" + Settings.notifDnd; }
+                return "unknown query";
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        // Bar-state probe for dynamic-island QA: query is "state", or
+        // "pulse:<name>:<holdMs>" (e.g. "pulse:volume:2000"), or
+        // "on:<name>" / "off:<name>" for persistent states.
+        function barDiag(query: string): string {
+            try {
+                if (query === "state") return BarState.state;
+                if (query.startsWith("pulse:")) {
+                    const rest = query.substring(6).split(":");
+                    BarState.activate(rest[0], Number(rest[1]) || 2000);
+                    return "pulsed=" + rest[0] + " state=" + BarState.state;
+                }
+                if (query.startsWith("on:")) {
+                    BarState.activate(query.substring(3));
+                    return "on state=" + BarState.state;
+                }
+                if (query.startsWith("off:")) {
+                    BarState.deactivate(query.substring(4));
+                    return "off state=" + BarState.state;
+                }
+                return "unknown query";
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        // Player probe for MPRIS QA: returns active title|artist|isPlaying
+        // using the same playable-player rule as PlayerWidget.
+        function playerDiag(): string {
+            try {
+                let first = null;
+                for (const p of Mpris.players.values) {
+                    if ((p.trackTitle ?? "").trim() !== ""
+                        || p.playbackState === MprisPlaybackState.Playing) {
+                        if (p.playbackState === MprisPlaybackState.Playing)
+                            return (p.trackTitle || "?") + " | " + (p.trackArtist || "?") + " | playing";
+                        if (!first) first = p;
+                    }
+                }
+                if (first) return (first.trackTitle || "?") + " | " + (first.trackArtist || "?") + " | stopped";
+                return "no players";
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        // Timer-pattern probe: replicates BarState's watcher-timer wiring to
+        // verify Qt.createQmlObject Timer + onTriggered.connect fires.
+        // Call "timerfire" (arms 300ms timer), then "timerread".
+        function timerDiag(query: string): string {
+            try {
+                if (query === "timerfire") {
+                    const t = Qt.createQmlObject("import QtQuick; Timer { interval: 300; running: true; repeat: false }", this);
+                    t.onTriggered.connect(function() { _timerFired++; });
+                    return "armed";
+                }
+                if (query === "timerread") return "fired=" + _timerFired;
+                return "unknown query";
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        // BarState watcher vitals for dynamic-island QA.
+        function vitals(): string {
+            try {
+                const sink = Pipewire.defaultAudioSink;
+                return "volWired=" + BarState._volumeWired
+                    + " sinkAudio=" + (!!(sink && sink.audio))
+                    + " sink=" + (sink ? (sink.name || sink.description) : "null")
+                    + " vol=" + (sink && sink.audio ? sink.audio.volume : -1)
+                    + " volEvents=" + BarState.volumeEvents
+                    + " brightFirst=" + BarState._brightnessFirstRender
+                    + " playerFirst=" + BarState._playerFirstRender
+                    + " activePlayer=" + (BarState._activePlayer ? "set" : "null")
+                    + " playerPolls=" + BarState.playerPolls
+                    + " mprisN=" + (Mpris.players.values ? Mpris.players.values.length : -1)
+                    + " netFirst=" + BarState._networkFirstRender
+                    + " state=" + BarState.state;
+            } catch (e) {
+                return "EX: " + e;
+            }
         }
 
         function toggleBar(monitor: string): string {
@@ -59,11 +163,9 @@ Item {
             return "window not found: " + key;
         }
 
+        // AGS parity (app.tsx requestHandler): toggle stop/start.
         function screenrecord(mode: string): string {
-            const script = Quickshell.env("HOME") + "/.config/hypr/scripts/screenrecord.sh";
-            const arg = mode === "area" ? "start --area" : "start";
-            Quickshell.execDetached([script, arg]);
-            return "recording " + mode;
+            return ScreenRecorder.toggleRecording(mode);
         }
 
         function clipboard(): string {
@@ -122,9 +224,18 @@ Item {
                 case "limit": return String(item.limit);
                 case "imagesCount": return String((item.images || []).length);
                 case "imagesIds": return (item.images || []).map(x => x && x.id).filter(Boolean).join(",");
+                case "gridSrc": {
+                    const imgs = item.images || [];
+                    if (!imgs.length) return "no-images";
+                    const n = Object.keys(item.previewIds || {}).length;
+                    const cols = (item.masonryColumns || []).map(c => c.length).join("/");
+                    return `cached=${n} cols=[${cols}] src0=${item.gridSource(imgs[0])}`;
+                }
                 case "bookmarkCount": return String((Settings.booru.bookmarks || []).length);
                 case "pinCount": return String((Settings.booru.pins || []).length);
                 case "fetchStatus": return item.progressStatus || "?";
+                case "lastFetchCmd": return item.lastFetchCmd || "?";
+                case "lastFetchError": return item.lastFetchError || "?";
                 case "fetchedTags": return (item.fetchedTags || []).slice(0, 5).join(",");
                 case "seedBookmarks": {
                     Settings.booru.bookmarks = [1,2,3,4,5].map(i => ({
@@ -177,9 +288,12 @@ Item {
                     }
                     if (query.startsWith("setLimit:")) {
                         // "setLimit:2" -> substring(9) = "2"
-                        // BooruViewer has `limit: Settings.booru.limit` binding,
-                        // so write through Settings to stick.
+                        // Widget-local `limit` is the source of truth (the
+                        // settings slider assigns it directly, so the
+                        // Settings binding is one-way). Write the widget
+                        // first, then persist — same as the slider handler.
                         const n = Math.max(0, Number(query.substring(9)) || 0);
+                        item.limit = n;
                         Settings.booru.limit = n;
                         Settings.updateSetting("booru.limit", n);
                         return "limit=" + item.limit;
@@ -220,6 +334,12 @@ Item {
                 if (kind === "arith") {
                     const r = Launcher.tryArithmetic("2+2*3");
                     return "2+2*3 -> " + (r ? r.map(x => x.name) : "null");
+                }
+                if (kind.startsWith("results:")) {
+                    const q = kind.substring(8);
+                    Launcher.runQuery(q);
+                    const r = Launcher.results || [];
+                    return `results(${q})=${r.length}: ` + r.slice(0, 4).map(x => x.name).join(" || ");
                 }
                 return "unknown kind";
             } catch (e) {

@@ -63,10 +63,61 @@ Singleton {
         bookmarks: [],
         pins: []
     })
-    property var apiKeys: ({})
+    // Initialized with shipped defaults (not {}) so early fetchers (Booru
+    // onCompleted) have credentials even before the settings file load
+    // merges saved values over them. AGS deepMergeAuto behaves the same.
+    property var apiKeys: ({
+        openrouter: { user: { value: "" }, key: { value: "" } },
+        danbooru: { user: { value: "publicapi" }, key: { value: "Pr5ddYN7P889AnM6nq2nhgw1" } },
+        gelbooru: { user: { value: "1667355" }, key: { value: "1ccd9dd7c457c2317e79bd33f47a1138ef9545b9ba7471197f477534efd1dd05" } },
+        safebooru: { user: { value: "publicapi" }, key: { value: "Pr5ddYN7P889AnM6nq2nhgw1" } }
+    })
+
+    // AGS default API credentials (settings.constants.ts apiKeys). Used as
+    // fallback when the settings file has none saved — AGS deepMergeAuto
+    // keeps these defaults in memory; QS must do the same or booru.py
+    // hard-rejects danbooru/gelbooru with MISSING_CREDENTIALS.
+    function defaultApiKeys() {
+        return {
+            openrouter: { user: { value: "" }, key: { value: "" } },
+            danbooru: { user: { value: "publicapi" }, key: { value: "Pr5ddYN7P889AnM6nq2nhgw1" } },
+            gelbooru: { user: { value: "1667355" }, key: { value: "1ccd9dd7c457c2317e79bd33f47a1138ef9545b9ba7471197f477534efd1dd05" } },
+            safebooru: { user: { value: "publicapi" }, key: { value: "Pr5ddYN7P889AnM6nq2nhgw1" } }
+        };
+    }
+
+    // Merge saved apiKeys over the defaults (per api, per field), accepting
+    // both the AGS nested shape {user:{value}} and flat strings.
+    function mergeApiKeys(saved) {
+        const d = root.defaultApiKeys();
+        if (!saved) return d;
+        for (const api of Object.keys(d)) {
+            const s = saved[api];
+            if (s == null) continue;
+            for (const field of ["user", "key"]) {
+                const v = s[field];
+                if (v == null) continue;
+                const str = (typeof v === "object") ? (v.value ?? "") : String(v);
+                if (str !== "") d[api][field] = { value: str };
+            }
+        }
+        return d;
+    }
+
+    // Unwrap one credential as a plain string regardless of stored shape.
+    function apiKey(api, field) {
+        const v = (root.apiKeys || {})[api]?.[field];
+        if (v == null) return "";
+        return String((typeof v === "object" ? (v.value ?? "") : v)).replace(/\n/g, "").trim();
+    }
 
     // Waifu widget (AGS: waifuWidget setting group)
     property var waifu: null
+
+    // ChatBot provider + image-gen toggle (AGS settings.constants
+    // chatBot: { api: chatBotApis[0], imageGeneration: false }).
+    property string chatBotApi: "openai/gpt-4o-mini"
+    property bool chatBotImageGeneration: false
 
     // Blur settings (AGS: bar.blur.size, bar.blur.passes, bar.blur.enabled)
     property bool barBlur: true
@@ -118,7 +169,8 @@ Singleton {
         // gain new properties at runtime, so root["rightPanel"] = {} throws).
         const aliases = {
             "rightPanel.widgets": "rightPanelWidgets",
-            "crypto.favorite": "cryptoFavorite"
+            "crypto.favorite": "cryptoFavorite",
+            "notifications.dnd": "notifDnd"
         };
         if (aliases[path] !== undefined) {
             root[aliases[path]] = value;
@@ -137,10 +189,11 @@ Singleton {
         }
         const key = parts[parts.length - 1];
         obj[key] = value;
-        // Reassign the top-level object so bindings on it re-evaluate
-        // (mutating a JS sub-object alone emits no change signal).
+        // Reassign a FRESH clone so the top-level var change signal fires.
+        // (Assigning the same object reference back is a no-op: nested
+        // bindings like `Settings.booru.limit` never re-evaluate.)
         if (parts.length > 1) {
-            root[parts[0]] = obj;
+            root[parts[0]] = Object.assign({}, obj);
         }
         persist();
     }
@@ -191,6 +244,10 @@ Singleton {
                 "waifuWidget": {
                     current: root.waifu
                 },
+                "chatBot": {
+                    api: root.chatBotApi,
+                    imageGeneration: root.chatBotImageGeneration
+                },
                 "booru": {
                     api: root.booru.api,
                     tags: root.booru.tags,
@@ -214,6 +271,16 @@ Singleton {
         watchChanges: true
         onFileChanged: reload()
         onLoaded: reload()
+    }
+
+    // AGS readLocalSettings (settings-sync.ts): fresh on-disk settings for
+    // upload sync — never an empty stub (uploading {} would wipe remote).
+    function readLocalSettingsJson() {
+        try {
+            const text = _file.text();
+            if (text && text.trim().startsWith("{")) return JSON.parse(text);
+        } catch (e) {}
+        return {};
     }
 
     function reload() {
@@ -267,10 +334,16 @@ Singleton {
                     bookmarks: s.booru?.bookmarks ?? [],
                     pins: s.booru?.pins ?? []
                 }
-                root.apiKeys = s.apiKeys ?? {}
+                root.apiKeys = root.mergeApiKeys(s.apiKeys)
 
                 // Waifu widget
                 root.waifu = s.waifuWidget?.current ?? null
+
+                // ChatBot provider (AGS restores globalSettings chatBot.api
+                // on launch; stored as the model value string here).
+                const cbApi = s.chatBot?.api;
+                root.chatBotApi = (cbApi && typeof cbApi === "object" ? cbApi.value : cbApi) ?? "openai/gpt-4o-mini";
+                root.chatBotImageGeneration = s.chatBot?.imageGeneration ?? false;
 
                 // Blur settings
                 root.barBlur = s.bar?.blur?.value ?? true
@@ -360,6 +433,8 @@ Singleton {
         function onProfilePicturePathChanged() { root.schedulePersist() }
         function onWaifuChanged() { root.schedulePersist() }
         function onBooruChanged() { root.schedulePersist() }
+        function onChatBotApiChanged() { root.schedulePersist() }
+        function onChatBotImageGenerationChanged() { root.schedulePersist() }
         function onAlwaysOnWidgetVisibilityChanged() { root.schedulePersist() }
         function onKeyStrokeVisualizerVisibilityChanged() { root.schedulePersist() }
         function onKeyStrokeVisualizerAnchorChanged() { root.schedulePersist() }

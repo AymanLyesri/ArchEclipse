@@ -34,10 +34,14 @@ Rectangle {
     ToolTip.text: "Volume: " + Math.round(root.vol * 100) + "%\nClick to open Volume Mixer"
     ToolTip.delay: 400
 
-    // AGS: reveal slider on volume change, auto-hide after 2s (hover keeps open)
+    // AGS: reveal slider on volume change, auto-hide after 2s (hover keeps open).
+    // AGS Volume.tsx skips the mount notification — first vol evaluation must
+    // not pop the slider open at launch.
     property bool sliderRevealed: false
     property bool keepOpen: false
+    property bool _firstVol: true
     onVolChanged: {
+        if (root._firstVol) { root._firstVol = false; return; }
         if (!root.pulse) {
             root.sliderRevealed = true
             hideTimer.restart()

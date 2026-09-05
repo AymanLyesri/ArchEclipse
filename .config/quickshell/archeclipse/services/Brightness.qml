@@ -57,7 +57,11 @@ QtObject {
         }
     }
 
-    // Process for setting brightness (reusable)
+    // Process for setting brightness — driven by a serial queue (AGS
+    // brightness.ts:61-64 fans out to ALL devices; a single reused Process
+    // cannot run N commands from a loop — running=true while running is a
+    // no-op — so chain one device per exit).
+    property var _setQueue: []
     property Process _setBrightnessProc: Process {
         stderr: StdioCollector {
             onStreamFinished: {
@@ -66,6 +70,14 @@ QtObject {
                 }
             }
         }
+        onExited: root._pumpSetQueue()
+    }
+
+    function _pumpSetQueue() {
+        if (root._setQueue.length === 0) return;
+        const next = root._setQueue.shift();
+        root._setBrightnessProc.command = next;
+        root._setBrightnessProc.running = true;
     }
 
     // Poll brightness every 2 seconds (like AGS)
@@ -96,10 +108,8 @@ QtObject {
         root.screen = percent;
         const targetPercent = Math.floor(percent * 100);
 
-        // Set on all devices sequentially
-        for (const dev of root._devices) {
-            root._setBrightnessProc.command = ["brightnessctl", "--device=" + dev, "set", targetPercent + "%", "-q"];
-            root._setBrightnessProc.running = true;
-        }
+        // Set on all devices sequentially via the serial queue
+        root._setQueue = root._devices.map(dev => ["brightnessctl", "--device=" + dev, "set", targetPercent + "%", "-q"]);
+        if (!root._setBrightnessProc.running) root._pumpSetQueue();
     }
 }

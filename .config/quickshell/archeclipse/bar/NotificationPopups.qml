@@ -9,6 +9,7 @@ import qs.services
 
 // Port of NotificationPopups.tsx window — top-right stack of popup cards,
 // overlay layer, hidden when empty. One per monitor like AGS.
+// Model entries: {id, time (epoch s), notif (live NotificationObject)}.
 PanelWindow {
     id: root
 
@@ -34,8 +35,9 @@ PanelWindow {
             Rectangle {
                 id: card
                 required property var modelData
+                readonly property var notif: modelData.notif
                 readonly property bool critical:
-                    modelData.urgency === NotificationUrgency.Critical
+                    notif && notif.urgency === NotificationUrgency.Critical
                 property bool bodyExpanded: false
 
                 width: 400
@@ -49,6 +51,22 @@ PanelWindow {
                 Component.onCompleted: opacity = 1
                 Behavior on opacity { NumberAnimation { duration: 200 } }
 
+                // Icon chain (AGS getNotificationIcon): file path → theme
+                // name → desktopEntry → critical warning glyph → info glyph.
+                readonly property string iconFile: {
+                    if (!card.notif) return "";
+                    if (card.notif.appIcon && String(card.notif.appIcon).startsWith("/")) return card.notif.appIcon;
+                    if (card.notif.image && String(card.notif.image).startsWith("/")) return card.notif.image;
+                    return "";
+                }
+                readonly property string iconName: {
+                    if (!card.notif) return "";
+                    if (card.notif.appIcon && !String(card.notif.appIcon).startsWith("/")) return card.notif.appIcon;
+                    if (card.notif.image && !String(card.notif.image).startsWith("/")) return card.notif.image;
+                    if (card.notif.desktopEntry) return card.notif.desktopEntry;
+                    return "";
+                }
+
                 Column {
                     id: mainCol
                     anchors.fill: parent
@@ -60,29 +78,21 @@ PanelWindow {
                         width: parent.width
                         spacing: 10
 
-                        // ---- app icon (file path → Image, else nerd glyph) ----
+                        // ---- app icon ----
                         Item {
                             id: iconSlot
                             width: 28
                             height: 28
-                            Image {
+                            IconImage {
                                 id: iconImg
-                                visible: source.toString() !== ""
+                                visible: status === Image.Ready && (card.iconFile !== "" || card.iconName !== "")
                                 anchors.fill: parent
-                                source: {
-                                    const p = card.modelData;
-                                    // AGS prefers appIcon file, else image file
-                                    if (p.appIcon && p.appIcon.startsWith("/")) return p.appIcon;
-                                    return "";
-                                }
-                                fillMode: Image.PreserveAspectFit
-                                asynchronous: true
-                                cache: false
+                                source: card.iconFile !== "" ? card.iconFile : card.iconName
                             }
                             Text {
                                 visible: !iconImg.visible
                                 width: parent.width; height: parent.height
-                                text: card.modelData.urgency === NotificationUrgency.Critical ? "\u{F0266}" : "\u{F059A}"
+                                text: card.critical ? "\u{F0266}" : "\u{F059A}"
                                 color: card.critical ? "white" : Theme.foreground
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 22
@@ -95,12 +105,13 @@ PanelWindow {
                             width: parent.width - 38
                             spacing: 3
 
-                            // ---- top bar: title + time ----
+                            // ---- top bar: title + time (24h %H:%M, AGS) ----
                             RowLayout {
                                 spacing: 6
                                 width: parent.width
                                 Text {
-                                    text: card.modelData.summary || card.modelData.appName
+                                    text: (card.notif && (card.notif.summary || card.notif.appName)) || ""
+                                    textFormat: Text.StyledText
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                     color: card.critical ? "white" : Theme.foreground
@@ -109,9 +120,8 @@ PanelWindow {
                                     font.pixelSize: Theme.fontSize
                                 }
                                 Text {
-                                    readonly property double t: (card.modelData.notif && card.modelData.notif.time) || card.modelData.time || 0
-                                    text: parent.t > 0
-                                        ? new Date(parent.t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+                                    text: (card.modelData.time || 0) > 0
+                                        ? new Date(card.modelData.time * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
                                         : ""
                                     color: card.critical ? Qt.alpha("white", 0.7) : Theme.fgDim
                                     font.pixelSize: Theme.fontSize - 2
@@ -119,11 +129,12 @@ PanelWindow {
                                 }
                             }
 
-                            // ---- body (expandable) ----
+                            // ---- body (expandable, AGS markup handling) ----
                             Text {
                                 width: parent.width
-                                visible: card.modelData.body !== ""
-                                text: card.modelData.body
+                                visible: (card.notif && card.notif.body) !== ""
+                                text: (card.notif && card.notif.body) || ""
+                                textFormat: Text.StyledText
                                 wrapMode: Text.WordWrap
                                 maximumLineCount: card.bodyExpanded ? undefined : 4
                                 elide: card.bodyExpanded ? Text.ElideNone : Text.ElideRight
@@ -134,18 +145,18 @@ PanelWindow {
                         }
                     }
 
-                    // ---- action buttons (mirrors AGS getActions) ----
+                    // ---- action buttons (AGS: all actions, invoke, NO dismiss) ----
                     Row {
                         id: actionsRow
-                        visible: (card.modelData.actions || []).length > 0
+                        visible: card.notif && Notifications.liveActions(card.notif).length > 0
                         spacing: 4
                         Repeater {
-                            model: card.modelData.actions || []
+                            model: card.notif ? Notifications.liveActions(card.notif) : []
                             delegate: Button {
                                 required property var modelData
-                                text: modelData.text
+                                text: Notifications.actionLabel(modelData)
                                 height: 24
-                                onClicked: Notifications.invokeAction(card.modelData.id, index)
+                                onClicked: { try { modelData.invoke(); } catch (e) {} }
                                 background: Rectangle {
                                     color: Theme.moduleBg
                                     border.color: Theme.border
@@ -168,7 +179,22 @@ PanelWindow {
                         Button {
                             text: "\u{f0c5}"
                             onClicked: {
-                                const t = card.modelData.body || card.modelData.summary;
+                                const n = card.notif;
+                                if (!n) return;
+                                // AGS: image payload via wl-copy image/png + toast
+                                if (n.image && String(n.image).startsWith("/")) {
+                                    const p = Qt.createQmlObject("import Quickshell.Io; Process {}", card);
+                                    p.command = ["bash", "-c", "wl-copy --type image/png < " + JSON.stringify(n.image)];
+                                    p.exited.connect((code) => {
+                                        Notifications.notify(code === 0
+                                            ? { summary: "Copied", body: n.image }
+                                            : { summary: "Error", body: "Copy failed" });
+                                        p.destroy();
+                                    });
+                                    p.running = true;
+                                    return;
+                                }
+                                const t = n.body || n.summary;
                                 if (t) Quickshell.execDetached(["wl-copy", t]);
                             }
                             contentItem: Text { text: parent.text; color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
@@ -176,7 +202,7 @@ PanelWindow {
                         }
                         Button {
                             text: card.bodyExpanded ? "\u{f07e}" : "\u{f07c}"
-                            visible: (card.modelData.body || "").length > 60
+                            visible: (card.notif && (card.notif.body || "")).length > 60
                             onClicked: card.bodyExpanded = !card.bodyExpanded
                             contentItem: Text { text: parent.text; color: Theme.fg; font.pixelSize: 11; anchors.centerIn: parent }
                             background: Rectangle { color: Theme.moduleBg; radius: 4; border.color: Theme.border }

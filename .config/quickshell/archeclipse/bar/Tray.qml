@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Widgets
 import Quickshell.Services.SystemTray
 import qs.theme
+import qs.services
 
 // Port of Utilities.tsx Tray() — first 3 items inline, overflow behind a
 // "more" icon with popup showing hidden items (MAX_VISIBLE=3).
@@ -85,6 +86,9 @@ Row {
             padding: 6
             closePolicy: Popup.CloseOnPressOutside
             background: Rectangle { color: Theme.moduleBg; radius: 8; border.color: Theme.border }
+            // AGS Window.popupIsOpen parity: hold the bar expanded while open
+            onOpened: BarState.holdPopup()
+            onClosed: BarState.releasePopup()
 
             Column {
                 spacing: 4

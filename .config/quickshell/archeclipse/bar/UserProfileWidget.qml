@@ -37,6 +37,28 @@ Item {
     property string lastRemoteUpdatedAt: ""
     property var _cachedSession: null
 
+    // AGS UserProfile.tsx:113-125 — per-API bookmark counts from
+    // globalSettings booru.bookmarks (each item stores api.value).
+    readonly property var booruApis: [
+        { name: "Danbooru",  value: "danbooru" },
+        { name: "Gelbooru",  value: "gelbooru" },
+        { name: "Safebooru", value: "safebooru" },
+    ]
+    readonly property var booruFavoriteCounts: {
+        const counts = { danbooru: 0, gelbooru: 0, safebooru: 0 };
+        const marks = Settings.booru ? Settings.booru.bookmarks : null;
+        if (marks) for (const b of marks) {
+            const v = b && b.api ? b.api.value : null;
+            if (v && typeof counts[v] === "number") counts[v] += 1;
+        }
+        return counts;
+    }
+    // AGS UserProfile.tsx:44 — fastfetch pin count.
+    readonly property int pinnedCount: {
+        const pins = Settings.booru ? Settings.booru.pins : null;
+        return pins ? pins.length : 0;
+    }
+
     property QtObject fileWatch: QtObject { id: _fw }
     property int activeTab: 0
 
@@ -176,8 +198,10 @@ Item {
         }
     }
 
+    // AGS readLocalSettings (utils/settings-sync.ts): the real on-disk
+    // settings file — never {} (an empty upload would wipe the remote copy).
     function readLocalSettings() {
-        return {}
+        return Settings.readLocalSettingsJson()
     }
 
     // ===== AVATAR =====
@@ -400,6 +424,43 @@ Item {
                     Label { text: "Last sync: " + root.lastSyncAt; font.pixelSize: Theme.fontSize - 1; color: Theme.fgDim }
                     Label { text: "Last result: " + root.lastSyncResult; font.pixelSize: Theme.fontSize - 1; color: Theme.fgDim }
                     Label { text: "Remote updated: " + root.lastRemoteUpdatedAt; font.pixelSize: Theme.fontSize - 1; color: Theme.fgDim }
+                }
+
+                // AGS UserProfile.tsx:524-542 — per-API bookmark counts.
+                Column {
+                    width: parent.width
+                    spacing: 5
+                    visible: !!root.profile
+                    Label { text: "Booru Favorites"; font.pixelSize: Theme.fontSize + 2; font.bold: true; color: Theme.fg }
+                    Repeater {
+                        model: root.booruApis
+                        delegate: Row {
+                            width: parent.width
+                            spacing: 5
+                            Label { text: modelData.name; font.pixelSize: Theme.fontSize; color: Theme.fg; Layout.fillWidth: true }
+                            Label {
+                                text: root.profile ? String(root.booruFavoriteCounts[modelData.value] ?? 0) : ""
+                                font.pixelSize: Theme.fontSize; color: Theme.fgDim
+                            }
+                        }
+                    }
+                }
+
+                // AGS UserProfile.tsx:543-555 — fastfetch pin count.
+                Column {
+                    width: parent.width
+                    spacing: 5
+                    visible: !!root.profile
+                    Label { text: "Pinned Images"; font.pixelSize: Theme.fontSize + 2; font.bold: true; color: Theme.fg }
+                    Row {
+                        width: parent.width
+                        spacing: 6
+                        Label { text: "Fastfetch cache"; font.pixelSize: Theme.fontSize; color: Theme.fg; Layout.fillWidth: true }
+                        Label {
+                            text: root.profile ? String(root.pinnedCount) : ""
+                            font.pixelSize: Theme.fontSize; color: Theme.fgDim
+                        }
+                    }
                 }
 
                 Column {

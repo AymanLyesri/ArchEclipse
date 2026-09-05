@@ -19,10 +19,12 @@ Item {
     // --- State ---
     property var messages: []
     property string activeSessionId: "default"
-    property string currentApiModel: "openai/gpt-4o-mini"
+    // AGS persists the provider in globalSettings chatBot.api and restores
+    // it on launch (ChatBot.tsx:775,1448) — same here via Settings.
+    property string currentApiModel: Settings.chatBotApi
     property string progressStatus: "idle" // idle | loading | error | success
     property var sessions: []
-    property bool imageGeneration: false
+    property bool imageGeneration: Settings.chatBotImageGeneration
     property int _sendTime: 0
     property bool _shouldScroll: true
     property var sessionFirsts: ({})
@@ -41,8 +43,7 @@ Item {
 
     // --- Helpers ---
     function apiKey() {
-        const k = Settings.apiKeys?.openrouter?.key || ""
-        return String(k).replace(/\n/g, "").trim()
+        return Settings.apiKey("openrouter", "key")
     }
 
     // --- Session Management ---
@@ -523,19 +524,23 @@ Item {
             Row {
                 width: parent.width
                 spacing: 6
-                TextField {
+                // AGS uses Gtk.TextView (multiline, WORD_CHAR wrap): Enter
+                // sends, Shift+Enter inserts a newline.
+                TextArea {
                     id: inputField
                     placeholderText: "Ask anything... (Enter send, Shift+Enter newline)"
-                    Layout.fillWidth: true
+                    width: parent.width - 88
                     implicitHeight: 40
+                    wrapMode: TextArea.Wrap
                     inputMethodHints: Qt.ImhPreferLowercase
                     background: Rectangle { color: Theme.bg; radius: 8; border.width: 1; border.color: Theme.border }
                     Keys.onReturnPressed: {
-                        if (event.modifiers & Qt.ShiftModifier) { return }
+                        if (event.modifiers & Qt.ShiftModifier) return  // newline (default)
                         if (inputField.text.trim()) { root.sendMessage(inputField.text); inputField.text = "" }
                         event.accepted = true
                     }
                     Keys.onEnterPressed: {
+                        if (event.modifiers & Qt.ShiftModifier) return
                         if (inputField.text.trim()) { root.sendMessage(inputField.text); inputField.text = "" }
                         event.accepted = true
                     }
@@ -552,16 +557,17 @@ Item {
                 Button {
                     id: imageGenBtn
                     implicitWidth: 36; implicitHeight: 40
+                    // AGS ImageGenerationSwitch label is the image glyph
                     text: ""
                     checkable: true
                     checked: root.imageGeneration
                     enabled: root.currentImageGenSupport()
                     opacity: root.currentImageGenSupport() ? 1 : 0.4
-                    onToggled: root.imageGeneration = checked
+                    onToggled: { root.imageGeneration = checked; Settings.chatBotImageGeneration = checked }
                     ToolTip.visible: hovered
                     ToolTip.text: "Image generation" + (root.currentImageGenSupport() ? "" : " (not supported by this model)")
                     background: Rectangle { color: Theme.moduleBg; radius: 8; border.width: 1; border.color: imageGenBtn.checked ? Theme.accent : Theme.border }
-                    contentItem: Text { anchors.centerIn: parent; color: imageGenBtn.checked ? Theme.accent : Theme.fg; font.pixelSize: Theme.fontSize; font.family: Theme.fontFamily }
+                    contentItem: Text { anchors.centerIn: parent; text: ""; color: imageGenBtn.checked ? Theme.accent : Theme.fg; font.pixelSize: Theme.fontSize; font.family: Theme.fontFamily }
                 }
             }
 
@@ -615,7 +621,7 @@ Item {
                         implicitHeight: 30
                         contentItem: Text { anchors.centerIn: parent; text: modelData.icon; font.pixelSize: Theme.fontSize; color: checked ? Theme.accent : Theme.fg }
                         background: Rectangle { anchors.fill: parent; color: checked ? Theme.accentBg : "transparent"; radius: 6; border.width: checked ? 1 : 0; border.color: Theme.accent }
-                        onClicked: { root.currentApiModel = modelData.value; root.loadSessions() }
+                        onClicked: { root.currentApiModel = modelData.value; Settings.chatBotApi = modelData.value; root.loadSessions() }
                         ToolTip.visible: hovered
                         ToolTip.text: "<b>" + modelData.name + "</b>\n" + modelData.description
                     }

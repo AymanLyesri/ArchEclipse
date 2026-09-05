@@ -71,10 +71,4 @@ Rectangle {
             console.warn("[HotZone] Panel not registered for key:", root.panelKey)
         }
     }
-
-    Connections {
-        target: Settings
-        function onLeftPanelHotZoneChanged() {}
-        function onRightPanelHotZoneChanged() {}
-    }
 }

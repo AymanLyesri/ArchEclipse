@@ -596,16 +596,20 @@ Item {
         Settings.schedulePersist()
     }
 
-    // Get nested value from an object by dotted path
+    // Get nested value from an object by dotted path. Unwraps AGS
+    // credential objects ({value: ...}) to plain strings for display.
     function getNested(obj, path) {
         if (!path || !obj) return "";
         const keys = path.split(".")
         let o = obj
         for (const k of keys) { if (o == null) return ""; o = o[k] }
-        return (o == null) ? "" : o
+        if (o == null) return ""
+        if (typeof o === "object") return (o.value ?? "")
+        return o
     }
 
-    // Set nested value by dotted path. persistIfSetting == true for apiKeys group
+    // Set nested value by dotted path. persistIfSetting == true for apiKeys group.
+    // Preserves AGS credential objects (writes .value, keeps shape on disk).
     function setNestedValue(propRoot, path, value, persist) {
         // propRoot is a Settings property name; navigate from Settings
         const keys = path.split(".")
@@ -615,7 +619,11 @@ Item {
             if (o[keys[i]] == null) o[keys[i]] = {}
             o = o[keys[i]]
         }
-        o[keys[keys.length - 1]] = value
+        const leaf = keys[keys.length - 1]
+        if (o[leaf] != null && typeof o[leaf] === "object" && "value" in o[leaf])
+            o[leaf].value = value
+        else
+            o[leaf] = value
         Settings[propRoot] = JSON.parse(JSON.stringify(Settings[propRoot]))
         if (persist) Settings.schedulePersist()
     }

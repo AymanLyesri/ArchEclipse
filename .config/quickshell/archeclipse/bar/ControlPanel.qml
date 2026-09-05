@@ -110,11 +110,11 @@ PanelWindow {
             Rectangle { id: dndBtn; width: 46; height: 46; radius: Theme.radius
                 color: (dndM.containsMouse || Settings.notifDnd || dndPing) ? Theme.buttonCheckedBg : Theme.moduleBg
                 ToolTip.visible: dndM.containsMouse
-                ToolTip.text: Settings.notifDnd ? "Enable Do Not Disturb" : "Disable Do Not Disturb"
+                ToolTip.text: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
                 ToolTip.delay: 600
                 Text { anchors.centerIn: parent; text: Settings.notifDnd ? "\u{F0436}" : "\u{F044E}"; color: Settings.notifDnd ? Theme.buttonCheckedFg : Theme.foreground; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize + 2 }
                 MouseArea { id: dndM; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                    onClicked: Settings.notifDnd = !Settings.notifDnd }
+                    onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd) }
                 // AGS DndToggle: ping the button ~600ms when a notification
                 // arrives while DND is active, reset when DND turns off
                 property bool dndPing: false

@@ -158,11 +158,12 @@ QtObject {
 
     function appResults(query, withArgs) {
         const q = query.toLowerCase().trim();
-        if (!q) return [];
         const entries = DesktopEntries.applications.values.filter(e => !e.noDisplay);
         const scored = [];
         for (const e of entries) {
-            const s = scoreEntry(e, q);
+            // AGS parity: bare "apps" lists everything (history-first);
+            // scored search otherwise.
+            const s = q ? scoreEntry(e, q) : 1;
             if (s > 0) scored.push({ e, s });
         }
         scored.sort((a, b) => {
@@ -381,9 +382,13 @@ QtObject {
     }
     function runQuery(text) {
         lastQuery = text;
-        const t = (text || "").trim();
+        // AGS parity: prefix dispatch on leading-trim only. (Qt's JS engine
+        // has no String.trimStart, so strip leading whitespace by regex.)
+        // A full trim would eat the trailing space of bare modes like
+        // "cb " / "note " / "emoji " and misroute them to app search.
+        const t = String(text || "").replace(/^\s+/, "");
 
-        if (!t) { results = []; return; }
+        if (!t || t.trim() === "") { results = []; return; }
 
         // prefixed modes (in AGS dispatch order)
         if (t.startsWith("cb ")) { results = clipboardResults(t.slice(3)); return; }
@@ -392,7 +397,7 @@ QtObject {
 
         const conv = tryConversion(t);   if (conv) { results = conv; return; }
 
-        const parts = t.split(/\s+/);
+        const parts = t.trim().split(/\s+/);
 
         // custom command filter: "light >"
         if (parts[0].includes(">")) {

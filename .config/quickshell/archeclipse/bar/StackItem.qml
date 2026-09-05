@@ -31,8 +31,10 @@ Item {
 
             Row {
                 spacing: 5
-                visible: stack.notifications.length > 1
+                // Expand chevron only for multi-item stacks; the clear button
+                // ALWAYS renders (AGS ClearNotifications, no length guard).
                 Button {
+                    visible: stack.notifications.length > 1
                     text: isExpanded ? "▲" : "▼"
                     onClicked: root.toggleExpanded()
                     background: Rectangle {
@@ -80,7 +82,7 @@ Item {
         Column {
             spacing: 5
             NotificationItem {
-                notification: stack.notifications[0]
+                entry: stack.notifications[0]
             }
         }
     }
@@ -103,7 +105,7 @@ Item {
                         model: stack.notifications
                         delegate: NotificationItem {
                             width: parent.width
-                            notification: modelData
+                            entry: modelData
                         }
                     }
                 }
