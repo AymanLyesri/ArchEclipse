@@ -55,7 +55,9 @@ Column {
             id: body
             anchors.top: parent.top
             width: parent.width
-            height: 360
+            // True height: the body reports chrome + view row + filter +
+            // masonry results, and the pill grows to fit (rows × tile size).
+            height: body.implicitHeight
             monitorName: root.monitorName
         }
     }

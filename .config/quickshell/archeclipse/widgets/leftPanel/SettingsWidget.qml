@@ -741,6 +741,10 @@ Item {
                                     {
                                         path: "safebooru.key",
                                         label: "Safebooru Key"
+                                    },
+                                    {
+                                        path: "wallhaven.key",
+                                        label: "Wallhaven Key (optional, unlocks NSFW)"
                                     }
                                 ]
                                 delegate: Rectangle {

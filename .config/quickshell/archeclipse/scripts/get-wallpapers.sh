@@ -4,6 +4,12 @@
 wallpaper_config="$HOME/.config/hypr/wallpaper-daemon/config"
 wallpaper_folder="$HOME/.config/wallpapers"
 
+# Self-healing structure (fresh clones no longer carry the skeleton dirs
+# since wallpapers left the repo): the download writers mkdir -p their own
+# subdir, but the first read must not fail or spam stderr when nothing
+# exists yet.
+mkdir -p "$wallpaper_folder/custom" "$wallpaper_folder/wallhaven" "$wallpaper_folder/defaults"
+
 # Initialize an empty array for the wallpaper paths
 wallpaper_paths=()
 

@@ -20,8 +20,6 @@
 !.config/pipewire/
 # include fastfetch config
 !.config/fastfetch/
-# wallpapers
-!.config/wallpapers/
 # include starship config
 !.config/starship.toml
 # include btop config

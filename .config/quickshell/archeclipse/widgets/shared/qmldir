@@ -14,6 +14,7 @@ SmoothFlickable 1.0 SmoothFlickable.qml
 SmoothListView 1.0 SmoothListView.qml
 SmoothWheelHandler 1.0 SmoothWheelHandler.qml
 AppMasonry 1.0 AppMasonry.qml
+AppMasonryRow 1.0 AppMasonryRow.qml
 AppSegmentedControl 1.0 AppSegmentedControl.qml
 AppProgress 1.0 AppProgress.qml
 AppTooltip 1.0 AppTooltip.qml

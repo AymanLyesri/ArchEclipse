@@ -52,6 +52,32 @@ Singleton {
     property string leftPanelWidget: "UserProfile"
     // Wallpaper switcher category (persisted)
     property string wallpaperCategory: "defaults/sfw"
+    // Wallpaper provider (persisted): "local" (default/* + custom folders)
+    // or "wallhaven" (wallhaven.cc API). Filter state for the Wallhaven
+    // provider (persisted under wallpaperSwitcher.wallhaven).
+    property string wallpaperProvider: "local"
+    property var wallpaperWallhaven: root.defaultWallpaperWallhaven()
+    // Shared wallpaper masonry view (persisted): row count + exact tile
+    // height in px. Both providers (local + wallhaven) render through one
+    // AppMasonryRow driven by these; the island grows to fit (true height).
+    property int wallpaperMasonryRows: 2
+    property int wallpaperTileSize: 120
+    // Default Wallhaven filter state (single source; reload() merges the
+    // saved file over a fresh copy). categories/purity are wallhaven.cc
+    // bit-strings: categories = general/anime/people, purity = sfw/sketchy/nsfw.
+    function defaultWallpaperWallhaven() {
+        return {
+            q: "",
+            categories: "111",
+            purity: "100",
+            sorting: "date_added",
+            order: "desc",
+            topRange: "1M",
+            atleast: "",
+            ratios: "",
+            page: 1
+        };
+    }
     // Weather city override (empty = Auto/IP), persisted
     property string weatherCity: ""
 
@@ -186,6 +212,13 @@ Singleton {
                 },
                 key: {
                     value: "Pr5ddYN7P889AnM6nq2nhgw1"
+                }
+            },
+            // Wallhaven needs only a key (no user); empty = guest mode
+            // (SFW-only). A key unlocks sketchy/NSFW purity + user filters.
+            wallhaven: {
+                key: {
+                    value: ""
                 }
             }
         };
@@ -356,6 +389,10 @@ Singleton {
             "leftPanel.width": "leftPanelWidth",
             "leftPanel.widget": "leftPanelWidget",
             "wallpaperSwitcher.category": "wallpaperCategory",
+            "wallpaperSwitcher.provider": "wallpaperProvider",
+            "wallpaperSwitcher.wallhaven": "wallpaperWallhaven",
+            "wallpaperSwitcher.masonryRows": "wallpaperMasonryRows",
+            "wallpaperSwitcher.tileSize": "wallpaperTileSize",
             "weather.city": "weatherCity",
             "rightPanel.width": "rightPanelWidth",
             "rightPanel.widgets": "rightPanelWidgets",
@@ -508,7 +545,11 @@ Singleton {
                     graceSeconds: root.lockGraceSeconds
                 },
                 wallpaperSwitcher: {
-                    category: root.wallpaperCategory
+                    category: root.wallpaperCategory,
+                    provider: root.wallpaperProvider,
+                    wallhaven: root.wallpaperWallhaven,
+                    masonryRows: root.wallpaperMasonryRows,
+                    tileSize: root.wallpaperTileSize
                 },
                 weather: {
                     city: root.weatherCity
@@ -719,6 +760,39 @@ Singleton {
                 root.leftPanelWidget = (typeof _lpw === "string" ? _lpw : _lpw?.name) ?? "UserProfile";
                 const _wc = s.wallpaperSwitcher?.category;
                 root.wallpaperCategory = ((typeof _wc === "object" && _wc !== null ? _wc.value : _wc) ?? "defaults/sfw");
+                // Wallhaven provider state: merge the saved filter object over
+                // fresh defaults so new params never come back undefined.
+                // Bit-strings are re-validated (3 chars of 0/1); sorting falls
+                // back to date_added on unknown values; page clamps to >= 1.
+                const _wp = s.wallpaperSwitcher?.provider;
+                root.wallpaperProvider = ((_wp && typeof _wp === "object" ? _wp.value : _wp) ?? "local");
+                if (root.wallpaperProvider !== "local" && root.wallpaperProvider !== "wallhaven")
+                    root.wallpaperProvider = "local";
+                const _whSaved = s.wallpaperSwitcher?.wallhaven;
+                const _wh = root.defaultWallpaperWallhaven();
+                if (_whSaved && typeof _whSaved === "object") {
+                    const pick = (v, fb) => ((v !== undefined && v !== null) ? String(v) : fb);
+                    _wh.q = pick(_whSaved.q, _wh.q);
+                    const bits = (v, fb) => (/^[01]{3}$/.test(String(v ?? "")) ? String(v) : fb);
+                    _wh.categories = bits(_whSaved.categories, _wh.categories);
+                    _wh.purity = bits(_whSaved.purity, _wh.purity);
+                    const _sortings = ["date_added", "relevance", "random", "views", "favorites", "toplist"];
+                    _wh.sorting = _sortings.includes(_whSaved.sorting) ? _whSaved.sorting : _wh.sorting;
+                    _wh.order = (_whSaved.order === "asc" ? "asc" : "desc");
+                    _wh.topRange = pick(_whSaved.topRange, _wh.topRange);
+                    _wh.atleast = pick(_whSaved.atleast, _wh.atleast);
+                    _wh.ratios = pick(_whSaved.ratios, _wh.ratios);
+                    _wh.page = Math.max(1, parseInt(_whSaved.page) || 1);
+                }
+                root.wallpaperWallhaven = _wh;
+                // Shared masonry view: plain or {value} leaves, clamped
+                // (rows 1-4, tile height 80-200px).
+                const _mr = s.wallpaperSwitcher?.masonryRows;
+                const _mrV = (typeof _mr === "object" && _mr !== null ? _mr.value : _mr);
+                root.wallpaperMasonryRows = Math.min(4, Math.max(1, parseInt(_mrV) || 2));
+                const _ts = s.wallpaperSwitcher?.tileSize;
+                const _tsV = (typeof _ts === "object" && _ts !== null ? _ts.value : _ts);
+                root.wallpaperTileSize = Math.min(200, Math.max(80, parseInt(_tsV) || 120));
                 const _wth = s.weather?.city ?? s.weatherCity;
                 root.weatherCity = ((typeof _wth === "object" && _wth !== null ? _wth.value : _wth) ?? "");
                 root.rightPanelWidth = (typeof s.rightPanel?.width === "object" && s.rightPanel?.width !== null ? s.rightPanel.width.value : s.rightPanel?.width) ?? 250;

@@ -433,7 +433,8 @@ Item {
 
         // Wallpaper-switcher probe for parity QA. query is one of:
         //   "visible", "categories", "selected", "count", "current",
-        //   "target", "workspace", "progress", "strip", or "setCategory:<name>".
+        //   "target", "workspace", "progress", "provider", "view", "strip",
+        //   or "setCategory:<name>".
         // monitor selects the per-monitor island body (default eDP-1).
         // Reads the bar island body (widgets/wallpaperPanel via WallpaperIsland).
         function wallpaperDiag(query: string, monitor: string): string {
@@ -446,10 +447,12 @@ Item {
                     return "island=" + (BarState.state === "wallpaper");
                 if (query === "categories") return "categories=" + (w.categories || []).join(",");
                 if (query === "selected") return "selected=" + w.selectedCategory;
-                if (query === "count") return "count=" + (w.selectedWallpapers || []).length;
+                if (query === "count") return "count=" + (w.provider === "wallhaven" ? (w.whResults || []).length : (w.selectedWallpapers || []).length);
                 if (query === "current") return "current=" + (w.currentWallpapers || []).length;
                 if (query === "target") return "target=" + w.targetType + " ws=" + w.selectedWorkspaceId;
                 if (query === "progress") return "progress=" + w.progressStatus;
+                if (query === "provider") return "provider=" + w.provider;
+                if (query === "view") return "rows=" + Settings.wallpaperMasonryRows + " size=" + Settings.wallpaperTileSize;
                 if (query === "strip") {
                     const s = w.wallStrip;
                     if (!s) return "strip=NOALIAS";
