@@ -68,13 +68,14 @@ Item {
     readonly property string dlgDims: dlg ? `${dlg.width || 0}×${dlg.height || 0}` : ""
     readonly property var dlgTags: dlg && dlg.tags ? dlg.tags : []
     readonly property bool dlgIsVideo: dlg ? (viewer ? viewer.isVideo(dlg) : false) : false
+    readonly property bool dlgIsGif: dlg ? ((dlg.extension || "").toLowerCase() === "gif") : false
     readonly property bool dlgIsZip: dlg ? ((dlg.extension || "").toLowerCase() === "zip") : false
     readonly property bool dlgDownloaded: dlg ? (viewer ? viewer.isDownloaded(dlg) : false) : false
     readonly property bool dlgBookmarked: dlg ? (viewer ? viewer.isBookmarked(dlg) : false) : false
     readonly property bool dlgPinned: dlg ? (viewer ? viewer.isPinned(dlg) : false) : false
     readonly property bool dlgIsWaifu: dlg ? (viewer ? viewer.isCurrentWaifu(dlg) : false) : false
     readonly property bool dlgLoading: viewer ? (viewer.progressStatus === "loading" || (dlg && !dlgIsVideo && viewer.dialogSource(dlg) === "")) : false
-    readonly property bool dlgVideoPlayable: dlg ? (dlgIsVideo && dlgDownloaded && !dlgIsZip) : false
+    readonly property bool dlgVideoPlayable: dlg ? (dlgIsVideo && dlgDownloaded && !dlgIsZip && !dlgIsGif) : false
     readonly property bool dlgVideoPlaceholder: dlg ? (dlgIsVideo && !dlgDownloaded) : false
     readonly property string dlgTypeIcon: dlgIsZip ? "" : (dlgIsVideo ? "" : "")
     readonly property int dlgVisibleTagCount: showAllTags ? dlgTags.length : Math.min(dlgTags.length, 12)
@@ -144,7 +145,7 @@ Item {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: dialogRoot.dlgIsZip ? "Cannot be played." : "Video — downloading…"
+                    text: dialogRoot.dlgIsZip ? "Cannot be played." : (dialogRoot.dlgIsGif ? "GIF — downloading…" : "Video — downloading…")
                     color: Theme.fgDim
                     font.pixelSize: Theme.fontSize - 1
                     font.family: Theme.fontFamily
@@ -154,7 +155,8 @@ Item {
                 anchors.fill: parent
                 source: dlg ? viewer.dialogSource(dlg) : ""
                 sourceWidth: parent.width
-                visible: !!dlg
+                animated: true
+                visible: !!dlg && !dialogRoot.dlgVideoPlayable
                 badges: {
                     const b = [];
                     if (dialogRoot.dlgDownloaded)

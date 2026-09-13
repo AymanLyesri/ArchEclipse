@@ -46,6 +46,12 @@ Item {
 
     Component.onCompleted: fetchPopular()
 
+    function toFileUrl(path) {
+        if (!path)
+            return "";
+        return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path) ? path : "file://" + path;
+    }
+
     // ===== API CALLS =====
     function fetchPopular() {
         root.progressStatus = "loading";
@@ -111,9 +117,7 @@ Item {
         p.command = ["python3", scriptPath, "--provider", provider, "--page", page.url];
         p.onJson = function (data) {
             if (data?.path) {
-                const cache = root.pageCache;
-                cache[index] = data;
-                root.pageCache = cache;
+                root.pageCache = Object.assign({}, root.pageCache, { [index]: data });
             }
         };
         p.running = true;
@@ -361,7 +365,8 @@ Item {
                                     width: parent.width
                                     // Aspect-aware height: (h/w) * panelWidth, fallback panelWidth
                                     height: (modelData.cover_width && modelData.cover_height) ? (modelData.cover_height / modelData.cover_width) * width : Settings.leftPanelWidth
-                                    source: modelData.cover_path
+                                    source: root.toFileUrl(modelData.cover_path)
+                                    sourceWidth: Math.round(width)
 
                                     clip: true
                                 }
@@ -463,8 +468,18 @@ Item {
                     AppImage {
                         id: pageImg
                         width: pagesFlickable.width
-                        source: root.pageCache[root.currentPageIndex]?.path ?? ""
+                        height: {
+                            const p = root.pageCache[root.currentPageIndex];
+                            if (p?.width > 0 && p?.height > 0)
+                                return width * p.height / p.width;
+                            if (implicitImageWidth > 0 && implicitImageHeight > 0)
+                                return width * implicitImageHeight / implicitImageWidth;
+                            return 0;
+                        }
+                        source: root.toFileUrl(root.pageCache[root.currentPageIndex]?.path)
+                        sourceWidth: Math.round(width)
                         fillMode: Image.PreserveAspectFit
+                        animated: true
                         clip: true
                     }
 

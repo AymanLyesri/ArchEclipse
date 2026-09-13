@@ -438,7 +438,7 @@ class MangalibProvider(MangaProvider):
     name = "mangalib"
     BASE_URL = "https://api.cdnlibs.org/api"
     COVER_URL = "https://cover.imglib.info"
-    PAGES_URL = "https://img3.mixlib.me"
+    PAGES_URL = "https://img3.cdnlibs.org"
 
     COVERS_DIR = Path.home() / ".cache" / "quickshell" / "manga" / name / "covers"
     PAGES_DIR = Path.home() / ".cache" / "quickshell" / "manga" / name / "pages"
