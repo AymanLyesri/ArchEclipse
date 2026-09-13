@@ -524,8 +524,6 @@ Item {
         root.authServerActive = false;
         root.authServerStatus = "stopped";
         authServerTimeout.stop();
-        if (reason)
-            console.log("[auth] server stopped: " + reason);
     }
 
     // Server-less fallback: parse the pasted callback URL's #fragment
@@ -1427,8 +1425,6 @@ Item {
                 onStreamFinished: root.onSupporterChecked(text)
             }
             onExited: code => {
-                if (code !== 0)
-                    console.log("[auth] supporter check failed code=" + code);
             }
         }
     }
@@ -1469,7 +1465,6 @@ Item {
         running: root.authServerActive
         onStarted: {
             root.authServerStatus = "running";
-            console.log("[auth] callback server started on :53100");
             authServerTimeout.restart();
         }
         onExited: code => {
@@ -1478,7 +1473,6 @@ Item {
                 root.authServerActive = false;
                 root.authServerStatus = "error";
                 authServerTimeout.stop();
-                console.log("[auth] server exited unexpectedly code=" + code + " see " + root.authLogPath);
                 Notifications.notify({
                     summary: "Auth server failed",
                     body: "Listener exited (code " + code + "). Paste the callback URL below instead — no server needed."

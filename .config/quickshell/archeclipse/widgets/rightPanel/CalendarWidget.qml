@@ -7,8 +7,6 @@ import qs.widgets.shared
 // navigation and a Today shortcut. Monday-first week by default (GTK parity).
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
     property bool weekStartsMonday: true
 
     // Live "today" (refreshes every 30s so the highlight never goes stale)

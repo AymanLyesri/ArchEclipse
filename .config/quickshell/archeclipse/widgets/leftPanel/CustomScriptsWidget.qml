@@ -15,8 +15,6 @@ import qs.services
 // via kitty).
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     // Utility script definitions — icons are Nerd Font codepoints. kind
     // marks entries whose callback does more than a plain exec (record

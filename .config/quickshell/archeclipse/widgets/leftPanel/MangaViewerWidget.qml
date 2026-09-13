@@ -12,8 +12,6 @@ import qs.services
 // Tabs: Manga (list/search) -> Chapters -> Pages (reader with prev/next)
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     readonly property string scriptPath: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/manga.py"
 
@@ -631,7 +629,6 @@ Item {
                 text: "\u{F07B7} Copy"
                 onClicked: {
                     const url = root.getUrl();
-                    console.log("[Manga] copy url:", url);
                     Quickshell.execDetached(["bash", "-c", "echo -n '" + url + "' | wl-copy 2>/dev/null || echo -n '" + url + "' | xclip -selection clipboard"]);
                 }
             }

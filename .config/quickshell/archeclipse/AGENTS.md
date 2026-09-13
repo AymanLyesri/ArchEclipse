@@ -51,6 +51,26 @@ All former side panels now live **inside the bar pill** as `BarState` pages, not
 | `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | `search` | Launcher results (input lives in the island, results in the panel) |
 | `ControlIsland` / `PlayerIsland` / `WeatherIsland` / `WallpaperIsland` / `RecordingIsland` / `SystemMonitorIsland` | pulses | Transient/utility pages |
 
+Shared island helpers (`widgets/bar/islands/`, module `qs.widgets.bar.islands`):
+
+| Component | Job |
+|---|---|
+| `IslandExpandClip` | Spring-unfold body clip (`expand` 0→1 drives clip + opacity + scale) |
+| `IslandHoverPin` | Hover-pin: hover stops the 1s leave timer + pins the state persistent; leave restarts it (root is the `HoverHandler` itself — see §2.7) |
+| `IslandEscClose` | 1×1 focused `Esc` grabber deactivating the listed states |
+| `IslandWindowActions` | Bottom icon-button cluster (expand/shrink/exclusivity/lock/close); `side` switches the `Settings` keys, labels kept verbatim |
+| `IslandSideRail` | 48px tab rail with 40px cells (`model`/`currentIndex`/`selected`; delegate declares `required property int index` — Qt6 withholds it otherwise); Left rail only — RightIsland keeps its custom drag rail (see §2.7) |
+| Island registry | Islands `register(key, …)` in `onCompleted`, unregister bare alias + keyed entry in `onDestruction` (no helper — `destroyed` is not connectable in this engine, verified 2026-09-13) |
+
+Shared right-panel helpers (`widgets/shared/` + `widgets/rightPanel/`, modules `qs.widgets.shared` + `qs.widgets.rightPanel`):
+
+| Component | Job |
+|---|---|
+| `Card` | Surface/radius/border shell (`contentMargins`/`contentSpacing`, default 12/8); delegates override `color`/`border.color`/`radius` at use sites |
+| `RightPanelCard` | Header (`title`, `+`/`close`) + add-form `Loader` + guarded `SmoothFlickable` list; owns shared `formatNextRun` (hosted delegates walk up via `objectName`) |
+| `FormShell` | Add/edit form shell (surface/cardRadius, min 300/pref 350, margins 16/spacing 12) |
+| `JsonListStore` | `FileView` create/read/destroy load/save parameterized by `filePath` only (`startsWith("[")` + `JSON.parse` semantics kept) |
+
 Open/close: `SUPER+L` / `SUPER+R`, bar-end `HotZone` hover strips (5px, **400ms dwell** —
 zero-dwell cross-fired the rival island, fixed 2026-09-12), close button, `Esc`,
 1s cursor-leave timer (skipped when `Settings.leftPanelLock/rightPanelLock`).
@@ -78,7 +98,7 @@ All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb:
 | `ScreenRecorder` | `wf-recorder` via `~/.config/hypr/scripts/screenrecord.sh`; `isRecording` is **polled** (`pgrep`, 1s) + 1.2s settle — lags reality ~2s, never use it for rapid toggle decisions |
 | `Notifications` | Daemon mirror: ephemeral `popupToasts` vs retained `history`; `Recorder` toasts get red-dot treatment |
 | `Settings` | Persisted config (`theme/Settings.qml`): bar/panel geometry, hotzones, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
-| `Weather, Brightness, KeyboardLayout, SysInfo, VolumeWatcher, …` | Device/API polling singletons |
+| `Weather, Brightness, KeyboardLayout, SysInfo, VolumeWatcher, …` | Device/API polling singletons (`Weather` owns `fmt/fmtRaw/formatTime/formatDate` for `WeatherCard`; `SysInfo.bandwidth` is the single `bandwidth-loop` owner bound by `Bandwidth`) |
 
 `utils/` (`JsonUtils, MonitorUtils, SettingsUtils, TimeUtils, WindowManager`) is pure helpers.
 `scripts/` holds `booru.py`, `cava/`, `auth-server-callback.py`. Hyprland-side scripts live
@@ -130,6 +150,16 @@ wrappers. Rules:
    Never branch rapid toggles on it without an optimistic/in-flight guard.
 6. **HotZone dwell.** Hover strips must keep the 400ms dwell — instant `onEntered`
    swaps islands when the cursor crosses the bar leaving an open island.
+7. **Shared island components: know their fidelity fixes (2026-09-13).**
+   `IslandHoverPin`'s root is the `HoverHandler` itself — a handler monitors its
+   *parent*, so an `Item`-wrapped pin would deaden hover and close the island 1s
+   after opening even while hovered. RightIsland's selector rail stays custom
+   (`Drag.active`/`DropArea` reorder + `isDragging` auto-hide hold); its
+   `WindowActions` did migrate to shared. `IslandWindowActions` keeps the existing
+   icon buttons verbatim — `Settings.*Exclusivity`/`*Lock` are bools, so the
+   shared cluster copies the inline bool-toggle logic, not string labels.
+   WallpaperIsland registers its *body* (not the island root) — `Ipc.wallpaperDiag`
+   reads body probes off the handle.
 
 ## 3. Discord issue workflow
 
@@ -180,3 +210,9 @@ wrappers. Rules:
   `import qs.services` in `Launcher.qml`; ✅ applied to 10 migration-thread messages.
 - Chronic hotspots: scroll physics, island hover/ESC interaction, launcher result
   actions, notification history viewports, icon assets, recorder script races.
+- 2026-09-13 refactor P0: deleted dead `utils/` (5 files), `StackItem.qml`, `PlayerWidget.qml`, trivial imports/`className`/`widgetWidth`/`timestamp`/debug logs; added `Theme.cardRadius/chipRadius/accentFg`. (`qmllint` per-file verified — 4 files share pre-existing env-255; SUPER+B reload pending.)
+- 2026-09-13 refactor P1: shared island components (IslandExpandClip/HoverPin/EscClose/WindowActions/SideRail, Registry.trackIsland); 8 islands migrated, dwell/leave/ESC semantics preserved. (qmllint per-file verified; SUPER+B reload pending.)
+- 2026-09-13 reload fixes: `Theme.onAccent` → `accentFg` (`on`+Capital parses as signal handler — shell wouldn't load); `IslandHoverPin` Timer is a property value (handlers have no default property); dropped `trackIsland` (`destroyed` not connectable — keyed unregister moved into islands' `onDestruction`); rail delegate declares `required property int index`.
+- 2026-09-13 refactor P2: WeatherCard single UI + Weather formatters; Bandwidth binds SysInfo.bandwidth (one bandwidth-loop process). (qmllint per-file verified; SUPER+B reload pending.)
+- 2026-09-13 refactor P3 (partial): Settings `_defaults` + `_hyprlandLeafSchema` extraction, apiKeys init dedup, hyprland persist/reload loops (node-verified byte-identical round-trip on live settings.json), Connections 47→41. Full `_schema` rewire + `fmt` move deferred (need live SUPER+B; `fmt` consumers in Clock.qml out of scope). 1055 → 970 lines. (qmllint 255 matches HEAD baseline; SUPER+B round-trip pending.) Kept handlers: 41 direct-writer on*Changed; deleted only onNotifDnd/AutoWorkspaceSwitching/ProfilePicturePath/WallpaperCategory/WeatherCity/ChatBotImageGenerationChanged (updateSetting-path only; enumeration in task-5 report).
+- 2026-09-13 refactor P4: shared Card/RightPanelCard/FormShell/JsonListStore + shared formatNextRun; Crypto/ScriptTimer keep only delegates + fields. (qmllint per-file verified; SUPER+B reload pending.)

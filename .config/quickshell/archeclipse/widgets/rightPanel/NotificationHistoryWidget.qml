@@ -12,8 +12,6 @@ import qs.widgets.shared
 // right-click dismisses (removes) it.
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     // Retained history (NOT the ephemeral toasts): entries survive popup
     // expiry exactly like binding the daemon's notification list.

@@ -21,8 +21,6 @@ import qs.services
 // that table and opens external checkouts.
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     // --- Config (public values only — no secrets in QML) ---
     readonly property string supabaseUrl: Supabase.url

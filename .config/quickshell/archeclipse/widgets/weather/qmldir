@@ -1,4 +1,5 @@
 module qs.widgets.weather
 
 WeatherButton 1.0 WeatherButton.qml
+WeatherCard 1.0 WeatherCard.qml
 WeatherWidget 1.0 WeatherWidget.qml

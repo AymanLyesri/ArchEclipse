@@ -14,7 +14,6 @@ import qs.widgets.shared
 Item {
     id: root
     property int widgetWidth: parent.width
-    property string className: ""
 
     // keybinds shape from get-keybinds.sh: { category: [{ description, keys: [] }] }
     property var keybinds: ({})

@@ -14,8 +14,6 @@ import qs.services
 // progress indicator, auto-scroll, auto-focus, multi-line input
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     // --- State ---
     property var messages: []

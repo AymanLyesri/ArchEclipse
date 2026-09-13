@@ -7,7 +7,9 @@ CryptoWidget 1.0 CryptoWidget.qml
 NotificationHistoryWidget 1.0 NotificationHistoryWidget.qml
 NotificationItem 1.0 NotificationItem.qml
 ScriptTimerWidget 1.0 ScriptTimerWidget.qml
-StackItem 1.0 StackItem.qml
 SystemResourcesWidget 1.0 SystemResourcesWidget.qml
+RightPanelCard 1.0 RightPanelCard.qml
+FormShell 1.0 FormShell.qml
+JsonListStore 1.0 JsonListStore.qml
 TaskItem 1.0 TaskItem.qml
 WaifuWidget 1.0 WaifuWidget.qml

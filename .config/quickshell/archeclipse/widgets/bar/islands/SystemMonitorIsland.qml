@@ -1,5 +1,5 @@
 import QtQuick
-import qs.services
+import qs.widgets.bar.islands
 import qs.widgets.shared
 
 // System-monitor island — in-bar expansion of the ResourceMonitor rings.
@@ -25,21 +25,8 @@ Item {
     }
 
     // Pin while hovered so the pulse doesn't close it mid-read.
-    HoverHandler {
-        id: islandHover
-        onHoveredChanged: {
-            if (islandHover.hovered) {
-                leaveTimer.stop();
-                BarState.activate("system", 0);
-            } else {
-                leaveTimer.restart();
-            }
-        }
+    // (The pin self-arms its leave timer at creation.)
+    IslandHoverPin {
+        stateName: "system"
     }
-    Timer {
-        id: leaveTimer
-        interval: 1000
-        onTriggered: BarState.deactivate("system")
-    }
-    Component.onCompleted: leaveTimer.restart()
 }

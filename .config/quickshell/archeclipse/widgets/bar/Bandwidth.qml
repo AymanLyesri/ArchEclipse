@@ -1,54 +1,26 @@
-import Quickshell
-import Quickshell.Io
 import QtQuick
 import QtQuick.Controls
 import qs.theme
+import qs.services
 import qs.widgets.shared
 
 // Network speed pill + popover.
-// Reads real network speeds from the bandwidth-loop daemon (JSON on stdout
-// every 3s: [upload_speed, download_speed, today_upload, today_download] in B/s).
+// Binds SysInfo.bandwidth — the single bandwidth-loop owner (see
+// services/SysInfo.qml) — instead of spawning a second daemon.
 // Compact form shows up/down speeds; click reveals the Network Statistics
 // popover (Upload/Download, Packets + today's Data).
 Item {
     id: root
     height: Theme.barContentHeight
 
-    property string timestamp: ""
-    property string uploadSpeed: "0"      // b[0] KB/s (speed_tx/-1024)
-    property string downloadSpeed: "0"    // b[1] KB/s
-    property real todayUpload: 0          // b[2] bytes
-    property real todayDownload: 0        // b[3] bytes
-
-    // Persistent daemon — Spawns on load and restarts if it exits/crashes.
-    // NOTE: never hardcode /tmp/quickshell-<user> (breaks multi-user);
-    // SysInfo.qml builds /tmp/quickshell-$USER the same way.
-    // NOTE: SysInfo.qml owns compiling the binary; this only restarts with
-    // backoff so a missing binary (fresh /tmp, compile not done yet) doesn't
-    // spin at 100% CPU or die permanently.
-    property Timer _bwRestart: Timer {
-        interval: 2000
-        repeat: false
-        onTriggered: {
-            if (!_bandwidthProc.running)
-                _bandwidthProc.running = true;
-        }
-    }
-    property Process _bandwidthProc: Process {
-        command: [`/tmp/quickshell-${Quickshell.env("USER")}/bandwidth-loop`]
-        stdout: SplitParser {
-            splitMarker: "\n"
-            onRead: data => root.parse(data)
-        }
-        stderr: SplitParser {
-            splitMarker: "\n"
-            onRead: data => console.warn("[Bandwidth] loop stderr: " + data)
-        }
-        onExited: (code, status) => {
-            console.warn("[Bandwidth] loop exited code=" + code + " — restarting in 2s");
-            _bwRestart.start();
-        }
-    }
+    // Single source: [upKB, downKB, todayUpKB, todayDownKB] (SysInfo applies
+    // Math.round(B/1024) to all four). Speeds display directly; today's
+    // counters are scaled back to bytes for formatData().
+    readonly property var _bw: SysInfo.bandwidth
+    property string uploadSpeed: String(_bw[0])      // b[0] KB/s
+    property string downloadSpeed: String(_bw[1])    // b[1] KB/s
+    property real todayUpload: _bw[2] * 1024         // b[2] KB -> bytes
+    property real todayDownload: _bw[3] * 1024       // b[3] KB -> bytes
 
     // Hover popover (Network Statistics)
     Popup {
@@ -213,22 +185,6 @@ Item {
                 }
             }
         }
-    }
-
-    Component.onCompleted: _bandwidthProc.running = true
-
-    // Parse "[tx,rx,today_tx,today_rx]" -> KB/s for speeds, bytes for data
-    function parse(line) {
-        const m = line.match(/\[([^\]]+)\]/);
-        if (!m)
-            return;
-        const parts = m[1].split(",").map(x => parseInt(x, 10));
-        if (parts.length !== 4)
-            return;
-        root.uploadSpeed = Math.round(parts[0] / 1024);
-        root.downloadSpeed = Math.round(parts[1] / 1024);
-        root.todayUpload = parts[2];
-        root.todayDownload = parts[3];
     }
 
     // Human-readable byte formatter (B/KB/MB/GB)

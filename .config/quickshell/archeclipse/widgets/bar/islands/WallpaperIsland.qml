@@ -1,6 +1,6 @@
 import QtQuick
-import Quickshell
 import qs.services
+import qs.widgets.bar.islands
 import qs.widgets.wallpaperPanel
 
 // Wallpaper island: the full switcher body inline in the bar pill.
@@ -22,6 +22,11 @@ Column {
     property real expand: 0
     Component.onCompleted: {
         expand = 1;
+        // NOTE: the registered handle is the *body* (not the island
+        // root) — Ipc.wallpaperDiag reads body probes (categories,
+        // wallStrip, ...) off it. Both the bare alias and the keyed
+        // entry are unregistered in onDestruction below (`destroyed`
+        // is not connectable in this engine, so no helper does it).
         Registry.register(root.registryKey(), body);
         Registry.register("wallpaper-island", body);
     }
@@ -30,37 +35,21 @@ Column {
             Registry.register(root.registryKey(), body);
     }
     Component.onDestruction: {
-        Registry.unregister(root.registryKey());
         Registry.unregister("wallpaper-island");
+        Registry.unregister(root.registryKey());
     }
     function registryKey() {
         return `wallpaper-island-${root.monitorName || Registry.monitorName}`;
     }
-    Behavior on expand {
-        SpringAnimation {
-            spring: 3.5
-            damping: 0.32
-            mass: 1.0
-        }
-    }
 
     // Esc dismiss once the surface has focus (click a control first).
-    Item {
-        id: escGrab
-        width: 1
-        height: 1
-        focus: true
-        Keys.onEscapePressed: BarState.deactivate("wallpaper")
+    IslandEscClose {
+        states: ["wallpaper"]
     }
 
-    Item {
-        id: bodyClip
-        width: parent.width
-        height: Math.max(0, root.expand * body.height)
-        clip: true
-        opacity: Math.max(0, Math.min(1, root.expand * 1.2))
-        scale: 0.96 + 0.04 * root.expand
-        transformOrigin: Item.Top
+    IslandExpandClip {
+        expand: root.expand
+        contentHeight: body.height
 
         WallpaperPanelBody {
             id: body

@@ -25,6 +25,12 @@ QtObject {
         delete root._windows[name]
     }
 
+    // NOTE: there is intentionally no trackIsland auto-unregister helper:
+    // this engine does not expose the `destroyed` signal as a connectable
+    // value (`item.destroyed === undefined` on live items, verified
+    // 2026-09-13), so keyed entries are unregistered in each island's own
+    // Component.onDestruction block (bare alias + keyed entry together).
+
     function get(name) {
         return root._windows[name] || null
     }

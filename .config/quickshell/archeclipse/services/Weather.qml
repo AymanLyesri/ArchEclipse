@@ -213,6 +213,36 @@ QtObject {
         return root.windDirNames[idx];
     }
 
+    // Shared value formatters (verbatim from widgets/weather/WeatherWidget.qml,
+    // the single UI now living in WeatherCard.qml). null/empty -> "N/A".
+    function fmt(v, unit) {
+        return v != null && v !== "" ? `${Math.round(v)}${unit}` : "N/A";
+    }
+    function fmtRaw(v, unit) {
+        return v != null && v !== "" ? `${v}${unit}` : "N/A";
+    }
+
+    // Format open-meteo ISO "YYYY-MM-DDTHH:MM" -> HH:MM
+    function formatTime(iso) {
+        if (!iso)
+            return "N/A";
+        const s = String(iso).replace("T", " ").replace(/-/g, "/");
+        const d = new Date(s);
+        if (isNaN(d.getTime()))
+            return "N/A";
+        return d.toLocaleTimeString(Qt.locale(), "HH:mm");
+    }
+    // Format open-meteo ISO -> "Weekday D Mon"
+    function formatDate(iso) {
+        if (!iso)
+            return "N/A";
+        const s = String(iso).replace("T", " ").replace(/-/g, "/");
+        const d = new Date(s);
+        if (isNaN(d.getTime()))
+            return "N/A";
+        return d.toLocaleDateString(Qt.locale(), "ddd d MMM");
+    }
+
     property Timer _refreshTimer: Timer { interval: 600000; running: true; repeat: true; triggeredOnStart: false; onTriggered: root.fetch() }
     property Timer _bootTimer: Timer { interval: 200; repeat: true; onTriggered: root.boot() }
 

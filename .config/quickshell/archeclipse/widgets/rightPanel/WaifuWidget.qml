@@ -14,8 +14,6 @@ import qs.widgets.leftPanel
 // the BooruViewer in the left panel.
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     readonly property string booruPath: `${Quickshell.env("HOME")}/.cache/quickshell/booru`
     readonly property string booruScript: `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/scripts/booru.py`
@@ -51,9 +49,7 @@ Item {
         if (!root.hasWaifu)
             return 0;
         // No outside container: image fills the widget edge-to-edge.
-        var w = root.widgetWidth;
-        if (w <= 0)
-            w = root.widgetWidth;
+        var w = root.width;
         var h = w / root.aspectRatio;
         return Math.min(Math.max(h, 120), 520);
     }

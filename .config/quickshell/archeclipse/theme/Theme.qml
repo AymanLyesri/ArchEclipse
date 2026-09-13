@@ -59,6 +59,9 @@ QtObject {
     readonly property int fontSize: Settings.uiFontSize
     readonly property int scale: Settings.uiScale
     readonly property int radius: 10
+    readonly property int cardRadius: 8
+    readonly property int chipRadius: 6
+    readonly property string accentFg: "white"
     readonly property int spacing: 8          // bar element spacing
     readonly property int sectionSpacing: 20  // between compact sections / expanded groups
     // Single source of truth for bar content height — every bar widget

@@ -5,8 +5,6 @@ import qs.widgets.shared
 // SystemResourcesContent (same widget as the bar's SystemMonitorIsland).
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     implicitHeight: content.implicitHeight + 16
 

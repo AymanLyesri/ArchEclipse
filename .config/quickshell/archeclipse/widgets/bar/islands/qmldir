@@ -9,3 +9,8 @@ SearchIsland 1.0 SearchIsland.qml
 SystemMonitorIsland 1.0 SystemMonitorIsland.qml
 WallpaperIsland 1.0 WallpaperIsland.qml
 WeatherIsland 1.0 WeatherIsland.qml
+IslandExpandClip 1.0 IslandExpandClip.qml
+IslandHoverPin 1.0 IslandHoverPin.qml
+IslandEscClose 1.0 IslandEscClose.qml
+IslandWindowActions 1.0 IslandWindowActions.qml
+IslandSideRail 1.0 IslandSideRail.qml

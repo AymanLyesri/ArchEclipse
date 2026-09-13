@@ -9,8 +9,6 @@ import qs.widgets.shared
 // Crypto Viewer widget ported from widgets/rightPanel/components/CryptoViewer.tsx
 Item {
     id: root
-    property int widgetWidth: parent.width
-    property string className: ""
 
     // State for crypto entries
     property var cryptoEntries: []
@@ -18,33 +16,23 @@ Item {
     property var editingEntry: null
     property string _selectedTimeframe: "7d"
 
+    JsonListStore {
+        id: entryStore
+        filePath: Quickshell.env("HOME") + "/.cache/quickshell/crypto/entries.json"
+    }
+
     // Load entries from settings file on startup
     Component.onCompleted: {
         loadEntries();
     }
 
     function loadEntries() {
-        try {
-            const fileView = Qt.createQmlObject('import Quickshell.Io; FileView { path: "' + Quickshell.env("HOME") + '/.cache/quickshell/crypto/entries.json" }', root);
-            const text = fileView.text();
-            if (text !== "" && text.trim().startsWith("[")) {
-                cryptoEntries = JSON.parse(text);
-            }
-            fileView.destroy();
-        } catch (e) {
-            console.warn("[CryptoViewer] Failed to load entries:", e);
-            cryptoEntries = [];
-        }
+        const v = entryStore.load();
+        cryptoEntries = v !== null ? v : [];
     }
 
     function saveEntries() {
-        try {
-            const fileView = Qt.createQmlObject('import Quickshell.Io; FileView { path: "' + Quickshell.env("HOME") + '/.cache/quickshell/crypto/entries.json" }', root);
-            fileView.setText(JSON.stringify(cryptoEntries, null, 2));
-            fileView.destroy();
-        } catch (e) {
-            console.warn("[CryptoViewer] Failed to save entries:", e);
-        }
+        entryStore.save(cryptoEntries);
     }
 
     function addEntry(entry) {
@@ -82,209 +70,157 @@ Item {
     // Timeframes available
     property var timeframes: ["1h", "24h", "7d", "30d", "90d", "1y"]
 
-    Column {
+    RightPanelCard {
         anchors.fill: parent
         anchors.margins: 8
-        spacing: 8
-
-        // Header (RowLayout: the title takes leftover width — a plain
-        // Row with a dead Layout.fillWidth spacer overflowed).
-        RowLayout {
-            width: parent.width
-            spacing: 8
-            Label {
-                text: "Crypto Tracker"
-                font.pixelSize: Theme.fontSize + 4
-                font.bold: true
-                color: Theme.fg
-                Layout.fillWidth: true
-            }
-            AppButton {
-                text: showAddForm ? "\u{f00d}" : "+"
-                pixelSize: Theme.fontSize
-                cornerRadius: 4
-                idleBg: showAddForm ? Theme.dangerBg : Theme.surfaceActive
-                idleFg: showAddForm ? Theme.danger : Theme.accent
-                outlined: true
-                outlineColor: showAddForm ? Theme.danger : Theme.accent
-                implicitWidth: 40
-                onClicked: toggleForm()
-            }
-        }
-
-        // Add/Edit Form
-        Loader {
-            sourceComponent: showAddForm ? formComponent : null
-            width: parent.width
-            height: showAddForm ? 350 : 0
+        title: "Crypto Tracker"
+        showAddForm: root.showAddForm
+        formComponent: cryptoForm
+        onAddClicked: root.toggleForm()
+        onCloseClicked: {
+            if (root.showAddForm)
+                root.toggleForm();
         }
 
         // Crypto List
-        SmoothFlickable {
-            width: parent.width
-            // Guarded: a negative height sends Flickable into a silent polish loop
-            height: Math.max(0, parent.height - y - 8)
-            clip: true
-            contentWidth: width
-            contentHeight: listColumn.height
-
-            Column {
-                id: listColumn
+        Repeater {
+            model: cryptoEntries
+            delegate: CryptoEntryItem {
                 width: parent.width
-                spacing: 8
-
-                Repeater {
-                    model: cryptoEntries
-                    delegate: CryptoEntryItem {
-                        width: parent.width
-                        entry: modelData
-                        onDeleteClicked: deleteEntry(modelData.id)
-                        onEditClicked: toggleForm(modelData)
-                    }
-                }
+                entry: modelData
+                onDeleteClicked: deleteEntry(modelData.id)
+                onEditClicked: toggleForm(modelData)
             }
         }
     }
 
     // Form Component
     Component {
-        id: formComponent
-        Rectangle {
-            color: Theme.surface
-            radius: Theme.radius
-
-            Layout.fillWidth: true
-            Layout.minimumHeight: 300
-            Layout.preferredHeight: 350
+        id: cryptoForm
+        FormShell {
             clip: true
 
+            // Symbol
             Column {
-                anchors.fill: parent
-                spacing: 12
-                anchors.margins: 16
-
-                // Symbol
-                Column {
-                    spacing: 4
+                spacing: 4
+                width: parent.width
+                Label {
+                    text: "Crypto Symbol"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+                AppTextField {
+                    id: symbolField
+                    placeholderText: "e.g. btc, eth, sol"
+                    text: editingEntry ? editingEntry.symbol : ""
                     width: parent.width
-                    Label {
-                        text: "Crypto Symbol"
-                        font.pixelSize: Theme.fontSize
-                        color: Theme.fg
-                    }
-                    AppTextField {
-                        id: symbolField
-                        placeholderText: "e.g. btc, eth, sol"
-                        text: editingEntry ? editingEntry.symbol : ""
-                        width: parent.width
-                        onTextChanged: {
-                            // Auto lowercase
-                        }
+                    onTextChanged: {
+                        // Auto lowercase
                     }
                 }
+            }
 
-                // Timeframe (row of toggle buttons, not a dropdown)
-                Column {
-                    spacing: 4
-                    width: parent.width
-                    Label {
-                        text: "Timeframe"
-                        font.pixelSize: Theme.fontSize
-                        color: Theme.fg
-                    }
-                    RowLayout {
-                        width: parent.width
-                        spacing: 4
-                        Repeater {
-                            model: root.timeframes
-                            delegate: AppButton {
-                                toggle: true
-                                text: modelData
-                                Layout.fillWidth: true
-                                pixelSize: Theme.fontSize - 1
-                                cornerRadius: 4
-                                implicitHeight: 26
-                                checked: root._selectedTimeframe === modelData
-                                onClicked: root._selectedTimeframe = modelData
-                            }
-                        }
-                    }
+            // Timeframe (row of toggle buttons, not a dropdown)
+            Column {
+                spacing: 4
+                width: parent.width
+                Label {
+                    text: "Timeframe"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
                 }
-
-                // Display Options
-                Column {
-                    spacing: 8
-                    width: parent.width
-                    Label {
-                        text: "Display Options"
-                        font.pixelSize: Theme.fontSize
-                        color: Theme.fg
-                    }
-                    RowLayout {
-                        width: parent.width
-                        spacing: 16
-                        AppCheckBox {
-                            id: showPriceCheck
-                            text: "Show Price"
-                            checked: editingEntry ? editingEntry.showPrice : true
-                            Layout.fillWidth: true
-                        }
-                        AppCheckBox {
-                            id: showGraphCheck
-                            text: "Show Graph"
-                            checked: editingEntry ? editingEntry.showGraph : true
-                            Layout.fillWidth: true
-                        }
-                    }
-                }
-
-                // Actions
                 RowLayout {
                     width: parent.width
-                    spacing: 8
-                    AppButton {
-                        text: editingEntry ? "✓ Update" : "+ Add Crypto"
-                        pixelSize: Theme.fontSize
-                        cornerRadius: 4
-                        idleBg: Theme.surfaceActive
-                        idleFg: Theme.accent
-                        outlined: true
-                        outlineColor: Theme.accent
-                        Layout.fillWidth: true
-                        onClicked: {
-                            const symbol = symbolField.text.trim().toLowerCase();
-                            if (!symbol) {
-                                Quickshell.execDetached(["notify-send", "Crypto Display", "Please enter a valid symbol"]);
-                                return;
-                            }
-
-                            const entry = {
-                                id: editingEntry ? editingEntry.id : Date.now().toString(),
-                                symbol: symbol,
-                                timeframe: root._selectedTimeframe,
-                                showPrice: showPriceCheck.checked,
-                                showGraph: showGraphCheck.checked
-                            };
-
-                            if (editingEntry) {
-                                updateEntry(entry);
-                            } else {
-                                addEntry(entry);
-                            }
-                            Quickshell.execDetached(["notify-send", "Crypto Display", symbol.toUpperCase() + " " + (editingEntry ? "updated" : "added") + " successfully"]);
-                            toggleForm();
+                    spacing: 4
+                    Repeater {
+                        model: root.timeframes
+                        delegate: AppButton {
+                            toggle: true
+                            text: modelData
+                            Layout.fillWidth: true
+                            pixelSize: Theme.fontSize - 1
+                            cornerRadius: 4
+                            implicitHeight: 26
+                            checked: root._selectedTimeframe === modelData
+                            onClicked: root._selectedTimeframe = modelData
                         }
                     }
-                    AppButton {
-                        text: "\u{f00d} Cancel"
-                        pixelSize: Theme.fontSize
-                        cornerRadius: 4
-                        idleBg: Theme.dangerBg
-                        idleFg: Theme.danger
-                        outlined: true
-                        outlineColor: Theme.danger
-                        onClicked: toggleForm()
+                }
+            }
+
+            // Display Options
+            Column {
+                spacing: 8
+                width: parent.width
+                Label {
+                    text: "Display Options"
+                    font.pixelSize: Theme.fontSize
+                    color: Theme.fg
+                }
+                RowLayout {
+                    width: parent.width
+                    spacing: 16
+                    AppCheckBox {
+                        id: showPriceCheck
+                        text: "Show Price"
+                        checked: editingEntry ? editingEntry.showPrice : true
+                        Layout.fillWidth: true
                     }
+                    AppCheckBox {
+                        id: showGraphCheck
+                        text: "Show Graph"
+                        checked: editingEntry ? editingEntry.showGraph : true
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            // Actions
+            RowLayout {
+                width: parent.width
+                spacing: 8
+                AppButton {
+                    text: editingEntry ? "✓ Update" : "+ Add Crypto"
+                    pixelSize: Theme.fontSize
+                    cornerRadius: 4
+                    idleBg: Theme.surfaceActive
+                    idleFg: Theme.accent
+                    outlined: true
+                    outlineColor: Theme.accent
+                    Layout.fillWidth: true
+                    onClicked: {
+                        const symbol = symbolField.text.trim().toLowerCase();
+                        if (!symbol) {
+                            Quickshell.execDetached(["notify-send", "Crypto Display", "Please enter a valid symbol"]);
+                            return;
+                        }
+
+                        const entry = {
+                            id: editingEntry ? editingEntry.id : Date.now().toString(),
+                            symbol: symbol,
+                            timeframe: root._selectedTimeframe,
+                            showPrice: showPriceCheck.checked,
+                            showGraph: showGraphCheck.checked
+                        };
+
+                        if (editingEntry) {
+                            updateEntry(entry);
+                        } else {
+                            addEntry(entry);
+                        }
+                        Quickshell.execDetached(["notify-send", "Crypto Display", symbol.toUpperCase() + " " + (editingEntry ? "updated" : "added") + " successfully"]);
+                        toggleForm();
+                    }
+                }
+                AppButton {
+                    text: "\u{f00d} Cancel"
+                    pixelSize: Theme.fontSize
+                    cornerRadius: 4
+                    idleBg: Theme.dangerBg
+                    idleFg: Theme.danger
+                    outlined: true
+                    outlineColor: Theme.danger
+                    onClicked: toggleForm()
                 }
             }
         }

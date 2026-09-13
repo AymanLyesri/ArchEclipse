@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.theme
 import qs.services
-import qs.widgets.shared
+import qs.widgets.bar.islands
 import qs.widgets.leftPanel
 
 // LeftIsland: the former LeftPanel body (sidebar + widget stack) living
@@ -50,6 +50,13 @@ Column {
 
     // Spring driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
+    // Tab-name order for the selector-rail index mapping (the rail's
+    // own model below carries the verbatim name+icon items; names keep
+    // the QS "Widget" suffix for IPC showWidget/widgetState compat).
+    readonly property var tabOrder: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"]
+    function tabIndex(name) {
+        return Math.max(0, root.tabOrder.indexOf(name));
+    }
     Component.onCompleted: {
         expand = 1;
         Registry.register(root.registryKey(), root);
@@ -65,19 +72,11 @@ Column {
             Registry.register(root.registryKey(), root);
     }
     Component.onDestruction: {
-        Registry.unregister(root.registryKey());
         Registry.unregister("left-island");
+        Registry.unregister(root.registryKey());
     }
     function registryKey() {
         return `left-island-${root.monitorName || Registry.monitorName}`;
-    }
-
-    Behavior on expand {
-        SpringAnimation {
-            spring: 3.5
-            damping: 0.32
-            mass: 1.0
-        }
     }
 
     // Selected widget — initialized from persisted Settings and written
@@ -215,22 +214,13 @@ Column {
     }
 
     // Esc dismiss once the surface has focus (click a control first).
-    Item {
-        id: escGrab
-        width: 1
-        height: 1
-        focus: true
-        Keys.onEscapePressed: BarState.deactivate("left")
+    IslandEscClose {
+        states: ["left"]
     }
 
-    Item {
-        id: bodyClip
-        width: parent.width
-        height: Math.max(0, root.expand * bodyRow.height)
-        clip: true
-        opacity: Math.max(0, Math.min(1, root.expand * 1.2))
-        scale: 0.96 + 0.04 * root.expand
-        transformOrigin: Item.Top
+    IslandExpandClip {
+        expand: root.expand
+        contentHeight: bodyRow.height
 
         Row {
             id: bodyRow
@@ -247,159 +237,64 @@ Column {
                 radius: Theme.radius
                 clip: true
 
-                // Widget selector buttons
-                Column {
-                    id: selectorColumn
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        top: parent.top
-                        margins: 8
-                    }
-                    spacing: 8
-
-                    Repeater {
-                        // Tab order + icons: UserProfile, BooruViewer,
-                        // ChatBot, MangaViewer, Settings, CustomScripts,
-                        // KeyBinds, Donations. Names keep the QS "Widget"
-                        // suffix (IPC showWidget/widgetState compat).
-                        model: [
-                            {
-                                name: "UserProfile",
-                                icon: ""
-                            },
-                            {
-                                name: "BooruViewer",
-                                icon: ""
-                            },
-                            {
-                                name: "ChatBot",
-                                icon: ""
-                            },
-                            {
-                                name: "MangaViewer",
-                                icon: ""
-                            },
-                            {
-                                name: "SettingsWidget",
-                                icon: ""
-                            },
-                            {
-                                name: "CustomScripts",
-                                icon: ""
-                            },
-                            {
-                                name: "KeyBinds",
-                                icon: ""
-                            },
-                            {
-                                name: "Donations",
-                                icon: ""
-                            }
-                        ]
-                        // Same 40px cell structure as the right island's
-                        // widget selectors: fixed-height full-width cell,
-                        // icon centered.
-                        delegate: Item {
-                            required property var modelData
-                            width: selectorColumn.width
-                            height: 40
-                            AppButton {
-                                anchors.fill: parent
-                                icon: modelData.icon
-                                toggle: true
-                                checked: root.selectedWidget === modelData.name
-                                // Donations special red color
-                                // to nudge users toward the support widget.
-                                idleBg: modelData.name === "Donations" ? "#f96854" : "transparent"
-                                idleFg: modelData.name === "Donations" ? "#052d49" : Theme.fg
-                                borderColor: modelData.name === "Donations" ? "#f96854" : Theme.accent
-                                tooltipText: modelData.name === "Donations" ? "Click to open Donations\n<b>＼(o￣∇￣)／</b> — Support the project" : "Click to open " + modelData.name
-                                onClicked: {
-                                    root.selectedWidget = modelData.name;
-                                }
-                            }
+                // Widget selector rail (shared component: tab order,
+                // icons, Donations highlight and tooltips preserved).
+                IslandSideRail {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 8
+                    // Tab order + icons: UserProfile, BooruViewer,
+                    // ChatBot, MangaViewer, Settings, CustomScripts,
+                    // KeyBinds, Donations. Names keep the QS "Widget"
+                    // suffix (IPC showWidget/widgetState compat).
+                    model: [
+                        {
+                            name: "UserProfile",
+                            icon: ""
+                        },
+                        {
+                            name: "BooruViewer",
+                            icon: ""
+                        },
+                        {
+                            name: "ChatBot",
+                            icon: ""
+                        },
+                        {
+                            name: "MangaViewer",
+                            icon: ""
+                        },
+                        {
+                            name: "SettingsWidget",
+                            icon: ""
+                        },
+                        {
+                            name: "CustomScripts",
+                            icon: ""
+                        },
+                        {
+                            name: "KeyBinds",
+                            icon: ""
+                        },
+                        {
+                            name: "Donations",
+                            icon: ""
                         }
+                    ]
+                    currentIndex: root.tabIndex(root.selectedWidget)
+                    onSelected: {
+                        root.selectedWidget = root.tabOrder[index];
                     }
                 }
-
-                // ── WindowActions — bottom cluster (valign END) ──
-                Column {
+                // WindowActions: bottom cluster (valign END, shared).
+                IslandWindowActions {
+                    side: "left"
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.margins: 8
-                    spacing: 4
-                    Item {
-                        width: 1
-                        height: 8
-                    } // spacer
-                    // Expand (+50 to max 1500)
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        hoverBg: Theme.surface
-                        hoverFg: Theme.accent
-                        tooltipText: "Expand island"
-                        // implicitWidth tracks Settings via binding — only
-                        // write the setting.
-                        onClicked: Settings.leftPanelWidth = Math.min(1500, Settings.leftPanelWidth + 50)
-                    }
-                    // Shrink (−50 to min 400)
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        hoverBg: Theme.surface
-                        hoverFg: Theme.accent
-                        tooltipText: "Shrink island"
-                        onClicked: Settings.leftPanelWidth = Math.max(400, Settings.leftPanelWidth - 50)
-                    }
-                    // Exclusivity (active = non-exclusive, inverted) —
-                    // reserves the island's width from the docked screen
-                    // edge while open (vertical zone; the bar's top strip
-                    // reservation is replaced, not added).
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        toggle: true
-                        checked: !Settings.leftPanelExclusivity
-                        hoverBg: Theme.surface
-                        tooltipText: Settings.leftPanelExclusivity ? "Exclusive zone: on" : "Exclusive zone: off"
-                        // checked is the inverse of the setting: writing it
-                        // back as-is toggles exclusivity.
-                        onClicked: Settings.leftPanelExclusivity = checked
-                    }
-                    // Lock — pins the
-                    // island open across hover-leave.
-                    AppButton {
-                        width: parent.width
-                        icon: Settings.leftPanelLock ? "" : ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        toggle: true
-                        checked: Settings.leftPanelLock
-                        hoverBg: Theme.surface
-                        tooltipText: Settings.leftPanelLock ? "Unlock island" : "Lock island"
-                        onClicked: Settings.leftPanelLock = !checked
-                    }
-                    // Close
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        hoverBg: Theme.surface
-                        hoverFg: Theme.danger
-                        tooltipText: "Close island"
-                        onClicked: BarState.deactivate("left")
-                    }
-                } // WindowActions (bottom-pinned)
+                }
             }
 
             // Main content area

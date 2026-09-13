@@ -26,18 +26,18 @@ Item {
         spacing: 6
 
         // Crypto price/graph display
-        Rectangle {
+        Card {
             id: entryRect
             width: parent.width
             height: 80
-            color: Theme.surface
             radius: Theme.radius
+            contentMargins: 8
 
             CryptoItem {
-                anchors.fill: parent
-                anchors.margins: 8
+                width: parent.width
+                height: parent.height
                 entry: root.entry
-                itemWidth: parent.width
+                itemWidth: entryRect.width
             }
         }
 

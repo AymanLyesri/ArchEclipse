@@ -1,7 +1,7 @@
 import QtQuick
-import Quickshell
 import qs.theme
 import qs.services
+import qs.widgets.bar.islands
 import qs.widgets.launcher
 
 // Search island: input + launcher results inline in the bar pill.
@@ -21,13 +21,6 @@ Column {
     property real expand: 0
     property int bodyFullHeight: 448
     Component.onCompleted: expand = 1
-    Behavior on expand {
-        SpringAnimation {
-            spring: 3.5
-            damping: 0.32
-            mass: 1.0
-        }
-    }
 
     // Search input pill (was SearchBar — merged here, its only consumer).
     // Typing, Enter (activate hook), Up/Down (navigate hook), Esc (close).
@@ -118,14 +111,9 @@ Column {
         }
     }
 
-    Item {
-        id: bodyClip
-        width: parent.width
-        height: Math.max(0, root.expand * root.bodyFullHeight)
-        clip: true
-        opacity: Math.max(0, Math.min(1, root.expand * 1.2))
-        scale: 0.96 + 0.04 * root.expand
-        transformOrigin: Item.Top
+    IslandExpandClip {
+        expand: root.expand
+        contentHeight: root.bodyFullHeight
 
         LauncherPanel {
             anchors.top: parent.top

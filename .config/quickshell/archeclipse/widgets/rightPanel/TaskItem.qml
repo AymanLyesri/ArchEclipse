@@ -18,23 +18,17 @@ Item {
     // fill-anchored: no height feedback loop).
     height: innerCol.height + 24
 
-    Rectangle {
+    Card {
         id: container
         anchors.fill: parent
         color: task.active ? Theme.surface : Theme.bg
         radius: Theme.radius
-
         border.color: task.active ? Theme.border : Theme.fgDim
         clip: true
 
         Column {
             id: innerCol
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.topMargin: 12
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
+            width: parent.width
             spacing: 6
 
             // Header (RowLayout: the text column takes leftover width and
@@ -122,35 +116,24 @@ Item {
                 elide: Text.ElideRight
             }
         }
-
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            onEntered: root.isHovered = true
-            onExited: root.isHovered = false
-        }
     }
 
-    function formatNextRun(nextRun) {
-        if (!nextRun)
-            return "Not scheduled";
-        const date = new Date(nextRun);
-        const now = new Date();
-        const isToday = date.toDateString() === now.toDateString();
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onEntered: root.isHovered = true
+        onExited: root.isHovered = false
+    }
 
-        if (isToday) {
-            return "Today, " + date.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false
-            });
+    // Shared next-run formatting lives on RightPanelCard (verbatim); this
+    // delegate is always hosted inside one, so walk up instead of duplicating.
+    function formatNextRun(nextRun) {
+        let p = parent;
+        while (p) {
+            if (p.objectName === "rightPanelCard" && typeof p.formatNextRun === "function")
+                return p.formatNextRun(nextRun);
+            p = p.parent;
         }
-        return date.toLocaleString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-            month: "short",
-            day: "numeric"
-        });
+        return "Not scheduled";
     }
 }

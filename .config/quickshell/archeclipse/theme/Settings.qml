@@ -147,41 +147,9 @@ Singleton {
         })
     // Initialized with shipped defaults (not {}) so early fetchers (Booru
     // onCompleted) have credentials even before the settings file load
-    // merges saved values over them.
-    property var apiKeys: ({
-            openrouter: {
-                user: {
-                    value: ""
-                },
-                key: {
-                    value: ""
-                }
-            },
-            danbooru: {
-                user: {
-                    value: "publicapi"
-                },
-                key: {
-                    value: "Pr5ddYN7P889AnM6nq2nhgw1"
-                }
-            },
-            gelbooru: {
-                user: {
-                    value: "1667355"
-                },
-                key: {
-                    value: "1ccd9dd7c457c2317e79bd33f47a1138ef9545b9ba7471197f477534efd1dd05"
-                }
-            },
-            safebooru: {
-                user: {
-                    value: "publicapi"
-                },
-                key: {
-                    value: "Pr5ddYN7P889AnM6nq2nhgw1"
-                }
-            }
-        })
+    // merges saved values over them. Single source: defaultApiKeys() below
+    // (this used to paste the same literal twice).
+    property var apiKeys: root.defaultApiKeys()
 
     // Default API credentials (shipped fallback). Used when the settings
     // file has none saved — the defaults stay in memory; QS must do the
@@ -254,6 +222,40 @@ Singleton {
             return "";
         return String((typeof v === "object" ? (v.value ?? "") : v)).replace(/\n/g, "").trim();
     }
+
+    // Single place listing the code-owned default sets: a new defaulted key
+    // adds its row here (plus a default*/merge* pair only if the file shape
+    // needs normalization on load). Startup snapshot; merge*() above keep
+    // calling default*() so every load gets a fresh mutable copy.
+    // (Stepping stone toward table-driven persist()/reload(): those bodies
+    // stay authoritative until a live SUPER+B round-trip rewire verifies
+    // byte-identical settings.json — not possible in a headless pass.)
+    readonly property var _defaults: ({
+            "apiKeys": defaultApiKeys(),
+            "rightPanelWidgets": defaultRightPanelWidgets()
+        })
+    // Static hyprland leaf metadata, transcribed verbatim from persist()
+    // below ({name, min, max, type} per leaf + reload() default in def).
+    // Table order matches persist()'s insertion order. NOTE the two
+    // on-disk key orders persist() uses: general/decoration leaves are
+    // {name, value, min, max, type} but blur/shadow leaves are
+    // {name, value, type, min, max} (flagged typeFirst) — the loop below
+    // reproduces both so on-disk bytes never change.
+    readonly property var _hyprlandLeafSchema: [
+        { path: ["general", "border_size"], name: "Border Size", min: 0, max: 10, type: "int", def: 0 },
+        { path: ["general", "gaps_in"], name: "Gaps In", min: 0, max: 20, type: "int", def: 7 },
+        { path: ["general", "gaps_out"], name: "Gaps Out", min: 0, max: 40, type: "int", def: 10 },
+        { path: ["decoration", "rounding"], name: "Rounding", min: 0, max: 50, type: "int", def: 16 },
+        { path: ["decoration", "active_opacity"], name: "Active Opacity", min: 0, max: 1, type: "float", def: 0.9 },
+        { path: ["decoration", "inactive_opacity"], name: "Inactive Opacity", min: 0, max: 1, type: "float", def: 0.8 },
+        { path: ["decoration", "blur", "enabled"], name: "Blur Enabled", min: 0, max: 1, type: "bool", def: true, typeFirst: true },
+        { path: ["decoration", "blur", "size"], name: "Blur Size", min: 0, max: 10, type: "int", def: 4, typeFirst: true },
+        { path: ["decoration", "blur", "passes"], name: "Blur Passes", min: 0, max: 10, type: "int", def: 4, typeFirst: true },
+        { path: ["decoration", "blur", "xray"], name: "Blur Xray", min: 0, max: 1, type: "bool", def: false, typeFirst: true },
+        { path: ["decoration", "shadow", "enabled"], name: "Shadow Enabled", min: 0, max: 1, type: "bool", def: true, typeFirst: true },
+        { path: ["decoration", "shadow", "range"], name: "Shadow Range", min: 0, max: 20, type: "int", def: 15, typeFirst: true },
+        { path: ["decoration", "shadow", "render_power"], name: "Shadow Render Power", min: 0, max: 20, type: "int", def: 3, typeFirst: true }
+    ]
 
     // Waifu widget setting group
     property var waifu: null
@@ -516,108 +518,38 @@ Singleton {
                 },
                 // Hyprland leaf shape {name,value,min,max,type} — the settings
                 // panel renders from it (plain numbers would be mistaken for
-                // nested groups and render nothing).
-                "hyprland": {
-                    general: {
-                        border_size: {
-                            name: "Border Size",
-                            value: root.hyprland?.general?.border_size ?? 0,
-                            min: 0,
-                            max: 10,
-                            type: "int"
-                        },
-                        gaps_in: {
-                            name: "Gaps In",
-                            value: root.hyprland?.general?.gaps_in ?? 7,
-                            min: 0,
-                            max: 20,
-                            type: "int"
-                        },
-                        gaps_out: {
-                            name: "Gaps Out",
-                            value: root.hyprland?.general?.gaps_out ?? 10,
-                            min: 0,
-                            max: 40,
-                            type: "int"
+                // nested groups and render nothing). Driven by
+                // _hyprlandLeafSchema above (single source for labels/limits);
+                // blur/shadow leaves keep their {name,value,type,min,max}
+                // order via typeFirst so on-disk bytes never change.
+                "hyprland": (() => {
+                    const out = {};
+                    for (const leaf of root._hyprlandLeafSchema) {
+                        const v = leaf.path.reduce((o, k) => ((o == null) ? o : o[k]), root.hyprland) ?? leaf.def;
+                        let node = out;
+                        for (let i = 0; i < leaf.path.length - 1; i++) {
+                            const g = leaf.path[i];
+                            if (node[g] === undefined)
+                                node[g] = {};
+                            node = node[g];
                         }
-                    },
-                    decoration: {
-                        rounding: {
-                            name: "Rounding",
-                            value: root.hyprland?.decoration?.rounding ?? 16,
-                            min: 0,
-                            max: 50,
-                            type: "int"
-                        },
-                        active_opacity: {
-                            name: "Active Opacity",
-                            value: root.hyprland?.decoration?.active_opacity ?? 0.9,
-                            min: 0,
-                            max: 1,
-                            type: "float"
-                        },
-                        inactive_opacity: {
-                            name: "Inactive Opacity",
-                            value: root.hyprland?.decoration?.inactive_opacity ?? 0.8,
-                            min: 0,
-                            max: 1,
-                            type: "float"
-                        },
-                        blur: {
-                            enabled: {
-                                name: "Blur Enabled",
-                                value: root.hyprland?.decoration?.blur?.enabled ?? true,
-                                type: "bool",
-                                min: 0,
-                                max: 1
-                            },
-                            size: {
-                                name: "Blur Size",
-                                value: root.hyprland?.decoration?.blur?.size ?? 4,
-                                type: "int",
-                                min: 0,
-                                max: 10
-                            },
-                            passes: {
-                                name: "Blur Passes",
-                                value: root.hyprland?.decoration?.blur?.passes ?? 4,
-                                type: "int",
-                                min: 0,
-                                max: 10
-                            },
-                            xray: {
-                                name: "Blur Xray",
-                                value: root.hyprland?.decoration?.blur?.xray ?? false,
-                                type: "bool",
-                                min: 0,
-                                max: 1
-                            }
-                        },
-                        shadow: {
-                            enabled: {
-                                name: "Shadow Enabled",
-                                value: root.hyprland?.decoration?.shadow?.enabled ?? true,
-                                type: "bool",
-                                min: 0,
-                                max: 1
-                            },
-                            range: {
-                                name: "Shadow Range",
-                                value: root.hyprland?.decoration?.shadow?.range ?? 15,
-                                type: "int",
-                                min: 0,
-                                max: 20
-                            },
-                            render_power: {
-                                name: "Shadow Render Power",
-                                value: root.hyprland?.decoration?.shadow?.render_power ?? 3,
-                                type: "int",
-                                min: 0,
-                                max: 20
-                            }
-                        }
+                        const key = leaf.path[leaf.path.length - 1];
+                        node[key] = (leaf.typeFirst === true) ? {
+                            name: leaf.name,
+                            value: v,
+                            type: leaf.type,
+                            min: leaf.min,
+                            max: leaf.max
+                        } : {
+                            name: leaf.name,
+                            value: v,
+                            min: leaf.min,
+                            max: leaf.max,
+                            type: leaf.type
+                        };
                     }
-                },
+                    return out;
+                })(),
                 dynamicThemeColors: {
                     value: root.dynamicThemeColors
                 },
@@ -861,30 +793,24 @@ Singleton {
 
                 // Hyprland settings (full schema incl. blur passes 4, xray,
                 // xray, gaps, opacities — previously partial, which reset
-                // missing keys to 0/false on every reload)
-                root.hyprland = {
-                    general: {
-                        border_size: s.hyprland?.general?.border_size?.value ?? 0,
-                        gaps_in: s.hyprland?.general?.gaps_in?.value ?? 7,
-                        gaps_out: s.hyprland?.general?.gaps_out?.value ?? 10
-                    },
-                    decoration: {
-                        rounding: s.hyprland?.decoration?.rounding?.value ?? 16,
-                        active_opacity: s.hyprland?.decoration?.active_opacity?.value ?? 0.9,
-                        inactive_opacity: s.hyprland?.decoration?.inactive_opacity?.value ?? 0.8,
-                        blur: {
-                            enabled: s.hyprland?.decoration?.blur?.enabled?.value ?? true,
-                            size: s.hyprland?.decoration?.blur?.size?.value ?? 4,
-                            passes: s.hyprland?.decoration?.blur?.passes?.value ?? 4,
-                            xray: s.hyprland?.decoration?.blur?.xray?.value ?? false
-                        },
-                        shadow: {
-                            enabled: s.hyprland?.decoration?.shadow?.enabled?.value ?? true,
-                            range: s.hyprland?.decoration?.shadow?.range?.value ?? 15,
-                            render_power: s.hyprland?.decoration?.shadow?.render_power?.value ?? 3
+                // missing keys to 0/false on every reload). Defaults come
+                // from _hyprlandLeafSchema so persist()/reload() agree.
+                root.hyprland = (() => {
+                    const out = {};
+                    for (const leaf of root._hyprlandLeafSchema) {
+                        const node = leaf.path.reduce((o, k) => ((o == null) ? undefined : o[k]), s.hyprland);
+                        const v = ((typeof node === "object" && node !== null) ? node.value : undefined) ?? leaf.def;
+                        let target = out;
+                        for (let i = 0; i < leaf.path.length - 1; i++) {
+                            const g = leaf.path[i];
+                            if (target[g] === undefined)
+                                target[g] = {};
+                            target = target[g];
                         }
+                        target[leaf.path[leaf.path.length - 1]] = v;
                     }
-                };
+                    return out;
+                })();
             }
         } catch (e) {
             console.warn("[Settings] parse failed:", e);
@@ -907,7 +833,14 @@ Singleton {
             _persistTimer.start();
     }
 
-    // Watch key settings properties for changes and auto-persist
+    // Watch directly-written settings properties and auto-persist.
+    // Rule: a handler exists ONLY for keys with a direct `Settings.x = ...`
+    // writer outside updateSetting() (verified via
+    // `rg "Settings\.[a-zA-Z]+ =" widgets/ services/ theme/ shell.qml` plus
+    // bracket writes). updateSetting() persists directly, so its exclusive
+    // keys need no handler. onApiKeysChanged stays: SettingsWidget
+    // setNestedValue() writes Settings["apiKeys"] directly (and the merge
+    // in reload() normalizes credentials on external edits).
     Connections {
         target: root
         function onBarLockChanged() {
@@ -976,9 +909,6 @@ Singleton {
         function onRightPanelHotZoneChanged() {
             root.schedulePersist();
         }
-        function onNotifDndChanged() {
-            root.schedulePersist();
-        }
         function onLockGraceSecondsChanged() {
             root.schedulePersist();
         }
@@ -994,16 +924,7 @@ Singleton {
         function onLeftPanelWidgetChanged() {
             root.schedulePersist();
         }
-        function onWallpaperCategoryChanged() {
-            root.schedulePersist();
-        }
-        function onWeatherCityChanged() {
-            root.schedulePersist();
-        }
         function onRightPanelWidthChanged() {
-            root.schedulePersist();
-        }
-        function onAutoWorkspaceSwitchingChanged() {
             root.schedulePersist();
         }
         function onHyprlandChanged() {
@@ -1024,9 +945,6 @@ Singleton {
         function onDynamicThemeVariantsChanged() {
             root.schedulePersist();
         }
-        function onProfilePicturePathChanged() {
-            root.schedulePersist();
-        }
         function onWaifuChanged() {
             root.schedulePersist();
         }
@@ -1034,9 +952,6 @@ Singleton {
             root.schedulePersist();
         }
         function onChatBotApiChanged() {
-            root.schedulePersist();
-        }
-        function onChatBotImageGenerationChanged() {
             root.schedulePersist();
         }
         function onAlwaysOnWidgetVisibilityChanged() {

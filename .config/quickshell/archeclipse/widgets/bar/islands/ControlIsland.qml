@@ -1,7 +1,5 @@
 import QtQuick
-import Quickshell
-import qs.theme
-import qs.services
+import qs.widgets.bar.islands
 import qs.widgets.controlPanel
 
 // Control island: quick-settings body inline in the bar pill.
@@ -23,60 +21,25 @@ Column {
 
     // Spring driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
-    // Arm the leave timer at creation too: if the cursor never enters,
-    // no hover transition fires and the island would stay open forever.
-    // (A hover arrival within milliseconds stops it again.)
-    Component.onCompleted: { expand = 1; leaveTimer.restart() }
-    Behavior on expand {
-        SpringAnimation { spring: 3.5; damping: 0.32; mass: 1.0 }
-    }
+    Component.onCompleted: expand = 1
 
-    // Hover tracking lives here (stable container — content never swaps
-    // under the cursor while open).
-    HoverHandler {
-        id: islandHover
-        onHoveredChanged: {
-            if (islandHover.hovered) {
-                leaveTimer.stop();
-                // Pin pulse-driven islands so a hold expiry can't close
-                // the panel while it is being used.
-                if (BarState.state === "volume" || BarState.state === "brightness")
-                    BarState.activate("control", 0);
-            } else {
-                leaveTimer.restart();
-            }
-        }
-    }
-    Timer {
-        id: leaveTimer
-        interval: 1000
-        onTriggered: {
-            BarState.deactivate("control");
-            BarState.deactivate("volume");
-            BarState.deactivate("brightness");
-        }
+    // Hover pin (stable container — content never swaps under the cursor
+    // while open). The pin activates "control" persistently on every
+    // hover, which subsumes the old volume/brightness->control branch;
+    // leaving arms the 1s close timer, which also clears the pulses.
+    IslandHoverPin {
+        stateName: "control"
+        extraStates: ["volume", "brightness"]
     }
 
     // Esc dismiss once the surface has focus (click a slider first).
-    Item {
-        id: escGrab
-        width: 1; height: 1
-        focus: true
-        Keys.onEscapePressed: {
-            BarState.deactivate("control");
-            BarState.deactivate("volume");
-            BarState.deactivate("brightness");
-        }
+    IslandEscClose {
+        states: ["control", "volume", "brightness"]
     }
 
-    Item {
-        id: bodyClip
-        width: parent.width
-        height: Math.max(0, root.expand * controlBody.height)
-        clip: true
-        opacity: Math.max(0, Math.min(1, root.expand * 1.2))
-        scale: 0.96 + 0.04 * root.expand
-        transformOrigin: Item.Top
+    IslandExpandClip {
+        expand: root.expand
+        contentHeight: controlBody.height
 
         ControlPanelBody {
             id: controlBody

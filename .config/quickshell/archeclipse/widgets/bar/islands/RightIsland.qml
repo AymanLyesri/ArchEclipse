@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.theme
 import qs.services
+import qs.widgets.bar.islands
 import qs.widgets.shared
 import qs.widgets.media
 import qs.widgets.rightPanel
@@ -60,19 +61,11 @@ Column {
             Registry.register(root.registryKey(), root);
     }
     Component.onDestruction: {
-        Registry.unregister(root.registryKey());
         Registry.unregister("right-island");
+        Registry.unregister(root.registryKey());
     }
     function registryKey() {
         return `right-island-${root.monitorName || Registry.monitorName}`;
-    }
-
-    Behavior on expand {
-        SpringAnimation {
-            spring: 3.5
-            damping: 0.32
-            mass: 1.0
-        }
     }
 
     // Hover tracking lives here (stable container — content never swaps
@@ -118,22 +111,13 @@ Column {
     }
 
     // Esc dismiss once the surface has focus (click a control first).
-    Item {
-        id: escGrab
-        width: 1
-        height: 1
-        focus: true
-        Keys.onEscapePressed: BarState.deactivate("right")
+    IslandEscClose {
+        states: ["right"]
     }
 
-    Item {
-        id: bodyClip
-        width: parent.width
-        height: Math.max(0, root.expand * bodyRow.height)
-        clip: true
-        opacity: Math.max(0, Math.min(1, root.expand * 1.2))
-        scale: 0.96 + 0.04 * root.expand
-        transformOrigin: Item.Top
+    IslandExpandClip {
+        expand: root.expand
+        contentHeight: bodyRow.height
 
         Row {
             id: bodyRow
@@ -145,6 +129,9 @@ Column {
             layoutDirection: Qt.RightToLeft
 
             // ----- Sidebar with widget toggles (drag-reorderable) -----
+            // NOTE: this rail stays custom (not IslandSideRail) — the
+            // Drag.active/DropArea reorder + isDragging auto-hide hold
+            // cannot be preserved by the shared Repeater rail.
             Rectangle {
                 id: sidebar
                 width: 48
@@ -234,83 +221,13 @@ Column {
                     }
                 }
 
-                // ----- Window Actions (valign END) -----
-                Column {
+                // Window Actions: bottom cluster (valign END, shared).
+                IslandWindowActions {
+                    side: "right"
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.margins: 8
-                    width: parent.width
-                    spacing: 5
-
-                    // Expand (+50 to max 1500)
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        hoverBg: Theme.surface
-                        hoverFg: Theme.accent
-                        tooltipText: "Expand island"
-                        onClicked: {
-                            const w = Settings.rightPanelWidth;
-                            Settings.rightPanelWidth = w < 1500 ? w + 50 : 1500;
-                        }
-                    }
-                    // Shrink (-50 to min 250)
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        hoverBg: Theme.surface
-                        hoverFg: Theme.accent
-                        tooltipText: "Shrink island"
-                        onClicked: {
-                            const w = Settings.rightPanelWidth;
-                            Settings.rightPanelWidth = w > 250 ? w - 50 : 250;
-                        }
-                    }
-                    // Exclusivity (active = non-exclusive, inverted) —
-                    // reserves the island's width from the docked screen
-                    // edge while open (vertical zone; the bar's top strip
-                    // reservation is replaced, not added).
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        toggle: true
-                        checked: !Settings.rightPanelExclusivity
-                        hoverBg: Theme.surface
-                        tooltipText: Settings.rightPanelExclusivity ? "Exclusive zone: on" : "Exclusive zone: off"
-                        // checked is the inverse of the setting: writing it
-                        // back as-is toggles exclusivity.
-                        onClicked: Settings.rightPanelExclusivity = checked
-                    }
-                    // Lock — pins the island open across hover-leave.
-                    AppButton {
-                        width: parent.width
-                        icon: Settings.rightPanelLock ? "" : ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        toggle: true
-                        checked: Settings.rightPanelLock
-                        hoverBg: Theme.surface
-                        tooltipText: Settings.rightPanelLock ? "Unlock island" : "Lock island"
-                        onClicked: Settings.rightPanelLock = !checked
-                    }
-                    // Close
-                    AppButton {
-                        width: parent.width
-                        icon: ""
-                        pixelSize: 14
-                        cornerRadius: 6
-                        hoverBg: Theme.surface
-                        hoverFg: Theme.danger
-                        tooltipText: "Close island"
-                        onClicked: BarState.deactivate("right")
-                    }
                 }
             }
 

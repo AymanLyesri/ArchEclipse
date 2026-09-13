@@ -1,6 +1,5 @@
 import QtQuick
-import qs.theme
-import qs.services
+import qs.widgets.bar.islands
 import qs.widgets.media
 
 // Player island now shows the full MediaWidget (cover art, track info,
@@ -23,21 +22,8 @@ Item {
     }
 
     // Pin while hovered so the 2.5s pulse doesn't close it mid-interaction.
-    HoverHandler {
-        id: islandHover
-        onHoveredChanged: {
-            if (islandHover.hovered) {
-                leaveTimer.stop();
-                BarState.activate("player", 0);
-            } else {
-                leaveTimer.restart();
-            }
-        }
+    // (The pin self-arms its leave timer at creation.)
+    IslandHoverPin {
+        stateName: "player"
     }
-    Timer {
-        id: leaveTimer
-        interval: 1000
-        onTriggered: BarState.deactivate("player")
-    }
-    Component.onCompleted: leaveTimer.restart()
 }
