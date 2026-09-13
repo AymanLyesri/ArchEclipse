@@ -4,9 +4,9 @@ import qs.services
 import qs.widgets.shared
 
 // Results panel for the search island: input lives in SearchIsland,
-// this body is results only. Quick apps, recent apps and system
-// commands are ">" palette queries (e.g. ">quickapps") handled by
-// Launcher.paletteResults — no side panes.
+// this body is results only. Empty query shows recent apps (quick-apps
+// fallback) via Launcher.defaultResults; helper tips live under bare
+// ">" (Launcher.paletteHelp) — no side panes.
 Rectangle {
     id: root
 
@@ -15,115 +15,8 @@ Rectangle {
     radius: Theme.radius
     color: Theme.surface
 
-    // Help tips — visible when query empty OR no results
-    Column {
-        id: helpCol
-        visible: Launcher.results.length === 0
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: parent.right
-            margins: 10
-        }
-        spacing: 6
-        Text {
-            width: parent.width
-            text: "Commands"
-            font.bold: true
-            font.pixelSize: Theme.fontSize + 2
-            color: Theme.fg
-            visible: helpCol.visible
-        }
-        Repeater {
-            model: [
-                {
-                    cmd: ">quickapps ...",
-                    desc: "favorite apps"
-                },
-                {
-                    cmd: ">recent ...",
-                    desc: "recently launched apps"
-                },
-                {
-                    cmd: ">commands ...",
-                    desc: "system commands"
-                },
-                {
-                    cmd: "cb ...",
-                    desc: "clipboard history (text/html/image)",
-                    keys: ["SUPER", "SHIFT", "v"]
-                },
-                {
-                    cmd: "note ...",
-                    desc: "add/list/edit/remove notes",
-                    keys: ["SUPER", "SHIFT", "n"]
-                },
-                {
-                    cmd: "apps ...",
-                    desc: "list all installed applications",
-                    keys: ["SUPER", "A"]
-                },
-                {
-                    cmd: "emoji ...",
-                    desc: "search emojis",
-                    keys: ["SUPER", "."]
-                },
-                {
-                    cmd: "... ...",
-                    desc: "open with argument"
-                },
-                {
-                    cmd: "translate .. > ..",
-                    desc: "translate into (en,fr,es,de,pt,ru,ar…)"
-                },
-                {
-                    cmd: "... .com OR https://...",
-                    desc: "open link"
-                },
-                {
-                    cmd: "..*/+-..",
-                    desc: "arithmetics"
-                },
-                {
-                    cmd: "100c to f / 10kg in lb",
-                    desc: "unit conversion (temp/weight/length/volume/speed/digital)"
-                },
-            ]
-            delegate: Row {
-                width: parent ? parent.width : 0
-                spacing: 8
-                Text {
-                    width: parent.width * 0.38
-                    text: modelData.cmd
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                    color: Theme.accent
-                    wrapMode: Text.WordWrap
-                }
-                Column {
-                    width: parent.width * 0.62 - 8
-                    spacing: 4
-                    Text {
-                        width: parent.width
-                        text: modelData.desc
-                        font.pixelSize: Theme.fontSize - 1
-                        color: Theme.muted
-                        wrapMode: Text.WordWrap
-                    }
-                    // Keybind chips below the description (shared
-                    // AppKeybind widget; hidden automatically when
-                    // the entry has no keys).
-                    AppKeybind {
-                        keys: modelData.keys || []
-                    }
-                }
-            }
-        }
-    }
-
     SmoothListView {
         id: resultsList
-        visible: Launcher.results.length > 0
         anchors.fill: parent
         anchors.margins: 8
         clip: true
@@ -218,13 +111,21 @@ Rectangle {
                 }
                 onClicked: {
                     if (!modelData.isHeader && modelData.launch) {
+                        const keep = modelData.keepOpen === true;
                         modelData.launch();
-                        BarState.deactivate("search");
+                        if (!keep)
+                            BarState.deactivate("search");
                     }
                 }
             }
         }
     }
+
+    // Prime the default state (recent apps) on creation. The island is
+    // instantiated by the bar Loader AFTER BarState.state is already
+    // "search", so onStateChanged below never fires for a fresh instance —
+    // without this the first open shows an empty list.
+    Component.onCompleted: Launcher.runQuery("")
 
     // keyboard nav comes from SearchIsland signals; reset state on close
     Connections {
@@ -232,8 +133,7 @@ Rectangle {
         function onStateChanged() {
             if (BarState.state === "search") {
                 Launcher.lastQuery = "";
-                Launcher.results = [];
-                Launcher.selectedIndex = 0;
+                Launcher.runQuery("");
             }
         }
     }

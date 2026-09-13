@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtMultimedia
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -401,14 +402,32 @@ Item {
                             anchors.margins: 2
                             // Native preview: original file, decoded near
                             // tile size (async + cached inside AppImage).
-                            // Videos can't render in an Image — empty
-                            // source keeps the badges, icon below marks it.
+                            // Videos play live below (wsVideo) — empty
+                            // source here keeps just the badges.
                             source: (wsTile.modelData === "" || root.isVideoFile(wsTile.modelData)) ? "" : "file://" + wsTile.modelData
                             sourceWidth: wsTile.width
                             badges: [(wsTile.index + 1).toString()]
                         }
-                        Text {
+                        // Live animated preview for workspace videos
+                        // (main-strip parity): the icon below stays until
+                        // the first frame lands, or permanently on decode
+                        // failure.
+                        AppVideo {
+                            id: wsVideo
+                            anchors.fill: parent
+                            anchors.margins: 2
                             visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData)
+                            source: visible ? wsTile.modelData : ""
+                            active: visible
+                            muted: true
+                            fillMode: VideoOutput.PreserveAspectCrop
+                            badges: [(wsTile.index + 1).toString()]
+                            onErrorOccurred: message => {
+                                console.warn("[WallpaperSwitcher] video preview failed for " + wsTile.modelData + ": " + message);
+                            }
+                        }
+                        Text {
+                            visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && (!wsVideo.ready || wsVideo._failed)
                             anchors.centerIn: parent
                             text: ""
                             font.family: Theme.fontFamily
@@ -551,6 +570,19 @@ Item {
                             // only tiles near the visible window may hold
                             // a decoder. Buffer preloads just off-screen.
                             readonly property bool inView: tile.x + tile.width > wallScroll.contentX - 320 && tile.x < wallScroll.contentX + wallScroll.width + 320
+                            // Workspace number badges: which workspace(s)
+                            // currently use this wallpaper (top-right).
+                            // Shared by the still preview and the live
+                            // video below (only one is visible at a time).
+                            readonly property var badgeIds: {
+                                const ids = [];
+                                const cur = root.currentWallpapers;
+                                for (let i = 0; i < cur.length; i++) {
+                                    if (cur[i] !== "" && cur[i] === tile.modelData)
+                                        ids.push(String(i + 1));
+                                }
+                                return ids;
+                            }
                             opacity: (revealed && thumbSettled) ? 1 : 0
                             Behavior on opacity {
                                 NumberAnimation {
@@ -601,36 +633,35 @@ Item {
                                 // tracks the displayed width without
                                 // re-decoding on every animation frame.
                                 sourceWidth: tileMa.containsMouse ? 480 : 150
-                                // Workspace number badge: which workspace(s)
-                                // currently use this wallpaper (top-right).
-                                badges: {
-                                    const ids = [];
-                                    const cur = root.currentWallpapers;
-                                    for (let i = 0; i < cur.length; i++) {
-                                        if (cur[i] !== "" && cur[i] === tile.modelData)
-                                            ids.push(String(i + 1));
-                                    }
-                                    return ids;
-                                }
+                                badges: tile.badgeIds
                             }
-                            // Live video preview (MP4/WebM): native Qt
-                            // Multimedia, muted + looping, cropped like the
-                            // static tiles. `active` unloads the decoder
-                            // off-screen (see tile.inView); AppImage above
-                            // stays empty for videos and keeps the badges.
-                            WallpaperVideoPreview {
+                            // Live video preview (MP4/WebM): shared AppVideo,
+                            // muted + looping, cropped like the static tiles.
+                            // `active` unloads the decoder off-screen (see
+                            // tile.inView); AppImage above stays empty for
+                            // videos while this carries the same badges.
+                            AppVideo {
                                 id: tileVideo
                                 anchors.fill: parent
                                 anchors.margins: 3
                                 visible: root.isVideoFile(tile.modelData)
                                 source: tile.modelData
                                 active: tileVideo.visible && tile.inView
+                                muted: true
+                                fillMode: VideoOutput.PreserveAspectCrop
+                                badges: tile.badgeIds
+                                onErrorOccurred: message => {
+                                    console.warn("[WallpaperSwitcher] video preview failed for " + tile.modelData + ": " + message);
+                                }
                             }
                             Column {
                                 // Loading/error fallback for videos: shown
                                 // until the first frame lands (tile fades in
-                                // on ready) or permanently on decode failure.
-                                visible: root.isVideoFile(tile.modelData) && !tileVideo.ready
+                                // on ready) or permanently on decode failure
+                                // (ready includes failed, so test it too —
+                                // otherwise a bad file hides the icon and
+                                // the tile goes blank).
+                                visible: root.isVideoFile(tile.modelData) && (!tileVideo.ready || tileVideo._failed)
                                 anchors.centerIn: parent
                                 spacing: 4
                                 Text {

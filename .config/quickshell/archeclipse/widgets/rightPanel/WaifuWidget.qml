@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtMultimedia
 import Quickshell
 import Quickshell.Io
 import qs.theme
 import qs.widgets.shared
 import qs.services
-import qs.widgets.media
+import qs.widgets.leftPanel
 
 // Waifu widget ported from widgets/rightPanel/components/Waifu.tsx
 // Shows the current waifu image or a placeholder with a link to open
@@ -297,23 +298,60 @@ Item {
     }
 
     // Open the current waifu as a floating Booru dialog window (same
-    // card as the BooruViewer detail, detached). Resolves the viewer on
-    // this monitor's left island, priming its tab if needed — the island
-    // itself never opens. Falls back to the external viewer when the
-    // viewer instance is unreachable.
+    // card as the BooruViewer detail, detached). Prefers the shared
+    // island viewer (warm caches); the island itself never opens. When
+    // the island was never instantiated (left panel untouched), falls
+    // back to our own hidden dialog host below — never the external
+    // viewer.
     function openAsDialog() {
         const wd = root.wd;
         if (!wd || !wd.id)
             return;
         const isl = Registry.get(`left-island-${Registry.monitorName}`) || Registry.get("left-island");
-        if (isl && typeof isl.primeTab === "function")
-            isl.primeTab("BooruViewer");
-        const v = isl ? isl.booruView : null;
-        if (v && typeof v.openDialog === "function" && typeof v.detachDialog === "function") {
+        if (isl && typeof isl.openBooruDialog === "function" && isl.openBooruDialog(wd))
+            return;
+        root.openAsHostedDialog(wd);
+    }
+
+    // Cold-start dialog host: a dialogOnly BooruViewer (no grid boot
+    // fetch) instantiated on first use and kept alive. Its FloatingWindow
+    // is top-level and independent of the island; previews warm from the
+    // disk cache so the dialog shows a still while the full file lands.
+    property var _pendingHostedImage: null
+    function openAsHostedDialog(wd) {
+        if (!wd)
+            return;
+        dialogHostLoader.active = true;
+        const v = dialogHostLoader.item;
+        if (v && typeof v.openDialog === "function") {
             v.openDialog(wd, null);
+            if (wd.preview && /^https?:\/\//.test(wd.preview))
+                v.downloadPreviews([wd]);
             v.detachDialog();
         } else {
-            BooruActions.openInViewer(wd);
+            // Loader still instantiating — park until onLoaded below.
+            root._pendingHostedImage = wd;
+        }
+    }
+    Loader {
+        id: dialogHostLoader
+        active: false
+        sourceComponent: dialogHostComp
+        onLoaded: {
+            if (root._pendingHostedImage && item && typeof item.openDialog === "function") {
+                const p = root._pendingHostedImage;
+                root._pendingHostedImage = null;
+                item.openDialog(p, null);
+                if (p.preview && /^https?:\/\//.test(p.preview))
+                    item.downloadPreviews([p]);
+                item.detachDialog();
+            }
+        }
+    }
+    Component {
+        id: dialogHostComp
+        BooruViewer {
+            dialogOnly: true
         }
     }
 
@@ -383,14 +421,15 @@ Item {
             visible: !root.isVideo
         }
 
-        // Video fallback — playable via QtMultimedia
-        MediaVideo {
+        // Video fallback — shared AppVideo (same mapping MediaVideo
+        // used: visibility-gated decoder, unmuted audio, Stretch fill).
+        AppVideo {
             id: mediaVideo
             anchors.fill: parent
             source: root.imagePath
             autoplay: true
             loop: true
-            fill: true
+            fillMode: VideoOutput.Stretch
             visible: root.isVideo && root.wd_extension.toLowerCase() !== "zip"
         }
 

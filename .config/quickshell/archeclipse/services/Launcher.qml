@@ -35,11 +35,25 @@ QtObject {
     property int selectedIndex: 0
     property string lastQuery: ""
 
+    // Emitted when a navigation row wants the search box to adopt its query
+    // (e.g. activating "cb ..." fills "cb " so typing continues from there).
+    // SearchIsland listens and sets its TextInput (programmatic set doesn't
+    // emit textEdited, so no double query).
+    signal fillInputRequested(string query)
+
     // launch history persisted to quickshell app-history.json
     property FileView _historyFile: FileView {
         path: root.historyPath
         watchChanges: false
         printErrors: false
+        onLoaded: {
+            // FileView loads async: the first default view may have
+            // snapshotted an empty history (quick-apps fallback). Refresh it
+            // live once disk content arrives — unless the user typed
+            // something meanwhile (lastQuery), which must not be clobbered.
+            if (root.lastQuery === "")
+                root.runQuery("");
+        }
     }
     property var history: {
         try {
@@ -56,7 +70,9 @@ QtObject {
         history = h;
     }
 
-    // ---- recent apps (AppHistory) — names from app-history.json that resolve to DesktopEntries ----
+    // ---- recent apps (AppHistory) — history entries that resolve to
+    // DesktopEntries render as apps; the rest are past shell commands (see
+    // the "Try … in terminal" fallback in runQuery) and re-run as such ----
     function recentApps() {
         const entries = [];
         const appsByName = {};
@@ -66,11 +82,17 @@ QtObject {
         }
         for (const name of history) {
             const e = appsByName[name];
-            if (e)
+            if (e) {
                 entries.push(mkResult(e.name, e.icon ? `image://icon/${e.icon}` : "", e.comment || "", () => {
                     e.execute();
                     touchHistory(e.name);
                 }));
+            } else {
+                entries.push(mkResult(name, "\uf120", "Run as shell command", () => {
+                    Quickshell.execDetached(["kitty", "-e", "bash", "-c", name]);
+                    touchHistory(name);
+                }));
+            }
         }
         return entries;
     }
@@ -150,8 +172,14 @@ QtObject {
 
     function activateSelected() {
         const r = results[selectedIndex];
-        if (r && r.launch)
+        if (r && r.launch) {
             r.launch();
+            // Navigation rows (keepOpen) only refill the query — the
+            // launcher must stay open to show the new results.
+            return r.keepOpen === true;
+        }
+        // Nothing launched (info/placeholder row) — stay open.
+        return true;
     }
 
     // ---- result row factory ----
@@ -265,8 +293,20 @@ QtObject {
     }
 
     // ---- ">" command palette (quickapps / recent / commands as results) ----
+    // Full helper tips live here now (moved off the empty launcher state):
+    // bare ">" / ">help" lists every query mode as a runnable row.
     function paletteHelp() {
-        return [mkHeader("Commands"), mkResult(">quickapps", ">", "favorite apps - e.g. >quickapps term", () => runQuery(">quickapps")), mkResult(">recent", ">", "recently launched apps - e.g. >recent fire", () => runQuery(">recent")), mkResult(">commands", ">", "system commands - e.g. >commands shut", () => runQuery(">commands"))];
+        // Navigation row: activating it refills the query (launcher stays
+        // open via keepOpen) AND adopts the query into the search box.
+        function nav(name, query, desc) {
+            const r = mkResult(name, ">", desc, () => {
+                root.fillInputRequested(query);
+                runQuery(query);
+            });
+            r.keepOpen = true;
+            return r;
+        }
+        return [mkHeader("Commands"), nav(">quickapps", ">quickapps", "favorite apps - e.g. >quickapps term"), nav(">recent", ">recent", "recently launched apps - e.g. >recent fire"), nav(">commands", ">commands", "system commands - e.g. >commands shut"), nav("cb ...", "cb ", "clipboard history (text/html/image)"), nav("note ...", "note ", "add/list/edit/remove notes"), nav("apps ...", "apps", "list all installed applications"), nav("emoji ...", "emoji ", "search emojis"), nav("app --arg ...", "firefox --private", "open app with argument - e.g. firefox --private"), nav("hello > es", "hello > es", "translate into (en,fr,es,de,pt,ru,ar…)"), nav("example.com", "example.com", "open link (… .com or https://…)"), nav("2+2", "2+2", "arithmetics (../*/+-..)"), nav("100c to f", "100c to f", "unit conversion (temp/weight/length/volume/speed/digital)")];
     }
     function filterRows(rows, needle) {
         const q = (needle || "").toLowerCase().trim();
@@ -284,13 +324,7 @@ QtObject {
         if (!cmd || cmd === "help" || cmd === "h" || cmd === "?")
             return paletteHelp();
         if (cmd === "quickapps" || cmd === "qa" || cmd === "fav" || cmd === "favorites") {
-            const src = quickAppOrder.length > 0 ? quickAppOrder : quickAppsList();
-            const wrapped = src.map(a => mkResult(a.name, a.glyph || a.icon, a.description, () => {
-                touchQuickApp(a.name);
-                if (a.launch)
-                    a.launch();
-            }));
-            const out = filterRows(wrapped, arg);
+            const out = filterRows(quickAppResults(), arg);
             if (out.length === 0)
                 return [mkResult("No quick app match", ">", `Nothing matching "${arg}"`, null)];
             return [mkHeader("Quick Apps"), ...out.slice(0, maxItems)];
@@ -321,6 +355,22 @@ QtObject {
         while (i < rows.length && rows[i] && rows[i].isHeader)
             i++;
         selectedIndex = Math.min(i, Math.max(0, rows.length - 1));
+    }
+
+    // ---- default launcher state: recent apps, quick-apps fallback ----
+    function quickAppResults() {
+        const src = quickAppOrder.length > 0 ? quickAppOrder : quickAppsList();
+        return src.slice(0, maxItems).map(a => mkResult(a.name, a.glyph || a.icon, a.description, () => {
+            touchQuickApp(a.name);
+            if (a.launch)
+                a.launch();
+        }));
+    }
+    function defaultResults() {
+        const recents = recentApps().slice(0, maxItems);
+        if (recents.length > 0)
+            return [mkHeader("Recent Apps"), ...recents];
+        return [mkHeader("Quick Apps"), ...quickAppResults()];
     }
 
     // ---- unit conversion (full table) ----
@@ -643,7 +693,7 @@ QtObject {
         const t = String(text || "").replace(/^\s+/, "");
 
         if (!t || t.trim() === "") {
-            setResults([]);
+            setResults(defaultResults());
             return;
         }
 
@@ -708,7 +758,10 @@ QtObject {
         const rest = parts.slice(1);
         let r = appResults(head, rest);
         if (r.length === 0 && rest.length === 0) {
-            r = [mkResult(`Try ${t} in terminal`, "\u{F15BB}", "Run as shell command", () => Quickshell.execDetached(["kitty", "-e", "bash", "-c", t]))];
+            r = [mkResult(`Try ${t} in terminal`, "\u{F15BB}", "Run as shell command", () => {
+                Quickshell.execDetached(["kitty", "-e", "bash", "-c", t]);
+                touchHistory(t);
+            })];
         }
         setResults(r);
     }

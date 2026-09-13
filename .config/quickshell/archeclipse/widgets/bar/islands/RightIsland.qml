@@ -338,7 +338,7 @@ Column {
                     // wedges the scene in a silent polish loop (0-width freeze).
                     width: contentScroll.width
                     spacing: 8
-                    padding: 8
+                    padding: 4
 
                     Repeater {
                         id: enabledWidgetRepeater

@@ -4,6 +4,7 @@ AppButton 1.0 AppButton.qml
 AppKeybind 1.0 AppKeybind.qml
 AppSlider 1.0 AppSlider.qml
 AppImage 1.0 AppImage.qml
+AppVideo 1.0 AppVideo.qml
 AppCheckBox 1.0 AppCheckBox.qml
 AppSpinBox 1.0 AppSpinBox.qml
 AppComboBox 1.0 AppComboBox.qml

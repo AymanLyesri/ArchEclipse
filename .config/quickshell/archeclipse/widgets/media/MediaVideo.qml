@@ -5,6 +5,12 @@ import QtMultimedia
 // autoplay=true, loop=true, fills the parent (hexpand/vexpand), with a
 // destroy-time teardown that releases the media source (mirrors the old
 // gst teardown on unrealize to avoid GL-context crashes on re-init).
+//
+// NOTE: deliberately NOT a wrapper over AppVideo (see widgets/shared).
+// AppVideo's ClippingRectangle root puts the video through a clip-shader
+// layer that left a thin dark frame around dialog videos; a plain Item
+// renders edge-to-edge here (the hosts clip/round it themselves).
+// Lifecycle fixes belong in both files until they can share an Item root.
 Item {
     id: root
 
@@ -29,6 +35,11 @@ Item {
     VideoOutput {
         id: videoOut
         anchors.fill: parent
+        // Overscan: scaled video often carries a 1px dark fringe (odd
+        // dimensions padded for YUV 4:2:0, edge-texel filtering) — render
+        // 2px past the viewport and let the host clip it away. Hosts
+        // (dialogMedia, waifu mediaContainer) all clip, so nothing bleeds.
+        anchors.margins: -2
         fillMode: root.fill ? VideoOutput.Stretch : VideoOutput.PreserveAspectFit
         visible: root.source !== "" && player.hasVideo
     }

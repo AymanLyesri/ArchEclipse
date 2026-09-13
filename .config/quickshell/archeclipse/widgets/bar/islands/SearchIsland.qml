@@ -56,8 +56,10 @@ Column {
             }
             onAccepted: {
                 root.activateRequested();
-                Launcher.activateSelected();
-                BarState.deactivate("search");
+                // Navigation rows (">" tips) and info rows keep the
+                // launcher open; real launches close it.
+                if (!Launcher.activateSelected())
+                    BarState.deactivate("search");
             }
 
             Keys.onEscapePressed: BarState.deactivate("search")
@@ -88,6 +90,18 @@ Column {
                     input.text = "";
                     input.forceActiveFocus();
                 }
+            }
+        }
+
+        // Navigation rows (">" tips like "cb ...") adopt their query into the
+        // box so typing continues from that format. Programmatic set doesn't
+        // emit textEdited, so the runQuery from the row's launch isn't doubled.
+        Connections {
+            target: Launcher
+            function onFillInputRequested(query) {
+                input.text = query;
+                input.cursorPosition = input.text.length;
+                input.forceActiveFocus();
             }
         }
 

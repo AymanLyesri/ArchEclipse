@@ -195,6 +195,10 @@ Item {
     // Deferred until Settings.ready: booting on defaults would fetch with
     // limit 100 / the wrong tab and persist the defaults over the file.
     property bool _booted: false
+    // Dialog-host mode (e.g. waifu's private host): the instance only ever
+    // serves floating dialogs, so the grid boot fetch (network + preview
+    // downloads + tag persistence) is skipped entirely.
+    property bool dialogOnly: false
 
     // Slide-out, then unmount: the overlay glides/fades away first and
     // only then (_closeTimer) is the content dropped.
@@ -427,10 +431,11 @@ Item {
         return BooruUtils.imageFileUrl(root.booruPath, root.downloadedIds, img);
     }
 
-    // Dialog source: downloaded full file, else cached original, else ""
-    // while fetchOriginal() downloads it (dialog shows a spinner).
+    // Dialog source: downloaded full file, else cached original, else the
+    // cached preview still while fetchOriginal() downloads the full file,
+    // else "" (dialog shows a spinner).
     function dialogSource(img) {
-        return BooruUtils.dialogSource(root.booruPath, root.downloadedIds, root.fullIds, img);
+        return BooruUtils.dialogSource(root.booruPath, root.downloadedIds, root.fullIds, root.previewIds, img);
     }
 
     // Dialog auto-downloads the full file into <api>/images/ with the same
@@ -995,6 +1000,9 @@ Item {
         if (root._booted)
             return;
 
+        if (root.dialogOnly)
+            return;
+
         if (!Settings.ready)
             return;
 
@@ -1046,6 +1054,8 @@ Item {
     onPreviewIdsChanged: root.queueAvailableForReveal()
     onDownloadedIdsChanged: root.queueAvailableForReveal()
     Component.onCompleted: {
+        if (root.dialogOnly)
+            return;
         if (Settings.ready)
             root.boot();
         else

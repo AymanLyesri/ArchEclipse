@@ -28,7 +28,7 @@ function imageFileUrl(booruPath, downloadedIds, img) {
     return img.url ? img.url : (img.preview ? img.preview : "file://" + getIconPath(booruPath, img, "previews"))
 }
 
-function dialogSource(booruPath, downloadedIds, fullIds, img) {
+function dialogSource(booruPath, downloadedIds, fullIds, previewIds, img) {
     if (!img) return ""
     if (isDownloadedIn(downloadedIds, img))
         return "file://" + getIconPath(booruPath, img, "images")
@@ -42,12 +42,26 @@ function dialogSource(booruPath, downloadedIds, fullIds, img) {
     // to fetch, so hand the path to Qt instead of spinning forever.
     if (img && img.url && !/^https?:\/\//.test(img.url))
         return img.url.indexOf("file://") === 0 ? img.url : "file://" + img.url
+    // While the full file downloads, show the cached preview still
+    // (a JPEG even for video posts) instead of a blank spinner card.
+    if (img && previewIds && previewIds[String(img.id)])
+        return "file://" + getIconPath(booruPath, img, "previews")
     return ""
 }
 
 function gridSource(booruPath, downloadedIds, previewIds, img) {
     if (!img) return ""
-    if (isDownloadedIn(downloadedIds, img))
+    // Videos (mp4/webm/mkv) cannot be decoded by Qt's Image element — the
+    // grid card is a plain AppImage (no AnimatedImage/MediaVideo branch
+    // like the dialog has). The preview file is a JPEG still (Danbooru
+    // variant URL) despite the video extension, so always prefer it over
+    // the downloaded full file; otherwise the card flips to a real video
+    // file the moment fetchOriginal() marks it downloaded and goes blank.
+    // GIFs are excluded: Image renders their first frame, so the full
+    // file still shows (static) instead of blanking.
+    const ext = ((img && img.extension) || "").toLowerCase()
+    const isUnrenderableVideo = ["mp4", "webm", "mkv"].includes(ext)
+    if (!isUnrenderableVideo && isDownloadedIn(downloadedIds, img))
         return "file://" + getIconPath(booruPath, img, "images")
     if (img && previewIds[String(img.id)])
         return "file://" + getIconPath(booruPath, img, "previews")

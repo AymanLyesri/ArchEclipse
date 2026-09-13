@@ -141,6 +141,28 @@ Column {
 
     // Direct access to the booru viewer instance (null until primed).
     readonly property var booruView: booruLoader.item
+    // Post waiting for the booru Loader: openDialog lands here when a
+    // caller (e.g. waifu) floats a dialog before first instantiation.
+    property var _pendingDialogImage: null
+
+    // Open a post in the floating detail window without opening the
+    // island. Primes the Booru tab; if the viewer isn't instantiated
+    // yet this tick (Loader activates on the next binding pass), the
+    // post parks in _pendingDialogImage and booruLoader.onLoaded below
+    // opens it. Returns false only when there is nothing to open.
+    function openBooruDialog(img) {
+        if (!img)
+            return false;
+        root.primeTab("BooruViewer");
+        const v = root.booruView;
+        if (v && typeof v.openDialog === "function" && typeof v.detachDialog === "function") {
+            v.openDialog(img, null);
+            v.detachDialog();
+        } else {
+            root._pendingDialogImage = img;
+        }
+        return true;
+    }
 
     // Build a tab's Loader without switching to it or opening the island
     // (primes on demand, e.g. floating a dialog from another widget).
@@ -404,7 +426,7 @@ Column {
                 StackLayout {
                     id: widgetStack
                     anchors.fill: parent
-                    anchors.margins: 8
+                    anchors.margins: 4
                     currentIndex: {
                         switch (root.selectedWidget) {
                         case "UserProfile":
@@ -444,8 +466,17 @@ Column {
                             // hostPanel.screen — no one-shot assign here
                             // (nested onLoaded can run before the bar sets
                             // the island's screen).
-                            if (item)
+                            if (item) {
                                 item.hostPanel = root;
+                                // Flush a dialog parked by openBooruDialog
+                                // while this Loader was instantiating.
+                                if (root._pendingDialogImage) {
+                                    const p = root._pendingDialogImage;
+                                    root._pendingDialogImage = null;
+                                    item.openDialog(p, null);
+                                    item.detachDialog();
+                                }
+                            }
                         }
                     }
                     Loader {

@@ -91,9 +91,9 @@ Singleton {
 
     // Player pulse tracking
     property var _activePlayer: null
-    property string _lastPlayerTitle: ""
+    property string _playerKey: ""
     property bool _playerFirstRender: true
-    property int playerPolls: 0
+    property int playerEvents: 0
 
     // Network pulse tracking
     property var _networkDevice: null
@@ -305,47 +305,80 @@ Singleton {
         }
     }
 
-    // ===== MPRIS player watcher =====
-    function setupPlayerWatcher() {
-        // Find first playable player
-        function findPlayablePlayer() {
-            for (const p of Mpris.players.values) {
-                if ((p.trackTitle ?? "").trim() !== "" || p.playbackState === MprisPlaybackState.Playing) {
-                    return p;
-                }
+    // ===== MPRIS player watcher (event-driven) =====
+    // The island opens only when the actual media item meaningfully
+    // changes (composite identity below). YouTube thumbnail hover
+    // previews publish the hovered video's title as transient metadata
+    // while the page URL stays on a browse page (no /watch, /shorts,
+    // ... video path) — that is preview noise, not a new item, so it
+    // never pulses. Redundant pushes (late cover art, position/length,
+    // play/pause) keep the same key and are ignored the same way.
+    function pickPlayer() {
+        for (const p of Mpris.players.values) {
+            if ((p.trackTitle ?? "").trim() !== "" || p.playbackState === MprisPlaybackState.Playing) {
+                return p;
             }
-            return null;
+        }
+        return null;
+    }
+
+    function previewUrl(p) {
+        try {
+            const md = p ? p.metadata : null;
+            if (!md)
+                return "";
+            const u = md["xesam:url"];
+            return u === undefined || u === null ? "" : String(u);
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function playerItemKey(p) {
+        if (!p)
+            return "";
+        return (p.uniqueId ?? "?") + "|" + (p.trackTitle ?? "") + "|" + (p.trackArtist ?? "") + "|" + previewUrl(p);
+    }
+
+    // True when the player exposes preview noise rather than an actual
+    // media item: a YouTube browse page (no video path). Not a site
+    // blacklist — real video pages (/watch, /shorts, ...) return false.
+    function isPreviewUpdate(p) {
+        const m = previewUrl(p).match(/^https?:\/\/(?:www\.|m\.)?youtube\.com(\/[^?#]*)?/i);
+        if (!m)
+            return false;
+        const path = (m[1] || "/").toLowerCase();
+        return !(/^(\/watch|\/shorts\/|\/embed\/|\/live\/|\/v\/)/.test(path));
+    }
+
+    function notePlayerUpdate() {
+        root.playerEvents++;
+        const player = pickPlayer();
+        root._activePlayer = player;
+        const key = playerItemKey(player);
+
+        // Skip first evaluation (snapshot the baseline, don't pulse)
+        if (root._playerFirstRender) {
+            root._playerFirstRender = false;
+            root._playerKey = key;
+            return;
         }
 
-        // Watch for player changes using a timer since QtObject properties don't auto-emit signals
-        const playerTimer = Qt.createQmlObject('import QtQuick; Timer { interval: 2000; running: true; repeat: true }', root);
-        playerTimer.onTriggered.connect(function () {
-            root.playerPolls++;
-            const player = findPlayablePlayer();
-            if (!player)
-                return;
-            const curTitle = player.trackTitle ?? "";
+        // Redundant metadata/state push — identity unchanged
+        if (key === root._playerKey)
+            return;
+        root._playerKey = key;
 
-            // Skip first render
-            if (root._playerFirstRender) {
-                root._playerFirstRender = false;
-                root._activePlayer = player;
-                root._lastPlayerTitle = curTitle;
-                return;
-            }
+        // Player gone or thumbnail-preview noise — record, don't pulse
+        if (!player || isPreviewUpdate(player))
+            return;
 
-            // Ignore if same player object and title unchanged (compare
-            // against the stored snapshot — comparing player.trackTitle to
-            // _activePlayer.trackTitle is always equal when they are the
-            // same object, so title changes would never fire).
-            if (root._activePlayer === player && curTitle === root._lastPlayerTitle) {
-                return;
-            }
-            root._activePlayer = player;
-            root._lastPlayerTitle = curTitle;
+        root.activate("player", 2500);
+    }
 
-            root.activate("player", 2500);
-        });
+    function setupPlayerWatcher() {
+        root.notePlayerUpdate();
+        Mpris.players.valuesChanged.connect(root.notePlayerUpdate);
     }
 
     // ===== Network watcher =====
@@ -583,22 +616,29 @@ Singleton {
         }
     }
 
-    // Instant player-title trigger: fires the island the moment the active
-    // player's title changes instead of waiting for the 2s poll above.
-    // The poll stays as fallback for player-list switches.
+    // Media-item trigger: re-evaluates the island the moment the active
+    // player's item identity may have changed (track switch,
+    // title/artist/url update, player-list switch). notePlayerUpdate
+    // dedupes redundant pushes and drops thumbnail-preview noise.
+    // trackChanged fires before the new properties land (postTrackChanged
+    // fires after), so both are watched — the stale first pass is a
+    // same-key no-op and the follow-up carries the new identity.
     Connections {
         target: root._activePlayer
+        function onTrackChanged() {
+            root.notePlayerUpdate();
+        }
+        function onPostTrackChanged() {
+            root.notePlayerUpdate();
+        }
         function onTrackTitleChanged() {
-            const cur = root._activePlayer?.trackTitle ?? "";
-            if (root._playerFirstRender) {
-                root._playerFirstRender = false;
-                root._lastPlayerTitle = cur;
-                return;
-            }
-            if (cur === root._lastPlayerTitle)
-                return;
-            root._lastPlayerTitle = cur;
-            root.activate("player", 2500);
+            root.notePlayerUpdate();
+        }
+        function onTrackArtistChanged() {
+            root.notePlayerUpdate();
+        }
+        function onMetadataChanged() {
+            root.notePlayerUpdate();
         }
     }
 }

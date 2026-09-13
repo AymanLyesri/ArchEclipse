@@ -74,11 +74,35 @@ Item {
     readonly property bool dlgBookmarked: dlg ? (viewer ? viewer.isBookmarked(dlg) : false) : false
     readonly property bool dlgPinned: dlg ? (viewer ? viewer.isPinned(dlg) : false) : false
     readonly property bool dlgIsWaifu: dlg ? (viewer ? viewer.isCurrentWaifu(dlg) : false) : false
-    readonly property bool dlgLoading: viewer ? (viewer.progressStatus === "loading" || (dlg && !dlgIsVideo && viewer.dialogSource(dlg) === "")) : false
+    readonly property bool dlgIsLocal: dlg ? (dlg.url && !/^https?:\/\//.test(dlg.url)) : false
+    // Full file still in flight: the dialog shows the preview still
+    // meanwhile (see dialogSource fallback) with the spinner over it.
+    // Videos keep their placeholder text, zips never download (no
+    // eternal spinner), local files need no download.
+    readonly property bool dlgLoading: viewer ? (viewer.progressStatus === "loading" || (dlg && !dlgIsVideo && !dlgIsZip && !dlgIsLocal && !dlgDownloaded)) : false
+    // Full file pending (images AND videos/gifs): drives the top
+    // "Downloading…" pill over the preview still. Zips never download
+    // and local files need none, so both are excluded.
+    readonly property bool dlgDownloading: dlg ? (!dlgIsZip && !dlgIsLocal && !dlgDownloaded) : false
     readonly property bool dlgVideoPlayable: dlg ? (dlgIsVideo && dlgDownloaded && !dlgIsZip && !dlgIsGif) : false
     readonly property bool dlgVideoPlaceholder: dlg ? (dlgIsVideo && !dlgDownloaded) : false
     readonly property string dlgTypeIcon: dlgIsZip ? "" : (dlgIsVideo ? "" : "")
     readonly property int dlgVisibleTagCount: showAllTags ? dlgTags.length : Math.min(dlgTags.length, 12)
+    // Badge icons shared by the still preview (AppImage below) and the
+    // video overlay: AppImage hides once a video plays, taking its own
+    // badges with it, so both feed off this one list.
+    readonly property var dlgBadges: {
+        const b = [];
+        if (dialogRoot.dlgDownloaded)
+            b.push("\uf019");
+        if (dialogRoot.dlgBookmarked)
+            b.push("\uf02e");
+        if (dialogRoot.dlgPinned)
+            b.push("\uf08d");
+        if (dialogRoot.dlgIsWaifu)
+            b.push("\uf004");
+        return b;
+    }
     // Bottom sheet reveal (WaifuWidget parity): hovering anywhere on the
     // card (media or the sheet itself — all children of slider) slides
     // the sheet up. The handler must live on the container, not on
@@ -131,6 +155,35 @@ Item {
                 fill: true
                 visible: dialogRoot.dlgVideoPlayable
             }
+            // Badges over a playing video: without these the card looks
+            // like a bare player (bottom sheet is hover-reveal) instead
+            // of the dialog. Same chips as AppImage below; visibility is
+            // mutually exclusive with it, so they never double up.
+            Row {
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 4
+                spacing: 4
+                visible: dialogRoot.dlgVideoPlayable && dialogRoot.dlgBadges.length > 0
+                Repeater {
+                    model: dialogRoot.dlgBadges
+                    delegate: Rectangle {
+                        required property string modelData
+                        width: 24
+                        height: 18
+                        radius: Theme.radius
+                        color: Theme.accent
+                        visible: modelData !== ""
+                        Text {
+                            anchors.centerIn: parent
+                            text: parent.modelData
+                            font.pixelSize: 9
+                            font.family: Theme.fontFamily
+                            color: "white"
+                        }
+                    }
+                }
+            }
             // video not downloaded → placeholder
             Column {
                 anchors.centerIn: parent
@@ -157,18 +210,7 @@ Item {
                 sourceWidth: parent.width
                 animated: true
                 visible: !!dlg && !dialogRoot.dlgVideoPlayable
-                badges: {
-                    const b = [];
-                    if (dialogRoot.dlgDownloaded)
-                        b.push("\uf019");
-                    if (dialogRoot.dlgBookmarked)
-                        b.push("\uf02e");
-                    if (dialogRoot.dlgPinned)
-                        b.push("\uf08d");
-                    if (dialogRoot.dlgIsWaifu)
-                        b.push("\uf004");
-                    return b;
-                }
+                badges: dialogRoot.dlgBadges
             }
             AppProgress {
                 anchors.centerIn: parent
@@ -176,6 +218,40 @@ Item {
                 height: 20
                 status: dialogRoot.dlgLoading ? "loading" : "idle"
                 variant: "spinner"
+            }
+            // Downloading pill: top-left overlay while the full file is
+            // in flight, floating above the preview still. The meta
+            // strip's "Downloading…" lives in the hover sheet; this is
+            // its always-visible counterpart (top-left keeps clear of
+            // the AppImage badges at top-right).
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.margins: 8
+                implicitWidth: dlPillRow.implicitWidth + 18
+                implicitHeight: 24
+                radius: 12
+                color: Qt.rgba(0, 0, 0, 0.6)
+                visible: dialogRoot.dlgDownloading
+                Row {
+                    id: dlPillRow
+                    anchors.centerIn: parent
+                    spacing: 6
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ""
+                        color: "white"
+                        font.pixelSize: 11
+                        font.family: Theme.fontFamily
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Downloading…"
+                        color: "white"
+                        font.pixelSize: Theme.fontSize - 2
+                        font.family: Theme.fontFamily
+                    }
+                }
             }
         } // dialogMedia
 

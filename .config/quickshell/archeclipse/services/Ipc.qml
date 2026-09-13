@@ -197,7 +197,7 @@ Item {
                     + " brightFirst=" + BarState._brightnessFirstRender
                     + " playerFirst=" + BarState._playerFirstRender
                     + " activePlayer=" + (BarState._activePlayer ? "set" : "null")
-                    + " playerPolls=" + BarState.playerPolls
+                    + " playerEvents=" + BarState.playerEvents
                     + " mprisN=" + (Mpris.players.values ? Mpris.players.values.length : -1)
                     + " netFirst=" + BarState._networkFirstRender
                     + " state=" + BarState.state;
