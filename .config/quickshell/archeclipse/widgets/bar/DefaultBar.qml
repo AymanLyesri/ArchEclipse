@@ -325,11 +325,30 @@ Column {
                         delay: 500
                     }
 
+                    // Hover dwell (Settings.revealPressure, 0 = instant) so
+                    // brushing the cursor across the bar doesn't pulse the
+                    // island by accident.
+                    Timer {
+                        id: playerDwellTimer
+                        interval: Settings.revealPressure
+                        repeat: false
+                        onTriggered: {
+                            if (playerHover.hovered && root.firstPlayable)
+                                BarState.activate("player", 2500);
+                        }
+                    }
+
                     HoverHandler {
                         id: playerHover
                         onHoveredChanged: {
-                            if (playerHover.hovered && root.firstPlayable)
-                                BarState.activate("player", 2500);
+                            if (playerHover.hovered && root.firstPlayable) {
+                                if (Settings.revealPressure <= 0)
+                                    BarState.activate("player", 2500);
+                                else
+                                    playerDwellTimer.restart();
+                            } else {
+                                playerDwellTimer.stop();
+                            }
                         }
                     }
                     MouseArea {

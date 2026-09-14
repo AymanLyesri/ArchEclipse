@@ -120,8 +120,26 @@ Item {
         onClicked: BarState.activate("network", 3000)
     }
 
+    // Hover dwell (Settings.revealPressure, 0 = instant) so brushing the
+    // cursor across the bar doesn't pulse the island by accident.
+    Timer {
+        id: dwellTimer
+        interval: Settings.revealPressure
+        repeat: false
+        onTriggered: BarState.activate("network", 3000)
+    }
+
     HoverHandler {
-        onHoveredChanged: if (hovered)
-            BarState.activate("network", 3000)
+        id: netHover
+        onHoveredChanged: {
+            if (netHover.hovered) {
+                if (Settings.revealPressure <= 0)
+                    BarState.activate("network", 3000);
+                else
+                    dwellTimer.restart();
+            } else {
+                dwellTimer.stop();
+            }
+        }
     }
 }

@@ -106,14 +106,31 @@ Rectangle {
         }
     }
 
+    // Hover dwell (Settings.revealPressure, 0 = instant) so brushing the
+    // cursor across the bar doesn't reveal the slider by accident.
+    Timer {
+        id: dwellTimer
+        interval: Settings.revealPressure
+        repeat: false
+        onTriggered: {
+            root.keepOpen = true;
+            root.sliderRevealed = true;
+            hideTimer.stop();
+        }
+    }
     HoverHandler {
         id: hover
         onHoveredChanged: {
             if (hover.hovered) {
-                root.keepOpen = true;
-                root.sliderRevealed = true;
-                hideTimer.stop();
+                if (Settings.revealPressure <= 0) {
+                    root.keepOpen = true;
+                    root.sliderRevealed = true;
+                    hideTimer.stop();
+                } else {
+                    dwellTimer.restart();
+                }
             } else {
+                dwellTimer.stop();
                 root.keepOpen = false;
                 hideTimer.restart();
             }

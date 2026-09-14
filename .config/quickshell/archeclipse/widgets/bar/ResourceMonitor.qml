@@ -124,11 +124,27 @@ Item {
                     delay: 500
                 }
 
+                // Hover dwell (Settings.revealPressure, 0 = instant) so
+                // brushing the cursor across the bar doesn't pulse the
+                // island by accident.
+                Timer {
+                    id: dwellTimer
+                    interval: Settings.revealPressure
+                    repeat: false
+                    onTriggered: root.pulseIsland(3000)
+                }
+
                 HoverHandler {
                     id: barHover
                     onHoveredChanged: {
-                        if (barHover.hovered)
-                            root.pulseIsland(3000);
+                        if (barHover.hovered) {
+                            if (Settings.revealPressure <= 0)
+                                root.pulseIsland(3000);
+                            else
+                                dwellTimer.restart();
+                        } else {
+                            dwellTimer.stop();
+                        }
                     }
                 }
             }

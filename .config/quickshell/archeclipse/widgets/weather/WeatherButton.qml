@@ -75,11 +75,26 @@ Rectangle {
         onClicked: BarState.activate("weather", 3000)
     }
 
+    // Hover dwell (Settings.revealPressure, 0 = instant) so brushing the
+    // cursor across the bar doesn't pulse the island by accident.
+    Timer {
+        id: dwellTimer
+        interval: Settings.revealPressure
+        repeat: false
+        onTriggered: BarState.activate("weather", 3000)
+    }
+
     HoverHandler {
         id: hover
         onHoveredChanged: {
-            if (hover.hovered)
-                BarState.activate("weather", 3000);
+            if (hover.hovered) {
+                if (Settings.revealPressure <= 0)
+                    BarState.activate("weather", 3000);
+                else
+                    dwellTimer.restart();
+            } else {
+                dwellTimer.stop();
+            }
         }
     }
 }

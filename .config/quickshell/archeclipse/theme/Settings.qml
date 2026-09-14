@@ -15,7 +15,7 @@ Singleton {
     property bool barSmartHide: false
     property bool barDefault: true
     property bool barFullWidth: false
-    property real revealPressure: 250
+    property real revealPressure: 500
     property bool barOrientation: true        // true = top
     property bool workspaceNumbers: false
 
@@ -275,19 +275,117 @@ Singleton {
     // {name, value, type, min, max} (flagged typeFirst) — the loop below
     // reproduces both so on-disk bytes never change.
     readonly property var _hyprlandLeafSchema: [
-        { path: ["general", "border_size"], name: "Border Size", min: 0, max: 10, type: "int", def: 0 },
-        { path: ["general", "gaps_in"], name: "Gaps In", min: 0, max: 20, type: "int", def: 7 },
-        { path: ["general", "gaps_out"], name: "Gaps Out", min: 0, max: 40, type: "int", def: 10 },
-        { path: ["decoration", "rounding"], name: "Rounding", min: 0, max: 50, type: "int", def: 16 },
-        { path: ["decoration", "active_opacity"], name: "Active Opacity", min: 0, max: 1, type: "float", def: 0.9 },
-        { path: ["decoration", "inactive_opacity"], name: "Inactive Opacity", min: 0, max: 1, type: "float", def: 0.8 },
-        { path: ["decoration", "blur", "enabled"], name: "Blur Enabled", min: 0, max: 1, type: "bool", def: true, typeFirst: true },
-        { path: ["decoration", "blur", "size"], name: "Blur Size", min: 0, max: 10, type: "int", def: 4, typeFirst: true },
-        { path: ["decoration", "blur", "passes"], name: "Blur Passes", min: 0, max: 10, type: "int", def: 4, typeFirst: true },
-        { path: ["decoration", "blur", "xray"], name: "Blur Xray", min: 0, max: 1, type: "bool", def: false, typeFirst: true },
-        { path: ["decoration", "shadow", "enabled"], name: "Shadow Enabled", min: 0, max: 1, type: "bool", def: true, typeFirst: true },
-        { path: ["decoration", "shadow", "range"], name: "Shadow Range", min: 0, max: 20, type: "int", def: 15, typeFirst: true },
-        { path: ["decoration", "shadow", "render_power"], name: "Shadow Render Power", min: 0, max: 20, type: "int", def: 3, typeFirst: true }
+        {
+            path: ["general", "border_size"],
+            name: "Border Size",
+            min: 0,
+            max: 10,
+            type: "int",
+            def: 0
+        },
+        {
+            path: ["general", "gaps_in"],
+            name: "Gaps In",
+            min: 0,
+            max: 20,
+            type: "int",
+            def: 7
+        },
+        {
+            path: ["general", "gaps_out"],
+            name: "Gaps Out",
+            min: 0,
+            max: 40,
+            type: "int",
+            def: 10
+        },
+        {
+            path: ["decoration", "rounding"],
+            name: "Rounding",
+            min: 0,
+            max: 50,
+            type: "int",
+            def: 16
+        },
+        {
+            path: ["decoration", "active_opacity"],
+            name: "Active Opacity",
+            min: 0,
+            max: 1,
+            type: "float",
+            def: 0.9
+        },
+        {
+            path: ["decoration", "inactive_opacity"],
+            name: "Inactive Opacity",
+            min: 0,
+            max: 1,
+            type: "float",
+            def: 0.8
+        },
+        {
+            path: ["decoration", "blur", "enabled"],
+            name: "Blur Enabled",
+            min: 0,
+            max: 1,
+            type: "bool",
+            def: true,
+            typeFirst: true
+        },
+        {
+            path: ["decoration", "blur", "size"],
+            name: "Blur Size",
+            min: 0,
+            max: 10,
+            type: "int",
+            def: 4,
+            typeFirst: true
+        },
+        {
+            path: ["decoration", "blur", "passes"],
+            name: "Blur Passes",
+            min: 0,
+            max: 10,
+            type: "int",
+            def: 4,
+            typeFirst: true
+        },
+        {
+            path: ["decoration", "blur", "xray"],
+            name: "Blur Xray",
+            min: 0,
+            max: 1,
+            type: "bool",
+            def: false,
+            typeFirst: true
+        },
+        {
+            path: ["decoration", "shadow", "enabled"],
+            name: "Shadow Enabled",
+            min: 0,
+            max: 1,
+            type: "bool",
+            def: true,
+            typeFirst: true
+        },
+        {
+            path: ["decoration", "shadow", "range"],
+            name: "Shadow Range",
+            min: 0,
+            max: 20,
+            type: "int",
+            def: 15,
+            typeFirst: true
+        },
+        {
+            path: ["decoration", "shadow", "render_power"],
+            name: "Shadow Render Power",
+            min: 0,
+            max: 20,
+            type: "int",
+            def: 3,
+            typeFirst: true
+        }
     ]
 
     // Waifu widget setting group
@@ -564,33 +662,33 @@ Singleton {
                 // blur/shadow leaves keep their {name,value,type,min,max}
                 // order via typeFirst so on-disk bytes never change.
                 "hyprland": (() => {
-                    const out = {};
-                    for (const leaf of root._hyprlandLeafSchema) {
-                        const v = leaf.path.reduce((o, k) => ((o == null) ? o : o[k]), root.hyprland) ?? leaf.def;
-                        let node = out;
-                        for (let i = 0; i < leaf.path.length - 1; i++) {
-                            const g = leaf.path[i];
-                            if (node[g] === undefined)
-                                node[g] = {};
-                            node = node[g];
+                        const out = {};
+                        for (const leaf of root._hyprlandLeafSchema) {
+                            const v = leaf.path.reduce((o, k) => ((o == null) ? o : o[k]), root.hyprland) ?? leaf.def;
+                            let node = out;
+                            for (let i = 0; i < leaf.path.length - 1; i++) {
+                                const g = leaf.path[i];
+                                if (node[g] === undefined)
+                                    node[g] = {};
+                                node = node[g];
+                            }
+                            const key = leaf.path[leaf.path.length - 1];
+                            node[key] = (leaf.typeFirst === true) ? {
+                                name: leaf.name,
+                                value: v,
+                                type: leaf.type,
+                                min: leaf.min,
+                                max: leaf.max
+                            } : {
+                                name: leaf.name,
+                                value: v,
+                                min: leaf.min,
+                                max: leaf.max,
+                                type: leaf.type
+                            };
                         }
-                        const key = leaf.path[leaf.path.length - 1];
-                        node[key] = (leaf.typeFirst === true) ? {
-                            name: leaf.name,
-                            value: v,
-                            type: leaf.type,
-                            min: leaf.min,
-                            max: leaf.max
-                        } : {
-                            name: leaf.name,
-                            value: v,
-                            min: leaf.min,
-                            max: leaf.max,
-                            type: leaf.type
-                        };
-                    }
-                    return out;
-                })(),
+                        return out;
+                    })(),
                 dynamicThemeColors: {
                     value: root.dynamicThemeColors
                 },
@@ -870,21 +968,21 @@ Singleton {
                 // missing keys to 0/false on every reload). Defaults come
                 // from _hyprlandLeafSchema so persist()/reload() agree.
                 root.hyprland = (() => {
-                    const out = {};
-                    for (const leaf of root._hyprlandLeafSchema) {
-                        const node = leaf.path.reduce((o, k) => ((o == null) ? undefined : o[k]), s.hyprland);
-                        const v = ((typeof node === "object" && node !== null) ? node.value : undefined) ?? leaf.def;
-                        let target = out;
-                        for (let i = 0; i < leaf.path.length - 1; i++) {
-                            const g = leaf.path[i];
-                            if (target[g] === undefined)
-                                target[g] = {};
-                            target = target[g];
+                        const out = {};
+                        for (const leaf of root._hyprlandLeafSchema) {
+                            const node = leaf.path.reduce((o, k) => ((o == null) ? undefined : o[k]), s.hyprland);
+                            const v = ((typeof node === "object" && node !== null) ? node.value : undefined) ?? leaf.def;
+                            let target = out;
+                            for (let i = 0; i < leaf.path.length - 1; i++) {
+                                const g = leaf.path[i];
+                                if (target[g] === undefined)
+                                    target[g] = {};
+                                target = target[g];
+                            }
+                            target[leaf.path[leaf.path.length - 1]] = v;
                         }
-                        target[leaf.path[leaf.path.length - 1]] = v;
-                    }
-                    return out;
-                })();
+                        return out;
+                    })();
             }
         } catch (e) {
             console.warn("[Settings] parse failed:", e);

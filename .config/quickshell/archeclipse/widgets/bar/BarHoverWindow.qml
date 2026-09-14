@@ -6,8 +6,8 @@ import qs.theme
 import qs.services
 
 // A thin edge strip that dwell-reveals the auto-hidden bar.
-// (threshold<=0 → instant, else 1s dwell). The strip is only relevant when
-// the bar is auto-hidden (unlocked).
+// (revealPressure<=0 → instant, else dwell revealPressure ms). The strip
+// is only relevant when the bar is auto-hidden (unlocked).
 PanelWindow {
     id: root
 
@@ -33,7 +33,7 @@ PanelWindow {
     property bool atEdge: false
     Timer {
         id: dwellTimer
-        interval: 1000
+        interval: Settings.revealPressure
         repeat: false
         onTriggered: {
             root.atEdge = false
