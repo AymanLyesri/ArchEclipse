@@ -47,7 +47,34 @@ Item {
     property string targetType: "workspace"
     property int selectedWorkspaceId: 1
 
-    property string progressStatus: "idle" // idle | loading | success | error
+    // Phased progress (text label in the action bar, no spinner):
+    // idle | searching | downloading | setting | deleting | adding
+    // | reloading | loading (generic fallback) | success | error.
+    // Each flow sets its phase; success/error auto-reset to idle after 1.5s.
+    property string progressStatus: "idle"
+    readonly property string progressText: {
+        switch (root.progressStatus) {
+        case "searching": return "Searching…";
+        case "downloading": return "Downloading…";
+        case "setting": return "Setting…";
+        case "deleting": return "Deleting…";
+        case "adding": return "Adding…";
+        case "reloading": return "Reloading…";
+        case "loading": return "Working…";
+        case "success": return "Done";
+        case "error": return "Failed";
+        default: return "";
+        }
+    }
+    readonly property string progressColor: {
+        if (root.progressStatus === "success")
+            return Theme.fg;
+        if (root.progressStatus === "error")
+            return Theme.color1;
+        if (root.progressStatus === "idle")
+            return Theme.fgDim;
+        return Theme.accent;
+    }
     function setProgress(status) {
         progressStatus = status;
         if (status === "success" || status === "error")
@@ -60,6 +87,7 @@ Item {
     }
 
     property var wallpapers: ({})               // category -> [paths]
+    property string _lastWallpapersJson: ""
     readonly property var categories: Object.keys(wallpapers)
     // Single source of truth: Settings.wallpaperCategory. This binding is NEVER
     // assigned locally, so it can't desync like a mirrored var: every
@@ -100,6 +128,9 @@ Item {
     readonly property var selectedWallpapers: wallpapers[selectedCategory] ?? []
     // Exposed for Ipc wallpaperDiag ("strip" query) and tests.
     readonly property alias wallStrip: wallScroll
+    // Test hook for the "stripdeep" diag: lets automation walk the local
+    // masonry geometry (rows, cellX/cellW, inWindow) without a mouse.
+    readonly property alias localMasonry: localMasonry
 
     // ------------------------------------------------- provider abstraction
     // Generic provider schema: "local" reuses the folder categories above
@@ -303,6 +334,12 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
+                    // Skip no-change adoptions: every reassign rebuilds the
+                    // masonry + re-decodes all tiles (visible flicker), so a
+                    // refresh that returns identical JSON must be a no-op.
+                    if (text === root._lastWallpapersJson)
+                        return;
+                    root._lastWallpapersJson = text;
                     root.wallpapers = JSON.parse(text);
                     root.runThumbGen();
                 } catch (e) {
@@ -392,7 +429,7 @@ Item {
         root._whSeq++;
         const seq = root._whSeq;
         root.whLoading = true;
-        setProgress("loading");
+        setProgress("searching");
         const w = root.wh;
         const cmd = ["python3", root.wallhavenScript, "--search", "--categories", w.categories, "--purity", w.purity, "--sorting", w.sorting, "--order", w.order, "--page", String(w.page)];
         if (w.q !== "")
@@ -467,7 +504,7 @@ Item {
             return;
         const base = ((item.full !== "" ? item.full : item.id).split("/").pop().split("?")[0]) || (item.id + ".jpg");
         const dest = root.wallhavenDir + "/" + base;
-        setProgress("loading");
+        setProgress("downloading");
         root._pendingWhApply = apply ? "apply" : "";
         root._whDownloadedPath = "";
         const cmd = ["python3", root.wallhavenScript, "--download", item.id, "--dest", dest];
@@ -555,7 +592,7 @@ Item {
     }
 
     function applyWallpaper(path) {
-        setProgress("loading");
+        setProgress("setting");
         root._pendingThemeRegen = (root.targetType === "workspace" && Settings.dynamicThemeColors) ? path : "";
         setProc.command = commandFor(root.targetType, path);
         setProc.running = true;
@@ -607,7 +644,7 @@ Item {
         }
     }
     function deleteWallpaper(path) {
-        setProgress("loading");
+        setProgress("deleting");
         deleteProc.command = ["bash", "-c", `rm -f ${JSON.stringify(path)}`];
         deleteProc.running = true;
     }
@@ -623,7 +660,7 @@ Item {
         }
     }
     function reloadDaemon() {
-        setProgress("loading");
+        setProgress("reloading");
         reloadProc.command = ["bash", "-c", root.reloadScript];
         reloadProc.running = true;
     }
@@ -668,7 +705,7 @@ Item {
         }
     }
     function importWallpaper(sourcePath) {
-        setProgress("loading");
+        setProgress("adding");
         const targetDir = root.home + "/.config/wallpapers/custom";
         const basename = sourcePath.split("/").pop();
         const targetPath = targetDir + "/" + basename;
@@ -753,12 +790,15 @@ Item {
                             sourceWidth: wsTile.width
                             badges: [(wsTile.index + 1).toString()]
                         }
-                        // Live animated preview for workspace videos: plays ON
-                        // HOVER ONLY (same 103-video reasoning as the main
-                        // strip below — empty source = zero decoder work).
-                        // The icon below stays until the first frame lands,
-                        // or permanently on decode failure.
-                        readonly property bool wsPreviewing: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && wsHover.containsMouse
+                        // Live animated preview for workspace videos: ALWAYS
+                        // live (restored ac33749c behavior — the hover-only
+                        // gate added in the masonry refactor left the decoder
+                        // off, so video tiles showed the icon forever).
+                        // Unlike the main strip (100+ videos), this strip
+                        // holds one tile per workspace, so always-on decoders
+                        // stay cheap. The icon below stays until the first
+                        // frame lands, or permanently on decode failure.
+                        readonly property bool wsPreviewing: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData)
                         AppVideo {
                             id: wsVideo
                             anchors.fill: parent
@@ -787,15 +827,6 @@ Item {
                             text: "No Wallpaper"
                             color: Theme.muted
                             font.family: Theme.fontFamily
-                        }
-                        // Hover-only area (display tile: no clicks, no cursor —
-                        // workspace follows the focused workspace). Exists so
-                        // video previews have a hover signal to play on.
-                        MouseArea {
-                            id: wsHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.NoButton
                         }
                     }
                 }
@@ -907,13 +938,15 @@ Item {
                         font.pixelSize: Theme.fontSize - 2
                     }
 
-                    AppProgress {
-                        // Plain Row ignores implicitHeight — fix the size.
-                        width: 20
-                        height: 20
-                        status: root.progressStatus
-                        variant: "spinner"
-                        showSuccess: true
+                    Text {
+                        // Phased progress text (replaces the spinner): fixed
+                        // width so phase changes don't jitter the action bar.
+                        width: 110
+                        elide: Text.ElideRight
+                        text: root.progressText
+                        color: root.progressColor
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 2
                     }
                 }
             }
@@ -1103,6 +1136,10 @@ Item {
                     rows: Settings.wallpaperMasonryRows
                     spacing: 6
                     rowHeight: Settings.wallpaperTileSize
+                    // Preserve the (now alphabetically sorted) file order
+                    // left-to-right instead of shortest-row bin-packing,
+                    // which shuffled tiles every time aspects refined.
+                    balanceRows: false
                     model: root.selectedWallpapers
                     aspectRatio: function (path) {
                         return root.localAspectOf(path);
@@ -1178,11 +1215,12 @@ Item {
                             // (empty until the background run maps it —
                             // the icon below holds the tile meanwhile).
                             source: (tile.modelData === undefined) ? "" : (root.isVideoFile(tile.modelData) ? (tile.tileThumb !== "" ? "file://" + tile.tileThumb : "") : "file://" + tile.modelData)
-                            // Decode near the displayed width; the width
-                            // itself refines once this ratio reports back
-                            // (epsilon-guarded in noteLocalAspect, so no
-                            // decode loop).
-                            sourceWidth: Math.max(1, Math.round(tile.width))
+                            // Decode at a stable width: binding sourceWidth to
+                            // the aspect-derived tile.width reloaded the image
+                            // on every aspect refine (width change -> reload
+                            // -> opacity dip -> fade = flicker). Tile height
+                            // is the fixed rowHeight, so one size fits all.
+                            sourceWidth: Math.max(1, Math.round(Settings.wallpaperTileSize * 2))
                             badges: tile.badgeIds
                             onStatusChanged: {
                                 if (tileImg.status === Image.Ready && tileImg.implicitImageWidth > 0 && tileImg.implicitImageHeight > 0)

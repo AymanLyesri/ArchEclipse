@@ -31,20 +31,23 @@ if [ "$1" == "--current" ]; then
 
 else
 
-    # Find all directories containing images and preserve full relative path as category
+    # Find all directories containing images and preserve full relative path as category.
+    # Both finds are piped through sort -z: raw find order is inode order
+    # (effectively random), which made tiles appear in a random sequence
+    # instead of left-to-right alphabetical.
     while IFS= read -r -d '' dir; do
         # Get relative path from wallpaper_folder to preserve full category path
         category="${dir#$wallpaper_folder/}"
         paths=()
         while IFS= read -r -d '' file; do
             paths+=("\"$file\"")
-        done < <(find "$dir" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" -o -iname "*.svg" -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.mkv" -o -iname "*.mov" \) -print0)
-        
+        done < <(find "$dir" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.bmp" -o -iname "*.gif" -o -iname "*.svg" -o -iname "*.mp4" -o -iname "*.webm" -o -iname "*.mkv" -o -iname "*.mov" \) -print0 | sort -z)
+
         # Only add category if it has images
         if [ ${#paths[@]} -gt 0 ]; then
             wallpaper_paths+=("\"$category\": [$(IFS=,; echo "${paths[*]}")]")
         fi
-    done < <(find "$wallpaper_folder" -type d -print0)
+    done < <(find "$wallpaper_folder" -type d -print0 | sort -z)
 
     # For categorized wallpapers, output as JSON object
     (IFS=,; echo "{${wallpaper_paths[*]}}")

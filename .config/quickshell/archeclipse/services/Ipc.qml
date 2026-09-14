@@ -434,7 +434,10 @@ Item {
         // Wallpaper-switcher probe for parity QA. query is one of:
         //   "visible", "categories", "selected", "count", "current",
         //   "target", "workspace", "progress", "provider", "view", "strip",
-        //   or "setCategory:<name>".
+        //   "stripdeep", "scrollTo:<x>", or "setCategory:<name>".
+        // "stripdeep" + "scrollTo" are the automated regression hooks for
+        // the strip blank-on-scroll bug: they dump masonry geometry and
+        // drive contentX without a mouse (see strip-test.sh).
         // monitor selects the per-monitor island body (default eDP-1).
         // Reads the bar island body (widgets/wallpaperPanel via WallpaperIsland).
         function wallpaperDiag(query: string, monitor: string): string {
@@ -450,7 +453,7 @@ Item {
                 if (query === "count") return "count=" + (w.provider === "wallhaven" ? (w.whResults || []).length : (w.selectedWallpapers || []).length);
                 if (query === "current") return "current=" + (w.currentWallpapers || []).length;
                 if (query === "target") return "target=" + w.targetType + " ws=" + w.selectedWorkspaceId;
-                if (query === "progress") return "progress=" + w.progressStatus;
+                if (query === "progress") return "progress=" + w.progressStatus + " label=" + w.progressText;
                 if (query === "provider") return "provider=" + w.provider;
                 if (query === "view") return "rows=" + Settings.wallpaperMasonryRows + " size=" + Settings.wallpaperTileSize;
                 if (query === "strip") {
@@ -459,6 +462,49 @@ Item {
                     return "stripW=" + Math.round(s.width) + " contentW=" + Math.round(s.contentWidth)
                         + " contentX=" + Math.round(s.contentX) + " dir=" + s.flickableDirection
                         + " maxV=" + s.maximumFlickVelocity + " decel=" + s.flickDeceleration;
+                }
+                if (query.startsWith("scrollTo:")) {
+                    const s2 = w.wallStrip;
+                    if (!s2) return "strip=NOALIAS";
+                    s2.contentX = Math.max(0, Number(query.substring(9)) || 0);
+                    return "x=" + Math.round(s2.contentX) + " cw=" + Math.round(s2.contentWidth);
+                }
+                if (query === "stripdeep") {
+                    const s3 = w.wallStrip;
+                    if (!s3) return "strip=NOALIAS";
+                    const m = w.localMasonry;
+                    if (!m) return "stripdeep=NOMASONRY";
+                    let rows = 0, wraps = 0, inWin = 0, zeroX = 0, badX = 0;
+                    const samples = [];
+                    try {
+                        const col = (m.children && m.children.length > 0) ? m.children[0] : null;
+                        const rws = col ? (col.children || []) : [];
+                        for (let r = 0; r < rws.length; r++) {
+                            const row = rws[r];
+                            if (!row || row.rowItems === undefined) continue;
+                            rows++;
+                            const kids = row.children || [];
+                            let rc = 0;
+                            for (let k = 0; k < kids.length; k++) {
+                                const c = kids[k];
+                                if (!c || c.cellX === undefined) continue;
+                                wraps++;
+                                rc++;
+                                const x = c.cellX, wd = c.cellW;
+                                if (!(x >= 0) && !(x < 0)) badX++;
+                                else if (x === 0) zeroX++;
+                                if (c.inWindow) inWin++;
+                                if (samples.length < 6) samples.push(Math.round(x) + "/" + Math.round(wd) + (c.inWindow ? "*" : ""));
+                            }
+                            if (r < 4) samples.push("row" + r + "=" + rc);
+                        }
+                    } catch (e2) { return "stripdeep EXwalk: " + e2; }
+                    const asp = (w.localAspect && typeof w.localAspect === "object") ? Object.keys(w.localAspect).length : -1;
+                    const mdl = (w.selectedWallpapers || []).length;
+                    return "x=" + Math.round(s3.contentX) + " vw=" + Math.round(s3.width)
+                        + " cw=" + Math.round(s3.contentWidth) + " rows=" + rows
+                        + " wraps=" + wraps + " inWin=" + inWin + " zeroX=" + zeroX + " badX=" + badX
+                        + " aspects=" + asp + " model=" + mdl + " [" + samples.join(" ") + "]";
                 }
                 if (query === "theme") return "dynamicColors=" + Settings.dynamicThemeColors
                     + " variant=" + (GlobalTheme.currentTheme ? "light" : "dark");

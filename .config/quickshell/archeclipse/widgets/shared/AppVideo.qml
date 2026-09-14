@@ -96,20 +96,9 @@ ClippingRectangle {
         visible: root.badges.length > 0
         Repeater {
             model: root.badges
-            delegate: Rectangle {
+            delegate: AppBadge {
                 required property string modelData
-                width: 24
-                height: 18
-                radius: Theme.radius
-                color: Theme.accent
-                visible: modelData !== ""
-                Text {
-                    anchors.centerIn: parent
-                    text: parent.modelData
-                    font.pixelSize: 9
-                    font.family: Theme.fontFamily
-                    color: "white"
-                }
+                text: modelData
             }
         }
     }
