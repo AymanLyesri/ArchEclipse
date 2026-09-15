@@ -59,6 +59,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "presentation": importlib.import_module("components.presentation"),
         "backup": importlib.import_module("components.backup"),
         "keyboard": importlib.import_module("components.keyboard"),
+        "locales": importlib.import_module("components.locales"),
         "packages": importlib.import_module("components.packages"),
         "defaults": importlib.import_module("components.defaults"),
         "sddm": importlib.import_module("components.sddm"),
@@ -172,6 +173,11 @@ def main() -> None:
                 default_choice="n",
             ),
             presentation.PlannedStep(
+                "locales",
+                "Adding en_US.UTF-8 locale (optional)",
+                default_choice="n",
+            ),
+            presentation.PlannedStep(
                 "remove_packages", "Removing unwanted packages", default_choice="n"
             ),
             presentation.PlannedStep(
@@ -244,12 +250,18 @@ def main() -> None:
         run=plan["config"],
     )
 
-    presentation.print_section_header("KEYBOARD CONFIGURATION (optional)")
+    presentation.print_section_header("KEYBOARD & LOCALE (optional)")
     presentation.execute_planned_step(
         "*",
         "Setting up keyboard configuration (optional)",
         modules["keyboard"].configure_keyboard,
         run=plan["keyboard"],
+    )
+    presentation.execute_planned_step(
+        "*",
+        "Adding en_US.UTF-8 locale (optional)",
+        modules["locales"].ensure_arch_locale,
+        run=plan["locales"],
     )
 
     presentation.print_section_header("PACKAGE MANAGEMENT")

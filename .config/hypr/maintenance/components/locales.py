@@ -60,5 +60,11 @@ def main() -> None:
     raise SystemExit(exit_code)
 
 
+def ensure_arch_locale() -> None:
+    """add_arch_locale() variant for the installer: raises on failure."""
+    if add_arch_locale() != 0:
+        raise RuntimeError("Failed to add en_US.UTF-8 locale.")
+
+
 if __name__ == "__main__":
     main()

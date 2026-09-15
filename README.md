@@ -47,14 +47,14 @@ The project spans multiple languages and layers of the stack:
 graph TB
     subgraph Install["Setup & maintenance"]
         Installer["install.py / update.py<br/>Python installer"]
-        Pacman["pacman/pkglist.txt<br/>package list"]
-        Archeclipse["archeclipse CLI<br/>update wrapper"]
+        Pacman["components/packages.py<br/>embedded package list"]
+        Archeclipse["archeclipse() zsh fn<br/>update wrapper"]
     end
 
     subgraph Hypr["Hyprland — window manager (Lua)"]
         HyprMain["hyprland.lua<br/>entry point"]
         HyprConfig["config/*.lua<br/>bind, animations, monitor,<br/>windowrule, gesture, input"]
-        HyprScripts["scripts / scripts-c<br/>screenshot, screenrecord,<br/>hyprlock, wallpaper-loop"]
+        HyprScripts["scripts / scripts-c<br/>screenshot, screenrecord,<br/>brightness, clipboard, wallpaper-loop"]
         WallpaperDaemon["wallpaper-daemon<br/>hyprpaper / mpvpaper"]
         Evremap["evremap<br/>key remapping service"]
     end
@@ -148,7 +148,7 @@ A custom pipeline generates a full system color scheme from the active wallpaper
 
 ### Quickshell Widget System (QML / QtQuick)
 
-All shell UI is built with the **Quickshell** framework — which replaced the prior Eww and AGS (GTK) implementations (migration completed 2026-09-12; the legacy AGS tree has been removed). Widgets are written in QML with JavaScript, enabling declarative, reactive UI development with per-monitor windows driven by `shell.qml` and singleton services (`BarState`, `GlobalTheme`, `Supabase`, `Weather`).
+All shell UI is built with the **Quickshell** framework — which replaced the prior Eww and AGS (GTK) implementations (migration completed 2026-09-12; the legacy tree was removed from the repo — if `~/ArchEclipse-AGS` or `~/agsv1` still exist on your machine they are ignored leftovers and safe to delete). Widgets are written in QML with JavaScript, enabling declarative, reactive UI development with per-monitor windows driven by `shell.qml` and singleton services (`BarState`, `GlobalTheme`, `Supabase`, `Weather`).
 
 The bar is fully modular — widgets are swappable at runtime. Current slots include:
 
@@ -214,7 +214,7 @@ python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/r
 ### Update
 
 ```bash
-archeclipse
+archeclipse   # zsh function (defined in ~/.zshrc): fetches and runs maintenance/update.py
 ```
 
 ---
@@ -224,9 +224,9 @@ archeclipse
 - **User avatar:** `$HOME/.face.icon`
 - **Wallpaper picker:** `SUPER + W`
 - **Custom wallpapers:** `$HOME/.config/wallpapers/custom`
-- **Custom Hyprland config:** `$HOME/.config/hypr/configs/custom`
+- **Custom Hyprland config:** `$HOME/.config/hypr/config/custom`
 - **Laptop users:** Install `upower` for battery monitoring
-- **Full keybinds reference:** [keybinds.conf](https://github.com/AymanLyesri/ArchEclipse/blob/master/.config/hypr/configs/keybinds.conf) or via the Left Panel in-environment
+- **Full keybinds reference:** [bind.lua](https://github.com/AymanLyesri/ArchEclipse/blob/master/.config/hypr/config/bind.lua) or via the Left Panel in-environment
 
 ---
 

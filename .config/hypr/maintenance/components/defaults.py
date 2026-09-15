@@ -19,13 +19,20 @@ else:
 
 
 def _copy_children(src_dir: Path, dst_dir: Path) -> None:
+    # Copy-if-missing: never overwrite the user's machine-local custom/
+    # files (keyboard, blur/opacity tweaks, browser/discord selections).
+    # To reset a file to its default, delete it from custom/ and re-run.
     dst_dir.mkdir(parents=True, exist_ok=True)
     for child in src_dir.iterdir():
         dst = dst_dir / child.name
+        if dst.exists() or dst.is_symlink():
+            print(f"Keeping existing {dst} (not overwriting).")
+            continue
         if child.is_dir():
             shutil.copytree(child, dst, dirs_exist_ok=True)
         else:
             shutil.copy2(child, dst)
+        print(f"Installed default {dst}.")
 
 
 def apply_defaults() -> None:

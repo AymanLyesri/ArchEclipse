@@ -13,7 +13,9 @@ end
 local function require_custom_dir()
     local home = os.getenv("HOME") or ""
     local custom_dir = home .. "/.config/hypr/config/custom"
-    local handle = io.popen("ls -1 " .. custom_dir)
+    -- Quoted path + sorted output: deterministic load order, safe with
+    -- spaces in $HOME. Keep custom modules self-contained regardless.
+    local handle = io.popen('ls -1 -- "' .. custom_dir .. '" 2>/dev/null | sort')
 
     if not handle then
         return

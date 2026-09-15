@@ -1,18 +1,20 @@
 local home = os.getenv("HOME") or ""
 local scriptsDir = home .. "/.config/hypr/scripts"
-local hyprDir = home .. "/.config/hypr"
 local screenshot = scriptsDir .. "/screenshot.sh"
-local screenshotAll = scriptsDir .. "/screenshot_all.sh"
 local terminal = "kitty"
-local menu = scriptsDir .. "/menu"
 -- Quickshell secure lock (qs ipc) + suspend chain (sleep 1 lets grim
 -- capture and the session lock engage before the machine sleeps).
 local lock = "qs -p " .. home .. "/.config/quickshell/archeclipse ipc call lock activate"
 local suspend = "qs -p " .. home .. "/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend"
 local statusBar = scriptsDir .. "/bar.sh"
-local monitor = "$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name')"
+-- Focused monitor, resolved at keypress time. Uses activeworkspace (small JSON)
+-- instead of full monitors list to avoid a hyprctl+jq scan per keypress.
+local monitor = "$(hyprctl activeworkspace -j | jq -r '.monitor')"
 local resizeAmount = 25
 local changeBrightness = scriptsDir .. "/change-brightness.sh"
+local volUp = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
+local volDown = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+local volMute = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
 
 -- Quickshell bar: IPC calls target the QS config
 local qsCfg = home .. "/.config/quickshell/archeclipse"
@@ -91,26 +93,22 @@ hl.bind(mainMod .. " + CTRL + S", hl.dsp.window.move({ workspace = "special" }))
 hl.bind(mainMod .. " + S", hl.dsp.workspace.toggle_special())
 
 -- Media, Brightness and Volume Controls
---- volume up
-hl.bind("ALT + F12", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
---- volume down
-hl.bind("ALT + F11", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
---- volume up
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"),
+--- volume up (XF86 + ALT fallback share one command)
+hl.bind("ALT + F12", hl.dsp.exec_cmd(volUp), { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(volUp),
     { locked = true, repeating = true })
---- volume down
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),
+--- volume down (XF86 + ALT fallback share one command)
+hl.bind("ALT + F11", hl.dsp.exec_cmd(volDown), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(volDown),
     { locked = true, repeating = true })
 --- toggle mute
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd(volMute), { locked = true })
 
---- brightness up
+--- brightness up (XF86 + ALT fallback share one command)
 hl.bind("ALT + F3", hl.dsp.exec_cmd(changeBrightness .. " +10"), { locked = true, repeating = true })
---- brightness down
-hl.bind("ALT + F2", hl.dsp.exec_cmd(changeBrightness .. " -10"), { locked = true, repeating = true })
---- brightness up
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(changeBrightness .. " +10"), { locked = true, repeating = true })
---- brightness down
+--- brightness down (XF86 + ALT fallback share one command)
+hl.bind("ALT + F2", hl.dsp.exec_cmd(changeBrightness .. " -10"), { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(changeBrightness .. " -10"), { locked = true, repeating = true })
 
 -- System Controls

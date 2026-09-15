@@ -34,72 +34,36 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    match = { class = "^((.*)lutris(.*))$" },
+    match = { class = "^(.*lutris.*)$" },
     workspace = "7 silent",
 })
 
 hl.window_rule({
-    match = { class = "^(steam_app_\\d+)$" },
+    match = { class = "^(steam_app_\\d+|.+\\.exe|Minecraft.*)$" },
     workspace = "10 silent",
 })
 
 hl.window_rule({
-    match = { class = "^(.+\\.exe)$" },
-    workspace = "10 silent",
-})
-
-hl.window_rule({
-    match = { class = "^(Minecraft.*)$" },
-    workspace = "10 silent",
-})
-
-hl.window_rule({
-    match = { class = "^(steam_app_\\d+)$" },
-    opacity = "1 override 1 override",
-})
-
-hl.window_rule({
-    match = { class = "^(.+\\.exe)$" },
-    opacity = "1 override 1 override",
-})
-
-hl.window_rule({
-    match = { class = "^(Emulator)$" },
+    match = { class = "^(steam_app_\\d+|.+\\.exe|Emulator)$" },
     opacity = "1 override 1 override",
 })
 
 hl.window_rule({
     match = { title = "Picture-in-Picture" },
     float = true,
-})
-
-hl.window_rule({
-    match = { title = "Picture-in-Picture" },
-    move = "100%-w-14 100%-w-7",
-})
-
-hl.window_rule({
-    match = { title = "Picture-in-Picture" },
+    move = "100%-w-14 100%-h-7",
     pin = true,
 })
 
 hl.window_rule({
     match = { class = "preview-image" },
     float = true,
-})
-
-hl.window_rule({
-    match = { class = "preview-image" },
     move = "cursor -50% -50%",
 })
 
 hl.window_rule({
     match = { title = "booru-image" },
     float = true,
-})
-
-hl.window_rule({
-    match = { title = "booru-image" },
     move = "cursor -50% -50%",
 })
 

@@ -74,8 +74,51 @@ def install_paru() -> None:
     _install_aur_helper("paru", "https://aur.archlinux.org/paru.git")
 
 
+def _render_custom_config(
+    template_name: str, replacements: dict[str, str], fallback: str
+) -> None:
+    """Regenerate a config/custom/*.lua from its config/defaults/ template.
+
+    Always renders from the template — never marker-patches the existing
+    file — so re-running the installer with a different app produces a
+    correct file instead of silently keeping the stale one (the {{ }}
+    markers are gone after the first run, so patching is a no-op).
+    """
+    template_path = Path.home() / ".config/hypr/config/defaults" / template_name
+    if template_path.exists():
+        content = template_path.read_text(encoding="utf-8")
+    else:
+        content = fallback
+    for marker, value in replacements.items():
+        content = content.replace(marker, value)
+    config_path = Path.home() / ".config/hypr/config/custom" / template_name
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(content, encoding="utf-8")
+
+
+_BROWSER_FALLBACK = (
+    'hl.on("hyprland.start", function()\n'
+    '    hl.exec_cmd("{{ APP_NAME }}")\n'
+    "end)\n\n"
+    "hl.window_rule({\n"
+    '    match = { class = "{{ CLASS_NAME }}" },\n'
+    '    workspace = "2 silent",\n'
+    "})\n"
+)
+
+_DISCORD_FALLBACK = (
+    'hl.on("hyprland.start", function()\n'
+    '    hl.exec_cmd("{{ APP_NAME }}")\n'
+    "end)\n\n"
+    "hl.window_rule({\n"
+    '    match = { class = "{{ CLASS_NAME }}" },\n'
+    '    workspace = "6 silent",\n'
+    "})\n"
+)
+
+
 def install_browser(aur_helper: str = "yay") -> None:
-    title = ""
+    class_name = ""
     package = ""
     app = ""
 
@@ -88,47 +131,29 @@ def install_browser(aur_helper: str = "yay") -> None:
 
     print(f"Browser selected: {selection}")
     if selection == "zen-browser":
-        title = "Zen Browser"
+        class_name = "zen"
         package = "zen-browser-bin"
         app = "zen-browser"
     elif selection == "firefox":
-        title = "Mozilla Firefox"
+        class_name = "firefox"
         package = "firefox"
         app = "firefox"
     elif selection == "chromium":
-        title = "Chromium"
+        class_name = "chromium"
         package = "chromium"
         app = "chromium"
     elif selection == "google-chrome":
-        title = "Google Chrome"
+        class_name = "google-chrome"
         package = "google-chrome"
         app = "google-chrome"
 
     run_cmd([aur_helper, "-S", "--noconfirm", package])
 
-    config_path = Path.home() / ".config/hypr/config/custom/browser.lua"
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # If the template already exists, read it and change the parameters.
-    # If there is no template, use the default template with markers.
-    if config_path.exists():
-        lua_content = config_path.read_text(encoding="utf-8")
-    else:
-        lua_content = (
-            'hl.on("hyprland.start", function()\n'
-            '    hl.exec_cmd("{{ APP_NAME }}")\n'
-            "end)\n\n"
-            "hl.window_rule({\n"
-            '    match = { title = "^({{ APP_TITLE }})$" },\n'
-            '    workspace = "2 silent",\n'
-            "})\n"
-        )
-
-    # Dynamically replace markers with selected values
-    lua_content = lua_content.replace("{{ APP_NAME }}", app)
-    lua_content = lua_content.replace("{{ APP_TITLE }}", title)
-
-    config_path.write_text(lua_content, encoding="utf-8")
+    _render_custom_config(
+        "browser.lua",
+        {"{{ APP_NAME }}": app, "{{ CLASS_NAME }}": class_name},
+        _BROWSER_FALLBACK,
+    )
 
 
 def install_discord_client(aur_helper: str = "yay") -> None:
@@ -163,29 +188,11 @@ def install_discord_client(aur_helper: str = "yay") -> None:
 
     run_cmd([aur_helper, "-S", "--noconfirm", package])
 
-    config_path = Path.home() / ".config/hypr/config/custom/discord_client.lua"
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # If the template already exists, read it and change the parameters.
-    # If there is no template, use the default template with markers.
-    if config_path.exists():
-        lua_content = config_path.read_text(encoding="utf-8")
-    else:
-        lua_content = (
-            'hl.on("hyprland.start", function()\n'
-            '    hl.exec_cmd("{{ APP_NAME }}")\n'
-            "end)\n\n"
-            "hl.window_rule({\n"
-            '    match = { class = "{{ CLASS_NAME }}" },\n'
-            '    workspace = "6 silent",\n'
-            "})\n"
-        )
-
-    # Dynamically replace markers with selected values
-    lua_content = lua_content.replace("{{ APP_NAME }}", app)
-    lua_content = lua_content.replace("{{ CLASS_NAME }}", class_name)
-
-    config_path.write_text(lua_content, encoding="utf-8")
+    _render_custom_config(
+        "discord_client.lua",
+        {"{{ APP_NAME }}": app, "{{ CLASS_NAME }}": class_name},
+        _DISCORD_FALLBACK,
+    )
 
 
 def remove_packages() -> None:

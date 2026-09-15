@@ -318,12 +318,36 @@ def _convert_gif_to_mp4(input_path: Path) -> None:
         print(f"Conversion failed: {input_path.name}")
 
 
+def _managed_folder(category: str) -> Path | None:
+    """Resolve the folder for a category, or None if it must not be managed.
+
+    Fail-closed guards: only the four known category directories under
+    ~/.config/wallpapers/defaults are ever managed. Anything else —
+    a wallhaven/ dir, a custom collection, a typo'd category, a path
+    escaping the defaults tree — is refused outright.
+    """
+    if category not in CATEGORIES:
+        print(f"Refusing to manage unknown category directory: {category}")
+        return None
+
+    base = Path.home() / ".config/wallpapers/defaults"
+    folder = base / category
+    try:
+        folder.resolve().relative_to(base.resolve())
+    except ValueError:
+        print(f"Refusing to manage directory outside wallpapers/defaults: {folder}")
+        return None
+    return folder
+
+
 def _download_category(category: str, urls: list[str]) -> None:
     if not urls:
         print(f"No wallpapers in {category}. Skipping...")
         return
 
-    folder = Path.home() / ".config/wallpapers/defaults" / category
+    folder = _managed_folder(category)
+    if folder is None:
+        return
     folder.mkdir(parents=True, exist_ok=True)
 
     _normalize_existing_animated_files(folder, category)
@@ -331,7 +355,6 @@ def _download_category(category: str, urls: list[str]) -> None:
     expected_files: list[str] = []
     downloaded = 0
     skipped = 0
-    removed = 0
 
     for url in urls:
         filename = _resolve_download_filename(url, category)
@@ -364,25 +387,48 @@ def _download_category(category: str, urls: list[str]) -> None:
         else:
             print(f"Failed: {filename}")
 
-    print("Cleaning up old files...")
+    print("Quarantining unmanaged files (kept, not deleted)...")
+    quarantine_dir = (
+        Path.home() / ".cache/archeclipse-wallpaper-quarantine" / category
+    )
+    quarantined = 0
     for file in folder.iterdir():
+        # Directories (wallhaven/, custom collections, anything else) and
+        # symlinks are NEVER managed — only this category's own top-level
+        # regular files are. User dirs are left completely alone.
+        if file.is_symlink():
+            print(f"Ignoring symlink: {file.name} (not managed)")
+            continue
         if not file.is_file():
+            print(f"Ignoring directory: {file.name}/ (not managed)")
             continue
         if file.name not in expected_files:
-            print(f"Removing: {file.name}")
-            file.unlink()
-            removed += 1
+            # Never delete: the user may have added their own wallpapers
+            # here. Move them aside so they survive re-runs.
+            quarantine_dir.mkdir(parents=True, exist_ok=True)
+            target = quarantine_dir / file.name
+            if target.exists():
+                print(f"Already quarantined: {file.name} (leaving in place)")
+                continue
+            print(f"Quarantining: {file.name} -> {target}")
+            file.rename(target)
+            quarantined += 1
 
     print(f"Category: {category}")
     print(f"Downloaded: {downloaded}")
     print(f"Skipped: {skipped}")
-    print(f"Removed: {removed}")
+    print(f"Quarantined: {quarantined}")
+    if quarantined:
+        print(f"Your files were moved to {quarantine_dir} (not deleted).")
     print("")
 
 
 def download_wallpapers(selected: Iterable[str]) -> None:
     print("Downloading wallpapers...")
     for category in selected:
+        if category not in CATEGORIES:
+            print(f"Skipping unknown category: {category}")
+            continue
         var_name = CATEGORIES[category]
         _download_category(category, globals()[var_name])
     print("Download complete.")

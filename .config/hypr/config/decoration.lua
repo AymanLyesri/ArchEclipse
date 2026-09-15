@@ -1,3 +1,7 @@
+-- Base defaults. Host-local tweaks live in config/custom/decoration_*.lua
+-- (active/inactive_opacity, blur enabled/size/passes) and win over these.
+-- NOTE: blur size 4 / passes 4 is the perf-safe default; size 6 + passes 5
+-- costs ~2x blur time on iGPUs — only raise it in custom/ if you need it.
 hl.config({
     decoration = {
         rounding = 12,

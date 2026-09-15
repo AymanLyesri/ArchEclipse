@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 hyprDir="$HOME/.config/hypr"
-workspace_id="$1"
-monitor="$2"
-wallpaper="$3"
+workspace_id="${1:-}"
+monitor="${2:-}"
+wallpaper="${3:-}"
 
 if [ -z "$workspace_id" ] || [ -z "$monitor" ]; then
     echo "Usage: set-wallpaper.sh <workspace_id> <monitor> [wallpaper]"
@@ -33,6 +34,13 @@ if [ ! -f "$current_config" ]; then
     echo "Config not found for monitor '$monitor': $current_config"
     exit 1
 fi
+
+# Serialize config read-modify-write: concurrent invocations (workspace
+# flapping, multi-monitor events) otherwise interleave grep/sed and corrupt
+# defaults.conf. Hold the lock for the whole critical section below.
+lock_file="${current_config}.lock"
+exec 200>"$lock_file"
+flock 200
 
 current_workspace="$(hyprctl monitors -j | jq -r --arg monitor "$monitor" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 

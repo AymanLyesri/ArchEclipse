@@ -3,6 +3,6 @@ hl.on("hyprland.start", function()
 end)
 
 hl.window_rule({
-    match = { title = "{{ APP_TITLE }}" },
+    match = { class = "{{ CLASS_NAME }}" },
     workspace = "2 silent",
 })
