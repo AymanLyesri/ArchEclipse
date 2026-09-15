@@ -32,6 +32,22 @@ def emit_error(error: "ErrorResponse") -> None:
 
 SETTINGS_PATH = Path.home() / ".cache" / "quickshell" / "settings" / "settings.json"
 SUPPORTED_APIS = {"danbooru", "gelbooru", "safebooru"}
+DEFAULT_BOORU_USER_AGENT = "QuickshellBooru/1.0 (ArchLinux; Hyprland)"
+
+
+def load_booru_user_agent() -> str:
+    """Read the editable Booru User-Agent from Quickshell settings."""
+    try:
+        settings = json.loads(SETTINGS_PATH.read_text(encoding="utf-8")) if SETTINGS_PATH.exists() else {}
+        value = settings.get("userAgents", {}).get("booru")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    except Exception:
+        pass
+    return DEFAULT_BOORU_USER_AGENT
+
+
+BOORU_USER_AGENT = load_booru_user_agent()
 
 
 def read_settings() -> Dict[str, Any]:
@@ -244,7 +260,7 @@ class DanbooruProvider(BooruProvider):
 
         r = None
 
-        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
+        headers = {"User-Agent": BOORU_USER_AGENT}
 
         try:
             auth = (
@@ -309,7 +325,7 @@ class DanbooruProvider(BooruProvider):
             "search[order]": "count",
             "limit": limit,
         }
-        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
+        headers = {"User-Agent": BOORU_USER_AGENT}
         try:
             auth = (
                 HTTPBasicAuth(self.user, self.key) if self.user and self.key else None
@@ -362,7 +378,7 @@ class GelbooruProvider(BooruProvider):
             "user_id": self.user,
             "api_key": self.key,
         }
-        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
+        headers = {"User-Agent": BOORU_USER_AGENT}
         if post_id != "random":
             params["id"] = post_id
         else:
@@ -427,7 +443,7 @@ class GelbooruProvider(BooruProvider):
             "user_id": self.user,
             "api_key": self.key,
         }
-        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
+        headers = {"User-Agent": BOORU_USER_AGENT}
         try:
             r = requests.get(self.BASE, params=params, headers=headers, timeout=15)
             r.raise_for_status()
@@ -488,7 +504,7 @@ class SafebooruProvider(BooruProvider):
             )
         else:
             url = f"{self.BASE}/posts/{post_id}.json"
-        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
+        headers = {"User-Agent": BOORU_USER_AGENT}
         try:
             r = requests.get(url, headers=headers, timeout=15)
             r.raise_for_status()
@@ -545,7 +561,7 @@ class SafebooruProvider(BooruProvider):
             "search[order]": "count",
             "limit": limit,
         }
-        headers = {"User-Agent": "AGSBooruViewer/1.0 (ArchLinux; Hyprland)"}
+        headers = {"User-Agent": BOORU_USER_AGENT}
         try:
             r = requests.get(url, params=params, headers=headers, timeout=15)
             r.raise_for_status()
