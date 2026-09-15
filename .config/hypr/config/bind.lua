@@ -189,6 +189,8 @@ end
 
 --- previous workspace
 hl.bind(mainMod .. " + TAB", hl.dsp.focus({ workspace = "prev" }))
+--- workspace overview (quickshell overview island)
+hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(qsIpc .. "toggleOverview"))
 
 --- next workspace
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))

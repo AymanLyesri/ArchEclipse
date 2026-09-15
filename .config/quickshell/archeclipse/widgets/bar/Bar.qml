@@ -117,7 +117,7 @@ PanelWindow {
     readonly property bool barVisible: {
         if (fullscreenActive)
             return false;
-        if (BarState.state === "search" || BarState.state === "control" || BarState.state === "wallpaper" || BarState.state === "left" || BarState.state === "right")
+        if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.state === "left" || BarState.state === "right")
             return true;
         const override = (BarState.barShown || {})[monitorName];
         if (override !== undefined)
@@ -150,7 +150,7 @@ PanelWindow {
             // then conceal the bar when unlocked and search isn't pinning it.
             if (!root.hovered && BarState.popupCount <= 0 && !Settings.barDefault)
                 BarState.deactivate("default");
-            if (BarState.state !== "search" && BarState.state !== "control" && BarState.state !== "wallpaper" && BarState.state !== "left" && BarState.state !== "right" && !Settings.barLock && !root.hovered && BarState.popupCount <= 0)
+            if (BarState.state !== "search" && BarState.state !== "control" && BarState.state !== "overview" && BarState.state !== "wallpaper" && BarState.state !== "left" && BarState.state !== "right" && !Settings.barLock && !root.hovered && BarState.popupCount <= 0)
                 BarState.concealBar(root.monitorName);
         }
     }
@@ -172,7 +172,7 @@ PanelWindow {
         onTriggered: {
             if (Settings.barLock)
                 return;
-            if (BarState.state === "search" || BarState.state === "control" || BarState.state === "wallpaper" || BarState.state === "left" || BarState.state === "right") {
+            if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.state === "left" || BarState.state === "right") {
                 idleTimer.restart();
                 return;
             }
@@ -583,6 +583,8 @@ PanelWindow {
                             return systemPage;
                         case "control":
                             return controlPage;
+                        case "overview":
+                            return overviewPage;
                         case "wallpaper":
                             return wallpaperPage;
                         case "left":
@@ -644,6 +646,10 @@ PanelWindow {
                 Component {
                     id: controlPage
                     ControlIsland {}
+                }
+                Component {
+                    id: overviewPage
+                    OverviewIsland {}
                 }
                 Component {
                     id: wallpaperPage

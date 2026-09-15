@@ -13,10 +13,20 @@ HoverHandler {
     id: root
     property string stateName: ""
     property var extraStates: []
+    // Leave delay before the state deactivates (default 1s; callers may
+    // bind Settings.revealPressure for a pressure-consistent feel).
+    property int leaveDelay: 1000
+    // Arm the timer at creation (default true: an island the cursor never
+    // reaches still closes). Set false for islands that must stay open
+    // until first hovered-out, toggled, or Escaped.
+    property bool armOnCreation: true
     property alias running: leaveTimer.running
     onHoveredChanged: {
         if (root.hovered) {
             leaveTimer.stop();
+            // First hover ends the open-grace: later leaves use the
+            // configured delay from here on.
+            leaveTimer.interval = root.leaveDelay;
             if (root.stateName !== "")
                 BarState.activate(root.stateName, 0);
         } else {
@@ -29,7 +39,7 @@ HoverHandler {
     // property"). Cf. SysInfo.qml `property Process compileProc: ...`.
     property Timer leaveTimer: Timer {
         id: leaveTimer
-        interval: 1000
+        interval: root.leaveDelay
         onTriggered: {
             BarState.deactivate(root.stateName);
             for (let i = 0; i < root.extraStates.length; i++)
@@ -38,8 +48,15 @@ HoverHandler {
     }
     function stop() { leaveTimer.stop(); }
     function restart() { leaveTimer.restart(); }
-    // Arm at creation too: if the cursor never enters, no hover
-    // transition fires and the island would stay open forever.
+    // Arm at creation too (unless opted out): if the cursor never enters,
+    // no hover transition fires and the island would stay open forever.
     // (A hover arrival within milliseconds stops it again.)
-    Component.onCompleted: leaveTimer.restart()
+    // The first arm always grants a 1s open-grace (time to travel to a
+    // keybind-opened island) regardless of leaveDelay — see above.
+    Component.onCompleted: {
+        if (!root.armOnCreation)
+            return;
+        leaveTimer.interval = 1000;
+        leaveTimer.restart();
+    }
 }

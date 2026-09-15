@@ -1,0 +1,4 @@
+module qs.widgets.overview
+
+OverviewBody 1.0 OverviewBody.qml
+OverviewPreview 1.0 OverviewPreview.qml

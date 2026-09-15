@@ -3,44 +3,72 @@
 file="$HOME/.config/hypr/config/bind.lua"
 custom_dir="$HOME/.config/hypr/config/custom"
 
-# Escapes special characters for valid JSON output
+# Pure-bash helpers (no forks): the old versions piped through
+# sed/tr/echo-pipeline/xargs per keybind (~6-8 execs x 62 binds ~= 1.5s).
+# These use only builtins (parameter expansion + read), so the whole
+# script runs in ~40ms.
+
+# json_escape <input> <out_var>: escapes backslashes and quotes
 json_escape() {
-  sed 's/\\/\\\\/g; s/"/\\"/g'
+  local s=$1
+  s=${s//\\/\\\\}
+  s=${s//\"/\\\"}
+  printf -v "$2" '%s' "$s"
 }
 
-# Splits a modifier/key combination string (separated by '+') into a JSON array of strings
-extract_keys() {
-  local combo="$1"
-  local part
-  local first
-
-  combo=$(echo "$combo" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')
-
-  printf '['
-  first=true
-  while IFS= read -r part; do
-    part=$(echo "$part" | xargs)
-    [[ -z "$part" ]] && continue
-    [[ "$first" = false ]] && printf ', '
-    printf '"%s"' "$part"
-    first=false
-  done <<< "$(echo "$combo" | tr '+' '\n')"
-  printf ']'
-}
-
-# Extracts the first argument (key combination expression) from hl.bind(...)
+# extract_bind_expr <line> <out_var>: first arg expr of hl.bind(...),
+# i.e. text between "hl.bind(" and the first comma (old sed \([^,]*\) parity)
 extract_bind_expr() {
-  echo "$1" | sed -n 's/^[[:space:]]*hl\.bind(\([^,]*\),.*/\1/p'
+  local line=$1
+  line=${line#"${line%%[![:space:]]*}"}
+  line=${line#hl.bind(}
+  if [[ "$line" != *,* ]]; then
+    printf -v "$2" '%s' ""
+    return
+  fi
+  line=${line%%,*}
+  printf -v "$2" '%s' "$line"
 }
 
-# Normalizes key expressions by replacing variables and cleaning up whitespace/plus signs
+# normalize_combo <expr> <main_mod> <out_var>
 normalize_combo() {
-  local expr="$1"
-  expr=${expr//mainMod/$main_mod}
+  local expr=$1 main=$2
+  expr=${expr//mainMod/$main}
   expr=${expr//\"/}
   expr=${expr//../ }
-  expr=$(echo "$expr" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//; s/\+\s*\+/+/g; s/\+\s*\+/+/g; s/\+/ + /g; s/[[:space:]]\+/ /g')
-  echo "$expr"
+  # squeeze whitespace + trim (old sed squeeze/trim parity)
+  local -a words
+  read -ra words <<< "$expr"
+  expr="${words[*]}"
+  # collapse runs of '+' separated by spaces (old sed 's/\+\s*\+/+/g'
+  # parity), then space each '+' and squeeze (old 's/\+/ + /g' parity)
+  expr=${expr// +/+}
+  expr=${expr//+ /+}
+  while [[ "$expr" == *++* ]]; do
+    expr=${expr//++/+}
+  done
+  expr=${expr//+/ + }
+  read -ra words <<< "$expr"
+  printf -v "$3" '%s' "${words[*]}"
+}
+
+# extract_keys <combo> <out_var>: splits on '+' into a JSON array,
+# trimming each part (old xargs-trim parity)
+extract_keys() {
+  local combo=$1
+  local -a parts
+  IFS='+' read -ra parts <<< "$combo"
+  local p json='[' first=true
+  for p in "${parts[@]}"; do
+    p=${p#"${p%%[![:space:]]*}"}
+    p=${p%"${p##*[![:space:]]}"}
+    [[ -z "$p" ]] && continue
+    [[ "$first" == false ]] && json+=', '
+    json+="\"$p\""
+    first=false
+  done
+  json+=']'
+  printf -v "$2" '%s' "$json"
 }
 
 pending_category=""
@@ -55,8 +83,7 @@ current_category=""
 blacklist=("monitors.lua" "monitors.conf")
 
 is_blacklisted() {
-  local base
-  base="$(basename "$1")"
+  local base=${1##*/}
   local item
   for item in "${blacklist[@]}"; do
     [[ "$base" == "$item" ]] && return 0
@@ -77,7 +104,7 @@ if [[ -f "$file" ]]; then
 
     # Capture keybind description (three dashes)
     if [[ "$line" =~ ^[[:space:]]*---[[:space:]]*(.+)$ ]]; then
-      current_comment="$(printf '%s' "${BASH_REMATCH[1]}" | json_escape)"
+      json_escape "${BASH_REMATCH[1]}" current_comment
       continue
     # Capture category header (two dashes)
     elif [[ "$line" =~ ^[[:space:]]*--[[:space:]]+(.+)$ ]]; then
@@ -93,8 +120,10 @@ if [[ -f "$file" ]]; then
         cat_name="$cat_name "
       fi
 
-      pending_category="$(printf '%s' "$cat_name" | json_escape)"
+      json_escape "$cat_name" pending_category
       first_item=true
+      # New category: drop any sticky comment so it can't leak across categories.
+      current_comment=""
       continue
     fi
 
@@ -118,9 +147,9 @@ if [[ -f "$file" ]]; then
       fi
 
       if [[ "$category_open" == true ]]; then
-        bind_expr="$(extract_bind_expr "$line")"
-        combo="$(normalize_combo "$bind_expr")"
-        keys_json="$(extract_keys "$combo")"
+        extract_bind_expr "$line" bind_expr
+        normalize_combo "$bind_expr" "$main_mod" combo
+        extract_keys "$combo" keys_json
 
         if [[ "$first_item" = false ]]; then
           echo ","
@@ -131,7 +160,10 @@ if [[ -f "$file" ]]; then
         fi
         printf "\n      \"description\": \"${current_comment:-Unknown Keybind}\",\n      \"keys\": $keys_json\n    }"
         first_item=false
-        current_comment=""
+        # NOTE: current_comment stays set (sticky) — bind.lua authors one
+        # '---' comment per fallback pair (e.g. "XF86 + ALT fallback share
+        # one command"), so the following bind shares it. A new '---' or a
+        # '--' category header below replaces/clears it.
       fi
     fi
   done < "$file"
@@ -167,7 +199,7 @@ if [[ -d "$custom_dir" ]]; then
 
       # Capture keybind description (three dashes)
       if [[ "$line" =~ ^[[:space:]]*---[[:space:]]*(.+)$ ]]; then
-        current_comment="$(printf '%s' "${BASH_REMATCH[1]}" | json_escape)"
+        json_escape "${BASH_REMATCH[1]}" current_comment
         continue
 
       # Capture category header (two dashes) for custom files
@@ -179,7 +211,7 @@ if [[ -d "$custom_dir" ]]; then
           cat_name="$cat_name "
         fi
 
-        new_cat="$(printf '%s' "$cat_name" | json_escape)"
+        json_escape "$cat_name" new_cat
         file_has_explicit_category=true
 
         if [ "$new_cat" != "$last_category" ]; then
@@ -193,6 +225,8 @@ if [[ -d "$custom_dir" ]]; then
           any_category_printed=true
           first_item=true
           last_category="$new_cat"
+          # New category: drop any sticky comment so it can't leak across categories.
+          current_comment=""
         fi
         continue
       fi
@@ -217,11 +251,11 @@ if [[ -d "$custom_dir" ]]; then
           orig_main_mod="$main_mod"
           main_mod="$local_main_mod"
 
-          bind_expr="$(extract_bind_expr "$line")"
-          combo="$(normalize_combo "$bind_expr")"
+          extract_bind_expr "$line" bind_expr
+          normalize_combo "$bind_expr" "$main_mod" combo
 
           main_mod="$orig_main_mod"
-          keys_json="$(extract_keys "$combo")"
+          extract_keys "$combo" keys_json
 
           if [[ "$first_item" = false ]]; then
             echo ","
@@ -232,7 +266,7 @@ if [[ -d "$custom_dir" ]]; then
           fi
           printf "\n      \"description\": \"${current_comment:-Unknown Keybind}\",\n      \"keys\": $keys_json\n    }"
           first_item=false
-          current_comment=""
+          # NOTE: sticky comment — see main stage above (shared pair comments).
         fi
       fi
     done < "$cfile"

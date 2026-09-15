@@ -1,10 +1,10 @@
 # AGENTS.md — ArchEclipse Quickshell Config
 
 > Contributor guide for agentic workers. The AGS → Quickshell migration is
-> **complete (2026-09-12)**: the shell is 100% Quickshell/QtQuick, the legacy
-> AGS tree (`.config/ags/`) has been removed, and its scripts/assets were
-> vendored into `.config/quickshell/archeclipse/scripts/` + `assets/`.
-> Branch `quickshell-migration` is pending merge into `master`.
+> **complete (2026-09-12)** and **merged into `master`** (PR #308): the shell
+> is 100% Quickshell/QtQuick, the legacy AGS tree (`.config/ags/`) has been
+> removed, and its scripts/assets were vendored into
+> `.config/quickshell/archeclipse/scripts/` + `assets/`.
 
 ## 1. Architecture
 
@@ -19,8 +19,10 @@
 | `NotificationPopups` | `widgets/notifications/NotificationPopups.qml` | Toast popups, per monitor |
 | `LockScreen` | `widgets/lock/LockScreen.qml` | Single scope; compositor creates one `WlSessionLockSurface` per screen (no `Variants`) |
 
-Startup also `mkdir -p`s every cache dir `FileView` writes to (writes to missing dirs fail silently)
-and primes `FastfetchPins` so its pins-watcher attaches at boot.
+Startup also `mkdir -p`s every cache dir `FileView` writes to (writes to missing dirs fail silently):
+`~/.cache/quickshell/{settings,booru,launcher,script-timer,crypto,chatbot,auth,manga,wallpaper-thumbs}`,
+`~/.cache/cwal`, `~/.config/wallpapers/{custom,wallhaven,defaults}`, `~/.config/fastfetch/cache`
+— and primes `FastfetchPins` so its pins-watcher attaches at boot.
 
 ### 1.2 Bar state machine — `services/BarState.qml` (singleton)
 
@@ -49,7 +51,7 @@ All former side panels now live **inside the bar pill** as `BarState` pages, not
 | `LeftIsland.qml` | `left` | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4) |
 | `RightIsland.qml` | `right` | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll |
 | `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | `search` | Launcher results (input lives in the island, results in the panel) |
-| `ControlIsland` / `PlayerIsland` / `WeatherIsland` / `WallpaperIsland` / `RecordingIsland` / `SystemMonitorIsland` | pulses | Transient/utility pages |
+| `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) / `RecordingIsland` / `SystemMonitorIsland` | pulses | Transient/utility pages |
 
 Shared island helpers (`widgets/bar/islands/`, module `qs.widgets.bar.islands`):
 
@@ -78,30 +80,38 @@ zero-dwell cross-fired the rival island, fixed 2026-09-12), close button, `Esc`,
 
 ### 1.4 Left island lazy tabs — `widgets/bar/islands/LeftIsland.qml`
 
-`StackLayout` of 8 `Loader`s (`UserProfile, BooruViewer, ChatBot, MangaViewer,
-SettingsWidget, CustomScripts, KeyBinds, Donations`). Each activates on first select
+`StackLayout` of 8 `Loader`s in `tabOrder` (`UserProfile, BooruViewer, ChatBot,
+MangaViewer, SettingsWidget, CustomScripts, KeyBinds, Donations`). Each activates on first select
 (`tabPrimed`) and **stays alive** to preserve scroll/page/chat state. `activeWidget`
 exposes the live tab; `hostPanel` back-reference lets popups (e.g. booru dialog) veto
 auto-hide via `popupHovered`. Island height is explicit (`bodyHeight`, full monitor
-height); each widget scrolls internally.
+height); each widget scrolls internally. Tab bodies live in `widgets/leftPanel/`
+(`BooruViewer/` is a subdir; `GeneralTab.qml` is a Settings sub-tab, not an island tab).
 
 ### 1.5 Services — `services/` (module `qs.services`, see `services/qmldir`)
 
-All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb:
+All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb
+(exception: `Ipc` is a plain `IpcHandler` instantiated once in `shell.qml`):
 
 | Singleton | Job |
 |---|---|
 | `BarState` | Pill state machine (1.2) |
 | `Registry` | Island/window handle map (`left-island-<mon>`, `lock-screen`); `selectLeftTab()` |
-| `Ipc` | `qs ipc call …` targets: `toggleSearch/Control/Wallpaper/Bar/LeftPanel/RightPanel/Panel`, `showWidget`, `screenrecord <mode>`, `lock …` |
+| `Ipc` (non-singleton) | `qs ipc call …` targets: `toggleSearch/Control/Wallpaper/Bar/LeftPanel/RightPanel/Panel`, `showWidget`, `screenrecord <mode>`, `lock …` |
 | `Launcher` | Query pipeline (`cb/note/apps/emoji/translate/units/arithmetic/URL/>palette/fuzzy`), `results`, `selectedIndex`, `quickAppOrder` + history files under `~/.cache/quickshell/launcher/` |
 | `ScreenRecorder` | `wf-recorder` via `~/.config/hypr/scripts/screenrecord.sh`; `isRecording` is **polled** (`pgrep`, 1s) + 1.2s settle — lags reality ~2s, never use it for rapid toggle decisions |
 | `Notifications` | Daemon mirror: ephemeral `popupToasts` vs retained `history`; `Recorder` toasts get red-dot treatment |
-| `Settings` | Persisted config (`theme/Settings.qml`): bar/panel geometry, hotzones, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
-| `Weather, Brightness, KeyboardLayout, SysInfo, VolumeWatcher, …` | Device/API polling singletons (`Weather` owns `fmt/fmtRaw/formatTime/formatDate` for `WeatherCard`; `SysInfo.bandwidth` is the single `bandwidth-loop` owner bound by `Bandwidth`) |
+| `Settings` | Persisted config (`theme/Settings.qml`, ~1140 lines): bar/panel geometry, hotzones, `revealPressure`, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
+| `Weather, Brightness, KeyboardLayout, SysInfo, VolumeWatcher` | Device/API polling singletons (`Weather` owns `fmt/fmtRaw/formatTime/formatDate` for `WeatherCard`; `SysInfo.bandwidth` is the single `bandwidth-loop` owner bound by `Bandwidth`) |
+| `FastfetchPins, AutoWorkspaceSwitching, GlobalTheme, UserProfileState` | Boot/prefs singletons: pins self-heal + watcher, workspace auto-switch, global theme bridge, profile cache |
+| `BooruActions, Supabase, WorkspaceIcons` | Domain helpers: booru download/fav actions, Supabase client config, workspace glyph map |
 
-`utils/` (`JsonUtils, MonitorUtils, SettingsUtils, TimeUtils, WindowManager`) is pure helpers.
-`scripts/` holds `booru.py`, `cava/`, `auth-server-callback.py`. Hyprland-side scripts live
+There is no `utils/` module (deleted 2026-09-13 — `JsonUtils, MonitorUtils,
+SettingsUtils, TimeUtils, WindowManager` are gone; logic was inlined).
+`scripts/` holds `booru.py`, `chatbot.py`, `crypto.py`, `manga.py`, `translate.sh`,
+`get-keybinds.sh`, `get-wallpapers.sh`, `wallhaven.py`, `gen-video-thumbs.sh`,
+`cava/`, `auth-server-callback.py`, plus C loops (`bandwidth-loop.c`,
+`system-resources-loop.c`). Hyprland-side scripts live
 **outside** this repo (`~/.config/hypr/scripts/screenrecord.sh`, `filemanager.sh`,
 `screenshot.sh`); keybinds in `~/.config/hypr/config/bind.lua` shell out via `qsIpc`
 (e.g. `SUPER+SHIFT+R` → `screenrecord now`).
@@ -109,11 +119,20 @@ All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb:
 ### 1.6 Theme — `theme/` (module `qs.theme`)
 
 `Theme.qml` + `Settings.qml` singletons (see `theme/qmldir`). All widgets consume
-`Theme.fg/bg/surface/accent/radius/fontSize/…` — never hardcode colors. Shared controls
-in `widgets/shared/` (module `qs.widgets.shared`, see its `qmldir`): `AppButton`,
-`AppSlider`, `AppTextField`, `AppCheckBox`, `AppComboBox`, `AppSpinBox`, `AppKeybind`,
-`AppImage`, `AppTooltip`, `AppProgress`, `AppMasonry`, `SmoothFlickable`,
-`SmoothListView`, `SmoothWheelHandler`.
+`Theme.fg/bg/surface/accent/radius/fontSize/…` — never hardcode colors. Extra tokens:
+`cardRadius` 8, `chipRadius` 6, `accentFg` white, `spacing` 8, `barContentHeight` 18.
+Shared controls in `widgets/shared/` (module `qs.widgets.shared`, see its `qmldir`):
+`AppButton`, `AppSlider`, `AppTextField`, `AppTextArea`, `AppCheckBox`, `AppComboBox`,
+`AppSpinBox`, `AppKeybind`, `AppSegmentedControl`, `AppImage`, `AppVideo`, `AppBadge`,
+`AppTooltip`, `AppProgress`, `AppMasonry`, `AppMasonryRow`, `SystemResourcesContent`,
+`SmoothFlickable`, `SmoothListView`, `SmoothWheelHandler`.
+
+Widget dirs: `bar/` (pill + `Bandwidth/Battery/Brightness/Clock/Network/ResourceMonitor/Tray/Volume/Workspaces`
++ `islands/`), `controlPanel/ControlPanelBody.qml`, `launcher/` (`LauncherPanel`, `AppEntry`),
+`lock/` (`LockScreen/LockSurface/LockContext`, WlSessionLock+PAM), `media/` (`MediaWidget/MediaWindow/MediaVideo/WaveVisualizer`
+— `PlayerWidget.qml` deleted), `notifications/NotificationPopups.qml`, `rightPanel/` (Calendar/Crypto/CryptoItem/FormShell/JsonListStore/NotificationHistory/NotificationItem/ScriptTimer/SystemResources/TaskItem/Waifu — `StackItem.qml` deleted),
+`wallpaperPanel/WallpaperPanelBody.qml` (per-workspace picker + SDDM bg + video thumbs via `gen-video-thumbs.sh`),
+`weather/` (`WeatherCard.qml` single UI, `WeatherWidget.qml` thin wrapper, `WeatherButton.qml`).
 
 ### 1.7 Scrolling — single tuning point
 
@@ -154,7 +173,11 @@ wrappers. Rules:
    `IslandHoverPin`'s root is the `HoverHandler` itself — a handler monitors its
    *parent*, so an `Item`-wrapped pin would deaden hover and close the island 1s
    after opening even while hovered. RightIsland's selector rail stays custom
-   (`Drag.active`/`DropArea` reorder + `isDragging` auto-hide hold); its
+   (release-time geometric reorder + `isDragging` auto-hide hold + drag-guard
+   against toggle-on-release; live `onEntered` reorder is banned — reassigning
+   the model mid-drag rebuilds the delegate under the cursor, kills the gesture,
+   and can strand `isDragging`, same class as overview `onDropped` never firing
+   for internal drags, seen 2026-09-15); its
    `WindowActions` did migrate to shared. `IslandWindowActions` keeps the existing
    icon buttons verbatim — `Settings.*Exclusivity`/`*Lock` are bools, so the
    shared cluster copies the inline bool-toggle logic, not string labels.
@@ -216,3 +239,5 @@ wrappers. Rules:
 - 2026-09-13 refactor P2: WeatherCard single UI + Weather formatters; Bandwidth binds SysInfo.bandwidth (one bandwidth-loop process). (qmllint per-file verified; SUPER+B reload pending.)
 - 2026-09-13 refactor P3 (partial): Settings `_defaults` + `_hyprlandLeafSchema` extraction, apiKeys init dedup, hyprland persist/reload loops (node-verified byte-identical round-trip on live settings.json), Connections 47→41. Full `_schema` rewire + `fmt` move deferred (need live SUPER+B; `fmt` consumers in Clock.qml out of scope). 1055 → 970 lines. (qmllint 255 matches HEAD baseline; SUPER+B round-trip pending.) Kept handlers: 41 direct-writer on*Changed; deleted only onNotifDnd/AutoWorkspaceSwitching/ProfilePicturePath/WallpaperCategory/WeatherCity/ChatBotImageGenerationChanged (updateSetting-path only; enumeration in task-5 report).
 - 2026-09-13 refactor P4: shared Card/RightPanelCard/FormShell/JsonListStore + shared formatNextRun; Crypto/ScriptTimer keep only delegates + fields. (qmllint per-file verified; SUPER+B reload pending.)
+- 2026-09-14/15 master: merged `quickshell-migration` (#308); wallpaper panel rewrite (per-workspace picker + SDDM bg + `wallhaven.py`/`gen-video-thumbs.sh` video thumbs, flicker fix, phased progress); `revealPressure` rollout across `BarHoverWindow/HotZone/DefaultBar/Volume/Brightness/Network/ResourceMonitor/WeatherButton`; media `PlayerWidget→MediaWidget/MediaWindow/MediaVideo/WaveVisualizer`; `WeatherIsland/WeatherWidget` thinned to `WeatherCard` wrapper; new shared `AppBadge/AppMasonryRow/AppVideo/AppSegmentedControl/AppTextArea/SystemResourcesContent` + `CryptoItem/NotificationItem`; `supabase/` functions+migrations added.
+- 2026-09-15 features: workspace overview as `OverviewIsland` (`BarState "overview"` pri 85, `Ipc.toggleOverview`, `SUPER+SHIFT+TAB` in `hypr/config/bind.lua`) rebuilt end-4-style: 3×2 live pager (`widgets/overview/OverviewBody.qml` + `OverviewPreview.qml` with `ScreencopyView live:true`, geometry from `hyprctl clients -j` poll since `lastIpcObject` is stale, drag windows between `DropArea` cards → `movetoworkspace`, click focus / middle-click close, island widened 660→920, hover-leave close via shared `IslandHoverPin` (new optional `leaveDelay`, overview binds `Settings.revealPressure`; pin grants a 1s open-grace on creation so keybind-opened islands survive cursor travel — without it a 250ms pressure closes the island before arrival, seen 2026-09-15; new `armOnCreation` opt-out, overview sets false so it never closes before first hover); card clicks focus + close, tile clicks stay open (leave/toggle/Esc all close); all-10 5×2 grid with fully derived heights (`gridH` from `cardH`, no hardcoded px — leaves report implicitHeight 0 so arithmetic-from-metrics is the pattern); actions via `hl.dsp.*` Lua dispatchers (`hyprctl dispatch` verbs and `Hyprland.dispatch` raw strings both evaluate as Lua and fail — proven via IPC probe); drop target resolved geometrically at release (`DropArea.onDropped` never fires for internal drags); geometry keys normalized (`HyprlandToplevel.address` is bare-hex vs hyprctl `0x…` — root-caused via live IPC diag 2026-09-15); Network (Quickshell.Networking + nmcli: status, Wi-Fi toggle, rescan, top-6 AP connect) + Bluetooth (bluetoothctl: power, device list, connect, 8s poll) share one collapsible `Card` dropdown ("Connectivity") in `ControlPanelBody` built from shared `AppCheckBox/AppButton` + Theme-only styling.

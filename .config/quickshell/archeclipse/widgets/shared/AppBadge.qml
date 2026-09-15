@@ -13,7 +13,8 @@ Rectangle {
     width: Math.max(24, badgeLabel.implicitWidth + 12)
     height: 18
     radius: Theme.radius
-    color: Theme.accent
+    color: Theme.muted
+    opacity: 0.75
     visible: root.text !== ""
 
     Text {

@@ -27,7 +27,6 @@ PACKAGES: list[str] = [
     "wl-clipboard",
     "lsd",
     "cron",
-
     # Development tools
     "socat",
     "btop",
@@ -43,7 +42,6 @@ PACKAGES: list[str] = [
     "zsh-autosuggestions-git",
     "zsh-sudo-git",
     "fzf-tab-git",
-
     # System and network management
     "bluez",
     "bluez-utils",
@@ -57,7 +55,6 @@ PACKAGES: list[str] = [
     "brightnessctl",
     "hyprcursor",
     "hyprland",
-
     # Audio / video and media
     "swayimg",
     "kitty",
@@ -68,7 +65,6 @@ PACKAGES: list[str] = [
     "imagemagick",
     "mpvpaper",
     "zenity",
-
     # Themes and UI enhancements
     "sddm",
     "where-is-my-sddm-theme-git",
@@ -86,8 +82,8 @@ PACKAGES: list[str] = [
     "whitesur-gtk-theme",
     "whitesur-icon-theme",
     "quickshell",
+    "qt6-multimedia",
     "c-lolcat",
-
     # Extra build tools
     "meson",
     "cpio",

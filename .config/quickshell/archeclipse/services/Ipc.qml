@@ -39,6 +39,15 @@ Item {
             return "control open";
         }
 
+        function toggleOverview(): string {
+            if (BarState.state === "overview") {
+                BarState.deactivate("overview");
+                return "overview closed";
+            }
+            BarState.activate("overview", 0);
+            return "overview open";
+        }
+
         function toggleWallpaper(): string {
             if (BarState.state === "wallpaper") {
                 BarState.deactivate("wallpaper");

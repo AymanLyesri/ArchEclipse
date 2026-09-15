@@ -2,6 +2,7 @@ module qs.widgets.bar.islands
 
 ControlIsland 1.0 ControlIsland.qml
 LeftIsland 1.0 LeftIsland.qml
+OverviewIsland 1.0 OverviewIsland.qml
 PlayerIsland 1.0 PlayerIsland.qml
 RecordingIsland 1.0 RecordingIsland.qml
 RightIsland 1.0 RightIsland.qml

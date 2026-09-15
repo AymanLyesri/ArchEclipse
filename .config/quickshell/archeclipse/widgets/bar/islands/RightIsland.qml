@@ -130,7 +130,7 @@ Column {
 
             // ----- Sidebar with widget toggles (drag-reorderable) -----
             // NOTE: this rail stays custom (not IslandSideRail) — the
-            // Drag.active/DropArea reorder + isDragging auto-hide hold
+            // release-time geometric reorder + isDragging auto-hide hold
             // cannot be preserved by the shared Repeater rail.
             Rectangle {
                 id: sidebar
@@ -159,14 +159,22 @@ Column {
                             required property int index
                             width: parent.width
                             height: 40
+                            // Set on release after a real drag so the
+                            // trailing click doesn't toggle the widget.
+                            property bool suppressClick: false
+                            // Y at press time: the Column positioner owns the
+                            // absolute y (index*48), so the target slot must
+                            // derive from the drag DELTA, not absolute y.
+                            property real dragStartY: 0
 
-                            // --- Drag to reorder ---
+                            // --- Drag to reorder (resolved geometrically on
+                            // release: reordering live in onEntered reassigns
+                            // the model mid-drag, which rebuilds this
+                            // delegate under the cursor, kills the gesture,
+                            // and can strand isDragging true) ---
                             Drag.active: cellBtn.dragActive
                             Drag.hotSpot: Qt.point(width / 2, height / 2)
                             Drag.source: selectorItem
-                            Drag.mimeData: {
-                                "text/plain": String(index)
-                            }
 
                             AppButton {
                                 id: cellBtn
@@ -184,14 +192,31 @@ Column {
                                 onPressed: {
                                     cellBtn.dragging = true;
                                     root.isDragging = true;
+                                    selectorItem.dragStartY = selectorItem.y;
                                 }
                                 onReleased: {
                                     cellBtn.dragging = false;
                                     root.isDragging = false;
+                                    // Release-time reorder: target slot from
+                                    // the dragged offset (cell 40 + spacing
+                                    // 8 = 48px pitch), clamped to the list.
+                                    const to = Math.max(0, Math.min(Settings.rightPanelWidgets.length - 1, selectorItem.index + Math.round((selectorItem.y - selectorItem.dragStartY) / 48)));
                                     selectorItem.x = 0;
                                     selectorItem.y = 0;
+                                    if (to !== selectorItem.index) {
+                                        selectorItem.suppressClick = true;
+                                        const list = Settings.rightPanelWidgets.slice();
+                                        const [item] = list.splice(selectorItem.index, 1);
+                                        list.splice(to, 0, item);
+                                        Settings.rightPanelWidgets = list;
+                                        Settings.updateSetting("rightPanel.widgets", list);
+                                    }
                                 }
                                 onClicked: {
+                                    if (selectorItem.suppressClick) {
+                                        selectorItem.suppressClick = false;
+                                        return;
+                                    }
                                     const widgets = Settings.rightPanelWidgets.slice();
                                     const w = widgets[index];
                                     const newWidgets = widgets.map(item => item.name === w.name ? Object.assign({}, item, {
@@ -199,22 +224,6 @@ Column {
                                         }) : item);
                                     Settings.rightPanelWidgets = newWidgets;
                                     Settings.updateSetting("rightPanel.widgets", newWidgets);
-                                }
-
-                                DropArea {
-                                    id: dropArea
-                                    anchors.fill: parent
-                                    onEntered: {
-                                        const list = Settings.rightPanelWidgets.slice();
-                                        const from = Number(drag.source.index);
-                                        const to = selectorItem.index;
-                                        if (from === to || !list[from])
-                                            return;
-                                        const [item] = list.splice(from, 1);
-                                        list.splice(to, 0, item);
-                                        Settings.rightPanelWidgets = list;
-                                        Settings.updateSetting("rightPanel.widgets", list);
-                                    }
                                 }
                             }
                         }

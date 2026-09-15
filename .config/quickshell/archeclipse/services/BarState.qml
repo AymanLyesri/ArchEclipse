@@ -26,6 +26,7 @@ Singleton {
         "player": 80,
         "weather": 80,
         "system": 80,
+        "overview": 85,
         "control": 90,
         "left": 93,
         "right": 93,
