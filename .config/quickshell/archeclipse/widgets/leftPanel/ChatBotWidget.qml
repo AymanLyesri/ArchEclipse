@@ -487,7 +487,7 @@ Item {
                         text: "3. Copy & Paste it in the settings"
                         width: parent.width
                         implicitHeight: 28
-                        onClicked: root.goToSettings()
+                        onClicked: root.goToSettings("openrouter.key")
                     }
                 }
             }
@@ -811,8 +811,8 @@ Item {
         copyToClipboard(t);
     }
 
-    function goToSettings() {
+    function goToSettings(target) {
         if (typeof Registry !== "undefined" && Registry.selectLeftTab)
-            Registry.selectLeftTab("SettingsWidget");
+            Registry.selectLeftTab("SettingsWidget", target);
     }
 }

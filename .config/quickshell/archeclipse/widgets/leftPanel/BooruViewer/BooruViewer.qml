@@ -469,7 +469,7 @@ Item {
         };
         const downloadMissing = function () {
             const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-            dl.command = ["bash", "-c", `mkdir -p \"${dir}\" && curl -sSfL --max-time 60 -H "User-Agent: QuickshellBooru/1.0 (ArchLinux; Hyprland)" -H "Referer: ${img.api.url}" -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o \"${filePath}\" \"${img.url}\" && test -s \"${filePath}\"`];
+            dl.command = ["bash", "-c", `mkdir -p \"${dir}\" && curl -sSfL --max-time 60 -H "User-Agent: ${Settings.userAgent("booru")}" -H "Referer: ${img.api.url}" -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o \"${filePath}\" \"${img.url}\" && test -s \"${filePath}\"`];
             dl.exited.connect(function (code) {
                 if (code === 0)
                     markDone();
@@ -881,7 +881,7 @@ Item {
                     // hung connection so a stuck worker can't wedge the
                     // queue; trailing test -s only reports real files.
                     const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-                    dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(t.dir)} && curl -sSf --max-time 30 -H "User-Agent: QuickshellBooru/1.0 (ArchLinux; Hyprland)" -H "Referer: ${t.referer}" -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(t.path)} ${JSON.stringify(t.url)} && test -s ${JSON.stringify(t.path)}`];
+                    dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(t.dir)} && curl -sSf --max-time 30 -H "User-Agent: ${Settings.userAgent("booru")}" -H "Referer: ${t.referer}" -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(t.path)} ${JSON.stringify(t.url)} && test -s ${JSON.stringify(t.path)}`];
                     dl.exited.connect(function (code) {
                         active--;
                         // Mark even when superseded: the file is warm on

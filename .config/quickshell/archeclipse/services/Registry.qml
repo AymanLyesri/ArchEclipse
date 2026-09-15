@@ -40,10 +40,19 @@ QtObject {
         if (w) w.visible = !w.visible
     }
 
-    // Show the left island and switch its active tab
-    // ("Keybinds" quickapp: show left panel + set the leftPanel.widget setting).
-    function selectLeftTab(tabName) {
+    // Optional `target` is a widget-defined key (e.g. an API key's
+    // "provider.field" path) the destination widget can use to scroll to
+    // and briefly highlight a specific field after switching. It's a
+    // fire-and-forget request: the destination widget is expected to pick
+    // it up from pendingTarget and clear it once handled.
+    function selectLeftTab(tabName, target) {
         Settings.leftPanelWidget = tabName;
         BarState.activate("left", 0);
+        if (target !== undefined)
+            root.pendingTarget = target;
     }
+
+    // Consumed by whichever widget becomes visible via selectLeftTab's
+    // `target` argument; cleared by that widget once handled.
+    property string pendingTarget: ""
 }
