@@ -16,3 +16,4 @@ singleton GlobalTheme 1.0 GlobalTheme.qml
 singleton BooruActions 1.0 BooruActions.qml
 singleton UserProfileState 1.0 UserProfileState.qml
 singleton Supabase 1.0 Supabase.qml
+singleton PpdState 1.0 PpdState.qml

@@ -6,8 +6,8 @@ import qs.widgets.launcher
 
 // Search island: input + launcher results inline in the bar pill.
 // Replaces the old PopupWindow launcher — the pill grows (width via the
-// existing pill spring, height snapped on the window) while the results
-// body unfolds with a spring.
+// existing pill transition, height snapped on the window) while the results
+// body unfolds.
 Column {
     id: root
     width: 516
@@ -17,7 +17,7 @@ Column {
     signal activateRequested
     signal navigateRequested(int direction)
 
-    // Spring driver: 0 -> 1 on creation unfolds the results body.
+    // Expand driver: 0 -> 1 on creation unfolds the results body.
     property real expand: 0
     property int bodyFullHeight: 448
     Component.onCompleted: expand = 1

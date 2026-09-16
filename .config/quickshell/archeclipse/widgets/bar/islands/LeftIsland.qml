@@ -8,8 +8,8 @@ import qs.widgets.leftPanel
 // LeftIsland: the former LeftPanel body (sidebar + widget stack) living
 // INSIDE the bar pill as a Dynamic-Island state (BarState "left").
 //
-// Same spring-unfold pattern as Search/ControlIsland — the pill grows
-// (width via the pill spring, height snapped on the window) while this
+// Same unfold pattern as Search/ControlIsland — the pill grows
+// (width via the pill transition, height snapped on the window) while this
 // body unfolds via the expand driver (clip + opacity + scale only, so no
 // expensive layout animates per-frame). Each tab is a Loader that builds
 // on first select and stays alive, so switches preserve state exactly
@@ -48,7 +48,7 @@ Column {
     // scrolls internally, same as the search island's fixed body height).
     property int bodyHeight: Math.max(400, screenHeight - 15)
 
-    // Spring driver: 0 -> 1 on creation unfolds the body.
+    // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
     // Tab-name order for the selector-rail index mapping (the rail's
     // own model below carries the verbatim name+icon items; names keep
@@ -200,13 +200,14 @@ Column {
     }
     // Called by the bar owner on every (re)open: the island now survives
     // closes, so a leaveTimer armed before the last close must not fire
-    // into the fresh session and shut it after 1s with no hover-leave.
+    // into the fresh session and shut it after the reveal-out delay
+    // with no hover-leave.
     function cancelPendingHide() {
         leaveTimer.stop();
     }
     Timer {
         id: leaveTimer
-        interval: 1000
+        interval: Settings.revealOutPressure
         onTriggered: {
             if (!Settings.leftPanelLock && !islandHover.hovered && !(root.activeWidget && root.activeWidget.popupHovered))
                 BarState.deactivate("left");

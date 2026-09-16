@@ -4,6 +4,7 @@ import qs.theme
 
 SpinBox {
     id: root
+    editable: true
 
     contentItem: TextInput {
         z: 2

@@ -1,14 +1,16 @@
 import QtQuick
+import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.controlPanel
 
 // Control island: quick-settings body inline in the bar pill.
-// Same spring-unfold pattern as SearchIsland — the pill grows (width via
-// the pill spring, height snapped on the window) while this body unfolds.
+// Same unfold pattern as SearchIsland — the pill grows (width via
+// the pill transition, height snapped on the window) while this body unfolds.
 //
 // Focus: OnDemand (no keyboard grab) so the user can type elsewhere while
 // it is open. Clicking a slider focuses the surface, then Esc dismisses.
-// Leave: 1s after the cursor exits, the island closes itself.
+// Leave: the island closes itself after the reveal-out delay once the
+// cursor exits.
 // Pulse states (volume/brightness keys) render through this same island;
 // hovering one pins it persistent so it doesn't close mid-drag.
 Column {
@@ -19,17 +21,36 @@ Column {
     // Island owner passes the bar's monitor; body falls back to focused.
     property string monitorName: ""
 
-    // Spring driver: 0 -> 1 on creation unfolds the body.
+    // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
     Component.onCompleted: expand = 1
 
     // Hover pin (stable container — content never swaps under the cursor
-    // while open). The pin activates "control" persistently on every
-    // hover, which subsumes the old volume/brightness->control branch;
-    // leaving arms the 1s close timer, which also clears the pulses.
+    // while open). Pins whichever control-family state is showing — the
+    // pulse that opened it, or "control" itself — persistently, so hover
+    // never flips the resolved state and replays the swap motion;
+    // leaving arms the reveal-out close timer, which also clears the pulses.
     IslandHoverPin {
-        stateName: "control"
+        id: hoverPin
+        stateName: (BarState.state === "volume" || BarState.state === "brightness") ? BarState.state : "control"
         extraStates: ["volume", "brightness"]
+    }
+
+    // Volume/brightness changes reset the reveal-out close timer: without
+    // this a leave armed before the adjustment would shut the panel
+    // mid-adjustment. Skipped while hovered (hover already pins it —
+    // arming a close while hovered would fire into an attended panel)
+    // and when no close is pending (don't arm a no-op timer for a
+    // closed island).
+    function pokeHideTimer() {
+        if (hoverPin.hovered || !hoverPin.running)
+            return;
+        hoverPin.restart();
+    }
+    Connections {
+        target: BarState
+        function onVolumeEventsChanged() { root.pokeHideTimer(); }
+        function onBrightnessEventsChanged() { root.pokeHideTimer(); }
     }
 
     // Esc dismiss once the surface has focus (click a slider first).

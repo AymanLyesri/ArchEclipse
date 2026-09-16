@@ -15,7 +15,8 @@ Singleton {
     property bool barSmartHide: false
     property bool barDefault: true
     property bool barFullWidth: false
-    property real revealPressure: 500
+    property real revealInPressure: 250
+    property real revealOutPressure: 1000
     property bool barOrientation: true        // true = top
     property bool workspaceNumbers: false
 
@@ -497,7 +498,9 @@ Singleton {
             "bar.expanded": "barDefault",
             "bar.default": "barDefault",
             "bar.fullWidth": "barFullWidth",
-            "bar.revealPressure": "revealPressure",
+            "bar.revealPressure": "revealInPressure",
+            "bar.revealInPressure": "revealInPressure",
+            "bar.revealOutPressure": "revealOutPressure",
             "bar.orientation": "barOrientation",
             "bar.workspaceNumbers": "workspaceNumbers",
             "bar.blur": "barBlur",
@@ -597,8 +600,11 @@ Singleton {
                     fullWidth: {
                         value: root.barFullWidth
                     },
-                    revealPressure: {
-                        value: root.revealPressure
+                    revealInPressure: {
+                        value: root.revealInPressure
+                    },
+                    revealOutPressure: {
+                        value: root.revealOutPressure
                     },
                     orientation: {
                         value: root.barOrientation
@@ -835,7 +841,8 @@ Singleton {
                 root.barSmartHide = s.bar?.smartHide?.value ?? false;
                 root.barDefault = s.bar?.default?.value ?? s.bar?.expanded?.value ?? true;
                 root.barFullWidth = s.bar?.fullWidth?.value ?? false;
-                root.revealPressure = s.bar?.revealPressure?.value ?? 250;
+                root.revealInPressure = s.bar?.revealInPressure?.value ?? s.bar?.revealPressure?.value ?? 250;
+                root.revealOutPressure = s.bar?.revealOutPressure?.value ?? s.bar?.revealPressure?.value ?? 1000;
                 root.barOrientation = s.bar?.orientation?.value ?? true;
                 root.workspaceNumbers = s.bar?.workspaceNumbers?.value ?? false;
 
@@ -1059,7 +1066,10 @@ Singleton {
         function onBarFullWidthChanged() {
             root.schedulePersist();
         }
-        function onRevealPressureChanged() {
+        function onRevealInPressureChanged() {
+            root.schedulePersist();
+        }
+        function onRevealOutPressureChanged() {
             root.schedulePersist();
         }
         function onBarOrientationChanged() {

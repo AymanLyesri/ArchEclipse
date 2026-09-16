@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Networking
 import Quickshell.Services.Pipewire
+import Quickshell.Services.UPower
 import qs.theme
 import qs.services
 import qs.widgets.shared
@@ -174,6 +175,25 @@ Item {
     }
     function connectBt(mac, name) {
         Quickshell.execDetached(["bash", "-c", "bluetoothctl connect " + mac + " && notify-send 'Bluetooth' 'Connected to " + (name ?? mac).replace(/'/g, "'\\''") + "' || notify-send 'Bluetooth' 'Failed to connect'"]);
+    }
+    // ---- power profiles (native UPower service; PpdState gates visibility) ----
+    // PowerProfiles.profile is reactive + settable, so no polling needed for
+    // the value itself. PpdState probes `powerprofilesctl get` once at
+    // quickshell start — without PPD the section hides instead of showing
+    // a dead control (e.g. PPD-less desktops).
+    readonly property int powerIndex: {
+        if (PowerProfiles.profile === PowerProfile.Performance)
+            return 2;
+        if (PowerProfiles.profile === PowerProfile.PowerSaver)
+            return 0;
+        return 1;
+    }
+    readonly property string powerLabel: {
+        if (PowerProfiles.profile === PowerProfile.Performance)
+            return "Performance";
+        if (PowerProfiles.profile === PowerProfile.PowerSaver)
+            return "Power Saver";
+        return "Balanced";
     }
     Component.onCompleted: {
         body.refreshWifi();
@@ -531,6 +551,61 @@ Item {
                 stepSize: 0.01
                 value: Brightness.screen
                 onMoved: Brightness.setScreen(brightSlider.value)
+            }
+        }
+
+        // ===== Power profile (power-profiles-daemon, native UPower service) =====
+        Column {
+            width: parent.width
+            spacing: 6
+            visible: PpdState.available
+            Row {
+                width: parent.width
+                spacing: 8
+                Text {
+                    text: "󰓅"
+                    color: Theme.fg
+                    font.family: "JetBrainsMono NFP"
+                    font.pixelSize: 18
+                    verticalAlignment: Text.AlignVCenter
+                }
+                Text {
+                    text: "Power"
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSize - 1
+                    verticalAlignment: Text.AlignVCenter
+                }
+                Text {
+                    text: body.powerLabel
+                    color: Theme.accent
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSize - 2
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+            AppSegmentedControl {
+                pixelSize: Theme.fontSize - 1
+                model: [
+                    {
+                        value: PowerProfile.PowerSaver,
+                        label: "Power Saver",
+                        tooltip: "Limit performance to save power"
+                    },
+                    {
+                        value: PowerProfile.Balanced,
+                        label: "Balanced",
+                        tooltip: "Balance performance and power"
+                    },
+                    {
+                        value: PowerProfile.Performance,
+                        label: "Performance",
+                        tooltip: PowerProfiles.hasPerformanceProfile ? "Maximize performance" : "Performance not available on this system",
+                        enabled: PowerProfiles.hasPerformanceProfile
+                    }
+                ]
+                currentIndex: body.powerIndex
+                onActivated: (i, v) => PowerProfiles.profile = v
             }
         }
 

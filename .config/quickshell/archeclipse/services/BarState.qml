@@ -89,6 +89,7 @@ Singleton {
     // Brightness pulse tracking
     property real _lastBrightness: 0
     property bool _brightnessFirstRender: true
+    property int brightnessEvents: 0
 
     // Player pulse tracking
     property var _activePlayer: null
@@ -278,7 +279,7 @@ Singleton {
                 return;
             root._lastVolume = vol;
 
-            root.activate("volume", 2000);
+            root.activate("volume", Settings.revealOutPressure);
         });
     }
 
@@ -301,8 +302,9 @@ Singleton {
             if (val === root._lastBrightness)
                 return;
             root._lastBrightness = val;
+            root.brightnessEvents++;
 
-            root.activate("brightness", 2000);
+            root.activate("brightness", Settings.revealOutPressure);
         }
     }
 
@@ -469,7 +471,15 @@ Singleton {
         // other so left <-> right switches resolve cleanly (same
         // priority would otherwise leave both active and the winner
         // dependent on object iteration order).
+        // Volume/brightness pulses are mutually exclusive for the same
+        // reason: both render through ControlIsland, so a lingering
+        // rival pulse flips the resolved state mid-session (when the
+        // older hold timer expires) and replays the pill swap churn.
         var rival = name === "left" ? "right" : (name === "right" ? "left" : "");
+        if (name === "volume")
+            rival = "brightness";
+        else if (name === "brightness")
+            rival = "volume";
         if (rival !== "")
             root.deactivate(rival);
         const timers = root.holdTimers || {};

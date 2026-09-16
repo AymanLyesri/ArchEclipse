@@ -4,8 +4,8 @@ import qs.widgets.bar.islands
 import qs.widgets.wallpaperPanel
 
 // Wallpaper island: the full switcher body inline in the bar pill.
-// Same spring-unfold pattern as SearchIsland — the pill grows (width via
-// the pill spring, height snapped on the window) while this body unfolds.
+// Same unfold pattern as SearchIsland — the pill grows (width via
+// the pill transition, height snapped on the window) while this body unfolds.
 //
 // Persistent like SearchIsland (no leave auto-close — picking a wallpaper
 // is a task, not a hover peek). Closes via Esc, SUPER+W toggle, or the
@@ -18,7 +18,7 @@ Column {
     // Island owner passes the bar's monitor; body falls back to focused.
     property string monitorName: ""
 
-    // Spring driver: 0 -> 1 on creation unfolds the body.
+    // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
     Component.onCompleted: {
         expand = 1;

@@ -23,6 +23,10 @@ ShellRoot {
         // (self-healing pins whose files are missing) and attaches its pins
         // watcher — otherwise it only wakes on the first manual pin toggle.
         FastfetchPins.start()
+        // Probe power-profiles-daemon once at startup so ControlPanelBody
+        // can bind PpdState.available instead of spawning `powerprofilesctl`
+        // on every island open.
+        PpdState.start()
     }
 
     Ipc {

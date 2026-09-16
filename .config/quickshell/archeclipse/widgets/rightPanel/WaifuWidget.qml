@@ -54,9 +54,8 @@ Item {
         return Math.min(Math.max(h, 120), 520);
     }
 
-    // Loading state for fetch-by-ID and ensure-download below.
+    // Loading state for ensure-download below.
     property string loadingState: "idle"   // "loading" | "error" | "success" | "idle"
-    property int selectedApiIndex: 0
 
     // ensureFilesExist("both"): a viewer-set waifu whose full
     // image / preview was never downloaded renders blank, so fetch what's
@@ -173,27 +172,6 @@ Item {
         root._ready = true;
         root.ensureWaifuFiles();
     }
-
-    readonly property var booruApis: [
-        {
-            name: "Danbooru",
-            value: "danbooru",
-            url: "https://danbooru.donmai.us/",
-            idSearchUrl: "https://danbooru.donmai.us/posts/"
-        },
-        {
-            name: "Gelbooru",
-            value: "gelbooru",
-            url: "https://gelbooru.com/",
-            idSearchUrl: "https://gelbooru.com/index.php?page=post&s=view&id="
-        },
-        {
-            name: "Safebooru",
-            value: "safebooru",
-            url: "https://safebooru.donmai.us/",
-            idSearchUrl: "https://safebooru.donmai.us/posts/"
-        },
-    ]
 
     // Upload pipeline state (set by pickProc → identifyProc → copyProc below).
     property string _uploadSrc: ""
@@ -383,10 +361,6 @@ Item {
         }
     }
 
-    // Hover state keeps the overlay open while the search field holds focus
-    // (mouse may leave the image while typing an ID).
-    property bool searchFocused: false
-
     // ---- media display with hover-reveal action overlay ----
     // The image fills the widget; the actions live in a floating sheet
     // anchored to the image bottom that slides upwards on hover.
@@ -399,8 +373,8 @@ Item {
         visible: root.hasWaifu
         clip: true
 
-        // Revealed while hovering the image/overlay, or while typing an ID.
-        readonly property bool overlayRevealed: hoverHandler.hovered || root.searchFocused
+        // Revealed while hovering the image/overlay.
+        readonly property bool overlayRevealed: hoverHandler.hovered
 
         HoverHandler {
             id: hoverHandler
@@ -530,7 +504,7 @@ Item {
                 anchors.margins: 8
                 spacing: 8
 
-                // Section 1: bookmark + pin
+                // Row 1: bookmark + open in viewer + pin
                 RowLayout {
                     width: parent.width
                     height: 28
@@ -547,6 +521,15 @@ Item {
                         onClicked: BooruActions.toggleBookmark(root.wd)
                     }
 
+                    // Open as floating Booru dialog window
+                    AppButton {
+                        text: ""
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 28
+                        tooltipText: "Open as dialog"
+                        onClicked: root.openAsDialog()
+                    }
+
                     // Pin to terminal
                     AppButton {
                         property bool pinned: BooruActions.isPinned(root.wd)
@@ -561,20 +544,11 @@ Item {
                     }
                 }
 
-                // Section 2: open in viewer + browser + copy
+                // Row 2: open in browser + copy + upload
                 RowLayout {
                     width: parent.width
                     height: 28
                     spacing: 8
-
-                    // Open as floating Booru dialog window
-                    AppButton {
-                        text: ""
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 28
-                        tooltipText: "Open as dialog"
-                        onClicked: root.openAsDialog()
-                    }
 
                     // Open in browser
                     AppButton {
@@ -593,80 +567,15 @@ Item {
                         tooltipText: "Copy post ID"
                         onClicked: BooruActions.copyTag(String(root.wd_id))
                     }
-                }
-
-                // Section 3: search by ID + entry + upload
-                RowLayout {
-                    width: parent.width
-                    height: 28
-                    spacing: 8
-                    // Search by ID
-                    AppButton {
-                        text: "\u{f002}"
-                        Layout.preferredWidth: 36
-                        Layout.preferredHeight: 28
-                        tooltipText: "Search by post ID"
-                        onClicked: idSearchField.forceActiveFocus()
-                    }
-
-                    AppTextField {
-                        id: idSearchField
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 28
-                        placeholderText: "Post ID..."
-                        text: root.wd && root.wd.input_history ? root.wd.input_history : ""
-                        font.family: Theme.fontFamily
-                        onActiveFocusChanged: root.searchFocused = activeFocus
-                        onAccepted: {
-                            const query = (text || "").trim();
-                            if (query === "")
-                                return;
-                            root.loadingState = "loading";
-                            const api = root.booruApis[root.selectedApiIndex];
-                            BooruActions.fetchPostById(api.value, query, function (img, err) {
-                                if (!img) {
-                                    root.loadingState = "error";
-                                    Notifications.notify({
-                                        summary: "Waifu search failed",
-                                        body: err || "Post not found"
-                                    });
-                                    return;
-                                }
-                                img.input_history = query; // persist last ID
-                                Settings.waifu = img;
-                                Settings.schedulePersist();
-                                root.loadingState = "success";
-                            });
-                        }
-                    }
 
                     // Upload custom image (zenity select → identify dims
                     // → copy to custom/images/-1.<ext> → set as current waifu)
                     AppButton {
                         text: "\u{f093}"
-                        Layout.preferredWidth: 40
+                        Layout.fillWidth: true
                         Layout.preferredHeight: 28
                         tooltipText: "Upload custom image"
                         onClicked: root.uploadCustomImage()
-                    }
-                }
-
-                // Section 4: API tabs
-                RowLayout {
-                    width: parent.width
-                    height: 28
-                    spacing: 8
-                    Repeater {
-                        model: root.booruApis
-                        delegate: AppButton {
-                            text: modelData.name
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 28
-                            toggle: true
-                            checked: root.selectedApiIndex === index
-                            onClicked: root.selectedApiIndex = index
-                            pixelSize: Theme.fontSize - 4
-                        }
                     }
                 }
             } // actionsCol

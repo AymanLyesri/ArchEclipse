@@ -5,7 +5,7 @@ import qs.widgets.bar.islands
 import qs.widgets.overview
 
 // Overview island: workspace overview grid inline in the bar pill.
-// Closes on hover-leave (leave delay follows Settings.revealPressure),
+// Closes on hover-leave (leave delay follows Settings.revealOutPressure),
 // via the toggle, or on Esc. Card clicks focus + close; tile clicks
 // focus and keep it open.
 Item {
@@ -30,12 +30,12 @@ Item {
         monitorName: root.monitorName
     }
 
-    // Hover-leave close (delay follows reveal pressure) + Esc dismiss.
+    // Hover-leave close (delay follows reveal-out pressure via the
+    // IslandHoverPin default) + Esc dismiss.
     // No creation arm: the island stays open until first hovered-out,
     // toggled, or Escaped.
     IslandHoverPin {
         stateName: "overview"
-        leaveDelay: Settings.revealPressure
         armOnCreation: false
     }
     IslandEscClose {

@@ -44,7 +44,7 @@ Rectangle {
         }
     }
 
-    // external change → reveal + 2s hide timeout
+    // external change → reveal + reveal-out hide timeout
     property bool sliderRevealed: false
     property bool keepOpen: false
     property bool _firstLevel: true
@@ -58,7 +58,7 @@ Rectangle {
     }
     Timer {
         id: hideTimer
-        interval: 2000
+        interval: Settings.revealOutPressure
         onTriggered: root.hideSlider()
     }
 
@@ -83,7 +83,7 @@ Rectangle {
         }
         AppSlider {
             id: briSlider
-            visible: root.pulse || root.sliderRevealed || briHover.hovered
+            visible: root.pulse || root.sliderRevealed
             width: visible ? 100 : 0
             anchors.verticalCenter: parent.verticalCenter
             from: 0.01
@@ -97,11 +97,11 @@ Rectangle {
         }
     }
 
-    // Hover dwell (Settings.revealPressure, 0 = instant) so brushing the
+    // Hover dwell (Settings.revealInPressure, 0 = instant) so brushing the
     // cursor across the bar doesn't reveal the slider by accident.
     Timer {
         id: dwellTimer
-        interval: Settings.revealPressure
+        interval: Settings.revealInPressure
         repeat: false
         onTriggered: {
             root.keepOpen = true;
@@ -109,12 +109,12 @@ Rectangle {
             hideTimer.stop();
         }
     }
-    // Hover keeps the reveal open; cancel + restart the 2s timer on leave
+    // Hover keeps the reveal open; cancel + restart the reveal-out timer on leave
     HoverHandler {
         id: briHover
         onHoveredChanged: {
             if (briHover.hovered) {
-                if (Settings.revealPressure <= 0) {
+                if (Settings.revealInPressure <= 0) {
                     root.keepOpen = true;
                     root.sliderRevealed = true;
                     hideTimer.stop();

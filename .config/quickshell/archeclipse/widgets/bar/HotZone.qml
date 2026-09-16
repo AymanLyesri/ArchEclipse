@@ -31,9 +31,9 @@ Rectangle {
     // ends, so dragging the cursor out of an open island across the bar
     // used to brush the rival strip and instantly swap islands (left ->
     // right with no intent). Intentional hovers dwell; crossings don't.
-    // Bound to Settings.revealPressure (0 = instant). Click still opens
+    // Bound to Settings.revealInPressure (0 = instant). Click still opens
     // immediately (touch users).
-    property int dwellMs: Settings.revealPressure
+    property int dwellMs: Settings.revealInPressure
     Timer {
         id: dwellTimer
         interval: root.dwellMs

@@ -37,7 +37,7 @@ PanelWindow {
     // atomically with the state change — anchors, margins, zone and the
     // offset zeroing below all commit in the same frame — so there is no
     // staged switch to race the surface resize and glitch. The pill width
-    // spring then grows the edge-anchored surface in place (it expands
+    // transition then grows the edge-anchored surface in place (it expands
     // from the docked edge instead of gliding across the screen).
     readonly property bool leftVert: BarState.state === "left" && Settings.leftPanelExclusivity
     readonly property bool rightVert: BarState.state === "right" && Settings.rightPanelExclusivity
@@ -63,6 +63,11 @@ PanelWindow {
             // Island width; the compositor adds the 10px edge margin on
             // top, so the reservation lands exactly on the docked pill.
             return Math.round(pill.targetWidth);
+        if (BarState.state === "left" || BarState.state === "right")
+            // Side island open as an overlay (its exclusivity setting is
+            // off): drop the main bar strip reservation (top or bottom)
+            // while the panel is up.
+            return -1;
         return Settings.barLock ? root.barHeight : -1;
     }
     color: "transparent"
@@ -86,7 +91,7 @@ PanelWindow {
     readonly property int barHeight: 32
     // Snap the layer surface to content (no Behavior here — animating the
     // PanelWindow renegotiates with the compositor every frame and stutters).
-    // Inner content (pill width spring + island expand spring) carries motion.
+    // Inner content (pill width transition + island expand transition) carries motion.
     // NOTE: implicitWidth must track the pill too, not just height — once a
     // side island drops the far-side anchor, the surface sizes to content
     // and an unbound implicitWidth strands it at a stale width (clipped
@@ -252,31 +257,23 @@ PanelWindow {
             // Grows with content: 32 for normal states, tall when the
             // search island (input + launcher) is shown.
             height: Math.max(root.barHeight, stack.height + 10)
-            // Bound to targetWidth + frame-synced Behavior: the scene-graph
-            // render thread drives the spring on vsync instead of a 16ms
-            // QML Timer ticking JS physics on the GUI thread (jitter from
-            // timer drift + fixed-dt integration + a full re-polish/
-            // re-anchor of the centered stack on every write = choppy).
-            // NOTE: QML SpringAnimation units differ (QML damping range is
-            // 0..1); values match the repo's proven
-            // island springs (Control/SearchIsland 3.5/0.32), stiffened and
-            // damped a touch for the wide pill. Same feel: quick settle,
-            // slight overshoot.
+            // Bound to targetWidth + transition: a plain NumberAnimation
+            // (duration + easing curve, no bounce/velocity) keeps state
+            // changes predictable — the pill eases between widths instead
+            // of overshooting.
             width: targetWidth
             property bool widthAnimReady: false
             Component.onCompleted: widthAnimReady = true
             Behavior on width {
-                // No width spring while a vertical-exclusive island is open:
+                // No width transition while a vertical-exclusive island is open:
                 // the surface tracks the pill size, so animating it would
                 // renegotiate every frame (clipping/tearing). Exclusive
                 // opens snap to final geometry instead; the content
                 // crossfade + island unfold below carry the motion.
                 enabled: pill.widthAnimReady && !root.leftVert && !root.rightVert
-                SpringAnimation {
-                    spring: 15
-                    damping: 0.5
-                    mass: 1.0
-                    epsilon: 0.5
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
                 }
             }
             bottomRightRadius: Theme.radius
@@ -289,7 +286,7 @@ PanelWindow {
             // of swapping centered, so bar + island travel as one
             // continuous unit. Driven off BarState.state (not the lagged
             // displayed state) so the glide starts on the same frame as
-            // the width spring, with the same spring constants for one
+            // the width transition, with the same duration/curve for one
             // coordinated motion.
             property real shift: shiftTarget
             property real shiftTarget: {
@@ -302,11 +299,9 @@ PanelWindow {
             }
             Behavior on shift {
                 enabled: pill.widthAnimReady
-                SpringAnimation {
-                    spring: 8
-                    damping: 0.5
-                    mass: 1.0
-                    epsilon: 1
+                NumberAnimation {
+                    duration: 250
+                    easing.type: Easing.OutCubic
                 }
             }
             anchors.horizontalCenterOffset: (root.leftVert || root.rightVert) ? 0 : shift
@@ -318,7 +313,7 @@ PanelWindow {
                 id: pillHover
             }
 
-            // Spring target (grow-first/shrink-first sequencing).
+            // Width target (grow-first/shrink-first sequencing).
             // widthOverride pins the target during grow-first sequencing.
             property real widthOverride: -1
             property real targetWidth: widthOverride >= 0 ? widthOverride : Math.max(stack.width + 10, 100)
@@ -333,7 +328,7 @@ PanelWindow {
                 anchors.centerIn: parent
                 // Hold the last measured width across the 1-frame Loader
                 // swap gap (item == null): without this the target dips to
-                // the 100px floor mid-transition and the spring visibly
+                // the 100px floor mid-transition and the transition visibly
                 // stutters (wide -> 100 -> island instead of wide -> island).
                 // implicitWidth fallback covers Row-based pages (DefaultBar)
                 // whose width stays 0 while content lays out past its bounds.
@@ -407,9 +402,21 @@ PanelWindow {
                             swapTimer.stop();
                             return;
                         }
+                        // Same page family (volume -> control on hover-pin,
+                        // volume <-> brightness across key presses): swap
+                        // instantly with no grow/shrink sequencing — the
+                        // Loader resolves the same component, so there is
+                        // nothing to animate.
+                        if (stack.pageFamily(s) === stack.pageFamily(stack.displayed)) {
+                            stack.pending = "";
+                            swapTimer.stop();
+                            pill.widthOverride = -1;
+                            stack.displayed = s;
+                            return;
+                        }
                         // Exclusive island open: pin the width target straight
                         // to final geometry through the Loader gap (the width
-                        // spring is off while vert, and the target would
+                        // transition is off while vert, and the target would
                         // otherwise sit on the stale lastWidth, landing the
                         // fresh surface at the wrong size for a frame).
                         // Cached (already-instantiated) islands measure
@@ -452,8 +459,21 @@ PanelWindow {
                 }
 
                 property string current: stack.displayed
+                // Page family: volume/brightness/control all render
+                // through controlPage, so transitions within the family
+                // must not replay the swap churn (grow-first width
+                // sequencing + crossfade) — same content, no reveal.
+                function pageFamily(s) {
+                    if (s === "volume" || s === "brightness" || s === "control")
+                        return "control";
+                    return s;
+                }
+                property string lastFamily: "default"
                 onCurrentChanged: {
-                    fade.restart();
+                    var fam = stack.pageFamily(current);
+                    if (fam !== stack.lastFamily)
+                        fade.restart();
+                    stack.lastFamily = fam;
                     // Prime the side-island cache on first open; the Loader
                     // stays active from then on (created once, kept alive).
                     // Synchronous load, so the item exists right after.
@@ -471,7 +491,7 @@ PanelWindow {
                         // it must not fire into this fresh session.
                         if (isl["cancelPendingHide"] !== undefined)
                             isl.cancelPendingHide();
-                        // Reopen unfold: the cached island's expand spring
+                        // Reopen unfold: the cached island's expand value
                         // stays at 1 while hidden, so replay 0 -> 1 for the
                         // same unfold motion a fresh creation had (deferred
                         // a frame so the 0 commits before the 1 animates).

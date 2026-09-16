@@ -218,26 +218,40 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
-                                    text: "Reveal Pressure"
+                                    text: "Reveal-In Pressure"
                                     color: Theme.fg
                                     Layout.fillWidth: true
                                 }
-                                AppSlider {
+                                AppSpinBox {
                                     from: 0
-                                    to: 1000
-                                    value: Settings.revealPressure
-                                    Layout.preferredWidth: 150
+                                    to: 5000
+                                    value: Settings.revealInPressure
+                                    Layout.preferredWidth: 160
                                     onValueChanged: {
-                                        if (value === Settings.revealPressure)
+                                        if (value === Settings.revealInPressure)
                                             return;
-                                        Settings.revealPressure = value;
+                                        Settings.revealInPressure = value;
                                     }
                                 }
+                            }
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
                                 Label {
-                                    text: Math.round(Settings.revealPressure)
-                                    color: Theme.fgDim
-                                    Layout.preferredWidth: 34
-                                    horizontalAlignment: Text.AlignRight
+                                    text: "Reveal-Out Pressure"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                                AppSpinBox {
+                                    from: 0
+                                    to: 5000
+                                    value: Settings.revealOutPressure
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.revealOutPressure)
+                                            return;
+                                        Settings.revealOutPressure = value;
+                                    }
                                 }
                             }
                         }
@@ -1922,7 +1936,8 @@ Item {
         Settings.barSmartHide = false;
         Settings.barDefault = true;
         Settings.barFullWidth = false;
-        Settings.revealPressure = 250;
+        Settings.revealInPressure = 250;
+        Settings.revealOutPressure = 1000;
         Settings.barOrientation = true;
         Settings.workspaceNumbers = false;
         Settings.barLayout = {

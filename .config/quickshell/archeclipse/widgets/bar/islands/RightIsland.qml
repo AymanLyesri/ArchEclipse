@@ -11,8 +11,8 @@ import qs.widgets.rightPanel
 // RightIsland: the former RightPanel body (widget stack + toggle sidebar)
 // living INSIDE the bar pill as a Dynamic-Island state (BarState "right").
 //
-// Same spring-unfold pattern as Search/ControlIsland — the pill grows
-// (width via the pill spring, height snapped on the window) while this
+// Same unfold pattern as Search/ControlIsland — the pill grows
+// (width via the pill transition, height snapped on the window) while this
 // body unfolds via the expand driver (clip + opacity + scale only, so no
 // expensive layout animates per-frame).
 //
@@ -49,7 +49,7 @@ Column {
     // The auto-hide timer skips hiding while this is set.
     property bool isDragging: false
 
-    // Spring driver: 0 -> 1 on creation unfolds the body.
+    // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
     Component.onCompleted: {
         expand = 1;
@@ -103,7 +103,7 @@ Column {
     }
     Timer {
         id: leaveTimer
-        interval: 1000
+        interval: Settings.revealOutPressure
         onTriggered: {
             if (!Settings.rightPanelLock && !islandHover.hovered && !root.isDragging)
                 BarState.deactivate("right");

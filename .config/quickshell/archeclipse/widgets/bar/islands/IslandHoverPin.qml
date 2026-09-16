@@ -1,5 +1,6 @@
 import QtQuick
 import qs.services
+import qs.theme
 
 // Shared island hover-pin: hover stops the 1s leave timer and pins the
 // BarState state persistent; leaving restarts the timer.
@@ -13,9 +14,9 @@ HoverHandler {
     id: root
     property string stateName: ""
     property var extraStates: []
-    // Leave delay before the state deactivates (default 1s; callers may
-    // bind Settings.revealPressure for a pressure-consistent feel).
-    property int leaveDelay: 1000
+    // Leave delay before the state deactivates (defaults to
+    // Settings.revealOutPressure; callers may override).
+    property int leaveDelay: Settings.revealOutPressure
     // Arm the timer at creation (default true: an island the cursor never
     // reaches still closes). Set false for islands that must stay open
     // until first hovered-out, toggled, or Escaped.

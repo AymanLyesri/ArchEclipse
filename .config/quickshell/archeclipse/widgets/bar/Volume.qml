@@ -33,7 +33,8 @@ Rectangle {
         return isNaN(v) || v < 0 ? 0 : (v > 1 ? 1 : v);
     }
 
-    // Reveal slider on volume change, auto-hide after 2s (hover keeps open).
+    // Reveal slider on volume change, auto-hide after the reveal-out
+    // delay (hover keeps open).
     // Skip the mount notification — first vol evaluation must
     // not pop the slider open at launch.
     property bool sliderRevealed: false
@@ -55,7 +56,7 @@ Rectangle {
     }
     Timer {
         id: hideTimer
-        interval: 2000
+        interval: Settings.revealOutPressure
         onTriggered: root.hideSlider()
     }
 
@@ -86,7 +87,7 @@ Rectangle {
         }
         AppSlider {
             id: slider
-            visible: root.pulse || root.sliderRevealed || hover.hovered
+            visible: root.pulse || root.sliderRevealed
             width: visible ? 100 : 0
             anchors.verticalCenter: parent.verticalCenter
             from: 0
@@ -106,11 +107,11 @@ Rectangle {
         }
     }
 
-    // Hover dwell (Settings.revealPressure, 0 = instant) so brushing the
+    // Hover dwell (Settings.revealInPressure, 0 = instant) so brushing the
     // cursor across the bar doesn't reveal the slider by accident.
     Timer {
         id: dwellTimer
-        interval: Settings.revealPressure
+        interval: Settings.revealInPressure
         repeat: false
         onTriggered: {
             root.keepOpen = true;
@@ -122,7 +123,7 @@ Rectangle {
         id: hover
         onHoveredChanged: {
             if (hover.hovered) {
-                if (Settings.revealPressure <= 0) {
+                if (Settings.revealInPressure <= 0) {
                     root.keepOpen = true;
                     root.sliderRevealed = true;
                     hideTimer.stop();
