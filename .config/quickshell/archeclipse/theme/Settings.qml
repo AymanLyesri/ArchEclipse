@@ -175,7 +175,37 @@ Singleton {
     // onCompleted) have credentials even before the settings file load
     // merges saved values over them. Single source: defaultApiKeys() below
     // (this used to paste the same literal twice).
+    // Per-service User-Agent strings. Kept centralized so every widget/backend
+    // uses the same editable values while still allowing services to have
+    // different requirements.
     property var apiKeys: root.defaultApiKeys()
+    property var userAgents: root.defaultUserAgents()
+
+    function defaultUserAgents() {
+        return {
+            booru: "QuickshellBooru/1.0 (ArchLinux; Hyprland)",
+            mangaDex: "ArchEclipse-MangaCLI/1.0",
+            mangaLib: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            waifu: "QuickshellBooru/1.0 (ArchLinux; Hyprland)",
+            fastfetch: "QuickshellBooru/1.0 (ArchLinux; Hyprland)"
+        };
+    }
+
+    function mergeUserAgents(saved) {
+        const d = root.defaultUserAgents();
+        if (!saved || typeof saved !== "object")
+            return d;
+        for (const key of Object.keys(d)) {
+            const v = saved[key];
+            if (v !== undefined && v !== null && String(v).trim() !== "")
+                d[key] = String(v);
+        }
+        return d;
+    }
+
+    function userAgent(name) {
+        return String((root.userAgents || {})[name] || root.defaultUserAgents()[name] || "");
+    }
 
     // Default API credentials (shipped fallback). Used when the settings
     // file has none saved — the defaults stay in memory; QS must do the
@@ -727,7 +757,8 @@ Singleton {
                     pins: root.booru.pins,
                     selectedTab: root.booru.selectedTab ?? root.booru.api?.name ?? "Danbooru"
                 },
-                "apiKeys": root.apiKeys
+                "apiKeys": root.apiKeys,
+                "userAgents": root.userAgents
             };
             _lastText = JSON.stringify(s, null, 2);
             _file.setText(_lastText);
@@ -926,6 +957,7 @@ Singleton {
                     selectedTab: s.booru?.selectedTab ?? s.booru?.api?.name ?? "Danbooru"
                 };
                 root.apiKeys = root.mergeApiKeys(s.apiKeys);
+                root.userAgents = root.mergeUserAgents(s.userAgents);
 
                 // Waifu widget
                 root.waifu = s.waifuWidget?.current ?? null;

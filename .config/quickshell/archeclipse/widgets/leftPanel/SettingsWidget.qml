@@ -10,7 +10,7 @@ import qs.services
 
 // Settings Widget — shell settings panel
 // Sections: Bar (layout reorder + toggles), Panels, Theme, Interface,
-// Always-On Widget, KeyStrokeVisualizer, Api Keys, File Manager, Hyprland,
+// Always-On Widget, KeyStrokeVisualizer, User Agents, Api Keys, File Manager, Hyprland,
 // Apply/Reset buttons
 Item {
     id: root
@@ -24,7 +24,7 @@ Item {
     // each time this tab becomes visible and sections key their opacity
     // off their index.
     property int revealCount: 0
-    property int sectionCount: 10
+    property int sectionCount: 11
     Timer {
         id: revealTimer
         interval: 60
@@ -41,8 +41,54 @@ Item {
         revealTimer.restart();
     }
     onVisibleChanged: {
-        if (visible)
+        if (visible) {
             root.playReveal();
+            root.handlePendingTarget();
+        }
+    }
+
+    // Cross-widget deep link (see Registry.selectLeftTab's `target` arg):
+    // scrolls the matching row into view and briefly flashes it. Currently
+    // only wired to apiKeyRepeater rows (matched by their "provider.field"
+    // path) — extend the search below if other sections gain targets.
+    function handlePendingTarget() {
+        if (Registry.pendingTarget === "")
+            return;
+        const key = Registry.pendingTarget;
+        Registry.pendingTarget = "";
+        // Rows aren't laid out yet on the very first frame a hidden tab
+        // becomes visible; defer one tick so mapToItem/contentHeight are
+        // accurate.
+        Qt.callLater(() => root.scrollToAndHighlight(key));
+    }
+    Connections {
+        target: Registry
+        function onPendingTargetChanged() {
+            if (root.visible)
+                root.handlePendingTarget();
+        }
+    }
+
+    function scrollToAndHighlight(key) {
+        for (let i = 0; i < apiKeyRepeater.count; i++) {
+            const item = apiKeyRepeater.itemAt(i);
+            if (!item || item.objectName !== key)
+                continue;
+            const y = item.mapToItem(settingsCol, 0, 0).y;
+            const maxY = Math.max(0, settingsCol.height - settingsScroll.height);
+            scrollAnim.to = Math.min(Math.max(y - 24, 0), maxY);
+            scrollAnim.restart();
+            if (item.flash)
+                item.flash();
+            return;
+        }
+    }
+    NumberAnimation {
+        id: scrollAnim
+        target: settingsScroll
+        property: "contentY"
+        duration: 350
+        easing.type: Easing.OutCubic
     }
 
     ColumnLayout {
@@ -677,11 +723,108 @@ Item {
                     }
                 }
 
+                // ============ USER AGENTS ============
+                Rectangle {
+                    width: parent.width
+                    implicitHeight: uaSec.implicitHeight + 20
+                    opacity: root.revealCount > 6 ? 1 : 0
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 250
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    radius: Theme.radius
+                    color: Theme.surface
+                    border.color: Theme.border
+                    border.width: 1
+
+                    Column {
+                        id: uaSec
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
+                        Label {
+                            text: "User Agents"
+                            font.pixelSize: Theme.fontSize + 2
+                            font.bold: true
+                            color: Theme.accent
+                        }
+                        Label {
+                            text: "HTTP User-Agent used by each service/widget. Changes are saved automatically."
+                            color: Theme.fgDim
+                            wrapMode: Text.WordWrap
+                            width: parent.width
+                        }
+                        Column {
+                            width: parent.width
+                            spacing: 4
+                            Repeater {
+                                model: [
+                                    { key: "booru", label: "Booru" },
+                                    { key: "mangaDex", label: "MangaDex" },
+                                    { key: "mangaLib", label: "MangaLib" },
+                                    { key: "waifu", label: "Waifu" },
+                                    { key: "fastfetch", label: "Fastfetch" }
+                                ]
+                                delegate: Rectangle {
+                                    width: parent.width
+                                    height: 34
+                                    color: Theme.bg
+                                    radius: 4
+
+                                    property bool reveal: false
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 6
+                                        spacing: 6
+                                        Label {
+                                            text: modelData.label
+                                            color: Theme.fg
+                                            Layout.preferredWidth: 90
+                                            elide: Text.ElideRight
+                                        }
+                                        AppTextField {
+                                            id: uaField
+                                            text: Settings.userAgent(modelData.key)
+                                            placeholderText: "User-Agent"
+                                            echoMode: parent.parent.reveal ? TextField.Normal : TextField.Password
+                                            fillColor: "transparent"
+                                            Layout.fillWidth: true
+                                            onAccepted: {
+                                                const u = JSON.parse(JSON.stringify(Settings.userAgents || {}));
+                                                u[modelData.key] = uaField.text;
+                                                Settings.userAgents = u;
+                                                Settings.schedulePersist();
+                                            }
+                                        }
+                                        AppButton {
+                                            text: parent.parent.reveal ? "hide" : "show"
+                                            Layout.preferredWidth: 44
+                                            Layout.preferredHeight: 24
+                                            visible: uaField.text !== ""
+                                            onClicked: parent.parent.reveal = !parent.parent.reveal
+                                        }
+                                        AppButton {
+                                            text: "copy"
+                                            Layout.preferredWidth: 44
+                                            Layout.preferredHeight: 24
+                                            visible: uaField.text !== ""
+                                            onClicked: root.copyText(uaField.text)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // ============ API KEYS ============
                 Rectangle {
                     width: parent.width
                     implicitHeight: apiSec.implicitHeight + 20
-                    opacity: root.revealCount > 6 ? 1 : 0
+                    opacity: root.revealCount > 7 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -748,24 +891,63 @@ Item {
                                     }
                                 ]
                                 delegate: Rectangle {
+                                    id: keyRow
                                     // NOTE: Repeater has no width — size off the
                                     // section Column instead.
                                     width: parent.width
                                     height: 34
                                     color: Theme.bg
                                     radius: 4
+                                    objectName: modelData.path
 
                                     property bool reveal: false
+
+                                    border.color: Theme.accent
+                                    border.width: 0
+                                    function flash() {
+                                        flashAnim.restart();
+                                    }
+                                    SequentialAnimation {
+                                        id: flashAnim
+                                        loops: 2
+                                        NumberAnimation {
+                                            target: keyRow
+                                            property: "border.width"
+                                            from: 0
+                                            to: 2
+                                            duration: 200
+                                            easing.type: Easing.OutCubic
+                                        }
+                                        NumberAnimation {
+                                            target: keyRow
+                                            property: "border.width"
+                                            from: 2
+                                            to: 0
+                                            duration: 500
+                                            easing.type: Easing.InCubic
+                                        }
+                                    }
 
                                     RowLayout {
                                         anchors.fill: parent
                                         anchors.margins: 6
                                         spacing: 6
                                         Label {
+                                            id: apiKeyLabel
                                             text: modelData.label
                                             color: Theme.fg
                                             Layout.fillWidth: true
                                             elide: Text.ElideRight
+                                        }
+
+                                        HoverHandler {
+                                            id: apiKeyHoverHandler
+                                            cursorShape: Qt.ArrowCursor
+                                        }
+
+                                        AppTooltip {
+                                            visible: apiKeyHoverHandler.hovered && apiKeyLabel.truncated
+                                            text: apiKeyLabel.text
                                         }
                                         AppTextField {
                                             id: keyField
@@ -807,7 +989,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: fmSec.implicitHeight + 20
-                    opacity: root.revealCount > 7 ? 1 : 0
+                    opacity: root.revealCount > 8 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -840,10 +1022,21 @@ Item {
                                     width: parent.width
                                     spacing: 8
                                     Label {
+                                        id: fmLabel
                                         text: modelData.name
                                         color: Theme.fg
                                         Layout.fillWidth: true
                                         elide: Text.ElideRight
+
+                                        HoverHandler {
+                                            id: fmHoverHandler
+                                            cursorShape: Qt.ArrowCursor
+                                        }
+
+                                        AppTooltip {
+                                            visible: fmHoverHandler.hovered && fmLabel.truncated
+                                            text: fmLabel.text
+                                        }
                                     }
                                     AppCheckBox {
                                         checked: Settings.fileManager === modelData.id
@@ -868,7 +1061,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: hyprSec.implicitHeight + 20
-                    opacity: root.revealCount > 8 ? 1 : 0
+                    opacity: root.revealCount > 9 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -900,9 +1093,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypRLabel
                                     text: "Decoration: Rounding"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypRHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypRHover.hovered && hypRLabel.truncated
+                                        text: hypRLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     id: hypRounding
@@ -946,9 +1151,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypBSLabel
                                     text: "Decoration: Blur Size"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypBSHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypBSHover.hovered && hypBSLabel.truncated
+                                        text: hypBSLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -974,9 +1191,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypBPLabel
                                     text: "Decoration: Blur Passes"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypBPHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypBPHover.hovered && hypBPLabel.truncated
+                                        text: hypBPLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1036,9 +1265,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypSRLabel
                                     text: "Decoration: Shadow Range"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypSRHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypSRHover.hovered && hypSRLabel.truncated
+                                        text: hypSRLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1064,9 +1305,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypSRPLabel
                                     text: "Shadow Render Power"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypSRPHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypSRPHover.hovered && hypSRPLabel.truncated
+                                        text: hypSRPLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1092,9 +1345,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypBSzLabel
                                     text: "General: Border Size"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypBSzHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypBSzHover.hovered && hypBSzLabel.truncated
+                                        text: hypBSzLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1120,9 +1385,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypGILabel
                                     text: "General: Gaps In"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypGIHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypGIHover.hovered && hypGILabel.truncated
+                                        text: hypGILabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1148,9 +1425,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypGOLabel
                                     text: "General: Gaps Out"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypGOHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypGOHover.hovered && hypGOLabel.truncated
+                                        text: hypGOLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1176,9 +1465,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypAOLabel
                                     text: "Decoration: Active Opacity"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypAOHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypAOHover.hovered && hypAOLabel.truncated
+                                        text: hypAOLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1205,9 +1506,21 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    id: hypIOLabel
                                     text: "Decoration: Inactive Opacity"
                                     Layout.preferredWidth: 170
                                     color: Theme.fg
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypIOHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypIOHover.hovered && hypIOLabel.truncated
+                                        text: hypIOLabel.text
+                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1236,10 +1549,12 @@ Item {
                                 spacing: 8
                                 AppButton {
                                     text: "Apply Hyprland Settings"
+                                    Layout.fillWidth: true
                                     onClicked: root.applyHyprlandSettings()
                                 }
                                 AppButton {
                                     text: "Reset to Default"
+                                    Layout.fillWidth: true
                                     onClicked: root.resetToDefaults()
                                 }
                             }
@@ -1251,7 +1566,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: lockSec.implicitHeight + 20
-                    opacity: root.revealCount > 9 ? 1 : 0
+                    opacity: root.revealCount > 10 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250

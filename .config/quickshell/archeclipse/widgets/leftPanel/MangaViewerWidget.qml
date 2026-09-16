@@ -527,7 +527,7 @@ Item {
             spacing: 10
             AppButton {
                 Layout.fillWidth: true
-                text: root.bottomRevealed ? "\u{F07E}" : "\u{F07C}"
+                text: root.bottomRevealed ? "\uf107" : "\uf106" // down/up chevron
                 onClicked: root.bottomRevealed = !root.bottomRevealed
             }
         }
@@ -556,12 +556,12 @@ Item {
                 spacing: 8
                 AppButton {
                     Layout.fillWidth: true
-                    text: "\u{F0580} Search"
+                    text: "\u{f002} Search"
                     onClicked: root.searchManga(root.searchQuery)
                 }
                 AppButton {
                     Layout.fillWidth: true
-                    text: "\u{F0580} Popular"
+                    text: "\u{f06d} Popular"
                     onClicked: root.fetchPopular()
                 }
             }
@@ -626,7 +626,7 @@ Item {
                 }
             }
             AppButton {
-                text: "\u{F07B7} Copy"
+                text: "\u{f0c5} Copy"
                 onClicked: {
                     const url = root.getUrl();
                     Quickshell.execDetached(["bash", "-c", "echo -n '" + url + "' | wl-copy 2>/dev/null || echo -n '" + url + "' | xclip -selection clipboard"]);

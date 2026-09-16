@@ -25,6 +25,31 @@ from typing import Any, Dict, List, Optional
 from PIL import Image
 import requests
 
+SETTINGS_PATH = Path.home() / ".cache" / "quickshell" / "settings" / "settings.json"
+DEFAULT_USER_AGENTS = {
+    "mangaDex": "ArchEclipse-MangaCLI/1.0",
+    "mangaLib": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+}
+
+
+def load_user_agents() -> Dict[str, str]:
+    agents = dict(DEFAULT_USER_AGENTS)
+    try:
+        if SETTINGS_PATH.exists():
+            settings = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+            saved = settings.get("userAgents", {})
+            if isinstance(saved, dict):
+                for key in agents:
+                    value = saved.get(key)
+                    if isinstance(value, str) and value.strip():
+                        agents[key] = value.strip()
+    except Exception:
+        pass
+    return agents
+
+
+USER_AGENTS = load_user_agents()
+
 # ==========================================================
 # MODELS
 # ==========================================================
@@ -157,7 +182,7 @@ class MangaDexProvider(MangaProvider):
     def __init__(self, covers_dir: Optional[str] = None):
         """Initialize the MangaDex provider sessions and directories."""
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": "ArchEclipse-MangaCLI/1.0"})
+        self.session.headers.update({"User-Agent": USER_AGENTS["mangaDex"]})
 
         self.covers_dir = Path(covers_dir) if covers_dir else self.COVERS_DIR
         self.covers_dir.mkdir(parents=True, exist_ok=True)
@@ -448,11 +473,7 @@ class MangalibProvider(MangaProvider):
         self.session = requests.Session()
         self.session.headers.update(
             {
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/120.0.0.0 Safari/537.36"
-                ),
+                "User-Agent": USER_AGENTS["mangaLib"],
                 "Accept": "application/json, text/plain, */*",
                 "Origin": "https://mangalib.org",
                 "Referer": "https://mangalib.org/",
