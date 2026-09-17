@@ -115,8 +115,8 @@ QtObject {
         const dir = item.src.substring(0, item.src.lastIndexOf("/"))
         let fetchCmd
         if (/^https?:\/\//.test(item.url)) {
-            const referer = item.referer ? ` -H "Referer: ${item.referer}"` : ""
-            fetchCmd = `mkdir -p ${JSON.stringify(dir)} && curl -sSfL -H "User-Agent: ${Settings.userAgent("fastfetch")}"${referer} -o ${JSON.stringify(item.src)} ${JSON.stringify(item.url)}`
+            const referer = item.referer ? ` -H ${Settings.shQuote("Referer: " + item.referer)}` : ""
+            fetchCmd = `mkdir -p ${JSON.stringify(dir)} && curl -sSfL -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("fastfetch"))}${referer} -o ${JSON.stringify(item.src)} ${JSON.stringify(item.url)}`
         } else {
             fetchCmd = `mkdir -p ${JSON.stringify(dir)} && cp -- ${JSON.stringify(item.url)} ${JSON.stringify(item.src)}`
         }

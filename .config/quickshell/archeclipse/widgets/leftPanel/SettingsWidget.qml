@@ -764,12 +764,6 @@ Item {
                             font.bold: true
                             color: Theme.accent
                         }
-                        Label {
-                            text: "HTTP User-Agent used by each service/widget. Changes are saved automatically."
-                            color: Theme.fgDim
-                            wrapMode: Text.WordWrap
-                            width: parent.width
-                        }
                         Column {
                             width: parent.width
                             spacing: 4
