@@ -9,9 +9,10 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Quick-settings body: volume + brightness sliders + action buttons.
-// Extracted verbatim from the old ControlPanel sidebar so it can live in
-// the bar's dynamic island (ControlIsland) instead of a side window.
+// Quick-settings body: two columns — left holds the volume + brightness
+// sliders and the 2x2 action grid, right holds the connectivity card and
+// the power profile selector (hexpanded). Lives in the bar's dynamic
+// island (ControlIsland) instead of a side window.
 // Close behavior = BarState.deactivate("control").
 Item {
     id: body
@@ -19,8 +20,8 @@ Item {
     property string monitorName: ""
     readonly property string effectiveMonitor: body.monitorName || Registry.monitorName
 
-    width: 480
-    height: contentCol.height + 32
+    width: 680
+    height: contentRow.height + 32
 
     // ---- default sink for the volume slider ----
     readonly property PwNode controlSink: Pipewire.defaultAudioSink
@@ -195,6 +196,17 @@ Item {
             return "Power Saver";
         return "Balanced";
     }
+    // Collapsible connectivity card state. Lives on the body (not the
+    // content Row) so every reference below resolves as body.* — the old
+    // contentCol-owned copies were shadowed and read back undefined.
+    property bool connectivityOpen: true
+    readonly property string btStateText: !body.btAvailable ? "N/A" : (body.btPowered ? "On" : "Off")
+    readonly property string connSummary: body.netStatus + " • BT " + body.btStateText
+    // True while the user is dragging either slider. ControlIsland binds the
+    // hover-pin's holdOpen to this: HoverHandler.hovered drops while a button
+    // is pressed, so a drag would otherwise read as "left" and arm the leave
+    // timer mid-adjustment.
+    readonly property bool adjusting: volSlider.pressed || brightSlider.pressed
     Component.onCompleted: {
         body.refreshWifi();
         body.refreshBt();
@@ -211,10 +223,11 @@ Item {
         }
     }
 
-    // ---- content ----
-    Column {
-        id: contentCol
-        width: parent.width
+    // ---- content: two columns ----
+    // Left: volume + brightness sliders above a 2x2 action grid.
+    // Right: connectivity card + power profile (selector hexpands).
+    Row {
+        id: contentRow
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -228,446 +241,468 @@ Item {
         property bool connectivityOpen: true
         readonly property string btStateText: !body.btAvailable ? "N/A" : (body.btPowered ? "On" : "Off")
         readonly property string connSummary: body.netStatus + " • BT " + contentCol.btStateText
+        // ===== Left column: sliders + actions =====
+        Column {
+            id: leftCol
+            width: (parent.width - parent.spacing) / 2
+            spacing: 16
 
-        Card {
-            id: connCard
-            width: parent.width
-            contentMargins: 12
-            contentSpacing: 8
-            height: contentMargins * 2 + headRow.height + (connBody.visible ? contentSpacing + connBody.height : 0)
-
-            // Header: icon + title + combined status + chevron; click toggles.
-            Item {
+            // ===== Action buttons (shared AppButton cells, 2x2) =====
+            Grid {
                 width: parent.width
-                height: headRow.height
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 10
+                // Theme toggle
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: GlobalTheme.currentTheme ? "\uf185" : "\uf186"
+                    pixelSize: Theme.fontSize + 2
+                    tooltipText: GlobalTheme.currentTheme ? "Switch to Light Theme" : "Switch to Dark Theme"
+                    onClicked: GlobalTheme.setTheme(!GlobalTheme.currentTheme)
+                }
+                // DND toggle
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: Settings.notifDnd ? "\uf1f6" : "\uf0f3"
+                    pixelSize: Theme.fontSize + 2
+                    toggle: true
+                    checked: Settings.notifDnd || body.dndPing
+                    tooltipText: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
+                    onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd)
+                }
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: "\udb83\ude09"
+                    pixelSize: Theme.fontSize + 2
+                    tooltipText: "Wallpaper Switcher\n<b>SUPER + W</b>"
+                    onClicked: {
+                        BarState.deactivate("control");
+                        if (BarState.state === "wallpaper")
+                            BarState.deactivate("wallpaper");
+                        else
+                            BarState.activate("wallpaper", 0);
+                    }
+                }
+                // Keyboard layout — shows the current layout code, click cycles
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    text: KeyboardLayout.layout
+                    visible: KeyboardLayout.layout !== ""
+                    pixelSize: Theme.fontSize + 2
+                    tooltipText: (KeyboardLayout.layoutName || "Keyboard Layout") + "\nClick to switch layout"
+                    onClicked: KeyboardLayout.nextLayout()
+                }
+            }
+
+            // ===== Volume =====
+            Column {
+                width: parent.width
+                spacing: 6
                 Row {
-                    id: headRow
                     width: parent.width
                     spacing: 8
                     Text {
-                        text: "󰖩"
+                        text: VolumeWatcher.volumeIcon
                         color: Theme.fg
                         font.family: "JetBrainsMono NFP"
                         font.pixelSize: 18
                         verticalAlignment: Text.AlignVCenter
                     }
                     Text {
-                        text: "Connectivity"
+                        text: "Volume"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 1
+                    }
+                }
+                AppSlider {
+                    id: volSlider
+                    width: parent.width
+                    from: 0
+                    to: 1
+                    stepSize: 0.01
+                    value: body.controlSink?.audio?.volume ?? 0
+                    onMoved: if (body.controlSink?.audio)
+                        body.controlSink.audio.volume = volSlider.value
+                }
+            }
+
+            // ===== Brightness =====
+            Column {
+                width: parent.width
+                spacing: 6
+                visible: Brightness.hasBacklight
+                Row {
+                    width: parent.width
+                    spacing: 8
+                    Text {
+                        text: body.brightnessIcon
+                        color: Theme.fg
+                        font.family: "JetBrainsMono NFP"
+                        font.pixelSize: 18
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Text {
+                        text: "Brightness"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 1
+                    }
+                }
+                AppSlider {
+                    id: brightSlider
+                    width: parent.width
+                    from: 0
+                    to: 1
+                    stepSize: 0.01
+                    value: Brightness.screen
+                    onMoved: Brightness.setScreen(brightSlider.value)
+                }
+            }
+        }
+
+        // ===== Right column: connectivity + power =====
+        Column {
+            id: rightCol
+            width: (parent.width - parent.spacing) / 2
+            spacing: 16
+
+            // ===== Connectivity (Network + Bluetooth share one dropdown) =====
+            // Shared Card shell + AppCheckBox/AppButton + Theme-only styling.
+            // Card needs an explicit height (Rectangle); it tracks the header
+            // plus the open body, mirroring the contentRow.height pattern above.
+            Card {
+                id: connCard
+                width: parent.width
+                contentMargins: 12
+                contentSpacing: 8
+                height: contentMargins * 2 + headRow.height + (connBody.visible ? contentSpacing + connBody.height : 0)
+
+                // Header: icon + title + combined status + chevron; click toggles.
+                Item {
+                    width: parent.width
+                    height: headRow.height
+                    Row {
+                        id: headRow
+                        width: parent.width
+                        spacing: 8
+                        Text {
+                            text: "󰖩"
+                            color: Theme.fg
+                            font.family: "JetBrainsMono NFP"
+                            font.pixelSize: 18
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        Text {
+                            text: "Connectivity"
+                            color: Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 1
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        Text {
+                            text: contentCol.connSummary
+                            color: Theme.accent
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 2
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                            width: parent.width - 150
+                        }
+                        Text {
+                            text: contentCol.connectivityOpen ? "\uf107" : "\uf106"
+                            color: Theme.muted
+                            font.family: "JetBrainsMono NFP"
+                            font.pixelSize: 14
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        preventStealing: false
+                        propagateComposedEvents: true
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: contentCol.connectivityOpen = !contentCol.connectivityOpen
+                    }
+                }
+
+                // Body: network subsection, divider, bluetooth subsection.
+                Column {
+                    id: connBody
+                    width: parent.width
+                    spacing: 10
+                    visible: contentCol.connectivityOpen
+
+                    // ----- Network -----
+                    Column {
+                        width: parent.width
+                        spacing: 6
+                        Text {
+                            text: "Network"
+                            color: Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 1
+                        }
+                        Row {
+                            width: parent.width
+                            spacing: 8
+                            AppCheckBox {
+                                text: "Wi-Fi"
+                                checked: body.wifiEnabled
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSize - 1
+                                onToggled: body.setWifi(checked)
+                            }
+                            AppButton {
+                                width: 70
+                                height: 28
+                                cornerRadius: Theme.chipRadius
+                                idleBg: Theme.surface
+                                text: "Rescan"
+                                pixelSize: Theme.fontSize - 2
+                                tooltipText: "Rescan Wi-Fi networks"
+                                onClicked: Quickshell.execDetached(["bash", "-c", "nmcli device wifi rescan"])
+                            }
+                        }
+                        // Visible access points (top 6 by signal); click connects.
+                        Column {
+                            width: parent.width
+                            spacing: 2
+                            visible: body.wifiNetworks.length > 0
+                            Repeater {
+                                model: body.wifiNetworks
+                                delegate: Rectangle {
+                                    id: apRow
+                                    required property var modelData
+                                    readonly property string ssid: modelData.name ?? "hidden"
+                                    readonly property bool linked: modelData.connected ?? false
+                                    readonly property int sig: Math.round((modelData.signalStrength ?? 0) * 100)
+
+                                    width: parent.width
+                                    // Explicit height (see AGENTS.md §2.3).
+                                    height: 26
+                                    radius: Theme.chipRadius
+                                    color: apRow.linked ? Theme.surfaceActive : "transparent"
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 6
+                                        anchors.rightMargin: 6
+                                        spacing: 6
+                                        Text {
+                                            text: apRow.linked ? "󰖩" : "󰖨"
+                                            color: apRow.linked ? Theme.accent : Theme.muted
+                                            font.family: "JetBrainsMono NFP"
+                                            font.pixelSize: 13
+                                            verticalAlignment: Text.AlignVCenter
+                                            height: parent.height
+                                        }
+                                        Text {
+                                            text: apRow.ssid
+                                            color: Theme.fg
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize - 2
+                                            elide: Text.ElideRight
+                                            verticalAlignment: Text.AlignVCenter
+                                            height: parent.height
+                                            width: parent.width - 70
+                                        }
+                                        Text {
+                                            text: apRow.sig + "%"
+                                            color: Theme.muted
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize - 2
+                                            verticalAlignment: Text.AlignVCenter
+                                            height: parent.height
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        acceptedButtons: Qt.LeftButton
+                                        preventStealing: false
+                                        propagateComposedEvents: true
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: body.connectWifi(apRow.ssid)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ----- Bluetooth -----
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.border
+                        visible: body.btAvailable
+                    }
+                    Column {
+                        width: parent.width
+                        spacing: 6
+                        visible: body.btAvailable
+                        Text {
+                            text: "Bluetooth"
+                            color: Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 1
+                        }
+                        Row {
+                            width: parent.width
+                            spacing: 8
+                            AppCheckBox {
+                                text: "Power"
+                                checked: body.btPowered
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSize - 1
+                                onToggled: body.setBtPower(checked)
+                            }
+                            AppButton {
+                                width: 70
+                                height: 28
+                                cornerRadius: Theme.chipRadius
+                                idleBg: Theme.surface
+                                text: "Refresh"
+                                pixelSize: Theme.fontSize - 2
+                                tooltipText: "Refresh Bluetooth devices"
+                                onClicked: body.refreshBt()
+                            }
+                        }
+                        Column {
+                            width: parent.width
+                            spacing: 2
+                            visible: body.btDevices.length > 0
+                            Repeater {
+                                model: body.btDevices
+                                delegate: Rectangle {
+                                    id: btRow
+                                    required property var modelData
+                                    readonly property string mac: modelData.mac
+                                    readonly property string devName: modelData.name
+
+                                    width: parent.width
+                                    height: 26
+                                    radius: Theme.chipRadius
+                                    color: "transparent"
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 6
+                                        anchors.rightMargin: 6
+                                        spacing: 6
+                                        Text {
+                                            text: "󰂯"
+                                            color: Theme.muted
+                                            font.family: "JetBrainsMono NFP"
+                                            font.pixelSize: 13
+                                            verticalAlignment: Text.AlignVCenter
+                                            height: parent.height
+                                        }
+                                        Text {
+                                            text: btRow.devName
+                                            color: Theme.fg
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSize - 2
+                                            elide: Text.ElideRight
+                                            verticalAlignment: Text.AlignVCenter
+                                            height: parent.height
+                                            width: parent.width - 40
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        acceptedButtons: Qt.LeftButton
+                                        preventStealing: false
+                                        propagateComposedEvents: true
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: body.connectBt(btRow.mac, btRow.devName)
+                                    }
+                                }
+                            }
+                        }
+                        Text {
+                            visible: body.btPowered && body.btDevices.length === 0
+                            text: "No devices found"
+                            color: Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSize - 2
+                        }
+                    }
+                }
+            }
+
+            // ===== Power profile (power-profiles-daemon, native UPower service) =====
+            Column {
+                width: parent.width
+                spacing: 6
+                visible: PpdState.available
+                Row {
+                    width: parent.width
+                    spacing: 8
+                    Text {
+                        text: "󰓅"
+                        color: Theme.fg
+                        font.family: "JetBrainsMono NFP"
+                        font.pixelSize: 18
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Text {
+                        text: "Power"
                         color: Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSize - 1
                         verticalAlignment: Text.AlignVCenter
                     }
                     Text {
-                        text: contentCol.connSummary
+                        text: body.powerLabel
                         color: Theme.accent
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSize - 2
-                        elide: Text.ElideRight
-                        verticalAlignment: Text.AlignVCenter
-                        width: parent.width - 150
-                    }
-                    Text {
-                        text: contentCol.connectivityOpen ? "\uf107" : "\uf106"
-                        color: Theme.muted
-                        font.family: "JetBrainsMono NFP"
-                        font.pixelSize: 14
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    preventStealing: false
-                    propagateComposedEvents: true
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: contentCol.connectivityOpen = !contentCol.connectivityOpen
-                }
-            }
-
-            // Body: network subsection, divider, bluetooth subsection.
-            Column {
-                id: connBody
-                width: parent.width
-                spacing: 10
-                visible: contentCol.connectivityOpen
-
-                // ----- Network -----
-                Column {
+                AppSegmentedControl {
                     width: parent.width
-                    spacing: 6
-                    Text {
-                        text: "Network"
-                        color: Theme.muted
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 1
-                    }
-                    Row {
-                        width: parent.width
-                        spacing: 8
-                        AppCheckBox {
-                            text: "Wi-Fi"
-                            checked: body.wifiEnabled
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
-                            onToggled: body.setWifi(checked)
+                    height: implicitHeight
+                    stretchCells: true
+                    pixelSize: Theme.fontSize - 1
+                    model: [
+                        {
+                            value: PowerProfile.PowerSaver,
+                            label: "Power Saver",
+                            tooltip: "Limit performance to save power"
+                        },
+                        {
+                            value: PowerProfile.Balanced,
+                            label: "Balanced",
+                            tooltip: "Balance performance and power"
+                        },
+                        {
+                            value: PowerProfile.Performance,
+                            label: "Performance",
+                            tooltip: PowerProfiles.hasPerformanceProfile ? "Maximize performance" : "Performance not available on this system",
+                            enabled: PowerProfiles.hasPerformanceProfile
                         }
-                        AppButton {
-                            width: 70
-                            height: 28
-                            cornerRadius: Theme.chipRadius
-                            idleBg: Theme.surface
-                            text: "Rescan"
-                            pixelSize: Theme.fontSize - 2
-                            tooltipText: "Rescan Wi-Fi networks"
-                            onClicked: Quickshell.execDetached(["bash", "-c", "nmcli device wifi rescan"])
-                        }
-                    }
-                    // Visible access points (top 6 by signal); click connects.
-                    Column {
-                        width: parent.width
-                        spacing: 2
-                        visible: body.wifiNetworks.length > 0
-                        Repeater {
-                            model: body.wifiNetworks
-                            delegate: Rectangle {
-                                id: apRow
-                                required property var modelData
-                                readonly property string ssid: modelData.name ?? "hidden"
-                                readonly property bool linked: modelData.connected ?? false
-                                readonly property int sig: Math.round((modelData.signalStrength ?? 0) * 100)
-
-                                width: parent.width
-                                // Explicit height (see AGENTS.md §2.3).
-                                height: 26
-                                radius: Theme.chipRadius
-                                color: apRow.linked ? Theme.surfaceActive : "transparent"
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 6
-                                    anchors.rightMargin: 6
-                                    spacing: 6
-                                    Text {
-                                        text: apRow.linked ? "󰖩" : "󰖨"
-                                        color: apRow.linked ? Theme.accent : Theme.muted
-                                        font.family: "JetBrainsMono NFP"
-                                        font.pixelSize: 13
-                                        verticalAlignment: Text.AlignVCenter
-                                        height: parent.height
-                                    }
-                                    Text {
-                                        text: apRow.ssid
-                                        color: Theme.fg
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize - 2
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-                                        height: parent.height
-                                        width: parent.width - 70
-                                    }
-                                    Text {
-                                        text: apRow.sig + "%"
-                                        color: Theme.muted
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize - 2
-                                        verticalAlignment: Text.AlignVCenter
-                                        height: parent.height
-                                    }
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    acceptedButtons: Qt.LeftButton
-                                    preventStealing: false
-                                    propagateComposedEvents: true
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: body.connectWifi(apRow.ssid)
-                                }
-                            }
-                        }
-                    }
+                    ]
+                    currentIndex: body.powerIndex
+                    onActivated: (i, v) => PowerProfiles.profile = v
                 }
-
-                // ----- Bluetooth -----
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Theme.border
-                    visible: body.btAvailable
-                }
-                Column {
-                    width: parent.width
-                    spacing: 6
-                    visible: body.btAvailable
-                    Text {
-                        text: "Bluetooth"
-                        color: Theme.muted
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 1
-                    }
-                    Row {
-                        width: parent.width
-                        spacing: 8
-                        AppCheckBox {
-                            text: "Power"
-                            checked: body.btPowered
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 1
-                            onToggled: body.setBtPower(checked)
-                        }
-                        AppButton {
-                            width: 70
-                            height: 28
-                            cornerRadius: Theme.chipRadius
-                            idleBg: Theme.surface
-                            text: "Refresh"
-                            pixelSize: Theme.fontSize - 2
-                            tooltipText: "Refresh Bluetooth devices"
-                            onClicked: body.refreshBt()
-                        }
-                    }
-                    Column {
-                        width: parent.width
-                        spacing: 2
-                        visible: body.btDevices.length > 0
-                        Repeater {
-                            model: body.btDevices
-                            delegate: Rectangle {
-                                id: btRow
-                                required property var modelData
-                                readonly property string mac: modelData.mac
-                                readonly property string devName: modelData.name
-
-                                width: parent.width
-                                height: 26
-                                radius: Theme.chipRadius
-                                color: "transparent"
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 6
-                                    anchors.rightMargin: 6
-                                    spacing: 6
-                                    Text {
-                                        text: "󰂯"
-                                        color: Theme.muted
-                                        font.family: "JetBrainsMono NFP"
-                                        font.pixelSize: 13
-                                        verticalAlignment: Text.AlignVCenter
-                                        height: parent.height
-                                    }
-                                    Text {
-                                        text: btRow.devName
-                                        color: Theme.fg
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSize - 2
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-                                        height: parent.height
-                                        width: parent.width - 40
-                                    }
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    acceptedButtons: Qt.LeftButton
-                                    preventStealing: false
-                                    propagateComposedEvents: true
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: body.connectBt(btRow.mac, btRow.devName)
-                                }
-                            }
-                        }
-                    }
-                    Text {
-                        visible: body.btPowered && body.btDevices.length === 0
-                        text: "No devices found"
-                        color: Theme.muted
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 2
-                    }
-                }
-            }
-        }
-
-        // ===== Volume =====
-        Column {
-            width: parent.width
-            spacing: 6
-            Row {
-                width: parent.width
-                spacing: 8
-                Text {
-                    text: VolumeWatcher.volumeIcon
-                    color: Theme.fg
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 18
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Text {
-                    text: "Volume"
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                }
-            }
-            AppSlider {
-                id: volSlider
-                width: parent.width
-                from: 0
-                to: 1
-                stepSize: 0.01
-                value: body.controlSink?.audio?.volume ?? 0
-                onMoved: if (body.controlSink?.audio)
-                    body.controlSink.audio.volume = volSlider.value
-            }
-        }
-
-        // ===== Brightness =====
-        Column {
-            width: parent.width
-            spacing: 6
-            visible: Brightness.hasBacklight
-            Row {
-                width: parent.width
-                spacing: 8
-                Text {
-                    text: body.brightnessIcon
-                    color: Theme.fg
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 18
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Text {
-                    text: "Brightness"
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                }
-            }
-            AppSlider {
-                id: brightSlider
-                width: parent.width
-                from: 0
-                to: 1
-                stepSize: 0.01
-                value: Brightness.screen
-                onMoved: Brightness.setScreen(brightSlider.value)
-            }
-        }
-
-        // ===== Power profile (power-profiles-daemon, native UPower service) =====
-        Column {
-            width: parent.width
-            spacing: 6
-            visible: PpdState.available
-            Row {
-                width: parent.width
-                spacing: 8
-                Text {
-                    text: "󰓅"
-                    color: Theme.fg
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 18
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Text {
-                    text: "Power"
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Text {
-                    text: body.powerLabel
-                    color: Theme.accent
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 2
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-            AppSegmentedControl {
-                pixelSize: Theme.fontSize - 1
-                model: [
-                    {
-                        value: PowerProfile.PowerSaver,
-                        label: "Power Saver",
-                        tooltip: "Limit performance to save power"
-                    },
-                    {
-                        value: PowerProfile.Balanced,
-                        label: "Balanced",
-                        tooltip: "Balance performance and power"
-                    },
-                    {
-                        value: PowerProfile.Performance,
-                        label: "Performance",
-                        tooltip: PowerProfiles.hasPerformanceProfile ? "Maximize performance" : "Performance not available on this system",
-                        enabled: PowerProfiles.hasPerformanceProfile
-                    }
-                ]
-                currentIndex: body.powerIndex
-                onActivated: (i, v) => PowerProfiles.profile = v
-            }
-        }
-
-        // ===== Action buttons (shared AppButton cells) =====
-        Row {
-            width: parent.width
-            spacing: 10
-            // Theme toggle
-            AppButton {
-                width: 46
-                height: 46
-                cornerRadius: Theme.radius
-                idleBg: Theme.surface
-                icon: GlobalTheme.currentTheme ? "\uf185" : "\uf186"
-                pixelSize: Theme.fontSize + 2
-                tooltipText: GlobalTheme.currentTheme ? "Switch to Light Theme" : "Switch to Dark Theme"
-                onClicked: GlobalTheme.setTheme(!GlobalTheme.currentTheme)
-            }
-            // DND toggle
-            AppButton {
-                width: 46
-                height: 46
-                cornerRadius: Theme.radius
-                idleBg: Theme.surface
-                icon: Settings.notifDnd ? "\uf1f6" : "\uf0f3"
-                pixelSize: Theme.fontSize + 2
-                toggle: true
-                checked: Settings.notifDnd || body.dndPing
-                tooltipText: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
-                onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd)
-            }
-            AppButton {
-                width: 46
-                height: 46
-                cornerRadius: Theme.radius
-                idleBg: Theme.surface
-                icon: "\udb83\ude09"
-                pixelSize: Theme.fontSize + 2
-                tooltipText: "Wallpaper Switcher\n<b>SUPER + W</b>"
-                onClicked: {
-                    BarState.deactivate("control");
-                    if (BarState.state === "wallpaper")
-                        BarState.deactivate("wallpaper");
-                    else
-                        BarState.activate("wallpaper", 0);
-                }
-            }
-            // Keyboard layout — shows the current layout code, click cycles
-            AppButton {
-                width: 46
-                height: 46
-                cornerRadius: Theme.radius
-                idleBg: Theme.surface
-                text: KeyboardLayout.layout
-                visible: KeyboardLayout.layout !== ""
-                pixelSize: Theme.fontSize + 2
-                tooltipText: (KeyboardLayout.layoutName || "Keyboard Layout") + "\nClick to switch layout"
-                onClicked: KeyboardLayout.nextLayout()
             }
         }
     }

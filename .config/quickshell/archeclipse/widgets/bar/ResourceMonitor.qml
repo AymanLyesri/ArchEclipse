@@ -8,7 +8,7 @@ import qs.widgets.shared
 
 // Port of Utilities.tsx ResourceMonitor — CPU / RAM / GPU horizontal bars,
 // stacked vertically (one on top of the other).
-// Hover/click pulses the system-monitor island (BarState "system").
+// Hover pulses the system-monitor island (BarState "system").
 // Middle-click dispatches to workspace 5 (monitor workspace).
 Item {
     id: root
@@ -41,28 +41,44 @@ Item {
     // (18px bar height - 2 * 3px spacing) / 3 = 4px per bar
     readonly property int barHeight: 4
 
-    function pulseIsland(holdMs) {
-        BarState.activate("system", holdMs);
-    }
-
-    // Click layer underneath — bar Items are mouse-transparent so clicks
-    // fall through to here from anywhere on the stack.
+    // Middle-click layer underneath — bar Items are mouse-transparent so
+    // clicks fall through to here from anywhere on the stack. Left-click
+    // is intentionally a no-op: opening is hover-only (Weather/Network
+    // parity), the island pins itself while hovered via IslandHoverPin.
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+        acceptedButtons: Qt.MiddleButton
         onClicked: mouse => {
             if (mouse.button === Qt.MiddleButton) {
                 // Jump to the monitor workspace.
                 Hyprland.dispatch("workspace 5");
-                return;
             }
-            // Left-click pins the island; clicking again dismisses it.
-            if (BarState.state === "system")
-                BarState.deactivate("system");
-            else
-                BarState.activate("system", 0);
+        }
+    }
+
+    // Hover dwell (Settings.revealInPressure, 0 = instant) so brushing the
+    // cursor across the bar doesn't pulse the island by accident.
+    // Root-level (full widget) so the 3px inter-bar gaps can't reset the
+    // dwell — the per-bar handlers below are tooltip-only.
+    Timer {
+        id: dwellTimer
+        interval: Settings.revealInPressure
+        repeat: false
+        onTriggered: BarState.activate("system", 3000)
+    }
+
+    HoverHandler {
+        id: rootHover
+        onHoveredChanged: {
+            if (rootHover.hovered) {
+                if (Settings.revealInPressure <= 0)
+                    BarState.activate("system", 3000);
+                else
+                    dwellTimer.restart();
+            } else {
+                dwellTimer.stop();
+            }
         }
     }
 
@@ -124,28 +140,10 @@ Item {
                     delay: 500
                 }
 
-                // Hover dwell (Settings.revealInPressure, 0 = instant) so
-                // brushing the cursor across the bar doesn't pulse the
-                // island by accident.
-                Timer {
-                    id: dwellTimer
-                    interval: Settings.revealInPressure
-                    repeat: false
-                    onTriggered: root.pulseIsland(3000)
-                }
-
+                // Tooltip-only hover: the island pulse lives at root level
+                // so inter-bar gaps can't reset the dwell.
                 HoverHandler {
                     id: barHover
-                    onHoveredChanged: {
-                        if (barHover.hovered) {
-                            if (Settings.revealInPressure <= 0)
-                                root.pulseIsland(3000);
-                            else
-                                dwellTimer.restart();
-                        } else {
-                            dwellTimer.stop();
-                        }
-                    }
                 }
             }
         }

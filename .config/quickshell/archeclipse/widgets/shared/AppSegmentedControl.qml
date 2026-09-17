@@ -40,6 +40,10 @@ Item {
     property int cellVPadding: 8
     property int highlightMargin: 2
     property int animationDuration: 200
+    // Opt-in equal-fill: cells stretch to share root.width (e.g. a
+    // power-profile selector hexpanding in a narrow column). Off by
+    // default so existing implicit-sized usages are untouched.
+    property bool stretchCells: false
 
     signal activated(int index, var value)
 
@@ -156,6 +160,7 @@ Item {
             x: root.highlightMargin
             y: root.highlightMargin
             height: parent.height - root.highlightMargin * 2
+            width: root.stretchCells ? root.width - root.highlightMargin * 2 : implicitWidth
             spacing: 2
 
             Repeater {
@@ -174,7 +179,10 @@ Item {
 
                     implicitWidth: cellRow.implicitWidth + root.cellHPadding * 2
                     implicitHeight: cellRow.implicitHeight + root.cellVPadding * 2
-                    width: implicitWidth
+                    // Stretched mode: share root.width equally (floor at
+                    // implicit size). Reads root.width — not row.width —
+                    // so the Row's own implicit sizing can't loop back.
+                    width: root.stretchCells && root.count > 0 ? Math.max(implicitWidth, (root.width - root.highlightMargin * 2 - (root.count - 1) * row.spacing) / root.count) : implicitWidth
                     // Full-row click area. NOTE: must NOT bind to
                     // row.height — a child's geometry feeding back into
                     // the positioner's own geometry makes the Row report

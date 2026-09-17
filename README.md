@@ -30,12 +30,12 @@ Every component was written, tuned, and iterated on over real-world use. The res
 
 The project spans multiple languages and layers of the stack:
 
-| Layer                              | Technologies                          |
-| ---------------------------------- | ------------------------------------- |
+| Layer                              | Technologies                                    |
+| ---------------------------------- | ----------------------------------------------- |
 | **UI / Widgets**                   | QtQuick, QML, JavaScript (Quickshell framework) |
-| **Automation & Tooling**           | Python 3, Bash                        |
-| **Performance-Critical Utilities** | C                                     |
-| **Compositor**                     | Hyprland (Wayland)                    |
+| **Automation & Tooling**           | Python 3, Bash                                  |
+| **Performance-Critical Utilities** | C                                               |
+| **Compositor**                     | Hyprland (Wayland)                              |
 
 ---
 
@@ -297,11 +297,11 @@ If this project saved you time or you just enjoy it, a coffee helps keep develop
 
 ![Application Launcher](.github/assets/app-launcher.png)
 
-### Right Panel — Configurable Layouts
+### Right Panel
 
-| Layout A                                                  | Layout B                                                  |
-| --------------------------------------------------------- | --------------------------------------------------------- |
-| ![Right Panel 1](.github/assets/right-panel-layout-1.png) | ![Right Panel 2](.github/assets/right-panel-layout-2.png) |
+| Waifu · Player · Calendar · Notification History | Calendar · Player · Waifu · System Resources |
+| --- | --- |
+| ![Right Panel Layout 1](.github/assets/right-panel-layout-1.png) | ![Right Panel Layout 2](.github/assets/right-panel-layout-2.png) |
 
 ### Left Panel
 
@@ -319,18 +319,8 @@ If this project saved you time or you just enjoy it, a coffee helps keep develop
 
 ### Workspace Overview
 
-![Workspace Overview](.github/assets/workspace-overview.gif)
+![Workspace Overview](.github/assets/workspace-overview.png)
 
-### Theme Switching
+### Lock Screen
 
-| Dark Mode                              | Light Mode                               |
-| -------------------------------------- | ---------------------------------------- |
-| ![Dark](.github/assets/dark-theme.png) | ![Light](.github/assets/light-theme.png) |
-
-### Keystroke Visualizer _(optional)_
-
-![Keystroke Visualizer](.github/assets/keystroke-visualizer.gif)
-
-### User Panel
-
-![User Panel](.github/assets/user-panel.gif)
+![Lock Screen](.github/assets/lock-screen.png)

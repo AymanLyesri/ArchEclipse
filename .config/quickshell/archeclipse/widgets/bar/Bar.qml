@@ -135,7 +135,16 @@ PanelWindow {
     // controller on the bar pill; leave arms a 250ms timer that collapses
     // only if the pointer is still off AND no popup is open) ---
     property bool hovered: pillHover.hovered
+    // Documentation capture: expose the actual pill, not its stretched surface.
+    readonly property var captureItem: pill
+    function captureGeometry() {
+        const p = pill.mapToItem(root.contentItem, 0, 0);
+        return {visible: root.visible, displayed: stack.current,
+            rect: {x: p.x, y: p.y, w: pill.width, h: pill.height}};
+    }
+    Component.onDestruction: Registry.unregister("capture-bar-" + root.monitorName)
     Component.onCompleted: {
+        Registry.register("capture-bar-" + root.monitorName, root);
         if (Settings.barDefault)
             BarState.activate("default");
     }

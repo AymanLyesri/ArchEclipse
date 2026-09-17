@@ -23,7 +23,7 @@ SpinBox {
     background: Rectangle {
         implicitWidth: 120
         implicitHeight: 28
-        color: Theme.bg
+        color: Theme.surface
         border.color: root.activeFocus ? Theme.accent : Theme.border
         border.width: 1
         radius: 6

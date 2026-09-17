@@ -18,7 +18,7 @@ ComboBox {
     background: Rectangle {
         implicitWidth: 120
         implicitHeight: 28
-        color: Theme.bg
+        color: Theme.surface
         border.color: root.activeFocus || root.popup.visible ? Theme.accent : Theme.border
         border.width: 1
         radius: 6

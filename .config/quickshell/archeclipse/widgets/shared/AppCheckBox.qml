@@ -11,7 +11,7 @@ CheckBox {
         x: root.leftPadding
         y: parent.height / 2 - height / 2
         radius: 4
-        color: root.checked ? Theme.accent : Theme.bg
+        color: root.checked ? Theme.accent : Theme.surface
         border.color: root.checked ? Theme.accent : Theme.border
         border.width: 1
 

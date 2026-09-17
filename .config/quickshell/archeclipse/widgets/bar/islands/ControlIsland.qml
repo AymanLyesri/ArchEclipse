@@ -34,6 +34,9 @@ Column {
         id: hoverPin
         stateName: (BarState.state === "volume" || BarState.state === "brightness") ? BarState.state : "control"
         extraStates: ["volume", "brightness"]
+        // Slider drags press the mouse (dropping HoverHandler.hovered), so
+        // hold the island open for the length of the drag.
+        holdOpen: controlBody.adjusting
     }
 
     // Volume/brightness changes reset the reveal-out close timer: without

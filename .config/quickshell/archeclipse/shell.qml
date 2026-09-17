@@ -31,6 +31,8 @@ ShellRoot {
 
     Ipc {
     }
+    CaptureIpc {
+    }
 
     // per-monitor notification popups
     Variants {

@@ -22,6 +22,18 @@ HoverHandler {
     // until first hovered-out, toggled, or Escaped.
     property bool armOnCreation: true
     property alias running: leaveTimer.running
+    // External hold (e.g. a slider drag inside the island): while true the
+    // island never closes. Needed because HoverHandler.hovered is only true
+    // with no button pressed — pressing to drag flips hovered to false and
+    // would otherwise arm the leave timer mid-drag.
+    property bool holdOpen: false
+    onHoldOpenChanged: {
+        if (root.holdOpen) {
+            leaveTimer.stop();
+        } else if (!root.hovered) {
+            leaveTimer.restart();
+        }
+    }
     onHoveredChanged: {
         if (root.hovered) {
             leaveTimer.stop();
@@ -30,7 +42,7 @@ HoverHandler {
             leaveTimer.interval = root.leaveDelay;
             if (root.stateName !== "")
                 BarState.activate(root.stateName, 0);
-        } else {
+        } else if (!root.holdOpen) {
             leaveTimer.restart();
         }
     }

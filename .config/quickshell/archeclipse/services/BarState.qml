@@ -279,7 +279,11 @@ Singleton {
                 return;
             root._lastVolume = vol;
 
-            root.activate("volume", Settings.revealOutPressure);
+            // Respect an existing hover-pin: re-pulsing with a hold timer
+            // while pinned would arm an auto-deactivate that closes the
+            // island under an attending cursor.
+            if (!root.isPersistent("volume"))
+                root.activate("volume", Settings.revealOutPressure);
         });
     }
 
@@ -304,7 +308,9 @@ Singleton {
             root._lastBrightness = val;
             root.brightnessEvents++;
 
-            root.activate("brightness", Settings.revealOutPressure);
+            // Respect an existing hover-pin (see volume watcher above).
+            if (!root.isPersistent("brightness"))
+                root.activate("brightness", Settings.revealOutPressure);
         }
     }
 
@@ -461,7 +467,19 @@ Singleton {
     // explicitly deactivated (search toggle, recording). Only holdMs > 0
     // arms an auto-deactivate timer. "default" is the permanent base.
     // "expanded"/"compact" are accepted as legacy aliases for "default".
+    // True when a state is active with no auto-deactivate timer — i.e.
+    // persistently pinned (pulses always arm a timer otherwise, so a
+    // timer-less pulse means something pinned it, e.g. IslandHoverPin).
+    function isPersistent(name) {
+        const active = root.activeStates || {};
+        const timers = root.holdTimers || {};
+        return (name in active) && !timers[name];
+    }
+
     function activate(name, holdMs) {
+        const capture = Registry.get("capture-session");
+        if (capture && capture.active && capture.desiredState !== "" && name !== capture.desiredState)
+            return;
         if (name === "expanded" || name === "compact")
             name = "default";
         var priority = root.priority[name];
@@ -511,6 +529,9 @@ Singleton {
 
     // Deactivate a state (default is the permanent base and can't be removed)
     function deactivate(name) {
+        const capture = Registry.get("capture-session");
+        if (capture && capture.active && capture.desiredState === name)
+            return;
         if (name === "default")
             return;
         if (name === "expanded" || name === "compact") {

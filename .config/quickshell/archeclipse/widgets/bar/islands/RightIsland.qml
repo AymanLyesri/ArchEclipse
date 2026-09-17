@@ -270,7 +270,9 @@ Column {
                         id: enabledWidgetRepeater
                         model: {
                             // Filter to only enabled widgets, preserving order
-                            const widgets = Settings.rightPanelWidgets;
+                            const capture = Registry.get("capture-session");
+                            const widgets = capture && capture.active && capture.monitor === root.monitorName && capture.rightWidgets
+                                ? capture.rightWidgets : Settings.rightPanelWidgets;
                             const result = [];
                             for (let i = 0; i < widgets.length; i++) {
                                 if (widgets[i].enabled) {

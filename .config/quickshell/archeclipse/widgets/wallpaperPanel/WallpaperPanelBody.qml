@@ -126,6 +126,12 @@ Item {
         root.syncCategoryCombo();
     }
     readonly property var selectedWallpapers: wallpapers[selectedCategory] ?? []
+    // Capture must wait for data/thumbnail generation and masonry aspect updates;
+    // CaptureIpc separately checks instantiated tiles (including opacity-zero ones).
+    readonly property bool captureReady: !fetchProc.running && !thumbProc.running && !_thumbPending
+        && !whLoading && Object.keys(_pendingAspect).length === 0
+        && (progressStatus === "idle" || progressStatus === "success")
+        && (isWallhaven ? whResults.length > 0 : selectedWallpapers.length > 0)
     // Exposed for Ipc wallpaperDiag ("strip" query) and tests.
     readonly property alias wallStrip: wallScroll
     // Test hook for the "stripdeep" diag: lets automation walk the local

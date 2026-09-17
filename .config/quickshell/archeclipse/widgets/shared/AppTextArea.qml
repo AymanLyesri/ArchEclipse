@@ -12,7 +12,7 @@ TextArea {
     id: root
 
     property int cornerRadius: Theme.radius
-    property color fillColor: Theme.bg
+    property color fillColor: Theme.surface
 
     font.pixelSize: Theme.fontSize
     color: Theme.fg
