@@ -208,6 +208,17 @@ Singleton {
         return String((root.userAgents || {})[name] || root.defaultUserAgents()[name] || "");
     }
 
+    // POSIX single-quote shell-escaping. Needed anywhere a user-editable
+    // string (userAgent() output, in particular) gets spliced into a
+    // `bash -c "..."` command for curl/etc: double-quoting (e.g. via
+    // JSON.stringify) still lets $(...) / `...` expand inside bash double
+    // quotes, so only single-quote wrapping actually neutralizes shell
+    // metacharacters. Embedded single quotes are escaped as '\'' (close,
+    // escaped literal quote, reopen).
+    function shQuote(s) {
+        return "'" + String(s).replace(/'/g, "'\\''") + "'";
+    }
+
     // Default API credentials (shipped fallback). Used when the settings
     // file has none saved — the defaults stay in memory; QS must do the
     // same or booru.py hard-rejects danbooru/gelbooru with MISSING_CREDENTIALS.

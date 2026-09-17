@@ -103,7 +103,7 @@ Item {
                     finish(true);
                 } else {
                     const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-                    dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(job.path.substring(0, job.path.lastIndexOf("/")))} && curl -sSfL -H "User-Agent: ${Settings.userAgent("waifu")}"` + (referer !== "" ? ` -H "Referer: ${referer}"` : "") + ` -o ${JSON.stringify(job.path)} ${JSON.stringify(job.url)}`];
+                    dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(job.path.substring(0, job.path.lastIndexOf("/")))} && curl -sSfL -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("waifu"))}` + (referer !== "" ? ` -H ${Settings.shQuote("Referer: " + referer)}` : "") + ` -o ${JSON.stringify(job.path)} ${JSON.stringify(job.url)}`];
                     dl.exited.connect(function (code) {
                         finish(code === 0);
                         dl.destroy();
