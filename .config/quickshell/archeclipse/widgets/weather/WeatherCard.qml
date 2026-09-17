@@ -82,7 +82,7 @@ Item {
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: root.hasData ? "\u{F06EF} " + (root.wx.city || "Auto (IP)") : ""
+                                text: root.hasData ? "\u{F034E} " + (root.wx.city || "Auto (IP)") : ""
                                 font.pixelSize: Theme.fontSize
                                 font.bold: true
                                 color: Theme.accentFg
@@ -126,7 +126,7 @@ Item {
                                 Column {
                                     spacing: 2
                                     Text {
-                                        text: "\u{E00E}"
+                                        text: "\u{E34C}"
                                         font.family: Theme.fontFamily
                                         color: Theme.accentFg
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -139,7 +139,7 @@ Item {
                                     }
                                 }
                                 Text {
-                                    text: "\u{F0E0}"
+                                    text: "\u{F522}"
                                     color: "#DDD"
                                     font.pixelSize: Theme.fontSize
                                     font.family: Theme.fontFamily
@@ -147,7 +147,7 @@ Item {
                                 Column {
                                     spacing: 2
                                     Text {
-                                        text: "\u{E00F}"
+                                        text: "\u{E34D}"
                                         font.family: Theme.fontFamily
                                         color: Theme.accentFg
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -173,7 +173,7 @@ Item {
                                         anchors.centerIn: parent
                                         spacing: 1
                                         Text {
-                                            text: "\u{E04A}"
+                                            text: "\u{E373}"
                                             font.family: Theme.fontFamily
                                             color: Theme.accentFg
                                             font.pixelSize: Theme.fontSize - 3
@@ -196,7 +196,7 @@ Item {
                                         anchors.centerIn: parent
                                         spacing: 1
                                         Text {
-                                            text: "\u{E04B}"
+                                            text: "\u{E371}"
                                             font.family: Theme.fontFamily
                                             color: Theme.accentFg
                                             font.pixelSize: Theme.fontSize - 3
@@ -222,7 +222,7 @@ Item {
                                     anchors.centerIn: parent
                                     spacing: 1
                                     Text {
-                                        text: "\u{E04C}"
+                                        text: "\u{EF16}"
                                         font.family: Theme.fontFamily
                                         color: Theme.accentFg
                                         font.pixelSize: Theme.fontSize - 3
@@ -273,7 +273,7 @@ Item {
                         AppButton {
                             width: 32
                             height: 30
-                            icon: "\u{F1A2}"
+                            icon: "\u{F0453}"
                             pixelSize: 14
                             cornerRadius: Theme.chipRadius
                             idleBg: "#33000000"

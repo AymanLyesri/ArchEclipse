@@ -61,7 +61,10 @@ Item {
     // of guessing per-notification pixels.
     readonly property real maxListH: 380
     readonly property real listH: visibleNotifications.length === 0 ? 0 : Math.min(listColumn.height, maxListH)
-    implicitHeight: headerRow.implicitHeight + filterField.implicitHeight + listH + emptyHint.height + mainCol.spacing * 3 + 16
+    // Never bind Text.height to implicitHeight (WordWrap loops). Column
+    // already skips invisible children; only count the hint when shown.
+    readonly property real emptyHintH: visibleNotifications.length === 0 ? emptyHint.implicitHeight : 0
+    implicitHeight: headerRow.implicitHeight + filterField.implicitHeight + listH + emptyHintH + mainCol.spacing * 3 + 16
 
     Column {
         id: mainCol
@@ -164,7 +167,6 @@ Item {
             id: emptyHint
             width: parent.width
             visible: visibleNotifications.length === 0
-            height: visible ? implicitHeight : 0
             text: filterText !== "" ? "No matching notifications" : "No notifications"
             font.pixelSize: Theme.fontSize
             color: Theme.fgDim

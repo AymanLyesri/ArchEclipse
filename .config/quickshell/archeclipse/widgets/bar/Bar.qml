@@ -326,14 +326,47 @@ PanelWindow {
             Item {
                 id: stack
                 anchors.centerIn: parent
-                // Hold the last measured width across the 1-frame Loader
-                // swap gap (item == null): without this the target dips to
-                // the 100px floor mid-transition and the transition visibly
-                // stutters (wide -> 100 -> island instead of wide -> island).
-                // implicitWidth fallback covers Row-based pages (DefaultBar)
-                // whose width stays 0 while content lays out past its bounds.
-                property real lastWidth: 0
-                property real lastHeight: 0
+
+                // Size from implicit* only — never .height/.width/childrenRect.
+                // Those depend on stack's assigned size and create binding loops.
+                property real activeWidth: {
+                    if (stack.current === "left" && leftCacheLoader.item)
+                        return leftCacheLoader.item.implicitWidth || 0;
+                    if (stack.current === "right" && rightCacheLoader.item)
+                        return rightCacheLoader.item.implicitWidth || 0;
+                    var it = currentPageLoader.item;
+                    return it ? (it.implicitWidth || 0) : 0;
+                }
+
+                onActiveWidthChanged: {
+                    if (activeWidth > 0) {
+                        stack.width = activeWidth;
+                        // Keep the grow-first width registry fresh for cached islands
+                        if (stack.current === "left" || stack.current === "right") {
+                            var c = Object.assign({}, stack.widthCache);
+                            if (c[stack.current] !== activeWidth) {
+                                c[stack.current] = activeWidth;
+                                stack.widthCache = c;
+                            }
+                        }
+                    }
+                }
+
+                property real activeHeight: {
+                    if (stack.current === "left" && leftCacheLoader.item)
+                        return leftCacheLoader.item.implicitHeight || 0;
+                    if (stack.current === "right" && rightCacheLoader.item)
+                        return rightCacheLoader.item.implicitHeight || 0;
+                    var hit = currentPageLoader.item;
+                    return hit ? (hit.implicitHeight || 0) : 0;
+                }
+
+                onActiveHeightChanged: {
+                    if (activeHeight > 0) {
+                        stack.height = activeHeight;
+                    }
+                }
+
                 // Latch: once a side island has opened, its Loader stays
                 // active forever — the island is created once (lazily, on
                 // first open so startup stays fast) and then kept alive
@@ -341,51 +374,6 @@ PanelWindow {
                 // rebuild, no refetch, tab/scroll/chat/booru state survives.
                 property bool leftPrimed: false
                 property bool rightPrimed: false
-                width: {
-                    if (stack.current === "left" && leftCacheLoader.item) {
-                        var lw = Math.max(leftCacheLoader.item.width || 0, leftCacheLoader.item.implicitWidth || 0);
-                        return lw > 0 ? lw : lastWidth;
-                    }
-                    if (stack.current === "right" && rightCacheLoader.item) {
-                        var rw = Math.max(rightCacheLoader.item.width || 0, rightCacheLoader.item.implicitWidth || 0);
-                        return rw > 0 ? rw : lastWidth;
-                    }
-                    var it = currentPageLoader.item;
-                    if (!it)
-                        return lastWidth;
-                    var w = Math.max(it.width || 0, it.implicitWidth || 0);
-                    return w > 0 ? w : lastWidth;
-                }
-                onWidthChanged: {
-                    if (width > 0)
-                        lastWidth = width;
-                    // Keep the grow-first width registry fresh for cached
-                    // islands too (user expand/shrink writes Settings widths).
-                    if (width > 0 && (stack.current === "left" || stack.current === "right")) {
-                        var c = Object.assign({}, stack.widthCache);
-                        if (c[stack.current] !== width) {
-                            c[stack.current] = width;
-                            stack.widthCache = c;
-                        }
-                    }
-                }
-                height: {
-                    if (stack.current === "left" && leftCacheLoader.item) {
-                        var lh = Math.max(leftCacheLoader.item.height || 0, leftCacheLoader.item.implicitHeight || 0);
-                        return lh > 0 ? lh : lastHeight;
-                    }
-                    if (stack.current === "right" && rightCacheLoader.item) {
-                        var rh = Math.max(rightCacheLoader.item.height || 0, rightCacheLoader.item.implicitHeight || 0);
-                        return rh > 0 ? rh : lastHeight;
-                    }
-                    var hit = currentPageLoader.item;
-                    if (!hit)
-                        return lastHeight;
-                    var hh = Math.max(hit.height || 0, hit.implicitHeight || 0, hit.childrenRect ? hit.childrenRect.height : 0);
-                    return hh > 0 ? hh : lastHeight;
-                }
-                onHeightChanged: if (height > 0)
-                    lastHeight = height
 
                 // The state actually shown (lags BarState.state by 100ms on grow)
                 property string displayed: BarState.state
@@ -430,12 +418,12 @@ PanelWindow {
                             stack.displayed = s;
                             return;
                         }
-                        var cached = stack.widthCache[s];
-                        if (cached !== undefined && cached > pill.width) {
+                        var cachedw = stack.widthCache[s];
+                        if (cachedw !== undefined && cachedw > pill.width) {
                             // Growing: expand first, swap content after 100ms
                             // (Behavior on pill.width carries the motion).
                             stack.pending = s;
-                            pill.widthOverride = cached + 10;
+                            pill.widthOverride = cachedw + 10;
                             swapTimer.restart();
                         } else {
                             // Shrinking or unknown: swap now, width follows

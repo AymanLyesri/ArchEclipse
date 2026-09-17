@@ -65,26 +65,54 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.spacing
 
-        Row {
-            id: labelRow
+        Item {
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacing
+            width: labelRow.width
+            height: labelRow.height
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: VolumeWatcher.volumeIcon
-                color: Theme.fg
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize + 1
+            Row {
+                id: labelRow
+                spacing: Theme.spacing
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: VolumeWatcher.volumeIcon
+                    color: Theme.fg
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSize + 1
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Math.round(root.vol * 100) + "%"
+                    color: Theme.fg
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSize
+                }
             }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Math.round(root.vol * 100) + "%"
-                color: Theme.fg
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                enabled: !root.pulse
+                cursorShape: Qt.PointingHandCursor
+                onClicked: mouse => {
+                    if (mouse.button === Qt.RightButton) {
+                        Quickshell.execDetached(["pavucontrol"]);
+                    } else if (mouse.button === Qt.LeftButton) {
+                        root.sliderRevealed = !root.sliderRevealed;
+                        if (root.sliderRevealed)
+                            hideTimer.restart();
+                    }
+                }
+                onWheel: wheel => {
+                    if (!root.sink?.audio)
+                        return;
+                    const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
+                    root.sink.audio.volume = Math.max(0, Math.min(1, root.vol + step));
+                }
             }
         }
+        
         AppSlider {
             id: slider
             visible: root.pulse || root.sliderRevealed
@@ -135,29 +163,6 @@ Rectangle {
                 root.keepOpen = false;
                 hideTimer.restart();
             }
-        }
-    }
-    MouseArea {
-        // Only cover the icon+label — covering `content` swallowed all
-        // drag/wheel events meant for the slider, making it unmovable.
-        anchors.fill: labelRow
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        enabled: !root.pulse
-        cursorShape: Qt.PointingHandCursor
-        onClicked: mouse => {
-            if (mouse.button === Qt.RightButton) {
-                Quickshell.execDetached(["pavucontrol"]);
-            } else if (mouse.button === Qt.LeftButton) {
-                root.sliderRevealed = !root.sliderRevealed;
-                if (root.sliderRevealed)
-                    hideTimer.restart();
-            }
-        }
-        onWheel: wheel => {
-            if (!root.sink?.audio)
-                return;
-            const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
-            root.sink.audio.volume = Math.max(0, Math.min(1, root.vol + step));
         }
     }
 }

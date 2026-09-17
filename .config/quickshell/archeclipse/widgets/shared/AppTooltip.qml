@@ -38,10 +38,9 @@ ToolTip {
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fontSize
         color: Theme.fg
-        // AutoText = Qt default: plain text keeps its "\n" line breaks,
-        // strings with HTML (e.g. "Wallpaper Switcher\n<b>SUPER + W</b>")
-        // render rich exactly as before.
-        textFormat: Text.AutoText
+        // Tooltips may contain lightweight markup such as <b>...</b>.
+        // Explicit RichText prevents the tags from being shown literally.
+        textFormat: Text.RichText
     }
 
     enter: Transition {

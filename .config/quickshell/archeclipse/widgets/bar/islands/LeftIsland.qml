@@ -284,7 +284,7 @@ Column {
                         }
                     ]
                     currentIndex: root.tabIndex(root.selectedWidget)
-                    onSelected: {
+                    onSelected: index => {
                         root.selectedWidget = root.tabOrder[index];
                     }
                 }
