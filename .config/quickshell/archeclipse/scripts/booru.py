@@ -609,7 +609,7 @@ def main():
     if len(sys.argv) < 2:
         error = ErrorResponse(
             "MISSING_ARGS",
-            "Missing required arguments. Use --api [danbooru|gelbooru|safebooru] and optional --id/--tags/--tag/--page/--limit/--api-user/--api-key.",
+            "Missing required arguments. Use --api [danbooru|gelbooru|safebooru] and optional --id/--tags/--tag/--page/--limit/--api-user/--api-key/--user-agent.",
         )
         emit_error(error)
         sys.exit(1)
@@ -622,6 +622,7 @@ def main():
     tag_query = None
     api_user = None
     api_key = None
+    user_agent = None
     action = None
     payload_json = None
 
@@ -643,6 +644,8 @@ def main():
                 api_user = sys.argv[i + 1]
             elif sys.argv[i] == "--api-key":
                 api_key = sys.argv[i + 1]
+            elif sys.argv[i] == "--user-agent":
+                user_agent = sys.argv[i + 1]
             elif sys.argv[i] == "--action":
                 action = sys.argv[i + 1].strip().lower()
             elif sys.argv[i] == "--payload-json":
@@ -651,6 +654,10 @@ def main():
         error = ErrorResponse("INVALID_ARGS", f"Invalid argument format: {str(e)}")
         emit_error(error)
         sys.exit(1)
+
+    global BOORU_USER_AGENT
+    if user_agent:
+        BOORU_USER_AGENT = user_agent
 
     if action:
         payload: Dict[str, Any] = {}

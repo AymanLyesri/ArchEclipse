@@ -635,8 +635,8 @@ Item {
         }
 
         RowLayout {
-            anchors.horizontalCenter: parent.horizontalCenter
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
             spacing: 4
             AppSegmentedControl {
                 // Per-tab availability rides in the model (Chapters needs a
@@ -665,8 +665,8 @@ Item {
 
         // Provider tabs
         RowLayout {
-            anchors.horizontalCenter: parent.horizontalCenter
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
             spacing: 4
             AppSegmentedControl {
                 Layout.alignment: Qt.AlignHCenter

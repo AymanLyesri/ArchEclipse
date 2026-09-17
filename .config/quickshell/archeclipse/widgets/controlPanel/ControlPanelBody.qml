@@ -227,7 +227,7 @@ Item {
         // plus the open body, mirroring the contentCol.height pattern below.
         property bool connectivityOpen: true
         readonly property string btStateText: !body.btAvailable ? "N/A" : (body.btPowered ? "On" : "Off")
-        readonly property string connSummary: body.netStatus + " • BT " + body.btStateText
+        readonly property string connSummary: body.netStatus + " • BT " + contentCol.btStateText
 
         Card {
             id: connCard
@@ -237,39 +237,43 @@ Item {
             height: contentMargins * 2 + headRow.height + (connBody.visible ? contentSpacing + connBody.height : 0)
 
             // Header: icon + title + combined status + chevron; click toggles.
-            Row {
-                id: headRow
+            Item {
                 width: parent.width
-                spacing: 8
-                Text {
-                    text: "󰖩"
-                    color: Theme.fg
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 18
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Text {
-                    text: "Connectivity"
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Text {
-                    text: body.connSummary
-                    color: Theme.accent
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 2
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                    width: parent.width - 150
-                }
-                Text {
-                    text: body.connectivityOpen ? "\uf107" : "\uf106"
-                    color: Theme.muted
-                    font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 14
-                    verticalAlignment: Text.AlignVCenter
+                height: headRow.height
+                Row {
+                    id: headRow
+                    width: parent.width
+                    spacing: 8
+                    Text {
+                        text: "󰖩"
+                        color: Theme.fg
+                        font.family: "JetBrainsMono NFP"
+                        font.pixelSize: 18
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Text {
+                        text: "Connectivity"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 1
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Text {
+                        text: contentCol.connSummary
+                        color: Theme.accent
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize - 2
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                        width: parent.width - 150
+                    }
+                    Text {
+                        text: contentCol.connectivityOpen ? "\uf107" : "\uf106"
+                        color: Theme.muted
+                        font.family: "JetBrainsMono NFP"
+                        font.pixelSize: 14
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
                 MouseArea {
                     anchors.fill: parent
@@ -278,7 +282,7 @@ Item {
                     propagateComposedEvents: true
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: body.connectivityOpen = !body.connectivityOpen
+                    onClicked: contentCol.connectivityOpen = !contentCol.connectivityOpen
                 }
             }
 
@@ -287,7 +291,7 @@ Item {
                 id: connBody
                 width: parent.width
                 spacing: 10
-                visible: body.connectivityOpen
+                visible: contentCol.connectivityOpen
 
                 // ----- Network -----
                 Column {

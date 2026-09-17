@@ -67,7 +67,7 @@ Row {
             anchors.centerIn: parent
             width: 12
             height: 12
-            source: "view-more-symbolic"
+            source: Quickshell.iconPath("view-more-symbolic", true)
         }
 
         MouseArea {

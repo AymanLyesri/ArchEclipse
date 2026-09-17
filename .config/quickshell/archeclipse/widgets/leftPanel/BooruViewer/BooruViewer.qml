@@ -144,6 +144,7 @@ Item {
     property real detailSlide: 0
     // Downloaded set: populated automatically by fetchOriginal() when the
     // full file lands in <api>/images/ (no manual download step).
+    // Keys are api:id (BooruUtils.cacheKey) — sites share numeric ids.
     property var downloadedIds: ({})
     // forces dialog overlay to recompute toggle states after downloads
     property int dialogVersion: 0
@@ -179,16 +180,17 @@ Item {
     }
     // Local preview-file ids verified present on disk. Grid prefers these
     // (the downloaded local preview via getPreviewPath()).
+    // Keys are api:id — same numeric id on two sites is not the same file.
     property var previewIds: ({})
     // Cards allowed to fade in. previewIds flips the moment a file lands
     // on disk (Image starts decoding ASAP); revealedIds is drained one
-    // id per _revealTimer tick so cards pop in sequentially instead of
+    // api:id per _revealTimer tick so cards pop in sequentially instead of
     // bursting all at once.
     property var revealedIds: ({})
     property var _revealQueue: []
     // Local full-image ids verified present on disk (dialog cache).
-    // Remote danbooru URLs 403 inside Qt, so the dialog can only show
-    // full files downloaded with Referer headers by fetchOriginal().
+    // Keys are api:id. Remote danbooru URLs 403 inside Qt, so the dialog
+    // can only show full files downloaded with Referer by fetchOriginal().
     property var fullIds: ({})
     // Initial fetch on load (branches to bookmarks/pins/API
     // from the restored tab — saved Bookmarks/Pins must not fetch the API).
@@ -424,7 +426,7 @@ Item {
     }
 
     function isDownloaded(img) {
-        return !!img && !!root.downloadedIds[String(img.id)];
+        return !!img && !!root.downloadedIds[BooruUtils.cacheKey(img)];
     }
 
     function imageFileUrl(img) {
@@ -452,18 +454,19 @@ Item {
             return;
         if (BooruActions.isZip(img))
             return;
-        if (root.isDownloaded(img) || root.fullIds[String(img.id)])
+        if (root.isDownloaded(img) || root.fullIds[BooruUtils.cacheKey(img)])
             return;
 
         const dir = `${root.booruPath}/${img.api.value}/images`;
         const filePath = `${dir}/${img.id}.${img.extension}`;
         const legacyPath = `${root.booruPath}/${img.api.value}/originals/${img.id}.${img.extension}`;
         const markDone = function () {
+            const key = BooruUtils.cacheKey(img);
             const ids = Object.assign({}, root.downloadedIds);
-            ids[String(img.id)] = true;
+            ids[key] = true;
             root.downloadedIds = ids;
             const full = Object.assign({}, root.fullIds);
-            full[String(img.id)] = true;
+            full[key] = true;
             root.fullIds = full;
             root.dialogVersion++;
         };
@@ -622,13 +625,23 @@ Item {
         Settings.updateSetting("booru.tags", tags);
     }
 
+    function formatCacheSize(bytes) {
+        const b = Math.max(0, parseInt(bytes) || 0);
+        if (b < 1024)
+            return "0kb";
+        if (b < 1024 * 1024)
+            return Math.round(b / 1024) + "kb";
+        return (Math.round((b / (1024 * 1024)) * 10) / 10) + "mb";
+    }
+
     function calculateCacheSize() {
         const apiValue = Settings.booru.api ? Settings.booru.api.value : "danbooru";
+        const base = root.booruPath + "/" + apiValue;
         const proc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
-        proc.command = ["bash", "-c", "du -sb " + JSON.stringify(root.booruPath + '/' + apiValue + '/previews') + " 2>/dev/null | cut -f1"];
+        // Sum previews + images + originals (cleanCache clears all three).
+        proc.command = ["bash", "-c", "du -sb " + JSON.stringify(base + "/previews") + " " + JSON.stringify(base + "/images") + " " + JSON.stringify(base + "/originals") + " 2>/dev/null | awk '{s+=$1} END {print s+0}'"];
         proc.stdout.onStreamFinished.connect(function () {
-            const bytes = parseInt(proc.stdout.text.trim()) || 0;
-            root.cacheSize = Math.round(bytes / (1024 * 1024)) + "mb";
+            root.cacheSize = root.formatCacheSize(proc.stdout.text.trim());
             proc.destroy();
         });
         proc.running = true;
@@ -636,8 +649,25 @@ Item {
 
     function cleanCache() {
         const apiValue = Settings.booru.api ? Settings.booru.api.value : "danbooru";
-        Quickshell.execDetached(["bash", "-c", `rm -rf '${root.booruPath}/${apiValue}/previews/*' '${root.booruPath}/${apiValue}/images/*' '${root.booruPath}/${apiValue}/originals/*'`]);
-        root.calculateCacheSize();
+        const base = root.booruPath + "/" + apiValue;
+        // IMPORTANT: never quote the trailing /* — single quotes made rm
+        // look for a literal "*" file and delete nothing. Drop whole dirs
+        // then recreate; run du only after rm finishes so the label updates.
+        const proc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
+        proc.command = ["bash", "-c", "rm -rf " + JSON.stringify(base + "/previews") + " " + JSON.stringify(base + "/images") + " " + JSON.stringify(base + "/originals") + " && mkdir -p " + JSON.stringify(base + "/previews") + " " + JSON.stringify(base + "/images") + " " + JSON.stringify(base + "/originals") + " && du -sb " + JSON.stringify(base + "/previews") + " " + JSON.stringify(base + "/images") + " " + JSON.stringify(base + "/originals") + " 2>/dev/null | awk '{s+=$1} END {print s+0}'"];
+        proc.stdout.onStreamFinished.connect(function () {
+            root.cacheSize = root.formatCacheSize(proc.stdout.text.trim());
+            // Drop only this API's in-memory cache flags (other sites stay warm).
+            root.previewIds = BooruUtils.purgeApiKeys(root.previewIds, apiValue);
+            root.downloadedIds = BooruUtils.purgeApiKeys(root.downloadedIds, apiValue);
+            root.fullIds = BooruUtils.purgeApiKeys(root.fullIds, apiValue);
+            root.resetReveal();
+            proc.destroy();
+            // Re-fetch previews for the current page if we still have results.
+            if (root.images && root.images.length > 0)
+                root.downloadPreviews(root.images);
+        });
+        proc.running = true;
     }
 
     function fetchImages() {
@@ -765,11 +795,11 @@ Item {
     }
 
     function isPreviewCached(img) {
-        return !!img && !!root.previewIds[String(img.id)];
+        return !!img && !!root.previewIds[BooruUtils.cacheKey(img)];
     }
 
     function isRevealed(img) {
-        return !!img && !!root.revealedIds[String(img.id)];
+        return !!img && !!root.revealedIds[BooruUtils.cacheKey(img)];
     }
 
     function resetReveal() {
@@ -788,8 +818,8 @@ Item {
         for (const img of imgs) {
             if (!img)
                 continue;
-            const key = String(img.id);
-            if (revealed[key] || q.includes(key))
+            const key = BooruUtils.cacheKey(img);
+            if (!key || revealed[key] || q.includes(key))
                 continue;
             if (root.previewIds[key] || root.downloadedIds[key]) {
                 q.push(key);
@@ -826,10 +856,13 @@ Item {
             if (!img || !img.preview || !img.api || !img.api.value)
                 return;
             const previewDir = `${root.booruPath}/${img.api.value}/previews`;
+            // Same path gridSource/getIconPath use (preview still ext, not
+            // the post's mp4/webm extension).
+            const previewPath = BooruUtils.getIconPath(root.booruPath, img, "previews");
             tasks.push({
-                "id": String(img.id),
+                "key": BooruUtils.cacheKey(img),
                 "dir": previewDir,
-                "path": `${previewDir}/${img.id}.${img.extension}`,
+                "path": previewPath,
                 "url": img.preview,
                 "referer": img.api.url || ""
             });
@@ -843,25 +876,25 @@ Item {
         // running=true before assigning stdout races and drops output.
         const checkProc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
         checkProc.command = ["bash", "-c", tasks.map(t => {
-            return "test -s " + JSON.stringify(t.path) + " && echo " + t.id;
+            return "test -s " + JSON.stringify(t.path) + " && echo " + JSON.stringify(t.key);
         }).join("; ") + "; true"];
         checkProc.stdout.onStreamFinished.connect(function () {
             const current = (mySeq === root._dlSeq);
             const have = {};
-            checkProc.stdout.text.trim().split(/\s+/).forEach(id => {
-                if (id)
-                    have[id] = true;
+            checkProc.stdout.text.trim().split(/\s+/).forEach(key => {
+                if (key)
+                    have[key] = true;
             });
             checkProc.destroy();
             if (Object.keys(have).length > 0) {
                 const ids = Object.assign({}, root.previewIds);
-                for (const id in have)
-                    ids[id] = true;
+                for (const key in have)
+                    ids[key] = true;
                 root.previewIds = ids;
             }
             if (current)
                 pump(tasks.filter(t => {
-                    return !have[t.id];
+                    return !have[t.key];
                 }));
         });
         checkProc.running = true;
@@ -877,20 +910,21 @@ Item {
                 while (active < MAX_DL && next < missing.length) {
                     const t = missing[next++];
                     active++;
-                    // curl -f fails on HTTP errors and --max-time caps a
-                    // hung connection so a stuck worker can't wedge the
-                    // queue; trailing test -s only reports real files.
+                    // Write to .part then mv atomically so a concurrent
+                    // checkProc never marks a truncated curl -o target,
+                    // and Image never opens a half-written preview.
+                    const part = t.path + ".part";
                     const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
                     dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(t.dir)} && curl -sSf --max-time 30 -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("booru"))} -H ${Settings.shQuote("Referer: " + t.referer)} -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(t.path)} ${JSON.stringify(t.url)} && test -s ${JSON.stringify(t.path)}`];
                     dl.exited.connect(function (code) {
                         active--;
                         // Mark even when superseded: the file is warm on
-                        // disk now, and the reveal queue only admits ids
+                        // disk now, and the reveal queue only admits keys
                         // in the current result set, so this is harmless.
                         if (code === 0) {
                             const ids = Object.assign({}, root.previewIds);
-                            if (!ids[t.id]) {
-                                ids[t.id] = true;
+                            if (!ids[t.key]) {
+                                ids[t.key] = true;
                                 root.previewIds = ids;
                             }
                         }
@@ -1111,8 +1145,8 @@ Item {
             }
             const key = q[0];
             root._revealQueue = q.slice(1);
-            // Skip ids that vanished from the current result set.
-            const stillThere = (root.images || []).some(img => img && String(img.id) === String(key));
+            // Skip keys that vanished from the current result set.
+            const stillThere = (root.images || []).some(img => img && BooruUtils.cacheKey(img) === String(key));
             if (!stillThere)
                 return;
             const ids = Object.assign({}, root.revealedIds);
@@ -1192,8 +1226,8 @@ Item {
         // top-left corner at the rect, expanding down-right. No overrides.
         // Wider than the old 232px: the overhauled dialog uses 2-col
         // action grids + meta/tag pills that need the breathing room.
-        width: 288
-        height: Math.max(48, Math.round(root.height))
+        implicitWidth: 288
+        implicitHeight: Math.max(48, Math.round(root.height))
         // Gated on the host being actually shown: dialogImage alone
         // outlives island close / tab switch (cached Loader), which left
         // an orphan popup on screen. closeDialogNow() clears the image
@@ -1243,8 +1277,8 @@ Item {
         id: detailFloat
         title: root.dialogImage ? `Booru #${root.dialogImage.id}` : "Booru"
         visible: root.dialogImage !== null && root.dialogDetached
-        width: 340
-        height: 480
+        implicitWidth: 340
+        implicitHeight: 480
         minimumSize: Qt.size(240, 200)
         color: "transparent"
 

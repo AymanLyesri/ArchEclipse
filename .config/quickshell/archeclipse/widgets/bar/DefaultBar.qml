@@ -228,9 +228,11 @@ Column {
                 spacing: Theme.spacing
 
                 ResourceMonitor {
+                    id: resourceMonitor
                     Layout.fillWidth: true
                 }
                 WeatherButton {
+                    id: weatherButton
                     Layout.fillWidth: true
                 }
             }

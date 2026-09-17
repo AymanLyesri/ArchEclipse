@@ -15,6 +15,20 @@ QtObject {
     property string _lon: ""
     property bool _booted: false
 
+    function parseJsonResponse(raw, source) {
+        const payload = String(raw ?? "").trim();
+        if (payload === "") {
+            console.warn("[Weather] " + source + " returned an empty response");
+            return null;
+        }
+        try {
+            return JSON.parse(payload);
+        } catch (e) {
+            console.warn("[Weather] " + source + " returned invalid JSON");
+            return null;
+        }
+    }
+
     // Boot once Settings are ready so a saved city wins over IP geo.
     // The refresh timer below no longer triggers on start — boot() owns
     // the first fetch.
@@ -47,16 +61,19 @@ QtObject {
     }
 
     property Process geoProc: Process {
-        command: ["curl", "-fsSL", "--connect-timeout", "8", "https://ipinfo.io/json"]
+        command: ["curl", "-fsSL", "--retry", "2", "--retry-all-errors", "--connect-timeout", "8", "--max-time", "15", "https://ipinfo.io/json"]
         stdout: StdioCollector {
             onStreamFinished: {
-                try {
-                    const j = JSON.parse(text);
-                    root._lat = j.loc.split(",")[0];
-                    root._lon = j.loc.split(",")[1];
+                const j = root.parseJsonResponse(text, "ipinfo");
+                if (j && typeof j.loc === "string" && j.loc.includes(",")) {
+                    const coordinates = j.loc.split(",");
+                    root._lat = coordinates[0];
+                    root._lon = coordinates[1];
                     root._detectedCity = j.city || "";
                     wxProc.running = true;
-                } catch (e) { console.warn("[Weather] ipinfo geo failed", e); root.ifconfigFallback(); }
+                } else {
+                    root.ifconfigFallback();
+                }
             }
         }
     }
@@ -67,18 +84,18 @@ QtObject {
         fallbackProc.running = true;
     }
     property Process fallbackProc: Process {
-        command: ["curl", "-fsSL", "--connect-timeout", "8", "https://ifconfig.co/json"]
+        command: ["curl", "-fsSL", "--retry", "2", "--retry-all-errors", "--connect-timeout", "8", "--max-time", "15", "https://ifconfig.co/json"]
         stdout: StdioCollector {
             onStreamFinished: {
-                try {
-                    const j = JSON.parse(text);
+                const j = root.parseJsonResponse(text, "ifconfig");
+                if (j) {
                     if (j.latitude && j.longitude) {
                         root._lat = String(j.latitude);
                         root._lon = String(j.longitude);
                         root._detectedCity = j.city || "";
                         wxProc.running = true;
                     }
-                } catch (e) { console.warn("[Weather] fallback geo failed", e); }
+                }
             }
         }
     }
@@ -87,11 +104,11 @@ QtObject {
         `https://api.open-meteo.com/v1/forecast?latitude=${root._lat}&longitude=${root._lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,is_day,precipitation,weather_code&hourly=temperature_2m,weather_code,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,precipitation_hours,wind_speed_10m_max&timezone=auto&forecast_days=2`
 
     property Process wxProc: Process {
-        command: ["curl", "-fsSL", "--connect-timeout", "8", root._wxUrl]
+        command: ["curl", "-fsSL", "--retry", "2", "--retry-all-errors", "--connect-timeout", "8", "--max-time", "15", root._wxUrl]
         stdout: StdioCollector {
             onStreamFinished: {
-                try {
-                    const p = JSON.parse(text);
+                const p = root.parseJsonResponse(text, "open-meteo");
+                if (p) {
                     const finalCity = root._cityOverride || root._detectedCity || "Unknown";
                     root.data = {
                         city: finalCity,
@@ -100,7 +117,7 @@ QtObject {
                         daily: p.daily ?? {},
                         hourly: p.hourly ?? {}
                     };
-                } catch (e) { console.warn("[Weather] parse failed", e); }
+                }
             }
         }
     }
@@ -120,16 +137,16 @@ QtObject {
             return;
         }
         root._pendingCity = cityName.trim();
-        geoCityProc.command = ["curl", "-fsSL",
+        geoCityProc.command = ["curl", "-fsSL", "--retry", "2", "--retry-all-errors", "--connect-timeout", "8", "--max-time", "15",
             "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(root._pendingCity) + "&count=1&format=json"];
         geoCityProc.running = true;
     }
     property Process geoCityProc: Process {
-        command: ["curl", "-fsSL", ""]
+        command: ["curl", "-fsSL", "--connect-timeout", "8", "--max-time", "15", ""]
         stdout: StdioCollector {
             onStreamFinished: {
-                try {
-                    const g = JSON.parse(text);
+                const g = root.parseJsonResponse(text, "geocoding");
+                if (g) {
                     if (g.results && g.results.length > 0) {
                         const r = g.results[0];
                         root._cityOverride = r.name;
@@ -141,7 +158,7 @@ QtObject {
                     } else {
                         Notifications.notify({ summary: "Weather", body: "City '" + root._pendingCity + "' not found" });
                     }
-                } catch (e) { console.warn("[Weather] geocode failed", e); }
+                }
             }
         }
     }

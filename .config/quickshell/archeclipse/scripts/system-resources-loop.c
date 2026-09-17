@@ -28,6 +28,7 @@ typedef struct {
 static int nvidia_available = 0;
 static int sysfs_cards[MAX_GPUS];
 static int sysfs_card_count = 0;
+static char cpu_label[96] = "CPU";
 
 /* ---------------- CPU ---------------- */
 
@@ -79,6 +80,160 @@ static double get_cpu_clock_ghz() {
 static int get_cpu_threads() {
     long n = sysconf(_SC_NPROCESSORS_ONLN);
     return n > 0 ? (int)n : 0;
+}
+
+static void copy_label_sanitized(char *dst, size_t dst_size, const char *src) {
+    size_t j = 0;
+    while (*src == ' ') src++;
+    for (; *src && j + 1 < dst_size; src++) {
+        unsigned char c = (unsigned char)*src;
+        if (c == '"' || c == '\\' || c < 0x20) continue;
+        dst[j++] = (char)c;
+    }
+    while (j > 0 && dst[j - 1] == ' ') j--;
+    dst[j] = '\0';
+}
+
+/* Collapse runs of spaces in-place. */
+static void collapse_spaces(char *s) {
+    char *r = s, *w = s;
+    int sp = 0;
+    while (*r) {
+        if (*r == ' ') {
+            if (!sp && w != s) {
+                *w++ = ' ';
+                sp = 1;
+            }
+        } else {
+            *w++ = *r;
+            sp = 0;
+        }
+        r++;
+    }
+    while (w > s && w[-1] == ' ') w--;
+    *w = '\0';
+}
+
+/* Strip trademark markers left by Intel model names. */
+static void strip_tm_marks(char *s) {
+    char *r = s, *w = s;
+    while (*r) {
+        if ((r[0] == '(' && (r[1] == 'R' || r[1] == 'r') && r[2] == ')') ||
+            (r[0] == '(' && (r[1] == 'T' || r[1] == 't') && (r[2] == 'M' || r[2] == 'm') && r[3] == ')')) {
+            r += (r[1] == 'T' || r[1] == 't') ? 4 : 3;
+            continue;
+        }
+        *w++ = *r++;
+    }
+    *w = '\0';
+}
+
+/* "AMD Ryzen 5 5600 6-Core Processor" -> "Ryzen 5 5600"
+ * "Intel(R) Core(TM) i5-12400F" -> "Core i5-12400F"
+ * Undetected / empty -> leave caller to fall back to "CPU". */
+static void shorten_cpu_label(char *label, size_t label_size) {
+    static const char *prefixes[] = {
+        "AMD ", "Intel(R) ", "Intel ", "GenuineIntel ", "AuthenticAMD ",
+    };
+    char shortened[96];
+    snprintf(shortened, sizeof(shortened), "%s", label);
+
+    strip_tm_marks(shortened);
+
+    int changed = 1;
+    while (changed) {
+        changed = 0;
+        for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]); i++) {
+            size_t len = strlen(prefixes[i]);
+            if (strncmp(shortened, prefixes[i], len) == 0) {
+                memmove(shortened, shortened + len, strlen(shortened + len) + 1);
+                changed = 1;
+            }
+        }
+    }
+
+    /* Drop frequency / market suffixes: " CPU @ 3.70GHz", " @ 3.70GHz". */
+    char *at = strstr(shortened, " CPU @ ");
+    if (at) *at = '\0';
+    at = strstr(shortened, " @ ");
+    if (at) *at = '\0';
+
+    /* Trailing " Processor" / " CPU". */
+    size_t len = strlen(shortened);
+    if (len > 10 && strcmp(shortened + len - 10, " Processor") == 0)
+        shortened[len - 10] = '\0';
+    len = strlen(shortened);
+    if (len > 4 && strcmp(shortened + len - 4, " CPU") == 0)
+        shortened[len - 4] = '\0';
+
+    /* Trailing " N-Core" / " NN-Core" / " N-Thread". */
+    len = strlen(shortened);
+    for (size_t i = 0; i + 1 < len; i++) {
+        if (shortened[i] == ' ' && shortened[i + 1] >= '0' && shortened[i + 1] <= '9') {
+            size_t j = i + 1;
+            while (shortened[j] >= '0' && shortened[j] <= '9') j++;
+            if (strncmp(shortened + j, "-Core", 5) == 0 && shortened[j + 5] == '\0') {
+                shortened[i] = '\0';
+                break;
+            }
+            if (strncmp(shortened + j, "-Thread", 7) == 0 && shortened[j + 7] == '\0') {
+                shortened[i] = '\0';
+                break;
+            }
+        }
+    }
+
+    collapse_spaces(shortened);
+    if (shortened[0] != '\0')
+        snprintf(label, label_size, "%s", shortened);
+}
+
+static void detect_cpu_label(void) {
+    FILE *fp = fopen("/proc/cpuinfo", "r");
+    if (!fp) {
+        snprintf(cpu_label, sizeof(cpu_label), "CPU");
+        return;
+    }
+
+    char line[256];
+    char raw[96] = "";
+    while (fgets(line, sizeof(line), fp)) {
+        if (strncmp(line, "model name", 10) == 0) {
+            char *colon = strchr(line, ':');
+            if (colon) {
+                copy_label_sanitized(raw, sizeof(raw), colon + 1);
+                break;
+            }
+        }
+    }
+    fclose(fp);
+
+    if (raw[0] == '\0') {
+        /* ARM / some SoCs expose Hardware instead of model name. */
+        fp = fopen("/proc/cpuinfo", "r");
+        if (fp) {
+            while (fgets(line, sizeof(line), fp)) {
+                if (strncmp(line, "Hardware", 8) == 0) {
+                    char *colon = strchr(line, ':');
+                    if (colon) {
+                        copy_label_sanitized(raw, sizeof(raw), colon + 1);
+                        break;
+                    }
+                }
+            }
+            fclose(fp);
+        }
+    }
+
+    if (raw[0] == '\0') {
+        snprintf(cpu_label, sizeof(cpu_label), "CPU");
+        return;
+    }
+
+    snprintf(cpu_label, sizeof(cpu_label), "%s", raw);
+    shorten_cpu_label(cpu_label, sizeof(cpu_label));
+    if (cpu_label[0] == '\0')
+        snprintf(cpu_label, sizeof(cpu_label), "CPU");
 }
 
 static int read_double_from_file(const char *path, double *out) {
@@ -199,18 +354,6 @@ static int parse_metric(const char *token, double *out) {
     if (end == token) return 0;
     *out = val;
     return 1;
-}
-
-static void copy_label_sanitized(char *dst, size_t dst_size, const char *src) {
-    size_t j = 0;
-    while (*src == ' ') src++;
-    for (; *src && j + 1 < dst_size; src++) {
-        unsigned char c = (unsigned char)*src;
-        if (c == '"' || c == '\\' || c < 0x20) continue;
-        dst[j++] = (char)c;
-    }
-    while (j > 0 && dst[j - 1] == ' ') j--;
-    dst[j] = '\0';
 }
 
 /* "NVIDIA GeForce RTX 4080" -> "RTX 4080"; the vendor is already carried
@@ -350,6 +493,7 @@ static void print_json(double cpu_load, double clock_ghz, int threads, double cp
     strftime(updated_at, sizeof(updated_at), "%H:%M:%S", t);
 
     printf("{");
+    printf("\"cpuLabel\":\"%s\",", cpu_label);
     printf("\"cpuLoad\":%.1f,", cpu_load);
     printf("\"clockGHz\":%.2f,", clock_ghz);
     printf("\"threads\":%d,", threads);
@@ -401,6 +545,7 @@ static void collect_and_print(const CPUStat *old_stat, const CPUStat *new_stat) 
 int main(int argc, char **argv) {
     int once = (argc > 1 && strcmp(argv[1], "--once") == 0);
 
+    detect_cpu_label();
     detect_gpus();
 
     CPUStat old_stat = {0}, new_stat = {0};

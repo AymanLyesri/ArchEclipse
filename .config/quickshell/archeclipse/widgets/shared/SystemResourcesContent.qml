@@ -80,11 +80,13 @@ Column {
                 anchors.margins: 8
                 spacing: 4
                 Text {
-                    text: " CPU"
+                    text: " " + (root.stats?.cpuLabel || "CPU")
                     font.pixelSize: Theme.fontSize
                     font.bold: true
                     font.family: Theme.fontFamily
                     color: Theme.fg
+                    elide: Text.ElideRight
+                    width: parent.width
                 }
                 Rectangle {
                     width: parent.width
