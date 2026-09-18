@@ -234,13 +234,6 @@ Item {
         anchors.margins: 16
         spacing: 16
 
-        // ===== Connectivity (Network + Bluetooth share one dropdown) =====
-        // Shared Card shell + AppCheckBox/AppButton + Theme-only styling.
-        // Card needs an explicit height (Rectangle); it tracks the header
-        // plus the open body, mirroring the contentCol.height pattern below.
-        property bool connectivityOpen: true
-        readonly property string btStateText: !body.btAvailable ? "N/A" : (body.btPowered ? "On" : "Off")
-        readonly property string connSummary: body.netStatus + " • BT " + contentCol.btStateText
         // ===== Left column: sliders + actions =====
         Column {
             id: leftCol
@@ -276,6 +269,20 @@ Item {
                     checked: Settings.notifDnd || body.dndPing
                     tooltipText: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
                     onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd)
+                }
+                // Game Mode: always applies the Hyprland preset; gamemoded and
+                // powerprofilesctl are optional integrations.
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: "\u{F11B}"
+                    pixelSize: Theme.fontSize + 2
+                    toggle: true
+                    checked: Settings.gameModeEnabled
+                    tooltipText: Settings.gameModeEnabled ? "Disable Game Mode" : "Enable Game Mode"
+                    onClicked: Settings.applyGameMode(!Settings.gameModeEnabled)
                 }
                 AppButton {
                     width: (parent.width - parent.columnSpacing) / 2
@@ -414,7 +421,7 @@ Item {
                             verticalAlignment: Text.AlignVCenter
                         }
                         Text {
-                            text: contentCol.connSummary
+                            text: body.connSummary
                             color: Theme.accent
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 2
@@ -423,7 +430,7 @@ Item {
                             width: parent.width - 150
                         }
                         Text {
-                            text: contentCol.connectivityOpen ? "\uf107" : "\uf106"
+                            text: body.connectivityOpen ? "\uf107" : "\uf106"
                             color: Theme.muted
                             font.family: "JetBrainsMono NFP"
                             font.pixelSize: 14
@@ -437,7 +444,7 @@ Item {
                         propagateComposedEvents: true
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: contentCol.connectivityOpen = !contentCol.connectivityOpen
+                        onClicked: body.connectivityOpen = !body.connectivityOpen
                     }
                 }
 
@@ -446,7 +453,7 @@ Item {
                     id: connBody
                     width: parent.width
                     spacing: 10
-                    visible: contentCol.connectivityOpen
+                    visible: body.connectivityOpen
 
                     // ----- Network -----
                     Column {
