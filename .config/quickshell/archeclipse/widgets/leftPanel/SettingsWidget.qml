@@ -1096,6 +1096,21 @@ Item {
                             width: parent.width
                             spacing: 6
 
+                            // Game Mode
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+                                Label {
+                                    text: "Game Mode"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                                AppCheckBox {
+                                    checked: Settings.gameModeEnabled
+                                    onToggled: Settings.applyGameMode(checked)
+                                }
+                            }
+
                             // Decoration: Rounding
                             RowLayout {
                                 width: parent.width

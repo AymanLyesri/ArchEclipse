@@ -150,6 +150,7 @@ Singleton {
         return out.length > 0 ? out : defs;
     }
     property bool autoWorkspaceSwitching: true
+    property bool gameModeEnabled: false
 
     // Bar-pinned crypto favorite (Information center)
     property var cryptoFavorite: ({
@@ -542,6 +543,7 @@ Singleton {
             "notifications.dnd": "notifDnd",
             "lockscreen.graceSeconds": "lockGraceSeconds",
             "autoWorkspaceSwitching": "autoWorkspaceSwitching",
+            "gameMode.enabled": "gameModeEnabled",
             "dynamicThemeColors": "dynamicThemeColors",
             "dynamicThemeVariants": "dynamicThemeVariants",
             "alwaysOnWidget.visibility": "alwaysOnWidgetVisibility",
@@ -701,6 +703,11 @@ Singleton {
                 },
                 autoWorkspaceSwitching: {
                     value: root.autoWorkspaceSwitching
+                },
+                gameMode: {
+                    enabled: {
+                        value: root.gameModeEnabled
+                    }
                 },
                 // Hyprland leaf shape {name,value,min,max,type} — the settings
                 // panel renders from it (plain numbers would be mistaken for
@@ -950,6 +957,8 @@ Singleton {
                     root.rightPanelWidgets = root.mergeRightPanelWidgets(s.rightPanel.widgets);
                 }
                 root.autoWorkspaceSwitching = s.autoWorkspaceSwitching?.value ?? true;
+                const _gm = s.gameMode?.enabled;
+                root.gameModeEnabled = (typeof _gm === "object" && _gm !== null) ? (_gm.value ?? false) : (_gm ?? false);
 
                 // Rating tag leads, defaulting to -rating:explicit. Done here
                 // (not viewer boot) so the file's tags are normalized the
@@ -1042,6 +1051,70 @@ Singleton {
     Component.onCompleted: {
         root.reload();
         root._readyTimer.start();
+        Qt.callLater(function () {
+            if (root.gameModeEnabled)
+                root.applyGameMode(true);
+        });
+    }
+
+    function applyGameMode(enabled) {
+        const stateFile = "${XDG_RUNTIME_DIR:-/tmp}/archeclipse-gamemode-profile-$UID";
+        const requestPidFile = "${XDG_RUNTIME_DIR:-/tmp}/archeclipse-gamemode-request-$UID";
+        root.gameModeEnabled = enabled;
+        Quickshell.execDetached(["bash", "-c", enabled ? `set -u
+            hyprctl eval 'hl.config({
+                general = {
+                    gaps_in = 0,
+                    gaps_out = 0,
+                    border_size = 1,
+                    allow_tearing = true,
+                },
+                animations = {
+                    enabled = false,
+                },
+                decoration = {
+                    shadow = { enabled = false },
+                    blur = { enabled = false },
+                    rounding = 0,
+                },
+            })' >/dev/null 2>&1 || true
+            if command -v powerprofilesctl >/dev/null 2>&1; then
+                profile="$(powerprofilesctl get 2>/dev/null || true)"
+                [ -n "$profile" ] && printf '%s\n' "$profile" > "${stateFile}"
+                if powerprofilesctl list 2>/dev/null | grep -qE '(^|[[:space:]])performance([[:space:]]|:)'; then
+                    powerprofilesctl set performance >/dev/null 2>&1 || true
+                fi
+            fi
+            if command -v gamemoded >/dev/null 2>&1; then
+                if [ ! -s "${requestPidFile}" ] || ! kill -0 "$(cat "${requestPidFile}")" 2>/dev/null; then
+                    gamemoded --request >/dev/null 2>&1 &
+                    printf '%s\n' "$!" > "${requestPidFile}"
+                fi
+            fi` : `set -u
+            hyprctl reload >/dev/null 2>&1 || true
+            if [ -s "${requestPidFile}" ]; then
+                request_pid="$(cat "${requestPidFile}")"
+                if kill -0 "$request_pid" 2>/dev/null; then
+                    kill "$request_pid" 2>/dev/null || true
+                    for _ in 1 2 3 4 5; do
+                        kill -0 "$request_pid" 2>/dev/null || break
+                        sleep 0.1
+                    done
+                fi
+                rm -f "${requestPidFile}"
+            fi
+            if command -v powerprofilesctl >/dev/null 2>&1 && [ -s "${stateFile}" ]; then
+                profile="$(tr -d '\r\n' < "${stateFile}")"
+                if [ -n "$profile" ]; then
+                    for _ in 1 2 3; do
+                        powerprofilesctl set "$profile" >/dev/null 2>&1 || true
+                        [ "$(powerprofilesctl get 2>/dev/null || true)" = "$profile" ] && break
+                        sleep 0.2
+                    done
+                fi
+                rm -f "${stateFile}"
+            fi`]);
+        root.schedulePersist();
     }
 
     // Auto-persist: debounce writes so the settings file isn't thrashed
@@ -1168,6 +1241,9 @@ Singleton {
             root.schedulePersist();
         }
         function onDynamicThemeVariantsChanged() {
+            root.schedulePersist();
+        }
+        function onGameModeEnabledChanged() {
             root.schedulePersist();
         }
         function onWaifuChanged() {
