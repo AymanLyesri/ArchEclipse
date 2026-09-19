@@ -244,7 +244,7 @@ def main() -> None:
     presentation.execute_planned_step(
         "*",
         "Reloading bar configuration",
-        "~/.config/hypr/scripts/bar.sh &",
+        "~/.config/hypr/scripts/bar.sh || echo 'Warning: bar reload failed (non-fatal), continuing update' >&2",
         run=plan["reload_bar"],
     )
 
