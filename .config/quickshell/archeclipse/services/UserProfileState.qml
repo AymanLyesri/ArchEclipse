@@ -15,6 +15,7 @@ Singleton {
     property var cachedSession: null
     property string cachedUid: ""
     property string cachedEmail: ""
+    property string supporterSince: ""
     property string lastSessionText: ""
     property string lastSyncAt: "Never"
     property string lastSyncResult: "-"

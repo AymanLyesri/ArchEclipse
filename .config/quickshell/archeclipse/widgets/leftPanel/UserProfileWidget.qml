@@ -111,6 +111,7 @@ Item {
         UserProfileState.cachedSession = root._cachedSession;
         UserProfileState.cachedUid = root._cachedUid;
         UserProfileState.cachedEmail = root._cachedEmail;
+        UserProfileState.supporterSince = root.supporterSince;
         UserProfileState.lastSessionText = root._lastSessionText;
         UserProfileState.lastSyncAt = root.lastSyncAt;
         UserProfileState.lastSyncResult = root.lastSyncResult;
@@ -122,6 +123,7 @@ Item {
         root._cachedSession = UserProfileState.cachedSession;
         root._cachedUid = UserProfileState.cachedUid;
         root._cachedEmail = UserProfileState.cachedEmail;
+        root.supporterSince = UserProfileState.supporterSince;
         root._lastSessionText = UserProfileState.lastSessionText;
         root.lastSyncAt = UserProfileState.lastSyncAt;
         root.lastSyncResult = UserProfileState.lastSyncResult;
@@ -233,6 +235,7 @@ Item {
     // so the profile query cannot reuse lookupUserId() synchronously.
     property string _cachedUid: ""
     property string _cachedEmail: ""
+    property string supporterSince: ""
     // Auto-refresh: Supabase access_tokens expire after 1h (expires_in=3600).
     // Without this every API call fails with "JWT expired" ~1h after login,
     // which surfaced as "profile not found" / "No settings found" and forced
@@ -344,6 +347,7 @@ Item {
             root.profile = null;
             root._cachedUid = "";
             root._cachedEmail = "";
+            root.supporterSince = "";
             root.progressStatus = "idle";
             root.progressText = "Not signed in";
             root.isRefreshing = false;
@@ -439,7 +443,7 @@ Item {
         if (!session?.access_token || !uid)
             return;
         const p = supporterCheckComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' '" + supabaseUrl + "/rest/v1/supporters?select=id&id=eq." + encodeURIComponent(uid) + "'"];
+        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' '" + supabaseUrl + "/rest/v1/supporters?select=id,created_at&id=eq." + encodeURIComponent(uid) + "'"];
         p.running = true;
     }
     function onSupporterChecked(text) {
@@ -456,8 +460,10 @@ Item {
         if (!Array.isArray(rows) || !root.profile)
             return;
         const supported = rows.length > 0;
-        if (root.profile.is_supporter === supported)
+        const since = (supported && rows[0]?.created_at) ? rows[0].created_at : "";
+        if (root.profile.is_supporter === supported && root.supporterSince === since)
             return;
+        root.supporterSince = since;
         root.profile = {
             id: root.profile.id,
             email: root.profile.email,
@@ -602,6 +608,7 @@ Item {
         root._cachedSession = null;
         root._cachedUid = "";
         root._cachedEmail = "";
+        root.supporterSince = "";
         root._lastSessionText = "";
         root.progressStatus = "idle";
         root.progressText = "Signed out";
@@ -888,6 +895,12 @@ Item {
                 color: Theme.fg
                 elide: Text.ElideRight
             }
+            AppBadge {
+                x: (parent.width - width) / 2
+                visible: root.profile?.is_supporter === true
+                text: "Supporter"
+                color: Theme.accent
+            }
         }
     }
 
@@ -1028,10 +1041,9 @@ Item {
                                         font.pixelSize: Theme.fontSize - 1
                                         color: Theme.fgDim
                                     }
-                                    Label {
-                                        text: "Supporter: " + (root.profile?.is_supporter === true ? "Yes" : root.profile?.is_supporter === false ? "No" : "…")
-                                        font.pixelSize: Theme.fontSize - 1
-                                        color: Theme.fgDim
+                                    AppBadge {
+                                        text: root.profile?.is_supporter === true ? "Supporter" : root.profile?.is_supporter === false ? "Member" : "…"
+                                        color: root.profile?.is_supporter === true ? Theme.accent : Theme.muted
                                     }
                                 }
                                 AppProgress {
@@ -1048,6 +1060,40 @@ Item {
                                     showIdle: true
                                 }
                             }
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        implicitHeight: supporterCol.implicitHeight + 20
+                        visible: !!root.profile && root.profile.is_supporter !== null && root.profile.is_supporter !== undefined
+                        color: Theme.bg
+                        radius: 8
+                        Column {
+                            id: supporterCol
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 10
+                            spacing: 8
+                        Label {
+                            text: root.profile?.is_supporter === true ? "Supporter active" : "Member"
+                            font.pixelSize: Theme.fontSize + 1
+                            font.bold: true
+                            color: Theme.fg
+                        }
+                        Label {
+                            width: parent.width
+                            text: root.profile?.is_supporter === true ? ("Since " + root.formatTs(root.supporterSince)) : "Support the project to unlock Supporter status"
+                            font.pixelSize: Theme.fontSize - 1
+                            color: Theme.fgDim
+                            wrapMode: Text.WordWrap
+                        }
+                        AppButton {
+                            width: parent.width
+                            text: root.profile?.is_supporter === true ? "View Donations" : "Become supporter"
+                            onClicked: Registry.selectLeftTab("Donations")
+                        }
                         }
                     }
 

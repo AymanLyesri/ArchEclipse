@@ -106,7 +106,8 @@ tracked base files for local-only needs).
 ## Gotchas for agents
 
 - `~` is a git repo with remote `origin https://github.com/AymanLyesri/ArchEclipse.git`;
-  `~/.config/hypr` itself has a `VitoSanctis/archeclipse` remote. Don't commit,
+  `~/.config/hypr` is its own repo with the SAME `origin` (AymanLyesri/ArchEclipse) —
+  `VitoSanctis` is only a PR-review remote, never push to it. Don't commit,
   push, or run `maintenance/update.py` / `install.py` (they `reset --hard` and
   `cp -a` over `$HOME`). Read-only inspection only unless asked.
 - Never commit `config/custom/`, `config/defaults/` generated output,
