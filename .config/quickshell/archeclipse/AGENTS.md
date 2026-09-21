@@ -41,6 +41,13 @@ Rules that bite:
 - `default` is the permanent base and cannot be deactivated. `expanded`/`compact` are
   legacy aliases for `default`.
 - Omit `holdMs` (or `0`) = persistent until explicitly deactivated. `holdMs > 0` = auto-deactivate timer.
+- **Close-to-`default` animates (2026-09-21 exit driver, `Bar.qml` stack):** when the
+  target family is `default` and the outgoing island is exit-capable (`expand` prop),
+  `displayed` holds while the island folds `1→0`, then `exitTimer` (`Theme.anim.normal`)
+  swaps. `exitingFrom` keeps cached `Loader`s visible through the fold. Reopen mid-exit
+  (`s === displayed`) cancels the timer and restores `expand = 1`; any *other* new state
+  supersedes the exit (timer stopped, `exitingFrom` cleared). Island→island switches and
+  same-family pulses swap instantly, as before.
 
 ### 1.3 Islands (bar pill pages) — `widgets/bar/islands/`
 
@@ -51,13 +58,13 @@ All former side panels now live **inside the bar pill** as `BarState` pages, not
 | `LeftIsland.qml` | `left` | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4) |
 | `RightIsland.qml` | `right` | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll |
 | `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | `search` | Launcher results (input lives in the island, results in the panel) |
-| `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) / `RecordingIsland` / `SystemMonitorIsland` | pulses | Transient/utility pages |
+| `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) / `RecordingIsland` / `SystemMonitorIsland` | pulses | Transient/utility pages — **all** islands now carry an `expand` 0→1 driver + `IslandExpandClip` unfold (Player/Weather/System/Overview/Recording gained it 2026-09-21; previously static snap + hover timer only) |
 
 Shared island helpers (`widgets/bar/islands/`, module `qs.widgets.bar.islands`):
 
 | Component | Job |
 |---|---|
-| `IslandExpandClip` | Spring-unfold body clip (`expand` 0→1 drives clip + opacity + scale) |
+| `IslandExpandClip` | Emphasized-unfold body clip (`expand` 0→1 drives clip + opacity + scale; `Behavior on expand { Anim { type: Anim.Emphasized } }`) |
 | `IslandHoverPin` | Hover-pin: hover stops the 1s leave timer + pins the state persistent; leave restarts it (root is the `HoverHandler` itself — see §2.7) |
 | `IslandEscClose` | 1×1 focused `Esc` grabber deactivating the listed states |
 | `IslandWindowActions` | Bottom icon-button cluster (expand/shrink/exclusivity/lock/close); `side` switches the `Settings` keys, labels kept verbatim |
@@ -101,7 +108,7 @@ All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb
 | `Launcher` | Query pipeline (`cb/note/apps/emoji/translate/units/arithmetic/URL/>palette/fuzzy`), `results`, `selectedIndex`, `quickAppOrder` + history files under `~/.cache/quickshell/launcher/` |
 | `ScreenRecorder` | `wf-recorder` via `~/.config/hypr/scripts/screenrecord.sh`; `isRecording` is **polled** (`pgrep`, 1s) + 1.2s settle — lags reality ~2s, never use it for rapid toggle decisions |
 | `Notifications` | Daemon mirror: ephemeral `popupToasts` vs retained `history`; `Recorder` toasts get red-dot treatment |
-| `Settings` | Persisted config (`theme/Settings.qml`, ~1140 lines): bar/panel geometry, hotzones, `revealPressure`, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
+| `Settings` | Persisted config (`theme/Settings.qml`, ~1270 lines): bar/panel geometry, hotzones, `revealPressure`, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
 | `Weather, Brightness, KeyboardLayout, SysInfo, VolumeWatcher` | Device/API polling singletons (`Weather` owns `fmt/fmtRaw/formatTime/formatDate` for `WeatherCard`; `SysInfo.bandwidth` is the single `bandwidth-loop` owner bound by `Bandwidth`) |
 | `FastfetchPins, AutoWorkspaceSwitching, GlobalTheme, UserProfileState` | Boot/prefs singletons: pins self-heal + watcher, workspace auto-switch, global theme bridge, profile cache |
 | `BooruActions, Supabase, WorkspaceIcons` | Domain helpers: booru download/fav actions, Supabase client config, workspace glyph map |
@@ -116,7 +123,7 @@ SettingsUtils, TimeUtils, WindowManager` are gone; logic was inlined).
 `screenshot.sh`); keybinds in `~/.config/hypr/config/bind.lua` shell out via `qsIpc`
 (e.g. `SUPER+SHIFT+R` → `screenrecord now`).
 
-### 1.6 Theme — `theme/` (module `qs.theme`)
+### 1.6 Theme + motion — `theme/` (module `qs.theme`)
 
 `Theme.qml` + `Settings.qml` singletons (see `theme/qmldir`). All widgets consume
 `Theme.fg/bg/surface/accent/radius/fontSize/…` — never hardcode colors. Extra tokens:
@@ -126,6 +133,28 @@ Shared controls in `widgets/shared/` (module `qs.widgets.shared`, see its `qmldi
 `AppSpinBox`, `AppKeybind`, `AppSegmentedControl`, `AppImage`, `AppVideo`, `AppBadge`,
 `AppTooltip`, `AppProgress`, `AppMasonry`, `AppMasonryRow`, `SystemResourcesContent`,
 `SmoothFlickable`, `SmoothListView`, `SmoothWheelHandler`.
+
+Motion system (Caelestia-expressive port, pure QML, 2026-09-21 — no C++ plugin):
+
+- `Theme.anim`: durations (`small` 200, `normal` 400, `large` 600, `extraLarge` 1000,
+  `fastSpatial` 350, `defaultSpatial` 500, `slowSpatial` 650, `fastEffects` 150,
+  `defaultEffects` 200, `slowEffects` 300; all × `anim.scale`) + `Easing.BezierSpline`
+  curves (`standard`, `standardAccel/Decel`, `emphasized` 2-segment,
+  `emphasizedAccel/Decel`, `expressive{Fast,Default,Slow}{Spatial,Effects}`).
+  Spatial = movement (slide/resize), Effects = fade/color.
+- Shared primitives (`widgets/shared/`): `Anim` (`NumberAnimation` dispatcher, `enum Type`
+  mirroring Caelestia, default `DefaultSpatial`), `AnchorAnim` (anchor twin, no effects
+  types — use inside `Transition`), `CAnim` (fixed slow-effects `ColorAnimation` for
+  `Behavior on color`), `AnimLoader` (crossfade `Loader`: FastEffects-out → swap →
+  DefaultEffects-in).
+- Rules: new `Behavior`s use `Anim`/`CAnim`, never hardcoded `NumberAnimation`
+  durations; `Anim { duration: X }` keeps a custom duration with expressive easing.
+  Deliberately bespoke (do not "unify"): toast `ViewTransition`s (`OutExpo` 380ms slide +
+  stagger, `NotificationPopups.qml:80-141`) and the lock-card `SpringAnimation`
+  (`LockSurface.qml:61-67`).
+- Launcher highlight: `SmoothListView` with `highlightFollowsCurrentItem: false` +
+  explicit `highlight` rect tracking `currentItem.y/height` (`Behavior on y { Anim {} }`);
+  delegates stay transparent (see `LauncherPanel.qml`).
 
 Widget dirs: `bar/` (pill + `Bandwidth/Battery/Brightness/Clock/Network/ResourceMonitor/Tray/Volume/Workspaces`
 + `islands/`), `controlPanel/ControlPanelBody.qml`, `launcher/` (`LauncherPanel`, `AppEntry`),
@@ -183,6 +212,24 @@ wrappers. Rules:
    shared cluster copies the inline bool-toggle logic, not string labels.
    WallpaperIsland registers its *body* (not the island root) — `Ipc.wallpaperDiag`
    reads body probes off the handle.
+8. **Exit-driver invariants (`Bar.qml` stack, 2026-09-21).** `exitItemFor()` only
+   resolves transient items while `displayed` still names them — call `driveExit`
+   *before* swapping. Any new state stops `exitTimer` and clears `exitingFrom`
+   (supersede); the `s === displayed` guard instead restores `expand = 1`.
+   Cached `Loader`s need `|| exitingFrom === "<state>"` on `visible` or the fold
+   plays on a hidden subtree. Exit fires only for family-`default` targets —
+   do not extend it to island→island without re-checking the grow-first
+   `widthOverride` sequencing.
+9. **`qmllint` 255 = env baseline, not a failure.** Files importing `qs.*` modules
+   exit 255 with no output even on HEAD (verified via `git show HEAD:…` copies) —
+   quickshell types aren't visible to standalone lint. Real gate is a `bar.sh`
+   restart + clean `/tmp/qs-bar-$USER.log`. Files without `qs.*` imports must
+   still exit 0.
+10. **Headless transition tests via IPC.** No keypress needed:
+   `qs -p ~/.config/quickshell/archeclipse ipc call bar toggleSearch|toggleControl|toggleOverview|toggleWallpaper|toggleLeftPanel|toggleRightPanel <mon>|pulseNetwork`
+   + `barDiag state`; then grep the boot log for `typeerror|referenceerror`.
+   Control auto-closes ~1s after open (HoverPin grace, never hovered) — a second
+   `toggleControl` printing "open" again is the pin timer, not a stuck state.
 
 ## 3. Discord issue workflow
 
@@ -212,8 +259,13 @@ wrappers. Rules:
 
 ## 4. Verification & repo hygiene
 
-- `qmllint <touched files>` must pass (exit 0) before claiming anything.
-- Reload with **SUPER+B** and repro the exact thread steps; check off Discord message ids.
+- `qmllint <touched files>` must pass (exit 0) before claiming anything —
+  except files importing `qs.*` modules, where 255 with no output matches the
+  HEAD baseline (see §2.9); those are gated by live reload instead.
+- Reload with **SUPER+B** (= `~/.config/hypr/scripts/bar.sh`: SIGTERM→restart,
+  singleton-guarded, logs to `/tmp/qs-bar-$USER.log`) and repro the exact thread
+  steps; check off Discord message ids. For transition work, run the IPC matrix
+  (§2.10) and confirm zero `typeerror|referenceerror` in the log.
 - This checkout is a **dotfiles repo rooted at `$HOME`** — `git status` shows paths like
   `../../hypr/scripts/…`. Stage **only** the files you touched; never `git add .`.
 - Do not commit unless explicitly asked.
@@ -241,3 +293,4 @@ wrappers. Rules:
 - 2026-09-13 refactor P4: shared Card/RightPanelCard/FormShell/JsonListStore + shared formatNextRun; Crypto/ScriptTimer keep only delegates + fields. (qmllint per-file verified; SUPER+B reload pending.)
 - 2026-09-14/15 master: merged `quickshell-migration` (#308); wallpaper panel rewrite (per-workspace picker + SDDM bg + `wallhaven.py`/`gen-video-thumbs.sh` video thumbs, flicker fix, phased progress); `revealPressure` rollout across `BarHoverWindow/HotZone/DefaultBar/Volume/Brightness/Network/ResourceMonitor/WeatherButton`; media `PlayerWidget→MediaWidget/MediaWindow/MediaVideo/WaveVisualizer`; `WeatherIsland/WeatherWidget` thinned to `WeatherCard` wrapper; new shared `AppBadge/AppMasonryRow/AppVideo/AppSegmentedControl/AppTextArea/SystemResourcesContent` + `CryptoItem/NotificationItem`; `supabase/` functions+migrations added.
 - 2026-09-15 features: workspace overview as `OverviewIsland` (`BarState "overview"` pri 85, `Ipc.toggleOverview`, `SUPER+SHIFT+TAB` in `hypr/config/bind.lua`) rebuilt end-4-style: 3×2 live pager (`widgets/overview/OverviewBody.qml` + `OverviewPreview.qml` with `ScreencopyView live:true`, geometry from `hyprctl clients -j` poll since `lastIpcObject` is stale, drag windows between `DropArea` cards → `movetoworkspace`, click focus / middle-click close, island widened 660→920, hover-leave close via shared `IslandHoverPin` (new optional `leaveDelay`, overview binds `Settings.revealPressure`; pin grants a 1s open-grace on creation so keybind-opened islands survive cursor travel — without it a 250ms pressure closes the island before arrival, seen 2026-09-15; new `armOnCreation` opt-out, overview sets false so it never closes before first hover); card clicks focus + close, tile clicks stay open (leave/toggle/Esc all close); all-10 5×2 grid with fully derived heights (`gridH` from `cardH`, no hardcoded px — leaves report implicitHeight 0 so arithmetic-from-metrics is the pattern); actions via `hl.dsp.*` Lua dispatchers (`hyprctl dispatch` verbs and `Hyprland.dispatch` raw strings both evaluate as Lua and fail — proven via IPC probe); drop target resolved geometrically at release (`DropArea.onDropped` never fires for internal drags); geometry keys normalized (`HyprlandToplevel.address` is bare-hex vs hyprctl `0x…` — root-caused via live IPC diag 2026-09-15); Network (Quickshell.Networking + nmcli: status, Wi-Fi toggle, rescan, top-6 AP connect) + Bluetooth (bluetoothctl: power, device list, connect, 8s poll) share one collapsible `Card` dropdown ("Connectivity") in `ControlPanelBody` built from shared `AppCheckBox/AppButton` + Theme-only styling.
+- 2026-09-21 transition rewrite (Caelestia-expressive motion, pure QML — no C++): `Theme.anim` tokens (10 durations × scale + 12 BezierSpline curves) + shared `Anim/AnchorAnim/CAnim/AnimLoader` in `widgets/shared/`; `Bar.qml` exit driver (close-to-`default` folds `expand` 1→0 under `exitingFrom`, `exitTimer` = `anim.normal`, mid-exit reopen retargets, other states supersede); `IslandExpandClip` → `Emphasized`; Player/Weather/System/Overview/Recording gained `expand`+unfold (were static snap); pill width/shift + stack crossfade + `AppSegmentedControl`/`AppProgress`/`SystemResourcesContent`/`AppButton`/`AppTooltip` + control-card heights on tokens; launcher sliding highlight (`highlightFollowsCurrentItem: false` + `currentItem.y/height` rect). Deliberately untouched: toast `OutExpo` ViewTransitions + lock `SpringAnimation`. Blob goo (Caelestia `Blobs/` ~1700-line C++ SDF plugin) investigated and **deferred** — needs a CMake toolchain + plugin install this repo has none of; motion ships without it. Verified: `qmllint` exit 0 where env allows (255 = HEAD baseline), 2× `bar.sh` restarts clean, full IPC toggle matrix with zero `typeerror|referenceerror`.

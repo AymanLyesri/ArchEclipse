@@ -1,33 +1,74 @@
 import QtQuick
 import qs.theme
 import qs.services
+import qs.widgets.bar.islands
 
 // Recording island — pulsing dot + "Recording" + TRUE elapsed timer (mm:ss
 // since the recording actually started). Uses ScreenRecorder.startTimestamp
 // 0->1 recording-state edge. When not recording, elapsed resets to 00:00.
-Rectangle {
-    width: 180; height: 24
-    radius: Theme.radius
-    color: Theme.surface
+Item {
+    id: root
+    // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
+    // exit driver plays 1 -> 0 on close before swapping content.
+    property real expand: 0
+    Component.onCompleted: expand = 1
 
     property string elapsed: "00:00"
 
-    Row {
-        anchors.centerIn: parent
-        spacing: 6
+    implicitWidth: 180
+    implicitHeight: clip.height
+    width: implicitWidth
+    height: implicitHeight
+
+    IslandExpandClip {
+        id: clip
+        expand: root.expand
+        contentHeight: 24
 
         Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            width: 8; height: 8; radius: 4
-            color: "#a94545"
-            SequentialAnimation on opacity {
-                loops: Animation.Infinite
-                NumberAnimation { from: 1; to: 0.3; duration: 600 }
-                NumberAnimation { from: 0.3; to: 1; duration: 600 }
+            width: 180
+            height: 24
+            radius: Theme.radius
+            color: Theme.surface
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 6
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: "#a94545"
+                    SequentialAnimation on opacity {
+                        loops: Animation.Infinite
+                        NumberAnimation {
+                            from: 1
+                            to: 0.3
+                            duration: 600
+                        }
+                        NumberAnimation {
+                            from: 0.3
+                            to: 1
+                            duration: 600
+                        }
+                    }
+                }
+                Text {
+                    text: "Recording"
+                    color: Theme.fg
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSize
+                }
+                Text {
+                    text: root.elapsed
+                    color: Theme.fg
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSize
+                }
             }
         }
-        Text { text: "Recording"; color: Theme.fg; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
-        Text { text: parent.parent.elapsed; color: Theme.fg; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize }
     }
 
     function formatElapsed(ms) {
@@ -45,9 +86,9 @@ Rectangle {
         onTriggered: {
             // Real elapsed duration since recording start.
             if (ScreenRecorder.isRecording) {
-                parent.elapsed = parent.formatElapsed(Date.now() - ScreenRecorder.startTimestamp);
+                root.elapsed = root.formatElapsed(Date.now() - ScreenRecorder.startTimestamp);
             } else {
-                parent.elapsed = "00:00";
+                root.elapsed = "00:00";
             }
         }
     }

@@ -19,30 +19,37 @@ if ! flock -w 15 9; then
     exit 1
 fi
 
+# PIDs of live archeclipse *daemon* processes (one per line, empty if none).
+# Single matcher shared by the running-check and the kill step so they can
+# never disagree. Covers both launch forms (`qs -p <path>`, `qs -c` /
+# `--config archeclipse`, either binary name) and excludes short-lived
+# `ipc call` clients, which previously fooled the running-check into
+# pointless 5s waits and caught pointless SIGTERMs.
+archeclipse_pids() {
+    pgrep -af -- "$QS_CONF|(^|/)(qs|quickshell)([[:space:]].*)?[[:space:]](-c|--config)(=|[[:space:]]+)archeclipse([[:space:]]|$)" 2>/dev/null \
+        | grep -v -F 'ipc call' | awk '{print $1}'
+}
+
 is_archeclipse_running() {
-    pgrep -af -- "$QS_CONF" >/dev/null 2>&1 || \
-        pgrep -af -- '(^|/)quickshell([[:space:]].*)?-[[:space:]]*c[[:space:]]+archeclipse([[:space:]]|$)' >/dev/null 2>&1
+    [ -n "$(archeclipse_pids)" ]
 }
 
 stop_archeclipse() {
-    # Support both launch forms used by ArchEclipse:
-    #   qs -p ~/.config/quickshell/archeclipse
-    #   quickshell -c archeclipse
-    pkill -TERM -f -- "$QS_CONF" >/dev/null 2>&1 || true
-    pkill -TERM -f -- '(^|/)quickshell([[:space:]].*)?-[[:space:]]*c[[:space:]]+archeclipse([[:space:]]|$)' >/dev/null 2>&1 || true
+    local pids
+    pids="$(archeclipse_pids)"
+    [ -z "$pids" ] && return 0
+    kill -TERM $pids >/dev/null 2>&1 || true
 
     # Give Quickshell time to release its Wayland surfaces before starting
     # the replacement. This avoids two panel instances during restart.
     for _ in {1..50}; do
-        if ! is_archeclipse_running; then
-            return 0
-        fi
+        pids="$(archeclipse_pids)"
+        [ -z "$pids" ] && return 0
         sleep 0.1
     done
 
     # A stuck instance must not prevent a restart forever.
-    pkill -KILL -f -- "$QS_CONF" >/dev/null 2>&1 || true
-    pkill -KILL -f -- '(^|/)quickshell([[:space:]].*)?-[[:space:]]*c[[:space:]]+archeclipse([[:space:]]|$)' >/dev/null 2>&1 || true
+    kill -KILL $pids >/dev/null 2>&1 || true
 }
 
 stop_archeclipse
@@ -54,7 +61,13 @@ stop_archeclipse
 # itself runs — every later bar.sh invocation would then block for the
 # full 15s (or, with -n, silently no-op forever) instead of the lock being
 # released once *this* script's own restart sequence is done.
+# -n (--no-duplicate) is the authoritative singleton guard: Quickshell
+# tracks the running config by ID, so a second daemon exits immediately
+# instead of instantiating a duplicate per-monitor Bar/Popups/Hover set
+# (double widgets). The pgrep/pkill matchers above are string-based and
+# bypassable (miss `qs -c` / `--config` forms, TOCTOU between kill and
+# exec), so the launched daemon must defend itself.
 MANGOHUD=0 \
-nohup qs -p "$QS_CONF" > "/tmp/qs-bar-${USER}.log" 2>&1 9>&- &
+nohup qs -n -p "$QS_CONF" > "/tmp/qs-bar-${USER}.log" 2>&1 9>&- &
 
 exit 0

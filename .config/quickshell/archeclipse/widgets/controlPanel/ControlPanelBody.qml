@@ -336,6 +336,11 @@ Item {
                     contentMargins: 12
                     contentSpacing: 8
                     height: contentMargins * 2 + audioHeadRow.height + (audioBody.visible ? contentSpacing + audioBody.height : 0)
+                    Behavior on height {
+                        Anim {
+                            type: Anim.DefaultEffects
+                        }
+                    }
 
                     // Header: icon + title + master slider (visible collapsed),
                     // chevron pinned right; click toggles. Row children are
@@ -545,6 +550,11 @@ Item {
                     contentMargins: 12
                     contentSpacing: 8
                     height: contentMargins * 2 + headRow.height + (connBody.visible ? contentSpacing + connBody.height : 0)
+                    Behavior on height {
+                        Anim {
+                            type: Anim.DefaultEffects
+                        }
+                    }
 
                     // Header: icon + title + status, chevron pinned right; click toggles.
                     Item {

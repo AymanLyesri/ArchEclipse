@@ -23,13 +23,32 @@ Rectangle {
         model: Launcher.results
         currentIndex: Launcher.selectedIndex
         spacing: 2
+        // Sliding selection pill (Caelestia AppList pattern): geometry
+        // tracks the current item with expressive easing instead of
+        // repainting each delegate's background instantly.
+        highlightFollowsCurrentItem: false
+        highlight: Rectangle {
+            y: resultsList.currentItem ? resultsList.currentItem.y : 0
+            width: resultsList.width
+            height: resultsList.currentItem ? resultsList.currentItem.height : 0
+            radius: Theme.radius - 2
+            color: Theme.surfaceActive
+            Behavior on y {
+                Anim {}
+            }
+            Behavior on height {
+                Anim {
+                    type: Anim.FastEffects
+                }
+            }
+        }
         delegate: Rectangle {
             required property var modelData
             required property int index
             width: resultsList.width
             height: modelData.isHeader === true ? 28 : ((modelData.actions !== undefined && modelData.actions.length > 0) ? 56 : 52)
             radius: Theme.radius - 2
-            color: (modelData.isHeader === true || resultsList.currentIndex !== index) ? "transparent" : Theme.surfaceActive
+            color: "transparent"
 
             // Header row (app_type === "header").
             // NOTE: strict `=== true` — a bare `modelData.isHeader`

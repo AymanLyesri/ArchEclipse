@@ -94,13 +94,11 @@ Item {
             return root.idleBg;
         }
         Behavior on color {
-            ColorAnimation {
-                duration: 150
-            }
+            CAnim {}
         }
         Behavior on scale {
-            NumberAnimation {
-                duration: 120
+            Anim {
+                type: Anim.FastEffects
             }
         }
         border.width: root.outlined ? 1 : ((root.highlighted || root.dragging) && root.borderedWhenActive ? 1 : 0)

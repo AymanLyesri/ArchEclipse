@@ -55,6 +55,7 @@ PACKAGES: list[str] = [
     "brightnessctl",
     "hyprcursor",
     "hyprland",
+    "hyprpm",
     # Audio / video and media
     "swayimg",
     "kitty",

@@ -69,6 +69,39 @@ QtObject {
     // its own height, so all bar content stays the same height.
     readonly property int barContentHeight: 18
 
+    // --- animation tokens (Material-3 expressive port, pure QML) ---
+    // Durations in ms, multiplied by anim.scale. Curves are cubic-bezier
+    // point lists for Easing.BezierSpline (6 values per segment).
+    // Spatial = movement (slide/resize), Effects = fade/color.
+    readonly property QtObject anim: QtObject {
+        property real scale: 1.0
+        // standard durations
+        readonly property int small: Math.round(200 * scale)
+        readonly property int normal: Math.round(400 * scale)
+        readonly property int large: Math.round(600 * scale)
+        readonly property int extraLarge: Math.round(1000 * scale)
+        // expressive durations
+        readonly property int fastSpatial: Math.round(350 * scale)
+        readonly property int defaultSpatial: Math.round(500 * scale)
+        readonly property int slowSpatial: Math.round(650 * scale)
+        readonly property int fastEffects: Math.round(150 * scale)
+        readonly property int defaultEffects: Math.round(200 * scale)
+        readonly property int slowEffects: Math.round(300 * scale)
+        // easing curves (BezierSpline point lists)
+        readonly property var standard: [0.2, 0, 0, 1, 1, 1]
+        readonly property var standardAccel: [0.3, 0, 1, 1, 1, 1]
+        readonly property var standardDecel: [0, 0, 0, 1, 1, 1]
+        readonly property var emphasized: [0.05, 0, 0.1333, 0.06, 0.1667, 0.4, 0.2083, 0.82, 0.25, 1, 1, 1]
+        readonly property var emphasizedAccel: [0.3, 0, 0.8, 0.15, 1, 1]
+        readonly property var emphasizedDecel: [0.05, 0.7, 0.1, 1, 1, 1]
+        readonly property var expressiveFastSpatial: [0.42, 1.67, 0.21, 0.9, 1, 1]
+        readonly property var expressiveDefaultSpatial: [0.38, 1.21, 0.22, 1, 1, 1]
+        readonly property var expressiveSlowSpatial: [0.39, 1.29, 0.35, 0.98, 1, 1]
+        readonly property var expressiveFastEffects: [0.31, 0.94, 0.34, 1, 1, 1]
+        readonly property var expressiveDefaultEffects: [0.34, 0.8, 0.34, 1, 1, 1]
+        readonly property var expressiveSlowEffects: [0.34, 0.88, 0.34, 1, 1, 1]
+    }
+
     // Danger colors for destructive actions
     readonly property string danger: "#ff4444"
     readonly property string dangerBg: Qt.rgba(1.0, 0.26, 0.26, 0.1).toString()

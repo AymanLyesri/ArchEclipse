@@ -39,7 +39,7 @@ Item {
     property int cellHPadding: 14
     property int cellVPadding: 8
     property int highlightMargin: 2
-    property int animationDuration: 200
+    property int animationDuration: Theme.anim.defaultEffects
     // Opt-in equal-fill: cells stretch to share root.width (e.g. a
     // power-profile selector hexpanding in a narrow column). Off by
     // default so existing implicit-sized usages are untouched.
@@ -142,15 +142,13 @@ Item {
             border.width: 1
             border.color: Theme.accent
             Behavior on x {
-                NumberAnimation {
+                Anim {
                     duration: root.animationDuration
-                    easing.type: Easing.OutCubic
                 }
             }
             Behavior on width {
-                NumberAnimation {
+                Anim {
                     duration: root.animationDuration
-                    easing.type: Easing.OutCubic
                 }
             }
         }

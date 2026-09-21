@@ -8,6 +8,7 @@ import qs.services
 import qs.widgets.bar
 import qs.widgets.bar.islands
 import qs.widgets.launcher
+import qs.widgets.shared
 
 // Port of widgets/bar/Bar.tsx — the floating ArchEclipse bar pill.
 PanelWindow {
@@ -280,9 +281,8 @@ PanelWindow {
                 // opens snap to final geometry instead; the content
                 // crossfade + island unfold below carry the motion.
                 enabled: pill.widthAnimReady && !root.leftVert && !root.rightVert
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
+                Anim {
+                    type: Anim.DefaultSpatial
                 }
             }
             bottomRightRadius: Theme.radius
@@ -308,9 +308,8 @@ PanelWindow {
             }
             Behavior on shift {
                 enabled: pill.widthAnimReady
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
+                Anim {
+                    type: Anim.DefaultSpatial
                 }
             }
             anchors.horizontalCenterOffset: (root.leftVert || root.rightVert) ? 0 : shift
@@ -387,8 +386,34 @@ PanelWindow {
                 // The state actually shown (lags BarState.state by 100ms on grow)
                 property string displayed: BarState.state
                 property string pending: ""
+                // Exit driver: while an island folds closed (expand 1 -> 0)
+                // `exitingFrom` holds its name so cached Loaders stay
+                // visible until exitTimer swaps in the pending state.
+                property string exitingFrom: ""
                 // Measured widths per state
                 property var widthCache: ({})
+
+                // The live item for a shown state (cached islands via
+                // their Loaders, transient islands via currentPageLoader
+                // while `displayed` still names them), or null.
+                function exitItemFor(stateName) {
+                    if (stateName === "left")
+                        return leftCacheLoader.item;
+                    if (stateName === "right")
+                        return rightCacheLoader.item;
+                    if (stateName === stack.displayed)
+                        return currentPageLoader.item;
+                    return null;
+                }
+                function exitCapable(stateName) {
+                    var it = stack.exitItemFor(stateName);
+                    return it !== null && it !== undefined && it["expand"] !== undefined;
+                }
+                function driveExit(stateName) {
+                    var it = stack.exitItemFor(stateName);
+                    if (it && it["expand"] !== undefined)
+                        it.expand = 0;
+                }
 
                 Connections {
                     target: BarState
@@ -397,8 +422,20 @@ PanelWindow {
                         if (s === stack.displayed) {
                             stack.pending = "";
                             swapTimer.stop();
+                            // Reopened mid-exit: cancel the close, unfold again.
+                            if (stack.exitingFrom !== "") {
+                                var resume = stack.exitingFrom;
+                                stack.exitingFrom = "";
+                                exitTimer.stop();
+                                var rit = stack.exitItemFor(resume);
+                                if (rit && rit["expand"] !== undefined)
+                                    rit.expand = 1;
+                            }
                             return;
                         }
+                        // A new state supersedes any in-flight exit.
+                        exitTimer.stop();
+                        stack.exitingFrom = "";
                         // Same page family (volume -> control on hover-pin,
                         // volume <-> brightness across key presses): swap
                         // instantly with no grow/shrink sequencing — the
@@ -434,6 +471,17 @@ PanelWindow {
                             stack.pending = s;
                             pill.widthOverride = cachedw + 10;
                             swapTimer.restart();
+                        } else if (stack.pageFamily(s) === "default" && stack.exitCapable(stack.displayed)) {
+                            // Closing back to the bar: fold the outgoing
+                            // island (expand 1 -> 0) before swapping, so
+                            // closes animate instead of vanishing. The
+                            // s === displayed guard above cancels this if
+                            // the island reopens mid-exit.
+                            stack.pending = s;
+                            stack.exitingFrom = stack.displayed;
+                            pill.widthOverride = -1;
+                            stack.driveExit(stack.displayed);
+                            exitTimer.restart();
                         } else {
                             // Shrinking or unknown: swap now, width follows
                             stack.pending = "";
@@ -450,6 +498,20 @@ PanelWindow {
                         if (stack.pending !== "") {
                             stack.displayed = stack.pending;
                             stack.pending = "";
+                        }
+                        pill.widthOverride = -1;
+                    }
+                }
+                // Exit timer: fires once the outgoing island's fold
+                // (expand 1 -> 0, Emphasized normal) has completed.
+                Timer {
+                    id: exitTimer
+                    interval: Theme.anim.normal
+                    onTriggered: {
+                        if (stack.pending !== "" && stack.exitingFrom !== "") {
+                            stack.displayed = stack.pending;
+                            stack.pending = "";
+                            stack.exitingFrom = "";
                         }
                         pill.widthOverride = -1;
                     }
@@ -513,13 +575,12 @@ PanelWindow {
                         property: "opacity"
                         value: 1
                     }
-                    NumberAnimation {
+                    Anim {
                         target: stack
                         property: "opacity"
                         from: 0
                         to: 1
-                        duration: 500
-                        easing.type: Easing.InOutQuad
+                        type: Anim.DefaultEffects
                     }
                 }
 
@@ -531,7 +592,7 @@ PanelWindow {
                 Loader {
                     id: leftCacheLoader
                     active: stack.leftPrimed
-                    visible: stack.current === "left"
+                    visible: stack.current === "left" || stack.exitingFrom === "left"
                     asynchronous: false
                     sourceComponent: leftPage
                     onLoaded: {
@@ -554,7 +615,7 @@ PanelWindow {
                 Loader {
                     id: rightCacheLoader
                     active: stack.rightPrimed
-                    visible: stack.current === "right"
+                    visible: stack.current === "right" || stack.exitingFrom === "right"
                     asynchronous: false
                     sourceComponent: rightPage
                     onLoaded: {

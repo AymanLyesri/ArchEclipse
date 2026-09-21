@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // Shared system-resources content — single source of truth used by both
 // the bar's SystemMonitorIsland and the right panel's SystemResourcesWidget.
@@ -98,7 +99,11 @@ Column {
                         height: parent.height
                         radius: 2
                         color: Theme.accent
-                        Behavior on width { NumberAnimation { duration: 150 } }
+                        Behavior on width {
+                            Anim {
+                                type: Anim.FastEffects
+                            }
+                        }
                     }
                 }
                 Text { text: "Load: " + root.fmt(root.stats?.cpuLoad, 1, "%"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
@@ -138,7 +143,11 @@ Column {
                         height: parent.height
                         radius: 2
                         color: Theme.accent
-                        Behavior on width { NumberAnimation { duration: 150 } }
+                        Behavior on width {
+                            Anim {
+                                type: Anim.FastEffects
+                            }
+                        }
                     }
                 }
                 Text { text: "Used: " + root.fmt(root.stats?.ramUsedGB, 2, " GB"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
@@ -186,7 +195,11 @@ Column {
                             height: parent.height
                             radius: 2
                             color: Theme.accent
-                            Behavior on width { NumberAnimation { duration: 150 } }
+                            Behavior on width {
+                            Anim {
+                                type: Anim.FastEffects
+                            }
+                        }
                         }
                     }
                     Text { text: "Load: " + root.fmt(gpuCard.modelData.load, 1, "%"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }

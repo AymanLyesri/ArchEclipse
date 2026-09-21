@@ -44,21 +44,19 @@ ToolTip {
     }
 
     enter: Transition {
-        NumberAnimation {
+        Anim {
             property: "opacity"
             from: 0
             to: 1
-            duration: 150
-            easing.type: Easing.OutCubic
+            type: Anim.FastEffects
         }
     }
     exit: Transition {
-        NumberAnimation {
+        Anim {
             property: "opacity"
             from: 1
             to: 0
-            duration: 150
-            easing.type: Easing.OutCubic
+            type: Anim.FastEffects
         }
     }
 }

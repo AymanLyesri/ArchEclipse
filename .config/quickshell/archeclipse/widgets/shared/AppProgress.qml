@@ -101,8 +101,8 @@ Item {
             color: root.statusColor
             opacity: 0.35
             Behavior on width {
-                NumberAnimation {
-                    duration: 150
+                Anim {
+                    type: Anim.FastEffects
                 }
             }
         }
@@ -133,8 +133,8 @@ Item {
             radius: 2
             color: root.statusColor
             Behavior on width {
-                NumberAnimation {
-                    duration: 150
+                Anim {
+                    type: Anim.FastEffects
                 }
             }
         }
