@@ -1,9 +1,11 @@
 import QtQuick
+import qs.theme
 import qs.widgets.shared
 
 // Shared unfold body clip. Caller sets `expand` 0->1 on creation
 // and passes the body height as `contentHeight`; the body itself goes
 // in as a child (anchored top, like the inline bodyClips this replaces).
+// Easing follows Settings.islandAnimStyle (Settings > Animations).
 Item {
     id: root
     property real expand: 0
@@ -15,8 +17,20 @@ Item {
     scale: 0.96 + 0.04 * root.expand
     transformOrigin: Item.Top
     Behavior on expand {
+        enabled: Settings.animationsEnabled
         Anim {
-            type: Anim.Emphasized
+            type: {
+                const s = Settings.islandAnimStyle;
+                if (s === "Standard")
+                    return Anim.Standard;
+                if (s === "ExpressiveFast")
+                    return Anim.FastSpatial;
+                if (s === "ExpressiveDefault")
+                    return Anim.DefaultSpatial;
+                if (s === "ExpressiveSlow")
+                    return Anim.SlowSpatial;
+                return Anim.Emphasized;
+            }
         }
     }
 }

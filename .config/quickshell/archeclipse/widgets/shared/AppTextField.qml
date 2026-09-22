@@ -15,6 +15,7 @@ TextField {
     property color fillColor: Theme.bg
 
     font.pixelSize: Theme.fontSize
+    font.family: Theme.fontFamily
     color: Theme.fg
     placeholderTextColor: Theme.fgDim
     selectionColor: Theme.surfaceActive

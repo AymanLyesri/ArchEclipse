@@ -33,7 +33,7 @@ Item {
     readonly property int count: root.model?.length ?? 0
     readonly property var currentValue: valueAt(root.currentIndex)
 
-    property int pixelSize: 12
+    property int pixelSize: Theme.fontSize
     property string fontFamily: Theme.fontFamily
     property int cornerRadius: 8
     property int cellHPadding: 14
@@ -200,7 +200,7 @@ Item {
                             visible: cell.icon !== ""
                             text: cell.icon
                             font.pixelSize: root.pixelSize
-                            font.family: "JetBrainsMono NFP"
+                            font.family: root.fontFamily
                             verticalAlignment: Text.AlignVCenter
                             color: cell.dimmed ? Theme.muted : (cell.selected ? Theme.accent : (cellMa.containsMouse ? Theme.fg : Theme.muted))
                             opacity: cell.dimmed ? 0.5 : 1

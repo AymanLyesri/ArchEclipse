@@ -18,8 +18,8 @@ CheckBox {
         Text {
             anchors.centerIn: parent
             text: "\u{F012C}" // or checkmark Nerd Font
-            font.family: "JetBrainsMono NFP"
-            font.pixelSize: 12
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize
             color: Theme.bg
             visible: root.checked
         }

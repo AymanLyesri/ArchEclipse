@@ -57,6 +57,13 @@ QtObject {
     // --- typography / scale (settings-driven, like $FONT-SIZE / $SCALE) ---
     readonly property string fontFamily: "JetBrainsMono NFP"
     readonly property int fontSize: Settings.uiFontSize
+    // Derived type scale — shared widgets must use these (or plain
+    // fontSize) instead of hardcoded pixel numbers so a single
+    // Settings.uiFontSize change re-themes every font at once.
+    readonly property int fontSizeSmall: Math.max(8, fontSize - 1)
+    readonly property int fontSizeCaption: Math.max(7, fontSize - 2)
+    readonly property int fontSizeBadge: Math.max(7, fontSize - 3)
+    readonly property int fontSizeLarge: fontSize + 2
     readonly property int scale: Settings.uiScale
     readonly property int radius: 10
     readonly property int cardRadius: 8
@@ -74,7 +81,9 @@ QtObject {
     // point lists for Easing.BezierSpline (6 values per segment).
     // Spatial = movement (slide/resize), Effects = fade/color.
     readonly property QtObject anim: QtObject {
-        property real scale: 1.0
+        // Global motion gate: disabling animations snaps every Theme.anim
+        // duration to 0; otherwise durations scale by Settings.animScale.
+        property real scale: Settings.animationsEnabled ? Settings.animScale : 0
         // standard durations
         readonly property int small: Math.round(200 * scale)
         readonly property int normal: Math.round(400 * scale)

@@ -1,5 +1,5 @@
 // THE shared button for the whole shell: selector rails, WindowActions,
-// tab bars, dialog actions, media controls. Centered JetBrainsMono NFP
+// tab bars, dialog actions, media controls. Centered Theme.fontFamily
 // glyph + optional text label in a rounded cell — identical visuals
 // everywhere (a Controls Button's built-in padding/insets shift content
 // off-center, so this is a plain Rectangle + Row + MouseArea by design).
@@ -22,9 +22,9 @@ Item {
     property string icon: ""
     property string text: ""
     property string tooltipText: ""
-    property string fontFamily: "JetBrainsMono NFP"
+    property string fontFamily: Theme.fontFamily
     property string labelFontFamily: ""
-    property int pixelSize: 12
+    property int pixelSize: Theme.fontSize
     property int cornerRadius: 10
     property bool toggle: false
     property bool checked: false

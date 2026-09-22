@@ -21,7 +21,7 @@ Rectangle {
         id: badgeLabel
         anchors.centerIn: parent
         text: root.text
-        font.pixelSize: 9
+        font.pixelSize: Theme.fontSizeBadge
         font.family: Theme.fontFamily
         color: "white"
     }

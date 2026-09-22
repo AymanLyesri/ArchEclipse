@@ -3,7 +3,10 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Widgets
 import qs.theme
+import qs.widgets.leftPanel
+import qs.widgets.leftPanel.UserProfile.components as Profile
 import qs.widgets.shared
 import qs.services
 
@@ -593,7 +596,7 @@ Item {
         root.progressStatus = "loading";
         root.progressText = "Updating profile...";
         const uid = lookupUserId();
-        const username = usernameField.text.trim() || homeDir.split("/").pop();
+        const username = identityCard.username.trim() || homeDir.split("/").pop();
         const p = updateProfileComp.createObject(root);
         p.command = ["bash", "-c", "curl -sS -X PATCH -H 'Content-Type: application/json' -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' -H 'Prefer: return=representation' -d '" + JSON.stringify({
                 username
@@ -851,57 +854,10 @@ Item {
     }
 
     // ===== UI: MINIMAL MODE (avatar + 2em username on a pill) =====
-    Item {
-        id: minimalView
+    Profile.MinimalView {
         anchors.fill: parent
         visible: root.minimal
-        Column {
-            anchors.centerIn: parent
-            width: root.width
-            spacing: 10
-            Rectangle {
-                // Centered manually: parent is a Column positioner,
-                // which ignores anchors on children.
-                x: (parent.width - width) / 2
-                width: Math.min(root.width * 0.5, 140)
-                height: Math.min(root.width * 0.5, 140)
-                radius: width / 2
-                clip: true
-                AppImage {
-                    id: minAvatarImg
-                    anchors.fill: parent
-                    source: root.avatarSrc
-
-                    visible: status === Image.Ready
-                }
-                Rectangle {
-                    anchors.fill: parent
-                    color: Theme.surfaceActive
-                    visible: minAvatarImg.status !== Image.Ready
-                    Text {
-                        anchors.centerIn: parent
-                        text: "\u{F007}"
-                        font.pixelSize: 56
-                        color: Theme.accent
-                    }
-                }
-            }
-            Text {
-                width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-                text: root.profile?.username ?? "Not signed in"
-                font.pixelSize: Theme.fontSize * 2
-                font.bold: true
-                color: Theme.fg
-                elide: Text.ElideRight
-            }
-            AppBadge {
-                x: (parent.width - width) / 2
-                visible: root.profile?.is_supporter === true
-                text: "Supporter"
-                color: Theme.accent
-            }
-        }
+        store: root
     }
 
     // ===== UI: FULL MODE =====
@@ -957,393 +913,32 @@ Item {
                     width: acctFlick.width
                     spacing: 10
 
-                    // ── Identity card: avatar banner spanning the width ──
-                    // Margins stay intact: the banner sizes explicitly off
-                    // the padded column (width = card − margins), square via
-                    // height: width — no edge anchors to overextend.
-                    Rectangle {
-                        width: parent.width
-                        implicitHeight: cardCol.implicitHeight + 20
-                        color: Theme.bg
-                        radius: 8
-
-                        Column {
-                            id: cardCol
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.margins: 10
-                            spacing: 10
-
-                            Rectangle {
-                                id: banner
-                                width: parent.width
-                                height: width
-                                radius: Theme.radius
-                                color: Theme.bg
-                                clip: true
-                                AppImage {
-                                    id: avatarImg
-                                    anchors.fill: parent
-                                    source: root.avatarSrc
-                                    visible: status === Image.Ready
-                                }
-                                Rectangle {
-                                    anchors.fill: parent
-                                    color: Theme.surfaceActive
-                                    visible: avatarImg.status !== Image.Ready
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "\u{F007}"
-                                        font.pixelSize: 48
-                                        color: Theme.accent
-                                    }
-                                }
-                                MouseArea {
-                                    id: avatarMa
-                                    anchors.fill: parent
-                                    onClicked: root.chooseAvatar()
-                                    AppTooltip {
-                                        visible: avatarMa.containsMouse
-                                        text: "Click to set up profile picture"
-                                    }
-                                }
-                            }
-
-                            Column {
-                                id: idCol
-                                width: parent.width
-                                spacing: 6
-                                AppTextField {
-                                    id: usernameField
-                                    width: parent.width
-                                    cornerRadius: 4
-                                    placeholderText: homeDir.split("/").pop()
-                                    text: root.profile?.username ?? ""
-                                    horizontalAlignment: TextInput.AlignHCenter
-                                    onAccepted: root.updateProfile()
-                                    // Username entry tooltip
-                                    AppTooltip {
-                                        visible: usernameField.hovered
-                                        text: "Click to edit username"
-                                    }
-                                }
-                                Flow {
-                                    width: parent.width
-                                    spacing: 5
-                                    Label {
-                                        text: root.maskEmail(root.profile?.email ?? "")
-                                        font.pixelSize: Theme.fontSize - 1
-                                        color: Theme.fgDim
-                                    }
-                                    Label {
-                                        text: "|"
-                                        font.pixelSize: Theme.fontSize - 1
-                                        color: Theme.fgDim
-                                    }
-                                    AppBadge {
-                                        text: root.profile?.is_supporter === true ? "Supporter" : root.profile?.is_supporter === false ? "Member" : "…"
-                                        color: root.profile?.is_supporter === true ? Theme.accent : Theme.muted
-                                    }
-                                }
-                                AppProgress {
-                                    width: parent.width
-                                    // Plain Column ignores implicitHeight — bind it explicitly.
-                                    height: implicitHeight
-                                    status: root.progressStatus
-                                    variant: "inline"
-                                    loadingText: root.progressText !== "" ? root.progressText : "Working..."
-                                    errorText: root.progressText !== "" ? root.progressText : "Error — see notification"
-                                    successText: root.progressText !== "" ? root.progressText : "Ready"
-                                    idleText: root.progressText
-                                    showSuccess: true
-                                    showIdle: true
-                                }
-                            }
-                        }
+                    // ── Identity block: avatar above, fields in the card ──
+                    Profile.IdentityCard {
+                        id: identityCard
+                        store: root
                     }
 
-                    Rectangle {
-                        width: parent.width
-                        implicitHeight: supporterCol.implicitHeight + 20
-                        visible: !!root.profile && root.profile.is_supporter !== null && root.profile.is_supporter !== undefined
-                        color: Theme.bg
-                        radius: 8
-                        Column {
-                            id: supporterCol
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.margins: 10
-                            spacing: 8
-                        Label {
-                            text: root.profile?.is_supporter === true ? "Supporter active" : "Member"
-                            font.pixelSize: Theme.fontSize + 1
-                            font.bold: true
-                            color: Theme.fg
-                        }
-                        Label {
-                            width: parent.width
-                            text: root.profile?.is_supporter === true ? ("Since " + root.formatTs(root.supporterSince)) : "Support the project to unlock Supporter status"
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.fgDim
-                            wrapMode: Text.WordWrap
-                        }
-                        AppButton {
-                            width: parent.width
-                            text: root.profile?.is_supporter === true ? "View Donations" : "Become supporter"
-                            onClicked: Registry.selectLeftTab("Donations")
-                        }
-                        }
+                    Profile.SupporterCard {
+                        store: root
                     }
 
-                    Row {
-                        width: parent.width
-                        spacing: 8
-                        visible: !!root.profile
-                        AppButton {
-                            width: (parent.width - 16) / 3
-                            text: "Update"
-                            onClicked: root.updateProfile()
-                        }
-                        AppButton {
-                            width: (parent.width - 16) / 3
-                            text: "Refresh"
-                            tooltipText: "Refresh profile"
-                            enabled: !root.isRefreshing
-                            // loadProfile is awaited in try/finally — the flag
-                            // clears when the fetch completes (see fetchProfileComp
-                            // + handleSessionJson), not synchronously here.
-                            onClicked: {
-                                if (root.isRefreshing)
-                                    return;
-                                root.isRefreshing = true;
-                                root.progressStatus = "loading";
-                                root.progressText = "Refreshing profile...";
-                                root.loadProfile();
-                            }
-                        }
-                        AppButton {
-                            width: (parent.width - 16) / 3
-                            text: "Logout"
-                            onClicked: root.logout()
-                        }
+                    Profile.ProfileActions {
+                        store: root
                     }
 
-                    Rectangle {
-                        width: parent.width
-                        implicitHeight: syncCol.implicitHeight + 20
-                        visible: !!root.profile
-                        color: Theme.bg
-                        radius: 8
-
-                        Column {
-                            id: syncCol
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.margins: 10
-                            spacing: 8
-                            Label {
-                                text: "Settings Sync"
-                                font.pixelSize: Theme.fontSize + 2
-                                font.bold: true
-                                color: Theme.fg
-                            }
-                            Row {
-                                width: parent.width
-                                spacing: 8
-                                AppButton {
-                                    width: (parent.width - 8) / 2
-                                    text: root.isSyncing ? "Downloading..." : "Download"
-                                    enabled: !root.isSyncing
-                                    tooltipText: "Download settings from cloud"
-                                    onClicked: root.syncSettings("download")
-                                }
-                                AppButton {
-                                    width: (parent.width - 8) / 2
-                                    text: root.isSyncing ? "Uploading..." : "Upload"
-                                    enabled: !root.isSyncing
-                                    tooltipText: "Upload settings to cloud"
-                                    onClicked: root.syncSettings("upload")
-                                }
-                            }
-                            Label {
-                                width: parent.width
-                                text: "Last sync: " + root.lastSyncAt
-                                font.pixelSize: Theme.fontSize - 1
-                                color: Theme.fgDim
-                                elide: Text.ElideRight
-                            }
-                            Label {
-                                width: parent.width
-                                text: "Last result: " + root.lastSyncResult
-                                font.pixelSize: Theme.fontSize - 1
-                                color: Theme.fgDim
-                                elide: Text.ElideRight
-                            }
-                            Label {
-                                width: parent.width
-                                text: "Remote updated: " + root.lastRemoteUpdatedAt
-                                font.pixelSize: Theme.fontSize - 1
-                                color: Theme.fgDim
-                                elide: Text.ElideRight
-                            }
-                        }
+                    Profile.SyncCard {
+                        store: root
                     }
 
                     // Favorites + pins side by side.
-                    Row {
-                        width: parent.width
-                        spacing: 10
-                        visible: !!root.profile
-                        Rectangle {
-                            width: (parent.width - 10) / 2
-                            implicitHeight: favCol.implicitHeight + 20
-                            color: Theme.bg
-                            radius: 8
-
-                            Column {
-                                id: favCol
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: 10
-                                spacing: 5
-                                Label {
-                                    text: "Booru Favorites"
-                                    font.pixelSize: Theme.fontSize
-                                    font.bold: true
-                                    color: Theme.fg
-                                }
-                                Repeater {
-                                    model: root.booruApis
-                                    delegate: Row {
-                                        width: parent.width
-                                        spacing: 5
-                                        Label {
-                                            width: parent.width - 32
-                                            text: modelData.name
-                                            font.pixelSize: Theme.fontSize - 1
-                                            color: Theme.fg
-                                            elide: Text.ElideRight
-                                        }
-                                        Label {
-                                            width: 27
-                                            horizontalAlignment: Text.AlignRight
-                                            text: root.profile ? String(root.booruFavoriteCounts[modelData.value] ?? 0) : ""
-                                            font.pixelSize: Theme.fontSize - 1
-                                            color: Theme.fgDim
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Rectangle {
-                            width: (parent.width - 10) / 2
-                            implicitHeight: pinCol.implicitHeight + 20
-                            color: Theme.bg
-                            radius: 8
-
-                            Column {
-                                id: pinCol
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: 10
-                                spacing: 5
-                                Label {
-                                    text: "Pinned Images"
-                                    font.pixelSize: Theme.fontSize
-                                    font.bold: true
-                                    color: Theme.fg
-                                }
-                                Label {
-                                    width: parent.width
-                                    text: "Fastfetch cache"
-                                    font.pixelSize: Theme.fontSize - 1
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-                                }
-                                Label {
-                                    width: parent.width
-                                    text: root.profile ? String(root.pinnedCount) : ""
-                                    font.pixelSize: Theme.fontSize + 2
-                                    font.bold: true
-                                    color: Theme.accent
-                                }
-                            }
-                        }
+                    Profile.StatsRow {
+                        store: root
                     }
 
-                    Rectangle {
-                        width: parent.width
-                        implicitHeight: signCol.implicitHeight + 20
-                        visible: !root.profile
-                        color: Theme.bg
-                        radius: 8
-
-                        Column {
-                            id: signCol
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.margins: 10
-                            spacing: 10
-                            Label {
-                                text: "Sign in to sync"
-                                font.pixelSize: Theme.fontSize + 1
-                                font.bold: true
-                                color: Theme.fg
-                            }
-                            Label {
-                                width: parent.width
-                                text: "\u2022 Profile picture\n\u2022 Settings\n\u2022 More to come"
-                                font.pixelSize: Theme.fontSize - 1
-                                color: Theme.fgDim
-                                wrapMode: Text.WordWrap
-                            }
-                            AppTextField {
-                                id: emailField
-                                width: parent.width
-                                cornerRadius: 4
-                                placeholderText: "you@example.com"
-                                text: ""
-                                onAccepted: root.sendMagicLink(emailField.text)
-                                onTextChanged: {
-                                    if (root.magicState !== "Send Magic Link")
-                                        root.magicState = "Send Magic Link";
-                                }
-                            }
-                            AppButton {
-                                text: root.magicState
-                                width: parent.width
-                                enabled: emailField.text.trim().length > 0
-                                onClicked: root.sendMagicLink(emailField.text)
-                            }
-                            Label {
-                                width: parent.width
-                                text: root.authServerActive ? "Listener: running on :53100 — open the email link now." : root.authServerStatus === "error" ? "Listener failed — paste the link below instead." : "Listener: idle (starts when you send a link)."
-                                font.pixelSize: Theme.fontSize - 2
-                                color: Theme.fgDim
-                                wrapMode: Text.WordWrap
-                            }
-                            AppTextField {
-                                id: callbackField
-                                width: parent.width
-                                cornerRadius: 4
-                                placeholderText: "Paste callback URL here if the link fails…"
-                                onTextChanged: root.callbackUrlText = text
-                                onAccepted: root.importCallbackUrl(text)
-                            }
-                            AppButton {
-                                text: "Import Pasted Link"
-                                width: parent.width
-                                enabled: root.callbackUrlText.trim().length > 0
-                                outlined: true
-                                onClicked: root.importCallbackUrl(callbackField.text)
-                            }
-                        }
+                    Profile.SignInCard {
+                        id: signInCard
+                        store: root
                     }
                 }
             }
@@ -1562,7 +1157,7 @@ Item {
                     return;
                 }
                 root.callbackUrlText = "";
-                callbackField.text = "";
+                signInCard.callbackText = "";
                 Notifications.notify({
                     summary: "Signed in",
                     body: "Session imported from the pasted link."

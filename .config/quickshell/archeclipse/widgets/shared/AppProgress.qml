@@ -111,7 +111,8 @@ Item {
             anchors.centerIn: parent
             text: root.displayText
             color: root.statusColor
-            font.pixelSize: Theme.fontSize - 1
+            font.pixelSize: Theme.fontSizeSmall
+            font.family: Theme.fontFamily
         }
     }
 
@@ -152,7 +153,8 @@ Item {
             anchors.centerIn: parent
             text: root.displayText
             color: root.status === "loading" ? Theme.fgDim : (root.status === "error" ? "#fff" : Theme.accent)
-            font.pixelSize: 11
+            font.pixelSize: Theme.fontSizeSmall
+            font.family: Theme.fontFamily
         }
     }
 
@@ -169,7 +171,8 @@ Item {
         visible: root.variant === "inline" && root.active
         text: root.displayText
         color: root.status === "error" ? Theme.danger : (root.status === "success" ? Theme.accent : Theme.fgDim)
-        font.pixelSize: Theme.fontSize - 1
+        font.pixelSize: Theme.fontSizeSmall
+        font.family: Theme.fontFamily
         wrapMode: Text.WordWrap
         verticalAlignment: Text.AlignVCenter
     }

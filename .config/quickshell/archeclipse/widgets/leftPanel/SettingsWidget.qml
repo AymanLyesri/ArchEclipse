@@ -3,14 +3,13 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
 import qs.theme
 import qs.widgets.shared
 import qs.services
 
 // Settings Widget — shell settings panel
 // Sections: Bar (layout reorder + toggles), Panels, Theme, Interface,
-// Always-On Widget, KeyStrokeVisualizer, User Agents, Api Keys, File Manager, Hyprland,
+// Animations, User Agents, Api Keys, File Manager, Hyprland,
 // Apply/Reset buttons
 Item {
     id: root
@@ -24,7 +23,7 @@ Item {
     // each time this tab becomes visible and sections key their opacity
     // off their index.
     property int revealCount: 0
-    property int sectionCount: 11
+    property int sectionCount: 10
     Timer {
         id: revealTimer
         interval: 60
@@ -120,11 +119,11 @@ Item {
 
             Column {
                 id: settingsCol
-                spacing: Theme.sectionSpacing
+                spacing: 10
                 width: settingsScroll.width
 
                 // ============ BAR SETTINGS ============
-                // NOTE: bar layout (drag-reorder), smart-hide and full-width
+                // NOTE: smart-hide and full-width
                 // are intentionally not
                 // exposed here: the bar always shows all sections in a
                 // centered pill, and an unlocked bar always auto-hides until
@@ -164,6 +163,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Orientation"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -179,6 +179,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Lock Bar"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -192,6 +193,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Always Expanded"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -205,19 +207,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
-                                    text: "Workspace Numbers"
-                                    color: Theme.fg
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
-                                    checked: Settings.workspaceNumbers
-                                    onToggled: Settings.workspaceNumbers = checked
-                                }
-                            }
-                            RowLayout {
-                                width: parent.width
-                                spacing: 8
-                                Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Reveal-In Pressure"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -238,6 +228,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Reveal-Out Pressure"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -293,6 +284,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Left Panel Width"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -313,6 +305,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Right Panel Width"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -333,6 +326,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Left Panel Hot Zone"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -346,6 +340,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Right Panel Hot Zone"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -359,6 +354,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Left Hot Zone Size"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -379,6 +375,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Right Hot Zone Size"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -438,6 +435,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Dynamic Theme Colors"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -454,6 +452,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Dynamic Theme Variants"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -470,6 +469,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Blur"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -483,6 +483,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Blur Size"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -503,6 +504,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Blur Passes"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -558,6 +560,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Opacity"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -575,6 +578,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: Settings.uiOpacity.toFixed(2)
                                     color: Theme.fgDim
                                     Layout.preferredWidth: 34
@@ -585,6 +589,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Scale"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -605,6 +610,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Font Size"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -625,10 +631,10 @@ Item {
                     }
                 }
 
-                // ============ ALWAYS-ON WIDGET ============
+                // ============ ANIMATIONS ============
                 Rectangle {
                     width: parent.width
-                    implicitHeight: aowSec.implicitHeight + 20
+                    implicitHeight: animSec.implicitHeight + 20
                     opacity: root.revealCount > 4 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
@@ -642,95 +648,88 @@ Item {
                     border.width: 1
 
                     Column {
-                        id: aowSec
+                        id: animSec
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 8
                         Label {
-                            text: "Always-On Widget"
+                            text: "Animations"
                             font.pixelSize: Theme.fontSize + 2
                             font.bold: true
                             color: Theme.accent
                         }
-                        RowLayout {
-                            width: parent.width
-                            spacing: 8
-                            Label {
-                                text: "Visible"
-                                color: Theme.fg
-                                Layout.fillWidth: true
-                            }
-                            AppCheckBox {
-                                checked: Settings.alwaysOnWidgetVisibility
-                                onToggled: Settings.alwaysOnWidgetVisibility = checked
-                            }
-                        }
-                    }
-                }
 
-                // ============ KEYSTROKE VISUALIZER ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: ksvSec.implicitHeight + 20
-                    opacity: root.revealCount > 5 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
+                        property var styleValues: ["Standard", "Emphasized", "ExpressiveFast", "ExpressiveDefault", "ExpressiveSlow"]
+                        property var styleLabels: ["Standard (smooth)", "Emphasized (smooth)", "Bouncy Fast", "Bouncy Default", "Bouncy Slow"]
 
-                    Column {
-                        id: ksvSec
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
-                        Label {
-                            text: "KeyStroke Visualizer"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-                        RowLayout {
+                        Column {
                             width: parent.width
-                            spacing: 8
-                            Label {
-                                text: "Visible"
-                                color: Theme.fg
-                                Layout.fillWidth: true
-                            }
-                            AppCheckBox {
-                                checked: Settings.keyStrokeVisualizerVisibility
-                                onToggled: {
-                                    Settings.keyStrokeVisualizerVisibility = checked;
-                                    if (checked)
-                                        root.addUserToInputGroup();
+                            spacing: 4
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: "Enabled"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                                AppCheckBox {
+                                    checked: Settings.animationsEnabled
+                                    onToggled: Settings.animationsEnabled = checked
                                 }
                             }
-                        }
-                        RowLayout {
-                            width: parent.width
-                            spacing: 8
-                            Label {
-                                text: "Anchor"
-                                color: Theme.fg
-                                Layout.fillWidth: true
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: "Speed"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                                AppSlider {
+                                    from: 0.2
+                                    to: 2.0
+                                    stepSize: 0.05
+                                    value: Settings.animScale
+                                    Layout.preferredWidth: 150
+                                    onValueChanged: {
+                                        const v = Math.round(value * 100) / 100;
+                                        if (Math.abs(v - Settings.animScale) < 0.001)
+                                            return;
+                                        Settings.animScale = v;
+                                    }
+                                }
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: Settings.animScale.toFixed(2) + "×"
+                                    color: Theme.fgDim
+                                    Layout.preferredWidth: 44
+                                    horizontalAlignment: Text.AlignRight
+                                }
                             }
-                            AppComboBox {
-                                model: ["Bottom Left", "Bottom", "Bottom Right"]
-                                currentIndex: (Settings.keyStrokeVisualizerAnchor.length === 2 && Settings.keyStrokeVisualizerAnchor[1] === "left") ? 0 : (Settings.keyStrokeVisualizerAnchor.length === 1) ? 1 : 2
-                                Layout.preferredWidth: 160
-                                onActivated: {
-                                    if (index === 0)
-                                        Settings.keyStrokeVisualizerAnchor = ["bottom", "left"];
-                                    else if (index === 1)
-                                        Settings.keyStrokeVisualizerAnchor = ["bottom"];
-                                    else
-                                        Settings.keyStrokeVisualizerAnchor = ["bottom", "right"];
+                            Label {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Lower is faster (duration multiplier)."
+                                color: Theme.fgDim
+                                font.pixelSize: Theme.fontSize - 1
+                            }
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: "Island Style"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                                AppComboBox {
+                                    model: animSec.styleLabels
+                                    currentIndex: Math.max(0, animSec.styleValues.indexOf(Settings.islandAnimStyle))
+                                    onActivated: Settings.islandAnimStyle = animSec.styleValues[index]
+                                    Layout.preferredWidth: 160
                                 }
                             }
                         }
@@ -741,7 +740,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: uaSec.implicitHeight + 20
-                    opacity: root.revealCount > 6 ? 1 : 0
+                    opacity: root.revealCount > 5 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -788,6 +787,7 @@ Item {
                                         anchors.margins: 6
                                         spacing: 6
                                         Label {
+                                            font.pixelSize: Theme.fontSize
                                             text: modelData.label
                                             color: Theme.fg
                                             Layout.preferredWidth: 90
@@ -832,7 +832,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: apiSec.implicitHeight + 20
-                    opacity: root.revealCount > 7 ? 1 : 0
+                    opacity: root.revealCount > 6 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -941,6 +941,7 @@ Item {
                                         anchors.margins: 6
                                         spacing: 6
                                         Label {
+                                            font.pixelSize: Theme.fontSize
                                             id: apiKeyLabel
                                             text: modelData.label
                                             color: Theme.fg
@@ -997,7 +998,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: fmSec.implicitHeight + 20
-                    opacity: root.revealCount > 8 ? 1 : 0
+                    opacity: root.revealCount > 7 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -1030,6 +1031,7 @@ Item {
                                     width: parent.width
                                     spacing: 8
                                     Label {
+                                        font.pixelSize: Theme.fontSize
                                         id: fmLabel
                                         text: modelData.name
                                         color: Theme.fg
@@ -1069,7 +1071,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: hyprSec.implicitHeight + 20
-                    opacity: root.revealCount > 9 ? 1 : 0
+                    opacity: root.revealCount > 8 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -1101,6 +1103,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Game Mode"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -1116,6 +1119,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypRLabel
                                     text: "Decoration: Rounding"
                                     Layout.preferredWidth: 170
@@ -1147,6 +1151,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("decoration.rounding")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1157,6 +1162,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Decoration: Blur Enabled"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -1174,6 +1180,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypBSLabel
                                     text: "Decoration: Blur Size"
                                     Layout.preferredWidth: 170
@@ -1204,6 +1211,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("decoration.blur.size")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1214,6 +1222,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypBPLabel
                                     text: "Decoration: Blur Passes"
                                     Layout.preferredWidth: 170
@@ -1244,6 +1253,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("decoration.blur.passes")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1254,6 +1264,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Decoration: Blur Xray"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -1271,6 +1282,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Decoration: Shadow Enabled"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -1288,6 +1300,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypSRLabel
                                     text: "Decoration: Shadow Range"
                                     Layout.preferredWidth: 170
@@ -1318,6 +1331,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("decoration.shadow.range")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1328,6 +1342,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypSRPLabel
                                     text: "Shadow Render Power"
                                     Layout.preferredWidth: 170
@@ -1358,6 +1373,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("decoration.shadow.render_power")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1368,6 +1384,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypBSzLabel
                                     text: "General: Border Size"
                                     Layout.preferredWidth: 170
@@ -1398,6 +1415,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("general.border_size")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1408,6 +1426,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypGILabel
                                     text: "General: Gaps In"
                                     Layout.preferredWidth: 170
@@ -1438,6 +1457,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("general.gaps_in")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1448,6 +1468,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypGOLabel
                                     text: "General: Gaps Out"
                                     Layout.preferredWidth: 170
@@ -1478,6 +1499,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: root.hyprGet("general.gaps_out")
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1488,6 +1510,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypAOLabel
                                     text: "Decoration: Active Opacity"
                                     Layout.preferredWidth: 170
@@ -1519,6 +1542,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: Number(root.hyprGet("decoration.active_opacity")).toFixed(2)
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1529,6 +1553,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     id: hypIOLabel
                                     text: "Decoration: Inactive Opacity"
                                     Layout.preferredWidth: 170
@@ -1560,6 +1585,7 @@ Item {
                                     }
                                 }
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: Number(root.hyprGet("decoration.inactive_opacity")).toFixed(2)
                                     Layout.preferredWidth: 30
                                     color: Theme.fgDim
@@ -1589,7 +1615,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: lockSec.implicitHeight + 20
-                    opacity: root.revealCount > 10 ? 1 : 0
+                    opacity: root.revealCount > 9 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -1619,6 +1645,7 @@ Item {
                                 width: parent.width
                                 spacing: 8
                                 Label {
+                                    font.pixelSize: Theme.fontSize
                                     text: "Grace Period (seconds)"
                                     color: Theme.fg
                                     Layout.fillWidth: true
@@ -1854,62 +1881,6 @@ Item {
         }
     }
 
-    // Add user to input group (for KeyStrokeVisualizer). Declarative
-    // chained Processes + Timer (no
-    // setTimeout — doesn't exist in QML; no createQmlObject string escaping).
-    // Exit via Hyprland.dispatch("hl.dsp.exit()").
-    property string _inputUser: ""
-    property Timer _inputExitTimer: Timer {
-        interval: 5000
-        repeat: false
-        running: false
-        onTriggered: Hyprland.dispatch("hl.dsp.exit()")
-    }
-    Component {
-        id: inputCheckProc
-        Process {
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    const r = text.trim();
-                    if (r !== "yes" && r !== "") {
-                        root._inputUser = r;
-                        Notifications.notify({
-                            summary: "Key Stroke Visualizer",
-                            body: "Adding " + r + " to 'input' group for keystroke detection.\n You may be prompted for your password."
-                        });
-                        const p = inputAddProc.createObject(root);
-                        p.command = ["pkexec", "usermod", "-aG", "input", r];
-                        p.running = true;
-                    }
-                }
-            }
-        }
-    }
-    Component {
-        id: inputAddProc
-        Process {
-            onExited: code => {
-                if (code === 0) {
-                    Notifications.notify({
-                        summary: "Key Stroke Visualizer",
-                        body: "Will be Logging out to apply changes. in 5 seconds..."
-                    });
-                    root._inputExitTimer.restart();
-                } else {
-                    Notifications.notify({
-                        summary: "Error",
-                        body: "Failed to add user to input group"
-                    });
-                }
-            }
-        }
-    }
-    function addUserToInputGroup() {
-        const p = inputCheckProc.createObject(root);
-        p.command = ["bash", "-c", "groups $USER | grep -q '\\binput\\b' && echo 'yes' || echo $USER"];
-        p.running = true;
-    }
-
     function applyHyprlandSettings() {
         // Write one nested-table lua file per leaf (recursive
         // recursion) + reload. JSON.stringify of the whole object is NOT
@@ -1948,13 +1919,6 @@ Item {
         Settings.revealInPressure = 250;
         Settings.revealOutPressure = 1000;
         Settings.barOrientation = true;
-        Settings.workspaceNumbers = false;
-        Settings.barLayout = {
-            workspaces: true,
-            information: true,
-            utilities: true
-        };
-        Settings.barLayoutOrder = ["workspaces", "information", "utilities"];
         Settings.leftPanelWidth = 400;
         Settings.rightPanelWidth = 250;
         Settings.leftPanelHotZone = true;
@@ -1969,9 +1933,9 @@ Item {
         Settings.uiOpacity = 0.618;
         Settings.uiScale = 10;
         Settings.uiFontSize = 12;
-        Settings.alwaysOnWidgetVisibility = true;
-        Settings.keyStrokeVisualizerVisibility = false;
-        Settings.keyStrokeVisualizerAnchor = ["bottom", "left"];
+        Settings.animationsEnabled = true;
+        Settings.animScale = 1.0;
+        Settings.islandAnimStyle = "Emphasized";
         Settings.fileManager = "nautilus";
         // Hyprland defaults
         root.hyprSet("general.border_size", 0);

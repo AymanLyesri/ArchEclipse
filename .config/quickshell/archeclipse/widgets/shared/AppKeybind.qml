@@ -11,7 +11,7 @@ Row {
     property var keys: []
     property int chipHeight: 22
     property int chipRadius: 4
-    property int pixelSize: Theme.fontSize - 1
+    property int pixelSize: Theme.fontSizeSmall
     property color chipBg: Theme.surface
     property color chipFg: Theme.accent
     property color separatorColor: Theme.fgDim
@@ -41,7 +41,7 @@ Row {
                     font.pixelSize: root.pixelSize
                     font.bold: true
                     color: root.chipFg
-                    font.family: "JetBrainsMono NFP"
+                    font.family: Theme.fontFamily
                 }
             }
             Label {
@@ -50,6 +50,7 @@ Row {
                 visible: index < (root.keys.length - 1)
                 color: root.separatorColor
                 font.pixelSize: Theme.fontSize
+                font.family: Theme.fontFamily
             }
         }
     }

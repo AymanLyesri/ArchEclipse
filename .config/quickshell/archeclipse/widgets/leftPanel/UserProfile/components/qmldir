@@ -1,0 +1,9 @@
+module qs.widgets.leftPanel.UserProfile.components
+
+MinimalView 1.0 MinimalView.qml
+IdentityCard 1.0 IdentityCard.qml
+SupporterCard 1.0 SupporterCard.qml
+ProfileActions 1.0 ProfileActions.qml
+SyncCard 1.0 SyncCard.qml
+StatsRow 1.0 StatsRow.qml
+SignInCard 1.0 SignInCard.qml

@@ -35,8 +35,9 @@ Column {
         stateName: (BarState.state === "volume" || BarState.state === "brightness") ? BarState.state : "control"
         extraStates: ["volume", "brightness"]
         // Slider drags press the mouse (dropping HoverHandler.hovered), so
-        // hold the island open for the length of the drag.
-        holdOpen: controlBody.adjusting
+        // hold the island open for the length of the drag. ComboBox popups
+        // render outside hover bounds too, so hold while one is open.
+        holdOpen: controlBody.adjusting || controlBody.popupOpen
     }
 
     // Volume/brightness changes reset the reveal-out close timer: without

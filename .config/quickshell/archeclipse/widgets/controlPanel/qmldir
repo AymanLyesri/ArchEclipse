@@ -1,3 +1,5 @@
 module qs.widgets.controlPanel
 
 ControlPanelBody 1.0 ControlPanelBody.qml
+VolumeSection 1.0 VolumeSection.qml
+ConnectivitySection 1.0 ConnectivitySection.qml

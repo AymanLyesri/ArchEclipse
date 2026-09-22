@@ -8,4 +8,4 @@ GeneralTab 1.0 GeneralTab.qml
 KeyBindsWidget 1.0 KeyBindsWidget.qml
 MangaViewerWidget 1.0 MangaViewerWidget.qml
 SettingsWidget 1.0 SettingsWidget.qml
-UserProfileWidget 1.0 UserProfileWidget.qml
+UserProfileWidget 1.0 UserProfile/UserProfileWidget.qml

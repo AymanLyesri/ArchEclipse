@@ -15,6 +15,7 @@ TextArea {
     property color fillColor: Theme.surface
 
     font.pixelSize: Theme.fontSize
+    font.family: Theme.fontFamily
     color: Theme.fg
     placeholderTextColor: Theme.fgDim
     selectionColor: Theme.surfaceActive

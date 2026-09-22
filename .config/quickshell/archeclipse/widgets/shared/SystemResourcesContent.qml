@@ -39,7 +39,8 @@ Column {
         spacing: 8
         Label {
             text: "System Resources"
-            font.pixelSize: Theme.fontSize + 2
+            font.pixelSize: Theme.fontSizeLarge
+            font.family: Theme.fontFamily
             font.bold: true
             color: Theme.fg
             width: parent.width - updatedLabel.width - 8
@@ -48,7 +49,8 @@ Column {
         Label {
             id: updatedLabel
             text: root.stats ? "Updated: " + (root.stats.updatedAt || "--") : "Updated: --"
-            font.pixelSize: Theme.fontSize - 2
+            font.pixelSize: Theme.fontSizeCaption
+            font.family: Theme.fontFamily
             color: Theme.fgDim
         }
     }
@@ -58,6 +60,7 @@ Column {
         text: "Collecting system stats…"
         color: Theme.fgDim
         font.pixelSize: Theme.fontSize
+        font.family: Theme.fontFamily
     }
 
     // ---- resource cards (Flow wraps to vertical when stacked) ----
@@ -106,9 +109,9 @@ Column {
                         }
                     }
                 }
-                Text { text: "Load: " + root.fmt(root.stats?.cpuLoad, 1, "%"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Clock: " + root.fmt(root.stats?.clockGHz, 2, " GHz"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Temp: " + root.fmt(root.stats?.cpuTempC, 1, "°C"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
+                Text { text: "Load: " + root.fmt(root.stats?.cpuLoad, 1, "%"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+                Text { text: "Clock: " + root.fmt(root.stats?.clockGHz, 2, " GHz"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+                Text { text: "Temp: " + root.fmt(root.stats?.cpuTempC, 1, "°C"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
             }
         }
 
@@ -150,9 +153,9 @@ Column {
                         }
                     }
                 }
-                Text { text: "Used: " + root.fmt(root.stats?.ramUsedGB, 2, " GB"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Free: " + root.fmt(root.stats?.ramFreeGB, 2, " GB"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Total: " + root.fmt(root.stats?.ramTotalGB, 2, " GB"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
+                Text { text: "Used: " + root.fmt(root.stats?.ramUsedGB, 2, " GB"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+                Text { text: "Free: " + root.fmt(root.stats?.ramFreeGB, 2, " GB"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+                Text { text: "Total: " + root.fmt(root.stats?.ramTotalGB, 2, " GB"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
             }
         }
 
@@ -202,9 +205,9 @@ Column {
                         }
                         }
                     }
-                    Text { text: "Load: " + root.fmt(gpuCard.modelData.load, 1, "%"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
-                    Text { text: "Mem: " + root.gpuMem(gpuCard.modelData.memoryUsedGB, gpuCard.modelData.memoryTotalGB); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg; elide: Text.ElideRight; width: parent.width }
-                    Text { text: "Temp: " + root.fmt(gpuCard.modelData.tempC, 1, "°C"); font.pixelSize: Theme.fontSize - 1; font.family: Theme.fontFamily; color: Theme.fg }
+                    Text { text: "Load: " + root.fmt(gpuCard.modelData.load, 1, "%"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+                    Text { text: "Mem: " + root.gpuMem(gpuCard.modelData.memoryUsedGB, gpuCard.modelData.memoryTotalGB); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg; elide: Text.ElideRight; width: parent.width }
+                    Text { text: "Temp: " + root.fmt(gpuCard.modelData.tempC, 1, "°C"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
                 }
             }
         }

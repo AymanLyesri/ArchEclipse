@@ -22,7 +22,6 @@ Item {
     property string currentApiModel: Settings.chatBotApi
     property string progressStatus: "idle" // idle | loading | error | success
     property var sessions: []
-    property bool imageGeneration: Settings.chatBotImageGeneration
     property int _sendTime: 0
     property bool _shouldScroll: true
     property var sessionFirsts: ({})
@@ -690,22 +689,6 @@ Item {
                     onClicked: root.clearMessages()
                     tooltipText: "Clear current session messages"
                 }
-                // AppButton {
-                //     id: imageGenBtn
-                //     implicitWidth: 36
-                //     implicitHeight: 40
-                //     // Image-generation toggle shows the image glyph (F03E)
-                //     text: "\u{F03E}"
-                //     toggle: true
-                //     checked: root.imageGeneration
-                //     enabled: root.currentImageGenSupport()
-                //     opacity: root.currentImageGenSupport() ? 1 : 0.4
-                //     onClicked: {
-                //         root.imageGeneration = !checked;
-                //         Settings.chatBotImageGeneration = !checked;
-                //     }
-                //     tooltipText: "Image generation" + (root.currentImageGenSupport() ? "" : " (not supported by this model)")
-                // }
             }
 
             // Session tabs + create button

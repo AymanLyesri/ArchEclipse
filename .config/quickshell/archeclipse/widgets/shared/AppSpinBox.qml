@@ -5,6 +5,8 @@ import qs.theme
 SpinBox {
     id: root
     editable: true
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.fontSize
 
     contentItem: TextInput {
         z: 2
@@ -41,6 +43,8 @@ SpinBox {
             text: "+"
             color: Theme.fg
             anchors.centerIn: parent
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize
             font.bold: true
         }
     }
@@ -58,6 +62,8 @@ SpinBox {
             text: "-"
             color: Theme.fg
             anchors.centerIn: parent
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize
             font.bold: true
         }
     }

@@ -5,6 +5,9 @@ import qs.theme
 ComboBox {
     id: root
 
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.fontSize
+
     contentItem: Text {
         leftPadding: 8
         rightPadding: root.indicator.width + root.spacing
@@ -28,7 +31,8 @@ ComboBox {
         x: root.width - width - 8
         y: root.topPadding + (root.availableHeight - height) / 2
         text: root.popup.visible ? "▲" : "▼"
-        font.pixelSize: 10
+        font.pixelSize: Theme.fontSizeCaption
+        font.family: Theme.fontFamily
         color: Theme.fg
     }
 

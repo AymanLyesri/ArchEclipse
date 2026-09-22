@@ -18,22 +18,19 @@ Singleton {
     property real revealInPressure: 250
     property real revealOutPressure: 1000
     property bool barOrientation: true        // true = top
-    property bool workspaceNumbers: false
-
-    // bar layout toggles (workspaces / information / utilities sections)
-    // barLayoutOrder preserves the drag-reorder sequence for persist().
-    property var barLayout: ({
-            workspaces: true,
-            information: true,
-            utilities: true
-        })
-    property var barLayoutOrder: ["workspaces", "information", "utilities"]
 
     property string dateFormat: "%H:%M"
     readonly property var dateFormats: ["%H:%M", "%I:%M %p"]
     property real uiOpacity: 0.618
     property int uiScale: 10
     property int uiFontSize: 12
+
+    // Island / shell motion (persisted, surfaced in Settings > Animations).
+    // animScale multiplies every Theme.anim duration (1.0 = normal,
+    // lower = faster); islandAnimStyle picks the IslandExpandClip easing.
+    property bool animationsEnabled: true
+    property real animScale: 1.0
+    property string islandAnimStyle: "Emphasized"
 
     property real leftPanelHotZoneSize: 5
     property real rightPanelHotZoneSize: 5
@@ -434,9 +431,8 @@ Singleton {
     // Waifu widget setting group
     property var waifu: null
 
-    // ChatBot provider + image-gen toggle (default: first provider, off).
+    // ChatBot provider (default: first provider).
     property string chatBotApi: "openai/gpt-4o-mini"
-    property bool chatBotImageGeneration: false
 
     // Blur settings (size / passes / enabled)
     property bool barBlur: true
@@ -447,19 +443,9 @@ Singleton {
     property bool dynamicThemeColors: true
     property bool dynamicThemeVariants: true
 
-    // Always-on widget visibility
-    property bool alwaysOnWidgetVisibility: true
-
-    // KeyStrokeVisualizer settings
-    property bool keyStrokeVisualizerVisibility: false
-    property var keyStrokeVisualizerAnchor: ["bottom", "left"]
-
     // File manager (detected + selected)
     property var fileManagerOptions: []
     property string fileManager: ""
-
-    // Profile picture
-    property string profilePicturePath: ""
 
     // Hyprland settings (plain values internally; persist() writes the
     // {name,value,min,max,type} leaf shape the settings panel renders).
@@ -514,13 +500,15 @@ Singleton {
             "bar.revealInPressure": "revealInPressure",
             "bar.revealOutPressure": "revealOutPressure",
             "bar.orientation": "barOrientation",
-            "bar.workspaceNumbers": "workspaceNumbers",
             "bar.blur": "barBlur",
             "bar.blurSize": "barBlurSize",
             "bar.blurPasses": "barBlurPasses",
             "ui.opacity": "uiOpacity",
             "ui.scale": "uiScale",
             "ui.fontSize": "uiFontSize",
+            "animations.enabled": "animationsEnabled",
+            "animations.scale": "animScale",
+            "animations.islandStyle": "islandAnimStyle",
             "leftPanel.hotZoneSize": "leftPanelHotZoneSize",
             "rightPanel.hotZoneSize": "rightPanelHotZoneSize",
             "leftPanel.hotZone": "leftPanelHotZone",
@@ -546,13 +534,8 @@ Singleton {
             "gameMode.enabled": "gameModeEnabled",
             "dynamicThemeColors": "dynamicThemeColors",
             "dynamicThemeVariants": "dynamicThemeVariants",
-            "alwaysOnWidget.visibility": "alwaysOnWidgetVisibility",
-            "keyStrokeVisualizer.visibility": "keyStrokeVisualizerVisibility",
-            "keyStrokeVisualizer.anchor": "keyStrokeVisualizerAnchor",
             "fileManager": "fileManager",
-            "profilePicturePath": "profilePicturePath",
             "chatBot.api": "chatBotApi",
-            "chatBot.imageGeneration": "chatBotImageGeneration",
             "waifuWidget.current": "waifu"
         };
         if (aliases[path] !== undefined) {
@@ -622,13 +605,6 @@ Singleton {
                     orientation: {
                         value: root.barOrientation
                     },
-                    workspaceNumbers: {
-                        value: root.workspaceNumbers
-                    },
-                    layout: (root.barLayoutOrder || ["workspaces", "information", "utilities"]).map(n => ({
-                                name: n,
-                                enabled: (root.barLayout || {})[n] ?? true
-                            })),
                     blur: {
                         value: root.barBlur
                     },
@@ -653,6 +629,15 @@ Singleton {
                     fontSize: {
                         value: root.uiFontSize
                     }
+                },
+                animations: {
+                    enabled: {
+                        value: root.animationsEnabled
+                    },
+                    scale: {
+                        value: root.animScale
+                    },
+                    islandStyle: root.islandAnimStyle
                 },
                 leftPanel: {
                     hotZoneSize: {
@@ -749,27 +734,12 @@ Singleton {
                 dynamicThemeVariants: {
                     value: root.dynamicThemeVariants
                 },
-                alwaysOnWidget: {
-                    "visibility": {
-                        value: root.alwaysOnWidgetVisibility
-                    }
-                },
-                keyStrokeVisualizer: {
-                    "visibility": {
-                        value: root.keyStrokeVisualizerVisibility
-                    },
-                    "anchor": {
-                        value: root.keyStrokeVisualizerAnchor
-                    }
-                },
                 fileManager: root.fileManager,
-                profilePicturePath: root.profilePicturePath,
                 "waifuWidget": {
                     current: root.waifu
                 },
                 "chatBot": {
-                    api: root.chatBotApi,
-                    imageGeneration: root.chatBotImageGeneration
+                    api: root.chatBotApi
                 },
                 "booru": {
                     api: root.booru.api,
@@ -862,30 +832,6 @@ Singleton {
                 root.revealInPressure = s.bar?.revealInPressure?.value ?? s.bar?.revealPressure?.value ?? 250;
                 root.revealOutPressure = s.bar?.revealOutPressure?.value ?? s.bar?.revealPressure?.value ?? 1000;
                 root.barOrientation = s.bar?.orientation?.value ?? true;
-                root.workspaceNumbers = s.bar?.workspaceNumbers?.value ?? false;
-
-                // bar layout
-                const layout = {};
-                if (Array.isArray(s.bar?.layout)) {
-                    for (const w of s.bar.layout) {
-                        layout[w.name] = !!w.enabled;
-                    }
-                }
-                root.barLayout = {
-                    workspaces: layout.workspaces ?? true,
-                    information: layout.information ?? true,
-                    utilities: layout.utilities ?? true
-                };
-                // Preserve the file's widget order (drag-reorder sequence);
-                // fall back to the default order on unknown entries.
-                if (Array.isArray(s.bar?.layout) && s.bar.layout.length > 0) {
-                    const known = ["workspaces", "information", "utilities"];
-                    const ordered = s.bar.layout.map(w => w.name).filter(n => known.includes(n));
-                    for (const n of known)
-                        if (!ordered.includes(n))
-                            ordered.push(n);
-                    root.barLayoutOrder = ordered;
-                }
 
                 root.dateFormat = s.dateFormat ?? "%H:%M";
                 root.cryptoFavorite = s.crypto?.favorite ?? {
@@ -895,6 +841,18 @@ Singleton {
                 root.uiOpacity = s.ui?.opacity?.value ?? 0.618;
                 root.uiScale = s.ui?.scale?.value ?? 10;
                 root.uiFontSize = s.ui?.fontSize?.value ?? 12;
+
+                // Shell motion: accept both {value} leaves and plain values;
+                // clamp scale so a stale file can't freeze or stall motion.
+                const _ae = s.animations?.enabled;
+                root.animationsEnabled = ((typeof _ae === "object" && _ae !== null ? _ae.value : _ae) ?? true);
+                const _as = s.animations?.scale;
+                const _asV = ((typeof _as === "object" && _as !== null ? _as.value : _as) ?? 1.0);
+                root.animScale = Math.min(2.0, Math.max(0.2, Number(_asV) || 1.0));
+                const _ais = s.animations?.islandStyle;
+                const _aisV = ((typeof _ais === "object" && _ais !== null ? _ais.value : _ais) ?? "Emphasized");
+                const _styles = ["Standard", "Emphasized", "ExpressiveFast", "ExpressiveDefault", "ExpressiveSlow"];
+                root.islandAnimStyle = _styles.includes(_aisV) ? _aisV : "Emphasized";
 
                 root.leftPanelHotZoneSize = s.leftPanel?.hotZoneSize?.value ?? 5;
                 root.rightPanelHotZoneSize = s.rightPanel?.hotZoneSize?.value ?? 5;
@@ -993,7 +951,6 @@ Singleton {
                 // value string here).
                 const cbApi = s.chatBot?.api;
                 root.chatBotApi = (cbApi && typeof cbApi === "object" ? cbApi.value : cbApi) ?? "openai/gpt-4o-mini";
-                root.chatBotImageGeneration = s.chatBot?.imageGeneration ?? false;
 
                 // Blur settings
                 root.barBlur = s.bar?.blur?.value ?? true;
@@ -1008,19 +965,8 @@ Singleton {
                 const _dtv = s.dynamicThemeVariants;
                 root.dynamicThemeVariants = (typeof _dtv === "object" && _dtv !== null ? _dtv.value : _dtv) ?? true;
 
-                // Always-on widget visibility
-                root.alwaysOnWidgetVisibility = s.alwaysOnWidget?.visibility?.value ?? true;
-
-                // KeyStrokeVisualizer (anchor: legacy plain array or {value} leaf)
-                root.keyStrokeVisualizerVisibility = s.keyStrokeVisualizer?.visibility?.value ?? false;
-                const _ka = s.keyStrokeVisualizer?.anchor;
-                root.keyStrokeVisualizerAnchor = (Array.isArray(_ka) ? _ka : _ka?.value) ?? ["bottom", "left"];
-
                 // File manager
                 root.fileManager = s.fileManager ?? "";
-
-                // Profile picture path
-                root.profilePicturePath = s.profilePicturePath ?? "";
 
                 // Hyprland settings (full schema incl. blur passes 4, xray,
                 // xray, gaps, opacities — previously partial, which reset
@@ -1159,15 +1105,6 @@ Singleton {
         function onBarOrientationChanged() {
             root.schedulePersist();
         }
-        function onWorkspaceNumbersChanged() {
-            root.schedulePersist();
-        }
-        function onBarLayoutOrderChanged() {
-            root.schedulePersist();
-        }
-        function onBarLayoutChanged() {
-            root.schedulePersist();
-        }
         function onLeftPanelExclusivityChanged() {
             root.schedulePersist();
         }
@@ -1193,6 +1130,15 @@ Singleton {
             root.schedulePersist();
         }
         function onUiFontSizeChanged() {
+            root.schedulePersist();
+        }
+        function onAnimationsEnabledChanged() {
+            root.schedulePersist();
+        }
+        function onAnimScaleChanged() {
+            root.schedulePersist();
+        }
+        function onIslandAnimStyleChanged() {
             root.schedulePersist();
         }
         function onLeftPanelHotZoneSizeChanged() {
@@ -1253,15 +1199,6 @@ Singleton {
             root.schedulePersist();
         }
         function onChatBotApiChanged() {
-            root.schedulePersist();
-        }
-        function onAlwaysOnWidgetVisibilityChanged() {
-            root.schedulePersist();
-        }
-        function onKeyStrokeVisualizerVisibilityChanged() {
-            root.schedulePersist();
-        }
-        function onKeyStrokeVisualizerAnchorChanged() {
             root.schedulePersist();
         }
         function onFileManagerChanged() {
