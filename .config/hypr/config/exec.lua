@@ -15,6 +15,23 @@ hl.on("hyprland.start", function()
     -- Single clipboard watcher: kill stale watchers first so reloads don't
     -- stack duplicates, and avoid double-backgrounding (no `bash -c ... &`).
     -- [w] trick keeps pkill from matching its own shell command line.
-    hl.exec_cmd("pkill -f '[w]l-paste --watch' 2>/dev/null; wl-paste --watch " .. home .. "/.config/hypr/scripts/clipboard-monitor.sh")
+    hl.exec_cmd("pkill -f '[w]l-paste --watch' 2>/dev/null; wl-paste --watch " ..
+    home .. "/.config/hypr/scripts/clipboard-monitor.sh")
     hl.exec_cmd("blueman-applet")
 end)
+
+-- Quickshell fullscreen watcher (kill+restart on focused fullscreen):
+-- focused-only semantics: background fullscreen on another
+-- workspace/monitor never hides the bar; leaving the fullscreen
+-- window (focus change, workspace switch, un-fullscreen) restores
+-- it. The sync helper is idempotent (docs warn fullscreen can
+-- fire multiple times per toggle) and self-serializes, so stacked
+-- handlers after a reload are harmless.
+-- NOTE: top-level on purpose. Inside hyprland.start these would only
+-- register at compositor boot and never on reload.
+local function fullscreenSync()
+    hl.exec_cmd(scriptsDir .. "/quickshell-fullscreen-sync.sh")
+end
+hl.on("window.fullscreen", function(w) fullscreenSync() end)
+hl.on("window.active", function(w) fullscreenSync() end)
+hl.on("workspace.active", function(ws) fullscreenSync() end)

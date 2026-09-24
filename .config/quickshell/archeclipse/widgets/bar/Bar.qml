@@ -86,29 +86,12 @@ PanelWindow {
     implicitHeight: root.screenHeight
     implicitWidth: pill.width
 
-    // visibility: fullscreen focused client hides; search pins; override wins;
+    // visibility: search pins; override wins;
     // otherwise lock/smart-hide geometric room-check.
-    // fullscreenClient = focusedClient with fullscreen === 2.
-    readonly property bool fullscreenActive: {
-        const mon = Hyprland.monitorFor(screen);
-        const ws = mon?.activeWorkspace;
-        if (!ws)
-            return false;
-        const wsId = ws.id ?? ws;
-        const tops = Hyprland.toplevels.values.filter(t => (t.workspace?.id ?? t.workspace) === wsId);
-        // Any fullscreen client on this monitor's active workspace occupies
-        // the bar band (hyprctl clients fullscreen: 2 = fullscreen, 3 = maximized?)
-        return tops.some(t => {
-            const fs = t.lastIpcObject?.fullscreen;
-            return fs === 2 || fs === 3;
-        });
-    }
     // Re-evaluate when Hyprland geometry events arrive (clients move/resize).
     readonly property bool roomCheckLive: BarState.hyprlandTick >= 0
 
     readonly property bool barVisible: {
-        if (fullscreenActive)
-            return false;
         if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.leftOpen || BarState.rightOpen)
             return true;
         const override = (BarState.barShown || {})[monitorName];

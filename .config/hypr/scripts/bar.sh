@@ -54,6 +54,11 @@ stop_archeclipse() {
 
 stop_archeclipse
 
+# --kill: stop only, no restart (used by quickshell-fullscreen-sync.sh).
+if [ "${1:-}" = "--kill" ]; then
+    exit 0
+fi
+
 # QML disk cache enabled for production startup speed. Set
 # QML_DISABLE_DISK_CACHE=1 in the environment only when debugging QML.
 # 9>&- closes the lock fd in this long-lived child: without it, `qs`
