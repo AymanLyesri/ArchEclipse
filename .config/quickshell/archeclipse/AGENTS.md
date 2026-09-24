@@ -48,7 +48,12 @@ Rules that bite:
   rigid `x` (no `Behavior` — per-frame coupled to width animations) while
   open/close pushes animate through `leftPush`/`rightPush` with the same
   easing as the width, so all motion stays one unit; the recording pill
-  chains rigidly right of it.
+  chains rigidly right of it. All three pills unfold on open and fold
+  before hiding on close (exit-driver pattern: `setShown` + close timer)
+  through a pill-level `IslandExpandClip` wipe — the same clip + fade +
+  0.96-scale recipe as main-stack islands, `openT` set discretely and
+  animated inside the clip; the islands' own `expand` stays dormant at 1
+  so exactly one unfold plays.
 - Closing a side pill never fires `BarState.onStateChanged` (resolved state
   doesn't move) — close-guards must listen to `onLeftOpenChanged`
   (see `BooruViewer` dialog) instead of `onStateChanged`.
@@ -74,7 +79,8 @@ left/right/recording islands live in **side pills** flanking it
 | `LeftIsland.qml` | side pill (`BarState.leftOpen` flag) | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4); cached `Loader` owned by `leftPill` |
 | `RightIsland.qml` | side pill (`BarState.rightOpen` flag) | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll; cached `Loader` owned by `rightPill` |
 | `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | `search` | Launcher results (input lives in the island, results in the panel) |
-| `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) / `RecordingIsland` / `SystemMonitorIsland` | pulses | Transient/utility pages — **all** islands now carry an `expand` 0→1 driver + `IslandExpandClip` unfold (Player/Weather/System/Overview/Recording gained it 2026-09-21; previously static snap + hover timer only) |
+| `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `SystemMonitorIsland` | pulses | Transient/utility pages — **all** islands now carry an `expand` 0→1 driver + `IslandExpandClip` unfold (Player/Weather/System/Overview/Recording gained it 2026-09-21; previously static snap + hover timer only) |
+| `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) | `wallpaper` (cached) | Heavy switcher: `wallpaperPrimed` latch + `wallpaperCacheLoader` in the `Bar.qml` stack (created once, visibility-toggled) so image decodes, aspect caches and scroll survive closes; no refetch on reopen |
 
 Shared island helpers (`widgets/bar/islands/`, module `qs.widgets.bar.islands`):
 
@@ -229,14 +235,19 @@ wrappers. Rules:
    shared cluster copies the inline bool-toggle logic, not string labels.
    WallpaperIsland registers its *body* (not the island root) — `Ipc.wallpaperDiag`
    reads body probes off the handle.
-8. **Exit-driver invariants (`Bar.qml` stack, 2026-09-21).** `exitItemFor()` only
-   resolves transient items while `displayed` still names them — call `driveExit`
-   *before* swapping. Any new state stops `exitTimer` and clears `exitingFrom`
-   (supersede); the `s === displayed` guard instead restores `expand = 1`.
-   Cached `Loader`s need `|| exitingFrom === "<state>"` on `visible` or the fold
-   plays on a hidden subtree. Exit fires only for family-`default` targets —
-   do not extend it to island→island without re-checking the grow-first
-   `widthOverride` sequencing.
+8. **Swap model (`Bar.qml` stack).** Opens swap immediately and track the
+   unfolding content rigidly — no grow-first pin, no stack crossfade;
+   the width glides under it while `clip: true` on the pill cuts spill at
+   the animating edge. Closes glide down via a shrink-only `Behavior on
+   height` (growing tracks rigidly so it can't chase-and-lag the unfold).
+   Cached `Loader`s (wallpaper, side pills) hide with `expand` untouched and reset silently
+   while hidden, so reopens unfold with a single assignment — a 0-then-1
+   replay in the same tick self-cancels the `Behavior` (retargets before
+   anything renders) and must never be used. NEVER guard swaps behind
+   `Connections onStateChanged` comparing against a bound `displayed`:
+   the binding updates before signal handlers run, so the guard exits
+   early forever and the logic silently never executes (root-caused via
+   probe 2026-09-24).
 9. **`qmllint` 255 = env baseline, not a failure.** Files importing `qs.*` modules
    exit 255 with no output even on HEAD (verified via `git show HEAD:…` copies) —
    quickshell types aren't visible to standalone lint. Real gate is a `bar.sh`
