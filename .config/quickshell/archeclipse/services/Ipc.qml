@@ -221,7 +221,7 @@ Item {
         }
 
         function toggleLeftPanel(monitor: string): string {
-            if (BarState.state === "left") {
+            if (BarState.leftOpen) {
                 BarState.deactivate("left");
                 return "left island closed";
             }
@@ -230,7 +230,7 @@ Item {
         }
 
         function toggleRightPanel(monitor: string): string {
-            if (BarState.state === "right") {
+            if (BarState.rightOpen) {
                 BarState.deactivate("right");
                 return "right island closed";
             }
@@ -316,7 +316,7 @@ Item {
             try {
                 const w = Registry.get(`left-island-${monitor}`)
                     ?? Registry.get("left-island");
-                if (!w) return "no island (left=" + (BarState.state === "left") + ")";
+                if (!w) return "no island (left=" + BarState.leftOpen + ")";
                 const item = w.activeWidget;
                 if (!item) return "no widget (selected=" + w.selectedWidget + ")";
                 // Debug echo so we can see exactly what the IPC layer delivered.

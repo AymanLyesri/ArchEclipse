@@ -6,7 +6,7 @@ import qs.widgets.bar.islands
 import qs.widgets.leftPanel
 
 // LeftIsland: the former LeftPanel body (sidebar + widget stack) living
-// INSIDE the bar pill as a Dynamic-Island state (BarState "left").
+// in the left side pill beside the bar (BarState.leftOpen flag).
 //
 // Same unfold pattern as Search/ControlIsland — the pill grows
 // (width via the pill transition, height snapped on the window) while this

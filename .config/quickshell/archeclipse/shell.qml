@@ -79,9 +79,9 @@ ShellRoot {
     LockScreen {
     }
 
-    // Left/right content lives in the main bar pill as LeftIsland /
-    // RightIsland (BarState "left"/"right", bodies in
-    // widgets/bar/islands). SUPER+L/R and the bar HotZones route to the
-    // islands — no separate side-panel windows.
+    // Left/right content lives in side pills flanking the main bar pill
+    // (leftPill/rightPill in Bar.qml, bodies in widgets/bar/islands).
+    // SUPER+L/R and the bar HotZones route to the pills — no separate
+    // side-panel windows, no exclusive zones.
 
 }

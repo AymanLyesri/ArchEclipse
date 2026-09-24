@@ -14,9 +14,10 @@ Singleton {
     // Priority map (default base 0 < recording 40 < pulses 80 < search 100)
     // "compact"/"expanded" kept only for backward-compat with old persist files.
     // wallpaper (95) beats control (90) so SUPER+W opens over the control island.
-    // Side islands (93) sit above pulses/control so an open island isn't
-    // yanked away by transient states (no width-spring thrash), but yield to
-    // wallpaper/search — deactivating those returns to the still-open island.
+    // Side pills (left/right/recording) keep priority entries so activate()
+    // still records ordering metadata, but resolveState() skips them: side
+    // pills are independent overlays, never main-pill winners, and
+    // left+right open simultaneously.
     property var priority: {
         "default": 0,
         "recording": 40,
@@ -52,6 +53,13 @@ Singleton {
 
     // Current resolved state (default is the permanent base, no compact)
     property string state: "default"
+
+    // Side-pill open flags: the resolved `state` never equals
+    // "left"/"right"/"recording" (resolveState skips them), so side-pill
+    // visibility and keep-alive key off these. activate()/deactivate()
+    // reassign the activeStates object, keeping these bindings reactive.
+    readonly property bool leftOpen: "left" in activeStates
+    readonly property bool rightOpen: "right" in activeStates
 
     // Open in-bar popovers (tray overflow/menu popups). Guards the
     // hover-leave collapse (while a popup is open).
@@ -451,6 +459,10 @@ Singleton {
         var best = "default";
         var bestPriority = -Infinity;
         for (var name in root.activeStates) {
+            // Side pills (left/right/recording) are independent pills, not
+            // main-pill states — the main pill never resolves them.
+            if (name === "left" || name === "right" || name === "recording")
+                continue;
             // Legacy base names resolve to the default state
             var canonical = (name === "expanded" || name === "compact") ? "default" : name;
             var entry = root.activeStates[name];
@@ -485,15 +497,12 @@ Singleton {
         var priority = root.priority[name];
         if (priority === undefined)
             return;
-        // Side islands are mutually exclusive: opening one closes the
-        // other so left <-> right switches resolve cleanly (same
-        // priority would otherwise leave both active and the winner
-        // dependent on object iteration order).
-        // Volume/brightness pulses are mutually exclusive for the same
-        // reason: both render through ControlIsland, so a lingering
-        // rival pulse flips the resolved state mid-session (when the
-        // older hold timer expires) and replays the pill swap churn.
-        var rival = name === "left" ? "right" : (name === "right" ? "left" : "");
+        // Volume/brightness pulses are mutually exclusive: both render
+        // through ControlIsland, so a lingering rival pulse flips the
+        // resolved state mid-session (when the older hold timer expires)
+        // and replays the pill swap churn. (Left/right side pills are
+        // independent and open simultaneously — no rival there.)
+        var rival = "";
         if (name === "volume")
             rival = "brightness";
         else if (name === "brightness")

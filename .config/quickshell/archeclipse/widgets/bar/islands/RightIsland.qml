@@ -9,7 +9,7 @@ import qs.widgets.media
 import qs.widgets.rightPanel
 
 // RightIsland: the former RightPanel body (widget stack + toggle sidebar)
-// living INSIDE the bar pill as a Dynamic-Island state (BarState "right").
+// living in the right side pill beside the bar (BarState.rightOpen flag).
 //
 // Same unfold pattern as Search/ControlIsland — the pill grows
 // (width via the pill transition, height snapped on the window) while this

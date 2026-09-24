@@ -39,8 +39,6 @@ Singleton {
     property bool notifDnd: false
     property bool leftPanelLock: false
     property bool rightPanelLock: false
-    property bool leftPanelExclusivity: true
-    property bool rightPanelExclusivity: true
     property int leftPanelWidth: 400
     property int rightPanelWidth: 250
     // Lockscreen grace period in seconds (Esc dismisses the lock without a
@@ -515,8 +513,6 @@ Singleton {
             "rightPanel.hotZone": "rightPanelHotZone",
             "leftPanel.lock": "leftPanelLock",
             "rightPanel.lock": "rightPanelLock",
-            "leftPanel.exclusivity": "leftPanelExclusivity",
-            "rightPanel.exclusivity": "rightPanelExclusivity",
             "leftPanel.width": "leftPanelWidth",
             "leftPanel.widget": "leftPanelWidget",
             "wallpaperSwitcher.category": "wallpaperCategory",
@@ -647,7 +643,6 @@ Singleton {
                         value: root.leftPanelHotZone
                     },
                     lock: root.leftPanelLock,
-                    exclusivity: root.leftPanelExclusivity,
                     width: root.leftPanelWidth,
                     widget: {
                         name: root.leftPanelWidget
@@ -661,7 +656,6 @@ Singleton {
                         value: root.rightPanelHotZone
                     },
                     lock: root.rightPanelLock,
-                    exclusivity: root.rightPanelExclusivity,
                     width: root.rightPanelWidth,
                     // Icons are code-owned: persist only {name, enabled} +
                     // order so icon edits in code are never clobbered.
@@ -861,8 +855,6 @@ Singleton {
                 root.notifDnd = s.notifications?.dnd ?? false;
                 root.leftPanelLock = !!s.leftPanel?.lock;
                 root.rightPanelLock = !!s.rightPanel?.lock;
-                root.leftPanelExclusivity = s.leftPanel?.exclusivity ?? true;
-                root.rightPanelExclusivity = s.rightPanel?.exclusivity ?? true;
                 root.leftPanelWidth = (typeof s.leftPanel?.width === "object" && s.leftPanel?.width !== null ? s.leftPanel.width.value : s.leftPanel?.width) ?? 400;
                 // The file may store the selector object {name, icon}; QS persists
                 // only {name} and restores only the name — left icons live in
@@ -1103,12 +1095,6 @@ Singleton {
             root.schedulePersist();
         }
         function onBarOrientationChanged() {
-            root.schedulePersist();
-        }
-        function onLeftPanelExclusivityChanged() {
-            root.schedulePersist();
-        }
-        function onRightPanelExclusivityChanged() {
             root.schedulePersist();
         }
         function onRightPanelWidgetsChanged() {

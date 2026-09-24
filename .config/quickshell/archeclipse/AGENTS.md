@@ -26,18 +26,32 @@ Startup also `mkdir -p`s every cache dir `FileView` writes to (writes to missing
 
 ### 1.2 Bar state machine — `services/BarState.qml` (singleton)
 
-One pill, many states. `activate(name, holdMs)` / `deactivate(name)` manipulate `activeStates`;
-`resolveState()` picks the highest-priority entry (debounced 100ms). Priorities:
+One pill, many states — plus independent side pills. `activate(name, holdMs)` /
+`deactivate(name)` manipulate `activeStates`; `resolveState()` picks the
+highest-priority entry (debounced 100ms). Priorities (main pill only):
 
 ```
-default 0 < recording 40 < pulses 80 (volume/brightness/network/player/weather/system)
-  < control 90 < left/right 93 < wallpaper 95 < search 100
+default 0 < pulses 80 (volume/brightness/network/player/weather/system)
+  < control 90 < wallpaper 95 < search 100
 ```
+`left`/`right`/`recording` keep priority entries but are **side pills, not
+main-pill states**: `resolveState()` skips them, so the main pill never
+hijacks. Side-pill visibility keys off `BarState.leftOpen`/`rightOpen`
+(membership in `activeStates`) and `ScreenRecorder.isRecording` — never off
+`state`, which never equals them.
 
 Rules that bite:
-- `left`/`right` are **mutually exclusive** — activating one deactivates the other.
-- `left`/`right` (93) sit **above** `default` (0): while any island is open the "top bar"
-  never resolves. Users must close/ESC **all** open islands to get the bar back.
+- `left`/`right` open **simultaneously** — no mutual exclusion. The main pill
+  stays independent: transient pulses/search/control animate it while side
+  pills: `leftPill`/`rightPill` dock to the screen edges (8px margin,
+  outermost, static); the main pill centers in the remaining space with a
+  rigid `x` (no `Behavior` — per-frame coupled to width animations) while
+  open/close pushes animate through `leftPush`/`rightPush` with the same
+  easing as the width, so all motion stays one unit; the recording pill
+  chains rigidly right of it.
+- Closing a side pill never fires `BarState.onStateChanged` (resolved state
+  doesn't move) — close-guards must listen to `onLeftOpenChanged`
+  (see `BooruViewer` dialog) instead of `onStateChanged`.
 - `default` is the permanent base and cannot be deactivated. `expanded`/`compact` are
   legacy aliases for `default`.
 - Omit `holdMs` (or `0`) = persistent until explicitly deactivated. `holdMs > 0` = auto-deactivate timer.
@@ -49,14 +63,16 @@ Rules that bite:
   supersedes the exit (timer stopped, `exitingFrom` cleared). Island→island switches and
   same-family pulses swap instantly, as before.
 
-### 1.3 Islands (bar pill pages) — `widgets/bar/islands/`
+### 1.3 Islands — `widgets/bar/islands/`
 
-All former side panels now live **inside the bar pill** as `BarState` pages, not separate windows:
+Transient islands live **inside the bar pill** as `BarState` pages; the
+left/right/recording islands live in **side pills** flanking it
+(`leftPill`/`rightPill`/`secondaryPill` in `Bar.qml`), not separate windows:
 
 | Island | State | Body |
 |---|---|---|
-| `LeftIsland.qml` | `left` | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4) |
-| `RightIsland.qml` | `right` | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll |
+| `LeftIsland.qml` | side pill (`BarState.leftOpen` flag) | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4); cached `Loader` owned by `leftPill` |
+| `RightIsland.qml` | side pill (`BarState.rightOpen` flag) | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll; cached `Loader` owned by `rightPill` |
 | `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | `search` | Launcher results (input lives in the island, results in the panel) |
 | `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) / `RecordingIsland` / `SystemMonitorIsland` | pulses | Transient/utility pages — **all** islands now carry an `expand` 0→1 driver + `IslandExpandClip` unfold (Player/Weather/System/Overview/Recording gained it 2026-09-21; previously static snap + hover timer only) |
 
@@ -67,7 +83,7 @@ Shared island helpers (`widgets/bar/islands/`, module `qs.widgets.bar.islands`):
 | `IslandExpandClip` | Emphasized-unfold body clip (`expand` 0→1 drives clip + opacity + scale; `Behavior on expand { Anim { type: Anim.Emphasized } }`) |
 | `IslandHoverPin` | Hover-pin: hover stops the 1s leave timer + pins the state persistent; leave restarts it (root is the `HoverHandler` itself — see §2.7) |
 | `IslandEscClose` | 1×1 focused `Esc` grabber deactivating the listed states |
-| `IslandWindowActions` | Bottom icon-button cluster (expand/shrink/exclusivity/lock/close); `side` switches the `Settings` keys, labels kept verbatim |
+| `IslandWindowActions` | Bottom icon-button cluster (expand/shrink/lock/close); `side` switches the `Settings` keys, labels kept verbatim |
 | `IslandSideRail` | 48px tab rail with 40px cells (`model`/`currentIndex`/`selected`; delegate declares `required property int index` — Qt6 withholds it otherwise); Left rail only — RightIsland keeps its custom drag rail (see §2.7) |
 | Island registry | Islands `register(key, …)` in `onCompleted`, unregister bare alias + keyed entry in `onDestruction` (no helper — `destroyed` is not connectable in this engine, verified 2026-09-13) |
 
@@ -83,7 +99,8 @@ Shared right-panel helpers (`widgets/shared/` + `widgets/rightPanel/`, modules `
 Open/close: `SUPER+L` / `SUPER+R`, bar-end `HotZone` hover strips (5px, **400ms dwell** —
 zero-dwell cross-fired the rival island, fixed 2026-09-12), close button, `Esc`,
 1s cursor-leave timer (skipped when `Settings.leftPanelLock/rightPanelLock`).
-`Bar.qml` maps states to pages (`recordingPage`, etc.).
+`Bar.qml` maps main-pill states to pages; side pills own their island `Loader`s
+directly (no exclusivity anywhere — the window is always a full-width overlay).
 
 ### 1.4 Left island lazy tabs — `widgets/bar/islands/LeftIsland.qml`
 
@@ -208,7 +225,7 @@ wrappers. Rules:
    and can strand `isDragging`, same class as overview `onDropped` never firing
    for internal drags, seen 2026-09-15); its
    `WindowActions` did migrate to shared. `IslandWindowActions` keeps the existing
-   icon buttons verbatim — `Settings.*Exclusivity`/`*Lock` are bools, so the
+   icon buttons verbatim — `Settings.*Lock` is a bool, so the
    shared cluster copies the inline bool-toggle logic, not string labels.
    WallpaperIsland registers its *body* (not the island root) — `Ipc.wallpaperDiag`
    reads body probes off the handle.

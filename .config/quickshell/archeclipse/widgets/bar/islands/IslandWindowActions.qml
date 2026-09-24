@@ -8,9 +8,9 @@ import qs.widgets.shared
 //
 // NOTE: the icon buttons + tooltips below are the existing user-visible
 // strings, kept verbatim per side; only the layout and the left/right
-// Settings keys are unified via `side`. (Settings.*Exclusivity/*Lock are
-// bools — the toggle writes the caller-driven `checked` value back
-// exactly like the inline clusters this replaces.)
+// Settings keys are unified via `side`. (Settings.*Lock is a bool — the
+// toggle writes the caller-driven `checked` value back exactly like the
+// inline clusters this replaces.)
 Column {
     id: root
     property string side: "left"  // "left" | "right"
@@ -53,27 +53,6 @@ Column {
                 Settings.leftPanelWidth = Math.max(400, Settings.leftPanelWidth - 50);
             else
                 Settings.rightPanelWidth = Math.max(250, Settings.rightPanelWidth - 50);
-        }
-    }
-    // Exclusivity (active = non-exclusive, inverted) — reserves the
-    // island's width from the docked screen edge while open (vertical
-    // zone; the bar's top strip reservation is replaced, not added).
-    AppButton {
-        width: parent.width
-        icon: "";
-        pixelSize: 14
-        cornerRadius: 6
-        toggle: true
-        checked: !(root.isLeft ? Settings.leftPanelExclusivity : Settings.rightPanelExclusivity)
-        hoverBg: Theme.surface
-        tooltipText: (root.isLeft ? Settings.leftPanelExclusivity : Settings.rightPanelExclusivity) ? "Exclusive zone: on" : "Exclusive zone: off"
-        // checked is the inverse of the setting: writing it back as-is
-        // toggles exclusivity.
-        onClicked: {
-            if (root.isLeft)
-                Settings.leftPanelExclusivity = checked;
-            else
-                Settings.rightPanelExclusivity = checked;
         }
     }
     // Lock — pins the island open across hover-leave.

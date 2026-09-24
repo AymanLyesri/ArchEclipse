@@ -30,57 +30,37 @@ PanelWindow {
     }
 
     // --- window geometry / layer ---
-    // Side-island vertical exclusivity ("horizontal becomes vertical"):
-    // while an island whose exclusivity setting is on is open, the window
-    // drops the far-side anchor and reserves the island's width from the
-    // docked edge (the same edge + both-perpendiculars anchor pattern the
-    // old edge panels used statically) instead of the top strip. Applied
-    // atomically with the state change — anchors, margins, zone and the
-    // offset zeroing below all commit in the same frame — so there is no
-    // staged switch to race the surface resize and glitch. The pill width
-    // transition then grows the edge-anchored surface in place (it expands
-    // from the docked edge instead of gliding across the screen).
-    readonly property bool leftVert: BarState.state === "left" && Settings.leftPanelExclusivity
-    readonly property bool rightVert: BarState.state === "right" && Settings.rightPanelExclusivity
-
+    // Always a full-width overlay strip (top or bottom edge): side pills
+    // are independent overlays beside the main pill, never exclusive
+    // zones, so anchors never change.
     anchors {
-        left: !root.rightVert
-        right: !root.leftVert
-        top: Settings.barOrientation || root.leftVert || root.rightVert
-        bottom: !Settings.barOrientation || root.leftVert || root.rightVert
-    }
-    margins {
-        top: 0
-        bottom: 0
-        left: root.leftVert ? 8 : 0
-        right: root.rightVert ? 8 : 0
+        left: true
+        right: true
+        top: Settings.barOrientation
+        bottom: !Settings.barOrientation
     }
 
     // layer-shell keyboard grab while the search island is open
     // (the control island stays OnDemand so typing elsewhere keeps working)
     WlrLayershell.keyboardFocus: BarState.state === "search" ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
-    WlrLayershell.exclusiveZone: {
-        if (root.leftVert || root.rightVert)
-            // Island width; the compositor adds the 10px edge margin on
-            // top, so the reservation lands exactly on the docked pill.
-            return Math.round(pill.targetWidth);
-        if (BarState.state === "left" || BarState.state === "right")
-            // Side island open as an overlay (its exclusivity setting is
-            // off): drop the main bar strip reservation (top or bottom)
-            // while the panel is up.
-            return -1;
-        return Settings.barLock ? root.barHeight : -1;
-    }
+    WlrLayershell.exclusiveZone: Settings.barLock ? root.barHeight : -1
     color: "transparent"
     aboveWindows: true
 
-    // Click-through everywhere except the pill + edge hot-zones. With
-    // exclusivity OFF the window is a full-width, full-height transparent
-    // surface (the pill snaps tall for the island) — without a mask it
-    // eats every click outside the island. With exclusivity ON the window
-    // already hugs the island, so the mask is a no-op there.
+    // Click-through everywhere except the pills + edge hot-zones. The
+    // window is a full-width, full-height transparent surface — without
+    // a mask it eats every click outside the pills.
     mask: Region {
         item: pill
+        Region {
+            item: leftPill
+        }
+        Region {
+            item: rightPill
+        }
+        Region {
+            item: secondaryPill
+        }
         Region {
             item: leftHot
         }
@@ -93,11 +73,10 @@ PanelWindow {
     // Snap the layer surface to content (no Behavior here — animating the
     // PanelWindow renegotiates with the compositor every frame and stutters).
     // Inner content (pill width transition + island expand transition) carries motion.
-    // NOTE: implicitWidth must track the pill too, not just height — once a
-    // side island drops the far-side anchor, the surface sizes to content
-    // and an unbound implicitWidth strands it at a stale width (clipped
-    // island). Stretched full-width mode ignores both, so this is safe.
-    implicitHeight: pill.height
+    // Height tracks the tallest visible pill so tall side pills never
+    // clip; width stays on the main pill (stretched full-width mode
+    // ignores both, so this is safe).
+    implicitHeight: Math.max(pill.height, leftPill.visible ? leftPill.height : 0, rightPill.visible ? rightPill.height : 0, secondaryPill.visible ? secondaryPill.height : 0)
     implicitWidth: pill.width
 
     // visibility: fullscreen focused client hides; search pins; override wins;
@@ -123,7 +102,7 @@ PanelWindow {
     readonly property bool barVisible: {
         if (fullscreenActive)
             return false;
-        if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.state === "left" || BarState.state === "right")
+        if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.leftOpen || BarState.rightOpen)
             return true;
         const override = (BarState.barShown || {})[monitorName];
         if (override !== undefined)
@@ -136,12 +115,23 @@ PanelWindow {
     // controller on the bar pill; leave arms a 250ms timer that collapses
     // only if the pointer is still off AND no popup is open) ---
     property bool hovered: pillHover.hovered
-    // Documentation capture: expose the actual pill, not its stretched surface.
-    readonly property var captureItem: pill
+    // Documentation capture: expose the captured pill, not always the
+    // main one — side-pill shots must frame the side pill (and image
+    // inspection must walk its tree, not the bar strip's).
+    readonly property var captureItem: BarState.leftOpen && leftLoader.item ? leftLoader.item : (BarState.rightOpen && rightLoader.item ? rightLoader.item : pill)
     function captureGeometry() {
+        if (BarState.leftOpen)
+            return root.sideCaptureGeometry(leftPill, "left");
+        if (BarState.rightOpen)
+            return root.sideCaptureGeometry(rightPill, "right");
         const p = pill.mapToItem(root.contentItem, 0, 0);
         return {visible: root.visible, displayed: stack.current,
             rect: {x: p.x, y: p.y, w: pill.width, h: pill.height}};
+    }
+    function sideCaptureGeometry(pillItem, name) {
+        const g = pillItem.mapToItem(root.contentItem, 0, 0);
+        return {visible: root.visible, displayed: name,
+            rect: {x: g.x, y: g.y, w: pillItem.width, h: pillItem.height}};
     }
     Component.onDestruction: Registry.unregister("capture-bar-" + root.monitorName)
     Component.onCompleted: {
@@ -165,7 +155,7 @@ PanelWindow {
             // then conceal the bar when unlocked and search isn't pinning it.
             if (!root.hovered && BarState.popupCount <= 0 && !Settings.barDefault)
                 BarState.deactivate("default");
-            if (BarState.state !== "search" && BarState.state !== "control" && BarState.state !== "overview" && BarState.state !== "wallpaper" && BarState.state !== "left" && BarState.state !== "right" && !Settings.barLock && !root.hovered && BarState.popupCount <= 0)
+            if (BarState.state !== "search" && BarState.state !== "control" && BarState.state !== "overview" && BarState.state !== "wallpaper" && !BarState.leftOpen && !BarState.rightOpen && !Settings.barLock && !root.hovered && BarState.popupCount <= 0)
                 BarState.concealBar(root.monitorName);
         }
     }
@@ -187,7 +177,7 @@ PanelWindow {
         onTriggered: {
             if (Settings.barLock)
                 return;
-            if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.state === "left" || BarState.state === "right") {
+            if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.leftOpen || BarState.rightOpen) {
                 idleTimer.restart();
                 return;
             }
@@ -262,7 +252,29 @@ PanelWindow {
         // ---- the pill ----
         Rectangle {
             id: pill
-            anchors.horizontalCenter: parent.horizontalCenter
+            // Pushed-center: side pills dock to the screen edges and the
+            // main pill centers in the remaining space — never fixed-center,
+            // never overlapping. `x` itself carries NO Behavior: it tracks
+            // per-frame (rigidly coupled to width animations). Discrete
+            // open/close pushes animate through leftPush/rightPush with the
+            // same easing as the width, so everything moves as one unit.
+            property real leftPush: leftPill.visible ? 8 + leftPill.width + 8 : 0
+            Behavior on leftPush {
+                Anim {
+                    type: Anim.DefaultSpatial
+                }
+            }
+            property real rightPush: (rightPill.visible ? rightPill.width + 8 : 0) + (secondaryPill.visible ? secondaryPill.width + 8 : 0)
+            Behavior on rightPush {
+                Anim {
+                    type: Anim.DefaultSpatial
+                }
+            }
+            property real pillX: {
+                var rightStart = rightPush > 0 ? parent.width - 8 - rightPush : parent.width;
+                return leftPush + Math.max(0, (rightStart - leftPush - pill.width) / 2);
+            }
+            x: pillX
             y: Settings.barOrientation ? 0 : parent.height - height
             // Grows with content: 32 for normal states, tall when the
             // search island (input + launcher) is shown.
@@ -275,12 +287,7 @@ PanelWindow {
             property bool widthAnimReady: false
             Component.onCompleted: widthAnimReady = true
             Behavior on width {
-                // No width transition while a vertical-exclusive island is open:
-                // the surface tracks the pill size, so animating it would
-                // renegotiate every frame (clipping/tearing). Exclusive
-                // opens snap to final geometry instead; the content
-                // crossfade + island unfold below carry the motion.
-                enabled: pill.widthAnimReady && !root.leftVert && !root.rightVert
+                enabled: pill.widthAnimReady
                 Anim {
                     type: Anim.DefaultSpatial
                 }
@@ -288,31 +295,6 @@ PanelWindow {
             bottomRightRadius: Theme.radius
             bottomLeftRadius: Theme.radius
             color: Theme.surface
-
-            // Island docking: when a side island opens, the pill glides to
-            // that screen edge (10px margin, like the old edge panels) and
-            // hangs the island there — the bar anchors left/right instead
-            // of swapping centered, so bar + island travel as one
-            // continuous unit. Driven off BarState.state (not the lagged
-            // displayed state) so the glide starts on the same frame as
-            // the width transition, with the same duration/curve for one
-            // coordinated motion.
-            property real shift: shiftTarget
-            property real shiftTarget: {
-                var s = BarState.state;
-                if (s !== "left" && s !== "right")
-                    return 0;
-                var maxShift = Math.max(0, (parent.width - pill.targetWidth) / 2);
-                var docked = Math.max(0, maxShift - 10);
-                return s === "left" ? -docked : docked;
-            }
-            Behavior on shift {
-                enabled: pill.widthAnimReady
-                Anim {
-                    type: Anim.DefaultSpatial
-                }
-            }
-            anchors.horizontalCenterOffset: (root.leftVert || root.rightVert) ? 0 : shift
 
             // Hover detection lives on the pill itself (stable container).
             // The motion controller is on the bar pill — hot-zone
@@ -338,10 +320,6 @@ PanelWindow {
                 // Size from implicit* only — never .height/.width/childrenRect.
                 // Those depend on stack's assigned size and create binding loops.
                 property real activeWidth: {
-                    if (stack.current === "left" && leftCacheLoader.item)
-                        return leftCacheLoader.item.implicitWidth || 0;
-                    if (stack.current === "right" && rightCacheLoader.item)
-                        return rightCacheLoader.item.implicitWidth || 0;
                     var it = currentPageLoader.item;
                     return it ? (it.implicitWidth || 0) : 0;
                 }
@@ -349,22 +327,10 @@ PanelWindow {
                 onActiveWidthChanged: {
                     if (activeWidth > 0) {
                         stack.width = activeWidth;
-                        // Keep the grow-first width registry fresh for cached islands
-                        if (stack.current === "left" || stack.current === "right") {
-                            var c = Object.assign({}, stack.widthCache);
-                            if (c[stack.current] !== activeWidth) {
-                                c[stack.current] = activeWidth;
-                                stack.widthCache = c;
-                            }
-                        }
                     }
                 }
 
                 property real activeHeight: {
-                    if (stack.current === "left" && leftCacheLoader.item)
-                        return leftCacheLoader.item.implicitHeight || 0;
-                    if (stack.current === "right" && rightCacheLoader.item)
-                        return rightCacheLoader.item.implicitHeight || 0;
                     var hit = currentPageLoader.item;
                     return hit ? (hit.implicitHeight || 0) : 0;
                 }
@@ -374,14 +340,6 @@ PanelWindow {
                         stack.height = activeHeight;
                     }
                 }
-
-                // Latch: once a side island has opened, its Loader stays
-                // active forever — the island is created once (lazily, on
-                // first open so startup stays fast) and then kept alive
-                // across closes. Reopens only toggle visibility: no
-                // rebuild, no refetch, tab/scroll/chat/booru state survives.
-                property bool leftPrimed: false
-                property bool rightPrimed: false
 
                 // The state actually shown (lags BarState.state by 100ms on grow)
                 property string displayed: BarState.state
@@ -397,10 +355,6 @@ PanelWindow {
                 // their Loaders, transient islands via currentPageLoader
                 // while `displayed` still names them), or null.
                 function exitItemFor(stateName) {
-                    if (stateName === "left")
-                        return leftCacheLoader.item;
-                    if (stateName === "right")
-                        return rightCacheLoader.item;
                     if (stateName === stack.displayed)
                         return currentPageLoader.item;
                     return null;
@@ -445,22 +399,6 @@ PanelWindow {
                             stack.pending = "";
                             swapTimer.stop();
                             pill.widthOverride = -1;
-                            stack.displayed = s;
-                            return;
-                        }
-                        // Exclusive island open: pin the width target straight
-                        // to final geometry through the Loader gap (the width
-                        // transition is off while vert, and the target would
-                        // otherwise sit on the stale lastWidth, landing the
-                        // fresh surface at the wrong size for a frame).
-                        // Cached (already-instantiated) islands measure
-                        // instantly, so they skip the pin entirely.
-                        if ((s === "left" && root.leftVert) || (s === "right" && root.rightVert)) {
-                            stack.pending = "";
-                            swapTimer.stop();
-                            var cached = (s === "left" && leftCacheLoader.item) || (s === "right" && rightCacheLoader.item);
-                            if (!cached)
-                                pill.widthOverride = (s === "left" ? Settings.leftPanelWidth : Settings.rightPanelWidth) + 10;
                             stack.displayed = s;
                             return;
                         }
@@ -522,9 +460,14 @@ PanelWindow {
                 // through controlPage, so transitions within the family
                 // must not replay the swap churn (grow-first width
                 // sequencing + crossfade) — same content, no reveal.
+                // recording renders through the secondary pill (its main
+                // stack entry maps to defaultPage), so it joins the
+                // default family for the same reason.
                 function pageFamily(s) {
                     if (s === "volume" || s === "brightness" || s === "control")
                         return "control";
+                    if (s === "recording")
+                        return "default";
                     return s;
                 }
                 property string lastFamily: "default"
@@ -533,38 +476,6 @@ PanelWindow {
                     if (fam !== stack.lastFamily)
                         fade.restart();
                     stack.lastFamily = fam;
-                    // Prime the side-island cache on first open; the Loader
-                    // stays active from then on (created once, kept alive).
-                    // Synchronous load, so the item exists right after.
-                    var firstLoad = false;
-                    if (current === "left" && !stack.leftPrimed) {
-                        stack.leftPrimed = true;
-                        firstLoad = true;
-                    } else if (current === "right" && !stack.rightPrimed) {
-                        stack.rightPrimed = true;
-                        firstLoad = true;
-                    }
-                    var isl = current === "left" ? leftCacheLoader.item : (current === "right" ? rightCacheLoader.item : null);
-                    if (isl) {
-                        // Kill a hide timer armed before the last close —
-                        // it must not fire into this fresh session.
-                        if (isl["cancelPendingHide"] !== undefined)
-                            isl.cancelPendingHide();
-                        // Reopen unfold: the cached island's expand value
-                        // stays at 1 while hidden, so replay 0 -> 1 for the
-                        // same unfold motion a fresh creation had (deferred
-                        // a frame so the 0 commits before the 1 animates).
-                        // Fresh creation animates itself — don't restart it.
-                        if (!firstLoad && isl["expand"] !== undefined) {
-                            isl.expand = 0;
-                            (function (target) {
-                                Qt.callLater(function () {
-                                    if (target)
-                                        target.expand = 1;
-                                });
-                            })(isl);
-                        }
-                    }
                 }
                 readonly property string previous: ""
 
@@ -584,61 +495,10 @@ PanelWindow {
                     }
                 }
 
-                // Side islands live here permanently (lazy-cached): the main
-                // Loader below only handles the small transient states, so
-                // opening left/right never destroys them. Synchronous load
-                // (like before) so the first open is instant; visible
-                // toggles the already-built subtree (no paint cost hidden).
-                Loader {
-                    id: leftCacheLoader
-                    active: stack.leftPrimed
-                    visible: stack.current === "left" || stack.exitingFrom === "left"
-                    asynchronous: false
-                    sourceComponent: leftPage
-                    onLoaded: {
-                        if (item && item["monitorName"] !== undefined)
-                            item.monitorName = root.monitorName;
-                        if (item && item["screenHeight"] !== undefined)
-                            item.screenHeight = root.screenHeight;
-                        if (item && item["screen"] !== undefined)
-                            item.screen = root.screen;
-                        if (stack.displayed === "left")
-                            pill.widthOverride = -1;
-                        var mw = item ? Math.max(item.width || 0, item.implicitWidth || 0) : 0;
-                        if (mw > 0) {
-                            var c = Object.assign({}, stack.widthCache);
-                            c["left"] = mw;
-                            stack.widthCache = c;
-                        }
-                    }
-                }
-                Loader {
-                    id: rightCacheLoader
-                    active: stack.rightPrimed
-                    visible: stack.current === "right" || stack.exitingFrom === "right"
-                    asynchronous: false
-                    sourceComponent: rightPage
-                    onLoaded: {
-                        if (item && item["monitorName"] !== undefined)
-                            item.monitorName = root.monitorName;
-                        if (item && item["screenHeight"] !== undefined)
-                            item.screenHeight = root.screenHeight;
-                        if (stack.displayed === "right")
-                            pill.widthOverride = -1;
-                        var mw = item ? Math.max(item.width || 0, item.implicitWidth || 0) : 0;
-                        if (mw > 0) {
-                            var c = Object.assign({}, stack.widthCache);
-                            c["right"] = mw;
-                            stack.widthCache = c;
-                        }
-                    }
-                }
-
                 Loader {
                     id: currentPageLoader
-                    // Left/right are served by the cached Loaders above —
-                    // show an empty page here so the transient Loader never
-                    // instantiates (and destroys) them on open/close.
+                    // Handles the small transient states only — left/right
+                    // live in their own side pills, recording in its own.
                     sourceComponent: {
                         switch (stack.current) {
                         case "default":
@@ -648,7 +508,10 @@ PanelWindow {
                         case "brightness":
                             return controlPage;
                         case "recording":
-                            return recordingPage;
+                            // Recording lives in the secondary pill beside
+                            // the main pill — the main stack shows default
+                            // content so the bar is never hijacked.
+                            return defaultPage;
                         case "player":
                             return playerPage;
                         case "weather":
@@ -665,25 +528,20 @@ PanelWindow {
                             return overviewPage;
                         case "wallpaper":
                             return wallpaperPage;
-                        case "left":
-                            return emptyPage;
-                        case "right":
-                            return emptyPage;
                         default:
                             return defaultPage;
                         }
                     }
                     // Feed the per-state width registry.
-                    // Left/right are served by the cached Loaders (which
-                    // release their own pin onLoaded), so this must NOT
-                    // touch widthOverride — the empty page loads instantly
-                    // and would clear the exclusive-open pin before the
-                    // async island arrives.
                     onLoaded: {
                         if (item && item["monitorName"] !== undefined)
                             item.monitorName = root.monitorName;
                         if (item && item["screenHeight"] !== undefined)
                             item.screenHeight = root.screenHeight;
+                        // Recording is owned by the secondary pill — don't
+                        // pollute its width cache with default-page metrics.
+                        if (stack.current === "recording")
+                            return;
                         var mw = item ? Math.max(item.width || 0, item.implicitWidth || 0) : 0;
                         if (mw > 0) {
                             var c = Object.assign({}, stack.widthCache);
@@ -696,10 +554,6 @@ PanelWindow {
                 Component {
                     id: defaultPage
                     DefaultBar {}
-                }
-                Component {
-                    id: recordingPage
-                    RecordingIsland {}
                 }
                 Component {
                     id: playerPage
@@ -733,18 +587,147 @@ PanelWindow {
                     id: wallpaperPage
                     WallpaperIsland {}
                 }
-                Component {
-                    id: emptyPage
-                    Item {}
+            }
+        }
+
+        Component {
+            id: leftPage
+            LeftIsland {}
+        }
+        Component {
+            id: rightPage
+            RightIsland {}
+        }
+
+        // ---- left side pill (independent of the main pill) ----
+        // Owns the left island in a forever-alive cached Loader: created
+        // lazily on first open, then visibility-toggled so tab/scroll/
+        // chat/booru state survives closes.
+        Rectangle {
+            id: leftPill
+            // Docked to the left screen edge, outermost; the main pill yields.
+            x: 8
+            y: Settings.barOrientation ? 0 : parent.height - height
+            width: Settings.leftPanelWidth
+            height: Math.max(400, root.screenHeight - 15)
+            visible: BarState.leftOpen && root.barVisible
+            bottomRightRadius: Theme.radius
+            bottomLeftRadius: Theme.radius
+            color: Theme.surface
+            property bool primed: false
+            onVisibleChanged: {
+                if (visible) {
+                    if (!leftPill.primed) {
+                        leftPill.primed = true;
+                    } else {
+                        if (leftLoader.item && leftLoader.item["cancelPendingHide"] !== undefined)
+                            leftLoader.item.cancelPendingHide();
+                        if (leftLoader.item && leftLoader.item["expand"] !== undefined) {
+                            leftLoader.item.expand = 0;
+                            (function (target) {
+                                Qt.callLater(function () {
+                                    if (target)
+                                        target.expand = 1;
+                                });
+                            })(leftLoader.item);
+                        }
+                    }
                 }
-                Component {
-                    id: leftPage
-                    LeftIsland {}
+            }
+            Loader {
+                id: leftLoader
+                anchors.fill: parent
+                active: leftPill.primed
+                visible: leftPill.visible
+                asynchronous: false
+                sourceComponent: leftPage
+                onLoaded: {
+                    if (item && item["monitorName"] !== undefined)
+                        item.monitorName = root.monitorName;
+                    if (item && item["screenHeight"] !== undefined)
+                        item.screenHeight = root.screenHeight;
+                    if (item && item["screen"] !== undefined)
+                        item.screen = root.screen;
                 }
-                Component {
-                    id: rightPage
-                    RightIsland {}
+            }
+        }
+
+        // ---- right side pill (independent of the main pill) ----
+        Rectangle {
+            id: rightPill
+            // Docked to the right screen edge, outermost; the main pill
+            // and recording yield.
+            x: parent.width - width - 8
+            y: Settings.barOrientation ? 0 : parent.height - height
+            width: Settings.rightPanelWidth
+            height: Math.max(400, root.screenHeight - 15)
+            visible: BarState.rightOpen && root.barVisible
+            bottomRightRadius: Theme.radius
+            bottomLeftRadius: Theme.radius
+            color: Theme.surface
+            property bool primed: false
+            onVisibleChanged: {
+                if (visible) {
+                    if (!rightPill.primed) {
+                        rightPill.primed = true;
+                    } else {
+                        if (rightLoader.item && rightLoader.item["cancelPendingHide"] !== undefined)
+                            rightLoader.item.cancelPendingHide();
+                        if (rightLoader.item && rightLoader.item["expand"] !== undefined) {
+                            rightLoader.item.expand = 0;
+                            (function (target) {
+                                Qt.callLater(function () {
+                                    if (target)
+                                        target.expand = 1;
+                                });
+                            })(rightLoader.item);
+                        }
+                    }
                 }
+            }
+            Loader {
+                id: rightLoader
+                anchors.fill: parent
+                active: rightPill.primed
+                visible: rightPill.visible
+                asynchronous: false
+                sourceComponent: rightPage
+                onLoaded: {
+                    if (item && item["monitorName"] !== undefined)
+                        item.monitorName = root.monitorName;
+                    if (item && item["screenHeight"] !== undefined)
+                        item.screenHeight = root.screenHeight;
+                }
+            }
+        }
+
+        // ---- secondary pill (recording) ----
+        // Chained right of the main pill; the right pill sits outermost
+        // after it. Owns the recording island so ScreenRecorder never
+        // hijacks the main pill: visible only while recording, hidden
+        // with the bar (fullscreen/conceal). Glides when pushed.
+        Rectangle {
+            id: secondaryPill
+            // Rigid chain right of the main pill (no Behavior — tracks
+            // per-frame, coupled to the main pill's own motion).
+            x: pill.x + pill.width + 8
+            y: Settings.barOrientation ? 0 : parent.height - height
+            height: root.barHeight
+            width: secondaryLoader.item ? (secondaryLoader.item.implicitWidth + 10) : 190
+            visible: ScreenRecorder.isRecording && root.barVisible
+            bottomRightRadius: Theme.radius
+            bottomLeftRadius: Theme.radius
+            color: Theme.surface
+
+            Loader {
+                id: secondaryLoader
+                anchors.centerIn: parent
+                active: secondaryPill.visible
+                sourceComponent: secondaryRecordingPage
+            }
+            Component {
+                id: secondaryRecordingPage
+                RecordingIsland {}
             }
         }
 

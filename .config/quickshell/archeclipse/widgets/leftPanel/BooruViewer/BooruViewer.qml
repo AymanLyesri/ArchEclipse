@@ -290,13 +290,13 @@ Item {
         _closeTimer.stop();
     }
 
-    // Island closed (BarState leaves "left") → a docked card's popup
+    // Island closed (BarState.leftOpen goes false) → a docked card's popup
     // surface would stay on screen orphaned, so drop it. A detached
     // card is its own window and stays open until explicitly closed.
     Connections {
         target: BarState
-        function onStateChanged() {
-            if (BarState.state !== "left" && !root.dialogDetached)
+        function onLeftOpenChanged() {
+            if (!BarState.leftOpen && !root.dialogDetached)
                 root.closeDialogNow();
         }
     }
@@ -1233,7 +1233,7 @@ Item {
         // an orphan popup on screen. closeDialogNow() clears the image
         // right after; this guard covers the debounce gap. Hidden while
         // detached — the card lives in the FloatingWindow below instead.
-        visible: root.dialogImage !== null && !root.dialogDetached && BarState.state === "left" && (!root.hostPanel || root.hostPanel.selectedWidget === "BooruViewer")
+        visible: root.dialogImage !== null && !root.dialogDetached && BarState.leftOpen && (!root.hostPanel || root.hostPanel.selectedWidget === "BooruViewer")
         color: "transparent"
         // Clickthrough everywhere except the card: the surface is
         // viewer-tall, so without this the transparent strip would eat

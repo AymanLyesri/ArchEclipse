@@ -6,8 +6,8 @@ import qs.services
 // Hot-zone strips at the bar's left/right ends — reveal the left/right
 // islands immediately on hover (no dwell). Per-side lock + hotZone toggle;
 // click also reveals (harmless extra, helps touch users).
-// The islands live inside the bar pill (BarState "left"/"right"), so the
-// bar slides toward the hovered side and unfolds the island as one unit.
+// The islands live in side pills beside the bar pill (BarState
+// leftOpen/rightOpen flags), so hover just reveals the pill in place.
 Rectangle {
     id: root
 

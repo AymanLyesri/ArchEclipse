@@ -119,7 +119,13 @@ Item {
             const bar = Registry.get("capture-bar-" + root.monitor);
             if (!bar) return root.reply({ok: false, error: "Bar unavailable"});
             const info = bar.captureGeometry();
-            let ready = info.visible && info.displayed === root.desiredState && BarState.state === root.desiredState;
+            let ready = info.visible;
+            if (root.desiredState === "left")
+                ready = ready && BarState.leftOpen;
+            else if (root.desiredState === "right")
+                ready = ready && BarState.rightOpen;
+            else
+                ready = ready && info.displayed === root.desiredState && BarState.state === root.desiredState;
             const images = {loading: 0, errors: 0, wallpaperFound: false};
             root.inspectImages(bar.captureItem, images);
             ready = ready && images.loading === 0;
