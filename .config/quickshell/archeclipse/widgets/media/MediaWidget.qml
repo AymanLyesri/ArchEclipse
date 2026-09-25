@@ -21,7 +21,7 @@ Item {
     // parent (e.g. PlayerIsland) derive their size from these instead
     // of hardcoding width/height.
     implicitWidth: 400
-    implicitHeight: 170
+    implicitHeight: (root.player !== null && root.hasLyrics) ? 242 : 170
 
     // Pick active player: the PLAYING one, else the first.
     // Mpris.players is an
@@ -51,6 +51,67 @@ Item {
     property string title: root.player?.trackTitle ?? "Unknown Track"
     property string artist: root.player?.trackArtist ?? "Unknown Artist"
     property string artUrl: root.player?.trackArtUrl ?? ""
+    property string album: root.player?.trackAlbum ?? ""
+
+    // LRCLIB lyrics — always visible, Spotify-style 3-line window
+    // (previous dim / current accent / next plain).
+
+    function fetchLyrics() {
+        if (root.player === null)
+            return;
+        Lyrics.positionSec = root.player?.position ?? 0;
+        Lyrics.fetchFor(root.artist, root.title, root.album,
+            Math.round(root.player?.length ?? 0));
+    }
+
+    // True once LRCLIB returns usable lyric content; the section
+    // collapses to zero height otherwise so it never takes space.
+    readonly property bool hasLyrics: Lyrics.status === "ready-synced" || Lyrics.status === "ready-plain"
+
+    // 3-line window over the synced lines, clamped into range.
+    // currentIndex -1 (before the first line) shows from the top.
+    readonly property int lyricCursor: {
+        const n = (Lyrics.lines || []).length;
+        if (n === 0)
+            return -1;
+        return Math.max(0, Math.min(Lyrics.currentIndex, n - 1));
+    }
+    function lyricLineAt(offset) {
+        const arr = Lyrics.lines || [];
+        const i = root.lyricCursor + offset;
+        if (root.lyricCursor < 0 || i < 0 || i >= arr.length)
+            return "";
+        return arr[i].text || "";
+    }
+    function lyricTimeAt(offset) {
+        const arr = Lyrics.lines || [];
+        const i = root.lyricCursor + offset;
+        if (root.lyricCursor < 0 || i < 0 || i >= arr.length)
+            return -1;
+        return Number(arr[i].t);
+    }
+    // Plain-lyrics fallback: proportional 3-line window (no timestamps).
+    function plainWindow() {
+        const raw = String(Lyrics.plainText || "").split("\n");
+        const arr = [];
+        for (let i = 0; i < raw.length; i++) {
+            const t = raw[i].trim();
+            if (t !== "")
+                arr.push(t);
+        }
+        if (arr.length === 0)
+            return ["", "", ""];
+        const dur = root.player?.length ?? 0;
+        let idx = 0;
+        if (dur > 0)
+            idx = Math.floor((Lyrics.positionSec / dur) * arr.length);
+        idx = Math.max(0, Math.min(idx, arr.length - 1));
+        return [
+            idx > 0 ? arr[idx - 1] : "",
+            arr[idx],
+            idx + 1 < arr.length ? arr[idx + 1] : ""
+        ];
+    }
 
     // Resolve the player's app icon via its MPRIS DesktopEntry (DefaultBar
     // playerIconSource parity) with identity fallbacks, then through
@@ -108,10 +169,35 @@ Item {
         }
     }
 
-    function fmt(usec) {
-        if (!usec || usec <= 0)
+    // Track identity change → refetch lyrics (fetchLyrics self-guards
+    // on lyricsOpen/player, so these are cheap when closed).
+    onTitleChanged: root.fetchLyrics()
+    onArtistChanged: root.fetchLyrics()
+    onAlbumChanged: root.fetchLyrics()
+
+    // Keep MPRIS position fresh: quickshell only pushes position on
+    // nonlinear jumps, so poll while a player exists (docs-sanctioned
+    // positionChanged() emission). Refreshes the time label, progress
+    // ring and the lyrics highlighter below.
+    Timer {
+        interval: 500
+        running: root.player !== null
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            if (!root.player)
+                return;
+            if (root.player.playbackState === MprisPlaybackState.Playing)
+                root.player.positionChanged();
+            Lyrics.positionSec = root.player.position ?? 0;
+        }
+    }
+
+    function fmt(sec) {
+        if (!sec || sec <= 0)
             return "0:00";
-        const s = Math.floor(usec / 1e6);
+        // MPRIS position/length arrive in seconds (ms precision).
+        const s = Math.floor(sec);
         const m = Math.floor(s / 60), ss = s % 60;
         return m + ":" + (ss < 10 ? "0" : "") + ss;
     }
@@ -287,16 +373,58 @@ Item {
                 }
             }
 
-            // Flexible spacer: absorbs extra vertical space when the
-            // widget is stretched (e.g. app-launcher left pane), pinning
-            // controls + slider toward the bottom while keeping the
-            // compact 170px layout unchanged (minimum height 6).
+            // LRCLIB lyrics — always-visible Spotify-style 3-line window
+            // (previous dim / current accent / next plain). Synced lines
+            // click-to-seek via absolute position write; plain fallback
+            // shows a proportional window. Fixed 64px so the widget
+            // implicitHeight stays exact (170 + 8 + 64 = 242).
             Item {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: 6
-                Layout.preferredHeight: 6
+                Layout.preferredHeight: root.hasLyrics ? 64 : 0
+                Layout.minimumHeight: 0
+                visible: root.hasLyrics
+                clip: true
+
+                Column {
+                    anchors.fill: parent
+                    spacing: 0
+
+                    Repeater {
+                        model: 3
+                        delegate: Item {
+                            width: parent.width
+                            height: 24
+
+                            property int lineOffset: index - 1
+                            property string lineText: Lyrics.status === "ready-synced"
+                                ? root.lyricLineAt(lineOffset) : root.plainWindow()[index]
+                            property real lineTime: Lyrics.status === "ready-synced"
+                                ? root.lyricTimeAt(lineOffset) : -1
+
+                            Label {
+                                anchors.fill: parent
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                text: parent.lineText
+                                color: index === 1 ? Theme.accent : (index === 0 ? Theme.fgDim : Theme.fg)
+                                font.bold: index === 1
+                                font.pixelSize: index === 1 ? Theme.fontSize + 1 : Theme.fontSize - 1
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton
+                                preventStealing: false
+                                propagateComposedEvents: true
+                                enabled: parent.lineTime >= 0 && (root.player?.canSeek ?? false)
+                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                onClicked: root.player.position = parent.lineTime
+                            }
+                        }
+                    }
+                }
             }
+
 
             // Position/length + controls
             // RowLayout with compressible buttons + spacers: the 5-piece
@@ -408,8 +536,12 @@ Item {
                     }
                     onReleased: mouse => {
                         if (root.scrubbing) {
-                            root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
-                            root.player?.seek(root.scrubPos);
+                            const len = root.player?.length ?? 0;
+                            root.scrubPos = Math.max(0, Math.min(mouse.x / width * len, len));
+                            // Absolute write: seek(offset) is relative per the
+                            // MprisPlayer docs, so it can't land a drag.
+                            if (root.player && (root.player.canSeek ?? false))
+                                root.player.position = root.scrubPos;
                             root.scrubbing = false;
                         }
                     }

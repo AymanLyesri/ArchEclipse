@@ -26,7 +26,7 @@ PanelWindow {
         right: true
     }
     exclusiveZone: -1
-    implicitHeight: 240
+    implicitHeight: mediaRect.height + 24
     color: "transparent"
     visible: false
 
@@ -37,8 +37,10 @@ PanelWindow {
     Component.onCompleted: Registry.register(`media-panel-${monitorName}`, root)
 
     Rectangle {
+        id: mediaRect
         width: 420
-        height: 240
+        // Closed lyrics keep the original 240px card; open lyrics grow it.
+        height: Math.max(240, media.implicitHeight + 24)
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.margins: 12
@@ -48,6 +50,7 @@ PanelWindow {
         border.color: Theme.border
 
         MediaWidget {
+            id: media
             anchors.fill: parent
             anchors.margins: 12
         }

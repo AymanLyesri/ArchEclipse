@@ -104,6 +104,13 @@ Singleton {
     property string _playerKey: ""
     property bool _playerFirstRender: true
     property int playerEvents: 0
+    // Startup grace: MPRIS players/metadata populate asynchronously over
+    // the first seconds after bar init (list bind, then title/artist/url
+    // trickling in). The first-render guard only covers the single
+    // synchronous setup call, so those staged arrivals look like new
+    // items and pop the island on every (re)start. While true, updates
+    // only refresh the baseline key, never pulse.
+    property bool _playerStarting: true
 
     // Network pulse tracking
     property var _networkDevice: null
@@ -136,6 +143,15 @@ Singleton {
         setupPlayerWatcher();
         // Setup network watcher
         setupNetworkWatcher();
+
+        // End the MPRIS startup grace a few seconds after init (see
+        // _playerStarting): late-arriving initial metadata must not pulse.
+        const grace = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: 5000 }', root);
+        grace.triggered.connect(() => {
+            root._playerStarting = false;
+            grace.destroy();
+        });
+        grace.start();
 
         // Hyprland event tick — re-evaluates the geometric smart-hide room
         // check when clients move/resize (client moves don't re-emit a
@@ -388,6 +404,10 @@ Singleton {
 
         // Player gone or thumbnail-preview noise — record, don't pulse
         if (!player || isPreviewUpdate(player))
+            return;
+
+        // Startup grace — record the baseline above, never pulse
+        if (root._playerStarting)
             return;
 
         root.activate("player", 2500);

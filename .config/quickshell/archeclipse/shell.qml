@@ -7,7 +7,6 @@ import qs.widgets.bar
 import qs.widgets.launcher
 import qs.widgets.lock
 import qs.widgets.media
-import qs.widgets.notifications
 
 // ArchEclipse shell — multi-monitor via Variants over Quickshell.screens.
 // Each window is instantiated once per monitor.
@@ -32,18 +31,6 @@ ShellRoot {
     Ipc {
     }
     CaptureIpc {
-    }
-
-    // per-monitor notification popups
-    Variants {
-        model: Quickshell.screens
-
-        NotificationPopups {
-            required property ShellScreen modelData
-
-            screen: modelData
-        }
-
     }
 
     // per-monitor bar (the main reference implementation)
@@ -81,7 +68,8 @@ ShellRoot {
 
     // Left/right content lives in side pills flanking the main bar pill
     // (leftPill/rightPill in Bar.qml, bodies in widgets/bar/islands).
-    // SUPER+L/R and the bar HotZones route to the pills — no separate
-    // side-panel windows, no exclusive zones.
+    // Notification toasts live in a centered pill below the main pill
+    // (NotificationPopups in Bar.qml). SUPER+L/R and the bar HotZones
+    // route to the pills — no separate side-panel windows, no exclusive zones.
 
 }

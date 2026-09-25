@@ -58,6 +58,8 @@ urls_images_sfw = [
     "https://cdn.donmai.us/original/15/5f/__original_drawn_by_ichika_ichika87__155f5d20f012fe915a3213edd53b22ab.jpg",
     "https://cdn.donmai.us/original/fd/e0/__ninomae_ina_nis_hololive_and_1_more_drawn_by_aqby69__fde0698714dc6c06e87952a1ef329602.jpg",
     "https://cdn.donmai.us/original/60/c8/__narantuya_arknights_drawn_by_helen_zzhao__60c81c2ace0b77d39c2537d4182d430f.jpg",
+    "https://cdn.donmai.us/original/08/d0/__luci_hexia_drawn_by_damcheong__08d0e1c429ef1d88c0cd274cb75cbf86.jpg",
+    "https://cdn.donmai.us/original/40/57/__yoru_mitaka_asa_pochita_war_devil_and_bucky_chainsaw_man_drawn_by_eaechas__40574201912be4a9dec5589b3374350c.jpg",
 ]
 
 urls_images_nsfw = [
@@ -125,6 +127,11 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/7d/64/__columbina_and_sandrone_genshin_impact_drawn_by_swkl_d__7d64fa916efdd667c932b9d86764dd1d.jpg",
     "https://cdn.donmai.us/original/58/57/__makima_chainsaw_man_drawn_by_izei1337__58577761e142e76c0da9263556e52283.jpg",
     "https://cdn.donmai.us/original/3c/77/__prinz_moritz_azur_lane__3c7795af9ae9b14715a33c33eb584651.png",
+    "https://cdn.donmai.us/original/7f/82/__kuchiki_rukia_bleach_and_1_more_drawn_by_esmile__7f8202975e7ff266c5d3853adb48a31c.jpg",
+    "https://cdn.donmai.us/original/df/1a/__original_drawn_by_esmile__df1a25e0c1112eedc8db70c1a9998b97.jpg",
+    "https://cdn.donmai.us/original/41/34/__hakuhou_azur_lane_drawn_by_yunsang__41349e7a65cb2c05b04c22df5580a316.png",
+    "https://cdn.donmai.us/original/c1/4c/__power_chainsaw_man_drawn_by_esmile__c14cf324d6644a3cc16910f84e005eae.jpg",
+    "https://cdn.donmai.us/original/56/20/__gwen_irelia_galio_and_mythmaker_gwen_league_of_legends_drawn_by_shen_fan__5620a8c6ea0f208f5b89d65a6c39b418.jpg",
 ]
 
 urls_animated_sfw = [
@@ -388,9 +395,7 @@ def _download_category(category: str, urls: list[str]) -> None:
             print(f"Failed: {filename}")
 
     print("Quarantining unmanaged files (kept, not deleted)...")
-    quarantine_dir = (
-        Path.home() / ".cache/archeclipse-wallpaper-quarantine" / category
-    )
+    quarantine_dir = Path.home() / ".cache/archeclipse-wallpaper-quarantine" / category
     quarantined = 0
     for file in folder.iterdir():
         # Directories (wallhaven/, custom collections, anything else) and

@@ -8,6 +8,7 @@ import qs.services
 import qs.widgets.bar
 import qs.widgets.bar.islands
 import qs.widgets.launcher
+import qs.widgets.notifications
 import qs.widgets.shared
 
 // Port of widgets/bar/Bar.tsx — the floating ArchEclipse bar pill.
@@ -63,6 +64,9 @@ PanelWindow {
         }
         Region {
             item: secondaryPill.visible ? secondaryPill : null
+        }
+        Region {
+            item: notifPill.visible ? notifPill : null
         }
         Region {
             item: leftHot
@@ -715,12 +719,9 @@ PanelWindow {
                 expand: secondaryPill.openT
                 contentHeight: secondaryPill.height
                 anchors.top: parent.top
-                Rectangle {
-                    color: Theme.surface
+                Item {
                     width: parent.width
                     height: secondaryPill.height
-                    bottomRightRadius: Theme.radius
-                    bottomLeftRadius: Theme.radius
                     Loader {
                         id: secondaryLoader
                         anchors.centerIn: parent
@@ -733,6 +734,19 @@ PanelWindow {
                 id: secondaryRecordingPage
                 RecordingIsland {}
             }
+        }
+
+        // ---- notification pill (centered below the main pill) ----
+        // Owns the toast stack so popups never need a separate window.
+        // Stays clickable/mapped on toasts alone: the window visible flag
+        // below ORs barVisible with notifPill.hasContent.
+        NotificationPopups {
+            id: notifPill
+            pillX: pill.x
+            pillY: pill.y
+            pillW: pill.width
+            pillH: pill.height
+            topBar: Settings.barOrientation
         }
 
         // ---- hot zones (left/right island reveal strips) ----
@@ -752,5 +766,7 @@ PanelWindow {
         }
     }
 
-    visible: barVisible
+    // The toast pill maps on toasts alone so notifications survive a
+    // concealed bar (the old separate window always did).
+    visible: barVisible || notifPill.hasContent
 }

@@ -43,10 +43,15 @@ start() {
     timestamp=$(date +%Y%m%d_%H%M%S)
 
     # Audio source is optional: a broken value must not kill the recording.
+    # NOTE: wf-recorder's -a takes an OPTIONAL arg (getopt "a::"), so the
+    # device must be attached ("-afoo") or long-opt ("--audio=foo").
+    # "-a foo" with a space leaves optarg NULL and silently records the
+    # Pulse default source (here: audiorelay-virtual-mic-sink = silence).
     audio_args=()
     if sink=$(pactl get-default-sink 2>/dev/null) && [[ -n "$sink" ]]; then
-        audio_args=(-a "${sink}.monitor")
+        audio_args=("--audio=${sink}.monitor")
     fi
+    slog "start audio sink=[${sink:-UNSET}] args=[${audio_args[*]:-none}]"
 
     if [[ "$1" == "--area" ]]; then
         # A single trigger must never stack two selectors: two slurp

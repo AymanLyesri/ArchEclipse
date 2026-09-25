@@ -321,7 +321,18 @@ Column {
                                         return h;
                                     }
                                 case "Media":
-                                    return 170;
+                                    {
+                                        // Dynamic like NotificationHistory /
+                                        // SystemResources below: follow the
+                                        // widget's implicitHeight (250 with
+                                        // lyrics, 170 with no player) instead
+                                        // of a fixed guess, which clipped the
+                                        // lyrics rows.
+                                        const measured = widgetLoader.item ? widgetLoader.item.implicitHeight : 0;
+                                        if (measured > 0)
+                                            return measured;
+                                        return 250;
+                                    }
                                 case "NotificationHistory":
                                     {
                                         // Dynamic: follow the widget's measured
