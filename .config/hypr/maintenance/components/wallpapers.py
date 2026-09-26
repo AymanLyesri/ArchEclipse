@@ -80,7 +80,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/2c/6f/__mizugaiya_original_drawn_by_proxyl__2c6f048f4e1786ccb7941d5367b9fcaf.png",
     "https://cdn.donmai.us/original/39/8d/__original_drawn_by_ribao__398db021670fbf4ca9b6843fef5171e9.png",
     "https://cdn.donmai.us/original/7b/33/__original_drawn_by_swkl_d__7b333431520df7632406ad70186671eb.jpg",
-    "https://cdn.donmai.us/original/1b/1f/__original_drawn_by_tu_er_tm__1b1fabdc9969afff10e57a00bd8be84e.jpg",
     "https://cdn.donmai.us/original/41/ae/__original_drawn_by_tuweibu__41ae2e99e1d5e2443d7582b83e05ef48.jpg",
     "https://cdn.donmai.us/original/0d/02/__rebecca_lucy_and_dorio_cyberpunk_and_1_more_drawn_by_feguimel__0d026f4ad56695ddb81e31f54337ea7a.jpg",
     "https://cdn.donmai.us/original/72/ae/__robin_honkai_and_1_more_drawn_by_swkl_d__72aeec3f718f00424689c5124f13563f.jpg",
@@ -103,7 +102,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/0c/b9/__oshino_shinobu_monogatari_drawn_by_mika_pikazo__0cb93c971cdc7962d2aa8e313d76e649.jpg",
     "https://cdn.donmai.us/original/b3/f3/__yamamura_sadako_the_ring_drawn_by_esmile__b3f35e1cc8af78f3df37b3f28ec459ab.jpg",
     "https://cdn.donmai.us/original/d4/0b/__original_drawn_by_themaestronoob__d40b6c46fa83cbb615ed53e26c323f3a.jpg",
-    "https://cdn.donmai.us/original/9c/7b/__drawn_by_esmile__9c7baa96bf9e9c166f2b3246e67b1cbd.jpg",
     "https://cdn.donmai.us/original/fb/e4/__kes_indie_virtual_youtuber_drawn_by_esmile__fbe4bf40812d3b36f9f8065cb186e6d6.jpg",
     "https://cdn.donmai.us/original/6a/c4/__heyimbee_indie_virtual_youtuber_drawn_by_peesh_san__6ac459163a7cc5a7434640911c9a44fc.png",
     "https://cdn.donmai.us/original/10/d3/__original_drawn_by_wangdaye__10d369ce4cc5794e673fd1fb4f076608.jpg",
@@ -132,6 +130,7 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/41/34/__hakuhou_azur_lane_drawn_by_yunsang__41349e7a65cb2c05b04c22df5580a316.png",
     "https://cdn.donmai.us/original/c1/4c/__power_chainsaw_man_drawn_by_esmile__c14cf324d6644a3cc16910f84e005eae.jpg",
     "https://cdn.donmai.us/original/56/20/__gwen_irelia_galio_and_mythmaker_gwen_league_of_legends_drawn_by_shen_fan__5620a8c6ea0f208f5b89d65a6c39b418.jpg",
+    "https://cdn.donmai.us/original/33/e0/__yoru_chainsaw_man_drawn_by_esmile__33e0af29457cad2eaa7716717e166b04.jpg",
 ]
 
 urls_animated_sfw = [
@@ -231,49 +230,25 @@ def _normalize_existing_animated_files(folder: Path, category: str) -> None:
                 print(f"Renamed extension-less video: {file.name} -> {renamed.name}")
 
 
-def _get_category_size(urls: Iterable[str]) -> int:
-    if not urls:
-        return 0
-
-    result = run_cmd(
-        ["curl", "--parallel", "--parallel-immediate", "-sI", *urls],
-        capture_output=True,
-        check=False,
-    )
-    sizes = re.findall(
-        r"Content-Length:\s*(\d+)", result.stdout or "", flags=re.IGNORECASE
-    )
-    total = sum(int(value) for value in sizes)
-    return int(total / 1024 / 1024)
-
-
 def display_wallpaper_table() -> None:
     print(f"{BOLD}{CYAN}{'=' * 60}{NC}")
     print(f"{BOLD}{MAGENTA}WALLPAPER INSTALLATION MENU{NC}")
     print(f"{BOLD}{CYAN}{'=' * 60}{NC}")
     print("")
 
-    print(f"{YELLOW}Calculating wallpaper sizes...{NC}")
-    print("")
-
     total_count = 0
-    total_size = 0
 
-    print(
-        f"{BOLD}{CYAN}{'CATEGORY':<14}{NC} {BOLD}{CYAN}{'COUNT':>7}{NC} {BOLD}{CYAN}{'SIZE (MB)':>12}{NC}"
-    )
+    print(f"{BOLD}{CYAN}{'CATEGORY':<14}{NC} {BOLD}{CYAN}{'COUNT':>7}{NC}")
 
     for category, var_name in CATEGORIES.items():
         urls = globals()[var_name]
         count = len(urls)
-        size = _get_category_size(urls)
 
         total_count += count
-        total_size += size
 
-        print(f"{category:<14} {count:>7} {size:>12} MB")
+        print(f"{category:<14} {count:>7}")
 
-    print(f"{'TOTAL':<14} {total_count:>7} {total_size:>12} MB")
+    print(f"{'TOTAL':<14} {total_count:>7}")
     print("")
 
 

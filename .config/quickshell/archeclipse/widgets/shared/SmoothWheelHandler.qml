@@ -13,7 +13,7 @@ WheelHandler {
     id: root
 
     required property Flickable target
-    property real wheelScale: 28
+    property real wheelScale: 16
 
     property real velX: 0
     property real velY: 0

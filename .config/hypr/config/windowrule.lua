@@ -39,12 +39,12 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    match = { class = "^(steam_app_\\d+|.+\\.exe|Minecraft.*)$" },
+    match = { class = "^(steam_app_.*|.+\\.exe|Minecraft.*)$" },
     workspace = "10 silent",
 })
 
 hl.window_rule({
-    match = { class = "^(steam_app_\\d+|.+\\.exe|Emulator)$" },
+    match = { class = "^(steam_app_.*|.+\\.exe|Emulator)$" },
     opacity = "1 override 1 override",
 })
 

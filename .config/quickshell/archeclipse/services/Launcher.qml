@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import qs.theme
 import qs.services
 
@@ -34,6 +35,14 @@ QtObject {
     property var results: []
     property int selectedIndex: 0
     property string lastQuery: ""
+    // Preset query for keybind opens (SUPER+SHIFT+V clipboard, SUPER+A apps,
+    // etc.): Ipc sets this BEFORE BarState.activate("search"), and
+    // LauncherPanel consumes it on creation / state change. Needed because
+    // the panel resets to default ("") on both paths, clobbering any
+    // runQuery issued before activation (its onCompleted runs after the Ipc
+    // call returns). Direct apply when search is already open (no
+    // creation/reset happens then) — see Ipc clipboard/emojis/notes/apps.
+    property string pendingQuery: ""
 
     // Emitted when a navigation row wants the search box to adopt its query
     // (e.g. activating "cb ..." fills "cb " so typing continues from there).
@@ -173,13 +182,64 @@ QtObject {
     function activateSelected() {
         const r = results[selectedIndex];
         if (r && r.launch) {
-            r.launch();
             // Navigation rows (keepOpen) only refill the query — the
-            // launcher must stay open to show the new results.
+            // launcher must stay open to show the new results. Real
+            // launches drop the search island BEFORE spawning so the
+            // bar's Exclusive keyboard grab releases first and the new
+            // app receives focus instead of the bar keeping it.
+            if (r.keepOpen !== true) {
+                BarState.deactivate("search");
+                root.expectLaunchedWindow();
+            }
+            r.launch();
             return r.keepOpen === true;
         }
         // Nothing launched (info/placeholder row) — stay open.
         return true;
+    }
+
+    // ---- focus-steal for freshly launched apps ----
+    // Hyprland runs follow_mouse=1, so keyboard focus follows the cursor —
+    // which sits over the bar pill after a launch. A newly mapped client
+    // therefore never takes focus until the pointer moves onto it. Arm an
+    // expectation on every real launch; the next openwindow on the current
+    // workspace gets an explicit focus dispatch (same hl.dsp.focus syntax
+    // as OverviewBody.focusWindow — plain dispatch verbs are Lua syntax
+    // errors on this Hyprland). Window-less launches (wl-copy, theme
+    // scripts) simply expire via the timer below.
+    property int _expectWindows: 0
+    property Timer _expectTimer: Timer {
+        interval: 4000
+        repeat: false
+        onTriggered: root._expectWindows = 0
+    }
+    function expectLaunchedWindow() {
+        root._expectWindows++;
+        root._expectTimer.restart();
+    }
+    property Connections _hyprFocusConn: Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (root._expectWindows <= 0)
+                return;
+            // HyprlandIpcEvent object with .name/.data (cf.
+            // AutoWorkspaceSwitching) — openwindow data is
+            // ADDRESS,WORKSPACENAME,CLASS,TITLE with a bare-hex address.
+            if ((event?.name ?? "") !== "openwindow")
+                return;
+            const parts = String(event.data ?? "").split(",");
+            const addr = (parts[0] || "").trim().replace(/^0x/i, "");
+            if (addr === "")
+                return;
+            const wsName = (parts[1] || "").trim();
+            const cur = Hyprland.focusedWorkspace?.name ?? Hyprland.activeWorkspace?.name ?? "";
+            if (wsName !== "" && cur !== "" && wsName !== cur)
+                return; // background window elsewhere — don't yank, keep waiting
+            root._expectWindows = Math.max(0, root._expectWindows - 1);
+            if (root._expectWindows === 0)
+                root._expectTimer.stop();
+            Hyprland.dispatch(`hl.dsp.focus({window = "address:0x${addr}"})`);
+        }
     }
 
     // ---- result row factory ----
@@ -629,20 +689,30 @@ QtObject {
     }
 
     // ---- clipboard (cache/launcher/clipboard-history.json, written by clipboard-monitor.sh) ----
+    // watchChanges must stay true: the history file is written externally by
+    // clipboard-monitor.sh (wl-paste --watch), so a one-shot load goes stale
+    // and clipboardResults keeps returning "No clipboard match". text() is a
+    // method call so the index binding never re-fires on file change —
+    // refresh it explicitly via onLoaded (same reload() cycle as
+    // Brightness.qml), otherwise only a bar restart picks up new copies.
     property FileView _cbFile: FileView {
         path: root.clipboardPath
-        watchChanges: false
+        watchChanges: true
         printErrors: false
+        onLoaded: root._reloadClipboard()
+        onFileChanged: reload()
     }
-    property var _clipboardIndex: {
+    property var _clipboardIndex: []
+    function _reloadClipboard() {
         try {
-            return JSON.parse(_cbFile.text() || "[]");
+            const v = JSON.parse(_cbFile.text() || "[]");
+            _clipboardIndex = Array.isArray(v) ? v : [];
         } catch (e) {
-            return [];
+            _clipboardIndex = [];
         }
     }
     function clipboardResults(query) {
-        const q = query.toLowerCase();
+        const q = query.toLowerCase().trim();
         let out = [];
         for (const entry of _clipboardIndex) {
             const content = String(entry.content || "");

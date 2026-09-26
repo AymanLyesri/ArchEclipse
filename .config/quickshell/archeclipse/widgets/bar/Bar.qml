@@ -42,8 +42,12 @@ PanelWindow {
     }
 
     // layer-shell keyboard grab while the search island is open
-    // (the control island stays OnDemand so typing elsewhere keeps working)
-    WlrLayershell.keyboardFocus: BarState.state === "search" ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
+    // (the control island stays OnDemand so typing elsewhere keeps working).
+    // Bound to activeStates membership (not resolved state) so the grab
+    // releases the same tick deactivate() runs — resolved state lags ~100ms
+    // behind (debounceResolve), which kept Exclusive held while a freshly
+    // launched app mapped, stealing its focus back to the bar.
+    WlrLayershell.keyboardFocus: ("search" in BarState.activeStates) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
     WlrLayershell.exclusiveZone: Settings.barLock ? root.barHeight : -1
     color: "transparent"
     aboveWindows: true

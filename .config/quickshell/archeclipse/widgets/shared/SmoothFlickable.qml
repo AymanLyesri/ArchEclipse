@@ -23,10 +23,10 @@ Flickable {
     // maximumFlickVelocity lower for a slower feel).
     clip: true
     flickDeceleration: 1500
-    maximumFlickVelocity: 2500
+    maximumFlickVelocity: 1500
 
     // Per-notch gain: angleDelta.y=120 -> d=60 -> 60*scale velocity.
-    property real wheelScale: 28
+    property real wheelScale: 16
 
     SmoothWheelHandler {
         target: root

@@ -13,9 +13,15 @@ hl.on("hyprland.start", function()
     hl.exec_cmd(themeScriptsDir .. "/system-theme.sh apply")
     hl.exec_cmd("nm-applet")
     -- Single clipboard watcher: kill stale watchers first so reloads don't
-    -- stack duplicates, and avoid double-backgrounding (no `bash -c ... &`).
-    -- [w] trick keeps pkill from matching its own shell command line.
-    hl.exec_cmd("pkill -f '[w]l-paste --watch' 2>/dev/null; wl-paste --watch " ..
+    -- stack duplicates. Kill and start MUST be separate exec_cmds: a combined
+    -- "pkill ...; wl-paste --watch ..." runs in one `sh -c` whose own cmdline
+    -- contains "wl-paste --watch", so pkill matches and SIGTERMs its own
+    -- parent shell before the watcher ever starts (the [w] trick only hides
+    -- the pkill process itself, not the wrapping shell). Split, the killer
+    -- shell is short-lived (self-kill harmless) and the starter has no pkill
+    -- to match itself.
+    hl.exec_cmd("pkill -f '[w]l-paste --watch' 2>/dev/null; pkill -f '[c]lipboard-monitor.sh' 2>/dev/null; true")
+    hl.exec_cmd("wl-paste --watch " ..
     home .. "/.config/hypr/scripts/clipboard-monitor.sh")
     hl.exec_cmd("blueman-applet")
 end)

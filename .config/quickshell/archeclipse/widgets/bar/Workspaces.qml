@@ -37,6 +37,69 @@ Item {
     property bool _ready: false
     readonly property bool showIcons: root.expanded || root.hoverPeek
 
+    // --- new-client blink: 3 blinks on unfocused workspaces ---
+    // Tracks per-workspace client counts; a count increase on a
+    // non-focused workspace arms 6 half-blinks (3 full on/off cycles)
+    // at 220ms cadence. Map wid -> remaining ticks; reassigned whole
+    // so dependents re-evaluate (QML var-map pattern).
+    property var _counts: ({})
+    property bool _countsInit: false
+    property var blinking: ({})
+    property bool blinkPhase: true
+    readonly property var clientCounts: {
+        Hyprland.toplevels.values;
+        const m = {};
+        for (let i = 1; i <= root.count; i++)
+            m[i] = 0;
+        for (const t of Hyprland.toplevels.values) {
+            const id = t.workspace?.id ?? -1;
+            if (id >= 1 && id <= root.count)
+                m[id]++;
+        }
+        return m;
+    }
+    onClientCountsChanged: {
+        const cur = root.clientCounts;
+        if (!root._countsInit) {
+            root._counts = Object.assign({}, cur);
+            root._countsInit = true;
+            return;
+        }
+        const prev = root._counts;
+        const nb = Object.assign({}, root.blinking);
+        let touch = false;
+        for (let i = 1; i <= root.count; i++) {
+            const o = prev[i] ?? 0, n = cur[i] ?? 0;
+            if (n > o && i !== root.focusedId) {
+                nb[i] = 6;
+                touch = true;
+                root.requestExpand();
+            } else if (i === root.focusedId && nb[i] !== undefined) {
+                delete nb[i];
+                touch = true;
+            }
+        }
+        root._counts = Object.assign({}, cur);
+        if (touch)
+            root.blinking = nb;
+    }
+    Timer {
+        id: blinkTimer
+        interval: 220
+        repeat: true
+        running: Object.keys(root.blinking).length > 0
+        onTriggered: {
+            root.blinkPhase = !root.blinkPhase;
+            const nb = {};
+            for (const k in root.blinking) {
+                const r = root.blinking[k] - 1;
+                if (r > 0)
+                    nb[k] = r;
+            }
+            root.blinking = nb;
+        }
+    }
+
     Timer {
         id: readyTimer
         interval: 400
@@ -74,7 +137,14 @@ Item {
     }
 
     readonly property int focusedId: Hyprland.focusedWorkspace?.id ?? 1
-    onFocusedIdChanged: root.requestExpand()
+    onFocusedIdChanged: {
+        root.requestExpand();
+        if (root.blinking[root.focusedId] !== undefined) {
+            const nb = Object.assign({}, root.blinking);
+            delete nb[root.focusedId];
+            root.blinking = nb;
+        }
+    }
     Timer {
         id: peekTimer
         interval: root.peekDuration
@@ -137,6 +207,7 @@ Item {
                 const d = root.wsData[wid - 1];
                 return d ? d.occupied : false;
             }
+            readonly property bool alerting: root.blinking[wid] !== undefined
             readonly property string iconText: {
                 const d = root.wsData[wid - 1];
                 return d ? d.icon : WorkspaceIcons.emptyIcon;
@@ -165,8 +236,8 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: slot.iconText
-                        color: slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
-                        opacity: root.showIcons ? ((slot.focused || slot.occupied) ? 1.0 : 0.35) : 0
+                        color: slot.alerting ? Theme.accent : slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
+                        opacity: root.showIcons ? (slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : ((slot.focused || slot.occupied) ? 1.0 : 0.35)) : 0
                         font.family: Theme.fontFamily
                         font.pixelSize: root.iconSize
 
@@ -184,8 +255,8 @@ Item {
                     width: slot.width
                     height: root.barHeight
                     radius: root.barHeight / 2
-                    color: slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
-                    opacity: (slot.focused || slot.occupied) ? 1.0 : 0.35
+                    color: slot.alerting ? Theme.accent : slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
+                    opacity: slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : (slot.focused || slot.occupied) ? 1.0 : 0.35
 
                     Behavior on color {
                         ColorAnimation {

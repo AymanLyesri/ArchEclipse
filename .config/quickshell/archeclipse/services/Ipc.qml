@@ -26,6 +26,9 @@ Item {
                 BarState.deactivate("search");
                 return "search closed";
             }
+            // Generic open shows default recents: drop any stale preset so
+            // LauncherPanel's reset path isn't hijacked by an old pending.
+            Launcher.pendingQuery = "";
             BarState.activate("search", 0);
             return "search open";
         }
@@ -253,27 +256,42 @@ Item {
             return ScreenRecorder.toggleRecording(mode);
         }
 
+        // Keybind presets (clipboard/apps/notes/emojis): the search panel
+        // resets to default ("") on creation + state change, so a runQuery
+        // before activate gets clobbered. When search is already open the
+        // panel exists and no reset fires — apply directly. Otherwise stash
+        // the query in Launcher.pendingQuery and let LauncherPanel consume
+        // it after its reset (covers both sync and deferred Loader paths).
+        // activeStates is synchronous (state resolves 100ms later), so the
+        // membership test is race-free here.
+        function presetSearch(query: string): string {
+            if ("search" in BarState.activeStates) {
+                Launcher.fillInputRequested(query);
+                Launcher.runQuery(query);
+            } else {
+                Launcher.pendingQuery = query;
+                BarState.activate("search", 0);
+            }
+            return query;
+        }
+
         function clipboard(): string {
-            Launcher.runQuery("cb ");
-            BarState.activate("search", 0);
+            presetSearch("cb ");
             return "clipboard widget opened";
         }
 
         function emojis(): string {
-            Launcher.runQuery("emoji ");
-            BarState.activate("search", 0);
+            presetSearch("emoji ");
             return "emoji picker opened";
         }
 
         function notes(): string {
-            Launcher.runQuery("note ");
-            BarState.activate("search", 0);
+            presetSearch("note ");
             return "notes opened";
         }
 
         function apps(): string {
-            Launcher.runQuery("apps ");
-            BarState.activate("search", 0);
+            presetSearch("apps ");
             return "apps list opened";
         }
 

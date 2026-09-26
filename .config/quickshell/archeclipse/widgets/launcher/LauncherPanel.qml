@@ -131,9 +131,14 @@ Rectangle {
                 onClicked: {
                     if (!modelData.isHeader && modelData.launch) {
                         const keep = modelData.keepOpen === true;
-                        modelData.launch();
-                        if (!keep)
+                        // Drop the search island BEFORE spawning so the
+                        // bar's Exclusive grab releases first and the new
+                        // app receives focus (see Launcher.activateSelected).
+                        if (!keep) {
                             BarState.deactivate("search");
+                            Launcher.expectLaunchedWindow();
+                        }
+                        modelData.launch();
                     }
                 }
             }
@@ -144,7 +149,21 @@ Rectangle {
     // instantiated by the bar Loader AFTER BarState.state is already
     // "search", so onStateChanged below never fires for a fresh instance —
     // without this the first open shows an empty list.
-    Component.onCompleted: Launcher.runQuery("")
+    // Keybind presets (SUPER+SHIFT+V clipboard, SUPER+A apps, ...) stash
+    // their query in Launcher.pendingQuery before activating: consume it
+    // here (and on state change) instead of blanking it, or every preset
+    // open lands on generic recents.
+    function applyPendingOrDefault() {
+        if (Launcher.pendingQuery !== "") {
+            const q = Launcher.pendingQuery;
+            Launcher.pendingQuery = "";
+            Launcher.fillInputRequested(q);
+            Launcher.runQuery(q);
+        } else {
+            Launcher.runQuery("");
+        }
+    }
+    Component.onCompleted: applyPendingOrDefault()
 
     // keyboard nav comes from SearchIsland signals; reset state on close
     Connections {
@@ -152,7 +171,7 @@ Rectangle {
         function onStateChanged() {
             if (BarState.state === "search") {
                 Launcher.lastQuery = "";
-                Launcher.runQuery("");
+                root.applyPendingOrDefault();
             }
         }
     }

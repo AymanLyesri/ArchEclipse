@@ -415,14 +415,8 @@ Item {
     }
 
     // --- UI ---
-    // Auto-focus input on hover
-    HoverHandler {
-        target: root
-        onHoveredChanged: {
-            if (hovered && inputField)
-                inputField.forceActiveFocus();
-        }
-    }
+    // NOTE: no hover auto-focus on the input — stealing focus on hover
+    // clears mouse selection in the message TextEdits above.
 
     // NOTE: ColumnLayout (not Column) — children size via Layout.*
     // attached props; plain width/height bindings on managed children
@@ -532,12 +526,9 @@ Item {
                             }
                         }
 
-                        // Click to copy whole message (except code blocks)
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: root.copyMessage(modelData.content)
-                            cursorShape: Qt.PointingHandCursor
-                        }
+                        // Message text is mouse/keyboard selectable
+                        // (bubble-wide click-to-copy removed — it swallowed
+                        // drag gestures and blocked selection).
 
                         Column {
                             id: msgContent
@@ -554,19 +545,25 @@ Item {
                                 color: Theme.accent
                             }
 
-                            // Message content (flat Labels — no wrapper Column per
+                            // Message content (flat selectable TextEdits — no wrapper Column per
                             // block, so no extra spacing/implicitHeight per line)
                             Repeater {
                                 model: root.formatMessage(modelData.content)
-                                delegate: Label {
+                                delegate: TextEdit {
                                     property var txt: modelData.type === "list" ? "\u{2022} " + modelData.content : modelData.type === "ordered" ? "  " + modelData.content : modelData.type === "quote" ? "\u{276E} " + modelData.content : modelData.type === "header" ? modelData.content : modelData.content ?? ""
                                     text: modelData.type === "code" ? modelData.content : txt
                                     font.pixelSize: modelData.type === "header" ? Theme.fontSize + 2 : Theme.fontSize
                                     font.bold: modelData.type === "header"
                                     font.family: modelData.type === "code" ? "JetBrainsMono NFP" : Theme.fontFamily
                                     color: modelData.type === "code" ? Theme.fgDim : Theme.fg
-                                    wrapMode: Text.WordWrap
-                                    textFormat: modelData.type === "code" ? Text.PlainText : Text.RichText
+                                    selectionColor: Theme.accent
+                                    selectedTextColor: Theme.accentFg
+                                    wrapMode: TextEdit.WordWrap
+                                    textFormat: modelData.type === "code" ? TextEdit.PlainText : TextEdit.RichText
+                                    readOnly: true
+                                    selectByMouse: true
+                                    selectByKeyboard: true
+                                    activeFocusOnPress: true
                                     width: msgContent.width
                                     // Code blocks need room for the copy pill
                                     topPadding: modelData.type === "code" ? 22 : 0
