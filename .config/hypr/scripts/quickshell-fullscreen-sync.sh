@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # One-shot quickshell fullscreen sync, driven by Hyprland's
 # window.fullscreen / window.active / workspace.active events
-# (see exec.lua). Focused-only semantics: the shell dies only while
-# the FOCUSED window is fullscreen, so a background fullscreen on
+# (see exec.lua). Focused-only, game-gated semantics: the shell dies only
+# while the FOCUSED window is fullscreen AND its class matches the game
+# rules (windowrule.lua), so a background fullscreen on
 # another workspace/monitor never hides the bar, and leaving the
 # fullscreen window's workspace restores it. Idempotent: safe to run
 # on duplicate events (docs warn fullscreen can fire repeatedly
@@ -23,11 +24,19 @@ archeclipse_pids() {
     | grep -v -F 'ipc call' | awk '{print $1}' || true
 }
 
-# Focused-client fullscreen modes: 2 = fullscreen (3 = maximized-fullscreen).
+# Focused-client game-fullscreen gate: fullscreen modes 2 = fullscreen
+# (3 = maximized-fullscreen) AND class matches the game rules in
+# config/windowrule.lua (steam_app_.*, .+.exe, Minecraft.*, Emulator).
 # Plain maximize (1) must NOT kill the shell. Empty output (no focus)
-# counts as not fullscreen, so the shell is ensured up.
-focused_fullscreen() {
-    hyprctl activewindow -j 2>/dev/null | grep -q '"fullscreen": [23]'
+# or non-game class counts as not fullscreen, so the shell is ensured up.
+focused_game_fullscreen() {
+    local json class
+    json="$(hyprctl activewindow -j 2>/dev/null)" || return 1
+    [ -z "$json" ] && return 1
+    printf '%s' "$json" | grep -q '"fullscreen": [23]' || return 1
+    class="$(printf '%s' "$json" | sed -n 's/.*"class": *"\([^"]*\)".*/\1/p' | head -n1)"
+    [ -z "$class" ] && return 1
+    printf '%s' "$class" | grep -Eq '^(steam_app_.*|.+\.exe|Minecraft.*|Emulator)$'
 }
 
 exec 8>"$LOCK_FILE"
@@ -35,8 +44,8 @@ flock -w 10 8 || exit 1
 
 trace() { printf '%s %s\n' "$(date '+%H:%M:%S')" "$1" >>"$TRACE_LOG"; }
 
-if focused_fullscreen; then
-    trace "event: focused fullscreen, shell=$(archeclipse_pids | tr '\n' ' ')"
+if focused_game_fullscreen; then
+    trace "event: focused game fullscreen, shell=$(archeclipse_pids | tr '\n' ' ')"
     [ -z "$(archeclipse_pids)" ] && { trace "action: already dead, noop"; exit 0; }
     # Single kill implementation lives in bar.sh (TERM, grace wait, KILL).
     "$BAR_SH" --kill >/dev/null 2>&1
@@ -47,7 +56,7 @@ if focused_fullscreen; then
     fi
     exit 0
 else
-    trace "event: focused not fullscreen, shell=$(archeclipse_pids | tr '\n' ' ')"
+    trace "event: focused not game-fullscreen, shell=$(archeclipse_pids | tr '\n' ' ')"
     [ -n "$(archeclipse_pids)" ] && { trace "action: already up, noop"; exit 0; }
     # Close the lock fd before spawning: otherwise bar.sh's long-lived
     # `qs` daemon inherits it and holds our lock forever (same class
