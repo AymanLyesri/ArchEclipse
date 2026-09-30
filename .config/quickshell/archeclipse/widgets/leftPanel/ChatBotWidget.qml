@@ -34,6 +34,13 @@ Item {
     // Provider list (from api.constants.ts)
     property var providers: [
         {
+            name: "OpenRouter Free",
+            value: "openrouter/free",
+            icon: "ORF",
+            description: "OpenRouter's free router, auto-routes to a free model",
+            imageGenerationSupport: false
+        },
+        {
             name: "Gpt 4o mini",
             value: "openai/gpt-4o-mini",
             icon: "G4o",

@@ -12,4 +12,4 @@ if [ -z "$IMAGE_PATH" ]; then
 fi
 
 # Fetch system information with fixed logo size
-fastfetch --logo-type kitty --logo-recache --logo-height 25 --logo "$IMAGE_PATH"
+fastfetch --logo-type kitty --logo-cache regen --logo-height 25 --logo "$IMAGE_PATH"

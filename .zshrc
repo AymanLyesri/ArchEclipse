@@ -116,3 +116,5 @@ alias wallpapers="$HOME/.config/hypr/maintenance/components/wallpapers.py"
 
 # ArchEclipse Discord bot token (OpenCode MCP, read-only scout)
 [ -f ~/.config/opencode/discord-token.env ] && source ~/.config/opencode/discord-token.env
+
+. "$HOME/.local/share/../bin/env"
