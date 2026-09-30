@@ -38,7 +38,7 @@ Item {
     readonly property string reloadScript: home + "/.config/hypr/wallpaper-daemon/reload.sh"
 
     function isVideoFile(file) {
-        return /\.(mp4|webm|mkv|mov)$/i.test(file);
+        return WallpaperService.isVideoFile(file);
     }
 
     // ---------------------------------------------------------------- state
@@ -86,8 +86,10 @@ Item {
         onTriggered: root.progressStatus = "idle"
     }
 
-    property var wallpapers: ({})               // category -> [paths]
-    property string _lastWallpapersJson: ""
+    // Shared store (fetched once at boot): WallpaperService owns the
+    // category map, thumb manifest and aspect cache; this body binds
+    // read-only so every monitor shares one get-wallpapers.sh run.
+    readonly property var wallpapers: WallpaperService.wallpapers
     readonly property var categories: Object.keys(wallpapers)
     // Single source of truth: Settings.wallpaperCategory. This binding is NEVER
     // assigned locally, so it can't desync like a mirrored var: every
@@ -128,8 +130,8 @@ Item {
     readonly property var selectedWallpapers: wallpapers[selectedCategory] ?? []
     // Capture must wait for data/thumbnail generation and masonry aspect updates;
     // CaptureIpc separately checks instantiated tiles (including opacity-zero ones).
-    readonly property bool captureReady: !fetchProc.running && !thumbProc.running && !_thumbPending
-        && !whLoading && Object.keys(_pendingAspect).length === 0
+    readonly property bool captureReady: !WallpaperService.fetchProc.running && !WallpaperService.thumbProc.running && !WallpaperService._thumbPending
+        && !whLoading && Object.keys(WallpaperService._pendingAspect).length === 0
         && (progressStatus === "idle" || progressStatus === "success")
         && (isWallhaven ? whResults.length > 0 : selectedWallpapers.length > 0)
     // Exposed for Ipc wallpaperDiag ("strip" query) and tests.
@@ -158,37 +160,19 @@ Item {
     function setMasonryRows(n) {
         Settings.updateSetting("wallpaperSwitcher.masonryRows", Math.min(4, Math.max(1, n)));
     }
-    // Decoded-aspect cache for local files (path -> w/h). Reassigned, never
+    // Decoded-aspect cache lives in the shared store (reassigned, never
     // mutated, so the masonry recomputes exactly like selectedWallpapers
-    // does on fetch. Unknown paths fall back to 16:9 until their thumb
+    // does on fetch). Unknown paths fall back to 16:9 until their thumb
     // decodes and reports in (brief reshuffle on first open, then stable).
-    property var localAspect: ({})
+    readonly property var localAspect: WallpaperService.localAspect
     function localAspectOf(path) {
-        const r = root.localAspect[path] || 0;
-        return r > 0 ? r : 16 / 9;
+        return WallpaperService.localAspectOf(path);
     }
-    // Batched aspect reports: thumbs decode in a storm on open (100+
-    // files), and every cache reassign recomputes the masonry + rebuilds
-    // Repeaters. Collect here, adopt once 250ms after the last report.
-    property var _pendingAspect: ({})
-    Timer {
-        id: aspectFlush
-        interval: 250
-        onTriggered: {
-            if (Object.keys(root._pendingAspect).length === 0)
-                return;
-            root.localAspect = Object.assign({}, root.localAspect, root._pendingAspect);
-            root._pendingAspect = {};
-        }
-    }
+    // Batched aspect reports live in the service (thumbs decode in a
+    // storm on open); the service adopts once 250ms after last report.
+    readonly property var _pendingAspect: WallpaperService._pendingAspect
     function noteLocalAspect(path, ratio) {
-        if (!isFinite(ratio) || ratio <= 0)
-            return;
-        const cur = root.localAspect[path] || root._pendingAspect[path] || 0;
-        if (Math.abs(cur - ratio) < 0.01)
-            return;
-        root._pendingAspect[path] = ratio;
-        aspectFlush.restart();
+        WallpaperService.noteLocalAspect(path, ratio);
     }
     // Wallhaven aspects are known up-front from the resolution string.
     function whAspect(item) {
@@ -200,19 +184,11 @@ Item {
     readonly property string wallhavenScript: home + "/.config/quickshell/archeclipse/scripts/wallhaven.py"
     readonly property string wallhavenDir: home + "/.config/wallpapers/wallhaven"
 
-    // First-frame thumbnails for video tiles (offline, zero decoders):
-    // gen-video-thumbs.sh extracts one 320px frame per video into the
-    // cache dir and prints a {srcPath: thumbPath} manifest on stdout.
-    // thumbMap adopts it when the run finishes; until then (or when a
-    // video has no thumb) tiles keep the icon + filename fallback below.
-    // Thumb names are deterministic (sanitized path + ".jpg", ASCII only)
-    // but QML reads them ONLY via the manifest — never derive locally.
-    readonly property string thumbScript: home + "/.config/quickshell/archeclipse/scripts/gen-video-thumbs.sh"
-    property var thumbMap: ({})
+    // First-frame thumbnails for video tiles live in the shared store
+    // (adopted from the background gen-video-thumbs.sh manifest).
+    readonly property var thumbMap: WallpaperService.thumbMap
     function thumbFor(path) {
-        if (path === undefined || !root.isVideoFile(path))
-            return "";
-        return root.thumbMap[path] || "";
+        return WallpaperService.thumbFor(path);
     }
 
     // Wallhaven filter option models (static; index-synced like categoryCombo).
@@ -287,8 +263,17 @@ Item {
     property var currentWallpapers: []           // path per workspace index, this monitor
 
     Component.onCompleted: {
-        fetchWallpapers();
-        fetchCurrentWallpapers();
+        // Shared store is primed at shell boot; ensure it here too for
+        // island-first creation paths, then load this monitor's current.
+        WallpaperService.start();
+        // The bar delivers the real monitor name in onLoaded, after this
+        // onCompleted runs (boot prime builds hidden with monitorName "").
+        // Fetch --current only once the name is known; otherwise the
+        // Registry fallback can resolve to the wrong monitor and an
+        // in-flight stale run would swallow the corrected re-fetch
+        // (setting running=true on a running Process is a no-op).
+        if (root.monitorName !== "")
+            fetchCurrentWallpapers();
         const ws = Hyprland.focusedWorkspace;
         if (ws)
             root.selectedWorkspaceId = ws.id;
@@ -298,18 +283,19 @@ Item {
 
     // Hosts call this when the body becomes visible.
     function refresh() {
-        fetchWallpapers();
+        WallpaperService.refresh();
         fetchCurrentWallpapers();
         if (root.isWallhaven)
             root.whSearch();
     }
 
     // Re-fetch when the bar delivers the real monitor name (onLoaded
-    // fires after our Component.onCompleted, so the first fetch may have
-    // used the Registry fallback which can resolve to the wrong monitor).
+    // fires after our Component.onCompleted, so the first fetch waits for
+    // it — see above). Restart (not just start) so a stale in-flight run
+    // for a previous monitor can't deliver after us.
     onMonitorNameChanged: {
         if (root.monitorName !== "")
-            fetchCurrentWallpapers();
+            restartCurrentFetch();
     }
 
     // Keep the selected workspace synced to whatever's focused when the
@@ -333,80 +319,16 @@ Item {
     }
 
     // ---------------------------------------------------------- data fetch
-
-    Process {
-        id: fetchProc
-        command: ["bash", root.wallpaperScript]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    // Skip no-change adoptions: every reassign rebuilds the
-                    // masonry + re-decodes all tiles (visible flicker), so a
-                    // refresh that returns identical JSON must be a no-op.
-                    if (text === root._lastWallpapersJson)
-                        return;
-                    root._lastWallpapersJson = text;
-                    root.wallpapers = JSON.parse(text);
-                    root.runThumbGen();
-                } catch (e) {
-                    root.notifyError("fetching wallpapers", e);
-                }
-            }
-        }
-    }
+    // Category map + thumbs live in WallpaperService (fetched once at
+    // boot); this body keeps only the cheap per-monitor --current read.
     function fetchWallpapers() {
-        fetchProc.running = true;
-    }
-
-    // Background thumb run over every known local video (fresh ones skip
-    // on mtime inside the script, so re-runs are cheap). Single-flight:
-    // a fetch storm while a run is active re-runs once on exit.
-    property bool _thumbPending: false
-    Process {
-        id: thumbProc
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const m = JSON.parse(text);
-                    // Incremental runs only cover missing videos — merge so
-                    // earlier entries survive (same reassign-not-mutate rule
-                    // as localAspect, so bindings re-evaluate).
-                    if (m && typeof m === "object")
-                        root.thumbMap = Object.assign({}, root.thumbMap, m);
-                } catch (e) {
-                    console.warn("[WallpaperSwitcher] thumb manifest parse failed", e);
-                }
-            }
-        }
-        onExited: {
-            if (root._thumbPending) {
-                root._thumbPending = false;
-                root.runThumbGen();
-            }
-        }
-    }
-    function runThumbGen() {
-        if (thumbProc.running) {
-            root._thumbPending = true;
-            return;
-        }
-        const vids = [];
-        const cats = root.wallpapers || {};
-        for (const k in cats) {
-            const list = cats[k] || [];
-            for (let i = 0; i < list.length; i++)
-                if (root.isVideoFile(list[i]) && !root.thumbMap[list[i]])
-                    vids.push(list[i]);
-        }
-        if (vids.length === 0)
-            return;
-        thumbProc.command = ["bash", root.thumbScript].concat(vids);
-        thumbProc.running = true;
+        WallpaperService.refresh();
     }
 
     Process {
         id: fetchCurrentProc
-        command: ["bash", root.wallpaperScript, "--current", root.effectiveMonitor]
+        // No declarative command: launcher functions below assign it
+        // explicitly (see restartCurrentFetch NOTE about stale bindings).
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
@@ -418,6 +340,23 @@ Item {
         }
     }
     function fetchCurrentWallpapers() {
+        fetchCurrentProc.command = ["bash", root.wallpaperScript, "--current", root.effectiveMonitor];
+        fetchCurrentProc.running = true;
+    }
+    // Superseding restart for monitor changes: a run for the old monitor
+    // may still be in flight (boot prime), and running=true on a running
+    // Process is a no-op that would let the stale delivery win.
+    // Superseding restart for monitor changes: a run for the old monitor
+    // may still be in flight (boot prime), and running=true on a running
+    // Process is a no-op that would let the stale delivery win.
+    // NOTE: builds command from root.monitorName, NOT effectiveMonitor:
+    // dependent bindings re-evaluate AFTER change handlers run, so
+    // effectiveMonitor still holds the old value inside this handler
+    // (same trap as onProviderChanged/isWallhaven — verified via probe:
+    // mon=[DP-2] eff=[eDP-1] launched an eDP-1 fetch returning []).
+    function restartCurrentFetch() {
+        fetchCurrentProc.command = ["bash", root.wallpaperScript, "--current", root.monitorName];
+        fetchCurrentProc.running = false;
         fetchCurrentProc.running = true;
     }
 

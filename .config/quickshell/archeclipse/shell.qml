@@ -26,6 +26,10 @@ ShellRoot {
         // can bind PpdState.available instead of spawning `powerprofilesctl`
         // on every island open.
         PpdState.start()
+        // Prime the wallpaper store once at boot (category map + video
+        // thumbs + aspect cache) so the first SUPER+W open binds warm
+        // data instead of spawning get-wallpapers.sh on open.
+        WallpaperService.start()
     }
 
     Ipc {

@@ -366,11 +366,12 @@ PanelWindow {
                     }
                 }
 
-                // Latch: the heavy wallpaper island is created once (lazily,
-                // on first open so startup stays fast) and then kept alive
-                // across closes — reopens only toggle visibility, so image
-                // decodes, aspect caches, scroll and tab state survive.
-                property bool wallpaperPrimed: false
+                // Latch: the heavy wallpaper island is created once (primed
+                // async at boot so the first open binds warm shared data)
+                // and then kept alive across closes — reopens only toggle
+                // visibility, so image decodes, aspect caches, scroll and
+                // tab state survive.
+                property bool wallpaperPrimed: true
 
                 // The state actually shown — bound straight to BarState.state.
                 // (A Connections-guarded variant was tried and removed: the
@@ -414,20 +415,25 @@ PanelWindow {
                 }
                 readonly property string previous: ""
 
-                // Wallpaper lives here permanently (lazy-cached): created once
-                // on first open, then visibility-toggled so decodes, aspect
-                // caches and scroll survive closes. Synchronous load so the
-                // first open is instant; visible toggles the already-built
-                // subtree (no paint cost hidden).
+                // Wallpaper lives here permanently (async-cached): created at
+                // boot in the background, then visibility-toggled so decodes,
+                // aspect caches and scroll survive closes. Async so the boot
+                // prime never janks the first frame; visible toggles the
+                // already-built subtree (no paint cost hidden).
                 Loader {
                     id: wallpaperCacheLoader
                     active: stack.wallpaperPrimed
                     visible: stack.current === "wallpaper"
-                    asynchronous: false
+                    asynchronous: true
                     sourceComponent: wallpaperPage
                     onLoaded: {
                         if (item && item["monitorName"] !== undefined)
                             item.monitorName = root.monitorName;
+                        // Boot prime builds hidden with expand 1 (island's
+                        // own onCompleted unfolds); fold silently while hidden
+                        // so the first open unfolds 0 -> 1 visibly.
+                        if (stack.current !== "wallpaper" && item && item["expand"] !== undefined)
+                            item.expand = 0;
                     }
                 }
 
