@@ -121,6 +121,7 @@ Item {
                 id: settingsCol
                 spacing: 10
                 width: settingsScroll.width
+                bottomPadding: 20
 
                 // ============ BAR SETTINGS ============
                 // NOTE: smart-hide and full-width

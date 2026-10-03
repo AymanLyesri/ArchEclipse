@@ -118,6 +118,8 @@ Column {
     IslandExpandClip {
         expand: root.expand
         contentHeight: bodyRow.height
+        anchors.top: Settings.barOrientation ? parent.top : undefined
+        anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
 
         Row {
             id: bodyRow

@@ -20,7 +20,7 @@ import qs.widgets.leftPanel
 // (Settings.leftPanelLock pins it open). The booru detail popup is a
 // separate surface: while it is hovered/open the island stays alive via
 // the same popupHovered/hostPanel handoff the panel used.
-Column {
+Item {
     id: root
     width: Settings.leftPanelWidth
     // Explicit full height (NOT implicit): positioner implicit sizes freeze
@@ -30,7 +30,6 @@ Column {
     // static DefaultBar/PlayerIsland pages. The expand driver below still
     // unfolds the content inside the snapped pill (clip + opacity + scale).
     height: bodyHeight
-    spacing: 0
 
     // Island owner passes the bar's monitor; body falls back to focused.
     property string monitorName: ""
@@ -41,7 +40,7 @@ Column {
     // Full monitor height, passed by the bar owner. Side islands stretch
     // the whole vertical screen like the old edge panels did (the pill
     // adds its 10px padding, leaving a 5px bottom margin).
-    property int screenHeight: 1080
+    property int screenHeight: (screen && screen.height > 0) ? screen.height : 1080
 
     // Fixed dropdown height (the old panel stretched full monitor height;
     // the island is a floating card — each widget fills this viewport and
@@ -222,6 +221,8 @@ Column {
     IslandExpandClip {
         expand: root.expand
         contentHeight: bodyRow.height
+        anchors.top: Settings.barOrientation ? parent.top : undefined
+        anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
 
         Row {
             id: bodyRow
@@ -349,11 +350,15 @@ Column {
                         id: userProfileLoader
                         active: root.tabPrimed("UserProfile")
                         sourceComponent: userProfileComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                     Loader {
                         id: booruLoader
                         active: root.tabPrimed("BooruViewer")
                         sourceComponent: booruComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                         onLoaded: {
                             // Back-reference so the booru viewer can route
                             // its popup-unhover hide requests here (the
@@ -379,31 +384,43 @@ Column {
                         id: chatBotLoader
                         active: root.tabPrimed("ChatBot")
                         sourceComponent: chatBotComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                     Loader {
                         id: mangaLoader
                         active: root.tabPrimed("MangaViewer")
                         sourceComponent: mangaComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                     Loader {
                         id: settingsLoader
                         active: root.tabPrimed("SettingsWidget")
                         sourceComponent: settingsComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                     Loader {
                         id: scriptsLoader
                         active: root.tabPrimed("CustomScripts")
                         sourceComponent: scriptsComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                     Loader {
                         id: keybindsLoader
                         active: root.tabPrimed("KeyBinds")
                         sourceComponent: keybindsComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                     Loader {
                         id: donationsLoader
                         active: root.tabPrimed("Donations")
                         sourceComponent: donationsComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                 }
                 Component {

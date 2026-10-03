@@ -15,7 +15,7 @@ Item {
     clip: true
     opacity: Math.max(0, Math.min(1, root.expand * 1.2))
     scale: 0.96 + 0.04 * root.expand
-    transformOrigin: Item.Top
+    transformOrigin: Settings.barOrientation ? Item.Top : Item.Bottom
     Behavior on expand {
         enabled: Settings.animationsEnabled
         Anim {

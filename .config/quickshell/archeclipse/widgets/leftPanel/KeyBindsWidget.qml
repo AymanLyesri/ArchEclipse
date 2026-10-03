@@ -124,6 +124,7 @@ Item {
                 id: keyCol
                 width: keyScroll.width
                 spacing: 10
+                bottomPadding: 20
 
                 Repeater {
                     model: root.categories
