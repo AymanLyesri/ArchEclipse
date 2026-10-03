@@ -24,10 +24,18 @@ PanelWindow {
         return screen?.name ?? "unknown";
     }
     // Full monitor height for the side islands (they stretch the whole
-    // vertical screen, like the old edge panels did).
+    // vertical screen, like the old edge panels did). Must use logical
+    // screen.height (DIPs) so fractional display scaling does not blow up
+    // the height past the physical window and push panels off-screen.
     readonly property int screenHeight: {
+        if (screen && screen.height > 0)
+            return screen.height;
         const hmon = Hyprland.monitorFor(screen);
-        return (hmon && hmon.height > 0) ? hmon.height : 1080;
+        if (hmon && hmon.height > 0) {
+            const scale = (hmon.scale && hmon.scale > 0) ? hmon.scale : 1.0;
+            return Math.round(hmon.height / scale);
+        }
+        return 1080;
     }
 
     // --- window geometry / layer ---
@@ -234,9 +242,13 @@ PanelWindow {
             if (!mon)
                 return undefined;
             var h = root.barHeight;
-            if (x < mon.x || x > mon.x + mon.width)
+            var monW = (screen && screen.width > 0) ? screen.width : ((mon.width > 0 && mon.scale > 0) ? Math.round(mon.width / mon.scale) : mon.width);
+            var monH = root.screenHeight;
+            var monX = (mon.scale && mon.scale > 0) ? Math.round(mon.x / mon.scale) : mon.x;
+            var monY = (mon.scale && mon.scale > 0) ? Math.round(mon.y / mon.scale) : mon.y;
+            if (x < monX || x > monX + monW)
                 return true;
-            var onBar = Settings.barOrientation ? y <= mon.y + h : y >= mon.y + mon.height - h;
+            var onBar = Settings.barOrientation ? y <= monY + h : y >= monY + monH - h;
             return !onBar;
         } catch (e) {
             return undefined;
@@ -300,8 +312,10 @@ PanelWindow {
                     type: Anim.DefaultSpatial
                 }
             }
-            bottomRightRadius: Theme.radius
-            bottomLeftRadius: Theme.radius
+            bottomRightRadius: Settings.barOrientation ? Theme.radius : 0
+            bottomLeftRadius: Settings.barOrientation ? Theme.radius : 0
+            topRightRadius: Settings.barOrientation ? 0 : Theme.radius
+            topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
             color: Theme.surface
 
             // Hover detection lives on the pill itself (stable container).
@@ -531,11 +545,18 @@ PanelWindow {
 
         Component {
             id: leftPage
-            LeftIsland {}
+            LeftIsland {
+                screenHeight: root.screenHeight
+                monitorName: root.monitorName
+                screen: root.screen
+            }
         }
         Component {
             id: rightPage
-            RightIsland {}
+            RightIsland {
+                screenHeight: root.screenHeight
+                monitorName: root.monitorName
+            }
         }
 
         // ---- left side pill (independent of the main pill) ----
@@ -590,13 +611,18 @@ PanelWindow {
             IslandExpandClip {
                 expand: leftPill.openT
                 contentHeight: leftPill.height
-                anchors.top: parent.top
+                anchors.top: Settings.barOrientation ? parent.top : undefined
+                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 Rectangle {
                     color: Theme.surface
                     width: parent.width
                     height: leftPill.height
-                    bottomRightRadius: Theme.radius
-                    bottomLeftRadius: Theme.radius
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                    bottomRightRadius: Settings.barOrientation ? Theme.radius : 0
+                    bottomLeftRadius: Settings.barOrientation ? Theme.radius : 0
+                    topRightRadius: Settings.barOrientation ? 0 : Theme.radius
+                    topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
                     Loader {
                         id: leftLoader
                         anchors.fill: parent
@@ -659,13 +685,18 @@ PanelWindow {
             IslandExpandClip {
                 expand: rightPill.openT
                 contentHeight: rightPill.height
-                anchors.top: parent.top
+                anchors.top: Settings.barOrientation ? parent.top : undefined
+                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 Rectangle {
                     color: Theme.surface
                     width: parent.width
                     height: rightPill.height
-                    bottomRightRadius: Theme.radius
-                    bottomLeftRadius: Theme.radius
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                    bottomRightRadius: Settings.barOrientation ? Theme.radius : 0
+                    bottomLeftRadius: Settings.barOrientation ? Theme.radius : 0
+                    topRightRadius: Settings.barOrientation ? 0 : Theme.radius
+                    topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
                     Loader {
                         id: rightLoader
                         anchors.fill: parent

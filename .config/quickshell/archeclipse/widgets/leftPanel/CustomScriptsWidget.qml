@@ -372,6 +372,7 @@ Item {
                 id: scriptCol
                 spacing: 8
                 width: scriptScroll.width
+                bottomPadding: 20
 
                 Repeater {
                     model: root.scriptDefs
