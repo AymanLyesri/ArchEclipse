@@ -36,6 +36,33 @@ def install_plugins() -> None:
     run_cmd(["hyprctl", "reload"], check=False)
 
 
+def remove_plugins() -> None:
+    plugins = [
+        ("hyprland-plugins", "https://github.com/hyprwm/hyprland-plugins"),
+        ("dynamic-cursors", "https://github.com/virtcode/hypr-dynamic-cursors"),
+    ]
+
+    result = run_cmd(["hyprpm", "list"], capture_output=True, check=False)
+    if result.returncode != 0:
+        raise RuntimeError("Could not list installed Hyprland plugins with hyprpm.")
+
+    installed = [
+        (name, repo)
+        for name, repo in plugins
+        if name in (result.stdout or "")
+    ]
+    if not installed:
+        print("No ArchEclipse Hyprland plugin repositories are installed.")
+        return
+
+    for name, repo in installed:
+        print(f"Removing Hyprland plugin repository: {name}")
+        run_cmd(["hyprpm", "remove", repo])
+
+    run_cmd(["hyprpm", "reload"])
+    run_cmd(["hyprctl", "reload"], check=False)
+
+
 def main() -> None:
     install_plugins()
 

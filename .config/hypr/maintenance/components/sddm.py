@@ -76,6 +76,42 @@ def configure_sddm() -> None:
     print("Sddm configuration complete.")
 
 
+def remove_arch_eclipse_sddm_config() -> None:
+    files = {
+        Path("/etc/sddm.conf.d/theme.conf"): (
+            "[Theme]\nCurrent=where_is_my_sddm_theme\n"
+        ),
+        Path(
+            "/usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf"
+        ): THEME_CONTENT,
+    }
+    for path, expected_content in files.items():
+        result = run_cmd(
+            ["sudo", "cat", str(path)],
+            check=False,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            continue
+        if result.stdout != expected_content:
+            print(f"Keeping modified SDDM configuration: {path}")
+            continue
+        run_cmd(["sudo", "rm", "-f", str(path)])
+        print(f"Removed ArchEclipse SDDM configuration: {path}")
+
+    directories = (
+        Path("/usr/share/sddm/themes/where_is_my_sddm_theme"),
+        Path("/etc/sddm.conf.d"),
+    )
+    for directory in directories:
+        run_cmd(["sudo", "rmdir", str(directory)], check=False)
+
+    print(
+        "SDDM service enablement and other display-manager states were left "
+        "unchanged."
+    )
+
+
 def main() -> None:
     configure_sddm()
 

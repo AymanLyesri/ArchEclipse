@@ -92,15 +92,95 @@ PACKAGES: list[str] = [
     "libwebp-utils",
 ]
 
+PROTECTED_PACKAGES = {
+    "hyprland": "the running desktop session",
+    "hyprpm": "plugin manager for Hyprland",
+    "hyprpolkitagent": "graphical authentication agent",
+    "hyprcursor": "native cursor format library",
+    "kitty": "terminal",
+    "networkmanager": "network connectivity",
+    "networkmanager-applet": "network connectivity applet",
+    "wl-clipboard": "Wayland clipboard utility",
+    "pipewire": "system audio",
+    "bluez": "Bluetooth protocol stack",
+    "bluez-utils": "Bluetooth command-line utilities",
+    "gvfs": "virtual file system backend for file managers",
+    "sddm": "the display manager",
+    "starship": "the current shell configuration",
+}
+
 
 def install_packages(aur_helper: str = "yay") -> None:
     run_shell("figlet 'PACKAGES' -f slant | lolcat", check=False)
 
-    pkg_input = "\n".join(PACKAGES)
-    run_cmd(
-        [aur_helper, "-Syu", "--needed", "-"],
-        input_text=pkg_input,
+    run_cmd([aur_helper, "-Syu", "--needed", *PACKAGES])
+
+
+def uninstall_packages(*, remove_zsh: bool = False) -> None:
+    shell_packages = {
+        "zsh",
+        "zsh-auto-notify",
+        "zsh-history-substring-search",
+        "zsh-syntax-highlighting",
+        "zsh-autosuggestions-git",
+        "zsh-sudo-git",
+        "fzf-tab-git",
+    }
+    candidates = [
+        package
+        for package in PACKAGES
+        if remove_zsh or package not in shell_packages
+    ]
+    installed: list[str] = []
+    for package in candidates:
+        result = run_cmd(
+            ["pacman", "-Qq", package], check=False, capture_output=True
+        )
+        if result.returncode == 0:
+            installed.extend(
+                installed_package
+                for installed_package in result.stdout.splitlines()
+                if installed_package
+            )
+    installed = list(dict.fromkeys(installed))
+
+    protected = [
+        package for package in installed if package in PROTECTED_PACKAGES
+    ]
+    installed = [
+        package for package in installed if package not in PROTECTED_PACKAGES
+    ]
+    if protected:
+        print("Keeping protected packages:")
+        for package in protected:
+            print(f"  {package}: {PROTECTED_PACKAGES[package]}")
+
+    if not installed:
+        if not protected:
+            print("No removable installed ArchEclipse-list packages found.")
+        return
+
+    print(
+        "The following installed packages will be offered for removal. "
+        "Packages required by other software will be kept:"
     )
+    print(" ".join(installed))
+    run_cmd(["sudo", "-v"])
+
+    skipped: list[str] = []
+    for package in installed:
+        result = run_cmd(
+            ["sudo", "pacman", "-Rns", package],
+            check=False,
+        )
+        if result.returncode != 0:
+            skipped.append(package)
+
+    if skipped:
+        print(
+            "Kept packages that Pacman could not remove safely: "
+            + " ".join(skipped)
+        )
 
 
 def main() -> None:
