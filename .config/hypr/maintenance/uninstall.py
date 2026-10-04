@@ -45,6 +45,47 @@ def normalize_repo_url(url: str) -> str:
     return url.lower()
 
 
+def managed_home_git_metadata(home_dir: Path) -> PurePosixPath | None:
+    git_path = home_dir / ".git"
+    if not git_path.is_dir() or git_path.is_symlink():
+        return None
+
+    result = subprocess.run(
+        ["git", "-C", str(home_dir), "rev-parse", "--show-toplevel"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0 or Path(result.stdout.strip()).resolve() != home_dir:
+        return None
+
+    git_dir_result = subprocess.run(
+        ["git", "-C", str(home_dir), "rev-parse", "--absolute-git-dir"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if (
+        git_dir_result.returncode != 0
+        or Path(git_dir_result.stdout.strip()).resolve() != git_path.resolve()
+    ):
+        return None
+
+    for remote in ("origin", "upstream"):
+        result = subprocess.run(
+            ["git", "-C", str(home_dir), "remote", "get-url", remote],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if (
+            result.returncode == 0
+            and normalize_repo_url(result.stdout) == REPO_URL.lower()
+        ):
+            return PurePosixPath(".git")
+    return None
+
+
 def managed_home_paths(repo_dir: Path, home_dir: Path) -> list[PurePosixPath]:
     expected_repo = home_dir / "ArchEclipse"
     resolved_repo = repo_dir.resolve()
@@ -133,6 +174,9 @@ def managed_home_paths(repo_dir: Path, home_dir: Path) -> list[PurePosixPath]:
             for entry in config_entries
         ),
     }
+    home_git_metadata = managed_home_git_metadata(home_dir)
+    if home_git_metadata is not None:
+        paths.add(home_git_metadata)
     return sorted(paths)
 
 
