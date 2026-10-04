@@ -20,6 +20,22 @@ def apply_tweaks() -> None:
     run_cmd(["sudo", "systemctl", "mask", "NetworkManager-wait-online.service"])
 
 
+def restore_tweaks() -> None:
+    unit = "NetworkManager-wait-online.service"
+    result = run_cmd(
+        ["systemctl", "is-enabled", unit],
+        check=False,
+        capture_output=True,
+    )
+    if (result.stdout or "").strip() not in {"masked", "masked-runtime"}:
+        print(f"{unit} is not masked; leaving its state unchanged.")
+        return
+
+    print(f"Removing the mask from {unit}...")
+    run_cmd(["sudo", "systemctl", "unmask", unit])
+    run_cmd(["sudo", "systemctl", "daemon-reload"])
+
+
 def main() -> None:
     apply_tweaks()
 
