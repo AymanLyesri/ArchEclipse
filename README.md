@@ -223,6 +223,10 @@ Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issu
 
 ![Application Launcher](.github/assets/app-launcher.png)
 
+### Control Panel
+
+![Control Panel](.github/assets/control-panel.png)
+
 ### Right Panel
 
 | Waifu · Player · Calendar · Notifications | Calendar · Player · Waifu · Resources |
@@ -239,9 +243,14 @@ Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issu
 | -------- | -------- |
 | ![Settings](.github/assets/left-panel-settings.png) | ![Keybinds](.github/assets/left-panel-keybinds.png) |
 
-### Wallpaper · Workspaces · Lock
+### Wallpaper Switcher
+
+`SUPER + W` → per-workspace static / video picker with live theming. Add yours to `$HOME/.config/wallpapers/custom`.
 
 ![Wallpaper Switcher](.github/assets/wallpaper-switcher.png)
+
+### Workspaces · Lock
+
 ![Workspace Overview](.github/assets/workspace-overview.png)
 ![Lock Screen](.github/assets/lock-screen.png)
 

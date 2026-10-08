@@ -39,7 +39,7 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    match = { class = "^(steam_app_.*|.+\\.exe|Minecraft.*)$" },
+    match = { class = "^(steam_app_.*|.+\\.exe|Minecraft.*|.*minecraft.*|com\\.mojang\\.minecraft.*)$" },
     workspace = "10 silent",
 })
 

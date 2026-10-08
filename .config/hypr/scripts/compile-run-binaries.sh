@@ -37,7 +37,6 @@ if ! systemctl is-active --quiet cronie; then
     
     action=$(notify-send \
         --app-name="Hypr Scripts" \
-        --expire-time=0 \
         --action=enable:"Enable Cronie" \
         "Cronie not running" \
     "Cron jobs will not execute")

@@ -66,10 +66,10 @@
       "type": "display",
       "key": "{#separator}│  {#keys}󰹑 Resolution",
     },
-    // {
-    //   "type": "shell",
-    //   "key": "{#separator}│  {#keys}󰞷 Shell"
-    // },
+    {
+      "type": "shell",
+      "key": "{#separator}│  {#keys}󰞷 Shell"
+    },
     // {
     //   "type": "terminalfont",
     //   "key": "{#separator}│  {#keys}󰛖 Font"

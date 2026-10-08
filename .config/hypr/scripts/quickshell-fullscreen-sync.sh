@@ -26,7 +26,8 @@ archeclipse_pids() {
 
 # Focused-client game-fullscreen gate: fullscreen modes 2 = fullscreen
 # (3 = maximized-fullscreen) AND class matches the game rules in
-# config/windowrule.lua (steam_app_.*, .+.exe, Minecraft.*, Emulator).
+# config/windowrule.lua (steam_app_.*, .+.exe, Minecraft.*, .*minecraft.*,
+# com.mojang.minecraft.*, Emulator).
 # Plain maximize (1) must NOT kill the shell. Empty output (no focus)
 # or non-game class counts as not fullscreen, so the shell is ensured up.
 focused_game_fullscreen() {
@@ -36,7 +37,7 @@ focused_game_fullscreen() {
     printf '%s' "$json" | grep -q '"fullscreen": [23]' || return 1
     class="$(printf '%s' "$json" | sed -n 's/.*"class": *"\([^"]*\)".*/\1/p' | head -n1)"
     [ -z "$class" ] && return 1
-    printf '%s' "$class" | grep -Eq '^(steam_app_.*|.+\.exe|Minecraft.*|Emulator)$'
+    printf '%s' "$class" | grep -Eq '^(steam_app_.*|.+\.exe|Minecraft.*|.*minecraft.*|com\.mojang\.minecraft.*|Emulator)$'
 }
 
 exec 8>"$LOCK_FILE"

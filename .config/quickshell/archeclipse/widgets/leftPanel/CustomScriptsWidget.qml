@@ -104,6 +104,12 @@ Item {
             command: "kitty -e btop"
         },
         {
+            name: "Quickspeed",
+            icon: "󰓅",
+            description: "Bandwidth speed test via Cloudflare",
+            command: "kitty -e bash -c \"python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/quickspeed/refs/heads/master/quickspeed.py); echo; read -n 1 -s -r -p 'Press any key to close...'\""
+        },
+        {
             name: "Volume Control",
             icon: "󰕾",
             description: "Adjust volume",

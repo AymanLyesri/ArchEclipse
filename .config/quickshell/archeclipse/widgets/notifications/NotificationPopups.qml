@@ -38,6 +38,11 @@ Item {
     property real pillW: 0
     property real pillH: 0
     property bool topBar: true
+    // Media pill stacking: when the bottom media pill is showing, toasts
+    // dock below it instead of overlapping it.
+    property bool mediaVisible: false
+    property real mediaY: 0
+    property real mediaH: 0
 
     width: 400
     height: popList.contentHeight
@@ -52,7 +57,7 @@ Item {
         const centered = pillX + (pillW - width) / 2;
         return Math.max(8, Math.min(parent.width - width - 8, centered));
     }
-    y: topBar ? pillY + pillH + 8 : pillY - height - 8
+    y: topBar ? (mediaVisible ? mediaY + mediaH + 8 : pillY + pillH + 8) : (mediaVisible ? mediaY - height - 8 : pillY - height - 8)
 
     // Grace keeps the pill mapped while the last card slides out.
     property int toastCount: Notifications.popupToasts.length

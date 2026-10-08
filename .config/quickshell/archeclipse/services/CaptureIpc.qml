@@ -10,6 +10,7 @@ Item {
     property string desiredState: ""
     property string monitor: ""
     property string widget: ""
+    property bool overviewMode: false
     property var rightWidgets: null
     property var saved: null
     property double startedAt: 0
@@ -32,9 +33,12 @@ Item {
         active = false;
         rightWidgets = null;
         desiredState = "";
+        overviewMode = false;
         for (const name of Object.keys(BarState.activeStates || {}))
             BarState.deactivate(name);
         Settings.leftPanelWidget = s.tab;
+        Settings.wallpaperCategory = s.wallpaperCategory;
+        Settings.wallpaperProvider = s.wallpaperProvider;
         Launcher.lastQuery = s.query;
         Launcher.results = s.results;
         Launcher.selectedIndex = s.index;
@@ -81,7 +85,9 @@ Item {
             root.saved = {tab: Settings.leftPanelWidget,
                 states: Object.keys(BarState.activeStates || {}), timers: timers,
                 shown: Object.assign({}, BarState.barShown || {}),
-                query: Launcher.lastQuery, results: Launcher.results, index: Launcher.selectedIndex};
+                query: Launcher.lastQuery, results: Launcher.results, index: Launcher.selectedIndex,
+                wallpaperCategory: Settings.wallpaperCategory,
+                wallpaperProvider: Settings.wallpaperProvider};
             root.monitor = mon;
             root.startedAt = Date.now();
             root.active = true;
@@ -92,8 +98,9 @@ Item {
             if (!root.active) return root.reply({ok: false, error: "No capture lease"});
             const tabs = {"left-panel-settings": "SettingsWidget", "left-panel-keybinds": "KeyBinds",
                 "left-panel-chatbot": "ChatBot", "left-panel-booru-1": "BooruViewer"};
-            const states = {"app-launcher": "search", "wallpaper-switcher": "wallpaper",
-                "workspace-overview": "overview", "right-panel-layout-1": "right", "right-panel-layout-2": "right"};
+            const states = {"app-launcher": "search", "control-panel": "control", "wallpaper-switcher": "wallpaper",
+                "workspace-overview": "overview", "right-panel-layout-1": "right", "right-panel-layout-2": "right",
+                "overview": "player"};
             if (!tabs[name] && !states[name]) return root.reply({ok: false, error: "Unsupported capture"});
             root.desiredState = "";
             for (const state of Object.keys(BarState.activeStates || {})) BarState.deactivate(state);
@@ -105,9 +112,30 @@ Item {
             root.rightWidgets = layouts[name] ? layouts[name].map(n =>
                 Object.assign({}, defs.find(w => w.name === n), {enabled: true})) : null;
             root.widget = tabs[name] || "";
+            root.overviewMode = (name === "overview");
             if (root.widget) Settings.leftPanelWidget = root.widget;
+            if (root.overviewMode) Settings.leftPanelWidget = "BooruViewer";
+            if (name === "wallpaper-switcher") {
+                // README capture always shows the SFW set: after opening,
+                // jump straight to defaults/images_sfw (first sfw-bearing
+                // category when it is missing) on the local provider.
+                // Direct assignment, never updateSetting, so the detour is
+                // not persisted; restore() puts the user's values back.
+                Settings.wallpaperProvider = "local";
+                const cats = Object.keys(WallpaperService.wallpapers || {});
+                const preferred = "defaults/images_sfw";
+                const fallback = cats.find(c => c.toLowerCase().includes("sfw"));
+                const target = cats.includes(preferred) ? preferred : fallback;
+                if (target) Settings.wallpaperCategory = target;
+            }
             root.desiredState = root.widget ? "left" : states[name];
             BarState.activate(root.desiredState, 0);
+            if (root.overviewMode) {
+                // ArchEclipse Overview hero: player island on the main pill
+                // plus both side pills (BooruViewer left, default right).
+                BarState.activate("left", 0);
+                BarState.activate("right", 0);
+            }
             BarState.revealBar(root.monitor);
             if (name === "app-launcher") Launcher.runQuery("apps ");
             watchdog.restart();
@@ -120,7 +148,12 @@ Item {
             if (!bar) return root.reply({ok: false, error: "Bar unavailable"});
             const info = bar.captureGeometry();
             let ready = info.visible;
-            if (root.desiredState === "left")
+            if (root.overviewMode)
+                // Hero shot: main pill shows the player island while both
+                // side pills are open, so captureGeometry reports the left
+                // pill — check the resolved main-pill state instead.
+                ready = ready && BarState.state === "player" && BarState.leftOpen && BarState.rightOpen;
+            else if (root.desiredState === "left")
                 ready = ready && BarState.leftOpen;
             else if (root.desiredState === "right")
                 ready = ready && BarState.rightOpen;
@@ -137,6 +170,15 @@ Item {
                     ready = !item.loading && item.totalBinds > 0 && item.revealCount >= item.totalBinds;
                 }
                 if (ready && root.widget === "BooruViewer") {
+                    const item = island.activeWidget;
+                    ready = item.progressStatus !== "loading" && item.progressStatus !== "error";
+                }
+            }
+            if (root.overviewMode) {
+                const island = Registry.get("left-island-" + root.monitor);
+                ready = ready && BarState.leftOpen && BarState.rightOpen;
+                ready = ready && !!island && island.selectedWidget === "BooruViewer" && !!island.activeWidget;
+                if (ready) {
                     const item = island.activeWidget;
                     ready = item.progressStatus !== "loading" && item.progressStatus !== "error";
                 }

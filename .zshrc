@@ -51,14 +51,14 @@ alias cat='bat'
 fastfetch_refresh() {
     clear
     $HOME/.config/fastfetch/fastfetch.sh
-    if zle; then
-        echo
-        zle redisplay
-    fi
 }
 alias f=fastfetch_refresh
-zle -N fastfetch_refresh
-bindkey '^F' fastfetch_refresh
+fastfetch_widget() {
+    BUFFER="fastfetch_refresh"
+    zle accept-line
+}
+zle -N fastfetch_widget
+bindkey '^F' fastfetch_widget
 
 TRAPUSR1() { # refresh fastfetch on signal
     fastfetch_refresh

@@ -347,12 +347,24 @@ Singleton {
     // never pulses. Redundant pushes (late cover art, position/length,
     // play/pause) keep the same key and are ignored the same way.
     function pickPlayer() {
+        // Playing-else-first (matches DefaultBar.firstPlayable's intent,
+        // MediaWidget.player and playerDiag): a paused player with a stale
+        // title must never shadow the actually-playing one just because it
+        // sorts earlier in Mpris.players.values. Order-dependence here
+        // stuck the watcher on paused Firefox while Spotify played, so
+        // track changes never pulsed.
+        let first = null;
         for (const p of Mpris.players.values) {
-            if ((p.trackTitle ?? "").trim() !== "" || p.playbackState === MprisPlaybackState.Playing) {
+            const titled = ((p.trackTitle ?? "").trim() !== "");
+            const playing = p.playbackState === MprisPlaybackState.Playing;
+            if (!titled && !playing)
+                continue;
+            if (playing)
                 return p;
-            }
+            if (!first)
+                first = p;
         }
-        return null;
+        return first;
     }
 
     function previewUrl(p) {
@@ -510,7 +522,8 @@ Singleton {
 
     function activate(name, holdMs) {
         const capture = Registry.get("capture-session");
-        if (capture && capture.active && capture.desiredState !== "" && name !== capture.desiredState)
+        if (capture && capture.active && capture.desiredState !== "" && name !== capture.desiredState
+            && !(capture.overviewMode && (name === "left" || name === "right")))
             return;
         if (name === "expanded" || name === "compact")
             name = "default";
@@ -559,7 +572,8 @@ Singleton {
     // Deactivate a state (default is the permanent base and can't be removed)
     function deactivate(name) {
         const capture = Registry.get("capture-session");
-        if (capture && capture.active && capture.desiredState === name)
+        if (capture && capture.active && (capture.desiredState === name
+            || (capture.overviewMode && (name === "left" || name === "right"))))
             return;
         if (name === "default")
             return;

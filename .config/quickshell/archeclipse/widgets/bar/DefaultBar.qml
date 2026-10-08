@@ -20,14 +20,25 @@ Column {
     id: root
     spacing: 4
 
-    // ---- media player state (ex-Information firstPlayable logic) ----
+    // ---- media player state (MediaWidget parity: playing-else-first) ----
+    // Pass 1: active playing player. Pass 2: first with a title (so the
+    // pill hides instead of showing an empty entry when nothing plays).
     readonly property var firstPlayable: {
         Mpris.players.values;   // reactive dep
-        for (const p of Mpris.players.values) {
+        const vals = Mpris.players.values;
+        for (const p of vals) {
             // touch reactive props so title / play-state changes re-fire
             const _t = p.trackTitle;
             const _s = p.playbackState;
-            if ((_t ?? "").trim() !== "" || _s === MprisPlaybackState.Playing)
+            const _p = p.isPlaying;
+            if (_p === true || _s === MprisPlaybackState.Playing)
+                return p;
+        }
+        for (const p of vals) {
+            const _t = p.trackTitle;
+            const _s = p.playbackState;
+            const _p = p.isPlaying;
+            if ((_t ?? "").trim() !== "")
                 return p;
         }
         return null;

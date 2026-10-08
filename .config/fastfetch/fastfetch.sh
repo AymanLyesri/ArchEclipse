@@ -1,5 +1,9 @@
 #!/bin/bash
-# Path to cache directory
+# Fixed logo height in terminal rows. The terminal scales rows to pixels
+# using the live cell height, so the image already grows/shrink proportionally
+# with Ctrl+Shift +/- zoom. Scaling rows on top of that double-counts
+# (pixels = rows x cell-height) and looks disproportionate.
+LOGO_HEIGHT=24
 CACHE_DIR="$HOME/.config/fastfetch/cache"
 
 # Pick a random file from cache directory
@@ -11,5 +15,5 @@ if [ -z "$IMAGE_PATH" ]; then
     exit 0
 fi
 
-# Fetch system information with fixed logo size
-fastfetch --logo-type kitty --logo-cache regen --logo-height 25 --logo "$IMAGE_PATH"
+# Fetch system information with fixed logo size (proportional by design)
+fastfetch --logo-type kitty --logo-cache regen --logo-height "$LOGO_HEIGHT" --logo "$IMAGE_PATH"

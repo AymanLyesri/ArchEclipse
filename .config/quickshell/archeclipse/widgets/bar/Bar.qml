@@ -57,6 +57,11 @@ PanelWindow {
     // launched app mapped, stealing its focus back to the bar.
     WlrLayershell.keyboardFocus: ("search" in BarState.activeStates) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
     WlrLayershell.exclusiveZone: Settings.barLock ? root.barHeight : -1
+    // Toast breakthrough: while toasts are up the whole window jumps to
+    // the Overlay layer (above fullscreen windows), then drops back to
+    // Top when they clear. notifPill is declared below — QML resolves
+    // the forward reference at component completion.
+    WlrLayershell.layer: notifPill.hasContent ? WlrLayer.Overlay : WlrLayer.Top
     color: "transparent"
     aboveWindows: true
 
@@ -76,6 +81,9 @@ PanelWindow {
         }
         Region {
             item: secondaryPill.visible ? secondaryPill : null
+        }
+        Region {
+            item: mediaPill.visible ? mediaPill : null
         }
         Region {
             item: notifPill.visible ? notifPill : null
@@ -472,7 +480,10 @@ PanelWindow {
                             // content so the bar is never hijacked.
                             return defaultPage;
                         case "player":
-                            return playerPage;
+                            // Player lives in the bottom media pill at the
+                            // opposite screen edge — the main stack shows
+                            // default content so the bar is never hijacked.
+                            return defaultPage;
                         case "weather":
                             return weatherPage;
                         case "network":
@@ -503,10 +514,6 @@ PanelWindow {
                 Component {
                     id: defaultPage
                     DefaultBar {}
-                }
-                Component {
-                    id: playerPage
-                    PlayerIsland {}
                 }
                 Component {
                     id: weatherPage
@@ -777,10 +784,74 @@ PanelWindow {
             }
         }
 
+        // ---- media pill (centered floater below the main pill) ----
+        // Owns the PlayerIsland (full MediaWidget) so track-change pulses
+        // never hijack the main pill: visible only while BarState resolves
+        // "player" (2.5s pulse on track change / hover dwell / click, hover
+        // pins via the island's own IslandHoverPin). Positioned like
+        // NotificationPopups — centered under the main pill — and stacked
+        // below toasts when both show. Hidden with the bar
+        // (fullscreen/conceal). The island's own expand clip carries the
+        // unfold; close folds first (expand 1 -> 0) and hides when the
+        // fold completes. Reopen mid-fold retargets expand to 1.
+        Item {
+            id: mediaPill
+            width: mediaLoader.item ? mediaLoader.item.implicitWidth : 408
+            height: mediaLoader.item ? mediaLoader.item.implicitHeight : 0
+            // Centered under the main pill, clamped 8px inside the edges.
+            // x tracks rigidly (no Behavior — coupled to width animations).
+            x: Math.max(8, Math.min(parent.width - width - 8, pill.x + (pill.width - width) / 2))
+            // Below the main pill like toasts; toasts stack underneath this
+            // pill when both show (see the props pushed into notifPill).
+            y: Settings.barOrientation ? pill.y + pill.height + 8 : pill.y - height - 8
+            visible: mediaPill.shown && root.barVisible
+            property bool shown: false
+            property bool flag: BarState.state === "player"
+            onFlagChanged: mediaPill.setShown(mediaPill.flag)
+            Component.onCompleted: mediaPill.setShown(mediaPill.flag)
+            function setShown(open) {
+                if (open) {
+                    mediaCloseTimer.stop();
+                    if (!shown) {
+                        // Fresh open: the Loader (re)creates PlayerIsland,
+                        // whose own onCompleted unfolds expand 0 -> 1.
+                        shown = true;
+                    } else if (mediaLoader.item && mediaLoader.item["expand"] !== undefined) {
+                        // Reopen mid-fold: cancel the fold and unfold again.
+                        mediaLoader.item.expand = 1;
+                    }
+                } else {
+                    if (!shown)
+                        return;
+                    // Fold first; the hide timer below unmaps when done.
+                    if (mediaLoader.item && mediaLoader.item["expand"] !== undefined)
+                        mediaLoader.item.expand = 0;
+                    mediaCloseTimer.restart();
+                }
+            }
+            Timer {
+                id: mediaCloseTimer
+                interval: Theme.anim.normal
+                onTriggered: mediaPill.shown = false
+            }
+            Loader {
+                id: mediaLoader
+                anchors.fill: parent
+                active: mediaPill.shown
+                asynchronous: false
+                sourceComponent: mediaPlayerPage
+            }
+            Component {
+                id: mediaPlayerPage
+                PlayerIsland {}
+            }
+        }
+
         // ---- notification pill (centered below the main pill) ----
-        // Owns the toast stack so popups never need a separate window.
-        // Stays clickable/mapped on toasts alone: the window visible flag
-        // below ORs barVisible with notifPill.hasContent.
+        // Tracks the main pill geometry (pillX/pillY/pillW/pillH) so
+        // toasts move with it. Stays clickable/mapped on toasts alone:
+        // the window visible flag below ORs barVisible with
+        // notifPill.hasContent.
         NotificationPopups {
             id: notifPill
             pillX: pill.x
@@ -788,6 +859,9 @@ PanelWindow {
             pillW: pill.width
             pillH: pill.height
             topBar: Settings.barOrientation
+            mediaVisible: mediaPill.visible
+            mediaY: mediaPill.y
+            mediaH: mediaPill.height
         }
 
         // ---- hot zones (left/right island reveal strips) ----

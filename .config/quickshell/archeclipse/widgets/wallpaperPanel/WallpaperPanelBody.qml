@@ -593,6 +593,25 @@ Item {
         deleteProc.command = ["bash", "-c", `rm -f ${JSON.stringify(path)}`];
         deleteProc.running = true;
     }
+    function copyWallpaperPath(path) {
+        const p = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
+        const label = "Wallpaper path";
+        p.command = ["bash", "-c", "echo -n " + JSON.stringify(String(path)) + " | wl-copy"];
+        p.running = true;
+        p.exited.connect(function (code) {
+            if (code === 0)
+                Notifications.notify({
+                    summary: "Copied to Clipboard",
+                    body: label + " copied successfully!"
+                });
+            else
+                Notifications.notify({
+                    summary: "Error",
+                    body: "Failed to copy to clipboard"
+                });
+            p.destroy();
+        });
+    }
 
     // ----------------------------------------------------------- daemon reload
 
@@ -1143,6 +1162,14 @@ Item {
                         // Stagger timers and hover-expand are gone: widths
                         // are masonry-owned (see delegate header).
                         readonly property string fileName: tile.modelData === undefined ? "" : String(tile.modelData).split("/").pop()
+                        // Two-step delete confirm: first click arms (trash ->
+                        // check + red), second click deletes. Reset on leave.
+                        property bool deleteArmed: false
+                        Timer {
+                            id: disarmTimer
+                            interval: 3000
+                            onTriggered: tile.deleteArmed = false
+                        }
                         radius: 6
                         color: tileMa.containsMouse ? Theme.surfaceHover : Theme.surface
                         border.width: tileMa.containsMouse ? 2 : 0
@@ -1247,11 +1274,97 @@ Item {
                             // to the strip's SmoothWheelHandler so the
                             // horizontal momentum glide actually receives it.
                             onWheel: wheel => wheel.accepted = false
+                            onContainsMouseChanged: {
+                                if (!containsMouse && !copyMa.containsMouse && !delMa.containsMouse)
+                                    tile.deleteArmed = false;
+                            }
                             onClicked: mouse => {
                                 if (mouse.button === Qt.RightButton)
                                     root.deleteWallpaper(tile.modelData);
                                 else
                                     root.applyWallpaper(tile.modelData);
+                            }
+                        }
+
+                        // Local-only action overlay (top-left, badge-style):
+                        // copy path + two-step delete. Badges already occupy
+                        // top-right via AppImage/AppVideo. On top of tileMa
+                        // so button clicks don't fall through to apply.
+                        Row {
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.margins: 4
+                            spacing: 4
+                            readonly property bool hovered: tile.modelData !== undefined && (tileMa.containsMouse || copyMa.containsMouse || delMa.containsMouse)
+                            opacity: hovered ? 1 : 0
+                            visible: hovered || opacity > 0
+                            Behavior on opacity {
+                                Anim {
+                                    type: Anim.FastEffects
+                                }
+                            }
+                            Rectangle {
+                                width: 24
+                                height: 18
+                                radius: Theme.radius
+                                color: Theme.muted
+                                opacity: 0.9
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "\uf0c5"
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeBadge
+                                    color: "white"
+                                }
+                                MouseArea {
+                                    id: copyMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton
+                                    cursorShape: Qt.PointingHandCursor
+                                    onWheel: wheel => wheel.accepted = false
+                                    onClicked: mouse => {
+                                        mouse.accepted = true;
+                                        root.copyWallpaperPath(tile.modelData);
+                                    }
+                                }
+                            }
+                            Rectangle {
+                                width: 24
+                                height: 18
+                                radius: Theme.radius
+                                color: tile.deleteArmed ? Theme.color1 : Theme.muted
+                                opacity: tile.deleteArmed ? 1.0 : 0.9
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: tile.deleteArmed ? "\uf00c" : "\uf1f8"
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSizeBadge
+                                    color: "white"
+                                }
+                                MouseArea {
+                                    id: delMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton
+                                    cursorShape: Qt.PointingHandCursor
+                                    onWheel: wheel => wheel.accepted = false
+                                    onContainsMouseChanged: {
+                                        if (!containsMouse && !tileMa.containsMouse)
+                                            tile.deleteArmed = false;
+                                    }
+                                    onClicked: mouse => {
+                                        mouse.accepted = true;
+                                        if (!tile.deleteArmed) {
+                                            tile.deleteArmed = true;
+                                            disarmTimer.restart();
+                                        } else {
+                                            disarmTimer.stop();
+                                            tile.deleteArmed = false;
+                                            root.deleteWallpaper(tile.modelData);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
