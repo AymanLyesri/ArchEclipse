@@ -12,28 +12,24 @@
     // Title
     {
       "type": "title",
-      "format": "{#1}╭───────────── {#}{user-name-colored}",
+      "format": "{#1}╭───────────────────── {#}{user-name-colored}",
     },
     // System Information
     {
-      "type": "custom",
-      "format": "{#1}│ {#}System Information",
-    },
-    {
       "type": "os",
-      "key": "{#separator}│  {#keys}󰍹 OS",
+      "key": "{#separator}│  {#keys}󰍹",
     },
     {
       "type": "kernel",
-      "key": "{#separator}│  {#keys}󰒋 Kernel",
+      "key": "{#separator}│  {#keys}󰒋",
     },
     {
       "type": "uptime",
-      "key": "{#separator}│  {#keys}󰅐 Uptime",
+      "key": "{#separator}│  {#keys}󰅐",
     },
     {
       "type": "packages",
-      "key": "{#separator}│  {#keys}󰏖 Packages",
+      "key": "{#separator}│  {#keys}󰏖",
       "format": "{all}",
     },
     {
@@ -41,81 +37,65 @@
       "format": "{#1}│",
     },
     // Desktop Environment
-    {
-      "type": "custom",
-      "format": "{#1}│ {#}Desktop Environment",
-    },
+
     {
       "type": "de",
-      "key": "{#separator}│  {#keys}󰧨 DE",
+      "key": "{#separator}│  {#keys}󰧨",
     },
     {
       "type": "custom",
-      "key": "{#separator}│  {#keys}󱡓 Configuration",
+      "key": "{#separator}│  {#keys}󱡓",
       "format": "ArchEclipse",
     },
     {
       "type": "wm",
-      "key": "{#separator}│  {#keys}󱂬 WM",
+      "key": "{#separator}│  {#keys}󱂬",
     },
     {
       "type": "wmtheme",
-      "key": "{#separator}│  {#keys}󰉼 Theme",
+      "key": "{#separator}│  {#keys}󰉼",
     },
     {
       "type": "display",
-      "key": "{#separator}│  {#keys}󰹑 Resolution",
+      "key": "{#separator}│  {#keys}󰹑",
     },
-    {
-      "type": "shell",
-      "key": "{#separator}│  {#keys}󰞷 Shell"
-    },
-    // {
-    //   "type": "terminalfont",
-    //   "key": "{#separator}│  {#keys}󰛖 Font"
-    // },
     {
       "type": "custom",
       "format": "{#1}│",
-    },
-    // Hardware Information
-    {
-      "type": "custom",
-      "format": "{#1}│ {#}Hardware Information",
     },
     {
       "type": "cpu",
-      "key": "{#separator}│  {#keys}󰻠 CPU",
+      "key": "{#separator}│  {#keys}󰻠",
     },
     {
       "type": "gpu",
-      "key": "{#separator}│  {#keys}󰢮 GPU",
+      "key": "{#separator}│  {#keys}󰢮",
     },
     {
       "type": "memory",
-      "key": "{#separator}│  {#keys}󰍛 Memory",
+      "key": "{#separator}│  {#keys}󰍛",
     },
     {
       "type": "disk",
-      "key": "{#separator}│  {#keys}󰋊 Disk (/)",
+      "key": "{#separator}│  {#keys}󰋊",
       "folders": "/",
     },
-    {
-      "type": "custom",
-      "format": "{#1}│",
-    },
-    {
-      "type": "custom",
-      "format": "{#1}│ `archeclipse` to update ArchEclipse",
-    },
-    {
-      "type": "custom",
-      "format": "{#1}│ `wallpapers` to install default wallpapers",
-    },
-    {
-      "type": "custom",
-      "format": "{#1}│ `quickspeed` to test connection",
-    },
+    // {
+    //   "type": "custom",
+    //   "format": "{#1}│",
+    // },
+    // {
+    //   "type": "custom",
+    //   "format": "{#1}│ `archeclipse` to update ArchEclipse",
+    // },
+    // {
+    //   "type": "custom",
+    //   "format": "{#1}│ `wallpapers` to install default wallpapers",
+    // },
+    // {
+    //   "type": "custom",
+    //   "format": "{#1}│ `quickspeed` to test connection",
+    // },
     // Colors
     {
       "type": "colors",
@@ -125,7 +105,7 @@
     // Footer
     {
       "type": "custom",
-      "format": "{#1}╰───────────────────────────────╯",
+      "format": "{#1}╰───────────────────────────────────────────╯",
     },
   ],
 }

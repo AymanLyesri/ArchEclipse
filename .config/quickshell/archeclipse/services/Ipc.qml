@@ -601,5 +601,34 @@ Item {
                 return "ERROR: " + e;
             }
         }
+
+    }
+
+    IpcHandler {
+        target: "dragOverlay"
+
+        function start(monitor: string, x: real, y: real): string {
+            const overlay = Registry.get("drag-overlay-" + monitor);
+            if (!overlay)
+                return "drag overlay unavailable for " + monitor;
+            overlay.startSelection(x, y);
+            return "drag overlay started";
+        }
+
+        function update(monitor: string, x: real, y: real): string {
+            const overlay = Registry.get("drag-overlay-" + monitor);
+            if (!overlay)
+                return "drag overlay unavailable for " + monitor;
+            overlay.updateSelection(x, y);
+            return "drag overlay updated";
+        }
+
+        function stop(monitor: string): string {
+            const overlay = Registry.get("drag-overlay-" + monitor);
+            if (!overlay)
+                return "drag overlay unavailable for " + monitor;
+            overlay.stopSelection();
+            return "drag overlay stopped";
+        }
     }
 }

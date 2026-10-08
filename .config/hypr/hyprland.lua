@@ -34,6 +34,7 @@ end
 
 require_all({
 	"animations",
+	"scripts",
 	"bind",
 	"decoration",
 	"device",

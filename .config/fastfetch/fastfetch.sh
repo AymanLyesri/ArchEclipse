@@ -3,7 +3,7 @@
 # using the live cell height, so the image already grows/shrink proportionally
 # with Ctrl+Shift +/- zoom. Scaling rows on top of that double-counts
 # (pixels = rows x cell-height) and looks disproportionate.
-LOGO_HEIGHT=24
+LOGO_HEIGHT=16
 CACHE_DIR="$HOME/.config/fastfetch/cache"
 
 # Pick a random file from cache directory

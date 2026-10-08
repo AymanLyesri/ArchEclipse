@@ -2,10 +2,12 @@ local home = os.getenv("HOME") or ""
 local scriptsDir = home .. "/.config/hypr/scripts"
 local screenshot = scriptsDir .. "/screenshot.sh"
 local terminal = "kitty"
+local scripts = require("config.scripts")
 -- Quickshell secure lock (qs ipc) + suspend chain (sleep 1 lets grim
 -- capture and the session lock engage before the machine sleeps).
 local lock = "qs -p " .. home .. "/.config/quickshell/archeclipse ipc call lock activate"
-local suspend = "qs -p " .. home .. "/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend"
+local suspend = "qs -p " ..
+    home .. "/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend"
 local statusBar = scriptsDir .. "/bar.sh"
 -- Focused monitor, resolved at keypress time. Uses activeworkspace (small JSON)
 -- instead of full monitors list to avoid a hyprctl+jq scan per keypress.
@@ -192,12 +194,16 @@ hl.bind(mainMod .. " + TAB", hl.dsp.focus({ workspace = "prev" }))
 --- workspace overview (quickshell overview island)
 hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(qsIpc .. "toggleOverview"))
 
---- next workspace
+--- focus next workspace
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 --- previous workspace
 hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 
---- move to next workspace
+--- spawn a floating terminal under a selected rectangle
+hl.bind(mainMod .. " + SHIFT + mouse:272", scripts.dragStart, { mouse = true })
+hl.bind(mainMod .. " + SHIFT + mouse:272", scripts.dragEnd, { mouse = true, release = true })
+
+--- move window with the primary mouse button
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
---- move to previous workspace
+--- resize window with the secondary mouse button
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })

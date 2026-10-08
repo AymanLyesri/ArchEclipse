@@ -7,6 +7,7 @@ import qs.widgets.bar
 import qs.widgets.launcher
 import qs.widgets.lock
 import qs.widgets.media
+import qs.widgets.selection
 
 // ArchEclipse shell — multi-monitor via Variants over Quickshell.screens.
 // Each window is instantiated once per monitor.
@@ -35,6 +36,18 @@ ShellRoot {
     Ipc {
     }
     CaptureIpc {
+    }
+
+    // Selection rectangle used by SUPER + left-drag. Hyprland sends the
+    // monitor-relative pointer coordinates through the dragOverlay IPC.
+    Variants {
+        model: Quickshell.screens
+
+        SelectionOverlay {
+            required property ShellScreen modelData
+
+            screen: modelData
+        }
     }
 
     // per-monitor bar (the main reference implementation)

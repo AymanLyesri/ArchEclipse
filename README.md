@@ -9,13 +9,15 @@
 **Hyprland desktop that just works — daily-driven, fully themed, one-command install.**
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/fMGt4vH6s5)
+
+[![Stars](https://img.shields.io/github/stars/AymanLyesri/archeclipse?style=social)](https://github.com/AymanLyesri/ArchEclipse/stargazers)
+[![Issues](https://img.shields.io/github/issues/AymanLyesri/ArchEclipse?style=flat-square)](https://github.com/AymanLyesri/ArchEclipse/issues)
+
 [![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=flat-square&logo=arch-linux&logoColor=white)](https://archlinux.org/)
 [![Hyprland](https://img.shields.io/badge/Hyprland-blue?style=flat-square)](https://hyprland.org/)
 [![Quickshell](https://img.shields.io/badge/Quickshell-4A86CF?style=flat-square)](https://quickshell.org/)
 [![QtQuick](https://img.shields.io/badge/QtQuick_QML-41CD52?style=flat-square&logo=qt&logoColor=white)](https://doc.qt.io/qt-6/qtquick-index.html)
 [![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org/)
-[![Stars](https://img.shields.io/github/stars/AymanLyesri/archeclipse?style=social)](https://github.com/AymanLyesri/ArchEclipse/stargazers)
-[![Issues](https://img.shields.io/github/issues/AymanLyesri/ArchEclipse?style=flat-square)](https://github.com/AymanLyesri/ArchEclipse/issues)
 
 </div>
 
@@ -45,20 +47,20 @@ archeclipse   # update anytime (zsh fn → runs maintenance/update.py)
 
 ## What you get
 
-| Need | How |
-| ---- | --- |
-| **Bar** | Modular widgets: workspaces, bandwidth, weather, player, tray, crypto |
-| **Launcher** | App search + clipboard + emoji + calc + URLs + custom cmds. No Rofi. |
-| **Right panel** | Player, notifications, calendar, crypto, anime viewer |
-| **Left panel** | Chatbot, booru browser, manga reader (WIP), keybinds, settings |
-| **Theming** | Wallpaper → full system colors. Light/dark toggle. Hot-reload. No manual edits. |
+| Need            | How                                                                             |
+| --------------- | ------------------------------------------------------------------------------- |
+| **Bar**         | Modular widgets: workspaces, bandwidth, weather, player, tray, crypto           |
+| **Launcher**    | App search + clipboard + emoji + calc + URLs + custom cmds. No Rofi.            |
+| **Right panel** | Player, notifications, calendar, crypto, anime viewer                           |
+| **Left panel**  | Chatbot, booru browser, manga reader (WIP), keybinds, settings                  |
+| **Theming**     | Wallpaper → full system colors. Light/dark toggle. Hot-reload. No manual edits. |
 
 **Stack:** QML/QtQuick (Quickshell) · Python 3 + Bash · C (perf utils) · Hyprland/Wayland
 
-| Workspace | Opens |
-| --------- | ----- |
+| Workspace                    | Opens                                              |
+| ---------------------------- | -------------------------------------------------- |
 | W2 / W4 / W5 / W6 / W7 / W10 | Browser / Spotify / Btop / Discord / Steam / Games |
-| W1, W3, W8, W9 | General |
+| W1, W3, W8, W9               | General                                            |
 
 > Apps auto-launch to their workspace at login.
 
@@ -229,18 +231,18 @@ Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issu
 
 ### Right Panel
 
-| Waifu · Player · Calendar · Notifications | Calendar · Player · Waifu · Resources |
-| --- | --- |
+| Waifu · Player · Calendar · Notifications                        | Calendar · Player · Waifu · Resources                            |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------- |
 | ![Right Panel Layout 1](.github/assets/right-panel-layout-1.png) | ![Right Panel Layout 2](.github/assets/right-panel-layout-2.png) |
 
 ### Left Panel
 
-| Chatbot | Booru |
-| ------- | ----- |
+| Chatbot                                           | Booru                                           |
+| ------------------------------------------------- | ----------------------------------------------- |
 | ![Chatbot](.github/assets/left-panel-chatbot.png) | ![Booru](.github/assets/left-panel-booru-1.png) |
 
-| Settings | Keybinds |
-| -------- | -------- |
+| Settings                                            | Keybinds                                            |
+| --------------------------------------------------- | --------------------------------------------------- |
 | ![Settings](.github/assets/left-panel-settings.png) | ![Keybinds](.github/assets/left-panel-keybinds.png) |
 
 ### Wallpaper Switcher
@@ -276,11 +278,13 @@ Coffee = more dev. Thanks.
 <summary>Crypto addresses</summary>
 
 **₿ Bitcoin**
+
 ```txt
 1JisW9xeatCFadtgsenjbpCcFePZGPyXow
 ```
 
 **Ξ Ethereum / BSC**
+
 ```txt
 0x52d06d47bb9dc75eaf027f18cb197d5817989a96
 ```
