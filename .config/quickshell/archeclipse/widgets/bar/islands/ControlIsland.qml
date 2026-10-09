@@ -11,8 +11,8 @@ import qs.widgets.controlPanel
 // it is open. Clicking a slider focuses the surface, then Esc dismisses.
 // Leave: the island closes itself after the reveal-out delay once the
 // cursor exits.
-// Pulse states (volume/brightness keys) render through this same island;
-// hovering one pins it persistent so it doesn't close mid-drag.
+// Volume/brightness key pulses render in the bottom OSD pill (OsdIsland),
+// never here — explicit toggleControl is the only way this opens.
 Column {
     id: root
     width: controlBody.width
@@ -26,40 +26,20 @@ Column {
     Component.onCompleted: expand = 1
 
     // Hover pin (stable container — content never swaps under the cursor
-    // while open). Pins whichever control-family state is showing — the
-    // pulse that opened it, or "control" itself — persistently, so hover
-    // never flips the resolved state and replays the swap motion;
-    // leaving arms the reveal-out close timer, which also clears the pulses.
+    // while open). Pins "control" persistently so hover never flips the
+    // resolved state; leaving arms the reveal-out close timer.
     IslandHoverPin {
         id: hoverPin
-        stateName: (BarState.state === "volume" || BarState.state === "brightness") ? BarState.state : "control"
-        extraStates: ["volume", "brightness"]
+        stateName: "control"
         // Slider drags press the mouse (dropping HoverHandler.hovered), so
         // hold the island open for the length of the drag. ComboBox popups
         // render outside hover bounds too, so hold while one is open.
         holdOpen: controlBody.adjusting || controlBody.popupOpen
     }
 
-    // Volume/brightness changes reset the reveal-out close timer: without
-    // this a leave armed before the adjustment would shut the panel
-    // mid-adjustment. Skipped while hovered (hover already pins it —
-    // arming a close while hovered would fire into an attended panel)
-    // and when no close is pending (don't arm a no-op timer for a
-    // closed island).
-    function pokeHideTimer() {
-        if (hoverPin.hovered || !hoverPin.running)
-            return;
-        hoverPin.restart();
-    }
-    Connections {
-        target: BarState
-        function onVolumeEventsChanged() { root.pokeHideTimer(); }
-        function onBrightnessEventsChanged() { root.pokeHideTimer(); }
-    }
-
     // Esc dismiss once the surface has focus (click a slider first).
     IslandEscClose {
-        states: ["control", "volume", "brightness"]
+        states: ["control"]
     }
 
     IslandExpandClip {

@@ -139,7 +139,12 @@ Column {
                 width: 48
                 height: parent.height
                 color: Theme.bg
-                radius: Theme.radius
+                // Square on the screen-edge side so the rail runs flush
+                // into the panel's edge (mirrors bar orientation).
+                topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
+                topRightRadius: Settings.barOrientation ? 0 : Theme.radius
+                bottomLeftRadius: Settings.barOrientation ? Theme.radius : 0
+                bottomRightRadius: Settings.barOrientation ? Theme.radius : 0
 
                 clip: true
                 visible: true

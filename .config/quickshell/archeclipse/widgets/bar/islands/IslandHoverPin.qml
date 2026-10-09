@@ -61,15 +61,16 @@ HoverHandler {
     }
     function stop() { leaveTimer.stop(); }
     function restart() { leaveTimer.restart(); }
-    // Arm at creation too (unless opted out): if the cursor never enters,
+    // Arm the timer at creation too (unless opted out): if the cursor never enters,
     // no hover transition fires and the island would stay open forever.
-    // (A hover arrival within milliseconds stops it again.)
-    // The first arm always grants a 1s open-grace (time to travel to a
-    // keybind-opened island) regardless of leaveDelay — see above.
+    // (The first arm grants an open-grace — time to travel to a
+    // keybind-opened island or to read a pulse OSD — regardless of
+    // leaveDelay — see above.)
+    property int openGrace: 1000
     Component.onCompleted: {
         if (!root.armOnCreation)
             return;
-        leaveTimer.interval = 1000;
+        leaveTimer.interval = root.openGrace;
         leaveTimer.restart();
     }
 }

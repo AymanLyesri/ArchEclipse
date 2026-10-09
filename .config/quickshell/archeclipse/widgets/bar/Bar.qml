@@ -86,6 +86,9 @@ PanelWindow {
             item: mediaPill.visible ? mediaPill : null
         }
         Region {
+            item: osdPill.visible ? osdPill : null
+        }
+        Region {
             item: notifPill.visible ? notifPill : null
         }
         Region {
@@ -268,7 +271,7 @@ PanelWindow {
         anchors.fill: parent
 
         // ---- the pill ----
-        Rectangle {
+        Item {
             id: pill
             // Pushed-center: side pills dock to the screen edges and the
             // main pill centers in the remaining space — never fixed-center,
@@ -320,11 +323,8 @@ PanelWindow {
                     type: Anim.DefaultSpatial
                 }
             }
-            bottomRightRadius: Settings.barOrientation ? Theme.radius : 0
-            bottomLeftRadius: Settings.barOrientation ? Theme.radius : 0
-            topRightRadius: Settings.barOrientation ? 0 : Theme.radius
-            topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
-            color: Theme.surface
+            // (Radii/color moved into PillBackground below: body + both
+            // screen-edge flares must be ONE fill, never separate shapes.)
 
             // Hover detection lives on the pill itself (stable container).
             // The motion controller is on the bar pill — hot-zone
@@ -338,11 +338,23 @@ PanelWindow {
             // own clip wipe masks the grow, and `clip` below cuts spill at
             // the animating edge, so no grow-first pin is needed).
             property real targetWidth: Math.max(stack.width + 10, 100)
-            // Cut content wider than the (still gliding) pill at the pill
-            // edge: opens reveal outward as the pill grows instead of
-            // spilling past it. Settled content fits with 5px to spare,
-            // so this is a no-op outside transitions.
-            clip: true
+            // Single-fill background: body + both screen-edge flares in
+            // one path/fill — separate shapes either hairline (abutted)
+            // or double-blend (overlapped, surface is translucent).
+            PillBackground {
+                id: pillBg
+                bodyWidth: pill.width
+                bodyHeight: pill.height
+                topBar: Settings.barOrientation
+                x: -flare
+            }
+            // Content clip (previously clip:true on the pill Rectangle):
+            // cuts content spilling past the still-gliding pill edge. The
+            // background above intentionally overhangs for the flares.
+            Item {
+                id: pillClip
+                anchors.fill: parent
+                clip: true
 
             // ---- state stack (one beat) ----
             // Content swaps the same frame the state resolves; the pill
@@ -408,9 +420,10 @@ PanelWindow {
                 // its Loader, transient islands via currentPageLoader).
 
                 property string current: stack.displayed
-                // Note: volume/brightness/control all resolve to controlPage
-                // in the switch below, so pulses across them keep the same
-                // Loader item with no swap churn — same content, no reveal.
+                // Note: control resolves to controlPage; volume/brightness
+                // render in the bottom OSD pill (like player in the media
+                // pill) and recording in its side pill, so the main stack
+                // shows default content for those — no swap churn.
                 // (Recording maps to defaultPage for the same reason.)
                 onCurrentChanged: {
                     // Prime the wallpaper cache on first open; the Loader
@@ -471,9 +484,13 @@ PanelWindow {
                         case "default":
                             return defaultPage;
                         case "volume":
-                            return controlPage;
+                            // Volume lives in the bottom OSD pill beside
+                            // the media pill — the main stack shows default
+                            // content so pulses never hijack the bar.
+                            return defaultPage;
                         case "brightness":
-                            return controlPage;
+                            // Same as volume above.
+                            return defaultPage;
                         case "recording":
                             // Recording lives in the secondary pill beside
                             // the main pill — the main stack shows default
@@ -548,6 +565,7 @@ PanelWindow {
                     Item {}
                 }
             }
+            } // pillClip
         }
 
         Component {
@@ -616,35 +634,46 @@ PanelWindow {
                 onTriggered: leftPill.shown = false
             }
             IslandExpandClip {
+                id: leftClip
                 expand: leftPill.openT
                 contentHeight: leftPill.height
+                // One fillet wider on each side so the edge fillets live
+                // inside the unfold wipe (attached) instead of beside it.
+                x: -Theme.radius
+                width: leftPill.width + Theme.radius * 2
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                Rectangle {
-                    color: Theme.surface
-                    width: parent.width
+                // Single-fill background (body + flares, one fill — see
+                // pillBg above); content Loader sits over the body area.
+                PillBackground {
+                    id: pillBgL
+                    bodyWidth: leftPill.width
+                    bodyHeight: leftPill.height
+                    topBar: Settings.barOrientation
+                    // Outer (screen-side) flare shares the sidebar rail
+                    // background so it reads as the rail's extension.
+                    leftFlare: true
+                    leftFlareColor: Theme.bg
+                    x: 0
+                    y: Settings.barOrientation ? 0 : leftClip.height - leftPill.height
+                }
+                Loader {
+                    id: leftLoader
+                    x: pillBgL.flare
+                    y: Settings.barOrientation ? 0 : leftClip.height - leftPill.height
+                    width: leftPill.width
                     height: leftPill.height
-                    anchors.top: Settings.barOrientation ? parent.top : undefined
-                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                    bottomRightRadius: Settings.barOrientation ? Theme.radius : 0
-                    bottomLeftRadius: Settings.barOrientation ? Theme.radius : 0
-                    topRightRadius: Settings.barOrientation ? 0 : Theme.radius
-                    topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
-                    Loader {
-                        id: leftLoader
-                        anchors.fill: parent
-                        active: leftPill.primed
-                        visible: leftPill.visible
-                        asynchronous: false
-                        sourceComponent: leftPage
-                        onLoaded: {
-                            if (item && item["monitorName"] !== undefined)
-                                item.monitorName = root.monitorName;
-                            if (item && item["screenHeight"] !== undefined)
-                                item.screenHeight = root.screenHeight;
-                            if (item && item["screen"] !== undefined)
-                                item.screen = root.screen;
-                        }
+                    active: leftPill.primed
+                    visible: leftPill.visible
+                    asynchronous: false
+                    sourceComponent: leftPage
+                    onLoaded: {
+                        if (item && item["monitorName"] !== undefined)
+                            item.monitorName = root.monitorName;
+                        if (item && item["screenHeight"] !== undefined)
+                            item.screenHeight = root.screenHeight;
+                        if (item && item["screen"] !== undefined)
+                            item.screen = root.screen;
                     }
                 }
             }
@@ -690,33 +719,44 @@ PanelWindow {
                 onTriggered: rightPill.shown = false
             }
             IslandExpandClip {
+                id: rightClip
                 expand: rightPill.openT
                 contentHeight: rightPill.height
+                // One fillet wider on each side so the edge fillets live
+                // inside the unfold wipe (attached) instead of beside it.
+                x: -Theme.radius
+                width: rightPill.width + Theme.radius * 2
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                Rectangle {
-                    color: Theme.surface
-                    width: parent.width
+                // Single-fill background (body + flares, one fill — see
+                // pillBg above); content Loader sits over the body area.
+                PillBackground {
+                    id: pillBgR
+                    bodyWidth: rightPill.width
+                    bodyHeight: rightPill.height
+                    topBar: Settings.barOrientation
+                    // Outer (screen-side) flare shares the sidebar rail
+                    // background so it reads as the rail's extension.
+                    rightFlare: true
+                    rightFlareColor: Theme.bg
+                    x: 0
+                    y: Settings.barOrientation ? 0 : rightClip.height - rightPill.height
+                }
+                Loader {
+                    id: rightLoader
+                    x: pillBgR.flare
+                    y: Settings.barOrientation ? 0 : rightClip.height - rightPill.height
+                    width: rightPill.width
                     height: rightPill.height
-                    anchors.top: Settings.barOrientation ? parent.top : undefined
-                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                    bottomRightRadius: Settings.barOrientation ? Theme.radius : 0
-                    bottomLeftRadius: Settings.barOrientation ? Theme.radius : 0
-                    topRightRadius: Settings.barOrientation ? 0 : Theme.radius
-                    topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
-                    Loader {
-                        id: rightLoader
-                        anchors.fill: parent
-                        active: rightPill.primed
-                        visible: rightPill.visible
-                        asynchronous: false
-                        sourceComponent: rightPage
-                        onLoaded: {
-                            if (item && item["monitorName"] !== undefined)
-                                item.monitorName = root.monitorName;
-                            if (item && item["screenHeight"] !== undefined)
-                                item.screenHeight = root.screenHeight;
-                        }
+                    active: rightPill.primed
+                    visible: rightPill.visible
+                    asynchronous: false
+                    sourceComponent: rightPage
+                    onLoaded: {
+                        if (item && item["monitorName"] !== undefined)
+                            item.monitorName = root.monitorName;
+                        if (item && item["screenHeight"] !== undefined)
+                            item.screenHeight = root.screenHeight;
                     }
                 }
             }
@@ -847,6 +887,76 @@ PanelWindow {
             }
         }
 
+        // ---- OSD pill (centered floater below the main pill) ----
+        // Owns the OsdIsland (full VolumeSection collapsed until hovered,
+        // or the brightness slider) so volume/brightness key pulses never
+        // hijack the main pill: visible only while BarState resolves
+        // "volume"/"brightness" (reveal-out pulse, hover pins via the
+        // island's own IslandHoverPin). Positioned like the media pill —
+        // centered under the main pill, docked below it when both show —
+        // and stacked above toasts when all show. Hidden with the bar
+        // (fullscreen/conceal). The island's own expand clip carries the
+        // unfold; close folds first (expand 1 -> 0) and hides when the
+        // fold completes. Reopen mid-fold retargets expand to 1.
+        Item {
+            id: osdPill
+            width: osdLoader.item ? osdLoader.item.implicitWidth : 400
+            height: osdLoader.item ? osdLoader.item.implicitHeight : 0
+            // Centered under the main pill, clamped 8px inside the edges.
+            // x tracks rigidly (no Behavior — coupled to width animations).
+            x: Math.max(8, Math.min(parent.width - width - 8, pill.x + (pill.width - width) / 2))
+            // Below the main pill like toasts; below the media pill when
+            // both show (see the props pushed into notifPill).
+            y: Settings.barOrientation ? (mediaPill.visible ? mediaPill.y + mediaPill.height + 8 : pill.y + pill.height + 8) : (mediaPill.visible ? mediaPill.y - height - 8 : pill.y - height - 8)
+            visible: osdPill.shown && root.barVisible
+            property bool shown: false
+            // Membership, not resolved state: the resolved state holds one
+            // island at a time, so a main-pill switch (search/control/…)
+            // would unmap the OSD mid-pulse. Membership survives switches
+            // (same reason the keyboard grab above reads activeStates) and
+            // clears exactly when the hold timer, hover-leave, or Esc
+            // deactivates the pulse.
+            property bool flag: ("volume" in BarState.activeStates) || ("brightness" in BarState.activeStates)
+            onFlagChanged: osdPill.setShown(osdPill.flag)
+            Component.onCompleted: osdPill.setShown(osdPill.flag)
+            function setShown(open) {
+                if (open) {
+                    osdCloseTimer.stop();
+                    if (!shown) {
+                        // Fresh open: the Loader (re)creates OsdIsland,
+                        // whose own onCompleted unfolds expand 0 -> 1.
+                        shown = true;
+                    } else if (osdLoader.item && osdLoader.item["expand"] !== undefined) {
+                        // Reopen mid-fold: cancel the fold and unfold again.
+                        osdLoader.item.expand = 1;
+                    }
+                } else {
+                    if (!shown)
+                        return;
+                    // Fold first; the hide timer below unmaps when done.
+                    if (osdLoader.item && osdLoader.item["expand"] !== undefined)
+                        osdLoader.item.expand = 0;
+                    osdCloseTimer.restart();
+                }
+            }
+            Timer {
+                id: osdCloseTimer
+                interval: Theme.anim.normal
+                onTriggered: osdPill.shown = false
+            }
+            Loader {
+                id: osdLoader
+                anchors.fill: parent
+                active: osdPill.shown
+                asynchronous: false
+                sourceComponent: osdPage
+            }
+            Component {
+                id: osdPage
+                OsdIsland {}
+            }
+        }
+
         // ---- notification pill (centered below the main pill) ----
         // Tracks the main pill geometry (pillX/pillY/pillW/pillH) so
         // toasts move with it. Stays clickable/mapped on toasts alone:
@@ -862,6 +972,9 @@ PanelWindow {
             mediaVisible: mediaPill.visible
             mediaY: mediaPill.y
             mediaH: mediaPill.height
+            osdVisible: osdPill.visible
+            osdY: osdPill.y
+            osdH: osdPill.height
         }
 
         // ---- hot zones (left/right island reveal strips) ----

@@ -122,7 +122,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/87/39/__original_drawn_by_luceat17__87399f74b4211bad73cc53c794cfb64b.jpg",
     "https://cdn.donmai.us/original/fb/52/__usada_pekora_don_chan_pekomama_and_pekomon_hololive_drawn_by_mumu_lin__fb52b9770f3213d26ba3e4be40e568f5.png",
     "https://cdn.donmai.us/original/a4/6b/__janus_azur_lane__a46b8942465098b4746c5991efdfdfe8.png",
-    "https://cdn.donmai.us/original/7d/64/__columbina_and_sandrone_genshin_impact_drawn_by_swkl_d__7d64fa916efdd667c932b9d86764dd1d.jpg",
     "https://cdn.donmai.us/original/58/57/__makima_chainsaw_man_drawn_by_izei1337__58577761e142e76c0da9263556e52283.jpg",
     "https://cdn.donmai.us/original/3c/77/__prinz_moritz_azur_lane__3c7795af9ae9b14715a33c33eb584651.png",
     "https://cdn.donmai.us/original/7f/82/__kuchiki_rukia_bleach_and_1_more_drawn_by_esmile__7f8202975e7ff266c5d3853adb48a31c.jpg",

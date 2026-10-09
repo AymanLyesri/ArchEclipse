@@ -305,9 +305,10 @@ Singleton {
 
             // Respect an existing hover-pin: re-pulsing with a hold timer
             // while pinned would arm an auto-deactivate that closes the
-            // island under an attending cursor.
+            // island under an attending cursor. 2500ms linger (like the
+            // player pill) so the OSD stays readable after key repeats.
             if (!root.isPersistent("volume"))
-                root.activate("volume", Settings.revealOutPressure);
+                root.activate("volume", 2500);
         });
     }
 
@@ -333,8 +334,9 @@ Singleton {
             root.brightnessEvents++;
 
             // Respect an existing hover-pin (see volume watcher above).
+            // 2500ms linger (like the player pill).
             if (!root.isPersistent("brightness"))
-                root.activate("brightness", Settings.revealOutPressure);
+                root.activate("brightness", 2500);
         }
     }
 

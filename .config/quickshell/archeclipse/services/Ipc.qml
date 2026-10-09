@@ -90,6 +90,10 @@ Item {
         function barDiag(query: string): string {
             try {
                 if (query === "state") return BarState.state;
+                // Live membership snapshot: proves a pulse (volume/brightness)
+                // stays active while a higher-priority island wins the
+                // resolved state (OSD independence QA).
+                if (query === "active") return Object.keys(BarState.activeStates || {}).join(",");
                 if (query.startsWith("pulse:")) {
                     const rest = query.substring(6).split(":");
                     BarState.activate(rest[0], Number(rest[1]) || 2000);

@@ -43,6 +43,12 @@ Item {
     property bool mediaVisible: false
     property real mediaY: 0
     property real mediaH: 0
+    // OSD pill stacking: same treatment one level down — toasts dock
+    // below the volume/brightness OSD when it shows (below media+OSD
+    // when both show, which is rare: equal-priority states resolve one).
+    property bool osdVisible: false
+    property real osdY: 0
+    property real osdH: 0
 
     width: 400
     height: popList.contentHeight
@@ -57,7 +63,20 @@ Item {
         const centered = pillX + (pillW - width) / 2;
         return Math.max(8, Math.min(parent.width - width - 8, centered));
     }
-    y: topBar ? (mediaVisible ? mediaY + mediaH + 8 : pillY + pillH + 8) : (mediaVisible ? mediaY - height - 8 : pillY - height - 8)
+    y: {
+        if (topBar) {
+            if (root.osdVisible)
+                return root.osdY + root.osdH + 8;
+            if (root.mediaVisible)
+                return root.mediaY + root.mediaH + 8;
+            return pillY + pillH + 8;
+        }
+        if (root.osdVisible)
+            return root.osdY - height - 8;
+        if (root.mediaVisible)
+            return root.mediaY - height - 8;
+        return pillY - height - 8;
+    }
 
     // Grace keeps the pill mapped while the last card slides out.
     property int toastCount: Notifications.popupToasts.length

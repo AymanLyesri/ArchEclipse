@@ -24,4 +24,5 @@ AppSegmentedControl 1.0 AppSegmentedControl.qml
 AppProgress 1.0 AppProgress.qml
 AppTooltip 1.0 AppTooltip.qml
 Card 1.0 Card.qml
+PillBackground 1.0 PillBackground.qml
 SystemResourcesContent 1.0 SystemResourcesContent.qml

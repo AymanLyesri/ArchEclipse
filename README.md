@@ -215,7 +215,7 @@ Python installer = deps + dotfiles + packages. One command in, `archeclipse` kee
 - [ ] Gaming perf tuning _(in progress)_
 - [ ] Ongoing polish
 
-Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issues).
+Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issues) or in [Discord](https://discord.gg/fMGt4vH6s5).
 
 ---
 
