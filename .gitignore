@@ -14,8 +14,8 @@
 
 # Include hyprland config
 !.config/hypr/
-# Include kitty config
-!.config/kitty/
+# Include foot config
+!.config/foot/
 # include pipwire config
 !.config/pipewire/
 # include fastfetch config

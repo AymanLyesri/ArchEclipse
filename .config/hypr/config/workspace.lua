@@ -1,4 +1,4 @@
 hl.workspace_rule({
     workspace = "special:special",
-    on_created_empty = "kitty",
+    on_created_empty = "foot",
 })

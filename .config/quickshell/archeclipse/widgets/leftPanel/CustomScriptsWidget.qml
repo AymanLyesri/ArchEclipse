@@ -12,7 +12,7 @@ import qs.services
 // uses Settings.fileManager, reset shows a Yes/No confirmation, everything
 // else spawns via Quickshell.execDetached. Scripts requiring an installed
 // binary show an install button when the app is missing (yay/paru/pacman
-// via kitty).
+// via foot).
 Item {
     id: root
 
@@ -40,13 +40,13 @@ Item {
             description: "Change Resolution",
             app: "nwg-displays",
             package: "nwg-displays",
-            command: "kitty nwg-displays -m ~/.config/hypr/config/custom/monitors.conf"
+            command: "foot nwg-displays -m ~/.config/hypr/config/custom/monitors.conf"
         },
         {
             name: "Update Packages",
             icon: "󰏗",
             description: "Update Packages (pacman)",
-            command: "kitty -e sudo pacman -Syu"
+            command: "foot sudo pacman -Syu"
         },
         {
             name: "Clear Clipboard",
@@ -101,13 +101,13 @@ Item {
             icon: "󰍛",
             description: "Open system monitor",
             app: "btop",
-            command: "kitty -e btop"
+            command: "foot btop"
         },
         {
             name: "Quickspeed",
             icon: "󰓅",
             description: "Bandwidth speed test via Cloudflare",
-            command: "kitty -e bash -c \"python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/quickspeed/refs/heads/master/quickspeed.py); echo; read -n 1 -s -r -p 'Press any key to close...'\""
+            command: "foot bash -c \"python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/quickspeed/refs/heads/master/quickspeed.py); echo; read -n 1 -s -r -p 'Press any key to close...'\""
         },
         {
             name: "Volume Control",
@@ -157,35 +157,35 @@ Item {
             icon: "󰟥",
             description: "Pipes Animation",
             app: "pipes.sh",
-            command: "kitty -e pipes.sh"
+            command: "foot pipes.sh"
         },
         {
             name: "Cava",
             icon: "󰕾",
             description: "Audio Visualizer",
             app: "cava",
-            command: "kitty -e cava"
+            command: "foot cava"
         },
         {
             name: "CMatrix",
             icon: "󱔼",
             description: "Matrix Digital Rain",
             app: "cmatrix",
-            command: "kitty -e cmatrix"
+            command: "foot cmatrix"
         },
         {
             name: "Asciiquarium",
             icon: "",
             description: "Aquarium Animation",
             app: "asciiquarium",
-            command: "kitty -e asciiquarium"
+            command: "foot asciiquarium"
         },
         {
             name: "Pacgraph",
             icon: "󰏗",
             description: "Visualize package sizes (pacgraph -c)",
             app: "pacgraph",
-            command: "kitty -e bash -c \"pacgraph -c; read -n 1 -s -r -p 'Press any key to continue...'\""
+            command: "foot bash -c \"pacgraph -c; read -n 1 -s -r -p 'Press any key to continue...'\""
         },
         {
             name: "Reset Settings",
@@ -262,16 +262,16 @@ Item {
     }
 
     property Component installProcComp: Component {
-        // Spawn the install through `kitty -e` so that sudo pacman can
+        // Spawn the install through `foot` so that sudo pacman can
         // prompt for the password interactively in a terminal. Headless
         // pacman will hang on the password prompt and lock up forever.
-        // We exec kitty with the bash branch inline so the user sees the
+        // We exec foot with the bash branch inline so the user sees the
         // progress and can enter their sudo password when prompted.
         Process {
             id: _instProc
             property string pkgName: ""
-            // kitty's argv doesn't take "-e cmd; cmd2", so wrap in bash -c
-            command: ["kitty", "-e", "bash", "-c", "if command -v yay >/dev/null 2>&1; then yay -S " + pkgName + "; elif command -v paru >/dev/null 2>&1; then paru -S " + pkgName + "; else sudo pacman -S " + pkgName + "; fi; echo; " + "echo 'Press any key to close...'; read -n 1 -s -r"]
+            // foot takes the command directly (no -e flag), so wrap in bash -c
+            command: ["foot", "bash", "-c", "if command -v yay >/dev/null 2>&1; then yay -S " + pkgName + "; elif command -v paru >/dev/null 2>&1; then paru -S " + pkgName + "; else sudo pacman -S " + pkgName + "; fi; echo; " + "echo 'Press any key to close...'; read -n 1 -s -r"]
             onExited: code => {
                 if (code === 0)
                     root.refreshAppStatus();

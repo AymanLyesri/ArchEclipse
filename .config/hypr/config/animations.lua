@@ -1,13 +1,6 @@
 local phi = 1.618
 local phi_min = 0.618
-local interval = phi * 1
-local curve = "ease"
-
-hl.config({
-    animations = {
-        enabled = true,
-    },
-})
+local interval = phi * 2
 
 hl.curve("default", { type = "bezier", points = { { 0, 1 }, { 0, 1 } } })
 hl.curve("wind", { type = "bezier", points = { { 0.05, phi_min }, { 0.1, 1 } } })
@@ -16,8 +9,19 @@ hl.curve("winOut", { type = "bezier", points = { { 0.3, 1 }, { 0, 1 } } })
 hl.curve("linear", { type = "bezier", points = { { 1, 1 }, { 1, 1 } } })
 hl.curve("ease", { type = "bezier", points = { { 0, 1 }, { phi_min, 1 } } })
 
-hl.animation({ leaf = "windowsIn", enabled = true, speed = interval, bezier = curve, style = "popin 87%" })
-hl.animation({ leaf = "windowsOut", enabled = true, speed = interval, bezier = curve, style = "popin 87%" })
+hl.curve("overshoot", { type = "bezier", points = { { 0.5, 0.9 }, { 0.1, 1.1 } } })
+hl.curve("rubber", { type = "spring", mass = 1, stiffness = 70, dampening = 10 })
+
+local curve = "ease"
+
+hl.config({
+    animations = {
+        enabled = true,
+    },
+})
+
+hl.animation({ leaf = "windowsIn", enabled = true, speed = interval, bezier = curve, style = "popin 85%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = interval, bezier = curve, style = "popin 85%" })
 hl.animation({ leaf = "windowsMove", enabled = true, speed = interval, bezier = curve, style = "slide" })
 hl.animation({ leaf = "workspaces", enabled = true, speed = interval, bezier = curve, style = "slide" })
 -- hl.animation({ leaf = "layers", enabled = true, speed = interval, bezier = curve, style = "slide" })

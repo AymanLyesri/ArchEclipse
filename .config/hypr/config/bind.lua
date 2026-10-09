@@ -1,7 +1,7 @@
 local home = os.getenv("HOME") or ""
 local scriptsDir = home .. "/.config/hypr/scripts"
 local screenshot = scriptsDir .. "/screenshot.sh"
-local terminal = "kitty"
+local terminal = "foot"
 local scripts = require("config.scripts")
 -- Quickshell secure lock (qs ipc) + suspend chain (sleep 1 lets grim
 -- capture and the session lock engage before the machine sleeps).

@@ -74,7 +74,7 @@ Item {
     // bare `hyprctl dispatch exec` fails against the Lua registry) --
     function runUpdate() {
         try {
-            Hyprland.dispatch("hl.dsp.exec_cmd('kitty zsh -ic \"clear; archeclipse\"')");
+            Hyprland.dispatch("hl.dsp.exec_cmd('foot zsh -ic \"clear; archeclipse\"')");
             root.isUpdating = false;
             root.updateStatus = "Update started";
         } catch (e) {
@@ -82,7 +82,7 @@ Item {
             root.updateStatus = "Update failed";
             Notifications.notify({
                 summary: "Launch Error",
-                body: "Could not open kitty with archeclipse."
+                body: "Could not open foot with archeclipse."
             });
         }
     }

@@ -112,7 +112,7 @@ function M.dragEnd()
 
     hl.dispatch(
         hl.dsp.exec_cmd(
-            "kitty",
+            "foot",
             {
                 float = true,
                 move = { x, y },

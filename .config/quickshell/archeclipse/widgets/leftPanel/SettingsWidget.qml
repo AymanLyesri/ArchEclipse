@@ -1708,7 +1708,7 @@ Item {
         {
             id: "ranger",
             name: "Ranger (Terminal)",
-            command: "kitty ranger"
+            command: "foot ranger"
         }
     ]
 

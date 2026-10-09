@@ -98,7 +98,7 @@ QtObject {
                 }));
             } else {
                 entries.push(mkResult(name, "\uf120", "Run as shell command", () => {
-                    Quickshell.execDetached(["kitty", "-e", "bash", "-c", name]);
+                    Quickshell.execDetached(["foot", "bash", "-c", name]);
                     touchHistory(name);
                 }));
             }
@@ -115,7 +115,7 @@ QtObject {
     }
 
     function quickAppsList() {
-        return [mkResult("Keybinds", "\uf11c", "View or edit your Hyprland keybinds", () => openLeftIslandTab("KeyBinds")), mkResult("Browser", "\ueaae", "Open your default web browser", () => Quickshell.execDetached(["xdg-open", "http://www.google.com"])), mkResult("Terminal", "\uf120", "Open a new terminal window", () => Quickshell.execDetached(["kitty"])), mkResult("Files", "\uf15b", "Open your file manager", () => Quickshell.execDetached(["bash", "-c", `${Quickshell.env("HOME")}/.config/hypr/scripts/filemanager.sh || xdg-open .`])), mkResult("Calculator", "\uf1ec", "Open the calculator", () => Quickshell.execDetached(["kitty", "bc"])), mkResult("Text Editor", "\uf01f", "Open your default text editor", () => Quickshell.execDetached(["code"])),];
+        return [mkResult("Keybinds", "\uf11c", "View or edit your Hyprland keybinds", () => openLeftIslandTab("KeyBinds")), mkResult("Browser", "\ueaae", "Open your default web browser", () => Quickshell.execDetached(["xdg-open", "http://www.google.com"])), mkResult("Terminal", "\uf120", "Open a new terminal window", () => Quickshell.execDetached(["foot"])), mkResult("Files", "\uf15b", "Open your file manager", () => Quickshell.execDetached(["bash", "-c", `${Quickshell.env("HOME")}/.config/hypr/scripts/filemanager.sh || xdg-open .`])), mkResult("Calculator", "\uf1ec", "Open the calculator", () => Quickshell.execDetached(["foot", "bc"])), mkResult("Text Editor", "\uf01f", "Open your default text editor", () => Quickshell.execDetached(["code"])),];
     }
 
     // QuickApps ordered by quick-app-history (mirrors QuickApps.tsx sortQuickAppsByHistory)
@@ -829,7 +829,7 @@ QtObject {
         let r = appResults(head, rest);
         if (r.length === 0 && rest.length === 0) {
             r = [mkResult(`Try ${t} in terminal`, "\u{F15BB}", "Run as shell command", () => {
-                Quickshell.execDetached(["kitty", "-e", "bash", "-c", t]);
+                Quickshell.execDetached(["foot", "bash", "-c", t]);
                 touchHistory(t);
             })];
         }

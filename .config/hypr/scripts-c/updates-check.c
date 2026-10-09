@@ -155,7 +155,7 @@ static bool check_git_updates(const char *repo) {
         snprintf(message, sizeof(message), "We are behind by %d commits.", behind);
         char update_py[1024];
         snprintf(update_py, sizeof(update_py), "%s/.config/hypr/maintenance/update.py", repo);
-        char *const action[] = {"kitty", update_py, NULL};
+        char *const action[] = {"foot", update_py, NULL};
         send_notification("Repository Update", message, "Pull Changes", action);
         return true;
     }

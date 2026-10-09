@@ -345,7 +345,7 @@ In `config/workspace.lua`:
 ```lua
 hl.workspace_rule({
     workspace = "special:special",
-    on_created_empty = "kitty",  -- Spawn this when first opened
+    on_created_empty = "foot",  -- Spawn this when first opened
 })
 ```
 

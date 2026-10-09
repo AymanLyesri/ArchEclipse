@@ -35,8 +35,8 @@ WORKSPACE_SETTLE = 2.0
 # ArchEclipse Overview hero floats, measured from the live ws10 reference
 # placement (absolute monitor pixels on the 1920x1080 output).
 OVERVIEW_FLOATS = [
-    dict(cmd=["kitty", "-o", "font_size=9"], x=935, y=580, w=1091, h=469),
-    dict(cmd=["kitty", "-o", "font_size=9", "-e", "cava"], x=1184, y=389, w=652, h=161),
+    dict(cmd=["foot", "-f", "monospace:size=9"], x=935, y=580, w=1091, h=469),
+    dict(cmd=["foot", "-f", "monospace:size=9", "cava"], x=1184, y=389, w=652, h=161),
 ]
 
 
@@ -489,14 +489,14 @@ def setup_overview_windows(workspace=CAPTURE_WORKSPACE_ID, timeout=15):
             found = [
                 c
                 for c in _ws_clients(workspace)
-                if c.get("class") == "kitty" and int(c["pid"]) not in seen
+                if c.get("class") == "foot" and int(c["pid"]) not in seen
             ]
             return found or None
 
         found = _wait_for(mapped, timeout=timeout)
         if not found:
             raise RuntimeError("Overview window did not map: " + " ".join(f["cmd"]))
-        # Newest unmatched kitty client is this spawn (sequential spawns).
+        # Newest unmatched foot client is this spawn (sequential spawns).
         target = max(found, key=lambda c: int(c["pid"]))
         seen.add(int(target["pid"]))
         spawned.append(int(target["pid"]))

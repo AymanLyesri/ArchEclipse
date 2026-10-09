@@ -58,7 +58,7 @@ PACKAGES: list[str] = [
     "hyprpm",
     # Audio / video and media
     "swayimg",
-    "kitty",
+    "foot",
     "grimblast-git",
     "grim",
     "wf-recorder",
@@ -73,7 +73,6 @@ PACKAGES: list[str] = [
     "cwal",
     "fastfetch",
     "starship",
-    "gtk4",
     "libadwaita",
     "gvfs",
     "hyprpolkitagent",
@@ -97,7 +96,7 @@ PROTECTED_PACKAGES = {
     "hyprpm": "plugin manager for Hyprland",
     "hyprpolkitagent": "graphical authentication agent",
     "hyprcursor": "native cursor format library",
-    "kitty": "terminal",
+    "foot": "terminal",
     "networkmanager": "network connectivity",
     "networkmanager-applet": "network connectivity applet",
     "wl-clipboard": "Wayland clipboard utility",
@@ -127,15 +126,11 @@ def uninstall_packages(*, remove_zsh: bool = False) -> None:
         "fzf-tab-git",
     }
     candidates = [
-        package
-        for package in PACKAGES
-        if remove_zsh or package not in shell_packages
+        package for package in PACKAGES if remove_zsh or package not in shell_packages
     ]
     installed: list[str] = []
     for package in candidates:
-        result = run_cmd(
-            ["pacman", "-Qq", package], check=False, capture_output=True
-        )
+        result = run_cmd(["pacman", "-Qq", package], check=False, capture_output=True)
         if result.returncode == 0:
             installed.extend(
                 installed_package
@@ -144,12 +139,8 @@ def uninstall_packages(*, remove_zsh: bool = False) -> None:
             )
     installed = list(dict.fromkeys(installed))
 
-    protected = [
-        package for package in installed if package in PROTECTED_PACKAGES
-    ]
-    installed = [
-        package for package in installed if package not in PROTECTED_PACKAGES
-    ]
+    protected = [package for package in installed if package in PROTECTED_PACKAGES]
+    installed = [package for package in installed if package not in PROTECTED_PACKAGES]
     if protected:
         print("Keeping protected packages:")
         for package in protected:
@@ -177,10 +168,7 @@ def uninstall_packages(*, remove_zsh: bool = False) -> None:
             skipped.append(package)
 
     if skipped:
-        print(
-            "Kept packages that Pacman could not remove safely: "
-            + " ".join(skipped)
-        )
+        print("Kept packages that Pacman could not remove safely: " + " ".join(skipped))
 
 
 def main() -> None:

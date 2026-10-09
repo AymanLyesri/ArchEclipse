@@ -42,7 +42,7 @@ catch flat/empty pictures; they do not prove semantic correctness.
 
 Supported (captured live through the shell's own island state):
 `overview` (ArchEclipse hero: player island + BooruViewer left +
-default right + floating `kitty` / `kitty -e cava` at reference rects),
+default right + floating `foot` / `foot cava` at reference rects),
 `app-launcher`, `control-panel`,
 `right-panel-layout-1` (Waifu, Player, Calendar, Notification History),
 `right-panel-layout-2` (Calendar, Player, Waifu, System Resources),

@@ -3,7 +3,7 @@
 # using the live cell height, so the image already grows/shrink proportionally
 # with Ctrl+Shift +/- zoom. Scaling rows on top of that double-counts
 # (pixels = rows x cell-height) and looks disproportionate.
-LOGO_HEIGHT=16
+LOGO_HEIGHT=18
 CACHE_DIR="$HOME/.config/fastfetch/cache"
 
 # Pick a random file from cache directory
@@ -16,4 +16,4 @@ if [ -z "$IMAGE_PATH" ]; then
 fi
 
 # Fetch system information with fixed logo size (proportional by design)
-fastfetch --logo-type kitty --logo-cache regen --logo-height "$LOGO_HEIGHT" --logo "$IMAGE_PATH"
+fastfetch --logo-type sixel --logo-cache regen --logo-height "$LOGO_HEIGHT" --logo "$IMAGE_PATH"
