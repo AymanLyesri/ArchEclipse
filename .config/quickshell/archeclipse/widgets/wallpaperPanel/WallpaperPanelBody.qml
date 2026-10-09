@@ -34,8 +34,10 @@ Item {
 
     readonly property string home: Quickshell.env("HOME")
     readonly property string wallpaperScript: home + "/.config/quickshell/archeclipse/scripts/get-wallpapers.sh"
-    readonly property string setScript: home + "/.config/hypr/wallpaper-daemon/set-wallpaper.sh"
-    readonly property string reloadScript: home + "/.config/hypr/wallpaper-daemon/reload.sh"
+    // WallEclipse CLI: `walleclipse set <monitor> <ws> <path>` (config + show).
+    // No reload step exists — the daemon re-reads config on every event, so
+    // the reload action below is a daemon health-check (`walleclipse list`).
+    readonly property string walleclipseBin: "walleclipse"
 
     function isVideoFile(file) {
         return WallpaperService.isVideoFile(file);
@@ -531,8 +533,8 @@ Item {
         case "sddm":
             return ["pkexec", "bash", "-c", `sed -i "s|^background=.*|background=${path}|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf`];
         default:
-            // workspace
-            return [root.setScript, String(root.selectedWorkspaceId), root.effectiveMonitor, path];
+            // workspace (WallEclipse arg order: set <monitor> <ws> <path>)
+            return [root.walleclipseBin, "set", root.effectiveMonitor, String(root.selectedWorkspaceId), path];
         }
     }
 
@@ -615,17 +617,41 @@ Item {
 
     // ----------------------------------------------------------- daemon reload
 
+    property int _reloadAttempts: 0
     Process {
         id: reloadProc
         onExited: code => {
-            if (code === 0)
+            if (code === 0) {
+                root._reloadAttempts = 0;
                 root.fetchWallpapers();
-            root.setProgress(code === 0 ? "success" : "error");
+                root.setProgress("success");
+            } else if (root._reloadAttempts < 1) {
+                // Daemon may be dead: start it, then retry once.
+                root._reloadAttempts += 1;
+                startProc.running = true;
+            } else {
+                root._reloadAttempts = 0;
+                root.setProgress("error");
+            }
+        }
+    }
+    Process {
+        id: startProc
+        command: ["bash", "-c", "nohup walleclipse >/tmp/walleclipse-daemon-out.log 2>&1 & sleep 3"]
+        onExited: code => {
+            if (code === 0)
+                reloadProc.running = true;
+            else {
+                root._reloadAttempts = 0;
+                root.setProgress("error");
+            }
         }
     }
     function reloadDaemon() {
+        // WallEclipse re-reads config + re-applies current on reload.
+        root._reloadAttempts = 0;
         setProgress("reloading");
-        reloadProc.command = ["bash", "-c", root.reloadScript];
+        reloadProc.command = [root.walleclipseBin, "reload"];
         reloadProc.running = true;
     }
 

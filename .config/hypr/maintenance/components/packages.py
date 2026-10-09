@@ -65,6 +65,7 @@ PACKAGES: list[str] = [
     "vlc",
     "imagemagick",
     "mpvpaper",
+    "walleclipse-git",
     "zenity",
     # Themes and UI enhancements
     "sddm",
@@ -75,7 +76,6 @@ PACKAGES: list[str] = [
     "gtk4",
     "libadwaita",
     "gvfs",
-    "hyprpaper",
     "hyprpolkitagent",
     "ttf-jetbrains-mono-nerd",
     "noto-fonts-emoji",

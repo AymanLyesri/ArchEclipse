@@ -233,30 +233,36 @@ def resolve_wallpaper(url):
 
 
 def parse_active_wallpaper(text, monitor):
-    for line in text.splitlines():
-        name, sep, path = line.partition(":")
-        if sep and name.strip() == monitor:
-            return path.strip() or None
+    # WallEclipse: `walleclipse current` prints the last-applied path
+    # (monitor arg kept for call-site compatibility).
+    del monitor
+    return text.strip() or None
+
+
+def workspace_mapping(monitor, workspace):
+    # Saved per-workspace mapping from `walleclipse list`
+    # ("<monitor> <ws> <path>" per line); None when unmapped.
+    for line in run(["walleclipse", "list"]).splitlines():
+        parts = line.split(None, 2)
+        if len(parts) == 3 and parts[0] == monitor and parts[1] == str(workspace):
+            return parts[2].strip() or None
     return None
 
 
-def apply_wallpaper(monitor, path, timeout=15, settle=4.0):
-    # Live-only: hyprctl applies immediately without touching the
-    # wallpaper-daemon config or regenerating the theme.
-    run(["hyprctl", "hyprpaper", "wallpaper", monitor + "," + path], timeout=10)
+def apply_wallpaper(monitor, path, workspace=CAPTURE_WORKSPACE_ID, timeout=15, settle=4.0):
+    # WallEclipse `set` updates the workspace mapping AND shows immediately
+    # (replaces `hyprctl hyprpaper wallpaper`, which was live-only).
+    # Callers save/restore the mapping around capture runs.
+    run(["walleclipse", "set", monitor, str(workspace), path], timeout=10)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if (
-            parse_active_wallpaper(run(["hyprctl", "hyprpaper", "listactive"]), monitor)
-            == path
-        ):
+        if parse_active_wallpaper(run(["walleclipse", "current"]), monitor) == path:
             break
         time.sleep(0.5)
     else:
         raise RuntimeError("Wallpaper did not apply: " + path)
-    # listactive reflects the request, not the decoded pixels: large images
-    # read black until hyprpaper uploads them (seen on an 8MB PNG), so wait
-    # out the decode before any capture may proceed.
+    # Decoded-at-startup means no upload lag, but keep a short settle so
+    # compositor animations finish before any capture may proceed.
     time.sleep(settle)
 
 
@@ -586,15 +592,17 @@ def capture_run(args, monitor, out_dir, workspace=CAPTURE_WORKSPACE_ID, wallpape
     staged = []
     wallpaper_path = None
     previous_wallpaper = None
+    saved_mapping = None
     applied_wallpaper = None
     want_wallpaper = wallpaper or any(s.get("wallpaper") for s in shots)
     if want_wallpaper:
-        # Read before the workspace switch: this is the wallpaper visible on
-        # the workspace we return to (the daemon reapplies ws10's own entry
-        # on entry, which is not ours to restore).
+        # Read before the workspace switch: the wallpaper currently shown
+        # plus the capture workspace's saved mapping (WallEclipse `set`
+        # writes the mapping, so it must be restored afterwards).
         previous_wallpaper = parse_active_wallpaper(
-            run(["hyprctl", "hyprpaper", "listactive"]), monitor
+            run(["walleclipse", "current"]), monitor
         )
+        saved_mapping = workspace_mapping(monitor, workspace)
     previous = None
     if workspace is not None:
         previous = parse_active_workspace(run(["hyprctl", "activeworkspace", "-j"]))
@@ -655,7 +663,13 @@ def capture_run(args, monitor, out_dir, workspace=CAPTURE_WORKSPACE_ID, wallpape
             and applied_wallpaper != previous_wallpaper
         ):
             try:
-                apply_wallpaper(monitor, previous_wallpaper)
+                if saved_mapping:
+                    apply_wallpaper(monitor, saved_mapping)
+                else:
+                    print(
+                        "WARNING: no saved mapping for "
+                        f"{monitor} ws{workspace}, leaving capture wallpaper"
+                    )
             except RuntimeError as e:
                 print("WARNING: " + str(e), flush=True)
     # Restoration MUST succeed before files in the repo can change.

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Define the file that contains the wallpaper paths
-wallpaper_config="$HOME/.config/hypr/wallpaper-daemon/config"
+# Define the file that contains the wallpaper paths (WallEclipse config)
+wallpaper_config="$HOME/.config/walleclipse/config"
 wallpaper_folder="$HOME/.config/wallpapers"
 
 # Self-healing structure (fresh clones no longer carry the skeleton dirs

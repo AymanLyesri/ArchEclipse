@@ -5,8 +5,6 @@ config/defaults/*
 !config/defaults/.gitkeep
 
 theme/theme.conf
-wallpaper-daemon/config/*
-!wallpaper-daemon/config/defaults.conf
 
 # ignore nwg-displays auto-generated configuration files
 monitors.conf

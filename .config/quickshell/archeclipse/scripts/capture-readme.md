@@ -85,11 +85,12 @@ Manual-only (listed with a reason, never faked):
   `--workspace-settle` seconds (default 2) before any wallpaper change, so
   the compositor slide animation and the daemon's ws10 wallpaper reapply
   finish first.
-- `--wallpaper` sets one image live for the whole run (local path or
+- `--wallpaper` sets one image for the whole run (local path or
   http(s) URL, downloaded into `~/.cache/archeclipse-capture/wallpapers/`)
-  via `hyprctl hyprpaper` only: no daemon-config writes, no theme regen.
+  via `walleclipse set`: the capture workspace mapping is updated and
+  restored afterwards, no theme regen.
   A shot's own `wallpaper="..."` manifest entry wins for that shot.
-  The previous wallpaper is re-applied afterwards.
+  The saved mapping is restored afterwards.
 - Captures show live private content. Review every PNG before publishing.
   No auto upload/commit.
 

@@ -19,14 +19,9 @@ compile_if_stale() {
 
 compile_if_stale "$SRC/battery-check.c" "$TMP/battery-check"
 compile_if_stale "$SRC/updates-check.c" "$TMP/updates-check"
-compile_if_stale "$SRC/wallpaper-loop.c" "$TMP/wallpaper-loop"
 
-# Restart only the wallpaper daemon (exact-name match: -f would also match
-# this script's own command line). Leave hyprpaper running to avoid flicker.
-pkill -x "wallpaper-loop" 2>/dev/null || true
-sleep 0.3
-
-"$TMP/wallpaper-loop" &
+# Wallpapers are owned by the WallEclipse daemon now (started via exec.lua);
+# nothing to (re)start here.
 
 # Run immediately once
 "$TMP/battery-check" &

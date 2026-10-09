@@ -6,7 +6,7 @@ hl.on("hyprland.start", function()
     -- NOTE: no `hyprpm reload && hyprctl reload` here — it re-triggers this
     -- on-start block (reload loop / slow start). Run hyprpm manually once
     -- after plugin changes instead.
-    hl.exec_cmd("hyprpaper")
+    hl.exec_cmd("walleclipse")
     hl.exec_cmd(scriptsDir .. "/compile-run-binaries.sh")
     hl.exec_cmd(scriptsDir .. "/bar.sh")
     hl.exec_cmd("systemctl --user start hyprpolkitagent")

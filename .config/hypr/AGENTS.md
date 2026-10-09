@@ -14,12 +14,10 @@ hyprland.lua            # entrypoint: sets XDG env, require_all() base modules, 
 config/*.lua            # tracked base config, one file per Hyprland section
 config/custom/*.lua     # MACHINE-LOCAL overrides (gitignored, except .gitkeep)
 config/defaults/*.lua   # template files with {{ PLACEHOLDERS }} for maintenance/install.py
-hyprpaper.conf          # static hyprpaper config (splash off)
 theme/theme.conf        # gitignored runtime theme state (autocolor/autovariant)
 theme/scripts/          # wal/cwal, gtk/icon/cursor/system theme appliers
-wallpaper-daemon/       # set-wallpaper.sh, hyprpaper.sh, mpvpaper.sh, reload.sh + config/<monitor>/defaults.conf
 scripts/                # bar.sh, screenshot.sh, change-brightness.sh, clipboard-monitor.sh, ...
-scripts-c/              # battery-check.c, updates-check.c, wallpaper-loop.c (compiled to /tmp by compile-run-binaries.sh)
+scripts-c/              # battery-check.c, updates-check.c (compiled to /tmp by compile-run-binaries.sh)
 evremap/                # remap.toml + configuration.sh + evremap.service (numlock/numpad remaps)
 maintenance/            # update.py + install.py + components/*.py (ArchEclipse installer/updater)
 ```
@@ -61,13 +59,14 @@ tracked base files for local-only needs).
   colons, which break Lua `require` and most tooling) map 1:1 to a single key.
   Prefer editing the base file unless the value is truly host-local.
 - Shell scripts: `#!/usr/bin/env bash` + `set -euo pipefail` for new code.
-  C helpers: `gcc -O2 -Wall` semantics, no `system()` on hot paths (see
-  `wallpaper-loop.c` `run_wait`/`spawn_detached` pattern).
-- Wallpaper state: `wallpaper-daemon/config/<monitor>/defaults.conf`
-  (`w-<id>=<path>` lines) is gitignored runtime state. `defaults.conf` at the
-  top is the seed template. Never commit per-monitor files.
-  `set-wallpaper.sh` holds `flock` on `${config}.lock` — don't add
-  unsynchronized writers of `defaults.conf`.
+  C helpers: `gcc -O2 -Wall` semantics, no `system()` on hot paths.
+- Wallpapers are owned by WallEclipse (`~/.config/walleclipse`, separate repo,
+  `walleclipse` AUR package started from `config/exec.lua`). Per-monitor state
+  lives in `~/.config/walleclipse/config/<monitor>/defaults.conf`
+  (`w-<id>=<path>` lines, `flock` on `${config}.lock` for writers) — don't add
+  unsynchronized writers. Set from the shell via
+  `walleclipse set <monitor> <ws> <path>`; query via `walleclipse list|current`.
+  Animated (gif/mp4/webm) still goes through `mpvpaper` (owned by the daemon).
 - Wallpaper downloads (`maintenance/components/wallpapers.py`) manage ONLY the
   four `~/.config/wallpapers/defaults/<category>` dirs. Unknown top-level files
   are quarantined to `~/.cache/archeclipse-wallpaper-quarantine/<category>/`,
@@ -95,12 +94,12 @@ tracked base files for local-only needs).
 
 - Syntax: `luac -p hyprland.lua config/*.lua config/custom/*.lua` (`config/defaults/`
   holds `{{ }}` template markers, not valid Lua — don't lint it), `bash -n scripts/*.sh`,
-  `shellcheck scripts/*.sh wallpaper-daemon/*.sh theme/scripts/*.sh` (if installed),
+  `shellcheck scripts/*.sh theme/scripts/*.sh` (if installed),
   `python3 -m py_compile maintenance/install.py maintenance/update.py maintenance/components/*.py`.
 - Reload live: `hyprctl reload` (or `hyprpm reload && hyprctl reload` after plugin changes).
 - Startup exec: `hyprctl exec-once '...'` semantics — check `hyprctl exec-once` for dupes.
 - C daemons: `gcc scripts-c/<name>.c -o /tmp/<name>` then run once manually.
-- Wallpaper loop logs: `/tmp/wallpaper-daemon.log`.
+- Wallpaper logs: `/tmp/walleclipse.log` (daemon stdout: `/tmp/walleclipse-daemon-out.log` when started manually).
 - Bar logs: `/tmp/qs-bar-$USER.log`.
 
 ## Gotchas for agents
@@ -111,8 +110,9 @@ tracked base files for local-only needs).
   push, or run `maintenance/update.py` / `install.py` (they `reset --hard` and
   `cp -a` over `$HOME`). Read-only inspection only unless asked.
 - Never commit `config/custom/`, `config/defaults/` generated output,
-  `theme/theme.conf`, `wallpaper-daemon/config/*` (except seed `defaults.conf`),
+  `theme/theme.conf`,
   `monitors.conf/.lua`, `workspaces.conf/.lua`, `__pycache__/`.
+  (Wallpaper state now lives outside this repo, in `~/.config/walleclipse/`.)
 - `compile-run-binaries.sh` installs cron entries only when missing and
   recompiles only stale binaries — safe to run once to test, but don't run
   it in a loop.
