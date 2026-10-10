@@ -1,3 +1,4 @@
 module qs.widgets.notifications
 
 NotificationPopups 1.0 NotificationPopups.qml
+NotificationCardBody 1.0 NotificationCardBody.qml

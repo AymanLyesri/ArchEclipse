@@ -37,6 +37,8 @@ Singleton {
         property string iconFile: ""
         property string iconName: ""
         property string previewFile: ""
+        property string openFile: ""
+        property string videoFile: ""
         property bool isRecorder: false
         property bool critical: false
         property bool hideBody: true
@@ -142,6 +144,10 @@ Singleton {
         const iconName = root.iconNameFor(n);
         const previewFile = root.previewFor(iconFile);
         const body = (n.body || "").toString();
+        // Openable file: screenshot icon path, else a /abs/path.ext
+        // embedded in the body (Recorder stop toast sends the full path).
+        const openFile = root.openFileFor(n, iconFile, body);
+        const videoFile = root.videoFor(openFile);
         const acts = [];
         try {
             for (const a of n.actions.values())
@@ -156,9 +162,11 @@ Singleton {
             iconFile: iconFile,
             iconName: iconName,
             previewFile: previewFile,
+            openFile: openFile,
+            videoFile: videoFile,
             isRecorder: root.isRecorder(n),
             critical: n.urgency === NotificationUrgency.Critical,
-            hideBody: body === "" || root.bodyIsImage(n, iconFile),
+            hideBody: body === "" || body === openFile || root.bodyIsImage(n, iconFile),
             longBody: body.length > 60 && !root.bodyIsImage(n, iconFile),
             actionDefs: acts,
             stamp: Date.now() / 1000,
@@ -296,6 +304,66 @@ Singleton {
         if (!iconFile) return "";
         if (!/\.(png|jpe?g|webp|gif|bmp|svg|ico)$/i.test(iconFile)) return "";
         return iconFile;
+    }
+
+    // First /absolute/path.ext match inside free text (Recorder stop
+    // toasts carry the full recording path in the body). Trailing
+    // punctuation from markup-wrapped bodies is stripped.
+    function filePathInText(s) {
+        if (!s) return "";
+        const m = String(s).match(/\/\S+\.(mp4|mkv|webm|mov|png|jpe?g|webp|gif|bmp|svg|ico)/i);
+        return m ? m[0].replace(/[).,;:'"]+$/, "") : "";
+    }
+
+    // Openable file for a live notification: resolved image icon for
+    // screenshots, else a path embedded in the body (recordings).
+    function openFileFor(n, iconFile, body) {
+        if (iconFile) return iconFile;
+        return root.filePathInText(body);
+    }
+
+    // Video subset of an openable path (mp4/mkv/webm/mov) for the
+    // AppVideo thumbnail slot; "" means image-or-nothing.
+    function videoFor(path) {
+        if (!path) return "";
+        return /\.(mp4|mkv|webm|mov)$/i.test(path) ? path : "";
+    }
+
+    // Open a toast's file with the default handler (no-op when none).
+    function openToastFile(id) {
+        const w = root.findToast(id);
+        const f = w ? w.openFile : "";
+        if (f) Quickshell.execDetached(["xdg-open", f]);
+    }
+
+    function openPath(path) {
+        if (path) Quickshell.execDetached(["xdg-open", path]);
+    }
+
+    // Shared copy: image file payload via wl-copy with its real MIME type
+    // (screenshot icons arrive as appIcon paths) + result toast, else plain
+    // text. `host` parents the worker Process. Used by both the popup
+    // delegate and the history card through NotificationCardBody.
+    function copyToClipboard(host, iconFile, fallbackText) {
+        if (iconFile !== "") {
+            const imgPath = iconFile;
+            const p = Qt.createQmlObject("import Quickshell.Io; Process {}", host);
+            p.command = ["bash", "-c", "wl-copy --type \"$(file -b --mime-type " + JSON.stringify(imgPath) + ")\" < " + JSON.stringify(imgPath)];
+            p.exited.connect(code => {
+                root.notify(code === 0 ? {
+                    summary: "Copied",
+                    body: imgPath
+                } : {
+                    summary: "Error",
+                    body: "Copy failed"
+                });
+                p.destroy();
+            });
+            p.running = true;
+            return;
+        }
+        if (fallbackText)
+            Quickshell.execDetached(["wl-copy", fallbackText]);
     }
 
     // Recording toasts (our screenrecord.sh sends -a "Recorder") never

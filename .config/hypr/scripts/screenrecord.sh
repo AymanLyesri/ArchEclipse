@@ -31,6 +31,46 @@ drop_stale_pid() {
     fi
 }
 
+# Sets global array codec_args to HW (VAAPI) or fast SW x264.
+# Env override: SCREENRECORD_CODEC=vaapi|software. Logs choice via slog.
+# Returns 0 for HW, 1 for SW (so callers can auto-fallback).
+pick_codec_args() {
+    local force="${SCREENRECORD_CODEC:-auto}"
+    local render_dev=""
+
+    for d in /dev/dri/renderD*; do
+        [[ -e "$d" ]] && { render_dev="$d"; break; }
+    done
+
+    local have_vaapi=1
+    # grep exit 0 = found. 0 means VAAPI encoder available.
+    if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q " h264_vaapi "; then
+        have_vaapi=0
+    else
+        have_vaapi=1
+    fi
+
+    if [[ "$force" == "software" ]]; then
+        codec_args=(-p preset=veryfast -p crf=23 -p tune=zerolatency -r 60)
+        slog "codec: forced software x264 veryfast (SCREENRECORD_CODEC=software)"
+        return 1
+    fi
+
+    if [[ "$force" == "vaapi" || "$force" == "auto" ]] && [[ -n "$render_dev" && "$have_vaapi" -eq 0 ]]; then
+        codec_args=(-c h264_vaapi -d "$render_dev" -F scale_vaapi=format=nv12 -r 60)
+        slog "codec: VAAPI h264_vaapi via ${render_dev}"
+        return 0
+    fi
+
+    if [[ "$force" == "vaapi" ]]; then
+        slog "codec: VAAPI requested but unavailable (dev=[${render_dev:-none}] have_vaapi=${have_vaapi}), falling back to software"
+    else
+        slog "codec: VAAPI unavailable (dev=[${render_dev:-none}] have_vaapi=${have_vaapi}), using software x264 veryfast"
+    fi
+    codec_args=(-p preset=veryfast -p crf=23 -p tune=zerolatency -r 60)
+    return 1
+}
+
 start() {
     slog "start args=[$*] wayland=${WAYLAND_DISPLAY:-UNSET} hypr=${HYPRLAND_INSTANCE_SIGNATURE:-UNSET}"
     drop_stale_pid
@@ -99,14 +139,25 @@ start() {
         # stay held for the whole recording and wrongly reject triggers.
         # From here on the pid file owns mutual exclusion.
         exec {area_lock}>&-
-        # shellcheck disable=SC2086
-        wf-recorder -g "$geometry" ${audio_args[@]} -p crf=24 -p preset=medium -F fps=60 -f "$file" &
+        geom_args=(-g "$geometry")
     else
         file="$screenrecord_fullscreen_dir/screenrecord_${timestamp}.mp4"
-        # shellcheck disable=SC2086
-        wf-recorder ${audio_args[@]} -p crf=24 -p preset=medium -F fps=60 -f "$file" &
+        geom_args=()
     fi
 
+    # Pick HW (VAAPI) when available, else fast software. This is the
+    # stutter fix: previous medium preset + fps CPU filter pegged the CPU
+    # at 1080p60; VAAPI moves encode to the RX 6600, veryfast keeps SW
+    # realtime on 8 threads.
+    codec_args=()
+    if pick_codec_args; then
+        used_hw=1
+    else
+        used_hw=0
+    fi
+    slog "start cmd: wf-recorder ${geom_args[*]:-} ${audio_args[*]:-none} ${codec_args[*]} -f [${file}]"
+
+    wf-recorder "${geom_args[@]}" "${audio_args[@]}" "${codec_args[@]}" -f "$file" &
     rec_pid=$!
     echo "$rec_pid" > "$pid_file"
     echo "$file" > "$file_name"
@@ -114,12 +165,27 @@ start() {
     # Verify it actually survived startup (bad args/codec fail fast).
     sleep 1
     if ! is_recorder_pid "$rec_pid"; then
+        # Auto-fallback: HW encode can fail on missing firmware/filter;
+        # one retry with software is cheaper than a lost recording.
+        if [[ "$used_hw" -eq 1 ]]; then
+            slog "start HW FAILED: pid=${rec_pid} died within 1s, retrying software fallback"
+            wait "$rec_pid" 2>/dev/null || true
+            codec_args=(-p preset=veryfast -p crf=23 -p tune=zerolatency -r 60)
+            slog "start retry cmd: wf-recorder ${geom_args[*]:-} ${audio_args[*]:-none} ${codec_args[*]} -f [${file}]"
+            wf-recorder "${geom_args[@]}" "${audio_args[@]}" "${codec_args[@]}" -f "$file" &
+            rec_pid=$!
+            echo "$rec_pid" > "$pid_file"
+            echo "$file" > "$file_name"
+            sleep 1
+        fi
+    fi
+    if ! is_recorder_pid "$rec_pid"; then
         slog "start FAILED: wf-recorder pid=${rec_pid} died within 1s file=[${file}]"
         rm -f "$pid_file" "$file_name"
         echo "wf-recorder failed to start — see output above" >&2
         exit 1
     fi
-    slog "start OK: pid=${rec_pid} file=[${file}]"
+    slog "start OK: pid=${rec_pid} hw=${used_hw} file=[${file}]"
     notify-send -a "Recorder" -i "media-record" "Recording Started" "$(basename "$file")"
 }
 
@@ -157,7 +223,9 @@ stop() {
     rm -f "$pid_file" "$file_name"
     if [[ -n "$file" ]]; then
         wl-copy --type text/uri-list "file://${file}" 2>/dev/null
-        notify-send -a "Recorder" -i "media-record" "Recording Stopped" "$(basename "$file")"
+        # Body carries the FULL path (not just basename) so the
+        # Quickshell toast can offer an Open button + video thumbnail.
+        notify-send -a "Recorder" -i "media-record" "Recording Stopped" "$file"
     else
         notify-send -a "Recorder" -i "media-record" "Recording Stopped" "File copied to clipboard."
     fi

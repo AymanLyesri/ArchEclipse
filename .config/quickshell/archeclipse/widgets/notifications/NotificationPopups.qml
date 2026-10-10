@@ -1,9 +1,7 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Notifications
-import Quickshell.Widgets
 import qs.theme
 import qs.services
 import qs.widgets.shared
@@ -187,7 +185,6 @@ Item {
                 readonly property var toast: modelData
                 readonly property int toastId: toast ? toast.notificationId : -1
                 readonly property bool critical: toast ? toast.critical : false
-                property bool bodyExpanded: false
                 property bool isHovered: false
 
                 width: ListView.view ? ListView.view.width : 400
@@ -293,8 +290,7 @@ Item {
                             easing.type: Easing.OutCubic
                         }
                     }
-
-                    Column {
+                    NotificationCardBody {
                         id: body
                         anchors.top: parent.top
                         anchors.left: parent.left
@@ -302,224 +298,34 @@ Item {
                         anchors.topMargin: 10
                         anchors.leftMargin: 10
                         anchors.rightMargin: 10
-                        spacing: 6
-
-                        Row {
-                            id: contentRow
-                            width: parent.width
-                            spacing: 10
-
-                            // ---- app icon / image: the image takes the icon's
-                            // place, spanning the text height (72-120px) ----
-                            Item {
-                                id: iconSlot
-                                readonly property bool showPreview: card.toast && card.toast.previewFile !== "" && previewImg.status !== Image.Error
-                                readonly property real previewSize: Math.min(Math.max(textCol.height, 72), 120)
-                                width: showPreview ? previewSize : 28
-                                height: showPreview ? previewSize : 28
-                                Behavior on width {
-                                    NumberAnimation {
-                                        duration: 250
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                                Behavior on height {
-                                    NumberAnimation {
-                                        duration: 250
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                                IconImage {
-                                    id: iconImg
-                                    visible: !parent.showPreview && status === Image.Ready && card.toast && (card.toast.iconFile !== "" || card.toast.iconName !== "")
-                                    anchors.fill: parent
-                                    source: card.toast ? (card.toast.iconFile !== "" ? card.toast.iconFile : card.toast.iconName) : ""
-                                }
-                                Text {
-                                    visible: !iconImg.visible && !parent.showPreview
-                                    width: parent.width
-                                    height: parent.height
-                                    text: (card.toast && card.toast.isRecorder) ? "\uf111" : (card.critical ? "\u{F0266}" : "\u{F059A}")
-                                    color: (card.toast && card.toast.isRecorder) ? "#c95454" : (card.critical ? "white" : Theme.fg)
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: 22
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                Rectangle {
-                                    visible: parent.showPreview
-                                    opacity: previewImg.status === Image.Ready ? 1 : 0
-                                    Behavior on opacity {
-                                        NumberAnimation {
-                                            duration: 250
-                                        }
-                                    }
-                                    anchors.fill: parent
-                                    radius: 8
-                                    clip: true
-                                    color: Qt.alpha(Theme.fg, 0.06)
-                                    Image {
-                                        id: previewImg
-                                        anchors.fill: parent
-                                        source: (card.toast && card.toast.previewFile !== "") ? "file://" + card.toast.previewFile : ""
-                                        asynchronous: true
-                                        cache: false
-                                        fillMode: Image.PreserveAspectCrop
-                                    }
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (card.toast)
-                                                Quickshell.execDetached(["xdg-open", card.toast.previewFile]);
-                                        }
-                                    }
-                                }
-                            }
-
-                            Column {
-                                id: textCol
-                                width: (card.toast && card.toast.previewFile !== "") ? parent.width - 130 : parent.width - 38
-                                Behavior on width {
-                                    NumberAnimation {
-                                        duration: 250
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                                spacing: 3
-
-                                // ---- top bar: title + time (24h %H:%M) ----
-                                RowLayout {
-                                    spacing: 6
-                                    width: parent.width
-                                    Text {
-                                        text: (card.toast && card.toast.summary) || ""
-                                        textFormat: Text.StyledText
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                        color: card.critical ? "white" : Theme.fg
-                                        font.family: Theme.fontFamily
-                                        font.bold: true
-                                        font.pixelSize: Theme.fontSize
-                                    }
-                                    Text {
-                                        text: (card.toast && card.toast.stamp > 0) ? new Date(card.toast.stamp * 1000).toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                            hour12: false
-                                        }) : ""
-                                        color: card.critical ? Qt.alpha("white", 0.7) : Theme.fgDim
-                                        font.pixelSize: Theme.fontSize - 2
-                                        visible: text !== ""
-                                    }
-                                }
-
-                                // ---- body (expandable, markup handling) ----
-                                // Hidden when it's just the image path — the
-                                // image beside it already shows it.
-                                Text {
-                                    width: parent.width
-                                    visible: card.toast ? !card.toast.hideBody : false
-                                    text: (card.toast && card.toast.body) || ""
-                                    textFormat: Text.StyledText
-                                    wrapMode: Text.WordWrap
-                                    maximumLineCount: card.bodyExpanded ? undefined : 4
-                                    elide: card.bodyExpanded ? Text.ElideNone : Text.ElideRight
-                                    color: card.critical ? Qt.alpha("white", 0.85) : Theme.muted
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize - 1
-                                }
-                            }
+                        iconFile: card.toast ? card.toast.iconFile : ""
+                        iconName: card.toast ? card.toast.iconName : ""
+                        previewFile: card.toast ? card.toast.previewFile : ""
+                        videoFile: card.toast ? card.toast.videoFile : ""
+                        openFile: card.toast ? card.toast.openFile : ""
+                        isRecorder: card.toast ? card.toast.isRecorder : false
+                        critical: card.critical
+                        title: (card.toast && card.toast.summary) || ""
+                        bodyText: (card.toast && card.toast.body) || ""
+                        hideBody: card.toast ? card.toast.hideBody : true
+                        longBody: card.toast ? card.toast.longBody : false
+                        stamp: card.toast ? card.toast.stamp : 0
+                        actionItems: card.toast ? card.toast.actionDefs : []
+                        controlsVisible: card.isHovered
+                        videoActive: card.toastId >= 0
+                        onOpenRequested: path => Notifications.openPath(path)
+                        onCopyRequested: {
+                            if (!card.toast)
+                                return;
+                            Notifications.copyToClipboard(card, card.toast.iconFile, card.toast.body || card.toast.summary);
                         }
-
-                        // ---- action buttons (all actions, invoke, NO dismiss) ----
-                        Row {
-                            id: actionsRow
-                            visible: card.toast ? card.toast.actionDefs.length > 0 : false
-                            spacing: 4
-                            Repeater {
-                                model: card.toast ? card.toast.actionDefs : []
-                                delegate: AppButton {
-                                    required property var modelData
-                                    text: Notifications.actionLabel(modelData)
-                                    height: 24
-                                    pixelSize: Theme.fontSize - 2
-                                    cornerRadius: 4
-                                    idleBg: Theme.surface
-                                    outlined: true
-                                    onClicked: {
-                                        if (card.toastId >= 0)
-                                            Notifications.invokeToastAction(card.toastId, modelData.identifier);
-                                    }
-                                }
-                            }
+                        onDismissRequested: {
+                            if (card.toastId >= 0)
+                                Notifications.discardToast(card.toastId);
                         }
-
-                        // ---- popup control buttons: copy, expand, dismiss ----
-                        Row {
-                            id: buttonsRow
-                            visible: card.isHovered
-                            opacity: card.isHovered ? 1 : 0
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: 180
-                                }
-                            }
-                            spacing: 4
-                            AppButton {
-                                icon: "󰃅"
-                                pixelSize: 11
-                                cornerRadius: 4
-                                idleBg: Theme.surface
-                                outlined: true
-                                onClicked: {
-                                    if (!card.toast)
-                                        return;
-                                    // Image payload via wl-copy + toast. Uses the
-                                    // resolved file icon (screenshot arrives as
-                                    // appIcon, not image) with its real MIME type.
-                                    if (card.toast.iconFile !== "") {
-                                        const imgPath = card.toast.iconFile;
-                                        const p = Qt.createQmlObject("import Quickshell.Io; Process {}", card);
-                                        p.command = ["bash", "-c", "wl-copy --type \"$(file -b --mime-type " + JSON.stringify(imgPath) + ")\" < " + JSON.stringify(imgPath)];
-                                        p.exited.connect(code => {
-                                            Notifications.notify(code === 0 ? {
-                                                summary: "Copied",
-                                                body: imgPath
-                                            } : {
-                                                summary: "Error",
-                                                body: "Copy failed"
-                                            });
-                                            p.destroy();
-                                        });
-                                        p.running = true;
-                                        return;
-                                    }
-                                    const t = card.toast.body || card.toast.summary;
-                                    if (t)
-                                        Quickshell.execDetached(["wl-copy", t]);
-                                }
-                            }
-                            AppButton {
-                                icon: card.bodyExpanded ? "󰁾" : "󰁼"
-                                pixelSize: 11
-                                cornerRadius: 4
-                                idleBg: Theme.surface
-                                outlined: true
-                                visible: card.toast ? card.toast.longBody : false
-                                onClicked: card.bodyExpanded = !card.bodyExpanded
-                            }
-                            AppButton {
-                                icon: "󰀍"
-                                pixelSize: 11
-                                cornerRadius: 4
-                                idleBg: Theme.surface
-                                outlined: true
-                                onClicked: {
-                                    if (card.toastId >= 0)
-                                        Notifications.discardToast(card.toastId);
-                                }
-                            }
+                        onActionClicked: action => {
+                            if (card.toastId >= 0)
+                                Notifications.invokeToastAction(card.toastId, action.identifier);
                         }
                     }
                 }
