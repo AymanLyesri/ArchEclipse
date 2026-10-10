@@ -31,16 +31,17 @@ Rectangle {
     // the default bar state) — Volume._firstVol parity.
     Connections {
         target: Brightness
+        // Value follows the controlled (focused) monitor silently — moving focus
+        // to a monitor with another brightness must not pop the slider.
         function onScreenChanged() {
             const newLevel = Brightness.screen;
-            const first = root._firstLevel;
-            root._firstLevel = false;
-            if (Math.abs(newLevel - root.level) > 0.005) {
+            if (Math.abs(newLevel - root.level) > 0.005)
                 root.level = newLevel;
-                // reveal slider on external change, then auto-hide after 2s
-                if (!first)
-                    root.showSliderTemp();
-            }
+        }
+        // Real change (keys / external write): reveal slider, auto-hide after 2s.
+        function onAdjusted() {
+            root._firstLevel = false;
+            root.showSliderTemp();
         }
     }
 

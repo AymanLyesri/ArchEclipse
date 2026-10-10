@@ -608,6 +608,37 @@ Item {
 
     }
 
+    // Brightness of the FOCUSED monitor (internal backlight or DDC/CI external).
+    //   qs -p <cfg> ipc call brightness increment|decrement
+    //   qs -p <cfg> ipc call brightness adjust <±percent>
+    //   qs -p <cfg> ipc call brightness set <0-100>
+    //   qs -p <cfg> ipc call brightness get
+    // Calls are cheap and safe to fire at key-repeat rate: Brightness updates its
+    // value in-memory and coalesces the slow ddcutil writes (see Brightness.qml).
+    IpcHandler {
+        target: "brightness"
+
+        function increment(): string {
+            return Brightness.increment();
+        }
+
+        function decrement(): string {
+            return Brightness.decrement();
+        }
+
+        function adjust(delta: int): string {
+            return Brightness.adjust(delta);
+        }
+
+        function set(percent: int): string {
+            return Brightness.setScreen(percent / 100);
+        }
+
+        function get(): string {
+            return Brightness.describe();
+        }
+    }
+
     IpcHandler {
         target: "dragOverlay"
 
