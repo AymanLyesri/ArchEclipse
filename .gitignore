@@ -35,3 +35,6 @@
 
 # include zsh config
 !.zshrc
+# include modular zsh config (custom/ stays local-only)
+!.config/zsh/
+.config/zsh/custom/

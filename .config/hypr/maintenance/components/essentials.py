@@ -122,15 +122,19 @@ def install_browser(aur_helper: str = "yay") -> None:
     package = ""
     app = ""
 
-    print("Choose a browser to install (recommended: zen-browser)")
-    browsers = ["zen-browser", "firefox", "chromium", "google-chrome"]
+    print("Choose a browser to install (recommended: helium-browser)")
+    browsers = ["helium-browser", "zen-browser", "firefox", "chromium", "google-chrome"]
     selection = fzf_select(browsers, height=FZF_HEIGHT)
     if not selection:
         print("No browser selected.")
         return
 
     print(f"Browser selected: {selection}")
-    if selection == "zen-browser":
+    if selection == "helium-browser":
+        class_name = "helium-browser"
+        package = "helium-browser-bin"
+        app = "helium-browser"
+    elif selection == "zen-browser":
         class_name = "zen"
         package = "zen-browser-bin"
         app = "zen-browser"
