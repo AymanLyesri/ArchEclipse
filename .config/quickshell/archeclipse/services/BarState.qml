@@ -96,7 +96,9 @@ Singleton {
 
     // Brightness pulse tracking
     property real _lastBrightness: 0
-    property bool _brightnessFirstRender: true
+    // false: Brightness.adjusted never fires for the initial load, so a true
+    // guard here would swallow the first real keypress.
+    property bool _brightnessFirstRender: false
     property int brightnessEvents: 0
 
     // Player pulse tracking
@@ -319,7 +321,10 @@ Singleton {
     // like the Pipewire volumesChanged hookup below.
     property Connections _brightnessConn: Connections {
         target: Brightness
-        function onScreenChanged() {
+        // `adjusted` (not `screenChanged`): fires only on real changes — keys,
+        // sliders, external writes — never on the initial load or when focus
+        // merely moves to a monitor that has a different brightness.
+        function onAdjusted() {
             const val = Brightness.screen;
             // Skip the initial notification on mount (first-render guard)
             if (root._brightnessFirstRender) {

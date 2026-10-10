@@ -53,6 +53,7 @@ PACKAGES: list[str] = [
     "playerctl",
     "pipewire",
     "brightnessctl",
+    "ddcutil",
     "hyprcursor",
     "hyprland",
     "hyprpm",

@@ -21,6 +21,12 @@ local volMute = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
 -- Quickshell bar: IPC calls target the QS config
 local qsCfg = home .. "/.config/quickshell/archeclipse"
 local qsIpc = "qs -p " .. qsCfg .. " ipc call bar "
+-- Brightness of the focused monitor (internal backlight or DDC/CI) is handled by
+-- the shell: `ipc call brightness increment|decrement`. If quickshell isn't
+-- running, `qs ipc` exits non-zero and the script fallback takes over.
+local qsBrightness = "qs -p " .. qsCfg .. " ipc call brightness "
+local brightnessUp = qsBrightness .. "increment || " .. changeBrightness .. " +10"
+local brightnessDown = qsBrightness .. "decrement || " .. changeBrightness .. " -10"
 
 hl.config({
     binds = {
@@ -107,11 +113,11 @@ hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(volDown),
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd(volMute), { locked = true })
 
 --- brightness up (XF86 + ALT fallback share one command)
-hl.bind("ALT + F3", hl.dsp.exec_cmd(changeBrightness .. " +10"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(changeBrightness .. " +10"), { locked = true, repeating = true })
+hl.bind("ALT + F3", hl.dsp.exec_cmd(brightnessUp), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(brightnessUp), { locked = true, repeating = true })
 --- brightness down (XF86 + ALT fallback share one command)
-hl.bind("ALT + F2", hl.dsp.exec_cmd(changeBrightness .. " -10"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(changeBrightness .. " -10"), { locked = true, repeating = true })
+hl.bind("ALT + F2", hl.dsp.exec_cmd(brightnessDown), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(brightnessDown), { locked = true, repeating = true })
 
 -- System Controls
 --- lock
