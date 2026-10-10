@@ -3,3 +3,4 @@ module qs.widgets.lock
 LockContext 1.0 LockContext.qml
 LockSurface 1.0 LockSurface.qml
 LockScreen 1.0 LockScreen.qml
+AuthCard 1.0 AuthCard.qml

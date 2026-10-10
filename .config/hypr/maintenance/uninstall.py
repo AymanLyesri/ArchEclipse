@@ -421,7 +421,7 @@ def cleanup_system_changes(
     failures = []
 
     cleanups = [
-        ("sddm", "remove_arch_eclipse_sddm_config"),
+        ("greeter", "remove_arch_eclipse_greeter_config"),
         ("tweaks", "restore_tweaks"),
     ]
     if remove_plugins:

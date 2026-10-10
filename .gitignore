@@ -24,8 +24,11 @@
 !.config/starship.toml
 # include btop config
 !.config/btop/
-# Include quickshell
-!.config/quickshell
+# Include archeclipse quickshell and its greeter (parent dir must be
+# re-included too: git cannot re-include paths under an excluded dir)
+!.config/quickshell/
+!.config/quickshell/archeclipse/
+!.config/quickshell/archeclipse-greeter/
 
 # include icons (cursort theme)
 !.icons/

@@ -1,0 +1,12 @@
+[
+  {
+    "key": "hyprland",
+    "name": "Hyprland",
+    "exec": ["/usr/bin/start-hyprland"]
+  },
+  {
+    "key": "hyprland-uwsm",
+    "name": "Hyprland (uwsm-managed)",
+    "exec": ["uwsm", "start", "-e", "-D", "Hyprland", "hyprland.desktop"]
+  }
+]

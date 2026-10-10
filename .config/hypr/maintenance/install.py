@@ -62,7 +62,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "locales": importlib.import_module("components.locales"),
         "packages": importlib.import_module("components.packages"),
         "defaults": importlib.import_module("components.defaults"),
-        "sddm": importlib.import_module("components.sddm"),
+        "greeter": importlib.import_module("components.greeter"),
         "wallpapers": importlib.import_module("components.wallpapers"),
         "plugins": importlib.import_module("components.plugins"),
         "tweaks": importlib.import_module("components.tweaks"),
@@ -186,7 +186,7 @@ def main() -> None:
                 default_choice="y",
             ),
             presentation.PlannedStep(
-                "sddm", "Setting up SDDM theme", default_choice="n"
+                "greeter", "Setting up greetd + quickshell greeter", default_choice="y"
             ),
             presentation.PlannedStep(
                 "defaults", "Applying default configurations", default_choice="y"
@@ -281,9 +281,9 @@ def main() -> None:
     presentation.print_section_header("SYSTEM THEME & APPEARANCE")
     presentation.execute_planned_step(
         "*",
-        "Setting up SDDM theme",
-        modules["sddm"].configure_sddm,
-        run=plan["sddm"],
+        "Setting up greetd + quickshell greeter",
+        modules["greeter"].configure_greeter,
+        run=plan["greeter"],
     )
     presentation.execute_planned_step(
         "*",

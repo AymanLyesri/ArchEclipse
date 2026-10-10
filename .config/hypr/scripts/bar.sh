@@ -75,4 +75,8 @@ fi
 MANGOHUD=0 \
 nohup qs -n -p "$QS_CONF" > "/tmp/qs-bar-${USER}.log" 2>&1 9>&- &
 
+# Lazy greeter sync: mirror the greeter config to the world-readable XDG path
+# on every bar (re)start. Guarded so a sync failure never breaks reloads.
+"$HOME/.config/quickshell/archeclipse/scripts/sync-greeter.sh" >/dev/null 2>&1 || true
+
 exit 0

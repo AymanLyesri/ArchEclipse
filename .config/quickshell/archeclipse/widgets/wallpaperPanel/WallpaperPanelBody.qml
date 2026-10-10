@@ -9,8 +9,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// WallpaperPanelBody — pick a wallpaper per workspace, or set the sddm
-// background, browse a category, add a new wallpaper, or delete one.
+// WallpaperPanelBody — pick a wallpaper per workspace, or set the greeter
+// login background, browse a category, add a new wallpaper, or delete one.
 //
 // Lives in its own widgets/wallpaperPanel folder (same pattern as
 // widgets/controlPanel/ControlPanelBody) and is hosted by WallpaperIsland
@@ -45,7 +45,7 @@ Item {
 
     // ---------------------------------------------------------------- state
 
-    readonly property var targetTypes: ["workspace", "sddm"]
+    readonly property var targetTypes: ["workspace", "greeter"]
     property string targetType: "workspace"
     property int selectedWorkspaceId: 1
 
@@ -528,10 +528,17 @@ Item {
         }
     }
 
+    // Single-quote a shell arg (wallpaper dirs contain spaces/apostrophes).
+    function shq(s) {
+        return "'" + String(s).replace(/'/g, "'\\''") + "'";
+    }
     function commandFor(target, path) {
         switch (target) {
-        case "sddm":
-            return ["pkexec", "bash", "-c", `sed -i "s|^background=.*|background=${path}|" /usr/share/sddm/themes/where_is_my_sddm_theme/theme.conf`];
+        case "greeter":
+            // Fixed filename the greeter surface reads (Ready-gated Image):
+            // copy + world-read bit via pkexec since the mirror is
+            // root-managed. Excluded from sync --delete (see sync-greeter.sh).
+            return ["pkexec", "bash", "-c", `cp ${shq(path)} /etc/xdg/quickshell/archeclipse-greeter/greeter-wallpaper && chmod a+r /etc/xdg/quickshell/archeclipse-greeter/greeter-wallpaper`];
         default:
             // workspace (WallEclipse arg order: set <monitor> <ws> <path>)
             return [root.walleclipseBin, "set", root.effectiveMonitor, String(root.selectedWorkspaceId), path];

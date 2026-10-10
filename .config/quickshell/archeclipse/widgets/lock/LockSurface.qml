@@ -15,11 +15,11 @@ MouseArea {
 
     hoverEnabled: true
     acceptedButtons: Qt.LeftButton
-    onPressed: passwordField.forceActiveFocus()
-    onPositionChanged: passwordField.forceActiveFocus()
+    onPressed: authCard.forceFieldFocus()
+    onPositionChanged: authCard.forceFieldFocus()
 
     function forceFieldFocus() {
-        passwordField.forceActiveFocus();
+        authCard.forceFieldFocus();
     }
     Connections {
         target: root.context
@@ -53,7 +53,7 @@ MouseArea {
         onTriggered: {
             var g = root.context.inGracePeriod();
             if (root.graceActive && !g)
-                passwordField.forceActiveFocus();
+                authCard.forceFieldFocus();
             root.graceActive = g;
             root.graceSeconds = Math.max(0, Math.ceil((root.context.gracePeriodMs - (Date.now() - root.context.lockedAt)) / 1000));
         }
@@ -156,22 +156,31 @@ MouseArea {
             anchors.margins: 20
             spacing: 12
 
-            Text {
+            // Shared login-box UI (also used by the future greeter).
+            AuthCard {
+                id: authCard
                 width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-                text: ""
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize * 4
-                color: Theme.fg
-            }
-            Text {
-                width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-                text: "Locked"
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize + 4
-                font.bold: true
-                color: Theme.fg
+                title: "Locked"
+                iconText: "\uf023"
+                promptText: "Enter password"
+                errorText: "Incorrect password \u2014 try again"
+                currentText: root.context.currentText
+                onTextChanged: root.context.currentText = text
+                showError: !root.graceActive && root.context.showFailure
+                inputVisible: !root.graceActive
+                busy: root.context.unlockInProgress
+                onAccepted: root.context.tryUnlock()
+                onEscapePressed: root.context.handleEscape()
+                onAction: index => {
+                    if (index === 0)
+                        Hyprland.dispatch("hl.dsp.exit()")
+                    else if (index === 1)
+                        Quickshell.execDetached(["shutdown", "now"])
+                    else if (index === 2)
+                        Quickshell.execDetached(["systemctl", "suspend"])
+                    else if (index === 3)
+                        Quickshell.execDetached(["reboot"])
+                }
             }
             // Grace countdown: visible timer while dismissal is free.
             Text {
@@ -192,60 +201,6 @@ MouseArea {
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize - 1
                 color: Theme.fgDim
-            }
-            // Password appears only once the grace window is up.
-            AppTextField {
-                id: passwordField
-                width: parent.width
-                visible: !root.graceActive
-                cornerRadius: 12
-                placeholderText: root.context.screenUnlockFailed ? "Incorrect password" : "Enter password"
-                echoMode: TextInput.Password
-                inputMethodHints: Qt.ImhSensitiveData
-                enabled: !root.context.unlockInProgress
-                text: root.context.currentText
-                onTextChanged: root.context.currentText = text
-                onAccepted: root.context.tryUnlock()
-                Keys.onPressed: event => root.context.resetClearTimer()
-                Keys.onEscapePressed: root.context.handleEscape()
-                Component.onCompleted: forceActiveFocus()
-            }
-            Text {
-                width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-                visible: !root.graceActive && root.context.showFailure
-                text: "Incorrect password — try again"
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize - 1
-                color: Theme.danger
-            }
-            Row {
-                width: parent.width
-                spacing: 8
-                AppButton {
-                    width: (parent.width - 24) / 4
-                    icon: "\uf08b"
-                    tooltipText: "Logout from Hyprland"
-                    onClicked: Hyprland.dispatch("hl.dsp.exit()")
-                }
-                AppButton {
-                    width: (parent.width - 24) / 4
-                    icon: "\uf011"
-                    tooltipText: "Shutdown immediately"
-                    onClicked: Quickshell.execDetached(["shutdown", "now"])
-                }
-                AppButton {
-                    width: (parent.width - 24) / 4
-                    icon: "\uf186"
-                    tooltipText: "Put system to sleep"
-                    onClicked: Quickshell.execDetached(["systemctl", "suspend"])
-                }
-                AppButton {
-                    width: (parent.width - 24) / 4
-                    icon: "\uf021"
-                    tooltipText: "Reboot immediately"
-                    onClicked: Quickshell.execDetached(["reboot"])
-                }
             }
         }
 

@@ -1,0 +1,3 @@
+module qs.widgets.greeter
+GreeterContext 1.0 GreeterContext.qml
+GreeterSurface 1.0 GreeterSurface.qml
