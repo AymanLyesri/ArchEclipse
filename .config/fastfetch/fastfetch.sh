@@ -6,13 +6,31 @@
 LOGO_HEIGHT=18
 CACHE_DIR="$HOME/.config/fastfetch/cache"
 
-# Pick a random file from cache directory
-IMAGE_PATH=$(find "$CACHE_DIR" -maxdepth 1 -type f 2>/dev/null | shuf -n 1)
+# Shuffle-bag: random without replacement. Queue holds the full shuffled
+# set; each run shows the head and rotates it to the tail. Reshuffle once
+# when pins change (add/delete) or the queue is missing/empty.
+QUEUE_FILE="$CACHE_DIR/.queue"
+LIST=$(find "$CACHE_DIR" -maxdepth 1 -type f ! -name ".*" 2>/dev/null | sort)
 
-if [ -z "$IMAGE_PATH" ]; then
+if [ -z "$LIST" ]; then
     # Fetch system information without logo
     fastfetch
     exit 0
+fi
+
+if [ ! -s "$QUEUE_FILE" ] || [ "$(sort "$QUEUE_FILE" 2>/dev/null)" != "$LIST" ]; then
+    echo "$LIST" | shuf > "$QUEUE_FILE"
+fi
+
+IMAGE_PATH=$(head -n 1 "$QUEUE_FILE")
+
+# Rotate head to tail so each image shows once per cycle (atomic replace)
+TMP_FILE=$(mktemp)
+if tail -n +2 "$QUEUE_FILE" > "$TMP_FILE" 2>/dev/null; then
+    echo "$IMAGE_PATH" >> "$TMP_FILE"
+    mv -f "$TMP_FILE" "$QUEUE_FILE"
+else
+    rm -f "$TMP_FILE"
 fi
 
 # Fetch system information with fixed logo size (proportional by design)

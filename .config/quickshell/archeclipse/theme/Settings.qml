@@ -58,6 +58,11 @@ Singleton {
     // AppMasonryRow driven by these; the island grows to fit (true height).
     property int wallpaperMasonryRows: 2
     property int wallpaperTileSize: 120
+    // Workspace-switch transition (persisted): "slide" (default) or "fade".
+    // The daemon owns its own copy in its config dir (survives reload +
+    // reboot); this mirrors it for the switcher control. Only these two
+    // values are adopted — anything else falls back to slide.
+    property string wallpaperTransition: "slide"
     // Default Wallhaven filter state (single source; reload() merges the
     // saved file over a fresh copy). categories/purity are wallhaven.cc
     // bit-strings: categories = general/anime/people, purity = sfw/sketchy/nsfw.
@@ -520,6 +525,7 @@ Singleton {
             "wallpaperSwitcher.wallhaven": "wallpaperWallhaven",
             "wallpaperSwitcher.masonryRows": "wallpaperMasonryRows",
             "wallpaperSwitcher.tileSize": "wallpaperTileSize",
+            "wallpaperSwitcher.transition": "wallpaperTransition",
             "weather.city": "weatherCity",
             "rightPanel.width": "rightPanelWidth",
             "rightPanel.widgets": "rightPanelWidgets",
@@ -675,7 +681,8 @@ Singleton {
                     provider: root.wallpaperProvider,
                     wallhaven: root.wallpaperWallhaven,
                     masonryRows: root.wallpaperMasonryRows,
-                    tileSize: root.wallpaperTileSize
+                    tileSize: root.wallpaperTileSize,
+                    transition: root.wallpaperTransition
                 },
                 weather: {
                     city: root.weatherCity
@@ -897,6 +904,10 @@ Singleton {
                 const _ts = s.wallpaperSwitcher?.tileSize;
                 const _tsV = (typeof _ts === "object" && _ts !== null ? _ts.value : _ts);
                 root.wallpaperTileSize = Math.min(200, Math.max(80, parseInt(_tsV) || 120));
+                // Workspace transition: only slide/fade are adopted.
+                const _wt = s.wallpaperSwitcher?.transition;
+                const _wtV = ((typeof _wt === "object" && _wt !== null ? _wt.value : _wt) ?? "slide");
+                root.wallpaperTransition = (_wtV === "fade" ? "fade" : "slide");
                 const _wth = s.weather?.city ?? s.weatherCity;
                 root.weatherCity = ((typeof _wth === "object" && _wth !== null ? _wth.value : _wth) ?? "");
                 root.rightPanelWidth = (typeof s.rightPanel?.width === "object" && s.rightPanel?.width !== null ? s.rightPanel.width.value : s.rightPanel?.width) ?? 250;

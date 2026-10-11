@@ -34,7 +34,9 @@ Item {
 
     readonly property string home: Quickshell.env("HOME")
     readonly property string wallpaperScript: home + "/.config/quickshell/archeclipse/scripts/get-wallpapers.sh"
-    // WallEclipse CLI: `walleclipse set <monitor> <ws> <path>` (config + show).
+    // WallEclipse CLI: `walleclipse set <monitor> <ws> <path>` (config + show),
+    // `walleclipse transition [name]` (workspace-switch slide/fade, persisted
+    // daemon-side across reload + reboot).
     // No reload step exists — the daemon re-reads config on every event, so
     // the reload action below is a daemon health-check (`walleclipse list`).
     readonly property string walleclipseBin: "walleclipse"
@@ -48,6 +50,17 @@ Item {
     readonly property var targetTypes: ["workspace", "greeter"]
     property string targetType: "workspace"
     property int selectedWorkspaceId: 1
+    // Fixed filename the greeter surface reads (overwritten in place on
+    // every set, so the tile below loads it cache:false + reloads
+    // explicitly — a static cached source would serve the stale load).
+    readonly property string greeterPath: "/etc/xdg/quickshell/archeclipse-greeter/greeter-wallpaper"
+    readonly property string greeterSource: "file://" + root.greeterPath
+    // Re-read the greeter file from disk (same-URL assignments don't
+    // reload, so clear first and restore deferred past the cancel).
+    function refreshGreeterTile() {
+        greeterImg.source = "";
+        Qt.callLater(() => greeterImg.source = root.greeterSource);
+    }
 
     // Phased progress (text label in the action bar, no spinner):
     // idle | searching | downloading | setting | deleting | adding
@@ -151,6 +164,12 @@ Item {
     // renders them below (category combo vs. the Wallhaven filter form).
     readonly property var providerTypes: ["local", "wallhaven"]
     readonly property string provider: Settings.wallpaperProvider
+    // Workspace-switch transition (slide default, fade optional): single
+    // source of truth is Settings.wallpaperTransition (persisted); the
+    // daemon keeps its own durable copy — setTransition() writes both,
+    // then reloads the daemon so the change applies immediately.
+    readonly property var transitionTypes: ["slide", "fade"]
+    readonly property string transition: Settings.wallpaperTransition
     readonly property var wh: Settings.wallpaperWallhaven
     readonly property string whApiKey: Settings.apiKey("wallhaven", "key")
     readonly property bool isWallhaven: root.provider === "wallhaven"
@@ -287,6 +306,7 @@ Item {
     function refresh() {
         WallpaperService.refresh();
         fetchCurrentWallpapers();
+        root.refreshGreeterTile();
         if (root.isWallhaven)
             root.whSearch();
     }
@@ -513,6 +533,11 @@ Item {
         onExited: code => {
             if (code === 0) {
                 root.fetchCurrentWallpapers();
+                // The greeter path is overwritten in place: re-read it so
+                // the indicator tile shows the wallpaper just installed.
+                if (root._pendingTarget === "greeter")
+                    root.refreshGreeterTile();
+                root._pendingTarget = "";
                 // Share the global theme: regenerate pywal/cwal colors from
                 // the new wallpaper (wal-theme.sh honors autocolor=false
                 // itself; _pendingThemeRegen is only set when workspace
@@ -523,6 +548,7 @@ Item {
                     root.setProgress("success");
             } else {
                 root._pendingThemeRegen = "";
+                root._pendingTarget = "";
                 root.setProgress("error");
             }
         }
@@ -547,6 +573,7 @@ Item {
 
     function applyWallpaper(path) {
         setProgress("setting");
+        root._pendingTarget = root.targetType;
         root._pendingThemeRegen = (root.targetType === "workspace" && Settings.dynamicThemeColors) ? path : "";
         setProc.command = commandFor(root.targetType, path);
         setProc.running = true;
@@ -554,6 +581,7 @@ Item {
 
     // ---- global theme sharing (wal-theme.sh -> cwal colors.scss -> Theme) ----
     property string _pendingThemeRegen: ""
+    property string _pendingTarget: ""
     readonly property string walThemeScript: home + "/.config/hypr/theme/scripts/wal-theme.sh"
     Process {
         id: themeProc
@@ -662,6 +690,28 @@ Item {
         reloadProc.running = true;
     }
 
+    // Workspace-switch transition: persist UI-side (settings.json) and
+    // daemon-side (`walleclipse transition`, durable across reload +
+    // reboot), then reload so the change takes effect immediately — the
+    // reload itself re-applies with a fade.
+    Process {
+        id: transitionProc
+        onExited: code => {
+            if (code === 0)
+                root.reloadDaemon();
+            else
+                root.setProgress("error");
+        }
+    }
+    function setTransition(name) {
+        if (name !== "slide" && name !== "fade")
+            return;
+        Settings.updateSetting("wallpaperSwitcher.transition", name);
+        setProgress("reloading");
+        transitionProc.command = [root.walleclipseBin, "transition", name];
+        transitionProc.running = true;
+    }
+
     // --------------------------------------------------------- add wallpaper
 
     Process {
@@ -760,6 +810,60 @@ Item {
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 10
+                // Greeter (login) wallpaper indicator — first tile, lock in center.
+                Rectangle {
+                    id: greeterTile
+                    width: 100
+                    height: 66
+                    radius: 6
+                    color: "black"
+                    border.width: root.targetType === "greeter" ? 2 : 0
+                    border.color: Theme.accent
+
+                    AppImage {
+                        id: greeterImg
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        cache: false
+                        source: root.greeterSource
+                        sourceWidth: greeterTile.width
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 28
+                        height: 28
+                        radius: 14
+                        color: Theme.muted
+                        opacity: 0.85
+                        Text {
+                            anchors.centerIn: parent
+                            text: "\uf023"
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 14
+                            color: "white"
+                        }
+                    }
+                    MouseArea {
+                        id: greeterMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.targetType = "greeter"
+                    }
+                    AppTooltip {
+                        visible: greeterMa.containsMouse
+                        delay: 400
+                        text: "Greeter wallpaper.\nClick to target greeter."
+                    }
+                }
+                // Separator between the greeter tile and the workspace tiles.
+                Rectangle {
+                    Layout.preferredWidth: 2
+                    Layout.preferredHeight: 48
+                    Layout.alignment: Qt.AlignVCenter
+                    color: Theme.border
+                }
                 Repeater {
                     model: root.currentWallpapers
                     delegate: Rectangle {
@@ -832,8 +936,8 @@ Item {
             // action bar — wrapped so radius / bg / border apply as one pill
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
-                implicitWidth: actionBar.implicitWidth + 24
-                implicitHeight: actionBar.implicitHeight + 16
+                implicitWidth: actionBar.implicitWidth + 16
+                implicitHeight: actionBar.implicitHeight + 10
                 radius: Theme.radius
                 color: Theme.surface
 
@@ -842,41 +946,57 @@ Item {
                 RowLayout {
                     id: actionBar
                     anchors.centerIn: parent
-                    spacing: 10
+                    spacing: 6
 
                     // Provider switch: local folders vs. wallhaven.cc API.
                     AppSegmentedControl {
                         model: root.providerTypes
                         currentIndex: root.providerTypes.indexOf(root.provider)
+                        cellHPadding: 8
+                        cellVPadding: 4
                         onActivated: (i, v) => Settings.updateSetting("wallpaperSwitcher.provider", v)
                     }
 
                     AppSegmentedControl {
                         model: root.targetTypes
                         currentIndex: root.targetTypes.indexOf(root.targetType)
+                        cellHPadding: 8
+                        cellVPadding: 4
                         onActivated: (i, v) => root.targetType = v
                     }
 
-                    // pywal palette swatches (color1..7)
-                    Row {
-                        spacing: 6
-                        Repeater {
-                            model: [Theme.color0, Theme.color1, Theme.color2, Theme.color3, Theme.color4, Theme.color8, Theme.fg]
-                            delegate: Rectangle {
-                                required property string modelData
-                                width: 12
-                                height: 12
-                                radius: 6
-                                color: modelData
-                            }
-                        }
+                    // Workspace-switch transition: slide (default) or fade.
+                    // Persists daemon-side (survives reload + reboot), then
+                    // reloads the daemon so it applies with a fade right away.
+                    AppSegmentedControl {
+                        model: root.transitionTypes
+                        currentIndex: root.transitionTypes.indexOf(root.transition)
+                        cellHPadding: 8
+                        cellVPadding: 4
+                        onActivated: (i, v) => root.setTransition(v)
                     }
+
+                    // pywal palette swatches (color1..7)
+                    // Row {
+                    //     spacing: 4
+                    //     Repeater {
+                    //         model: [Theme.color0, Theme.color1, Theme.color2, Theme.color3, Theme.color4, Theme.color8, Theme.fg]
+                    //         delegate: Rectangle {
+                    //             required property string modelData
+                    //             width: 10
+                    //             height: 10
+                    //             radius: 5
+                    //             color: modelData
+                    //         }
+                    //     }
+                    // }
 
                     AppComboBox {
                         id: categoryCombo
                         objectName: "categoryCombo"
                         visible: !root.isWallhaven
                         model: root.categories
+                        Layout.preferredHeight: 26
                         currentIndex: root.categories.indexOf(root.selectedCategory)
                         onActivated: i => Settings.updateSetting("wallpaperSwitcher.category", root.categories[i])
                     }
@@ -884,14 +1004,17 @@ Item {
                     AppButton {
                         text: "Random"
                         visible: !root.isWallhaven
+                        Layout.preferredHeight: 26
                         onClicked: root.setRandomWallpaper()
                     }
                     AppButton {
                         text: "Reload"
+                        Layout.preferredHeight: 26
                         onClicked: root.reloadDaemon()
                     }
                     AppButton {
                         text: "Add…"
+                        Layout.preferredHeight: 26
                         onClicked: root.pickWallpaper()
                     }
 
@@ -899,6 +1022,7 @@ Item {
                     AppButton {
                         text: "‹"
                         enabled: Settings.wallpaperMasonryRows > 1
+                        Layout.preferredHeight: 26
                         onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows - 1)
                     }
                     Text {
@@ -910,10 +1034,12 @@ Item {
                     AppButton {
                         text: "›"
                         enabled: Settings.wallpaperMasonryRows < 4
+                        Layout.preferredHeight: 26
                         onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows + 1)
                     }
                     AppSlider {
-                        Layout.preferredWidth: 90
+                        Layout.preferredWidth: 64
+                        Layout.preferredHeight: 26
                         from: 80
                         to: 200
                         stepSize: 10
@@ -938,7 +1064,7 @@ Item {
                     Text {
                         // Phased progress text (replaces the spinner): fixed
                         // width so phase changes don't jitter the action bar.
-                        width: 110
+                        width: 70
                         elide: Text.ElideRight
                         text: root.progressText
                         color: root.progressColor
@@ -955,7 +1081,7 @@ Item {
             Rectangle {
                 visible: root.isWallhaven
                 Layout.fillWidth: true
-                implicitHeight: whFilterCol.implicitHeight + 16
+                implicitHeight: whFilterCol.implicitHeight + 10
                 radius: Theme.radius
                 color: Theme.surface
                 clip: true
@@ -963,17 +1089,17 @@ Item {
                 ColumnLayout {
                     id: whFilterCol
                     anchors.fill: parent
-                    anchors.margins: 8
-                    spacing: 6
+                    anchors.margins: 6
+                    spacing: 4
 
                     // filters: one wrapping row (query, sort, categories,
                     // purity, size) so every provider filter lives together.
                     Flow {
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 6
                         AppTextField {
                             id: whQuery
-                            width: 220
+                            width: 180
                             placeholderText: "Search wallhaven.cc (tags, e.g. mountains lake)…"
                             text: root.wh.q
                             onTextChanged: {
@@ -983,17 +1109,20 @@ Item {
                         }
                         AppComboBox {
                             model: root.whSortingItems
+                            implicitHeight: 26
                             currentIndex: Math.max(0, root.whSortingItems.indexOf(root.wh.sorting))
                             onActivated: i => root.setWh("sorting", root.whSortingItems[i])
                         }
                         AppComboBox {
                             model: root.whOrderItems
+                            implicitHeight: 26
                             currentIndex: Math.max(0, root.whOrderItems.indexOf(root.wh.order))
                             onActivated: i => root.setWh("order", root.whOrderItems[i])
                         }
                         AppComboBox {
                             visible: root.wh.sorting === "toplist"
                             model: root.whTopRangeItems
+                            implicitHeight: 26
                             currentIndex: Math.max(0, root.whTopRangeItems.indexOf(root.wh.topRange))
                             onActivated: i => root.setWh("topRange", root.whTopRangeItems[i])
                         }
@@ -1002,7 +1131,7 @@ Item {
                             color: Theme.fgDim
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 2
-                            height: 28
+                            height: 26
                             verticalAlignment: Text.AlignVCenter
                         }
                         Repeater {
@@ -1038,7 +1167,7 @@ Item {
                             color: Theme.fgDim
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 2
-                            height: 28
+                            height: 26
                             verticalAlignment: Text.AlignVCenter
                         }
                         Repeater {
@@ -1075,11 +1204,13 @@ Item {
                         }
                         AppComboBox {
                             model: root.whAtleastItems
+                            implicitHeight: 26
                             currentIndex: Math.max(0, root.whAtleastItems.indexOf(root.whMapped(root.wh.atleast, root.whAtleastItems)))
                             onActivated: i => root.setWh("atleast", root.whUnmap(root.whAtleastItems[i], root.whAtleastItems))
                         }
                         AppComboBox {
                             model: root.whRatioItems
+                            implicitHeight: 26
                             currentIndex: Math.max(0, root.whRatioItems.indexOf(root.whMapped(root.wh.ratios, root.whRatioItems)))
                             onActivated: i => root.setWh("ratios", root.whUnmap(root.whRatioItems[i], root.whRatioItems))
                         }
@@ -1088,7 +1219,7 @@ Item {
                     // result count + page nav
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 6
                         Text {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
@@ -1101,11 +1232,13 @@ Item {
                         AppButton {
                             text: "‹"
                             enabled: root.wh.page > 1 && !root.whLoading
+                            Layout.preferredHeight: 26
                             onClicked: root.setWh("page", Math.max(1, root.wh.page - 1), true)
                         }
                         AppButton {
                             text: "›"
                             enabled: root.wh.page < root.whMeta.last_page && !root.whLoading
+                            Layout.preferredHeight: 26
                             onClicked: root.setWh("page", root.wh.page + 1, true)
                         }
                     }
