@@ -26,9 +26,9 @@ Rectangle {
     visible: root.hasBacklight
 
     // Live sync from the Brightness service (inotify file events, zero
-    // polling): external changes update + reveal the slider, the first
-    // sync is silent (mount / DefaultBar recreation on every return to
-    // the default bar state) — Volume._firstVol parity.
+    // polling): external changes update the level silently and pulse the
+    // OSD via BarState — the bar slider opens on hover dwell only.
+    // (No onAdjusted hookup: value changes must not pop the slider.)
     Connections {
         target: Brightness
         // Value follows the controlled (focused) monitor silently — moving focus
@@ -38,21 +38,16 @@ Rectangle {
             if (Math.abs(newLevel - root.level) > 0.005)
                 root.level = newLevel;
         }
-        // Real change (keys / external write): reveal slider, auto-hide after 2s.
-        function onAdjusted() {
-            root._firstLevel = false;
-            root.showSliderTemp();
-        }
     }
 
-    // external change → reveal + reveal-out hide timeout
+    // Hover/click reveal + reveal-out hide timeout
     property bool sliderRevealed: false
     property bool keepOpen: false
-    property bool _firstLevel: true
-    function showSliderTemp() {
-        root.sliderRevealed = true;
-        hideTimer.restart();
-    }
+    // True exactly while the reveal glide is in flight (width parked between
+    // the two stops). DefaultBar mirrors this into the pill's rigidWidth so
+    // the bar edge tracks the slider per-frame instead of easing toward a
+    // target that moves every frame.
+    readonly property bool revealing: briSlider.width > 0.5 && briSlider.width < 99.5
     function hideSlider() {
         if (!root.keepOpen)
             root.sliderRevealed = false;
@@ -84,8 +79,30 @@ Rectangle {
         }
         AppSlider {
             id: briSlider
-            visible: root.pulse || root.sliderRevealed
-            width: visible ? 100 : 0
+            // Animated reveal, on the pill's own DefaultSpatial curve so the
+            // bar edge and the slider track move as one unit.
+            //   width   — glides 0 <-> 100 (was a one-frame snap)
+            //   opacity — rides FastEffects so the track fades in/out with it
+            //   clip    — the 14px handle would otherwise spill left out of the
+            //              Row while the track is mid-grow
+            // visible stays on through the fade-out (flag || width > 0.5) so
+            // the shrink is continuous and the Row keeps its spacing until the
+            // glide finishes. No binding cycle: width depends only on the
+            // reveal flags, visible only reads width.
+            visible: (root.pulse || root.sliderRevealed) || briSlider.width > 0.5
+            opacity: (root.pulse || root.sliderRevealed) ? 1 : 0
+            width: (root.pulse || root.sliderRevealed) ? 100 : 0
+            clip: true
+            Behavior on width {
+                Anim {
+                    type: Anim.DefaultSpatial
+                }
+            }
+            Behavior on opacity {
+                Anim {
+                    type: Anim.FastEffects
+                }
+            }
             anchors.verticalCenter: parent.verticalCenter
             from: 0.01
             to: 1

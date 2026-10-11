@@ -297,6 +297,14 @@ wrappers. Rules:
   (§2.10) and confirm zero `typeerror|referenceerror` in the log.
 - This checkout is a **dotfiles repo rooted at `$HOME`** — `git status` shows paths like
   `../../hypr/scripts/…`. Stage **only** the files you touched; never `git add .`.
+- **Never capture or read screenshots.** No `grim`, no `hyprctl screenshot`, no
+  `capture-readme.py`, no PNG crops — and never read image files back into context
+  (bandwidth). Visual confirmation is the human's job: reload, look, and report.
+  Verify behaviour from the log, `qmllint`, IPC responses, and numeric probes
+  (`console.log` of geometry, `hyprctl layers`, IPC matrix), not from pixels.
+- Instrument with temporary `console.log` probes when a visual bug needs a
+  non-visual diagnosis; strip every probe before finishing (`grep -rn
+  "console.log\|TEMP-PROBE\|\[probe\]" <touched files>` must come back empty).
 - Do not commit unless explicitly asked.
 - Commit style: `fix(scope): …` / `feat(scope): …` (see `git log --oneline`).
 

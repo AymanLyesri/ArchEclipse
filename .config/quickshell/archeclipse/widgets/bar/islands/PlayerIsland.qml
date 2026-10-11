@@ -8,15 +8,16 @@ import qs.widgets.media
 // width/height here.
 Item {
     id: root
-    property int islandMargins: 4
 
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
     // exit driver plays 1 -> 0 on close before swapping content.
     property real expand: 0
     Component.onCompleted: expand = 1
 
-    implicitWidth: media.implicitWidth + islandMargins * 2
-    implicitHeight: clip.height + islandMargins * 2
+    // Flush inside the pill: the bar's Theme.islandPad is the only inset.
+    // (MediaWidget's own 12px stays — that is padding inside its surface.)
+    implicitWidth: media.implicitWidth
+    implicitHeight: clip.height
     width: implicitWidth
     height: implicitHeight
 
@@ -27,9 +28,6 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.topMargin: root.islandMargins
-        anchors.leftMargin: root.islandMargins
-        anchors.rightMargin: root.islandMargins
 
         MediaWidget {
             id: media

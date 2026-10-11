@@ -75,6 +75,13 @@ QtObject {
     // (Clock, Battery, Volume, ...) binds to this instead of hardcoding
     // its own height, so all bar content stays the same height.
     readonly property int barContentHeight: 18
+    // The ONE inset between a bar pill's edge and its island content.
+    // Every island body is flush inside this: island wrappers must not
+    // add their own outer margin, and bodies must not pad their root
+    // layout (padding INSIDE a visible card is still fine). Was three
+    // hardcoded `+ 10`s in Bar.qml plus five per-island `islandMargins`
+    // (4/5/8), which stacked into 8–17px of inconsistent inset.
+    readonly property int islandPad: 8
 
     // --- animation tokens (Material-3 expressive port, pure QML) ---
     // Durations in ms, multiplied by anim.scale. Curves are cubic-bezier

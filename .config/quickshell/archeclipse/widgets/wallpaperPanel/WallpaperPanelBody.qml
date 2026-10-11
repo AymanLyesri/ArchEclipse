@@ -26,11 +26,14 @@ Item {
     property string monitorName: ""
     readonly property string effectiveMonitor: root.monitorName || Registry.monitorName
 
-    implicitWidth: 960
+    // No implicitWidth here on purpose: the host (WallpaperIsland) owns the
+    // width — the bar reads the island's implicitWidth and stretches this
+    // body to the clip's width, so a value here would be inert.
     // True-height island: the results area is settings-sized (rows × tile
     // height), so the body reports its content height and WallpaperIsland
-    // grows to fit instead of clipping a fixed 360.
-    implicitHeight: mainCol.implicitHeight + 24
+    // grows to fit instead of clipping a fixed 360. No margin term here —
+    // mainCol has none, so its implicitHeight IS the body's height.
+    implicitHeight: mainCol.implicitHeight
 
     readonly property string home: Quickshell.env("HOME")
     readonly property string wallpaperScript: home + "/.config/quickshell/archeclipse/scripts/get-wallpapers.sh"
@@ -803,10 +806,14 @@ Item {
         ColumnLayout {
             id: mainCol
             anchors.fill: parent
-            anchors.margins: 12
+            // No outer margin: the bar's Theme.islandPad is the only inset
+            // between the pill edge and content. Adding one here would stack
+            // a second one on top of it (this body used to add 12).
             spacing: 8
 
-            // per-workspace current wallpaper strip
+            // per-workspace current wallpaper strip — workspace tiles
+            // scroll so 11+ workspaces glide instead of overflowing;
+            // greeter + separator stay fixed outside the flickable.
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 10
@@ -864,6 +871,29 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                     color: Theme.border
                 }
+                // Workspace tiles only — the scrollable part.
+                SmoothFlickable {
+                    id: wsStripScroll
+                    // Content-sized when narrow (group stays centered),
+                    // capped at the leftover island width when wide
+                    // (greeter 100 + separator 2 + 2x spacing 10).
+                    Layout.preferredWidth: Math.max(0, Math.min(wsStripRow.width, mainCol.width - 122))
+                    Layout.preferredHeight: 66
+                    flickableDirection: Flickable.HorizontalFlick
+                    contentWidth: wsStripRow.width
+                    contentHeight: height
+                    ScrollBar.horizontal: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
+
+                    Row {
+                        id: wsStripRow
+                        height: wsStripScroll.height
+                        spacing: 10
+                        // Content-driven width, never bound to the viewport
+                        // (see polish-loop pitfall in AGENTS.md). Left-origin
+                        // so tiles hug the separator instead of centering
+                        // in the leftover viewport width.
                 Repeater {
                     model: root.currentWallpapers
                     delegate: Rectangle {
@@ -930,6 +960,8 @@ Item {
                             font.family: Theme.fontFamily
                         }
                     }
+                }
+                }
                 }
             }
 

@@ -12,7 +12,16 @@ import qs.widgets.wallpaperPanel
 // control-panel wallpaper button.
 Column {
     id: root
-    width: 1500
+    // The bar sizes the pill from this item's implicitWidth (Bar.qml
+    // stack.activeWidth). Set it HERE, not on the body: nothing
+    // propagates a child's implicit width up to the island root, so a
+    // value on WallpaperPanelBody is inert. This `width` is the single
+    // source of truth — the body just stretches to the clip.
+    // Do NOT declare `implicitWidth` on this Column: it is read-only
+    // ("Invalid property assignment: implicitWidth is a read-only
+    // property") and the whole island fails to load with that error.
+    // Verify with: ipc call bar wallpaperDiag width <mon>
+    width: 1280
     spacing: 0
 
     // Island owner passes the bar's monitor; body falls back to focused.

@@ -11,7 +11,6 @@ import qs.widgets.shared
 // Full quick-settings stay on explicit toggleControl (ControlIsland).
 Item {
     id: root
-    property int islandMargins: 4
 
     // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
@@ -33,25 +32,31 @@ Item {
         return "\u{F00DE}";
     }
 
+    // Fixed width breaks the width loop (root <- clip <- bodyCol <- root):
+    // Player/Weather use child implicitWidth, Overview/System a fixed
+    // islandWidth — the OSD follows the latter (VolumeSection is an Item
+    // with no implicit size, so bodyCol.width can never size the island).
+    // 400 matches the pill's Loader fallback so the open frame is exact.
+    property int islandWidth: 400
+
     // True while the user is dragging a slider: IslandHoverPin.monitor
     // drops while pressed, so hold the pill open for the drag length.
     readonly property bool adjusting: (root.mode === "volume" && volSection.adjusting) || (root.mode === "brightness" && brightSlider.pressed)
 
-    implicitWidth: bodyCol.width + islandMargins * 2
-    implicitHeight: clip.height + islandMargins * 2
+    implicitWidth: islandWidth
+    implicitHeight: clip.height
     width: implicitWidth
     height: implicitHeight
 
     IslandExpandClip {
         id: clip
         expand: root.expand
-        contentHeight: bodyCol.height
+        // Explicit child heights: bodyCol is a plain Column (height 0,
+        // children overflow by design), so bodyCol.height is always 0.
+        contentHeight: root.mode === "brightness" ? brightCard.height : volSection.height
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.topMargin: root.islandMargins
-        anchors.leftMargin: root.islandMargins
-        anchors.rightMargin: root.islandMargins
 
         Column {
             id: bodyCol
@@ -67,12 +72,17 @@ Item {
             }
 
             // Brightness section (mirrors ControlPanelBody): icon + slider.
+            // Explicit height: Card is a plain Rectangle (no implicit
+            // size), so without this the brightness OSD measures 0.
             Card {
+                id: brightCard
                 width: parent.width
                 visible: root.mode === "brightness"
                 contentMargins: 12
                 contentSpacing: 8
+                height: contentMargins * 2 + brightRow.height
                 Row {
+                    id: brightRow
                     width: parent.width
                     spacing: 8
                     Text {

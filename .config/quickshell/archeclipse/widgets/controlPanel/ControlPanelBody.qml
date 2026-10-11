@@ -17,7 +17,7 @@ Item {
     readonly property string effectiveMonitor: body.monitorName || Registry.monitorName
 
     width: 680
-    height: contentRow.height + 32
+    height: contentRow.height
 
     // ---- dynamic brightness icon (3-level thresholds) ----
     readonly property string brightnessIcon: {
@@ -95,7 +95,8 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 16
+        // No outer margin: the bar's Theme.islandPad is the only inset
+        // between the pill edge and content (this row used to add 16).
         spacing: 16
 
         // ===== Left column: sections =====

@@ -99,7 +99,7 @@ PanelWindow {
         }
     }
 
-    readonly property int barHeight: 32
+    readonly property int barHeight: 28
     // Snap the layer surface to content (no Behavior here — animating the
     // PanelWindow renegotiates with the compositor every frame and stutters).
     // Inner content (pill width transition + island expand transition) carries motion.
@@ -299,13 +299,13 @@ PanelWindow {
             y: Settings.barOrientation ? 0 : parent.height - height
             // Grows with content: 32 for normal states, tall when the
             // search island (input + launcher) is shown.
-            height: Math.max(root.barHeight, stack.height + 10)
+            height: Math.max(root.barHeight, stack.height + stack.effPad * 2)
             // Shrink-only glide: when the target sits below the current
             // height (closes), ease down; when growing, track the unfolding
             // content rigidly per-frame — gliding there would chase a moving
             // target and lag behind it (verified via probe).
             Behavior on height {
-                enabled: pill.height > stack.height + 10
+                enabled: pill.height > stack.height + stack.effPad * 2
                 Anim {
                     type: Anim.DefaultSpatial
                 }
@@ -317,12 +317,24 @@ PanelWindow {
             width: targetWidth
             property bool widthAnimReady: false
             Component.onCompleted: widthAnimReady = true
+            // Glide for state swaps — but track rigidly while the default
+            // bar's own content animates the width (the volume/brightness
+            // slider reveal). That glide is already the motion, so easing
+            // here would chase a target that moves every frame: a Behavior
+            // retargeting per frame never catches up and the bar edge
+            // trails the content (the trap the shrink-only height Behavior
+            // above documents). Suspended via stack.rigidApplied.
             Behavior on width {
-                enabled: pill.widthAnimReady
+                enabled: pill.widthAnimReady && !stack.rigidApplied
                 Anim {
                     type: Anim.DefaultSpatial
                 }
             }
+            // Retry the suspension each frame: a request that arrives while
+            // the pill is still catching up from an earlier glide must wait
+            // for convergence, never snap the edge to the target.
+            onWidthChanged: stack.syncRigid()
+            onTargetWidthChanged: stack.syncRigid()
             // (Radii/color moved into PillBackground below: body + both
             // screen-edge flares must be ONE fill, never separate shapes.)
 
@@ -337,7 +349,7 @@ PanelWindow {
             // content swaps immediately while the width glides; the island's
             // own clip wipe masks the grow, and `clip` below cuts spill at
             // the animating edge, so no grow-first pin is needed).
-            property real targetWidth: Math.max(stack.width + 10, 100)
+            property real targetWidth: Math.max(stack.width + stack.effPad * 2, 100)
             // Single-fill background: body + both screen-edge flares in
             // one path/fill — separate shapes either hairline (abutted)
             // or double-blend (overlapped, surface is translucent).
@@ -362,15 +374,20 @@ PanelWindow {
             // and content animate as one unit, like the side pills.
             Item {
                 id: stack
+                // Per-state outer inset: default rests tighter (4), all
+                // other islands use Theme.islandPad (8). Pill width/height
+                // above derive from this so the surround stays exact.
+                property int effPad: stack.current === "default" ? 4 : Theme.islandPad
                 // Docked to the bar edge (top for a top bar, bottom for a
                 // bottom bar) — never centered: centering lets content drift
-                // vertically while the pill height glides. 5px edge margin
-                // preserves the settled 10px surround exactly.
+                // vertically while the pill height glides. Edge margin is
+                // effPad so the settled surround matches the pill
+                // sizing (stack + effPad * 2) exactly.
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.topMargin: 5
-                anchors.bottomMargin: 5
+                anchors.topMargin: stack.effPad
+                anchors.bottomMargin: stack.effPad
 
                 // Size from implicit* only — never .height/.width/childrenRect.
                 // Those depend on stack's assigned size and create binding loops.
@@ -416,6 +433,25 @@ PanelWindow {
                 // + bindings below.)
                 property string displayed: BarState.state
 
+                // Requested by the default bar page while its inner content
+                // animates the pill's width (volume/brightness slider
+                // reveal). `rigidApplied` is what actually suspends the
+                // pill's glide, and only once the pill has converged on the
+                // target — suspending mid-glide would snap the edge instead
+                // of tracking it. Released on every state swap and when the
+                // page unloads, so an interrupted glide can't strand it.
+                property bool rigidWidth: false
+                property bool rigidApplied: false
+                function syncRigid() {
+                    if (!stack.rigidWidth) {
+                        stack.rigidApplied = false;
+                        return;
+                    }
+                    if (!stack.rigidApplied && Math.abs(pill.width - pill.targetWidth) <= 1)
+                        stack.rigidApplied = true;
+                }
+                onRigidWidthChanged: stack.syncRigid()
+
                 // The live item for a shown state (cached wallpaper via
                 // its Loader, transient islands via currentPageLoader).
 
@@ -426,6 +462,10 @@ PanelWindow {
                 // shows default content for those — no swap churn.
                 // (Recording maps to defaultPage for the same reason.)
                 onCurrentChanged: {
+                    // Leaving default (or any swap) mid-slider-glide: the old
+                    // page is about to be torn down, so the pill goes back to
+                    // easing for the swap itself.
+                    stack.rigidWidth = false;
                     // Prime the wallpaper cache on first open; the Loader
                     // stays active from then on (created once, kept alive).
                     var firstLoad = false;
@@ -525,6 +565,10 @@ PanelWindow {
                             item.monitorName = root.monitorName;
                         if (item && item["screenHeight"] !== undefined)
                             item.screenHeight = root.screenHeight;
+                        // DefaultBar suspends the pill's width glide while its
+                        // sliders animate their own (see stack.rigidWidth).
+                        if (item && item["barStack"] !== undefined)
+                            item.barStack = stack;
                     }
                 }
 
@@ -775,7 +819,7 @@ PanelWindow {
             x: pill.x + pill.width + 8
             y: Settings.barOrientation ? 0 : parent.height - height
             height: root.barHeight
-            width: secondaryLoader.item ? (secondaryLoader.item.implicitWidth + 10) : 190
+            width: secondaryLoader.item ? (secondaryLoader.item.implicitWidth + Theme.islandPad * 2) : 190
             visible: secondaryPill.shown && root.barVisible
             // Open/close transition: the clip unfolds; the Loader
             // deactivates after the fold. Reopen mid-fold cancels the

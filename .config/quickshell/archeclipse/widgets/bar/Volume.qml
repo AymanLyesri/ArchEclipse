@@ -7,7 +7,7 @@ import qs.services
 
 // Port of sub-components/Volume.tsx — icon + %, right-click opens pavucontrol,
 // hover reveals slider. Also used as the transient "volume" pulse page.
-// icon, %, change-triggered reveal w/ 2s auto-hide,
+// icon, %, interaction-triggered reveal w/ auto-hide,
 // "Volume: N%" tooltip, right-click → pavucontrol.
 Rectangle {
     id: root
@@ -33,22 +33,24 @@ Rectangle {
         return isNaN(v) || v < 0 ? 0 : (v > 1 ? 1 : v);
     }
 
-    // Reveal slider on volume change, auto-hide after the reveal-out
-    // delay (hover keeps open).
+    // Slider opens on direct interaction only (hover dwell, click, wheel);
+    // auto-hides after the reveal-out delay (hover keeps open).
     // Skip the mount notification — first vol evaluation must
     // not pop the slider open at launch.
     property bool sliderRevealed: false
     property bool keepOpen: false
     property bool _firstVol: true
+    // True exactly while the reveal glide is in flight (width parked between
+    // the two stops). DefaultBar mirrors this into the pill's rigidWidth so
+    // the bar edge tracks the slider per-frame instead of easing toward a
+    // target that moves every frame.
+    readonly property bool revealing: slider.width > 0.5 && slider.width < 99.5
+    // Mount guard only: value changes never reveal the slider on their own
+    // (keys/IPC/external go OSD-only). Direct wheel contact below reveals
+    // explicitly; hover/click reveal paths are untouched.
     onVolChanged: {
-        if (root._firstVol) {
+        if (root._firstVol)
             root._firstVol = false;
-            return;
-        }
-        if (!root.pulse) {
-            root.sliderRevealed = true;
-            hideTimer.restart();
-        }
     }
     function hideSlider() {
         if (!root.keepOpen)
@@ -109,14 +111,43 @@ Rectangle {
                         return;
                     const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
                     root.sink.audio.volume = Math.max(0, Math.min(1, root.vol + step));
+                    // Direct contact with the widget: reveal like hover/click.
+                    // (Value-change reveal moved here from onVolChanged so
+                    // keys/IPC/external changes stay OSD-only.)
+                    if (!root.pulse) {
+                        root.sliderRevealed = true;
+                        hideTimer.restart();
+                    }
                 }
             }
         }
         
         AppSlider {
             id: slider
-            visible: root.pulse || root.sliderRevealed
-            width: visible ? 100 : 0
+            // Animated reveal, on the pill's own DefaultSpatial curve so the
+            // bar edge and the slider track move as one unit.
+            //   width   — glides 0 <-> 100 (was a one-frame snap)
+            //   opacity — rides FastEffects so the track fades in/out with it
+            //   clip    — the 14px handle would otherwise spill left out of the
+            //              Row while the track is mid-grow
+            // visible stays on through the fade-out (flag || width > 0.5) so
+            // the shrink is continuous and the Row keeps its spacing until the
+            // glide finishes. No binding cycle: width depends only on the
+            // reveal flags, visible only reads width.
+            visible: (root.pulse || root.sliderRevealed) || slider.width > 0.5
+            opacity: (root.pulse || root.sliderRevealed) ? 1 : 0
+            width: (root.pulse || root.sliderRevealed) ? 100 : 0
+            clip: true
+            Behavior on width {
+                Anim {
+                    type: Anim.DefaultSpatial
+                }
+            }
+            Behavior on opacity {
+                Anim {
+                    type: Anim.FastEffects
+                }
+            }
             anchors.verticalCenter: parent.verticalCenter
             from: 0
             to: 1

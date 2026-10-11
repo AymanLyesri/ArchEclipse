@@ -21,6 +21,10 @@ QtObject {
     property bool _started: false
     property bool _syncInProgress: false
     property bool _resyncQueued: false
+    // True only when this run actually wrote or removed a cache file.
+    // Gates the zsh poke: a boot/reload sync is a pure no-op self-heal scan
+    // when the cache is already current, and must not refresh every terminal.
+    property bool _cacheChanged: false
     property string _lastPinsSignature: ""
 
     property Timer _debounceTimer: Timer {
@@ -44,7 +48,7 @@ QtObject {
             if (pendingCount <= 0) {
                 // Done processing all pins — clean stale files and poke zsh
                 root._cleanupStale(root._currentExpectedPaths)
-                root._pokeZsh()
+                if (root._cacheChanged) root._pokeZsh()
                 root._syncInProgress = false
                 if (root._resyncQueued) {
                     root._resyncQueued = false
@@ -80,6 +84,7 @@ QtObject {
                         "-background", "none",
                         currentCache
                     ]
+                    root._cacheChanged = true
                     running = true
                 })
             }
@@ -216,6 +221,7 @@ QtObject {
     function _removeFile(path) {
         _removeProc.targetPath = path
         _removeProc.command = ["rm", "-f", path]
+        root._cacheChanged = true
         _removeProc.running = true
     }
 
@@ -315,6 +321,7 @@ QtObject {
             return
         }
         root._syncInProgress = true
+        root._cacheChanged = false
         syncPinsToFastfetchCache()
     }
 

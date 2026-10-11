@@ -8,7 +8,6 @@ import qs.widgets.shared
 // close it mid-read.
 Item {
     id: root
-    property int islandMargins: 5
     property int islandWidth: 440
 
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
@@ -16,8 +15,9 @@ Item {
     property real expand: 0
     Component.onCompleted: expand = 1
 
-    implicitWidth: islandWidth + islandMargins * 2
-    implicitHeight: clip.height + islandMargins * 2
+    // Flush inside the pill: the bar's Theme.islandPad is the only inset.
+    implicitWidth: islandWidth
+    implicitHeight: clip.height
     width: implicitWidth
     height: implicitHeight
 
@@ -28,9 +28,6 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.topMargin: root.islandMargins
-        anchors.leftMargin: root.islandMargins
-        anchors.rightMargin: root.islandMargins
 
         SystemResourcesContent {
             id: content

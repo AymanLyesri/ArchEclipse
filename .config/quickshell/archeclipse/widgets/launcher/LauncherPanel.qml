@@ -18,7 +18,8 @@ Rectangle {
     SmoothListView {
         id: resultsList
         anchors.fill: parent
-        anchors.margins: 8
+        // No outer margin: the bar's Theme.islandPad is the only inset
+        // between the pill edge and content (the list used to add 8).
         clip: true
         model: Launcher.results
         currentIndex: Launcher.selectedIndex

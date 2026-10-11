@@ -335,27 +335,49 @@ Item {
         visible: !root.hasWaifu
 
         Column {
-            anchors.centerIn: parent
+            // Padded: the card is bare (no surface behind it), so the text
+            // needs its own inset from the panel edges. Height stays implicit
+            // (content) and anchors on the vertical mid-point, so the block
+            // centers in the card.
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.margins: 16
             spacing: 12
 
             Text {
+                width: parent.width
                 text: "No image selected"
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
                 font.pixelSize: Theme.fontSize + 4
                 font.bold: true
                 color: Theme.fg
             }
             Text {
+                width: parent.width
                 text: "Open Booru Viewer to select an image"
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
                 color: Theme.fgDim
                 font.pixelSize: Theme.fontSize
             }
-            AppButton {
-                text: "Open Booru Viewer"
-                onClicked: {
-                    // Show the left island + set its widget
-                    // to BooruViewer. Registry.selectLeftTab does both
-                    // (never toggles it off when already visible).
-                    Registry.selectLeftTab("BooruViewer");
+            // AppButton sizes to its content, so a full-width wrapper
+            // centers it (Column has no alignment property of its own —
+            // that's Layouts-only).
+            Item {
+                width: parent.width
+                height: placeholderButton.implicitHeight
+                AppButton {
+                    id: placeholderButton
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Open Booru Viewer"
+                    onClicked: {
+                        // Show the left island + set its widget
+                        // to BooruViewer. Registry.selectLeftTab does both
+                        // (never toggles it off when already visible).
+                        Registry.selectLeftTab("BooruViewer");
+                    }
                 }
             }
         }

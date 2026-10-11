@@ -20,6 +20,20 @@ Column {
     id: root
     spacing: 4
 
+    // Injected by Bar.qml (currentPageLoader.onLoaded) — the stack that owns
+    // the pill width. The volume/brightness sliders animate their own width,
+    // and while they do the pill must track them rigidly instead of easing
+    // toward a target that moves every frame (see stack.rigidWidth in Bar.qml).
+    property var barStack: null
+    readonly property bool contentGliding: volumeWidget.revealing || brightnessWidget.revealing
+    onContentGlidingChanged: root.setContentGliding(root.contentGliding)
+    onBarStackChanged: root.setContentGliding(root.contentGliding)
+    Component.onDestruction: root.setContentGliding(false)
+    function setContentGliding(on) {
+        if (root.barStack)
+            root.barStack.rigidWidth = on;
+    }
+
     // ---- media player state (MediaWidget parity: playing-else-first) ----
     // Pass 1: active playing player. Pass 2: first with a title (so the
     // pill hides instead of showing an empty entry when nothing plays).
@@ -381,8 +395,12 @@ Column {
                 }
 
                 Battery {}
-                Brightness {}
-                Volume {}
+                Brightness {
+                    id: brightnessWidget
+                }
+                Volume {
+                    id: volumeWidget
+                }
                 Tray {}
             }
         }

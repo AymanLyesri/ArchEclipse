@@ -487,6 +487,17 @@ Item {
                 if (query === "progress") return "progress=" + w.progressStatus + " label=" + w.progressText;
                 if (query === "provider") return "provider=" + w.provider;
                 if (query === "view") return "rows=" + Settings.wallpaperMasonryRows + " size=" + Settings.wallpaperTileSize;
+                if (query === "width") {
+                    // Size-chain probe: the bar sizes the pill from the
+                    // ISLAND's implicitWidth, so dump every link
+                    // (island -> clip -> body -> strip) — the width the
+                    // pill follows vs. the width the body actually got.
+                    const isl = w.parent ? w.parent.parent : null;
+                    return "islW=" + (isl ? Math.round(isl.width) : -1) + " islImplicit=" + (isl ? Math.round(isl.implicitWidth) : -1)
+                        + " clipW=" + (w.parent ? Math.round(w.parent.width) : -1)
+                        + " bodyW=" + Math.round(w.width) + " bodyImplicit=" + Math.round(w.implicitWidth)
+                        + " stripW=" + (w.wallStrip ? Math.round(w.wallStrip.width) : -1);
+                }
                 if (query === "strip") {
                     const s = w.wallStrip;
                     if (!s) return "strip=NOALIAS";
