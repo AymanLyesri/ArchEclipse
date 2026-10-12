@@ -81,7 +81,7 @@ def safe_history_path(model: str, session_id: str) -> Path:
     if not session_id or "/" in session_id:
         raise ValueError(f"Bad session id: {session_id!r}")
     _check_segment(session_id, "session")
-    return CACHE_DIR / model / "sessions" / session_id / "history.json"
+    return CACHE_DIR / "sessions" / session_id / "history.json"
 
 
 def _msg(role: str, content: str, rt: int = 0) -> dict:

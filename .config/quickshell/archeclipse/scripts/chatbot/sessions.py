@@ -3,6 +3,9 @@
 CLI:
     sessions.py <model> list                    -> JSON [{"id","name"}] on stdout
     sessions.py <model> rename <sid> <newname>  -> exit 0 ok, 1 on bad input
+
+The model argument is retained for CLI compatibility, but sessions are shared
+by all models.
 """
 import json
 import sys
@@ -15,13 +18,34 @@ if __name__ == "__main__" and __package__ is None:
 CACHE_DIR = Path.home() / ".cache" / "quickshell" / "chatbot"
 
 
+def _sessions_root() -> Path:
+    return CACHE_DIR / "sessions"
+
+
 def _sessions_dir(model: str) -> Path:
     if not model or model.startswith("/"):
         raise ValueError(f"Bad model path: {model!r}")
     for seg in model.split("/"):
         if not seg or seg in (".", ".."):
             raise ValueError(f"Bad model path: {model!r}")
-    return CACHE_DIR / model / "sessions"
+    return _sessions_root()
+
+
+def _migrate_model_sessions() -> None:
+    """Move old model-scoped sessions into the shared store once.
+
+    Existing shared sessions win on ID collisions so switching models cannot
+    overwrite data that has already been migrated or created.
+    """
+    shared_dir = _sessions_root()
+    shared_dir.mkdir(parents=True, exist_ok=True)
+    for legacy_dir in CACHE_DIR.glob("**/sessions"):
+        if legacy_dir == shared_dir or not legacy_dir.is_dir():
+            continue
+        for source in legacy_dir.iterdir():
+            target = shared_dir / source.name
+            if source.is_dir() and not target.exists():
+                source.rename(target)
 
 
 def _check_sid(session_id: str) -> None:
@@ -52,6 +76,7 @@ def write_meta(model: str, session_id: str, meta: dict) -> None:
 
 def list_sessions(model: str) -> list:
     d = _sessions_dir(model)
+    _migrate_model_sessions()
     d.mkdir(parents=True, exist_ok=True)
     ids = sorted(p.name for p in d.iterdir() if p.is_dir())
     if not ids:

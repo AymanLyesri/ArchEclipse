@@ -30,6 +30,8 @@ Item {
     // rendered line-by-line in the streaming bubble until onExited reloads.
     property string streamingText: ""
     property var activeProc: null
+    property int _requestSerial: 0
+    property bool _stopRequested: false
     // Incremental line model for the streaming bubble. Rows are only ever
     // APPENDED (new delegates fade in once) or updated IN PLACE via set() /
     // setProperty() (growing tail line, code-flag restyles — never refade).
@@ -148,16 +150,16 @@ Item {
 
     // --- Session Management ---
     function getHistoryPath(sid) {
-        return cacheDir + "/" + currentApiModel + "/sessions/" + (sid || activeSessionId) + "/history.json";
+        return cacheDir + "/sessions/" + (sid || activeSessionId) + "/history.json";
     }
 
     function getSessionsDir() {
-        return cacheDir + "/" + currentApiModel + "/sessions";
+        return cacheDir + "/sessions";
     }
 
     function ensureSessionDir(sid) {
         const p = _mkDir.createObject(root);
-        p.command = ["mkdir", "-p", cacheDir + "/" + currentApiModel + "/sessions/" + sid];
+        p.command = ["mkdir", "-p", getSessionsDir() + "/" + sid];
         p.running = true;
     }
 
@@ -178,6 +180,22 @@ Item {
         p.running = true;
     }
 
+       function autoNameSessionFromMessage(text) {
+        if (!text || root.messages.length > 0)
+            return;
+        for (const s of root.sessions) {
+            if (s.id !== root.activeSessionId)
+                continue;
+            const currentName = String(s.name || "");
+            if (currentName && !/^Session \d+$/.test(currentName))
+                return;
+            const name = String(text).trim().replace(/\s+/g, " ").slice(0, 80);
+            if (name)
+                root.commitRename(s.id, name);
+            return;
+        }
+    }
+
     function loadMessages() {
         const p = _readFile.createObject(root);
         p.command = ["cat", getHistoryPath()];
@@ -192,7 +210,7 @@ Item {
         root.sessionFirsts[sid] = ""; // mark as loading to avoid duplicate fetches
         const p = _firstMsg.createObject(root);
         p._sid = sid;
-        p.command = ["cat", cacheDir + "/" + currentApiModel + "/sessions/" + sid + "/history.json"];
+        p.command = ["cat", getSessionsDir() + "/" + sid + "/history.json"];
         p.running = true;
     }
 
@@ -231,7 +249,7 @@ Item {
             return;
         }
         const p = _rmDir.createObject(root);
-        p.command = ["rm", "-rf", cacheDir + "/" + currentApiModel + "/sessions/" + sessionId];
+        p.command = ["rm", "-rf", getSessionsDir() + "/" + sessionId];
         p.running = true;
         root.sessions = root.sessions.filter(s => s.id !== sessionId);
         if (root.activeSessionId === sessionId) {
@@ -285,7 +303,10 @@ Item {
             return;
         }
         root.progressStatus = "loading";
+        root._requestSerial++;
+        root._stopRequested = false;
         const p = _chatAPI.createObject(root);
+        p._requestId = root._requestSerial;
         // Key via environment (never argv — argv is visible in ps).
         // Context JSON via stdin: write() on started (no close-stdin in
         // Quickshell; main.py drains with a quiet-gap timeout instead).
@@ -300,8 +321,16 @@ Item {
     }
 
     function stopGeneration() {
-        if (root.activeProc && root.activeProc.running)
-            root.activeProc.running = false; // SIGTERM -> chatbot.py saves partial, exits 0
+        const p = root.activeProc;
+        if (!p || !p.running)
+            return;
+        // Unlock the editor immediately. The child may take a moment to
+        // handle SIGTERM and emit onExited; its callback reconciles the
+        // partial history without putting this request back into loading.
+        root._stopRequested = true;
+        root.progressStatus = "idle";
+        root.activeProc = null;
+        p.running = false; // SIGTERM -> chatbot.py saves partial, exits 0
     }
 
     // Revert to a user message (OpenCode-style): drop it and everything
@@ -911,6 +940,7 @@ Item {
     Component {
         id: _chatAPI
         Process {
+            property int _requestId: 0
             stdout: StdioCollector {
                 id: _apiStdout
                 // Live tokens: text updates per chunk, not just at process end.
@@ -929,10 +959,19 @@ Item {
                 }
             }
             onExited: code => {
+                if (root._requestSerial !== _requestId)
+                    return;
+                const stopped = root._stopRequested;
+                root._stopRequested = false;
                 root.activeProc = null;
                 const hadStream = root.streamingText !== "";
                 root.streamingText = "";
                 streamLines.clear();
+                if (stopped) {
+                    root.progressStatus = "idle";
+                    root.loadMessages();
+                    return;
+                }
                 if (code === 0) {
                     const reply = _apiStdout.fullText.trim();
                     if (reply) {
@@ -1125,33 +1164,53 @@ Item {
                             spacing: 3
 
                             Row {
+                                id: messageHeader
+                                width: parent.width
                                 spacing: 6
+
                                 Label {
+                                    id: roleLabel
+                                    anchors.verticalCenter: messageHeader.verticalCenter
                                     text: modelData.role === "user" ? "\u{F007} You" : "\u{E73B} Assistant"
                                     font.pixelSize: Theme.fontSize - 1
                                     font.bold: true
                                     color: Theme.accent
                                 }
-                                // Whole-message copy (raw markdown).
-                                AppButton {
-                                    implicitHeight: 20
-                                    implicitWidth: 52
-                                    text: "copy"
-                                    pixelSize: 9
-                                    tooltipText: "Copy whole message"
-                                    onClicked: root.copyToClipboard(modelData.content)
+
+                                Item {
+                                    width: Math.max(0, messageHeader.width - roleLabel.width - actionsRow.implicitWidth - 12)
+                                    height: 1
                                 }
-                                // Per-message revert (user only, OpenCode-style):
-                                // drop this message and everything after it,
-                                // restore its text into the input for editing.
-                                AppButton {
-                                    visible: modelData.role === "user"
-                                    implicitHeight: 20
-                                    implicitWidth: 28
-                                    text: "\uf0e2"
-                                    pixelSize: 9
-                                    tooltipText: "Revert to this message"
-                                    onClicked: root.revertMessage(index)
+
+                                Row {
+                                    id: actionsRow
+                                    spacing: 6
+                                    anchors.verticalCenter: messageHeader.verticalCenter
+
+             // Per-message revert (user only, OpenCode-style):
+                                    // drop this message and everything after it,
+                                    // restore its text into the input for editing.
+                                    AppButton {
+                                        anchors.verticalCenter: actionsRow.verticalCenter
+                                        visible: modelData.role === "user"
+                                        implicitHeight: 20
+                                        implicitWidth: 28
+                                        text: "\uf0e2"
+                                        pixelSize: 9
+                                        tooltipText: "Revert to this message"
+                                        onClicked: root.revertMessage(index)
+                                    }
+                                    // Whole-message copy (raw markdown).
+                                    AppButton {
+                                        anchors.verticalCenter: actionsRow.verticalCenter
+                                        implicitHeight: 20
+                                        implicitWidth: 52
+                                        text: "copy"
+                                        pixelSize: 9
+                                        tooltipText: "Copy whole message"
+                                        onClicked: root.copyToClipboard(modelData.content)
+                                    }
+                       
                                 }
                             }
 
@@ -1184,12 +1243,9 @@ Item {
                                         anchors.right: parent.right
                                         width: 54
                                         height: 20
-                                        cornerRadius: 4
                                         idleBg: Theme.bg
                                         idleFg: Theme.accent
                                         hoverFg: Theme.accent
-                                        outlined: true
-                                        outlineColor: Theme.accent
                                         text: "copy"
                                         pixelSize: 9
                                         tooltipText: "Copy code"
