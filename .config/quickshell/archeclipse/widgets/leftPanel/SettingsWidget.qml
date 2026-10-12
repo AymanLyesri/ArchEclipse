@@ -1127,6 +1127,129 @@ Item {
                                 }
                             }
 
+                            // Blue light filter (hyprsunset)
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: "Blue Light Filter"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                                AppCheckBox {
+                                    checked: Settings.blueLightEnabled
+                                    onToggled: Settings.applyBlueLight(checked)
+                                }
+                            }
+
+                            // Blue light: temperature (Kelvin, lower = warmer)
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: "Blue Light: Temperature (K)"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                }
+                                AppSpinBox {
+                                    from: 1000
+                                    to: 6500
+                                    stepSize: 100
+                                    value: Settings.blueLightTemperature
+                                    Layout.preferredWidth: 160
+                                    onValueModified: Settings.blueLightTemperature = value
+                                }
+                            }
+
+                            // Blue light: auto mode — checkbox + "from – to" time in ONE row
+                            // (checkbox toggles the schedule; the times stay editable
+                            // when it is off so they can be preset)
+                            RowLayout {
+                                width: parent.width
+                                spacing: 8
+                                Label {
+                                    id: hypBLAMLabel
+                                    font.pixelSize: Theme.fontSize
+                                    text: "Blue Light: Auto Mode"
+                                    color: Theme.fg
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+
+                                    HoverHandler {
+                                        id: hypBLAMHover
+                                        cursorShape: Qt.ArrowCursor
+                                    }
+
+                                    AppTooltip {
+                                        visible: hypBLAMHover.hovered && hypBLAMLabel.truncated
+                                        text: hypBLAMLabel.text
+                                    }
+                                }
+                                AppCheckBox {
+                                    checked: Settings.blueLightAuto
+                                    onToggled: Settings.blueLightAuto = checked
+                                }
+                                AppTextField {
+                                    id: blStartField
+                                    Layout.preferredWidth: 64
+                                    Layout.preferredHeight: 30
+                                    horizontalAlignment: Text.AlignHCenter
+                                    leftPadding: 4
+                                    rightPadding: 4
+                                    maximumLength: 5
+                                    inputMethodHints: Qt.ImhPreferNumbers
+                                    validator: RegularExpressionValidator {
+                                        regularExpression: /^\d{0,2}:?\d{0,2}$/
+                                    }
+                                    placeholderText: "21:00"
+                                    text: Settings.blueLightStart
+                                    opacity: Settings.blueLightAuto ? 1 : 0.5
+                                    // "7:30" -> "07:30"; invalid input reverts to the saved value
+                                    onEditingFinished: {
+                                        Settings.blueLightStart = Settings.normalizeTime(text, Settings.blueLightStart);
+                                        text = Qt.binding(() => Settings.blueLightStart);
+                                    }
+                                }
+                                Label {
+                                    text: "–"
+                                    color: Theme.fg
+                                    font.pixelSize: Theme.fontSize
+                                }
+                                AppTextField {
+                                    id: blEndField
+                                    Layout.preferredWidth: 64
+                                    Layout.preferredHeight: 30
+                                    horizontalAlignment: Text.AlignHCenter
+                                    leftPadding: 4
+                                    rightPadding: 4
+                                    maximumLength: 5
+                                    inputMethodHints: Qt.ImhPreferNumbers
+                                    validator: RegularExpressionValidator {
+                                        regularExpression: /^\d{0,2}:?\d{0,2}$/
+                                    }
+                                    placeholderText: "07:00"
+                                    text: Settings.blueLightEnd
+                                    opacity: Settings.blueLightAuto ? 1 : 0.5
+                                    // "7:30" -> "07:30"; invalid input reverts to the saved value
+                                    onEditingFinished: {
+                                        Settings.blueLightEnd = Settings.normalizeTime(text, Settings.blueLightEnd);
+                                        text = Qt.binding(() => Settings.blueLightEnd);
+                                    }
+                                }
+                            }
+
+                            // Blue light: schedule summary (shows wrap-around / typos)
+                            Label {
+                                width: parent.width
+                                visible: Settings.blueLightAuto
+                                text: Settings.blueLightHint()
+                                wrapMode: Text.WordWrap
+                                color: Theme.muted
+                                font.pixelSize: Theme.fontSize - 2
+                            }
+
                             // Decoration: Rounding
                             RowLayout {
                                 width: parent.width

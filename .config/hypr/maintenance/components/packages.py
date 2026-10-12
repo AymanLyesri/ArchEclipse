@@ -54,6 +54,7 @@ PACKAGES: list[str] = [
     "pipewire",
     "brightnessctl",
     "ddcutil",
+    "hyprsunset",
     "hyprcursor",
     "hyprland",
     "hyprpm",

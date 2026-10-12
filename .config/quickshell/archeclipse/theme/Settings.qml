@@ -152,6 +152,15 @@ Singleton {
     }
     property bool autoWorkspaceSwitching: true
     property bool gameModeEnabled: false
+    // Blue light filter (hyprsunset). Temperature in Kelvin: lower = warmer.
+    property bool blueLightEnabled: false
+    property int blueLightTemperature: 4000
+    // Auto mode: filter is ON between start and end (local time, "HH:MM", may
+    // span midnight, e.g. 21:00 -> 07:00). Driven by a QML timer — no
+    // hyprsunset.conf needed. A manual toggle overrides until the next boundary.
+    property bool blueLightAuto: false
+    property string blueLightStart: "21:00"
+    property string blueLightEnd: "07:00"
 
     // Bar-pinned crypto favorite (Information center)
     property var cryptoFavorite: ({
@@ -544,6 +553,11 @@ Singleton {
             "lockscreen.graceSeconds": "lockGraceSeconds",
             "autoWorkspaceSwitching": "autoWorkspaceSwitching",
             "gameMode.enabled": "gameModeEnabled",
+            "blueLight.enabled": "blueLightEnabled",
+            "blueLight.temperature": "blueLightTemperature",
+            "blueLight.auto": "blueLightAuto",
+            "blueLight.start": "blueLightStart",
+            "blueLight.end": "blueLightEnd",
             "dynamicThemeColors": "dynamicThemeColors",
             "dynamicThemeVariants": "dynamicThemeVariants",
             "fileManager": "fileManager",
@@ -703,6 +717,23 @@ Singleton {
                 gameMode: {
                     enabled: {
                         value: root.gameModeEnabled
+                    }
+                },
+                blueLight: {
+                    enabled: {
+                        value: root.blueLightEnabled
+                    },
+                    temperature: {
+                        value: root.blueLightTemperature
+                    },
+                    auto: {
+                        value: root.blueLightAuto
+                    },
+                    start: {
+                        value: root.blueLightStart
+                    },
+                    end: {
+                        value: root.blueLightEnd
                     }
                 },
                 // Hyprland leaf shape {name,value,min,max,type} — the settings
@@ -932,6 +963,17 @@ Singleton {
                 root.autoWorkspaceSwitching = s.autoWorkspaceSwitching?.value ?? true;
                 const _gm = s.gameMode?.enabled;
                 root.gameModeEnabled = (typeof _gm === "object" && _gm !== null) ? (_gm.value ?? false) : (_gm ?? false);
+                const _bl = s.blueLight?.enabled;
+                root.blueLightEnabled = (typeof _bl === "object" && _bl !== null) ? (_bl.value ?? false) : (_bl ?? false);
+                const _blt = s.blueLight?.temperature;
+                const _bltv = (typeof _blt === "object" && _blt !== null) ? _blt.value : _blt;
+                root.blueLightTemperature = Math.max(1000, Math.min(20000, Math.round(Number(_bltv)) || 4000));
+                const _bla = s.blueLight?.auto;
+                root.blueLightAuto = (typeof _bla === "object" && _bla !== null) ? (_bla.value ?? false) : (_bla ?? false);
+                const _bls = s.blueLight?.start;
+                root.blueLightStart = root._normTime((typeof _bls === "object" && _bls !== null) ? _bls.value : _bls, "21:00");
+                const _ble = s.blueLight?.end;
+                root.blueLightEnd = root._normTime((typeof _ble === "object" && _ble !== null) ? _ble.value : _ble, "07:00");
 
                 // Rating tag leads, defaulting to -rating:explicit. Done here
                 // (not viewer boot) so the file's tags are normalized the
@@ -1024,7 +1066,126 @@ Singleton {
         Qt.callLater(function () {
             if (root.gameModeEnabled)
                 root.applyGameMode(true);
+            // Re-apply the filter after a shell restart (idempotent: an
+            // already-running hyprsunset just receives the same temperature).
+            // (auto mode applies its own state on the first timer tick)
+            if (root.blueLightEnabled && !root.blueLightAuto)
+                root.applyBlueLight(true);
         });
+    }
+
+    // Blue light filter via hyprsunset (https://wiki.hypr.land/Hypr-Ecosystem/hyprsunset/).
+    // ON : daemon already running -> `hyprctl hyprsunset temperature <K>` (IPC,
+    //      idempotent, no restart/flicker); otherwise start
+    //      `hyprsunset --temperature <K>` detached.
+    // OFF: `hyprctl hyprsunset identity` — filter off, daemon stays idle, so a
+    //      user-managed daemon (exec-once / systemd / profiles in
+    //      ~/.config/hypr/hyprsunset.conf) is never killed. A profile that
+    //      activates later (user config) overrides this, as documented upstream.
+    // hyprsunset.conf is optional: this feature works without one.
+    function applyBlueLight(enabled) {
+        root.blueLightEnabled = enabled;
+        const temp = Math.max(1000, Math.min(20000, Math.round(root.blueLightTemperature) || 4000));
+        Quickshell.execDetached(["bash", "-c", enabled ? `
+            if ! command -v hyprsunset >/dev/null 2>&1; then
+                notify-send -a ArchEclipse "Blue light filter" "hyprsunset is not installed" >/dev/null 2>&1 || true
+                exit 0
+            fi
+            if pgrep -x hyprsunset >/dev/null 2>&1; then
+                # (stale/hung daemon), restart the daemon with the temperature.
+                out="$(hyprctl hyprsunset temperature ${temp} 2>&1)" || out="Couldn't"
+                case "$out" in
+                    Couldn*|*rror*)
+                        pkill -x hyprsunset >/dev/null 2>&1
+                        sleep 0.15
+                        setsid -f hyprsunset --temperature ${temp} >/dev/null 2>&1
+                        ;;
+                esac
+            else
+                setsid -f hyprsunset --temperature ${temp} >/dev/null 2>&1
+            fi` : `
+            hyprctl hyprsunset identity >/dev/null 2>&1 || true`]);
+        root.schedulePersist();
+    }
+
+    // ---- Blue light schedule (auto mode) ----
+    function _timeToMinutes(str, fallback) {
+        const m = /^(\d{1,2}):(\d{2})$/.exec(String(str));
+        if (!m)
+            return fallback;
+        const h = parseInt(m[1]);
+        const mi = parseInt(m[2]);
+        if (h > 23 || mi > 59)
+            return fallback;
+        return h * 60 + mi;
+    }
+    function _normTime(str, fallback) {
+        const t = root._timeToMinutes(str, -1);
+        if (t < 0)
+            return fallback;
+        return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+    }
+    // Public: "7:30" -> "07:30"; anything invalid -> fallback (SettingsWidget time fields)
+    function normalizeTime(str, fallback) {
+        return root._normTime(str, fallback);
+    }
+    // True when "now" is inside [start, end). Start > end spans midnight;
+    // start == end means "never".
+    function blueLightScheduleActive() {
+        const s = root._timeToMinutes(root.blueLightStart, 21 * 60);
+        const e = root._timeToMinutes(root.blueLightEnd, 7 * 60);
+        // The minute event can arrive slightly before the wall-clock minute
+        // rolls over; the clock's own date already carries the new minute, so
+        // use the later of the two (otherwise the transition slips a minute).
+        const d = new Date(Math.max(Date.now(), root._blueLightClock.date.getTime()));
+        const now = d.getHours() * 60 + d.getMinutes();
+        if (s === e)
+            return false;
+        return s < e ? (now >= s && now < e) : (now >= s || now < e);
+    }
+    // -1 = unknown (forces an apply), 0 = outside window, 1 = inside window
+    property int _blSched: -1
+    // Human-readable summary of the configured window for SettingsWidget, so an
+    // unintended wrap-around (e.g. 03:15 -> 03:13 = 23 h 58 min) is obvious.
+    // Reads start/end/_blSched, so bindings that call it refresh on change.
+    function blueLightHint() {
+        const s = root._timeToMinutes(root.blueLightStart, 21 * 60);
+        const e = root._timeToMinutes(root.blueLightEnd, 7 * 60);
+        if (s === e)
+            return "Start equals end: the filter will never turn on.";
+        const dur = (e - s + 1440) % 1440;
+        let t = "ON " + root.blueLightStart + " \u2192 OFF " + root.blueLightEnd + (s > e ? " (next day)" : "")
+            + " \u00b7 " + Math.floor(dur / 60) + " h " + (dur % 60) + " min";
+        if (root._blSched === 1)
+            t += " \u00b7 active now";
+        return t;
+    }
+    function _blueLightTick() {
+        if (!root.ready || !root.blueLightAuto)
+            return;
+        const want = root.blueLightScheduleActive();
+        const first = root._blSched < 0;
+        if (first || (want ? 1 : 0) !== root._blSched) {
+            root._blSched = want ? 1 : 0;
+            // Only acts on a boundary crossing (or the first tick), so a manual
+            // toggle in between sticks until the next boundary.
+            if (first || root.blueLightEnabled !== want)
+                root.applyBlueLight(want);
+        }
+    }
+    function _blueLightRescan() {
+        root._blSched = -1;
+        root._blueLightTick();
+    }
+    // Same minute-aligned clock the bar Clock uses: fires exactly when the
+    // wall-clock minute changes (and re-fires after suspend / time jumps), so
+    // the schedule switches on the minute — no 30 s polling lag. Off (no
+    // wakeups) while auto mode is disabled. The initial evaluation comes from
+    // _blueLightRescan() (auto toggled / settings loaded).
+    property SystemClock _blueLightClock: SystemClock {
+        precision: SystemClock.Minutes
+        enabled: root.ready && root.blueLightAuto
+        onDateChanged: root._blueLightTick()
     }
 
     function applyGameMode(enabled) {
@@ -1209,6 +1370,31 @@ Singleton {
         }
         function onGameModeEnabledChanged() {
             root.schedulePersist();
+        }
+        function onBlueLightEnabledChanged() {
+            root.schedulePersist();
+        }
+        function onReadyChanged() {
+            // settings just loaded from disk: evaluate the schedule right away
+            root._blueLightRescan();
+        }
+        function onBlueLightAutoChanged() {
+            root.schedulePersist();
+            root._blueLightRescan();
+        }
+        function onBlueLightStartChanged() {
+            root.schedulePersist();
+            root._blueLightRescan();
+        }
+        function onBlueLightEndChanged() {
+            root.schedulePersist();
+            root._blueLightRescan();
+        }
+        function onBlueLightTemperatureChanged() {
+            root.schedulePersist();
+            // Live-apply a new temperature while the filter is on
+            if (root.ready && root.blueLightEnabled)
+                root.applyBlueLight(true);
         }
         function onWaifuChanged() {
             root.schedulePersist();

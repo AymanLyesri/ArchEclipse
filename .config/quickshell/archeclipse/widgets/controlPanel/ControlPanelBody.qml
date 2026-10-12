@@ -165,6 +165,21 @@ Item {
                     tooltipText: Settings.gameModeEnabled ? "Disable Game Mode" : "Enable Game Mode"
                     onClicked: Settings.applyGameMode(!Settings.gameModeEnabled)
                 }
+                // Blue light filter (hyprsunset). Temperature lives in
+                // Settings.blueLightTemperature (settings key blueLight.temperature).
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: "\uf0eb"
+                    pixelSize: Theme.fontSize + 2
+                    toggle: true
+                    checked: Settings.blueLightEnabled
+                    tooltipText: (Settings.blueLightEnabled ? "Disable Blue Light Filter" : "Enable Blue Light Filter (" + Settings.blueLightTemperature + "K)")
+                        + (Settings.blueLightAuto ? "\nAuto: " + Settings.blueLightStart + " \u2013 " + Settings.blueLightEnd : "")
+                    onClicked: Settings.applyBlueLight(!Settings.blueLightEnabled)
+                }
                 // Keyboard layout — shows the current layout code, click cycles
                 AppButton {
                     width: (parent.width - parent.columnSpacing) / 2
