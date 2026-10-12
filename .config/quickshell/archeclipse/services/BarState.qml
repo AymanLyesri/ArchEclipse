@@ -118,6 +118,21 @@ Singleton {
     property var _networkDevice: null
     property bool _networkFirstRender: true
     property var _lastNetSig: {}
+    property Connections _networkDevicesConnection: Connections {
+        target: Networking.devices
+        function onValuesChanged() {
+            root.trackNetworkDevice(root.primaryNetworkDevice());
+        }
+    }
+    property Connections _networkDeviceConnection: Connections {
+        target: root._networkDevice
+        function onConnectedChanged() {
+            root.trackNetworkDevice(root.primaryNetworkDevice());
+        }
+        function onStateChanged() {
+            root.trackNetworkDevice(root.primaryNetworkDevice());
+        }
+    }
 
     // Volume watcher
     property PwObjectTracker _volumeTracker: PwObjectTracker {
@@ -442,55 +457,43 @@ Singleton {
     // ~3s whenever the active network connection changes (wifi connect,
     // disconnect, ssid change, signal re-association).
     function setupNetworkWatcher() {
-        function primaryDevice() {
-            if (!Networking.devices?.values)
-                return null;
-            for (const d of Networking.devices.values) {
-                if (d && d.connected)
-                    return d;
-            }
-            return Networking.devices.values.length > 0 ? Networking.devices.values[0] : null;
+        root.trackNetworkDevice(root.primaryNetworkDevice());
+    }
+
+    function primaryNetworkDevice() {
+        if (!Networking.devices?.values)
+            return null;
+        for (const d of Networking.devices.values) {
+            if (d && d.connected)
+                return d;
         }
+        return Networking.devices.values.length > 0 ? Networking.devices.values[0] : null;
+    }
 
-        function track(device) {
-            if (!device)
-                return;
+    function trackNetworkDevice(device) {
+        if (device !== root._networkDevice) {
             root._networkDevice = device;
+            root._networkFirstRender = true;
+        }
+        if (!device)
+            return;
 
-            // Skip first render
-            if (root._networkFirstRender) {
-                root._networkFirstRender = false;
-                root._lastNetSig = {
-                    state: device.state,
-                    connected: device.connected
-                };
-                return;
-            }
-
-            const changed = device.connected !== root._lastNetSig.connected || device.state !== root._lastNetSig.state;
-
+        if (root._networkFirstRender) {
+            root._networkFirstRender = false;
             root._lastNetSig = {
                 state: device.state,
                 connected: device.connected
             };
-            if (changed)
-                root.activate("network", 3000);
+            return;
         }
 
-        // Poll primary device each 2s for state changes (reactive, no spurious
-        // signal churn — NetworkManager events are coalesced here).
-        const netTimer = Qt.createQmlObject('import QtQuick; Timer { interval: 2000; running: true; repeat: true }', root);
-        netTimer.onTriggered.connect(function () {
-            const dev = primaryDevice();
-            if (dev !== root._networkDevice) {
-                root._networkDevice = dev;
-                if (!dev)
-                    return;
-                // First contact with a new device: don't pulse yet
-                root._networkFirstRender = true;
-            }
-            track(dev);
-        });
+        const changed = device.connected !== root._lastNetSig.connected || device.state !== root._lastNetSig.state;
+        root._lastNetSig = {
+            state: device.state,
+            connected: device.connected
+        };
+        if (changed)
+            root.activate("network", 3000);
     }
 
     // Resolve highest priority active state (default is the base fallback)

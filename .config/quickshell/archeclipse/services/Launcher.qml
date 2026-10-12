@@ -276,6 +276,9 @@ QtObject {
             argText: argText || ""
         };
     }
+    function copyToClipboard(text) {
+        Quickshell.execDetached(["sh", "-c", "printf %s \"$1\" | wl-copy", "--", String(text)]);
+    }
     // header row factory (app_type === "header")
     function mkHeader(name) {
         return {
@@ -566,7 +569,7 @@ QtObject {
             const out = conv[f][t](v);
             const suffix = deg ? "°" : " ";
             const label = `${parseFloat(out.toFixed(4))}${suffix}${toRaw.trim()}`;
-            return [mkResult(label, "\u{F1433}", `Converted from ${v} ${m[2].trim()}`, () => Quickshell.execDetached(["wl-copy", label]))];
+            return [mkResult(label, "\u{F1433}", `Converted from ${v} ${m[2].trim()}`, () => copyToClipboard(label))];
         }
         return null;
     }
@@ -579,7 +582,7 @@ QtObject {
             const val = Function(`"use strict"; return (${text})`)();
             if (typeof val !== "number" || isNaN(val))
                 return null;
-            return [mkResult(`${val}`, "\u{F118D}", "= " + text.trim(), () => Quickshell.execDetached(["wl-copy", `${val}`]))];
+            return [mkResult(`${val}`, "\u{F118D}", "= " + text.trim(), () => copyToClipboard(`${val}`))];
         } catch (e) {
             return null;
         }
@@ -613,7 +616,7 @@ QtObject {
         for (const e of _emojiIndex) {
             if ((e.app_tags || "").toLowerCase().includes(q)) {
                 const glyph = e.app_name || "";
-                out.push(mkResult(glyph, glyph, e.app_tags, () => Quickshell.execDetached(["wl-copy", glyph])));
+                out.push(mkResult(glyph, glyph, e.app_tags, () => copyToClipboard(glyph)));
                 if (out.length >= maxItems)
                     break;
             }
@@ -649,7 +652,7 @@ QtObject {
                 const content = String(note.content || "");
                 const preview = content.length > 80 ? content.slice(0, 79) + "…" : content;
                 const when = note.updatedAt ? new Date(note.updatedAt).toLocaleString() : "recent";
-                return mkResult(`${note.id}. ${preview}`, "\u{F19DB}", `Updated ${when} · click to copy`, () => Quickshell.execDetached(["wl-copy", content]));
+                return mkResult(`${note.id}. ${preview}`, "\u{F19DB}", `Updated ${when} · click to copy`, () => copyToClipboard(content));
             });
         }
         const updateMatch = norm.match(/^(?:edit|set|update|modify)\s+(\d+)(?:\s+([\s\S]+))?$/i);
@@ -719,7 +722,7 @@ QtObject {
             if (content.toLowerCase().includes(q)) {
                 const stroke = content.replace(/\s+/g, " ").slice(0, 128) + (content.length > 128 ? "…" : "");
                 const type = entry.type || (entry.mimeType || "text");
-                out.push(mkResult(stroke, "\u{F156C}", `${type} · click to copy`, () => Quickshell.execDetached(["wl-copy", content])));
+                out.push(mkResult(stroke, "\u{F156C}", `${type} · click to copy`, () => copyToClipboard(content)));
                 if (out.length >= maxItems)
                     break;
             }
@@ -736,7 +739,7 @@ QtObject {
         stdout: StdioCollector {
             onStreamFinished: {
                 if (parent.mode === "translate")
-                    root.results = [root.mkResult(text.trim(), "\u{F10CC}", "Translation · click to copy", () => Quickshell.execDetached(["sh", "-c", `printf %s '${text.trim().replace(/'/g, "")}' | wl-copy`]))];
+                    root.results = [root.mkResult(text.trim(), "\u{F10CC}", "Translation · click to copy", () => root.copyToClipboard(text.trim()))];
             }
         }
     }

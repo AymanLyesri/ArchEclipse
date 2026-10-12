@@ -20,6 +20,9 @@ Column {
     readonly property bool stacked: width < 380
     readonly property real cardWidth: width <= 0 ? 0 : (root.stacked ? width : (width - 8 * (root.totalCards - 1)) / root.totalCards)
 
+    Component.onCompleted: SysInfo.acquireResources()
+    Component.onDestruction: SysInfo.releaseResources()
+
     function fmt(v, digits, suffix) {
         if (v === null || v === undefined || (typeof v === "number" && isNaN(v)))
             return "N/A";

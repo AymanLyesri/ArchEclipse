@@ -19,6 +19,8 @@ QtObject {
 
     property var resProcObj: null
     property var bwProcObj: null
+    property int resourceConsumers: 0
+    property bool binariesReady: false
 
     // Compile both loop binaries. gcc is fast; unconditional compile is fine.
     // mkdir -p first: /tmp is wiped on every reboot, without it `ld` fails with
@@ -41,6 +43,7 @@ QtObject {
         onExited: (exitCode, exitStatus) => {
             if (exitCode === 0) {
                 console.log("[SysInfo] loop binaries compiled");
+                root.binariesReady = true;
                 retryTimer.stop();
                 startLoops();
             } else {
@@ -70,7 +73,7 @@ QtObject {
         interval: 2000
         repeat: false
         onTriggered: {
-            if (root.resProcObj && !root.resProcObj.running)
+            if (root.resourceConsumers > 0 && root.resProcObj && !root.resProcObj.running)
                 root.resProcObj.running = true;
         }
     }
@@ -88,9 +91,11 @@ QtObject {
         // (or a manual retry) never leaves duplicate loop processes.
         resRestartTimer.stop();
         bwRestartTimer.stop();
-        // system resources loop
+        // system resources loop is only needed while a resource widget exists.
         if (root.resProcObj) root.resProcObj.destroy();
-        root.resProcObj = Qt.createQmlObject(`
+        root.resProcObj = null;
+        if (root.resourceConsumers > 0)
+            root.resProcObj = Qt.createQmlObject(`
             import Quickshell.Io; import QtQuick;
             Process {
                 command: ["${root.tmpDir}/system-resources-loop"]
@@ -138,6 +143,22 @@ QtObject {
                 }
                 Component.onCompleted: running = true
             }`, root);
+    }
+
+    function acquireResources() {
+        root.resourceConsumers++;
+        if (root.resourceConsumers === 1 && root.binariesReady)
+            root.startLoops();
+    }
+
+    function releaseResources() {
+        root.resourceConsumers = Math.max(0, root.resourceConsumers - 1);
+        if (root.resourceConsumers === 0 && root.resProcObj) {
+            root.resRestartTimer.stop();
+            root.resProcObj.destroy();
+            root.resProcObj = null;
+            root.systemResources = null;
+        }
     }
 
     Component.onCompleted: {

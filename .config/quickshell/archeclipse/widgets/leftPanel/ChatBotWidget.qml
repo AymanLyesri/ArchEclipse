@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import qs.theme
 import qs.widgets.shared
 import qs.services
@@ -49,9 +50,9 @@ Item {
     property string activeFileScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/activefile.py"
     // Live OpenRouter model ids (empty = unknown/offline → show all hardcoded).
     property var modelCache: []
-    // File detected in the focused editor ({path, name}); refreshed by a
-    // 3s poll for the preview label. The backend re-detects at send time,
-    // so this preview may briefly lag focus switches without harm.
+    // File detected in the focused editor ({path, name}); refreshed from
+    // Hyprland focus/title events for the preview label. The backend
+    // re-detects at send time, so this preview may briefly lag events.
     property var autoFile: ({
         path: "",
         name: ""
@@ -134,13 +135,47 @@ Item {
         refreshAutoFile();
     }
 
-    // Preview poll: re-detect the focused editor file every 3s while the
-    // File chip is on (backend re-detects at send, so this is display-only).
+    // Coalesce compositor events so a focus/title burst causes one lookup.
     Timer {
-        interval: 3000
-        repeat: true
-        running: Settings.chatBotContext.file ?? true
+        id: autoFileRefreshTimer
+        interval: 100
+        repeat: false
         onTriggered: root.refreshAutoFile()
+    }
+
+    // Refresh the preview when Hyprland reports a focus, title, or window
+    // lifecycle change. The backend still re-detects the file at send time.
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (!BarState.leftOpen || !(Settings.chatBotContext.file ?? true))
+                return;
+            const name = event?.name ?? "";
+            if (name === "activewindow" || name === "activewindowv2" ||
+                name === "windowtitle" || name === "openwindow" ||
+                name === "closewindow")
+                autoFileRefreshTimer.restart();
+        }
+    }
+
+    Connections {
+        target: BarState
+        function onLeftOpenChanged() {
+            if (BarState.leftOpen && (Settings.chatBotContext.file ?? true))
+                root.refreshAutoFile();
+            else
+                autoFileRefreshTimer.stop();
+        }
+    }
+
+    Connections {
+        target: Settings
+        function onChatBotContextChanged() {
+            if (BarState.leftOpen && (Settings.chatBotContext.file ?? true))
+                root.refreshAutoFile();
+            else
+                autoFileRefreshTimer.stop();
+        }
     }
 
     // --- Helpers ---

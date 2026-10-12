@@ -86,6 +86,7 @@ Singleton {
     // CODE IS SOURCE OF TRUTH FOR ICONS: persist()/reload() only save/restore
     // {name, enabled} + order. Edit icons here (defaultRightPanelWidgets) and
     // they will not be clobbered by settings.json.
+    // Crypto implementation files remain available but the widget is disabled.
     property var rightPanelWidgets: root.defaultRightPanelWidgets()
     // Canonical widget definitions (names + code-owned icons + default enabled).
     function defaultRightPanelWidgets() {

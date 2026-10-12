@@ -22,6 +22,9 @@ Item {
     implicitHeight: Theme.barContentHeight
 
     readonly property var res: SysInfo.systemResources
+    Component.onCompleted: SysInfo.acquireResources()
+    Component.onDestruction: SysInfo.releaseResources()
+
     // GPU load arrives as 0-100; normalize to 0-1 here.
     readonly property real cpuFrac: (res?.cpuLoad ?? null) !== null ? Math.max(0, Math.min(1, res.cpuLoad / 100)) : -1
     readonly property real ramFrac: (res?.ramUsedGB ?? null) !== null && (res?.ramTotalGB ?? null) ? Math.max(0, Math.min(1, res.ramUsedGB / res.ramTotalGB)) : -1

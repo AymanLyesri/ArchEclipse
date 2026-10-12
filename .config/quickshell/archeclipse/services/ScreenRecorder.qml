@@ -27,6 +27,10 @@ QtObject {
                     if (running) root.startTimestamp = Date.now();
                     root.isRecording = running;
                 }
+                if (running)
+                    root._pollTimer.start();
+                else
+                    root._pollTimer.stop();
             }
         }
     }
@@ -77,13 +81,12 @@ QtObject {
         onTriggered: root._checkRecProc.running = true
     }
 
-    // Poll at 1s: pgrep truthfully reflects
+    // Poll at 1s only while recording: pgrep truthfully reflects
     // wf-recorder liveness (covers kills from outside the shell too).
     property Timer _pollTimer: Timer {
         interval: 1000
-        running: true
+        running: false
         repeat: true
-        triggeredOnStart: true
         onTriggered: {
             if (!root._checkRecProc.running)
                 root._checkRecProc.running = true;

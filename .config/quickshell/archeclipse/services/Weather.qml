@@ -38,7 +38,6 @@ QtObject {
         if (!Settings.ready)
             return;
         root._booted = true;
-        _bootTimer.stop();
         const saved = (Settings.weatherCity || "").trim();
         if (saved !== "" && saved !== (root._cityOverride || "").trim())
             root.setCity(saved);
@@ -261,7 +260,6 @@ QtObject {
     }
 
     property Timer _refreshTimer: Timer { interval: 600000; running: true; repeat: true; triggeredOnStart: false; onTriggered: root.fetch() }
-    property Timer _bootTimer: Timer { interval: 200; repeat: true; onTriggered: root.boot() }
 
     // Follow external Settings edits (settings UI / file reload) without
     // looping back on our own writes.
@@ -286,7 +284,5 @@ QtObject {
     Component.onCompleted: {
         if (Settings.ready)
             root.boot();
-        else
-            _bootTimer.start();
     }
 }

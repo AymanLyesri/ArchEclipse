@@ -130,6 +130,16 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/c1/4c/__power_chainsaw_man_drawn_by_esmile__c14cf324d6644a3cc16910f84e005eae.jpg",
     "https://cdn.donmai.us/original/56/20/__gwen_irelia_galio_and_mythmaker_gwen_league_of_legends_drawn_by_shen_fan__5620a8c6ea0f208f5b89d65a6c39b418.jpg",
     "https://cdn.donmai.us/original/33/e0/__yoru_chainsaw_man_drawn_by_esmile__33e0af29457cad2eaa7716717e166b04.jpg",
+    "https://cdn.donmai.us/original/8b/c8/__jill_warrick_final_fantasy_and_1_more_drawn_by_nyantcha__8bc8992eeb13ce24c66676b4c3b77829.jpg",
+    "https://cdn.donmai.us/original/1d/10/__vienna_indie_virtual_youtuber_drawn_by_greatodoggo__1d10013ede8872c9ba8e362f0166a45a.png",
+    "https://cdn.donmai.us/original/fd/b6/__kafka_honkai_and_1_more_drawn_by_nanjo_maya__fdb6c88123f159aa7e6b299b4262ea18.jpg",
+    "https://cdn.donmai.us/original/0e/61/__rebecca_and_lucy_cyberpunk_and_2_more_drawn_by_bigroll__0e61533e2ad8c6571abf7d1ea0817ca5.jpg",
+    "https://cdn.donmai.us/original/2b/31/__original_drawn_by_zzo0__2b317d7a4f1566f08a96943ae83a7f4d.png",
+    "https://cdn.donmai.us/original/46/b9/__luluca_and_ocean_breeze_luluca_epic_seven_drawn_by_95_jiuwujiang__46b9c7f9a799919719de925d0595c85a.jpg",
+    "https://cdn.donmai.us/original/69/75/__qingyi_zenless_zone_zero_drawn_by_far_side__6975d85262bad6bb74d6f08aff5cfd4d.jpg",
+    "https://cdn.donmai.us/original/29/ee/__odette_genshin_impact_drawn_by_far_side__29eed0cc6d330e44c90adbba60e893ee.jpg",
+    "https://cdn.donmai.us/original/f2/82/__belle_wise_ellen_joe_and_eous_zenless_zone_zero_drawn_by_sushispin__f2822332886f538e871b532bed4cf2ce.jpg",
+    "https://cdn.donmai.us/original/3f/c7/__recluse_elden_ring_and_1_more_drawn_by_kirani__3fc7d3992a0c7d3014a61ab05f8c3a16.jpg",
 ]
 
 urls_animated_sfw = [

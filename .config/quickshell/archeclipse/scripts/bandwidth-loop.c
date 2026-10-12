@@ -242,6 +242,7 @@ int main() {
 
     BandwidthData today = {0};
     read_today_bandwidth(ctx.log_path, &today);
+    double persist_elapsed = 30.0;
 
     while (1) {
         usleep(3000000);   // 3s: low CPU + smooth updates
@@ -263,7 +264,11 @@ int main() {
         today.rx += d_rx;
         today.tx += d_tx;
 
-        update_today_bandwidth(ctx.log_path, &today);
+        persist_elapsed += dt;
+        if (persist_elapsed >= 30.0) {
+            update_today_bandwidth(ctx.log_path, &today);
+            persist_elapsed = 0.0;
+        }
 
         printf("[%llu,%llu,%llu,%llu]\n",
                speed.tx, speed.rx,
