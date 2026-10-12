@@ -12,6 +12,48 @@ API_URL = "https://openrouter.ai/api/v1/chat/completions"
 CACHE_DIR = Path.home() / ".cache" / "quickshell" / "chatbot"
 
 
+def parse_sse_line(line: str):
+    """Parse one SSE line from OpenRouter streaming.
+
+    Returns (kind, value) where kind is one of:
+      "content" -> value is the text delta
+      "done"    -> value is None (stream terminator)
+      "error"   -> value is the error message
+      "ignore"  -> value is None (keep-alive, empty, usage chunk, bad JSON)
+    """
+    s = line.strip()
+    if not s:
+        return ("ignore", None)
+    if s.startswith(":"):
+        return ("ignore", None)
+    if not s.startswith("data:"):
+        return ("ignore", None)
+    data = s[5:].strip()
+    if data == "[DONE]":
+        return ("done", None)
+    try:
+        obj = json.loads(data)
+    except json.JSONDecodeError:
+        return ("ignore", None)
+    if "error" in obj:
+        err = obj["error"]
+        if isinstance(err, dict):
+            msg = err.get("message", str(err))
+        else:
+            msg = str(err)
+        return ("error", msg)
+    try:
+        choices = obj.get("choices", [])
+        if not choices:
+            return ("ignore", None)
+        content = choices[0].get("delta", {}).get("content")
+        if content:
+            return ("content", content)
+        return ("ignore", None)
+    except Exception:
+        return ("ignore", None)
+
+
 def create_message(role: str, content: str, response_time: int = 0) -> dict:
     """Create a message object with all required fields."""
     return {
@@ -86,16 +128,74 @@ def main():
 
     # Extract only role and content for API payload
     api_messages = [{"role": msg["role"], "content": msg["content"]} for msg in history]
-    payload = {"model": model, "messages": api_messages}
+    payload = {"model": model, "messages": api_messages, "stream": True}
+
+    # Partial state saved by the SIGINT/SIGTERM handler (Stop button).
+    state = {"reply": "", "start": time.time()}
+
+    def _save_partial():
+        if state["reply"]:
+            rt = int((time.time() - state["start"]) * 1000)
+            history.append(create_message("assistant", state["reply"], rt))
+            save_history(model, history, session_id)
+
+    def _on_stop(signum, frame):
+        try:
+            _save_partial()
+        finally:
+            # Exit 0 so QML treats Stop as success and reloads canonical file.
+            sys.stdout.flush()
+            os._exit(0)
+
+    try:
+        import signal as _signal
+
+        _signal.signal(_signal.SIGINT, _on_stop)
+        _signal.signal(_signal.SIGTERM, _on_stop)
+    except Exception:
+        pass
 
     try:
         start_time = time.time()
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-        response.raise_for_status()
-        response_time = int((time.time() - start_time) * 1000)  # milliseconds
+        state["start"] = start_time
+        response = requests.post(
+            API_URL, headers=headers, json=payload, timeout=60, stream=True
+        )
+        if response.status_code != 200:
+            try:
+                err_data = response.json()
+                msg = err_data.get("error", {}).get("message", response.text)
+            except Exception:
+                msg = response.text
+            print(f"ERROR: HTTP {response.status_code}: {msg}", file=sys.stderr)
+            sys.exit(1)
 
-        data = response.json()
-        reply = data["choices"][0]["message"]["content"]
+        mid_error = None
+        for raw in response.iter_lines(decode_unicode=True):
+            if raw is None:
+                continue
+            kind, val = parse_sse_line(raw)
+            if kind == "content":
+                state["reply"] += val
+                print(val, end="", flush=True)
+            elif kind == "done":
+                break
+            elif kind == "error":
+                mid_error = val
+                break
+            # "ignore" -> keep-alive, usage chunk, bad JSON: skip
+        response.close()
+
+        if mid_error and not state["reply"]:
+            print(f"ERROR: {mid_error}", file=sys.stderr)
+            sys.exit(1)
+
+        reply = state["reply"]
+        if not reply:
+            print("ERROR: Empty response from API", file=sys.stderr)
+            sys.exit(1)
+
+        response_time = int((time.time() - start_time) * 1000)  # milliseconds
 
         # Add assistant's response to history with response time
         assistant_msg = create_message("assistant", reply, response_time)
@@ -104,7 +204,11 @@ def main():
         # Save updated history
         save_history(model, history, session_id)
 
-        print(reply)
+        sys.stdout.flush()
+        if mid_error:
+            # Partial content streamed + saved; still report the error.
+            print(f"ERROR: {mid_error}", file=sys.stderr)
+            sys.exit(1)
 
     except requests.exceptions.Timeout:
         print("ERROR: Request timed out after 60 seconds", file=sys.stderr)
@@ -120,6 +224,8 @@ def main():
     except (KeyError, IndexError) as e:
         print(f"ERROR: Unexpected API response format: {e}", file=sys.stderr)
         sys.exit(1)
+    except SystemExit:
+        raise
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {str(e)}", file=sys.stderr)
         sys.exit(1)

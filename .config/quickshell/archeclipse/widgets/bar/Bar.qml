@@ -377,7 +377,13 @@ PanelWindow {
                 // Per-state outer inset: default rests tighter (4), all
                 // other islands use Theme.islandPad (8). Pill width/height
                 // above derive from this so the surround stays exact.
-                property int effPad: stack.current === "default" ? 4 : Theme.islandPad
+                // volume/brightness/player/recording render DefaultBar in
+                // the main stack (their UI lives in the OSD/media/
+                // secondary pills), so they keep the default inset —
+                // otherwise opening the OSD flips effPad 4->8 and the
+                // bar visibly grows.
+                property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording"
+                property int effPad: stack.showsDefault ? 4 : Theme.islandPad
                 // Docked to the bar edge (top for a top bar, bottom for a
                 // bottom bar) — never centered: centering lets content drift
                 // vertically while the pill height glides. Edge margin is

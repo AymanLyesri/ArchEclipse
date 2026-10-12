@@ -11,7 +11,7 @@ import qs.services
 // Features: multiple AI providers (OpenRouter), session create/delete,
 // markdown rendering (headers/lists/quotes/code w/ copy), message timestamps
 // + response time + click-to-copy, image-gen toggle, info/setup guide,
-// progress indicator, auto-scroll, auto-focus, multi-line input
+// thinking indicator, auto-scroll, auto-focus, multi-line input
 Item {
     id: root
 
@@ -21,10 +21,22 @@ Item {
     // The provider persists across launches via Settings.chatBotApi.
     property string currentApiModel: Settings.chatBotApi
     property string progressStatus: "idle" // idle | loading | error | success
+    property string lastError: ""
     property var sessions: []
     property int _sendTime: 0
     property bool _shouldScroll: true
     property var sessionFirsts: ({})
+    // Live streaming state (ChatGPT-style): stdout grows via waitForEnd:false,
+    // rendered line-by-line in the streaming bubble until onExited reloads.
+    property string streamingText: ""
+    property var activeProc: null
+    // Incremental line model for the streaming bubble. Rows are only ever
+    // APPENDED (new delegates fade in once) or updated IN PLACE via set() /
+    // setProperty() (growing tail line, code-flag restyles — never refade).
+    // Reset on every send; cleared when the stream ends.
+    ListModel {
+        id: streamLines
+    }
     // chatbot.py owns its files under ~/.cache/quickshell/chatbot
     // (CACHE_DIR hardcoded in the script) — read the same dir it writes,
     // or sessions/history silently fork.
@@ -170,8 +182,13 @@ Item {
     function sendMessage(text) {
         if (!text.trim())
             return;
+        if (root.progressStatus === "loading")
+            return;
         root._sendTime = Date.now();
-        const sendTime = root._sendTime;
+        root._shouldScroll = true;
+        root.streamingText = "";
+        root.lastError = "";
+        streamLines.clear();
         root.messages = root.messages.concat([
             {
                 id: "" + (root.messages.length + 1),
@@ -186,13 +203,79 @@ Item {
                 summary: "ChatBot Error",
                 body: "OpenRouter API key is not configured. Please set it in settings."
             });
+            root.lastError = "OpenRouter API key is not configured. Please set it in settings.";
             root.progressStatus = "error";
             return;
         }
         root.progressStatus = "loading";
         const p = _chatAPI.createObject(root);
-        p.command = ["python3", root.pythonScript, root.currentApiModel, text, key, root.activeSessionId];
+        // -u = unbuffered stdout so SSE chunks flush live to StdioCollector.
+        p.command = ["python3", "-u", root.pythonScript, root.currentApiModel, text, key, root.activeSessionId];
+        root.activeProc = p;
         p.running = true;
+    }
+
+    function stopGeneration() {
+        if (root.activeProc && root.activeProc.running)
+            root.activeProc.running = false; // SIGTERM -> chatbot.py saves partial, exits 0
+    }
+
+    // Live stdout chunk -> streaming bubble only (bound to streamLines
+    // below the Repeater). Never touches root.messages: reassigning that
+    // array per token rebuilds EVERY Repeater delegate (fade loop + stutter).
+    function onStreamText(text) {
+        if (root.progressStatus !== "loading")
+            return;
+        if (!text)
+            return;
+        root.streamingText = text;
+        root._shouldScroll = true;
+        root.updateStreamLines(text);
+    }
+
+    // Diff full streamed text against the streamLines model: append new
+    // lines, update the growing tail in place, restyle code flags in place.
+    // Streaming text is append-only, so kept rows never move (algorithm
+    // mirror verified in /tmp/opencode/stream_lines_test.py).
+    function updateStreamLines(text) {
+        const lines = text.split("\n");
+        // ``` fence parity: lines inside code blocks render as plain mono.
+        const inCode = [];
+        let open = false;
+        for (let i = 0; i < lines.length; i++) {
+            inCode.push(open);
+            const fences = (lines[i].match(/```/g) || []).length;
+            if (fences % 2 === 1)
+                open = !open;
+        }
+        // Common prefix: rows whose line text is already final.
+        let keep = 0;
+        while (keep < streamLines.count && keep < lines.length && streamLines.get(keep).line === lines[keep])
+            keep++;
+        // Code flags on kept rows may flip as fences resolve — restyle in
+        // place via setProperty (delegate preserved, no refade).
+        for (let i = 0; i < keep; i++) {
+            if (streamLines.get(i).code !== inCode[i])
+                streamLines.setProperty(i, "code", inCode[i]);
+        }
+        // Growing tail line: update in place via set (never refades).
+        if (keep < streamLines.count && keep < lines.length) {
+            streamLines.set(keep, {
+                line: lines[keep],
+                code: inCode[keep]
+            });
+            keep++;
+        }
+        // Safety net: drop rows past the end (append-only streams never
+        // hit this, but a shrunk payload must not leave stale rows).
+        while (streamLines.count > lines.length)
+            streamLines.remove(streamLines.count - 1);
+        // Genuinely new lines: appended delegates fade in exactly once.
+        for (let i = keep; i < lines.length; i++)
+            streamLines.append({
+                line: lines[i],
+                code: inCode[i]
+            });
     }
 
     // --- Markdown (port of formatText) ---
@@ -357,7 +440,10 @@ Item {
         Process {
             stdout: StdioCollector {
                 id: _apiStdout
+                // Live tokens: text updates per chunk, not just at process end.
+                waitForEnd: false
                 property string fullText: ""
+                onTextChanged: root.onStreamText(text)
                 onStreamFinished: {
                     fullText = text;
                 }
@@ -370,19 +456,28 @@ Item {
                 }
             }
             onExited: code => {
+                root.activeProc = null;
+                const hadStream = root.streamingText !== "";
+                root.streamingText = "";
+                streamLines.clear();
                 if (code === 0) {
                     const reply = _apiStdout.fullText.trim();
                     if (reply) {
                         const elapsed = Date.now() - root._sendTime;
-                        root.messages = root.messages.concat([
-                            {
-                                id: "" + (root.messages.length + 1),
-                                role: "assistant",
-                                content: reply,
-                                timestamp: Date.now(),
-                                responseTime: elapsed
-                            }
-                        ]);
+                        // Streaming already shows the full text in a placeholder —
+                        // skip the transient append to avoid a duplicate bubble,
+                        // just notify + reload canonical history.
+                        if (!hadStream) {
+                            root.messages = root.messages.concat([
+                                {
+                                    id: "" + (root.messages.length + 1),
+                                    role: "assistant",
+                                    content: reply,
+                                    timestamp: Date.now(),
+                                    responseTime: elapsed
+                                }
+                            ]);
+                        }
                         root.progressStatus = "success";
                         Notifications.notify({
                             summary: root.currentProviderName(),
@@ -391,6 +486,10 @@ Item {
                         // chatbot.py already saved the canonical history —
                         // reload it instead of appending locally (avoids
                         // id/timestamp drift between display and file).
+                        root.loadMessages();
+                    } else if (hadStream) {
+                        // Stop with empty buffer: drop placeholder, reload partial.
+                        root.progressStatus = "success";
                         root.loadMessages();
                     }
                 } else {
@@ -412,10 +511,16 @@ Item {
                         if (m)
                             msg = m[1];
                     }
+                    root.lastError = msg;
                     Notifications.notify({
                         summary: "ChatBot Error",
                         body: msg
                     });
+                    // Mid-stream error after partial chunks: canonical file holds
+                    // the partial reply (saved by chatbot.py) — reload it so the
+                    // streamed text isn't lost behind the error.
+                    if (hadStream)
+                        root.loadMessages();
                 }
             }
         }
@@ -523,16 +628,6 @@ Item {
                         color: modelData.role === "user" ? Theme.surfaceActive : Theme.surface
                         radius: 8
 
-                        // Fade-in on arrival (NotificationPopups parity).
-                        opacity: 0
-                        Component.onCompleted: opacity = 1
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: 250
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-
                         // Message text is mouse/keyboard selectable
                         // (bubble-wide click-to-copy removed — it swallowed
                         // drag gestures and blocked selection).
@@ -632,6 +727,189 @@ Item {
                     }
                 }
 
+                // Live streaming bubble — OUTSIDE the Repeater, driven by the
+                // incremental streamLines model (see updateStreamLines).
+                // Only brand-new lines are appended (their delegates fade in
+                // once); the growing tail updates in place. The settled
+                // history Repeater is never touched mid-stream.
+                // NOTE: explicit height (Column ignores implicitHeight, see
+                // above) + height 0 when empty: Column positioners do NOT
+                // collapse visible:false children (see AppImage note above).
+                Rectangle {
+                    property bool hasStream: root.streamingText !== ""
+                    width: msgColumn.width
+                    height: hasStream ? streamingContent.implicitHeight + 16 : 0
+                    visible: hasStream
+                    color: Theme.surface
+                    radius: 8
+                    clip: true
+
+                    Column {
+                        id: streamingContent
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: 8
+                        spacing: 3
+
+                        Label {
+                            text: "\u{E73B} Assistant  \u25CF streaming..."
+                            font.pixelSize: Theme.fontSize - 1
+                            font.bold: true
+                            color: Theme.accent
+                        }
+
+                        // Incremental line view: one delegate per streamed line.
+                        // Appends fade in; in-place tail/code updates don't.
+                        // No per-line copy buttons — this is a transient view,
+                        // the settled bubble carries block copy on reload.
+                        Repeater {
+                            model: streamLines
+                            delegate: TextEdit {
+                                property var block: model.code ? {
+                                    type: "code",
+                                    content: model.line
+                                } : root.formatLine(model.line)
+                                property var txt: block.type === "list" ? "\u{2022} " + block.content : block.type === "ordered" ? "  " + block.content : block.type === "quote" ? "\u{276E} " + block.content : block.type === "header" ? block.content : block.content ?? ""
+                                text: block.type === "code" ? block.content : txt
+                                font.pixelSize: block.type === "header" ? Theme.fontSize + 2 : Theme.fontSize
+                                font.bold: block.type === "header"
+                                font.family: block.type === "code" ? "JetBrainsMono NFP" : Theme.fontFamily
+                                color: block.type === "code" ? Theme.fgDim : Theme.fg
+                                selectionColor: Theme.accent
+                                selectedTextColor: Theme.accentFg
+                                wrapMode: TextEdit.WordWrap
+                                textFormat: block.type === "code" ? TextEdit.PlainText : TextEdit.RichText
+                                readOnly: true
+                                selectByMouse: true
+                                selectByKeyboard: true
+                                activeFocusOnPress: true
+                                width: streamingContent.width
+                                // Blank lines stay in the model to keep row
+                                // indices stable; collapse them to 0 height.
+                                height: model.line === "" ? 0 : implicitHeight
+                                visible: model.line !== ""
+                                // Fade-in per generated line. ListModel set() /
+                                // setProperty() never refire onCompleted, so
+                                // only genuinely new lines animate.
+                                opacity: 0
+                                Component.onCompleted: opacity = 1
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: 180
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
+                        }
+
+                        // Mainstream-style block cursor while tokens stream.
+                        Rectangle {
+                            width: 8
+                            height: Theme.fontSize + 2
+                            color: Theme.accent
+                            radius: 2
+                            SequentialAnimation on opacity {
+                                loops: Animation.Infinite
+                                NumberAnimation {
+                                    from: 1
+                                    to: 0.15
+                                    duration: 530
+                                }
+                                NumberAnimation {
+                                    from: 0.15
+                                    to: 1
+                                    duration: 530
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Thinking bubble — visible while waiting for the first
+                // token (loading but nothing streamed yet). The loading
+                // indicator lives in the messages flow, styled as an
+                // assistant bubble.
+                // NOTE: explicit height + 0 when idle (Column positioners
+                // do NOT collapse visible:false children).
+                Rectangle {
+                    id: thinkingBubble
+                    property bool isThinking: root.progressStatus === "loading" && root.streamingText === ""
+                    property int dots: 1
+                    width: msgColumn.width
+                    height: isThinking ? thinkingContent.implicitHeight + 16 : 0
+                    visible: isThinking
+                    color: Theme.surface
+                    radius: 8
+                    clip: true
+
+                    Timer {
+                        interval: 500
+                        repeat: true
+                        running: thinkingBubble.isThinking
+                        onTriggered: thinkingBubble.dots = thinkingBubble.dots % 3 + 1
+                    }
+
+                    Row {
+                        id: thinkingContent
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: 8
+                        spacing: 8
+
+                        BusyIndicator {
+                            width: 16
+                            height: 16
+                            running: thinkingBubble.isThinking
+                        }
+
+                        Label {
+                            text: "\u{E73B} Assistant  Thinking" + ".".repeat(thinkingBubble.dots)
+                            font.pixelSize: Theme.fontSize - 1
+                            font.bold: true
+                            color: Theme.fgDim
+                        }
+                    }
+                }
+
+                // Error bubble — surfaces the last failure inline in the
+                // messages flow (replaces the old bottom pill error state).
+                Rectangle {
+                    property bool hasError: root.progressStatus === "error"
+                    width: msgColumn.width
+                    height: hasError ? errorContent.implicitHeight + 16 : 0
+                    visible: hasError
+                    color: Theme.dangerBg
+                    radius: 8
+                    border.color: Theme.danger
+                    clip: true
+
+                    Column {
+                        id: errorContent
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: 8
+                        spacing: 3
+
+                        Label {
+                            text: "⚠ Assistant — error"
+                            font.pixelSize: Theme.fontSize - 1
+                            font.bold: true
+                            color: Theme.danger
+                        }
+
+                        Label {
+                            text: root.lastError
+                            font.pixelSize: Theme.fontSize
+                            color: Theme.fg
+                            width: errorContent.width
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+
                 Item {
                     width: 1
                     height: 4
@@ -663,13 +941,22 @@ Item {
                 // a newline.
                 AppTextArea {
                     id: inputField
-                    placeholderText: "Ask anything... (Enter send, Shift+Enter newline)"
+                    placeholderText: root.progressStatus === "loading" ? "Streaming... press Stop or wait" : "Ask anything... (Enter send, Shift+Enter newline)"
                     Layout.fillWidth: true
+                    // Single-line height when empty, grows with content up to
+                    // 120px then scrolls internally.
+                    Layout.preferredHeight: Math.min(120, Math.max(font.pixelSize + topPadding + bottomPadding + 4, contentHeight + topPadding + bottomPadding))
                     inputMethodHints: Qt.ImhPreferLowercase
                     Keys.onReturnPressed: {
-                        if (event.modifiers & Qt.ShiftModifier)
-                            // newline (default)
+                        if (event.modifiers & Qt.ShiftModifier) {
+                            // Let TextArea insert the newline (default).
+                            event.accepted = false;
                             return;
+                        }
+                        if (root.progressStatus === "loading") {
+                            event.accepted = true;
+                            return;
+                        }
                         if (inputField.text.trim()) {
                             root.sendMessage(inputField.text);
                             inputField.text = "";
@@ -677,13 +964,35 @@ Item {
                         event.accepted = true;
                     }
                     Keys.onEnterPressed: {
-                        if (event.modifiers & Qt.ShiftModifier)
+                        if (event.modifiers & Qt.ShiftModifier) {
+                            event.accepted = false;
                             return;
+                        }
+                        if (root.progressStatus === "loading") {
+                            event.accepted = true;
+                            return;
+                        }
                         if (inputField.text.trim()) {
                             root.sendMessage(inputField.text);
                             inputField.text = "";
                         }
                         event.accepted = true;
+                    }
+                }
+                // Send / Stop: streams like ChatGPT; Stop kills the process
+                // (SIGTERM -> chatbot.py saves the partial reply).
+                AppButton {
+                    implicitWidth: 36
+                    implicitHeight: 40
+                    text: root.progressStatus === "loading" ? "\uf04d" : "\uf1d8"
+                    tooltipText: root.progressStatus === "loading" ? "Stop generation" : "Send message"
+                    onClicked: {
+                        if (root.progressStatus === "loading")
+                            root.stopGeneration();
+                        else if (inputField.text.trim()) {
+                            root.sendMessage(inputField.text);
+                            inputField.text = "";
+                        }
                     }
                 }
                 AppButton {
@@ -761,12 +1070,8 @@ Item {
             }
         }
 
-        // [5] Progress indicator (shared AppProgress pill)
-        AppProgress {
-            Layout.fillWidth: true
-            status: root.progressStatus
-            variant: "pill"
-        }
+        // [5] removed: loading/error now render inline in the messages
+        // flow (thinking bubble + error bubble above), not as a bottom pill.
     }
 
     // --- utility funcs ---
