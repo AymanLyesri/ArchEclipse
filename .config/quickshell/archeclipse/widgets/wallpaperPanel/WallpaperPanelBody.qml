@@ -218,6 +218,7 @@ Item {
     // Wallhaven filter option models (static; index-synced like categoryCombo).
     // atleast/ratios use "Any" as the display label for the empty (omit) value.
     readonly property var whSortingItems: ["date_added", "relevance", "random", "views", "favorites", "toplist"]
+    readonly property var whCategoryNames: ["General", "Anime", "People"]
     readonly property var whOrderItems: ["desc", "asc"]
     readonly property var whTopRangeItems: ["1d", "3d", "1w", "1M", "3M", "6M", "1y"]
     readonly property var whAtleastItems: ["Any", "1920x1080", "2560x1440", "3840x2160"]
@@ -1158,41 +1159,27 @@ Item {
                             currentIndex: Math.max(0, root.whTopRangeItems.indexOf(root.wh.topRange))
                             onActivated: i => root.setWh("topRange", root.whTopRangeItems[i])
                         }
-                        Text {
-                            text: "Categories:"
-                            color: Theme.fgDim
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 2
-                            height: 26
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        Repeater {
-                            model: ["General", "Anime", "People"]
-                            delegate: AppButton {
-                                required property string modelData
-                                required property int index
-                                readonly property bool on: root.wh.categories.charAt(index) === "1"
-                                text: modelData
-                                height: 24
-                                pixelSize: Theme.fontSize - 2
-                                idleBg: on ? Theme.surfaceActive : Theme.bg
-                                idleFg: on ? Theme.accent : Theme.fg
-                                hoverFg: on ? Theme.accent : Theme.fg
-                                outlined: true
-                                outlineColor: on ? Theme.accent : Theme.border
-                                onClicked: {
-                                    const bits = root.wh.categories.split("");
-                                    bits[index] = bits[index] === "1" ? "0" : "1";
-                                    if (bits.join("") === "000") {
-                                        Notifications.notify({
-                                            summary: "Wallhaven",
-                                            body: "At least one category must stay on."
-                                        });
-                                        return;
-                                    }
-                                    root.setWh("categories", bits.join(""));
+                        AppFilterChips {
+                            label: "Categories:"
+                            model: root.whCategoryNames
+                            checkedValues: {
+                                const out = [];
+                                for (let i = 0; i < root.whCategoryNames.length; i++) {
+                                    if (root.wh.categories.charAt(i) === "1")
+                                        out.push(root.whCategoryNames[i]);
                                 }
+                                return out;
                             }
+                            allowEmpty: false
+                            onToggled: (i, v, checked) => {
+                                const bits = root.wh.categories.split("");
+                                bits[i] = checked ? "1" : "0";
+                                root.setWh("categories", bits.join(""));
+                            }
+                            onEmptyRejected: Notifications.notify({
+                                summary: "Wallhaven",
+                                body: "At least one category must stay on."
+                            })
                         }
                         Text {
                             text: "Purity:"

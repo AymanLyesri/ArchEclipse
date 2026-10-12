@@ -140,7 +140,7 @@ Item {
             radius: root.cornerRadius
             color: Theme.surfaceActive
             border.width: 1
-            border.color: Theme.accent
+            border.color: Theme.border
             Behavior on x {
                 Anim {
                     duration: root.animationDuration

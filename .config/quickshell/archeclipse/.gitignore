@@ -1,2 +1,5 @@
 .qmlls.ini
 .qmllint.ini
+
+tests/
+*.pyc

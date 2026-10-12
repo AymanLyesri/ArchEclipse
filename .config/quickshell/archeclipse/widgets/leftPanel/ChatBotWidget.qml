@@ -41,15 +41,59 @@ Item {
     // (CACHE_DIR hardcoded in the script) — read the same dir it writes,
     // or sessions/history silently fork.
     property string cacheDir: Quickshell.env("HOME") + "/.cache/quickshell/chatbot"
-    property string pythonScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot.py"
+    property string pythonScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/main.py"
+    property string sessionsScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/sessions.py"
+    property string modelsScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/models.py"
+    property string activeFileScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/activefile.py"
+    // Live OpenRouter model ids (empty = unknown/offline → show all hardcoded).
+    property var modelCache: []
+    // File detected in the focused editor ({path, name}); refreshed by a
+    // 3s poll for the preview label. The backend re-detects at send time,
+    // so this preview may briefly lag focus switches without harm.
+    property var autoFile: ({
+        path: "",
+        name: ""
+    })
+    onSessionsChanged: { for (const s of root.sessions) root.fetchFirstMessage(s.id); }
 
-    // Provider list (from api.constants.ts)
+    // Session tab currently being renamed ("").
+    property string renamingSessionId: ""
+
+    // Tabs actually offered: hardcoded entries filtered by the live model
+    // list when known; the selected model is never hidden.
+    function visibleProviders() {
+        return root.providers.filter(p => root.modelCache.length === 0 || root.modelCache.indexOf(p.value) !== -1 || p.value === root.currentApiModel);
+    }
+
+    function loadModels() {
+        const p = _modelsProc.createObject(root);
+        p.command = ["python3", root.modelsScript];
+        p.running = true;
+    }
+
+    // Context envelope for main.py stdin (active file is detected
+    // backend-side at send time; the QML preview never sends content).
+    function buildContextJson() {
+        return JSON.stringify({
+            flags: Settings.chatBotContext
+        });
+    }
+
+    // Provider list (OpenRouter ids; validated against the live /models
+    // list when reachable — entries missing from a fresh cache are hidden).
     property var providers: [
+        {
+            name: "OpenRouter Auto",
+            value: "openrouter/auto",
+            icon: "ORA",
+            description: "Auto-routes to a current strong model",
+            imageGenerationSupport: false
+        },
         {
             name: "OpenRouter Free",
             value: "openrouter/free",
             icon: "ORF",
-            description: "OpenRouter's free router, auto-routes to a free model",
+            description: "Legacy free router (hidden when not served)",
             imageGenerationSupport: false
         },
         {
@@ -84,6 +128,17 @@ Item {
 
     Component.onCompleted: {
         loadSessions();
+        loadModels();
+        refreshAutoFile();
+    }
+
+    // Preview poll: re-detect the focused editor file every 3s while the
+    // File chip is on (backend re-detects at send, so this is display-only).
+    Timer {
+        interval: 3000
+        repeat: true
+        running: Settings.chatBotContext.file ?? true
+        onTriggered: root.refreshAutoFile()
     }
 
     // --- Helpers ---
@@ -102,14 +157,24 @@ Item {
 
     function ensureSessionDir(sid) {
         const p = _mkDir.createObject(root);
-        p.command = ["bash", "-c", "mkdir -p " + JSON.stringify(cacheDir + "/" + currentApiModel + "/sessions/" + sid)];
+        p.command = ["mkdir", "-p", cacheDir + "/" + currentApiModel + "/sessions/" + sid];
         p.running = true;
     }
 
     function loadSessions() {
-        const dir = getSessionsDir();
+        // Single sessions.py call: ensures dir, lists ids + meta names.
+        // The reply carries its model (envelope) so a listing that
+        // arrives after a provider switch is ignored (stale-guard).
         const p = _listDir.createObject(root);
-        p.command = ["bash", "-c", "mkdir -p " + JSON.stringify(dir) + " && find " + JSON.stringify(dir) + " -mindepth 1 -maxdepth 1 -type d -printf \"%f\\n\""];
+        p.command = ["python3", root.sessionsScript, root.currentApiModel, "list"];
+        p.running = true;
+    }
+
+    function commitRename(sid, newName) {
+        const p = _renameProc.createObject(root);
+        p._sid = sid;
+        p._name = newName;
+        p.command = ["python3", root.sessionsScript, root.currentApiModel, "rename", sid, newName];
         p.running = true;
     }
 
@@ -137,22 +202,27 @@ Item {
     // canonical entries and broke on quotes. In-memory state is display-only;
     // after a reply, reload the canonical file (see onExited below).
 
-    // Create new session
-    function createSession() {
+    // Create new session (optional display name; persisted via rename).
+    function createSession(name) {
+        const clean = (name === undefined || name === null) ? "" : String(name).trim().slice(0, 80);
         const newId = "session-" + Date.now();
         ensureSessionDir(newId);
         const newSession = {
             id: newId,
-            name: "Session " + (root.sessions.length + 1),
+            name: clean || "Session " + (root.sessions.length + 1),
             createdAt: Date.now()
         };
         root.sessions = root.sessions.concat([newSession]);
         root.activeSessionId = newId;
         root.messages = [];
+        if (clean)
+            root.commitRename(newId, clean);
     }
 
     // Delete a session
     function deleteSession(sessionId) {
+        if (sessionId === "" || sessionId.indexOf("..") !== -1 || sessionId.indexOf("/") !== -1)
+            return;
         if (root.sessions.length <= 1) {
             Notifications.notify({
                 summary: "Cannot Delete",
@@ -176,6 +246,13 @@ Item {
         p.command = ["rm", "-f", getHistoryPath()];
         p.running = true;
         root.messages = [];
+    }
+
+    // Refresh the auto-detected editor file (preview only; one-shot).
+    function refreshAutoFile() {
+        const p = _autoFileProc.createObject(root);
+        p.command = ["python3", root.activeFileScript];
+        p.running = true;
     }
 
     // --- API Communication ---
@@ -209,8 +286,15 @@ Item {
         }
         root.progressStatus = "loading";
         const p = _chatAPI.createObject(root);
-        // -u = unbuffered stdout so SSE chunks flush live to StdioCollector.
-        p.command = ["python3", "-u", root.pythonScript, root.currentApiModel, text, key, root.activeSessionId];
+        // Key via environment (never argv — argv is visible in ps).
+        // Context JSON via stdin: write() on started (no close-stdin in
+        // Quickshell; main.py drains with a quiet-gap timeout instead).
+        p.command = ["python3", "-u", root.pythonScript, root.currentApiModel, text, root.activeSessionId];
+        p.environment = ({
+            "OPENROUTER_API_KEY": key
+        });
+        p.stdinEnabled = true;
+        p.started.connect(() => p.write(root.buildContextJson()));
         root.activeProc = p;
         p.running = true;
     }
@@ -218,6 +302,294 @@ Item {
     function stopGeneration() {
         if (root.activeProc && root.activeProc.running)
             root.activeProc.running = false; // SIGTERM -> chatbot.py saves partial, exits 0
+    }
+
+    // Revert to a user message (OpenCode-style): drop it and everything
+    // after it from history + file, load its text back into the input
+    // for editing. Never while streaming (backend appends mid-flight).
+    function revertMessage(idx) {
+        if (root.progressStatus === "loading")
+            return;
+        if (idx < 0 || idx >= root.messages.length)
+            return;
+        const m = root.messages[idx];
+        if (!m || m.role !== "user" || !(m.content || "").trim())
+            return;
+        const text = m.content;
+        root.messages = root.messages.slice(0, idx);
+        const p = _truncateFile.createObject(root);
+        p.command = ["python3", "-c", "import json,os,sys\np,n=sys.argv[1],int(sys.argv[2])\ntry:\n h=json.loads(open(p).read())\nexcept Exception:\n h=[]\nif isinstance(h,list) and len(h)>n:\n h=h[:n]\n t=p+'.tmp'\n open(t,'w').write(json.dumps(h,indent=2))\n os.replace(t,p)\n", getHistoryPath(), String(idx)];
+        p.running = true;
+        inputField.text = text;
+        inputField.forceActiveFocus();
+        root._shouldScroll = true;
+    }
+
+    // --- Slash commands (/new /list /switch /rename /delete /clear /revert) ---
+    // Mirrors scripts/chatbot/commands.py (parse_slash/match_session) —
+    // that module is the tested spec, keep both in sync.
+    property var slashCommands: [
+        {
+            name: "new",
+            description: "Create new session",
+            usage: "/new [name]"
+        },
+        {
+            name: "list",
+            description: "List sessions",
+            usage: "/list"
+        },
+        {
+            name: "sessions",
+            description: "List sessions (alias)",
+            usage: "/sessions"
+        },
+        {
+            name: "switch",
+            description: "Switch session by number, id or name",
+            usage: "/switch <n|name>"
+        },
+        {
+            name: "rename",
+            description: "Rename active session",
+            usage: "/rename <name>"
+        },
+        {
+            name: "delete",
+            description: "Delete session (active when bare)",
+            usage: "/delete [n|name]"
+        },
+        {
+            name: "clear",
+            description: "Wipe current session messages",
+            usage: "/clear"
+        },
+        {
+            name: "revert",
+            description: "Revert to the last message for editing",
+            usage: "/revert"
+        }
+    ]
+    property int slashIndex: 0
+
+    function isSessionListCmd(cmd) {
+        return cmd === "list" || cmd === "sessions" || cmd === "switch" || cmd === "delete";
+    }
+
+    // "/cmd arg..." -> {cmd, arg} or null (not a slash invocation).
+    function parseSlash(text) {
+        if (typeof text !== "string" || text.charAt(0) !== "/")
+            return null;
+        const body = text.slice(1).trim();
+        if (!body)
+            return null;
+        const sp = body.search(/\s/);
+        if (sp === -1)
+            return {
+                cmd: body.toLowerCase(),
+                arg: ""
+            };
+        return {
+            cmd: body.slice(0, sp).toLowerCase(),
+            arg: body.slice(sp + 1).trim()
+        };
+    }
+
+    function findSlashCommand(cmd) {
+        for (const c of root.slashCommands)
+            if (c.name === cmd)
+                return c;
+        return null;
+    }
+
+    // Match a session by 1-based index, exact id, or name substring.
+    function matchSession(query) {
+        if (query === undefined || query === null || !root.sessions)
+            return null;
+        const q = String(query).trim();
+        if (!q)
+            return null;
+        const idx = parseInt(q, 10);
+        if (!isNaN(idx) && String(idx) === q && idx >= 1 && idx <= root.sessions.length)
+            return root.sessions[idx - 1];
+        const ql = q.toLowerCase();
+        for (const s of root.sessions)
+            if (String(s.id).toLowerCase() === ql)
+                return s;
+        for (const s of root.sessions)
+            if (String(s.name).toLowerCase().indexOf(ql) !== -1)
+                return s;
+        return null;
+    }
+
+    // Sessions filtered by the arg of a list/switch/delete invocation.
+    function sessionMatches() {
+        const p = root.parseSlash(inputField.text);
+        if (!p || !root.isSessionListCmd(p.cmd))
+            return [];
+        if (!p.arg)
+            return root.sessions;
+        const ql = p.arg.toLowerCase();
+        const out = [];
+        for (let i = 0; i < root.sessions.length; i++) {
+            const s = root.sessions[i];
+            if (String(i + 1) === p.arg.trim() || String(s.id).toLowerCase() === ql || String(s.name).toLowerCase().indexOf(ql) !== -1)
+                out.push(s);
+        }
+        return out;
+    }
+
+    function activeSessionName() {
+        for (const s of root.sessions)
+            if (s.id === root.activeSessionId)
+                return s.name || s.id;
+        return root.activeSessionId;
+    }
+
+    function switchToSession(sid) {
+        if (!sid)
+            return;
+        root.activeSessionId = sid;
+        root.slashIndex = 0;
+        root.loadMessages();
+    }
+
+    function lastUserIndex() {
+        for (let i = root.messages.length - 1; i >= 0; i--)
+            if (root.messages[i].role === "user")
+                return i;
+        return -1;
+    }
+
+    // Commands matching the input: "/xx" prefix-filters; "/cmd args"
+    // resolves to the single exact command so Enter runs it with args.
+    function slashFilter() {
+        if (inputField.text === "/")
+            return root.slashCommands;
+        const p = root.parseSlash(inputField.text);
+        if (!p)
+            return [];
+        if (p.arg !== "")
+            return root.findSlashCommand(p.cmd) ? [root.findSlashCommand(p.cmd)] : [];
+        return root.slashCommands.filter(c => c.name.startsWith(p.cmd));
+    }
+
+    // Combined popup length (commands + session hits) for Up/Down cycling.
+    function slashPopupCount() {
+        return root.slashFilter().length + root.sessionMatches().length;
+    }
+
+    function runSlashCommand(name, arg) {
+        arg = (arg === undefined || arg === null) ? "" : String(arg).trim();
+        inputField.text = "";
+        root.slashIndex = 0;
+        if (name === "clear") {
+            root.clearMessages();
+            return;
+        }
+        if (name === "revert") {
+            root.revertMessage(root.lastUserIndex());
+            return;
+        }
+        if (name === "new") {
+            root.createSession(arg);
+            return;
+        }
+        if (name === "list" || name === "sessions") {
+            if (arg) {
+                const hit = root.matchSession(arg);
+                if (hit)
+                    root.switchToSession(hit.id);
+                else
+                    Notifications.notify({
+                        summary: "No matching session",
+                        body: "No session matches \"" + arg + "\""
+                    });
+            } else {
+                // Enter pick mode: session list appears under the input.
+                inputField.text = "/switch ";
+                inputField.forceActiveFocus();
+            }
+            return;
+        }
+        if (name === "switch") {
+            if (!arg) {
+                inputField.text = "/switch ";
+                inputField.forceActiveFocus();
+                return;
+            }
+            const hit = root.matchSession(arg);
+            if (hit)
+                root.switchToSession(hit.id);
+            else
+                Notifications.notify({
+                    summary: "No matching session",
+                    body: "No session matches \"" + arg + "\""
+                });
+            return;
+        }
+        if (name === "rename") {
+            if (!arg) {
+                Notifications.notify({
+                    summary: "Usage",
+                    body: "/rename <name>"
+                });
+                return;
+            }
+            root.commitRename(root.activeSessionId, arg.slice(0, 80));
+            return;
+        }
+        if (name === "delete") {
+            if (!arg) {
+                root.deleteSession(root.activeSessionId);
+                return;
+            }
+            const hit = root.matchSession(arg);
+            if (hit)
+                root.deleteSession(hit.id);
+            else
+                Notifications.notify({
+                    summary: "No matching session",
+                    body: "No session matches \"" + arg + "\""
+                });
+            return;
+        }
+    }
+
+    // Enter-key entry: run the slash command when the input is one.
+    // Unknown "/..." stays plain chat text (returns false → sent).
+    // Returns true when a command ran (key event is consumed).
+    function trySlashCommand() {
+        const p = root.parseSlash(inputField.text);
+        if (!p)
+            return false;
+        const def = root.findSlashCommand(p.cmd);
+        if (!def)
+            return false;
+        // Bare list/switch/delete with the popup highlighting a session:
+        // Enter activates the highlighted session row instead of the
+        // command row when the highlight sits past the command rows.
+        if (!p.arg && root.isSessionListCmd(p.cmd)) {
+            const cmds = root.slashFilter();
+            const sess = root.sessionMatches();
+            if (sess.length > 0 && root.slashIndex >= cmds.length) {
+                const pick = sess[Math.min(root.slashIndex - cmds.length, sess.length - 1)];
+                inputField.text = "";
+                root.slashIndex = 0;
+                if (p.cmd === "delete")
+                    root.deleteSession(pick.id);
+                else
+                    root.switchToSession(pick.id);
+                return true;
+            }
+        }
+        const cmds = root.slashFilter();
+        let name = def.name;
+        // No-space prefix with several matches: honour the highlight.
+        if (p.arg === "" && cmds.length > 1)
+            name = cmds[Math.min(root.slashIndex, cmds.length - 1)].name;
+        root.runSlashCommand(name, p.arg);
+        return true;
     }
 
     // Live stdout chunk -> streaming bubble only (bound to streamLines
@@ -292,13 +664,52 @@ Item {
                     content: part.trim()
                 });
             else if (i % 3 === 0) {
-                for (const line of part.split("\n")) {
-                    if (line.trim())
-                        result.push(formatLine(line));
-                }
+                for (const block of root.formatTextBlock(part))
+                    result.push(block);
             }
         }
         return result;
+    }
+
+    // Groups contiguous `| cell |` rows into {type:"table"} blocks; every
+    // other non-blank line goes through formatLine as before.
+    function formatTextBlock(part) {
+        const out = [];
+        let rows = [];
+        const flush = () => {
+            if (rows.length > 0) {
+                out.push({
+                    type: "table",
+                    content: rows
+                });
+                rows = [];
+            }
+        };
+        for (const line of part.split("\n")) {
+            if (/^\s*\|.*\|\s*$/.test(line))
+                rows.push(line.trim().split("|").slice(1, -1).map(c => c.trim()));
+            else {
+                flush();
+                if (line.trim())
+                    out.push(formatLine(line));
+            }
+        }
+        flush();
+        return out;
+    }
+
+    // Markdown table rows -> Qt RichText table (first row headers).
+    // Drops the `| --- |` separator row when present.
+    function tableHtml(rows) {
+        const body = rows.filter(r => !r.every(c => /^:?-{1,}:?$/.test(c)));
+        let h = "<table>";
+        body.forEach((r, ri) => {
+            h += "<tr>";
+            for (const c of r)
+                h += ri === 0 ? "<th>" + inline(c) + "</th>" : "<td>" + inline(c) + "</td>";
+            h += "</tr>";
+        });
+        return h + "</table>";
     }
 
     function formatLine(line) {
@@ -333,7 +744,7 @@ Item {
     }
 
     function inline(t) {
-        return t.replace(/`([^`]+)`/g, "\u200b<tt>$1</tt>\u200b").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/__([^_]+)__/g, "<b>$1</b>").replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, "<i>$1</i>").replace(/(?<!_)_(?!_)([^_]+)_(?!_)/g, "<i>$1</i>").replace(/\[([^\]]+)\]\([^)]+\)/g, "<u>$1</u>");
+        return t.replace(/`([^`]+)`/g, "\u200b<tt>$1</tt>\u200b").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/__([^_]+)__/g, "<b>$1</b>").replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, "<i>$1</i>").replace(/(?<!_)_(?!_)([^_]+)_(?!_)/g, "<i>$1</i>").replace(/\[([^\]]+)\]\(([^)]+)\)/g, "<u>$1</u> ($2)");
     }
 
     function formatTime(ts) {
@@ -358,16 +769,39 @@ Item {
         id: _clearFile
         Process {}
     }
+    Component {
+        id: _truncateFile
+        Process {}
+    }
 
     Component {
         id: _listDir
         Process {
             stdout: StdioCollector {
                 onStreamFinished: {
-                    const output = text.trim();
-                    const ids = output ? output.split("\n").filter(s => s.length > 0) : [];
-                    if (ids.length === 0) {
-                        root.ensureSessionDir("default");
+                    try {
+                        const obj = JSON.parse(text);
+                        // Envelope {model, sessions} lets us drop a listing
+                        // that arrives after a provider switch (stale-guard).
+                        // A bare array is the legacy shape: accept it.
+                        const arr = Array.isArray(obj) ? obj : obj.sessions;
+                        const m = Array.isArray(obj) ? null : obj.model;
+                        if (m && m !== root.currentApiModel)
+                            return;
+                        if (Array.isArray(arr) && arr.length > 0) {
+                            root.sessions = arr.map(s => ({
+                                        id: s.id,
+                                        name: s.name || s.id,
+                                        createdAt: Date.now()
+                                    }));
+                            // Keep the active tab when it still exists
+                            // (provider switches share the "default" id).
+                            if (!root.sessions.some(s => s.id === root.activeSessionId))
+                                root.activeSessionId = root.sessions[0].id;
+                        } else {
+                            throw new Error("empty");
+                        }
+                    } catch (e) {
                         root.sessions = [
                             {
                                 id: "default",
@@ -376,22 +810,61 @@ Item {
                             }
                         ];
                         root.activeSessionId = "default";
-                    } else {
-                        ids.sort((a, b) => {
-                            if (a === "default")
-                                return -1;
-                            if (b === "default")
-                                return 1;
-                            return a.localeCompare(b);
-                        });
-                        root.sessions = ids.map((id, i) => ({
-                                    id,
-                                    name: "Session " + (i + 1),
-                                    createdAt: Date.now()
-                                }));
-                        root.activeSessionId = root.sessions[0].id;
                     }
                     root.loadMessages();
+                }
+            }
+        }
+    }
+
+    Component {
+        id: _modelsProc
+        Process {
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const ids = JSON.parse(text);
+                        if (Array.isArray(ids) && ids.length > 0)
+                            root.modelCache = ids;
+                    } catch (e) {}
+                }
+            }
+        }
+    }
+
+    Component {
+        id: _renameProc
+        Process {
+            property string _sid: ""
+            property string _name: ""
+            onExited: code => {
+                if (code === 0) {
+                    const sid = _sid;
+                    const nm = _name;
+                    root.sessions = root.sessions.map(s => s.id === sid ? {
+                                id: s.id,
+                                name: nm,
+                                createdAt: s.createdAt
+                            } : s);
+                }
+                root.renamingSessionId = "";
+            }
+        }
+    }
+
+    Component {
+        id: _autoFileProc
+        Process {
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const obj = JSON.parse(text);
+                        if (obj && typeof obj.path === "string" && typeof obj.name === "string")
+                            root.autoFile = {
+                                path: obj.path,
+                                name: obj.name
+                            };
+                    } catch (e) {}
                 }
             }
         }
@@ -479,10 +952,11 @@ Item {
                             ]);
                         }
                         root.progressStatus = "success";
-                        Notifications.notify({
-                            summary: root.currentProviderName(),
-                            body: reply
-                        });
+                        if (Settings.chatBotNotify)
+                            Notifications.notify({
+                                summary: root.currentProviderName(),
+                                body: reply
+                            });
                         // chatbot.py already saved the canonical history —
                         // reload it instead of appending locally (avoids
                         // id/timestamp drift between display and file).
@@ -496,12 +970,14 @@ Item {
                     root.progressStatus = "error";
                     const err = _apiStderr.fullText || "Unknown error";
                     let msg = err;
-                    if (err.includes("HTTP 401"))
+                    if (code === 2 || err.includes("HTTP 401"))
                         msg = "Invalid API key. Check your OpenRouter API key in settings.";
                     else if (err.includes("HTTP 402"))
                         msg = "Insufficient credits. Add credits to your OpenRouter account.";
-                    else if (err.includes("HTTP 429"))
+                    else if (code === 3 || err.includes("HTTP 429"))
                         msg = "Rate limit exceeded. Please wait before trying again.";
+                    else if (code === 4)
+                        msg = "Conversation too long — trimmed and retried once. Try a fresh session if this repeats.";
                     else if (err.includes("Connection"))
                         msg = "Network error. Check your internet connection.";
                     else if (err.includes("timed out"))
@@ -537,7 +1013,7 @@ Item {
         anchors.fill: parent
         spacing: 6
 
-        // [1] Info: provider name + description (always visible)
+        // [1] Info: provider name + description + session (always visible)
         Column {
             Layout.fillWidth: true
             spacing: 2
@@ -555,6 +1031,14 @@ Item {
                 color: Theme.fgDim
                 width: parent.width
                 wrapMode: Text.WordWrap
+            }
+            Label {
+                text: "Session: " + root.activeSessionName()
+                font.pixelSize: Theme.fontSize - 1
+                color: Theme.fgDim
+                width: parent.width
+                wrapMode: Text.WordWrap
+                elide: Text.ElideRight
             }
         }
 
@@ -640,11 +1124,35 @@ Item {
                             anchors.margins: 8
                             spacing: 3
 
-                            Label {
-                                text: modelData.role === "user" ? "\u{F007} You" : "\u{E73B} Assistant"
-                                font.pixelSize: Theme.fontSize - 1
-                                font.bold: true
-                                color: Theme.accent
+                            Row {
+                                spacing: 6
+                                Label {
+                                    text: modelData.role === "user" ? "\u{F007} You" : "\u{E73B} Assistant"
+                                    font.pixelSize: Theme.fontSize - 1
+                                    font.bold: true
+                                    color: Theme.accent
+                                }
+                                // Whole-message copy (raw markdown).
+                                AppButton {
+                                    implicitHeight: 20
+                                    implicitWidth: 52
+                                    text: "copy"
+                                    pixelSize: 9
+                                    tooltipText: "Copy whole message"
+                                    onClicked: root.copyToClipboard(modelData.content)
+                                }
+                                // Per-message revert (user only, OpenCode-style):
+                                // drop this message and everything after it,
+                                // restore its text into the input for editing.
+                                AppButton {
+                                    visible: modelData.role === "user"
+                                    implicitHeight: 20
+                                    implicitWidth: 28
+                                    text: "\uf0e2"
+                                    pixelSize: 9
+                                    tooltipText: "Revert to this message"
+                                    onClicked: root.revertMessage(index)
+                                }
                             }
 
                             // Message content (flat selectable TextEdits — no wrapper Column per
@@ -652,7 +1160,7 @@ Item {
                             Repeater {
                                 model: root.formatMessage(modelData.content)
                                 delegate: TextEdit {
-                                    property var txt: modelData.type === "list" ? "\u{2022} " + modelData.content : modelData.type === "ordered" ? "  " + modelData.content : modelData.type === "quote" ? "\u{276E} " + modelData.content : modelData.type === "header" ? modelData.content : modelData.content ?? ""
+                                    property var txt: modelData.type === "list" ? "\u{2022} " + modelData.content : modelData.type === "ordered" ? "  " + modelData.content : modelData.type === "quote" ? "\u{276E} " + modelData.content : modelData.type === "header" ? modelData.content : modelData.type === "table" ? root.tableHtml(modelData.content) : modelData.content ?? ""
                                     text: modelData.type === "code" ? modelData.content : txt
                                     font.pixelSize: modelData.type === "header" ? Theme.fontSize + 2 : Theme.fontSize
                                     font.bold: modelData.type === "header"
@@ -933,21 +1441,110 @@ Item {
             Layout.fillWidth: true
             spacing: 6
 
+                Label {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    font.pixelSize: Theme.fontSize - 1
+                    color: Theme.fgDim
+                    elide: Text.ElideMiddle
+                    text: (Settings.chatBotContext.file ?? true) ? (root.autoFile.name !== "" ? "📄 " + root.autoFile.name : "no file focused") : "auto-file off"
+                    HoverHandler {
+                        id: autoFileHover
+                    }
+                    AppTooltip {
+                        visible: autoFileHover.hovered && root.autoFile.path !== ""
+                        text: root.autoFile.path
+                    }
+                }
+ 
+
+            // Slash-command popup: commands + session hits for
+            // /list /sessions /switch /delete.
+            Rectangle {
+                width: parent.width
+                // Column positions by explicit height: collapse to 0 hidden.
+                height: visible ? slashList.implicitHeight + 12 : 0
+                visible: root.slashPopupCount() > 0 && root.progressStatus !== "loading"
+                color: Theme.surface
+                radius: 8
+                border.color: Theme.border
+                clip: true
+
+                Column {
+                    id: slashList
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.margins: 6
+                    spacing: 2
+
+                    Repeater {
+                        model: root.slashFilter()
+                        delegate: AppButton {
+                            toggle: true
+                            checked: index === root.slashIndex
+                            width: slashList.width
+                            implicitHeight: 30
+                            text: "/" + modelData.name + "  —  " + modelData.description
+                            onClicked: {
+                                const p = root.parseSlash(inputField.text);
+                                root.runSlashCommand(modelData.name, p ? p.arg : "");
+                            }
+                        }
+                    }
+                    Repeater {
+                        model: root.sessionMatches()
+                        delegate: AppButton {
+                            property int cmdCount: root.slashFilter().length
+                            toggle: true
+                            checked: (index + cmdCount) === root.slashIndex
+                            width: slashList.width
+                            implicitHeight: 30
+                            text: (index + 1) + ". " + modelData.name + (modelData.id === root.activeSessionId ? "  (active)" : "")
+                            tooltipText: (root.sessionFirsts[modelData.id] || "") + "\n" + modelData.id
+                            onClicked: {
+                                const p = root.parseSlash(inputField.text);
+                                const cmd = p ? p.cmd : "switch";
+                                if (cmd === "delete")
+                                    root.deleteSession(modelData.id);
+                                else
+                                    root.switchToSession(modelData.id);
+                                inputField.text = "";
+                            }
+                        }
+                    }
+                }
+            }
+
             // Input row (RowLayout: input stretches, buttons keep size)
             RowLayout {
                 width: parent.width
                 spacing: 6
                 // Multiline input (word wrap): Enter sends, Shift+Enter inserts
-                // a newline.
-                AppTextArea {
-                    id: inputField
-                    placeholderText: root.progressStatus === "loading" ? "Streaming... press Stop or wait" : "Ask anything... (Enter send, Shift+Enter newline)"
+                // a newline. TextArea is NOT scrollable by itself (Qt docs),
+                // so it lives inside a ScrollView: grows with content up to
+                // 120px, then the view clips + scrolls (wheel/drag/cursor).
+                ScrollView {
+                    id: inputScroll
                     Layout.fillWidth: true
                     // Single-line height when empty, grows with content up to
                     // 120px then scrolls internally.
-                    Layout.preferredHeight: Math.min(120, Math.max(font.pixelSize + topPadding + bottomPadding + 4, contentHeight + topPadding + bottomPadding))
-                    inputMethodHints: Qt.ImhPreferLowercase
+                    Layout.preferredHeight: Math.min(120, Math.max(inputField.font.pixelSize + inputField.topPadding + inputField.bottomPadding + 4, inputField.contentHeight + inputField.topPadding + inputField.bottomPadding))
+                    clip: true
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                    AppTextArea {
+                        id: inputField
+                        width: inputScroll.availableWidth
+                        placeholderText: root.progressStatus === "loading" ? "Streaming... press Stop or wait" : "Ask anything... (/ commands, Enter send)"
+                        inputMethodHints: Qt.ImhPreferLowercase
+                    onTextChanged: root.slashIndex = 0
                     Keys.onReturnPressed: {
+                        if (root.trySlashCommand()) {
+                            event.accepted = true;
+                            return;
+                        }
                         if (event.modifiers & Qt.ShiftModifier) {
                             // Let TextArea insert the newline (default).
                             event.accepted = false;
@@ -964,6 +1561,10 @@ Item {
                         event.accepted = true;
                     }
                     Keys.onEnterPressed: {
+                        if (root.trySlashCommand()) {
+                            event.accepted = true;
+                            return;
+                        }
                         if (event.modifiers & Qt.ShiftModifier) {
                             event.accepted = false;
                             return;
@@ -978,89 +1579,113 @@ Item {
                         }
                         event.accepted = true;
                     }
-                }
-                // Send / Stop: streams like ChatGPT; Stop kills the process
-                // (SIGTERM -> chatbot.py saves the partial reply).
-                AppButton {
-                    implicitWidth: 36
-                    implicitHeight: 40
-                    text: root.progressStatus === "loading" ? "\uf04d" : "\uf1d8"
-                    tooltipText: root.progressStatus === "loading" ? "Stop generation" : "Send message"
-                    onClicked: {
-                        if (root.progressStatus === "loading")
-                            root.stopGeneration();
-                        else if (inputField.text.trim()) {
-                            root.sendMessage(inputField.text);
-                            inputField.text = "";
+                    Keys.onUpPressed: {
+                        if (root.slashPopupCount() > 1) {
+                            root.slashIndex = (root.slashIndex + root.slashPopupCount() - 1) % root.slashPopupCount();
+                            event.accepted = true;
+                        } else {
+                            event.accepted = false;
                         }
                     }
+                    Keys.onDownPressed: {
+                        if (root.slashPopupCount() > 1) {
+                            root.slashIndex = (root.slashIndex + 1) % root.slashPopupCount();
+                            event.accepted = true;
+                        } else {
+                            event.accepted = false;
+                        }
+                    }
+                    Keys.onEscapePressed: {
+                        if (root.slashPopupCount() > 0) {
+                            inputField.text = "";
+                            event.accepted = true;
+                        } else {
+                            event.accepted = false;
+                        }
+                    }
+                    }
                 }
+                // Stop only (Enter sends; /clear wipes): visible while streaming.
+                // Stop kills the process (SIGTERM -> backend saves the partial reply).
                 AppButton {
+                    visible: root.progressStatus === "loading"
                     implicitWidth: 36
                     implicitHeight: 40
-                    text: "\uf1f8"
-                    onClicked: root.clearMessages()
-                    tooltipText: "Clear current session messages"
+                    text: "\uf04d"
+                    tooltipText: "Stop generation"
+                    onClicked: root.stopGeneration()
                 }
             }
 
-            // Session tabs + create button
-            // Session tabs + create button (RowLayout: tabs stretch)
+            // Context bar (Minimal+explicit): chips toggle what is injected,
+            // path field attaches a file head. Chips persist via Settings.
+            // Centered like the provider segmented control below.
             RowLayout {
                 width: parent.width
                 spacing: 4
-                Flow {
-                    Layout.fillWidth: true
-                    spacing: 4
-                    Repeater {
-                        model: root.sessions
-                        delegate: AppButton {
-                            toggle: true
-                            checked: modelData.id === root.activeSessionId
-                            implicitHeight: 26
-                            // Session tab label is the session name
-                            text: modelData.name
-                            onClicked: {
-                                root.activeSessionId = modelData.id;
-                                root.loadMessages();
-                            }
-                            // Right-click to delete
-                            MouseArea {
-                                anchors.fill: parent
-                                acceptedButtons: Qt.RightButton
-                                onClicked: root.deleteSession(modelData.id)
-                            }
-                            // Tooltip with first-message context (shows
-                            // "Right-click to delete\nContext: {first message}")
-                            HoverHandler {
-                                onHoveredChanged: if (hovered)
-                                    root.fetchFirstMessage(modelData.id)
-                            }
-                            tooltipText: "<b>Right-click to delete</b>" + (root.sessionFirsts[modelData.id] ? "\n\n<b>Context:</b> " + root.sessionFirsts[modelData.id] : "")
+                AppFilterChips {
+                    Layout.alignment: Qt.AlignHCenter
+                    chipHeight: 26
+                    model: [
+                        {
+                            value: "ws",
+                            label: "WS",
+                            tooltip: "Include active workspace in prompt context"
+                        },
+                        {
+                            value: "win",
+                            label: "Win",
+                            tooltip: "Include focused window in prompt context"
+                        },
+                        {
+                            value: "clip",
+                            label: "Clip",
+                            tooltip: "Include clipboard head in prompt context"
+                        },
+                        {
+                            value: "file",
+                            label: "File",
+                            tooltip: "Auto-include the file open in the focused editor"
                         }
+                    ]
+                    checkedValues: {
+                        const onValues = [];
+                        if (Settings.chatBotContext.ws ?? true)
+                            onValues.push("ws");
+                        if (Settings.chatBotContext.win ?? true)
+                            onValues.push("win");
+                        if (Settings.chatBotContext.clip ?? true)
+                            onValues.push("clip");
+                        if (Settings.chatBotContext.file ?? true)
+                            onValues.push("file");
+                        return onValues;
                     }
-                }
-                AppButton {
-                    Layout.preferredWidth: 32
-                    Layout.preferredHeight: 26
-                    text: "\u{F067}"
-                    tooltipText: "Create new session"
-                    onClicked: root.createSession()
+                    allowEmpty: true
+                    onToggled: (i, value, checked) => {
+                        Settings.chatBotContext = Object.assign({}, Settings.chatBotContext, {
+                            [value]: checked
+                        });
+                        if (value === "file")
+                            root.refreshAutoFile();
+                    }
                 }
             }
 
-            // API provider tabs (stretched row)
+            // Session management is slash-only now (/new /list /switch
+            // /rename /delete) — no tab UI. Active session shows in [1].
+
+            // API provider tabs (stretched row; filtered by live model list)
             RowLayout {
                 width: parent.width
                 spacing: 4
                 AppSegmentedControl {
                     Layout.alignment: Qt.AlignHCenter
-                    model: root.providers.map(p => ({
+                    model: root.visibleProviders().map(p => ({
                         value: p.value,
                         label: p.icon,
                         tooltip: "<b>" + p.name + "</b>\n" + p.description
                     }))
-                    currentIndex: root.providers.findIndex(p => p.value === root.currentApiModel)
+                    currentIndex: Math.max(0, root.visibleProviders().findIndex(p => p.value === root.currentApiModel))
                     onActivated: (i, v) => {
                         root.currentApiModel = v;
                         Settings.chatBotApi = v;
@@ -1096,8 +1721,7 @@ Item {
 
     function copyToClipboard(t) {
         const norm = String(t).replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n");
-        const shellEsc = "'" + norm.replace(/'/g, "'\"'\"'") + "'";
-        Quickshell.execDetached(["bash", "-c", "wl-copy -- " + shellEsc]);
+        Quickshell.execDetached(["wl-copy", "--", norm]);
     }
     function copyMessage(t) {
         copyToClipboard(t);

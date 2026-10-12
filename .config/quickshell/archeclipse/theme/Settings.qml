@@ -436,6 +436,15 @@ Singleton {
 
     // ChatBot provider (default: first provider).
     property string chatBotApi: "openai/gpt-4o-mini"
+    // ChatBot context chips (Minimal+explicit: workspace/window/clipboard/active-file).
+    property var chatBotContext: ({
+        ws: true,
+        win: true,
+        clip: true,
+        file: true
+    })
+    // ChatBot reply notifications (default off — replies stay in the tab).
+    property bool chatBotNotify: false
 
     // Blur settings (size / passes / enabled)
     property bool barBlur: true
@@ -740,7 +749,9 @@ Singleton {
                     current: root.waifu
                 },
                 "chatBot": {
-                    api: root.chatBotApi
+                    api: root.chatBotApi,
+                    context: root.chatBotContext,
+                    notify: root.chatBotNotify
                 },
                 "booru": {
                     api: root.booru.api,
@@ -954,6 +965,15 @@ Singleton {
                 // value string here).
                 const cbApi = s.chatBot?.api;
                 root.chatBotApi = (cbApi && typeof cbApi === "object" ? cbApi.value : cbApi) ?? "openai/gpt-4o-mini";
+                // ChatBot context chips (defaults on; merge saved flags over them).
+                const cbCtx = s.chatBot?.context ?? {};
+                root.chatBotContext = ({
+                    ws: cbCtx.ws ?? true,
+                    win: cbCtx.win ?? true,
+                    clip: cbCtx.clip ?? true,
+                    file: cbCtx.file ?? true
+                });
+                root.chatBotNotify = s.chatBot?.notify ?? false;
 
                 // Blur settings
                 root.barBlur = s.bar?.blur?.value ?? true;
@@ -1196,6 +1216,12 @@ Singleton {
             root.schedulePersist();
         }
         function onChatBotApiChanged() {
+            root.schedulePersist();
+        }
+        function onChatBotContextChanged() {
+            root.schedulePersist();
+        }
+        function onChatBotNotifyChanged() {
             root.schedulePersist();
         }
         function onFileManagerChanged() {

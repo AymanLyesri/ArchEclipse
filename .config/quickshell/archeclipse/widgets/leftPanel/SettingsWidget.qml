@@ -991,6 +991,18 @@ Item {
                                     }
                                 }
                             }
+                            // ChatBot reply notifications (replies stay in the
+                            // tab unless this is on; errors always notify).
+                            RowLayout {
+                                width: parent.width
+                                spacing: 6
+                                AppCheckBox {
+                                    Layout.fillWidth: true
+                                    text: "Notify on chatbot reply"
+                                    checked: Settings.chatBotNotify
+                                    onCheckedChanged: Settings.chatBotNotify = checked
+                                }
+                            }
                         }
                     }
                 }
