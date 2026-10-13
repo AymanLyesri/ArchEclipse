@@ -424,6 +424,11 @@ Row {
         width: 20
         height: Theme.barContentHeight
 
+        onVisibleChanged: {
+            if (!visible && overflowPopup.opened)
+                overflowPopup.close();
+        }
+
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
