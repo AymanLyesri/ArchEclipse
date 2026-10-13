@@ -65,11 +65,19 @@ PanelWindow {
     color: "transparent"
     aboveWindows: true
 
+    // In-bar popovers that extend OUTSIDE the pill (tray overflow list). They
+    // register their item here (Tray.qml) so the input mask below covers them;
+    // otherwise every click on the popover falls through to the window behind.
+    property var trayPopupItem: null
+
     // Click-through everywhere except the pills + edge hot-zones. The
     // window is a full-width, full-height transparent surface — without
     // a mask it eats every click outside the pills.
     mask: Region {
         item: pill
+        Region {
+            item: root.trayPopupItem
+        }
         // Regions track item geometry even when the item is hidden, so
         // null the item while its pill is closed — otherwise the
         // full-height surface eats clicks across the hidden pill's area.
