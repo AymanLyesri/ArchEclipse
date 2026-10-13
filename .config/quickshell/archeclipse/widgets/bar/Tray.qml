@@ -215,7 +215,8 @@ Row {
                 if (!delegateItem)
                     continue;
                 const center = delegateItem.mapToItem(null, delegateItem.width / 2, delegateItem.height / 2);
-                if (y < center.y || (Math.abs(y - center.y) <= delegateItem.height / 2 && x < center.x)) {
+                const rowTop = center.y - delegateItem.height / 2;
+                if (y < rowTop || (y < rowTop + delegateItem.height && x < center.x)) {
                     targetCell = k;
                     break;
                 }
@@ -382,7 +383,7 @@ Row {
             }
 
             AppTooltip {
-                visible: inlineHover.hovered && text.length > 0
+                visible: inlineHover.hovered && !root.dragActive && text.length > 0
                 text: {
                     const item = entry.modelData;
                     return (item.tooltipTitle || item.title || item.tooltipDescription || "").trim();
@@ -535,7 +536,7 @@ Row {
                         }
 
                         AppTooltip {
-                            visible: hiddenHover.hovered && text.length > 0
+                            visible: hiddenHover.hovered && !root.dragActive && text.length > 0
                             text: {
                                 const item = hiddenEntry.modelData;
                                 return (item.tooltipTitle || item.title || item.tooltipDescription || "").trim();
