@@ -10,8 +10,11 @@ ControlPanelButton 1.0 ControlPanelButton.qml
 DefaultBar 1.0 DefaultBar.qml
 HotZone 1.0 HotZone.qml
 KeyboardLayoutWidget 1.0 KeyboardLayoutWidget.qml
+LauncherButton 1.0 LauncherButton.qml
+MediaPill 1.0 MediaPill.qml
 NetworkWidget 1.0 NetworkWidget.qml
 ResourceMonitor 1.0 ResourceMonitor.qml
 Tray 1.0 Tray.qml
 Volume 1.0 Volume.qml
+WindowTitle 1.0 WindowTitle.qml
 Workspaces 1.0 Workspaces.qml

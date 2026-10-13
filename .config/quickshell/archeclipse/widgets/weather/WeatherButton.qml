@@ -6,10 +6,10 @@ import qs.services
 // Hover/click pulses the full weather island (BarState "weather").
 Rectangle {
     id: root
-    height: Theme.barContentHeight
+    height: Theme.sidePillHeight
     // implicitWidth (not width) so the button keeps its natural size in
     // Row layouts but can stretch via anchors when there is empty space.
-    implicitWidth: content.implicitWidth + 14
+    implicitWidth: content.implicitWidth + Theme.islandPad * 2
     radius: Theme.radius
     // color set by weatherBg binding below
 
@@ -55,7 +55,7 @@ Rectangle {
             }
             elide: Text.ElideRight
             width: {
-                const avail = root.width - 14 - content.spacing - (iconText.visible ? iconText.implicitWidth : 0);
+                const avail = root.width - Theme.islandPad * 2 - content.spacing - (iconText.visible ? iconText.implicitWidth : 0);
                 // root.width is 0 before anchors resolve — fall back to natural size
                 if (root.width <= 0 || avail < 0)
                     return Math.min(implicitWidth, 120);

@@ -4,8 +4,8 @@ import Quickshell
 import Quickshell.Io
 
 // Global light/dark theme state:
-//   - reads current theme from `system-theme.sh get` on startup
-//   - setGlobalTheme(light|dark) runs `system-theme.sh switch` then updates state
+//   - reads current theme from `coloreclipse get` on startup
+//   - setGlobalTheme(light|dark) runs `coloreclipse switch` then updates state
 // This drives the ControlPanel Theme toggle and any themed widgets.
 QtObject {
     id: root
@@ -16,7 +16,7 @@ QtObject {
     property Component getThemeProcComp: Component {
         Process {
             id: _getProc
-            command: ["bash", "-c", "$HOME/.config/hypr/theme/scripts/system-theme.sh get"]
+            command: ["coloreclipse", "get"]
             stdout: StdioCollector {
                 onStreamFinished: {
                     root.currentTheme = text.includes("light")
@@ -31,7 +31,7 @@ QtObject {
         Process {
             id: _setProc
             property bool targetTheme: false
-            command: ["bash", "-c", `$HOME/.config/hypr/theme/scripts/system-theme.sh switch ${targetTheme ? "light" : "dark"}`]
+            command: ["coloreclipse", "switch", _setProc.targetTheme ? "light" : "dark"]
             stdout: StdioCollector {
                 onStreamFinished: {
                     root.currentTheme = _setProc.targetTheme

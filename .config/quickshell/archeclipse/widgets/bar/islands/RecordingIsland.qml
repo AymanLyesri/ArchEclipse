@@ -23,11 +23,11 @@ Item {
     IslandExpandClip {
         id: clip
         expand: root.expand
-        contentHeight: 24
+        contentHeight: Theme.sidePillHeight
 
         Rectangle {
             width: 180
-            height: 24
+            height: Theme.sidePillHeight
             radius: Theme.radius
             color: Theme.surface
 

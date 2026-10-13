@@ -87,7 +87,9 @@ ShellRoot {
     }
 
     // Left/right content lives in side pills flanking the main bar pill
-    // (leftPill/rightPill in Bar.qml, bodies in widgets/bar/islands).
+    // (leftPanelPill/rightPanelPill in Bar.qml, bodies in widgets/bar/islands;
+    // leftSidePill/rightSidePill are the chained weather + media/recording
+    // status pills).
     // Notification toasts live in a centered pill below the main pill
     // (NotificationPopups in Bar.qml). SUPER+L/R and the bar HotZones
     // route to the pills — no separate side-panel windows, no exclusive zones.

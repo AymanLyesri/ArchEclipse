@@ -68,6 +68,7 @@ PACKAGES: list[str] = [
     "imagemagick",
     "mpvpaper",
     "walleclipse-git",
+    "coloreclipse-git",
     "zenity",
     # Themes and UI enhancements
     # Login: greetd hosts the quickshell greeter (Hyprland-minimal
@@ -94,6 +95,7 @@ PACKAGES: list[str] = [
     "cpio",
     "pkg-config",
     "libwebp-utils",
+    "rust",
 ]
 
 PROTECTED_PACKAGES = {

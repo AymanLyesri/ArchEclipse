@@ -163,10 +163,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Orientation"
-                                    color: Theme.fg
+                                    tip: "Top or bottom edge for the bar."
                                     Layout.fillWidth: true
                                 }
                                 AppComboBox {
@@ -179,10 +178,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Lock Bar"
-                                    color: Theme.fg
+                                    tip: "Keep bar visible; when off it auto-hides."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -193,10 +191,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Always Expanded"
-                                    color: Theme.fg
+                                    tip: "Show full bar content instead of collapsed."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -207,10 +204,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Reveal-In Pressure"
-                                    color: Theme.fg
+                                    tip: "Cursor push needed to reveal a hidden bar."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -228,10 +224,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Reveal-Out Pressure"
-                                    color: Theme.fg
+                                    tip: "Cursor push needed to hide the bar."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -284,10 +279,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Left Panel Width"
-                                    color: Theme.fg
+                                    tip: "Width of the left side panel in px."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -305,10 +299,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Right Panel Width"
-                                    color: Theme.fg
+                                    tip: "Width of the right side panel in px."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -326,10 +319,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Left Panel Hot Zone"
-                                    color: Theme.fg
+                                    tip: "Hover the left edge to open the left panel."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -340,10 +332,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Right Panel Hot Zone"
-                                    color: Theme.fg
+                                    tip: "Hover the right edge to open the right panel."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -354,10 +345,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Left Hot Zone Size"
-                                    color: Theme.fg
+                                    tip: "Hover strip width on the left edge in px."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -375,10 +365,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Right Hot Zone Size"
-                                    color: Theme.fg
+                                    tip: "Hover strip width on the right edge in px."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -395,6 +384,7 @@ Item {
                             }
                             AppButton {
                                 text: "Preview Hot Zones"
+                                tooltipText: "Flash the edge hover areas on screen."
                                 onClicked: root.previewHotZones()
                             }
                         }
@@ -435,10 +425,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Dynamic Theme Colors"
-                                    color: Theme.fg
+                                    tip: "Recolor the theme from the wallpaper."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -452,10 +441,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Dynamic Theme Variants"
-                                    color: Theme.fg
+                                    tip: "Switch light/dark variant from wallpaper."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -469,10 +457,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Blur"
-                                    color: Theme.fg
+                                    tip: "Blur the background behind the bar."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -483,10 +470,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Blur Size"
-                                    color: Theme.fg
+                                    tip: "Blur radius; higher is softer."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -504,10 +490,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Blur Passes"
-                                    color: Theme.fg
+                                    tip: "Blur quality passes; higher costs GPU."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -560,10 +545,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Opacity"
-                                    color: Theme.fg
+                                    tip: "Shell opacity; 1 is fully opaque."
                                     Layout.fillWidth: true
                                 }
                                 AppSlider {
@@ -589,10 +573,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Scale"
-                                    color: Theme.fg
+                                    tip: "Global UI scale factor."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -610,10 +593,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Font Size"
-                                    color: Theme.fg
+                                    tip: "Base font size for shell text."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -669,10 +651,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Enabled"
-                                    color: Theme.fg
+                                    tip: "Turn all shell animations on or off."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -683,10 +664,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Speed"
-                                    color: Theme.fg
+                                    tip: "Duration multiplier; lower is faster."
                                     Layout.fillWidth: true
                                 }
                                 AppSlider {
@@ -720,10 +700,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Island Style"
-                                    color: Theme.fg
+                                    tip: "Motion style used by bar islands."
                                     Layout.fillWidth: true
                                 }
                                 AppComboBox {
@@ -787,12 +766,10 @@ Item {
                                         anchors.fill: parent
                                         anchors.margins: 6
                                         spacing: 6
-                                        Label {
-                                            font.pixelSize: Theme.fontSize
+                                        SettingLabel {
                                             text: modelData.label
-                                            color: Theme.fg
+                                            tip: "Custom User-Agent sent with " + modelData.label + " requests."
                                             Layout.preferredWidth: 90
-                                            elide: Text.ElideRight
                                         }
                                         AppTextField {
                                             id: uaField
@@ -941,24 +918,12 @@ Item {
                                         anchors.fill: parent
                                         anchors.margins: 6
                                         spacing: 6
-                                        Label {
-                                            font.pixelSize: Theme.fontSize
-                                            id: apiKeyLabel
+                                        SettingLabel {
                                             text: modelData.label
-                                            color: Theme.fg
+                                            tip: root.apiKeyTip(modelData.path, modelData.label)
                                             Layout.fillWidth: true
-                                            elide: Text.ElideRight
                                         }
 
-                                        HoverHandler {
-                                            id: apiKeyHoverHandler
-                                            cursorShape: Qt.ArrowCursor
-                                        }
-
-                                        AppTooltip {
-                                            visible: apiKeyHoverHandler.hovered && apiKeyLabel.truncated
-                                            text: apiKeyLabel.text
-                                        }
                                         AppTextField {
                                             id: keyField
                                             text: root.getNested(Settings.apiKeys, modelData.path)
@@ -997,10 +962,15 @@ Item {
                                 width: parent.width
                                 spacing: 6
                                 AppCheckBox {
+                                    id: notifyCheck
                                     Layout.fillWidth: true
                                     text: "Notify on chatbot reply"
                                     checked: Settings.chatBotNotify
                                     onCheckedChanged: Settings.chatBotNotify = checked
+                                    AppTooltip {
+                                        visible: notifyCheck.hovered
+                                        text: "<b>Notify on chatbot reply</b><br>Pop a notification when the chatbot replies."
+                                    }
                                 }
                             }
                         }
@@ -1043,23 +1013,10 @@ Item {
                                 delegate: RowLayout {
                                     width: parent.width
                                     spacing: 8
-                                    Label {
-                                        font.pixelSize: Theme.fontSize
-                                        id: fmLabel
+                                    SettingLabel {
                                         text: modelData.name
-                                        color: Theme.fg
+                                        tip: "Use " + modelData.name + " as the default file manager."
                                         Layout.fillWidth: true
-                                        elide: Text.ElideRight
-
-                                        HoverHandler {
-                                            id: fmHoverHandler
-                                            cursorShape: Qt.ArrowCursor
-                                        }
-
-                                        AppTooltip {
-                                            visible: fmHoverHandler.hovered && fmLabel.truncated
-                                            text: fmLabel.text
-                                        }
                                     }
                                     AppCheckBox {
                                         checked: Settings.fileManager === modelData.id
@@ -1115,10 +1072,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Game Mode"
-                                    color: Theme.fg
+                                    tip: "Disable blur and animations for performance."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -1131,10 +1087,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Blue Light Filter"
-                                    color: Theme.fg
+                                    tip: "Warm tint for eyes via hyprsunset."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -1147,10 +1102,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Blue Light: Temperature (K)"
-                                    color: Theme.fg
+                                    tip: "Tint warmth in Kelvin; lower is warmer."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -1169,23 +1123,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    id: hypBLAMLabel
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Blue Light: Auto Mode"
-                                    color: Theme.fg
+                                    tip: "Run the blue-light filter on a schedule."
                                     Layout.fillWidth: true
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypBLAMHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypBLAMHover.hovered && hypBLAMLabel.truncated
-                                        text: hypBLAMLabel.text
-                                    }
                                 }
                                 AppCheckBox {
                                     checked: Settings.blueLightAuto
@@ -1254,23 +1195,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypRLabel
+                                SettingLabel {
                                     text: "Decoration: Rounding"
+                                    tip: "Window corner radius in px."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypRHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypRHover.hovered && hypRLabel.truncated
-                                        text: hypRLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     id: hypRounding
@@ -1297,10 +1225,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Decoration: Blur Enabled"
-                                    color: Theme.fg
+                                    tip: "Hyprland blur behind windows."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -1315,23 +1242,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypBSLabel
+                                SettingLabel {
                                     text: "Decoration: Blur Size"
+                                    tip: "Hyprland blur radius."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypBSHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypBSHover.hovered && hypBSLabel.truncated
-                                        text: hypBSLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1357,23 +1271,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypBPLabel
+                                SettingLabel {
                                     text: "Decoration: Blur Passes"
+                                    tip: "Hyprland blur quality passes."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypBPHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypBPHover.hovered && hypBPLabel.truncated
-                                        text: hypBPLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1399,10 +1300,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Decoration: Blur Xray"
-                                    color: Theme.fg
+                                    tip: "Blur behind windows even when fullscreen."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -1417,10 +1317,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Decoration: Shadow Enabled"
-                                    color: Theme.fg
+                                    tip: "Draw Hyprland window shadows."
                                     Layout.fillWidth: true
                                 }
                                 AppCheckBox {
@@ -1435,23 +1334,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypSRLabel
+                                SettingLabel {
                                     text: "Decoration: Shadow Range"
+                                    tip: "Shadow spread distance in px."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypSRHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypSRHover.hovered && hypSRLabel.truncated
-                                        text: hypSRLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1477,23 +1363,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypSRPLabel
+                                SettingLabel {
                                     text: "Shadow Render Power"
+                                    tip: "Shadow softness and strength."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypSRPHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypSRPHover.hovered && hypSRPLabel.truncated
-                                        text: hypSRPLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1519,23 +1392,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypBSzLabel
+                                SettingLabel {
                                     text: "General: Border Size"
+                                    tip: "Window border thickness in px."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypBSzHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypBSzHover.hovered && hypBSzLabel.truncated
-                                        text: hypBSzLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1561,23 +1421,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypGILabel
+                                SettingLabel {
                                     text: "General: Gaps In"
+                                    tip: "Gap between windows in px."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypGIHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypGIHover.hovered && hypGILabel.truncated
-                                        text: hypGILabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1603,23 +1450,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypGOLabel
+                                SettingLabel {
                                     text: "General: Gaps Out"
+                                    tip: "Gap between windows and screen edge."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypGOHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypGOHover.hovered && hypGOLabel.truncated
-                                        text: hypGOLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1645,23 +1479,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypAOLabel
+                                SettingLabel {
                                     text: "Decoration: Active Opacity"
+                                    tip: "Opacity of the focused window."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypAOHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypAOHover.hovered && hypAOLabel.truncated
-                                        text: hypAOLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1688,23 +1509,10 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    id: hypIOLabel
+                                SettingLabel {
                                     text: "Decoration: Inactive Opacity"
+                                    tip: "Opacity of unfocused windows."
                                     Layout.preferredWidth: 170
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-
-                                    HoverHandler {
-                                        id: hypIOHover
-                                        cursorShape: Qt.ArrowCursor
-                                    }
-
-                                    AppTooltip {
-                                        visible: hypIOHover.hovered && hypIOLabel.truncated
-                                        text: hypIOLabel.text
-                                    }
                                 }
                                 AppSlider {
                                     from: 0
@@ -1734,11 +1542,13 @@ Item {
                                 spacing: 8
                                 AppButton {
                                     text: "Apply Hyprland Settings"
+                                    tooltipText: "Write settings to Hyprland and reload."
                                     Layout.fillWidth: true
                                     onClicked: root.applyHyprlandSettings()
                                 }
                                 AppButton {
                                     text: "Reset to Default"
+                                    tooltipText: "Restore all settings to defaults."
                                     Layout.fillWidth: true
                                     onClicked: root.resetToDefaults()
                                 }
@@ -1780,10 +1590,9 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: 8
-                                Label {
-                                    font.pixelSize: Theme.fontSize
+                                SettingLabel {
                                     text: "Grace Period (seconds)"
-                                    color: Theme.fg
+                                    tip: "Time Esc unlocks without a password."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
@@ -1976,18 +1785,46 @@ Item {
             Settings.schedulePersist();
     }
 
+    // Concise tooltip per API-key row (shown via SettingLabel).
+    function apiKeyTip(path, label) {
+        switch (path) {
+        case "openrouter.user":
+            return "Your OpenRouter account name.";
+        case "openrouter.key":
+            return "Key for chatbot AI models.";
+        case "danbooru.user":
+            return "Your Danbooru login name.";
+        case "danbooru.key":
+            return "Key for Danbooru favorites and uploads.";
+        case "gelbooru.user":
+            return "Your Gelbooru login name.";
+        case "gelbooru.key":
+            return "Key for Gelbooru favorites.";
+        case "safebooru.user":
+            return "Your Safebooru login name.";
+        case "safebooru.key":
+            return "Key for Safebooru favorites.";
+        case "wallhaven.key":
+            return "Optional key; unlocks NSFW wallpapers.";
+        default:
+            return "Stored locally; used for " + label + ".";
+        }
+    }
+
     function copyText(t) {
         Qt.callLater(function () {
             Quickshell.execDetached(["wl-copy", t]);
         });
     }
 
-    // Write autocolor/autovariant flag into hypr theme conf
+    // Write autocolor/autovariant flag into the coloreclipse conf
+    // (~/.config/coloreclipse/theme.conf)
     function setThemeFlagInConf(flag, enabled) {
-        const confPath = "$HOME/.config/hypr/" + root.themeConfName;
+        const confPath = root.themeConfPath;
         const val = enabled ? "true" : "false";
         Qt.callLater(function () {
-            Quickshell.execDetached(["bash", "-c", `if [[ -f "${confPath}" ]]; then
+            Quickshell.execDetached(["bash", "-c", `mkdir -p "$(dirname "${confPath}")"
+                  if [[ -f "${confPath}" ]]; then
                   sed -i 's/^${flag}=.*/${flag}=${val}/' "${confPath}"
                   grep -q '^${flag}=' "${confPath}" || printf '%s\\n' '${flag}=${val}' >> "${confPath}"
                 else
@@ -1996,7 +1833,7 @@ Item {
         });
     }
 
-    property string themeConfName: "theme/theme.conf"
+    property string themeConfPath: Quickshell.env("HOME") + "/.config/coloreclipse/theme.conf"
 
     function previewHotZones() {
         Qt.callLater(function () {
@@ -2061,8 +1898,8 @@ Item {
         Settings.rightPanelHotZone = true;
         Settings.leftPanelHotZoneSize = 5;
         Settings.rightPanelHotZoneSize = 5;
-        Settings.dynamicThemeColors = true;
-        Settings.dynamicThemeVariants = true;
+        Settings.dynamicThemeColors = false;
+        Settings.dynamicThemeVariants = false;
         Settings.barBlur = true;
         Settings.barBlurSize = 4;
         Settings.barBlurPasses = 4;

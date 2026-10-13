@@ -2,7 +2,7 @@
 
 ArchEclipse Hyprland configuration. Lua-based config (`hyprland.lua` entrypoint,
 requires Hyprland with Lua support), plus shell helpers, C daemons, wallpaper
-daemon, theme scripts, `evremap`, and Python maintenance tooling.
+daemon, an external Rust theme applier, `evremap`, and Python maintenance tooling.
 
 > Scope: this file covers `~/.config/hypr` only. Quickshell bar lives in
 > `~/.config/quickshell/archeclipse` — don't edit it from here.
@@ -14,8 +14,7 @@ hyprland.lua            # entrypoint: sets XDG env, require_all() base modules, 
 config/*.lua            # tracked base config, one file per Hyprland section
 config/custom/*.lua     # MACHINE-LOCAL overrides (gitignored, except .gitkeep)
 config/defaults/*.lua   # template files with {{ PLACEHOLDERS }} for maintenance/install.py
-theme/theme.conf        # gitignored runtime theme state (autocolor/autovariant)
-theme/scripts/          # wal/cwal, gtk/icon/cursor/system theme appliers
+# theme applier is external: ~/.config/ColorEclipse (AUR coloreclipse-git)
 scripts/                # bar.sh, screenshot.sh, change-brightness.sh, ...
 scripts-c/              # battery-check.c, updates-check.c (compiled to /tmp by compile-run-binaries.sh)
 evremap/                # remap.toml + configuration.sh + evremap.service (numlock/numpad remaps)
@@ -94,11 +93,15 @@ tracked base files for local-only needs).
 
 - Syntax: `luac -p hyprland.lua config/*.lua config/custom/*.lua` (`config/defaults/`
   holds `{{ }}` template markers, not valid Lua — don't lint it), `bash -n scripts/*.sh`,
-  `shellcheck scripts/*.sh theme/scripts/*.sh` (if installed),
+  `shellcheck scripts/*.sh` (if installed),
   `python3 -m py_compile maintenance/install.py maintenance/update.py maintenance/components/*.py`.
 - Reload live: `hyprctl reload` (or `hyprpm reload && hyprctl reload` after plugin changes).
 - Startup exec: `hyprctl exec-once '...'` semantics — check `hyprctl exec-once` for dupes.
 - C daemons: `gcc scripts-c/<name>.c -o /tmp/<name>` then run once manually.
+- Coloreclipse (`~/.config/ColorEclipse`, binary `coloreclipse`): `cargo test`, then
+  run `target/release/coloreclipse get|switch|apply|wal` directly.
+  `wal <path>` mutates cwal colors *and* the system variant whenever `autovariant` is on
+  (the default with no conf file) — use a throwaway wallpaper or check `get` first.
 - Wallpaper logs: `/tmp/walleclipse.log` (daemon stdout: `/tmp/walleclipse-daemon-out.log` when started manually).
 - Bar logs: `/tmp/qs-bar-$USER.log`.
 
@@ -110,9 +113,13 @@ tracked base files for local-only needs).
   push, or run `maintenance/update.py` / `install.py` (they `reset --hard` and
   `cp -a` over `$HOME`). Read-only inspection only unless asked.
 - Never commit `config/custom/`, `config/defaults/` generated output,
-  `theme/theme.conf`,
   `monitors.conf/.lua`, `workspaces.conf/.lua`, `__pycache__/`.
-  (Wallpaper state now lives outside this repo, in `~/.config/walleclipse/`.)
+  (Wallpaper state lives outside this repo, in `~/.config/walleclipse/`;
+  theme flags live in `~/.config/coloreclipse/theme.conf`.)
+- Theme flags (`autocolor`/`autovariant`, default `true`) are read by the external
+  `coloreclipse` binary (AUR `coloreclipse-git`, source `~/.config/ColorEclipse`) from
+  `~/.config/coloreclipse/theme.conf` — hypr itself no longer builds or ships the
+  applier, so nothing needs `cargo` at login.
 - `compile-run-binaries.sh` installs cron entries only when missing and
   recompiles only stale binaries — safe to run once to test, but don't run
   it in a loop.

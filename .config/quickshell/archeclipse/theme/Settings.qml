@@ -463,7 +463,7 @@ Singleton {
 
     // Theme variants
     property bool dynamicThemeColors: true
-    property bool dynamicThemeVariants: true
+    property bool dynamicThemeVariants: false
 
     // File manager (detected + selected)
     property var fileManagerOptions: []
@@ -1027,9 +1027,9 @@ Singleton {
                 root.lockGraceSeconds = s.lockscreen?.graceSeconds ?? 10;
 
                 const _dtc = s.dynamicThemeColors;
-                root.dynamicThemeColors = (typeof _dtc === "object" && _dtc !== null ? _dtc.value : _dtc) ?? true;
+                root.dynamicThemeColors = (typeof _dtc === "object" && _dtc !== null ? _dtc.value : _dtc) ?? false;
                 const _dtv = s.dynamicThemeVariants;
-                root.dynamicThemeVariants = (typeof _dtv === "object" && _dtv !== null ? _dtv.value : _dtv) ?? true;
+                root.dynamicThemeVariants = (typeof _dtv === "object" && _dtv !== null ? _dtv.value : _dtv) ?? false;
 
                 // File manager
                 root.fileManager = s.fileManager ?? "";

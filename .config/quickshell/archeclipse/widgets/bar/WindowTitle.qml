@@ -1,0 +1,87 @@
+import QtQuick
+import Quickshell.Hyprland
+import qs.services
+import qs.theme
+
+// Focused window title button — icon + active window title, elided.
+// Click toggles the overview island.
+Rectangle {
+    id: root
+
+    height: Theme.barContentHeight
+    implicitWidth: content.implicitWidth + 16
+    // Width is assigned by the parent layout (capped via
+    // Layout.maximumWidth at the use site); implicitWidth carries the
+    // natural size so no width binding fights the layout.
+    radius: Theme.radius
+    color: titleHover.hovered ? Theme.surfaceHover : "transparent"
+
+    readonly property var active: Hyprland.activeToplevel ?? null
+    readonly property string winClass: {
+        Hyprland.toplevels.values;
+        const t = Hyprland.activeToplevel;
+        if (!t)
+            return "";
+        try {
+            return (t.lastIpcObject?.class ?? "") + "";
+        } catch (e) {
+            return "";
+        }
+    }
+    readonly property string winTitle: {
+        Hyprland.toplevels.values;
+        const t = Hyprland.activeToplevel;
+        if (!t)
+            return "Desktop";
+        const title = ((t.title ?? "") + "").trim();
+        if (title !== "")
+            return title;
+        try {
+            const ipc = ((t.lastIpcObject?.title ?? "") + "").trim();
+            if (ipc !== "")
+                return ipc;
+        } catch (e) {}
+        const cls = root.winClass.trim();
+        return cls !== "" ? cls : "Desktop";
+    }
+    readonly property string winIcon: root.winClass !== "" ? WorkspaceIcons.forClientClass(root.winClass) : ""
+
+    Row {
+        id: content
+        anchors.centerIn: parent
+        spacing: 6
+        width: Math.min(implicitWidth, parent.width - 16)
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.winIcon
+            color: Theme.muted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.winTitle
+            elide: Text.ElideRight
+            width: Math.min(implicitWidth, 190)
+            color: Theme.fg
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize
+        }
+    }
+
+    HoverHandler {
+        id: titleHover
+    }
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: {
+            if (BarState.state === "overview")
+                BarState.deactivate("overview");
+            else
+                BarState.activate("overview", 0);
+        }
+    }
+}

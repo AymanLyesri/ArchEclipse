@@ -1,6 +1,5 @@
 local home = os.getenv("HOME") or ""
 local scriptsDir = home .. "/.config/hypr/scripts"
-local themeScriptsDir = home .. "/.config/hypr/theme/scripts"
 
 hl.on("hyprland.start", function()
     -- NOTE: no `hyprpm reload && hyprctl reload` here — it re-triggers this
@@ -10,7 +9,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd(scriptsDir .. "/compile-run-binaries.sh")
     hl.exec_cmd(scriptsDir .. "/bar.sh")
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
-    hl.exec_cmd(themeScriptsDir .. "/system-theme.sh apply")
+    hl.exec_cmd("coloreclipse apply")
     hl.exec_cmd("nm-applet")
     -- Clipboard watcher is owned by quickshell (ClipboardService spawns
     -- `wl-paste --watch qs … ipc call clipboard event` at boot and culls

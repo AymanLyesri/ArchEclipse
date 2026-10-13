@@ -43,12 +43,16 @@ hijacks. Side-pill visibility keys off `BarState.leftOpen`/`rightOpen`
 Rules that bite:
 - `left`/`right` open **simultaneously** — no mutual exclusion. The main pill
   stays independent: transient pulses/search/control animate it while side
-  pills: `leftPill`/`rightPill` dock to the screen edges (8px margin,
+  pills: the island panels (`leftPanelPill`/`rightPanelPill`) dock to the
+  screen edges (8px margin,
   outermost, static); the main pill centers in the remaining space with a
   rigid `x` (no `Behavior` — per-frame coupled to width animations) while
   open/close pushes animate through `leftPush`/`rightPush` with the same
-  easing as the width, so all motion stays one unit; the recording pill
-  chains rigidly right of it. All three pills unfold on open and fold
+  easing as the width, so all motion stays one unit; two transparent,
+  background-less side pills chain off it — `leftSidePill` (WeatherButton)
+  left of the main pill, `rightSidePill` (MediaPill, then the RecordingIsland
+  fill, 8px apart, each keeping its own surface) right of it. All the
+  island-bearing pills unfold on open and fold
   before hiding on close (exit-driver pattern: `setShown` + close timer)
   through a pill-level `IslandExpandClip` wipe — the same clip + fade +
   0.96-scale recipe as main-stack islands, `openT` set discretely and
@@ -71,13 +75,14 @@ Rules that bite:
 ### 1.3 Islands — `widgets/bar/islands/`
 
 Transient islands live **inside the bar pill** as `BarState` pages; the
-left/right/recording islands live in **side pills** flanking it
-(`leftPill`/`rightPill`/`secondaryPill` in `Bar.qml`), not separate windows:
+left/right islands live in **side pills** flanking it
+(`leftPanelPill`/`rightPanelPill` in `Bar.qml`; the chained status pills are
+`leftSidePill`/`rightSidePill`), not separate windows:
 
 | Island | State | Body |
 |---|---|---|
-| `LeftIsland.qml` | side pill (`BarState.leftOpen` flag) | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4); cached `Loader` owned by `leftPill` |
-| `RightIsland.qml` | side pill (`BarState.rightOpen` flag) | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll; cached `Loader` owned by `rightPill` |
+| `LeftIsland.qml` | side pill (`BarState.leftOpen` flag) | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4); cached `Loader` owned by `leftPanelPill` |
+| `RightIsland.qml` | side pill (`BarState.rightOpen` flag) | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll; cached `Loader` owned by `rightPanelPill` |
 | `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | `search` | Launcher results (input lives in the island, results in the panel) |
 | `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `SystemMonitorIsland` | pulses | Transient/utility pages — **all** islands now carry an `expand` 0→1 driver + `IslandExpandClip` unfold (Player/Weather/System/Overview/Recording gained it 2026-09-21; previously static snap + hover timer only) |
 | `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) | `wallpaper` (cached) | Heavy switcher: `wallpaperPrimed` latch + `wallpaperCacheLoader` in the `Bar.qml` stack (created once, visibility-toggled) so image decodes, aspect caches and scroll survive closes; no refetch on reopen |
@@ -262,6 +267,20 @@ wrappers. Rules:
    + `barDiag state`; then grep the boot log for `typeerror|referenceerror`.
    Control auto-closes ~1s after open (HoverPin grace, never hovered) — a second
    `toggleControl` printing "open" again is the pin timer, not a stuck state.
+
+11. **Never derive a parent's `visible` from a child's `visible` — Qt Quick
+   propagates it.** Setting an item's `visible` to false writes false into
+   **every descendant's** `visible` property; children only get their own values
+   back when the parent shows again. So a container whose own visibility reads
+   `child.visible` latches itself off for good: parent hidden -> child forced
+   false -> the binding never sees true again. `rightSidePill` shipped that way
+   (`visible: barVisible && (sideMedia.visible || recordingPiece.shown)`) and
+   the mini media fill stayed invisible with a live player; forcing
+   `sideMedia.visible = true` was undone within a frame (measured via probe).
+   Bind the container to the contents' **inputs** instead
+   (`sideMedia.hasPlayable`, `recordingPiece.shown`). Positioners still lay out
+   on each child's *own* visibility, so `Row.implicitWidth` is unaffected
+   (measured: 227.8 media alone, 431.8 with recording = 227.8 + 8 + 196).
 
 ## 3. Discord issue workflow
 

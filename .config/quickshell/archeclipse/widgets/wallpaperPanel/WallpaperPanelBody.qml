@@ -588,7 +588,7 @@ Item {
                     root.refreshGreeterTile();
                 root._pendingTarget = "";
                 // Share the global theme: regenerate pywal/cwal colors from
-                // the new wallpaper (wal-theme.sh honors autocolor=false
+                // the new wallpaper (coloreclipse wal honors autocolor=false
                 // itself; _pendingThemeRegen is only set when workspace
                 // target + Settings.dynamicThemeColors).
                 if (root._pendingThemeRegen !== "")
@@ -628,10 +628,9 @@ Item {
         setProc.running = true;
     }
 
-    // ---- global theme sharing (wal-theme.sh -> cwal colors.scss -> Theme) ----
+    // ---- global theme sharing (coloreclipse wal -> cwal colors.scss -> Theme) ----
     property string _pendingThemeRegen: ""
     property string _pendingTarget: ""
-    readonly property string walThemeScript: home + "/.config/hypr/theme/scripts/wal-theme.sh"
     Process {
         id: themeProc
         onExited: code => {
@@ -641,12 +640,12 @@ Item {
             if (code === 0)
                 root.setProgress("success");
             else
-                root.notifyError("updating theme colors", "wal-theme.sh failed");
+                root.notifyError("updating theme colors", "coloreclipse wal failed");
         }
     }
     function regenTheme(path) {
         root._pendingThemeRegen = "";
-        themeProc.command = ["bash", root.walThemeScript, path];
+        themeProc.command = ["coloreclipse", "wal", path];
         themeProc.running = true;
     }
 

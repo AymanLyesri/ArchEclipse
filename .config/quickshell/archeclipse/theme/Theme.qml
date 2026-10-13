@@ -75,6 +75,17 @@ QtObject {
     // (Clock, Battery, Volume, ...) binds to this instead of hardcoding
     // its own height, so all bar content stays the same height.
     readonly property int barContentHeight: 18
+    // Height of the chained status side pills (weather / media / the
+    // recording fill) that hang off the main pill. Deliberately taller
+    // than barContentHeight so the three read as one family; they all
+    // sit centered in the barHeight band, so this also fixes their shared
+    // top/bottom margin. In-bar widgets keep barContentHeight.
+    readonly property int sidePillHeight: 24
+    // Gap between the main pill and the chained side pills. Also the
+    // matching push offset (leftPush/rightPush) that keeps the main pill
+    // clear of them — one token so the x-chain and its mirror can never
+    // drift apart.
+    readonly property int sidePillMargin: 8
     // The ONE inset between a bar pill's edge and its island content.
     // Every island body is flush inside this: island wrappers must not
     // add their own outer margin, and bodies must not pad their root

@@ -36,6 +36,12 @@ Item {
     // creation so recreation/refresh transients can't pop the strip.
     property bool _ready: false
     readonly property bool showIcons: root.expanded || root.hoverPeek
+    // True only while the icon reveal/collapse glide is in flight (the strip's
+    // height parked between the two stops). DefaultBar mirrors this into the
+    // pill's rigidHeight so the bar's bottom edge tracks the strip per-frame:
+    // the pill's shrink-only glide (500ms) would otherwise trail this 250ms
+    // collapse and leave the bar background hanging below the strip.
+    readonly property bool revealing: root.implicitHeight > root.hitHeight + 0.5 && root.implicitHeight < root.expandedHeight - 0.5
 
     // --- new-client blink: 3 blinks on unfocused workspaces ---
     // Tracks per-workspace client counts; a count increase on a

@@ -10,6 +10,7 @@ import qs.widgets.bar.islands
 import qs.widgets.launcher
 import qs.widgets.notifications
 import qs.widgets.shared
+import qs.widgets.weather
 
 // Port of widgets/bar/Bar.tsx — the floating ArchEclipse bar pill.
 PanelWindow {
@@ -82,13 +83,18 @@ PanelWindow {
         // null the item while its pill is closed — otherwise the
         // full-height surface eats clicks across the hidden pill's area.
         Region {
-            item: leftPill.visible ? leftPill : null
+            item: leftPanelPill.visible ? leftPanelPill : null
         }
         Region {
-            item: rightPill.visible ? rightPill : null
+            item: rightPanelPill.visible ? rightPanelPill : null
+        }
+        // The two side pills (weather left, media + recording right) are
+        // their own entries — the main pill's Region above never covers them.
+        Region {
+            item: leftSidePill.visible ? leftSidePill : null
         }
         Region {
-            item: secondaryPill.visible ? secondaryPill : null
+            item: rightSidePill.visible ? rightSidePill : null
         }
         Region {
             item: mediaPill.visible ? mediaPill : null
@@ -146,9 +152,9 @@ PanelWindow {
     readonly property var captureItem: BarState.leftOpen && leftLoader.item ? leftLoader.item : (BarState.rightOpen && rightLoader.item ? rightLoader.item : pill)
     function captureGeometry() {
         if (BarState.leftOpen)
-            return root.sideCaptureGeometry(leftPill, "left");
+            return root.sideCaptureGeometry(leftPanelPill, "left");
         if (BarState.rightOpen)
-            return root.sideCaptureGeometry(rightPill, "right");
+            return root.sideCaptureGeometry(rightPanelPill, "right");
         const p = pill.mapToItem(root.contentItem, 0, 0);
         return {visible: root.visible, displayed: stack.current,
             rect: {x: p.x, y: p.y, w: pill.width, h: pill.height}};
@@ -281,19 +287,21 @@ PanelWindow {
         // ---- the pill ----
         Item {
             id: pill
-            // Pushed-center: side pills dock to the screen edges and the
-            // main pill centers in the remaining space — never fixed-center,
+            // Pushed-center: the island panels dock to the screen edges and
+            // the side pills chain off the main pill (leftSidePill left,
+            // rightSidePill right — recording-pill pattern) — the main pill
+            // centers in the remaining space — never fixed-center,
             // never overlapping. `x` itself carries NO Behavior: it tracks
             // per-frame (rigidly coupled to width animations). Discrete
             // open/close pushes animate through leftPush/rightPush with the
             // same easing as the width, so everything moves as one unit.
-            property real leftPush: leftPill.flag ? 8 + leftPill.width + 8 : 0
+            property real leftPush: (leftPanelPill.flag ? 8 + leftPanelPill.width + 8 : 0) + (leftSidePill.visible ? leftSidePill.width + Theme.sidePillMargin : 0)
             Behavior on leftPush {
                 Anim {
                     type: Anim.DefaultSpatial
                 }
             }
-            property real rightPush: (rightPill.flag ? rightPill.width + 8 : 0) + (secondaryPill.flag ? secondaryPill.width + 8 : 0)
+            property real rightPush: (rightPanelPill.flag ? rightPanelPill.width + 8 : 0) + (rightSidePill.visible ? rightSidePill.width + Theme.sidePillMargin : 0)
             Behavior on rightPush {
                 Anim {
                     type: Anim.DefaultSpatial
@@ -307,13 +315,20 @@ PanelWindow {
             y: Settings.barOrientation ? 0 : parent.height - height
             // Grows with content: 32 for normal states, tall when the
             // search island (input + launcher) is shown.
-            height: Math.max(root.barHeight, stack.height + stack.effPad * 2)
+            height: pill.targetHeight
+            // Height target as a property so the Behavior's enable gate below
+            // has something to re-evaluate against (same reason targetWidth
+            // exists for the width glide).
+            readonly property real targetHeight: Math.max(root.barHeight, stack.height + stack.effPad * 2)
             // Shrink-only glide: when the target sits below the current
             // height (closes), ease down; when growing, track the unfolding
             // content rigidly per-frame — gliding there would chase a moving
             // target and lag behind it (verified via probe).
+            // Also suspended (stack.rigidHeight) while the workspace strip
+            // animates its own height: there the strip's collapse IS the
+            // motion, and gliding after it leaves the bar hanging tall.
             Behavior on height {
-                enabled: pill.height > stack.height + stack.effPad * 2
+                enabled: pill.height > pill.targetHeight && !stack.rigidHeight
                 Anim {
                     type: Anim.DefaultSpatial
                 }
@@ -386,8 +401,9 @@ PanelWindow {
                 // other islands use Theme.islandPad (8). Pill width/height
                 // above derive from this so the surround stays exact.
                 // volume/brightness/player/recording render DefaultBar in
-                // the main stack (their UI lives in the OSD/media/
-                // secondary pills), so they keep the default inset —
+                // the main stack (their UI lives in the OSD/media
+                // floaters and the right side pill), so they keep the
+                // default inset —
                 // otherwise opening the OSD flips effPad 4->8 and the
                 // bar visibly grows.
                 property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording"
@@ -466,6 +482,16 @@ PanelWindow {
                 }
                 onRigidWidthChanged: stack.syncRigid()
 
+                // Height twin of rigidWidth, requested by the default bar
+                // page while the workspace strip runs its own height
+                // animation (icon reveal/collapse). No convergence gate here:
+                // the request arrives exactly while the pill is parked tall by
+                // an open peek, so waiting for convergence could never suspend
+                // the glide in time. The strip's 250ms animation is the
+                // motion; the pill follows it rigidly and the flag drops when
+                // the strip settles.
+                property bool rigidHeight: false
+
                 // The live item for a shown state (cached wallpaper via
                 // its Loader, transient islands via currentPageLoader).
 
@@ -529,7 +555,7 @@ PanelWindow {
                 Loader {
                     id: currentPageLoader
                     // Handles the small transient states only — left/right
-                    // live in their own side pills, recording in its own,
+                    // live in their own panels, recording in the right side pill,
                     // wallpaper in the cached Loader above (show an empty
                     // page here so the transient Loader never instantiates
                     // and destroys it on open/close).
@@ -546,7 +572,7 @@ PanelWindow {
                             // Same as volume above.
                             return defaultPage;
                         case "recording":
-                            // Recording lives in the secondary pill beside
+                            // Recording lives in the right side pill beside
                             // the main pill — the main stack shows default
                             // content so the bar is never hijacked.
                             return defaultPage;
@@ -647,7 +673,7 @@ PanelWindow {
         // lazily on first open, then visibility-toggled so tab/scroll/
         // chat/booru state survives closes.
         Item {
-            id: leftPill
+            id: leftPanelPill
             // Docked to the left screen edge, outermost; the main pill yields.
             // Transparent positioning shell — the surface background lives
             // inside the unfold clip below so the panel wipes as one unit.
@@ -655,7 +681,7 @@ PanelWindow {
             y: Settings.barOrientation ? 0 : parent.height - height
             width: Settings.leftPanelWidth
             height: Math.max(400, root.screenHeight - 15)
-            visible: leftPill.shown && root.barVisible
+            visible: leftPanelPill.shown && root.barVisible
             property bool primed: false
             // Open/close transition (mirrors the main-stack exit driver):
             // open shows instantly and the clip unfolds; close folds first
@@ -667,8 +693,8 @@ PanelWindow {
             // unfold plays, exactly like a main-stack island.
             property bool shown: false
             property bool flag: BarState.leftOpen
-            onFlagChanged: leftPill.setShown(leftPill.flag)
-            Component.onCompleted: leftPill.setShown(leftPill.flag)
+            onFlagChanged: leftPanelPill.setShown(leftPanelPill.flag)
+            Component.onCompleted: leftPanelPill.setShown(leftPanelPill.flag)
             property real openT: 0
             function setShown(open) {
                 if (open) {
@@ -689,40 +715,40 @@ PanelWindow {
             Timer {
                 id: leftCloseTimer
                 interval: Theme.anim.normal
-                onTriggered: leftPill.shown = false
+                onTriggered: leftPanelPill.shown = false
             }
             IslandExpandClip {
                 id: leftClip
-                expand: leftPill.openT
-                contentHeight: leftPill.height
+                expand: leftPanelPill.openT
+                contentHeight: leftPanelPill.height
                 // One fillet wider on each side so the edge fillets live
                 // inside the unfold wipe (attached) instead of beside it.
                 x: -Theme.radius
-                width: leftPill.width + Theme.radius * 2
+                width: leftPanelPill.width + Theme.radius * 2
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 // Single-fill background (body + flares, one fill — see
                 // pillBg above); content Loader sits over the body area.
                 PillBackground {
                     id: pillBgL
-                    bodyWidth: leftPill.width
-                    bodyHeight: leftPill.height
+                    bodyWidth: leftPanelPill.width
+                    bodyHeight: leftPanelPill.height
                     topBar: Settings.barOrientation
                     // Outer (screen-side) flare shares the sidebar rail
                     // background so it reads as the rail's extension.
                     leftFlare: true
                     leftFlareColor: Theme.bg
                     x: 0
-                    y: Settings.barOrientation ? 0 : leftClip.height - leftPill.height
+                    y: Settings.barOrientation ? 0 : leftClip.height - leftPanelPill.height
                 }
                 Loader {
                     id: leftLoader
                     x: pillBgL.flare
-                    y: Settings.barOrientation ? 0 : leftClip.height - leftPill.height
-                    width: leftPill.width
-                    height: leftPill.height
-                    active: leftPill.primed
-                    visible: leftPill.visible
+                    y: Settings.barOrientation ? 0 : leftClip.height - leftPanelPill.height
+                    width: leftPanelPill.width
+                    height: leftPanelPill.height
+                    active: leftPanelPill.primed
+                    visible: leftPanelPill.visible
                     asynchronous: false
                     sourceComponent: leftPage
                     onLoaded: {
@@ -739,21 +765,21 @@ PanelWindow {
 
         // ---- right side pill (independent of the main pill) ----
         Item {
-            id: rightPill
+            id: rightPanelPill
             // Docked to the right screen edge, outermost; the main pill
             // and recording yield. Transparent shell — background lives
-            // inside the unfold clip, like leftPill.
+            // inside the unfold clip, like leftPanelPill.
             x: parent.width - width - 8
             y: Settings.barOrientation ? 0 : parent.height - height
             width: Settings.rightPanelWidth
             height: Math.max(400, root.screenHeight - 15)
-            visible: rightPill.shown && root.barVisible
+            visible: rightPanelPill.shown && root.barVisible
             property bool primed: false
-            // Open/close transition, same pattern as leftPill above.
+            // Open/close transition, same pattern as leftPanelPill above.
             property bool shown: false
             property bool flag: BarState.rightOpen
-            onFlagChanged: rightPill.setShown(rightPill.flag)
-            Component.onCompleted: rightPill.setShown(rightPill.flag)
+            onFlagChanged: rightPanelPill.setShown(rightPanelPill.flag)
+            Component.onCompleted: rightPanelPill.setShown(rightPanelPill.flag)
             property real openT: 0
             function setShown(open) {
                 if (open) {
@@ -774,40 +800,40 @@ PanelWindow {
             Timer {
                 id: rightCloseTimer
                 interval: Theme.anim.normal
-                onTriggered: rightPill.shown = false
+                onTriggered: rightPanelPill.shown = false
             }
             IslandExpandClip {
                 id: rightClip
-                expand: rightPill.openT
-                contentHeight: rightPill.height
+                expand: rightPanelPill.openT
+                contentHeight: rightPanelPill.height
                 // One fillet wider on each side so the edge fillets live
                 // inside the unfold wipe (attached) instead of beside it.
                 x: -Theme.radius
-                width: rightPill.width + Theme.radius * 2
+                width: rightPanelPill.width + Theme.radius * 2
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 // Single-fill background (body + flares, one fill — see
                 // pillBg above); content Loader sits over the body area.
                 PillBackground {
                     id: pillBgR
-                    bodyWidth: rightPill.width
-                    bodyHeight: rightPill.height
+                    bodyWidth: rightPanelPill.width
+                    bodyHeight: rightPanelPill.height
                     topBar: Settings.barOrientation
                     // Outer (screen-side) flare shares the sidebar rail
                     // background so it reads as the rail's extension.
                     rightFlare: true
                     rightFlareColor: Theme.bg
                     x: 0
-                    y: Settings.barOrientation ? 0 : rightClip.height - rightPill.height
+                    y: Settings.barOrientation ? 0 : rightClip.height - rightPanelPill.height
                 }
                 Loader {
                     id: rightLoader
                     x: pillBgR.flare
-                    y: Settings.barOrientation ? 0 : rightClip.height - rightPill.height
-                    width: rightPill.width
-                    height: rightPill.height
-                    active: rightPill.primed
-                    visible: rightPill.visible
+                    y: Settings.barOrientation ? 0 : rightClip.height - rightPanelPill.height
+                    width: rightPanelPill.width
+                    height: rightPanelPill.height
+                    active: rightPanelPill.primed
+                    visible: rightPanelPill.visible
                     asynchronous: false
                     sourceComponent: rightPage
                     onLoaded: {
@@ -820,64 +846,120 @@ PanelWindow {
             }
         }
 
-        // ---- secondary pill (recording) ----
-        // Chained right of the main pill; the right pill sits outermost
-        // after it. Owns the recording island so ScreenRecorder never
-        // hijacks the main pill: visible only while recording, hidden
-        // with the bar (fullscreen/conceal).
+        // ---- left side pill (weather) ----
+        // Transparent container chained LEFT of the main pill (recording-pill
+        // pattern). Full-height shell on the main pill's own band with the
+        // fills centered inside, so an 18px fill reads with an equal margin
+        // above and below instead of hugging the bar's edge. Contents live in
+        // one Row; every entry keeps its own surface — the container draws no
+        // background. x tracks per-frame (no Behavior — rigidly coupled to the
+        // main pill's own motion); the main pill yields via leftPush.
         Item {
-            id: secondaryPill
-            // Rigid chain right of the main pill (no Behavior — tracks
-            // per-frame, coupled to the main pill's own motion).
-            // Transparent shell — background wipes inside the clip.
-            x: pill.x + pill.width + 8
-            y: Settings.barOrientation ? 0 : parent.height - height
+            id: leftSidePill
+            x: pill.x - width - Theme.sidePillMargin
+            y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
             height: root.barHeight
-            width: secondaryLoader.item ? (secondaryLoader.item.implicitWidth + Theme.islandPad * 2) : 190
-            visible: secondaryPill.shown && root.barVisible
-            // Open/close transition: the clip unfolds; the Loader
-            // deactivates after the fold. Reopen mid-fold cancels the
-            // hide. openT is discrete — the clip animates it internally.
-            property bool shown: false
-            property bool flag: ScreenRecorder.isRecording
-            onFlagChanged: secondaryPill.setShown(secondaryPill.flag)
-            Component.onCompleted: secondaryPill.setShown(secondaryPill.flag)
-            property real openT: 0
-            function setShown(open) {
-                if (open) {
-                    recCloseTimer.stop();
-                    shown = true;
-                    openT = 1;
-                } else {
-                    if (!shown)
-                        return;
-                    openT = 0;
-                    recCloseTimer.restart();
+            width: leftSideContents.implicitWidth
+            visible: root.barVisible
+            Row {
+                id: leftSideContents
+                anchors.centerIn: parent
+                spacing: 8
+                WeatherButton {
+                    id: weatherButton
+                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
-            Timer {
-                id: recCloseTimer
-                interval: Theme.anim.normal
-                onTriggered: secondaryPill.shown = false
-            }
+        }
 
-            IslandExpandClip {
-                expand: secondaryPill.openT
-                contentHeight: secondaryPill.height
-                anchors.top: parent.top
+        // ---- right side pill (media + recording) ----
+        // Same contract as leftSidePill, chained right of the main pill; the
+        // right island panel sits outermost after it. Left to right: the mini
+        // media fill (hidden while no player has a title), then the recording
+        // fill. Each is its own surface 8px apart; the container is
+        // transparent and takes its width from the Row, so a content going
+        // away pulls the container in by exactly its own width + the spacing,
+        // and the main pill glides after it (rightPush Behavior).
+        Item {
+            id: rightSidePill
+            // Rigid chain right of the main pill (no Behavior).
+            x: pill.x + pill.width + Theme.sidePillMargin
+            y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
+            height: root.barHeight
+            width: rightSideContents.implicitWidth
+            // Read the contents' OWN inputs, never a child's `visible`:
+            // Qt Quick propagates `visible = false` into every descendant
+            // when the parent hides, so a parent binding on a child's
+            // `visible` latches itself off permanently (measured: media
+            // had a title, still reported visible=false for good).
+            visible: root.barVisible && (sideMedia.hasPlayable || recordingPiece.shown)
+            Row {
+                id: rightSideContents
+                anchors.centerIn: parent
+                spacing: 8
+
+                // mini media status (app icon + play state + track title):
+                // hover/click pulses the player island, middle-click toggles
+                // playback (MediaPill owns both behaviours).
+                MediaPill {
+                    id: sideMedia
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: sideMedia.hasPlayable
+                }
+
+                // recording status — fold/unfold driver kept from the old
+                // standalone recording pill: fixed-width body, only the clip
+                // height animates (expand 1 -> 0 on close, hide after the
+                // fold; reopen mid-fold cancels the hide). The box stays
+                // root.barHeight tall so neither the fold nor the Row resizes
+                // anything while it plays.
                 Item {
-                    width: parent.width
-                    height: secondaryPill.height
-                    Loader {
-                        id: secondaryLoader
-                        anchors.centerIn: parent
-                        active: secondaryPill.shown
-                        sourceComponent: secondaryRecordingPage
+                    id: recordingPiece
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: recLoader.item ? (recLoader.item.implicitWidth + Theme.islandPad * 2) : 190
+                    height: rightSidePill.height
+                    visible: recordingPiece.shown
+                    property bool shown: false
+                    property bool flag: ScreenRecorder.isRecording
+                    onFlagChanged: recordingPiece.setShown(recordingPiece.flag)
+                    Component.onCompleted: recordingPiece.setShown(recordingPiece.flag)
+                    property real openT: 0
+                    function setShown(open) {
+                        if (open) {
+                            recCloseTimer.stop();
+                            shown = true;
+                            openT = 1;
+                        } else {
+                            if (!shown)
+                                return;
+                            openT = 0;
+                            recCloseTimer.restart();
+                        }
+                    }
+                    Timer {
+                        id: recCloseTimer
+                        interval: Theme.anim.normal
+                        onTriggered: recordingPiece.shown = false
+                    }
+                    IslandExpandClip {
+                        expand: recordingPiece.openT
+                        contentHeight: recordingPiece.height
+                        anchors.top: parent.top
+                        Item {
+                            width: parent.width
+                            height: recordingPiece.height
+                            Loader {
+                                id: recLoader
+                                anchors.centerIn: parent
+                                active: recordingPiece.shown
+                                sourceComponent: recordingPage
+                            }
+                        }
                     }
                 }
             }
             Component {
-                id: secondaryRecordingPage
+                id: recordingPage
                 RecordingIsland {}
             }
         }
@@ -1050,6 +1132,7 @@ PanelWindow {
             enabled: Settings.rightPanelHotZone
             panelLock: Settings.rightPanelLock
         }
+
     }
 
     // The toast pill maps on toasts alone so notifications survive a

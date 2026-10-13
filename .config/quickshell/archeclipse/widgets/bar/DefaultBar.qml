@@ -1,19 +1,17 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Quickshell
-import Quickshell.Widgets
-import Quickshell.Services.Mpris
 import qs.theme
 import qs.services
 import qs.widgets.bar
-import qs.widgets.shared
-import qs.widgets.weather
 
 // Center section (ex-Information) is inlined here directly:
-// weather + resources on the left; center rectangle with
-// bandwidth | control panel | clock; player pill first on the right,
-// then battery/brightness/volume/tray.
+// launcher + focused window title on the left; center rectangle with
+// bandwidth | control panel | clock; resource bars + battery/brightness/
+// volume/tray on the right. The title never contributes to the bar's
+// width (see topRow.leftMinWidth) — it fills only its own natural slot.
+// Weather and media live outside this bar as their own standalone pills
+// (Bar.qml, recording-pill pattern).
 // Top row holds all content; the workspace strip sits at the very bottom,
 // stretched across the full bar width.
 Column {
@@ -27,103 +25,26 @@ Column {
     property var barStack: null
     readonly property bool contentGliding: volumeWidget.revealing || brightnessWidget.revealing
     onContentGlidingChanged: root.setContentGliding(root.contentGliding)
-    onBarStackChanged: root.setContentGliding(root.contentGliding)
-    Component.onDestruction: root.setContentGliding(false)
+    // Workspace-strip icon reveal glides the strip's OWN height, so the pill
+    // must track it per-frame (rigidHeight) instead of easing after it — the
+    // same deal as the slider reveals above, on the vertical axis.
+    readonly property bool stripGliding: workspaces.revealing
+    onStripGlidingChanged: root.setStripGliding(root.stripGliding)
+    onBarStackChanged: {
+        root.setContentGliding(root.contentGliding);
+        root.setStripGliding(root.stripGliding);
+    }
+    Component.onDestruction: {
+        root.setContentGliding(false);
+        root.setStripGliding(false);
+    }
     function setContentGliding(on) {
         if (root.barStack)
             root.barStack.rigidWidth = on;
     }
-
-    // ---- media player state (MediaWidget parity: playing-else-first) ----
-    // Pass 1: active playing player. Pass 2: first with a title (so the
-    // pill hides instead of showing an empty entry when nothing plays).
-    readonly property var firstPlayable: {
-        Mpris.players.values;   // reactive dep
-        const vals = Mpris.players.values;
-        for (const p of vals) {
-            // touch reactive props so title / play-state changes re-fire
-            const _t = p.trackTitle;
-            const _s = p.playbackState;
-            const _p = p.isPlaying;
-            if (_p === true || _s === MprisPlaybackState.Playing)
-                return p;
-        }
-        for (const p of vals) {
-            const _t = p.trackTitle;
-            const _s = p.playbackState;
-            const _p = p.isPlaying;
-            if ((_t ?? "").trim() !== "")
-                return p;
-        }
-        return null;
-    }
-    readonly property bool isPlaying: {
-        const p = root.firstPlayable;
-        if (!p)
-            return false;
-        if (p.isPlaying !== undefined)
-            return p.isPlaying;
-        return p.playbackState === MprisPlaybackState.Playing;
-    }
-    readonly property string playerTitleText: {
-        const p = root.firstPlayable;
-        if (!p)
-            return "";
-        return p.trackTitle ?? "";
-    }
-
-    // Resolve the player's app icon via its MPRIS DesktopEntry, with identity
-    // fallbacks, then through Quickshell.iconPath() into an image:// URL —
-    // IconImage.source is a plain Image URL alias, so bare theme names
-    // never load. Missing icons yield "" and the pill falls back to its
-    // music-note glyph.
-    readonly property string playerIconSource: {
-        const p = root.firstPlayable;
-        if (!p)
-            return "";
-        const de = String(p.desktopEntry ?? "").trim();
-        const id = String(p.identity ?? "").trim();
-        let raw = "";
-        try {
-            let entry = null;
-            if (de !== "")
-                entry = DesktopEntries.byId(de) ?? DesktopEntries.heuristicLookup(de);
-            if (!entry && id !== "")
-                entry = DesktopEntries.heuristicLookup(id);
-            if (entry && entry.icon)
-                raw = entry.icon;
-        } catch (e) {}
-        // Lowercase identity usually matches (e.g. "Spotify" -> "spotify");
-        // dbus suffix as last resort.
-        if (raw === "" && id !== "")
-            raw = id.toLowerCase();
-        if (raw === "") {
-            const bus = String(p.dbusName ?? "").trim();
-            if (bus !== "") {
-                const tail = bus.split(".").pop();
-                if (tail)
-                    raw = tail.toLowerCase();
-            }
-        }
-        if (raw === "")
-            return "";
-        if (raw.startsWith("image://") || raw.startsWith("file://") || raw.startsWith("qrc:/") || raw.startsWith("/"))
-            return raw;
-        try {
-            return Quickshell.iconPath(raw, true);
-        } catch (e) {
-            return "";
-        }
-    }
-    readonly property string playerTooltip: {
-        const p = root.firstPlayable;
-        if (!p)
-            return "";
-        const id = (p.identity ?? "").trim();
-        const artist = (p.trackArtist ?? "").trim();
-        const title = (p.trackTitle ?? "").trim();
-        const track = artist !== "" ? artist + " — " + title : title;
-        return (id !== "" ? id : "Player") + (track !== "" ? "\n" + track : "");
+    function setStripGliding(on) {
+        if (root.barStack)
+            root.barStack.rigidHeight = on;
     }
 
     // Fixed-width dynamic speed: always 4 chars (3-char numeric + 1-char
@@ -150,11 +71,18 @@ Column {
 
     Item {
         id: topRow
-        // Both side sections count as wide as the wider one, so the
-        // centered pill always keeps at least Theme.spacing clearance
-        // from either side instead of clipping into the wider section.
-        // The weather button stretches to absorb any slack on the left.
-        readonly property real leftMinWidth: weatherButton.implicitWidth + Theme.spacing + resourceMonitor.implicitWidth
+        // Left zone minimums — the fixed resident item is the launcher; the
+        // focused window title is deliberately NOT counted. It elides into
+        // whatever the zone is given, so a long title can never widen the
+        // pill: counting it made the whole bar track the focused window
+        // (783 -> 930 just by focusing a long-titled window, and the width
+        // no longer retracted when the title shortened). Counting the
+        // resource monitor here is equally wrong — it lives in `utilities`
+        // (right zone); the phantom width was 86px that nothing occupied.
+        // Widths stay implicit-only (never assigned) so the sideWidth ->
+        // zone-width -> fill-width chain can't bind back into itself
+        // (Flickable-style polish loop, cf. RightIsland).
+        readonly property real leftMinWidth: launcherButton.implicitWidth + Theme.spacing
         readonly property real rightMinWidth: utilities.implicitWidth
         readonly property real sideWidth: Math.max(leftMinWidth, rightMinWidth)
         implicitWidth: 2 * sideWidth + centerPill.width + Theme.spacing * 2
@@ -240,7 +168,11 @@ Column {
             }
         }
 
-        // left zone — fixed sideWidth; weather stretches into the slack
+        // left zone — fixed sideWidth (mirrors the wider right zone so the
+        // center pill stays centered with clearance). The title occupies
+        // only its natural slot here; the rest of the zone stays empty and
+        // no title length can widen the bar. (Weather lives outside this
+        // bar as its own pill.)
         Item {
             id: leftZone
             anchors.left: parent.left
@@ -252,13 +184,17 @@ Column {
                 anchors.fill: parent
                 spacing: Theme.spacing
 
-                ResourceMonitor {
-                    id: resourceMonitor
-                    Layout.fillWidth: true
+                LauncherButton {
+                    id: launcherButton
                 }
-                WeatherButton {
-                    id: weatherButton
-                    Layout.fillWidth: true
+                WindowTitle {
+                    id: windowTitleButton
+                    // Natural size (never stretches into the slack), capped
+                    // so a long title elides instead of spilling past the
+                    // zone into the center pill. maximumWidth only caps the
+                    // layout's assignment — it never feeds WindowTitle's
+                    // implicitWidth, so it can't loop back into sideWidth.
+                    Layout.maximumWidth: Math.max(80, Math.min(240, topRow.sideWidth - launcherButton.implicitWidth - Theme.spacing * 2))
                 }
             }
         }
@@ -279,121 +215,9 @@ Column {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
 
-                // media pill (app icon + track title; hover/click pulses the
-                // full player island) — first on the right
-                Rectangle {
-                    id: playerPill
-                    visible: root.firstPlayable !== null
-                    width: visible ? contentRow.width + 16 : 0
-                    height: Theme.barContentHeight
-                    radius: Theme.radius
-                    color: playerHover.hovered ? Theme.surfaceHover : "transparent"
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 150
-                        }
-                    }
-
-                    Row {
-                        id: contentRow
-                        anchors.centerIn: parent
-                        spacing: 6
-
-                        // app icon (fallback: music-note glyph for the empty state)
-                        Item {
-                            width: 14
-                            height: 14
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            IconImage {
-                                id: playerIcon
-                                anchors.fill: parent
-                                source: root.playerIconSource
-                                visible: status === Image.Ready && root.playerIconSource !== ""
-                                asynchronous: true
-                            }
-                            Text {
-                                visible: !playerIcon.visible
-                                anchors.centerIn: parent
-                                text: "󰎈"
-                                color: Theme.muted
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                            }
-                        }
-
-                        // play/pause state glyph
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.isPlaying ? "" : ""
-                            color: root.isPlaying ? Theme.accent : Theme.muted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize - 2
-                        }
-
-                        Text {
-                            id: playerTitle
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.playerTitleText
-                            elide: Text.ElideRight
-                            width: Math.min(implicitWidth, 180)
-                            color: Theme.fg
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSize
-                        }
-                    }
-
-                    AppTooltip {
-                        visible: playerHover.hovered && root.playerTooltip !== ""
-                        text: root.playerTooltip
-                        delay: 500
-                    }
-
-                    // Hover dwell (Settings.revealInPressure, 0 = instant) so
-                    // brushing the cursor across the bar doesn't pulse the
-                    // island by accident.
-                    Timer {
-                        id: playerDwellTimer
-                        interval: Settings.revealInPressure
-                        repeat: false
-                        onTriggered: {
-                            if (playerHover.hovered && root.firstPlayable)
-                                BarState.activate("player", 2500);
-                        }
-                    }
-
-                    HoverHandler {
-                        id: playerHover
-                        onHoveredChanged: {
-                            if (playerHover.hovered && root.firstPlayable) {
-                                if (Settings.revealInPressure <= 0)
-                                    BarState.activate("player", 2500);
-                                else
-                                    playerDwellTimer.restart();
-                            } else {
-                                playerDwellTimer.stop();
-                            }
-                        }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: mouse => {
-                            if (!root.firstPlayable)
-                                return;
-                            if (mouse.button === Qt.MiddleButton) {
-                                root.firstPlayable.togglePlaying();
-                                return;
-                            }
-                            BarState.activate("player", 2500);
-                        }
-                    }
+      ResourceMonitor {
+                    id: resourceMonitor
                 }
-
                 Battery {}
                 Brightness {
                     id: brightnessWidget
@@ -408,6 +232,7 @@ Column {
 
     // bottom workspace strip — full width of the bar content
     Workspaces {
+        id: workspaces
         width: topRow.implicitWidth
     }
 }
