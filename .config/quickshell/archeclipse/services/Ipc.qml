@@ -651,6 +651,17 @@ Item {
     }
 
     IpcHandler {
+        target: "clipboard"
+
+        // Fired by `wl-paste --watch` (spawned by ClipboardService at
+        // boot) on every copy. Queued, never coalesced.
+        function event(): string {
+            ClipboardService.onEvent();
+            return "clipboard event queued";
+        }
+    }
+
+    IpcHandler {
         target: "dragOverlay"
 
         function start(monitor: string, x: real, y: real): string {

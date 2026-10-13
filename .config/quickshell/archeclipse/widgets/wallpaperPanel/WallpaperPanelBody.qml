@@ -36,7 +36,6 @@ Item {
     implicitHeight: mainCol.implicitHeight
 
     readonly property string home: Quickshell.env("HOME")
-    readonly property string wallpaperScript: home + "/.config/quickshell/archeclipse/scripts/get-wallpapers.sh"
     // WallEclipse CLI: `walleclipse set <monitor> <ws> <path>` (config + show),
     // `walleclipse transition [name]` (workspace-switch slide/fade, persisted
     // daemon-side across reload + reboot).
@@ -106,7 +105,7 @@ Item {
 
     // Shared store (fetched once at boot): WallpaperService owns the
     // category map, thumb manifest and aspect cache; this body binds
-    // read-only so every monitor shares one get-wallpapers.sh run.
+    // read-only so every monitor shares one WallpaperService scan.
     readonly property var wallpapers: WallpaperService.wallpapers
     readonly property var categories: Object.keys(wallpapers)
     // Single source of truth: Settings.wallpaperCategory. This binding is NEVER
@@ -209,7 +208,7 @@ Item {
     readonly property string wallhavenDir: home + "/.config/wallpapers/wallhaven"
 
     // First-frame thumbnails for video tiles live in the shared store
-    // (adopted from the background gen-video-thumbs.sh manifest).
+    // (adopted from WallpaperService's background ffmpeg queue).
     readonly property var thumbMap: WallpaperService.thumbMap
     function thumbFor(path) {
         return WallpaperService.thumbFor(path);
@@ -353,21 +352,69 @@ Item {
 
     Process {
         id: fetchCurrentProc
+        // Compat flag: bodies bind `fetchCurrentProc.running` for readiness.
         // No declarative command: launcher functions below assign it
         // explicitly (see restartCurrentFetch NOTE about stale bindings).
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    root.currentWallpapers = JSON.parse(text).map(String);
-                } catch (e) {
-                    root.notifyError("fetching current wallpapers", e);
-                }
-            }
+        property bool running: false
+    }
+    // --current, QML-native (replaces get-wallpapers.sh --current):
+    // reads $HOME/.config/walleclipse/config/<monitor>/defaults.conf
+    // (`key=path` per line) via a one-shot FileView. One reader per
+    // fetch — a reused FileView fires loaded only on its first load
+    // (probed 2026-10-13). _currentSeq guards stale deliveries the
+    // same way the old running=false/true restart did.
+    property var _currentReader: null
+    property int _currentSeq: 0
+    function _parseCurrentDefaults(text) {
+        // Mirrors `while IFS='=' read -r key path` + sed s~^\$HOME~$HOME~
+        // + xargs: split at first '=', expand a literal $HOME prefix,
+        // trim/squeeze whitespace. The trailing-newline artifact yields
+        // no iteration under read, so drop it (interior blanks stay "").
+        const out = [];
+        const raw = String(text || "").split("\n");
+        if (raw.length > 0 && raw[raw.length - 1] === "")
+            raw.pop();
+        for (let i = 0; i < raw.length; i++) {
+            const eq = raw[i].indexOf("=");
+            let p = eq === -1 ? "" : raw[i].slice(eq + 1);
+            if (p.indexOf("$HOME") === 0)
+                p = root.home + p.slice(5);
+            out.push(p.trim().split(/\s+/).join(" "));
+        }
+        return out;
+    }
+    function _adoptCurrent(seq, text) {
+        if (seq !== root._currentSeq)
+            return;
+        try {
+            root.currentWallpapers = root._parseCurrentDefaults(text).map(String);
+        } catch (e) {
+            root.notifyError("fetching current wallpapers", e);
+        }
+    }
+    function _readCurrentFor(monitor) {
+        if (root._currentReader) {
+            root._currentReader.destroy();
+            root._currentReader = null;
+        }
+        root._currentSeq++;
+        if (!monitor) {
+            root.currentWallpapers = [];
+            return;
+        }
+        const seq = root._currentSeq;
+        const p = root.home + "/.config/walleclipse/config/" + monitor + "/defaults.conf";
+        const esc = p.split("\\").join("\\\\").split('"').join('\\"');
+        try {
+            root._currentReader = Qt.createQmlObject('import Quickshell.Io; FileView { path: "' + esc + '"; watchChanges: false; printErrors: false;'
+                + ' onLoaded: root._adoptCurrent(' + seq + ', text());'
+                + ' onLoadFailed: root._adoptCurrent(' + seq + ', "") }', root);
+        } catch (e) {
+            root._adoptCurrent(seq, "");
         }
     }
     function fetchCurrentWallpapers() {
-        fetchCurrentProc.command = ["bash", root.wallpaperScript, "--current", root.effectiveMonitor];
-        fetchCurrentProc.running = true;
+        root._readCurrentFor(root.effectiveMonitor);
     }
     // Superseding restart for monitor changes: a run for the old monitor
     // may still be in flight (boot prime), and running=true on a running
@@ -381,9 +428,7 @@ Item {
     // (same trap as onProviderChanged/isWallhaven — verified via probe:
     // mon=[DP-2] eff=[eDP-1] launched an eDP-1 fetch returning []).
     function restartCurrentFetch() {
-        fetchCurrentProc.command = ["bash", root.wallpaperScript, "--current", root.monitorName];
-        fetchCurrentProc.running = false;
-        fetchCurrentProc.running = true;
+        root._readCurrentFor(root.monitorName);
     }
 
     // ------------------------------------------------- wallhaven provider

@@ -13,7 +13,7 @@ import qs.services
 //   note ...          notes CRUD          (list/add/edit <n>/del <n> over cache/launcher/notes.json)
 //   apps ...          list all apps
 //   emoji ...         emoji search        (search assets/emojis/emojis.json)
-//   translate <t> > <lang>  translate via scripts/translate.sh
+//   translate <t> > <lang>  translate via trans(1) (translate-shell, direct)
 //   N unit in/unit M  unit conversion     (full table incl. speed/digital/temp)
 //   arithmetic        ..*/+-..
 //   URL               open link
@@ -28,7 +28,6 @@ QtObject {
     readonly property int maxItems: 10
     readonly property string historyPath: `${Quickshell.env("HOME")}/.cache/quickshell/launcher/app-history.json`
     readonly property string notesPath: `${Quickshell.env("HOME")}/.cache/quickshell/launcher/notes.json`
-    readonly property string clipboardPath: `${Quickshell.env("HOME")}/.cache/quickshell/launcher/clipboard-history.json`
     readonly property string emojisPath: `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/assets/emojis/emojis.json`
     readonly property string quickAppHistoryPath: `${Quickshell.env("HOME")}/.cache/quickshell/launcher/quick-app-history.json`
 
@@ -691,29 +690,11 @@ QtObject {
         return [mkResult("Note saved", "\u{F19DB}", content, null)];
     }
 
-    // ---- clipboard (cache/launcher/clipboard-history.json, written by clipboard-monitor.sh) ----
-    // watchChanges must stay true: the history file is written externally by
-    // clipboard-monitor.sh (wl-paste --watch), so a one-shot load goes stale
-    // and clipboardResults keeps returning "No clipboard match". text() is a
-    // method call so the index binding never re-fires on file change —
-    // refresh it explicitly via onLoaded (same reload() cycle as
-    // Brightness.qml), otherwise only a bar restart picks up new copies.
-    property FileView _cbFile: FileView {
-        path: root.clipboardPath
-        watchChanges: true
-        printErrors: false
-        onLoaded: root._reloadClipboard()
-        onFileChanged: reload()
-    }
-    property var _clipboardIndex: []
-    function _reloadClipboard() {
-        try {
-            const v = JSON.parse(_cbFile.text() || "[]");
-            _clipboardIndex = Array.isArray(v) ? v : [];
-        } catch (e) {
-            _clipboardIndex = [];
-        }
-    }
+    // ---- clipboard (history owned live by ClipboardService; the JSON
+    // file is persistence only — a FileView watch on it misses updates
+    // after rename-replace writes, verified live 2026-10-13: copies
+    // landed in the file but `cb` kept searching a boot-time snapshot) ----
+    readonly property var _clipboardIndex: ClipboardService.history
     function clipboardResults(query) {
         const q = query.toLowerCase().trim();
         let out = [];
@@ -732,14 +713,20 @@ QtObject {
         return out;
     }
 
-    // ---- translate (scripts/translate.sh) ----
+    // ---- translate (trans(1) direct; wrapper script deleted) ----
     property Process _trProc: Process {
+        id: trProc
         property string mode: ""
         command: ["true"]
         stdout: StdioCollector {
             onStreamFinished: {
-                if (parent.mode === "translate")
-                    root.results = [root.mkResult(text.trim(), "\u{F10CC}", "Translation · click to copy", () => root.copyToClipboard(text.trim()))];
+                if (trProc.mode === "translate") {
+                    const out = text.trim();
+                    if (out === "")
+                        root.results = [root.mkResult("Translation failed", "\u{F10CC}", "trans returned no output · check network", null)];
+                    else
+                        root.results = [root.mkResult(out, "\u{F10CC}", "Translation · click to copy", () => root.copyToClipboard(out))];
+                }
             }
         }
     }
@@ -798,11 +785,11 @@ QtObject {
 
         const parts = t.trim().split(/\s+/);
 
-        // translate "hello > es"
+        // translate "hello > es" — trans(1) direct (auto-detect source)
         const trMatch = t.match(/^(.+?)\s*>\s*(\w{2})$/);
         if (trMatch) {
             _trProc.mode = "translate";
-            _trProc.command = ["bash", `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/scripts/translate.sh`, trMatch[1].trim(), trMatch[2]];
+            _trProc.command = ["trans", "-brief", trMatch[1].trim(), "-t", trMatch[2] || "en"];
             _trProc.running = true;
             results = [mkResult("Translating…", "\u{F10CC}", "", null)];
             return;

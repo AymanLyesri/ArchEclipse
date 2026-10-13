@@ -16,7 +16,7 @@ config/custom/*.lua     # MACHINE-LOCAL overrides (gitignored, except .gitkeep)
 config/defaults/*.lua   # template files with {{ PLACEHOLDERS }} for maintenance/install.py
 theme/theme.conf        # gitignored runtime theme state (autocolor/autovariant)
 theme/scripts/          # wal/cwal, gtk/icon/cursor/system theme appliers
-scripts/                # bar.sh, screenshot.sh, change-brightness.sh, clipboard-monitor.sh, ...
+scripts/                # bar.sh, screenshot.sh, change-brightness.sh, ...
 scripts-c/              # battery-check.c, updates-check.c (compiled to /tmp by compile-run-binaries.sh)
 evremap/                # remap.toml + configuration.sh + evremap.service (numlock/numpad remaps)
 maintenance/            # update.py + install.py + components/*.py (ArchEclipse installer/updater)
@@ -116,9 +116,9 @@ tracked base files for local-only needs).
 - `compile-run-binaries.sh` installs cron entries only when missing and
   recompiles only stale binaries — safe to run once to test, but don't run
   it in a loop.
-- `wl-paste --watch clipboard-monitor.sh` self-cleans stale watchers on
-  start (`exec.lua`); when testing manually, still kill old
-  `clipboard-monitor` / `wl-paste --watch` processes first.
+- Quickshell's ClipboardService owns the `wl-paste --watch` clipboard
+  watcher (culls stale watchers at shell boot); when testing manually,
+  still kill old `wl-paste --watch` processes first.
 - `maintenance/update.py` phones home to a counter URL, has NO backup before
   `reset --hard`, and uses `sudo`/`killall -9` on package managers — never
   execute it autonomously.

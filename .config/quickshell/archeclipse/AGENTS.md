@@ -127,8 +127,8 @@ All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb
 |---|---|
 | `BarState` | Pill state machine (1.2) |
 | `Registry` | Island/window handle map (`left-island-<mon>`, `lock-screen`); `selectLeftTab()` |
-| `Ipc` (non-singleton) | `qs ipc call …` targets: `toggleSearch/Control/Wallpaper/Bar/LeftPanel/RightPanel/Panel`, `showWidget`, `screenrecord <mode>`, `lock …`; `brightness increment/decrement/adjust <±N>/set <N>/get` (focused monitor) |
-| `Launcher` | Query pipeline (`cb/note/apps/emoji/translate/units/arithmetic/URL/>palette/fuzzy`), `results`, `selectedIndex`, `quickAppOrder` + history files under `~/.cache/quickshell/launcher/` |
+| `Ipc` (non-singleton) | `qs ipc call …` targets: `toggleSearch/Control/Wallpaper/Bar/LeftPanel/RightPanel/Panel`, `showWidget`, `screenrecord <mode>`, `lock …`, `clipboard event`; `brightness increment/decrement/adjust <±N>/set <N>/get` (focused monitor) |
+| `Launcher` | Query pipeline (`cb/note/apps/emoji/translate/units/arithmetic/URL/>palette/fuzzy`), `results`, `selectedIndex`, `quickAppOrder` + history files under `~/.cache/quickshell/launcher/` (`cb` binds `ClipboardService.history` live — never file-watch it, rename-replace freezes the watch) |
 | `ScreenRecorder` | `wf-recorder` via `~/.config/hypr/scripts/screenrecord.sh`; `isRecording` is **polled** (`pgrep`, 1s) + 1.2s settle — lags reality ~2s, never use it for rapid toggle decisions |
 | `Notifications` | Daemon mirror: ephemeral `popupToasts` vs retained `history`; `Recorder` toasts get red-dot treatment |
 | `Settings` | Persisted config (`theme/Settings.qml`, ~1270 lines): bar/panel geometry, hotzones, `revealPressure`, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
@@ -136,13 +136,16 @@ All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb
 | `Weather, KeyboardLayout, SysInfo, VolumeWatcher` | Device/API polling singletons (`Weather` owns `fmt/fmtRaw/formatTime/formatDate` for `WeatherCard`; `SysInfo.bandwidth` is the single `bandwidth-loop` owner bound by `Bandwidth`) |
 | `FastfetchPins, AutoWorkspaceSwitching, GlobalTheme, UserProfileState` | Boot/prefs singletons: pins self-heal + watcher, workspace auto-switch, global theme bridge, profile cache |
 | `BooruActions, Supabase, WorkspaceIcons` | Domain helpers: booru download/fav actions, Supabase client config, workspace glyph map |
+| `ClipboardService` | Clipboard history owner: spawns `wl-paste --watch qs … ipc call clipboard event` at boot (culls stale watchers first), per-event FIFO capture with 400ms offer-settle (image/png→jpeg→webp→uri-list→text/plain) into `~/.cache/quickshell/launcher/` history JSON + `clipboard-images/`; exposes live `history` for `cb` |
 
 There is no `utils/` module (deleted 2026-09-13 — `JsonUtils, MonitorUtils,
 SettingsUtils, TimeUtils, WindowManager` are gone; logic was inlined).
-`scripts/` holds `booru.py`, `chatbot.py`, `crypto.py`, `manga.py`, `translate.sh`,
-`get-keybinds.sh`, `get-wallpapers.sh`, `wallhaven.py`, `gen-video-thumbs.sh`,
-`cava/`, `auth-server-callback.py`, plus C loops (`bandwidth-loop.c`,
-`system-resources-loop.c`). Hyprland-side scripts live
+`scripts/` holds `booru.py`, `chatbot.py`, `crypto.py`, `manga.py`,
+`get-wallpapers.sh` (`--current` branch only; default listing + `translate.sh`,
+`get-keybinds.sh`, `gen-video-thumbs.sh` went QML-native 2026-10-13), `wallhaven.py`,
+`cava/`, `auth-server-callback.py`, plus `sysmonitor.rs` (single-file Rust
+bandwidth + system-resources daemon, rustc-gated into
+`~/.cache/quickshell/binaries/`). Hyprland-side scripts live
 **outside** this repo (`~/.config/hypr/scripts/screenrecord.sh`, `filemanager.sh`,
 `screenshot.sh`); keybinds in `~/.config/hypr/config/bind.lua` shell out via `qsIpc`
 (e.g. `SUPER+SHIFT+R` → `screenrecord now`).
@@ -184,7 +187,7 @@ Widget dirs: `bar/` (pill + `Bandwidth/Battery/Brightness/Clock/Network/Resource
 + `islands/`), `controlPanel/ControlPanelBody.qml`, `launcher/` (`LauncherPanel`, `AppEntry`),
 `lock/` (`LockScreen/LockSurface/LockContext`, WlSessionLock+PAM), `media/` (`MediaWidget/MediaWindow/MediaVideo/WaveVisualizer`
 — `PlayerWidget.qml` deleted), `notifications/NotificationPopups.qml`, `rightPanel/` (Calendar/Crypto/CryptoItem/FormShell/JsonListStore/NotificationHistory/NotificationItem/ScriptTimer/SystemResources/TaskItem/Waifu — `StackItem.qml` deleted),
-`wallpaperPanel/WallpaperPanelBody.qml` (per-workspace picker + SDDM bg + video thumbs via `gen-video-thumbs.sh`),
+`wallpaperPanel/WallpaperPanelBody.qml` (per-workspace picker + SDDM bg + QML-native video thumbs via WallpaperService),
 `weather/` (`WeatherCard.qml` single UI, `WeatherWidget.qml` thin wrapper, `WeatherButton.qml`).
 
 ### 1.7 Scrolling — single tuning point

@@ -73,7 +73,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.rightMargin: root.rightReserve
+        anchors.margins: 6
         spacing: 10
 
         // ---------- icon slot ----------
