@@ -100,7 +100,7 @@ tracked base files for local-only needs).
 - C daemons: `gcc scripts-c/<name>.c -o /tmp/<name>` then run once manually.
 - Coloreclipse (`~/.config/ColorEclipse`, binary `coloreclipse`): `cargo test`, then
   run `target/release/coloreclipse get|switch|apply|wal` directly.
-  `wal <path>` mutates cwal colors *and* the system variant whenever `autovariant` is on
+  `wal <path>` mutates wallpaper colors *and* the system variant whenever `autovariant` is on
   (the default with no conf file) — use a throwaway wallpaper or check `get` first.
 - Wallpaper logs: `/tmp/walleclipse.log` (daemon stdout: `/tmp/walleclipse-daemon-out.log` when started manually).
 - Bar logs: `/tmp/qs-bar-$USER.log`.

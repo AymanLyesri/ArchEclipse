@@ -45,12 +45,19 @@ Rectangle {
         return cls !== "" ? cls : "Desktop";
     }
     readonly property string winIcon: root.winClass !== "" ? WorkspaceIcons.forClientClass(root.winClass) : ""
+    // Elide bound passed down from the bar (layout cap minus pill chrome:
+    // margins + icon + spacing). Upstream-only on purpose — deriving the
+    // text width from the Row/layout width collapses to a 0-width fixed
+    // point (the width feeds the Row implicitWidth it is measured from).
+    property real textMaxWidth: 190
 
     Row {
         id: content
-        anchors.centerIn: parent
+        anchors.left: parent.left
+        anchors.leftMargin: 8
+        anchors.verticalCenter: parent.verticalCenter
         spacing: 6
-        width: Math.min(implicitWidth, parent.width - 16)
+        width: Math.max(0, Math.min(implicitWidth, parent.width - 16))
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -60,15 +67,19 @@ Rectangle {
             font.pixelSize: Theme.fontSize
         }
         Text {
+            id: titleText
             anchors.verticalCenter: parent.verticalCenter
             text: root.winTitle
+            horizontalAlignment: Text.AlignLeft
             elide: Text.ElideRight
-            width: Math.min(implicitWidth, 190)
+            clip: true
+            width: Math.min(implicitWidth, root.textMaxWidth)
             color: Theme.fg
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
         }
     }
+
 
     HoverHandler {
         id: titleHover

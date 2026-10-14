@@ -111,7 +111,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/79/e6/__original_drawn_by_bodhi_wushushenghua__79e67145283e7e11872ffbbb53036592.jpg",
     "https://cdn.donmai.us/original/99/60/__nagant_revolver_girls_frontline_drawn_by_shenqi_xiaohuang__99608b5d084e879c9d9d0bb33aec55f3.jpg",
     "https://cdn.donmai.us/original/4f/b8/__spas_12_tmp_sabrina_and_harpsy_girls_frontline_and_1_more_drawn_by_spencer_sais__4fb8aa4c1d9c037fc8d055424e6363e7.png",
-    "https://cdn.donmai.us/original/95/a8/__koseki_bijou_hololive_and_1_more_drawn_by_albreo__95a8b13bf7db1177b516f526698b740a.png",
     "https://cdn.donmai.us/original/d4/a3/__sonetto_reverse_1999_drawn_by_alvin2017uk__d4a3e0b75823127775ffe655fdfb4de4.jpg",
     "https://cdn.donmai.us/original/09/04/__mirko_and_shihouin_yoruichi_boku_no_hero_academia_and_2_more_drawn_by_themaestronoob__0904bb8f56b8e75629b23ac31e2f6246.jpg",
     "https://cdn.donmai.us/original/fb/ab/__nerissa_ravencroft_and_elizabeth_rose_bloodflame_hololive_and_1_more_drawn_by_daaku_koizumi_arata__fbab2a6ec8d5fdbbe438ee399bb6cd34.jpg",
@@ -140,6 +139,19 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/29/ee/__odette_genshin_impact_drawn_by_far_side__29eed0cc6d330e44c90adbba60e893ee.jpg",
     "https://cdn.donmai.us/original/f2/82/__belle_wise_ellen_joe_and_eous_zenless_zone_zero_drawn_by_sushispin__f2822332886f538e871b532bed4cf2ce.jpg",
     "https://cdn.donmai.us/original/3f/c7/__recluse_elden_ring_and_1_more_drawn_by_kirani__3fc7d3992a0c7d3014a61ab05f8c3a16.jpg",
+    "https://cdn.donmai.us/original/29/f9/__ishtar_fate_and_1_more_drawn_by_yd_orange_maru__29f94173e825e9a19fed51028f583843.jpg",
+    "https://cdn.donmai.us/original/03/b7/__seia_blue_archive_drawn_by_iranon_new_iranon__03b7e2380ee8725ea5fa09d7d0173437.jpg",
+    "https://cdn.donmai.us/original/ef/73/__rio_blue_archive_drawn_by_yerim__ef73864bb89ed15ebb7d3b3313e04f64.png"
+    "https://cdn.donmai.us/original/36/0b/__clorinde_genshin_impact_drawn_by_omone_hokoma_agm__360bdaf1943f22c0348e68c744bc614a.jpg",
+    "https://cdn.donmai.us/original/aa/d7/__evelyn_chevalier_zenless_zone_zero_drawn_by_dysoor__aad7269805e42ff5bda7674ff96c1f7a.jpg",
+    "https://cdn.donmai.us/original/6d/9c/__original_drawn_by_ogre_illustogre__6d9c00d4137c55102387465e7325592f.png",
+    "https://cdn.donmai.us/original/76/d2/__yelan_genshin_impact_drawn_by_queasy_s__76d2df7080f4a3e2d96bb2b8e27d6c1e.png",
+    "https://cdn.donmai.us/original/39/e7/__vei_vshojo_drawn_by_dyarikku__39e7f60261458bd057e60b60edd7784b.jpg",
+    "https://cdn.donmai.us/original/62/1d/__ishtar_fate_and_1_more_drawn_by_bao_pixiv_99415611__621d71a2e6d36ad8424e638bca8f9238.jpg",
+    "https://cdn.donmai.us/original/83/6a/__nayuta_goddess_of_victory_nikke_drawn_by_bao_pixiv_99415611__836a218f385eab00edaea7cc69d95afe.jpg",
+    "https://cdn.donmai.us/original/74/1f/__2b_and_pod_nier_and_1_more_drawn_by_kajin_kajinman__741fcb653a14aeb3db906080091d55fb.jpg",
+    "https://cdn.donmai.us/original/85/4b/__brest_azur_lane_drawn_by_yolanda__854bb1c71e05317287583199ec536201.jpg",
+    "https://cdn.donmai.us/original/95/e4/__dusk_arknights_drawn_by_omone_hokoma_agm__95e438265a597f57c5e7878aea35017d.jpg",
 ]
 
 urls_animated_sfw = [
@@ -170,6 +182,7 @@ urls_animated_nsfw = [
     "https://cdn.donmai.us/original/44/6f/446f5828a683141696dccaedb777803a.mp4",
     "https://cdn.donmai.us/original/d7/f2/d7f2dc6cb4be818b67c35e2366f4cd69.mp4",
     "https://cdn.donmai.us/original/33/28/3328518dc5859617c18c4bd8f564e374.mp4",
+    "https://cdn.donmai.us/original/08/00/0800c53d039287c4b67c07a205eb0417.mp4",
 ]
 
 

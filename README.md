@@ -8,16 +8,10 @@
 
 **Hyprland desktop that just works — daily-driven, fully themed, one-command install.**
 
-[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/fMGt4vH6s5)
-
-[![Stars](https://img.shields.io/github/stars/AymanLyesri/archeclipse?style=social)](https://github.com/AymanLyesri/ArchEclipse/stargazers)
-[![Issues](https://img.shields.io/github/issues/AymanLyesri/ArchEclipse?style=flat-square)](https://github.com/AymanLyesri/ArchEclipse/issues)
-
-[![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=flat-square&logo=arch-linux&logoColor=white)](https://archlinux.org/)
-[![Hyprland](https://img.shields.io/badge/Hyprland-blue?style=flat-square)](https://hyprland.org/)
-[![Quickshell](https://img.shields.io/badge/Quickshell-4A86CF?style=flat-square)](https://quickshell.org/)
-[![QtQuick](https://img.shields.io/badge/QtQuick_QML-41CD52?style=flat-square&logo=qt&logoColor=white)](https://doc.qt.io/qt-6/qtquick-index.html)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org/)
+[![](https://img.shields.io/github/last-commit/AymanLyesri/ArchEclipse?&style=for-the-badge&color=8ad7eb&logo=git&logoColor=D9E0EE&labelColor=1E202B)](https://github.com/AymanLyesri/ArchEclipse/commits/master)
+[![](https://img.shields.io/github/stars/AymanLyesri/ArchEclipse?style=for-the-badge&logo=andela&color=86dbd7&logoColor=D9E0EE&labelColor=1E202B)](https://github.com/AymanLyesri/ArchEclipse/stargazers)
+[![](https://img.shields.io/github/repo-size/AymanLyesri/ArchEclipse?color=86dbce&label=SIZE&logo=protondrive&style=for-the-badge&logoColor=D9E0EE&labelColor=1E202B)](https://github.com/AymanLyesri/ArchEclipse)
+<a href="https://discord.gg/fMGt4vH6s5"> <img alt="Discord members" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscordapp.com%2Fapi%2Finvites%2FfMGt4vH6s5%3Fwith_counts%3Dtrue&query=approximate_member_count&style=for-the-badge&logo=discord&logoColor=D9E0EE&label=discord&labelColor=%231E202B&color=86dbc0&link=https%3A%2F%2Fdiscord.gg%2FfMGt4vH6s5"> </a>
 
 </div>
 
@@ -209,6 +203,22 @@ Python installer = deps + dotfiles + packages. One command in, `archeclipse` kee
 
 ---
 
+## Plugins
+
+### [WallEclipse](https://github.com/AymanLyesri/WallEclipse)
+
+Preloaded layer-shell wallpaper daemon for Hyprland — replaces hyprpaper with instant, per-workspace wallpaper switching.
+
+![WallEclipse overview](https://raw.githubusercontent.com/AymanLyesri/WallEclipse/master/.github/assets/overview.gif)
+
+### [ColorEclipse](https://github.com/AymanLyesri/ColorEclipse)
+
+Light/dark theme applier for ArchEclipse — drives gsettings, the GTK/icon/cursor themes, and wallpaper color generation from one binary.
+
+![ColorEclipse overview](https://raw.githubusercontent.com/AymanLyesri/ColorEclipse/main/.github/assets/overview.gif)
+
+---
+
 ## Roadmap
 
 - [ ] Per-component docs _(in progress)_
@@ -225,9 +235,9 @@ Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issu
 
 ![Application Launcher](.github/assets/app-launcher.png)
 
-### Control Panel
+<!-- ### Control Panel
 
-![Control Panel](.github/assets/control-panel.png)
+![Control Panel](.github/assets/control-panel.png) -->
 
 ### Right Panel
 
@@ -251,9 +261,10 @@ Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issu
 
 ![Wallpaper Switcher](.github/assets/wallpaper-switcher.png)
 
-### Workspaces · Lock
+### Lock
 
-![Workspace Overview](.github/assets/workspace-overview.png)
+<!-- ![Workspace Overview](.github/assets/workspace-overview.png) -->
+
 ![Lock Screen](.github/assets/lock-screen.png)
 
 ---

@@ -305,6 +305,14 @@ Item {
             root.whSearch();
     }
 
+    // Best-effort: a fire-and-forget spawn during teardown may not survive
+    // (the child Process is destroyed with us), so the daemon's own 5s
+    // preview watchdog is the real guarantee when the island goes away.
+    Component.onDestruction: {
+        previewDwell.stop();
+        root.clearPreview();
+    }
+
     // Hosts call this when the body becomes visible.
     function refresh() {
         WallpaperService.refresh();
@@ -319,8 +327,12 @@ Item {
     // it — see above). Restart (not just start) so a stale in-flight run
     // for a previous monitor can't deliver after us.
     onMonitorNameChanged: {
-        if (root.monitorName !== "")
+        if (root.monitorName !== "") {
+            // The overlay is bound to the monitor that was hovered; drop it
+            // before the new monitor's fetch takes over.
+            root.clearPreview();
             restartCurrentFetch();
+        }
     }
 
     // Keep the selected workspace synced to whatever's focused when the
@@ -621,11 +633,78 @@ Item {
     }
 
     function applyWallpaper(path) {
+        // A set supersedes any live hover preview on this monitor. The
+        // daemon cuts it too, but clearing first leaves no frame of stale
+        // preview over the incoming wallpaper.
+        root.clearPreview();
         setProgress("setting");
         root._pendingTarget = root.targetType;
         root._pendingThemeRegen = (root.targetType === "workspace" && Settings.dynamicThemeColors) ? path : "";
         setProc.command = commandFor(root.targetType, path);
         setProc.running = true;
+    }
+
+    // Fullscreen hover preview (WallEclipse overlay): hover a tile to cover
+    // the monitor, leave to dismiss. Daemon-down ERR is ignored silently —
+    // no toast, no progress change. Last-hover-wins ordering is enforced by
+    // the daemon (it serializes show/clear and supersedes by generation);
+    // _previewSeq is only a local bookkeeping counter, not the ordering
+    // mechanism. Leave only clears when the leaving tile still owns
+    // _previewPath.
+    property int _previewSeq: 0
+    property string _previewPath: ""
+    // Hover dwell: only preview once the cursor has settled on a tile, so
+    // sweeping across the strip fires nothing (and the daemon allocates no
+    // fade per tile crossed). Raise `previewDwellMs` to make it lazier.
+    readonly property int previewDwellMs: 400
+    property string _dwellPath: ""
+    function hoverPreview(path) {
+        if (!path || !root.effectiveMonitor)
+            return;
+        root._dwellPath = String(path);
+        previewDwell.restart();
+    }
+    function leavePreview(path) {
+        if (root._dwellPath === String(path)) {
+            previewDwell.stop();
+            root._dwellPath = "";
+        }
+        if (root._previewPath === String(path))
+            root.clearPreview();
+    }
+    Timer {
+        id: previewDwell
+        interval: root.previewDwellMs
+        onTriggered: {
+            const p = root._dwellPath;
+            root._dwellPath = "";
+            if (p !== "")
+                root.previewWallpaper(p);
+        }
+    }
+    function previewWallpaper(path) {
+        if (!path || !root.effectiveMonitor)
+            return;
+        root._previewSeq += 1;
+        root._previewPath = String(path);
+        const p = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
+        p.command = [root.walleclipseBin, "preview", root.effectiveMonitor, String(path)];
+        p.running = true;
+        p.exited.connect(function () {
+            p.destroy();
+        });
+    }
+    function clearPreview() {
+        if (!root.effectiveMonitor)
+            return;
+        root._previewSeq += 1;
+        root._previewPath = "";
+        const p = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
+        p.command = [root.walleclipseBin, "preview-clear", root.effectiveMonitor];
+        p.running = true;
+        p.exited.connect(function () {
+            p.destroy();
+        });
     }
 
     // ---- global theme sharing (coloreclipse wal -> cwal colors.scss -> Theme) ----
@@ -1506,6 +1585,10 @@ Item {
                             onContainsMouseChanged: {
                                 if (!containsMouse && !copyMa.containsMouse && !delMa.containsMouse)
                                     tile.deleteArmed = false;
+                                if (containsMouse)
+                                    root.hoverPreview(tile.modelData);
+                                else
+                                    root.leavePreview(tile.modelData);
                             }
                             onClicked: mouse => {
                                 if (mouse.button === Qt.RightButton)

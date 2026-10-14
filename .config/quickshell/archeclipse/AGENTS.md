@@ -21,7 +21,7 @@
 
 Startup also `mkdir -p`s every cache dir `FileView` writes to (writes to missing dirs fail silently):
 `~/.cache/quickshell/{settings,booru,launcher,script-timer,crypto,chatbot,auth,manga,wallpaper-thumbs}`,
-`~/.cache/cwal`, `~/.config/wallpapers/{custom,wallhaven,defaults}`, `~/.config/fastfetch/cache`
+`~/.cache/coloreclipse`, `~/.config/wallpapers/{custom,wallhaven,defaults}`, `~/.config/fastfetch/cache`
 — and primes `FastfetchPins` so its pins-watcher attaches at boot.
 
 ### 1.2 Bar state machine — `services/BarState.qml` (singleton)

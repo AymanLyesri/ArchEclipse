@@ -85,6 +85,11 @@ Column {
         readonly property real leftMinWidth: launcherButton.implicitWidth + Theme.spacing
         readonly property real rightMinWidth: utilities.implicitWidth
         readonly property real sideWidth: Math.max(leftMinWidth, rightMinWidth)
+        // Title cap shared by WindowTitle's Layout.maximumWidth and its
+        // text elide width (minus pill chrome) — upstream-only values so
+        // the title width can never bind back into the layout (degenerate
+        // 0-width fixed point, seen 2026-10-14).
+        readonly property real titleCap: Math.max(80, Math.min(240, sideWidth - launcherButton.implicitWidth - Theme.spacing * 2))
         implicitWidth: 2 * sideWidth + centerPill.width + Theme.spacing * 2
         width: implicitWidth
         height: Theme.barContentHeight
@@ -194,7 +199,11 @@ Column {
                     // zone into the center pill. maximumWidth only caps the
                     // layout's assignment — it never feeds WindowTitle's
                     // implicitWidth, so it can't loop back into sideWidth.
-                    Layout.maximumWidth: Math.max(80, Math.min(240, topRow.sideWidth - launcherButton.implicitWidth - Theme.spacing * 2))
+                    // textMaxWidth carries the same bound minus pill chrome
+                    // (margins + icon + spacing) so the text elides at the
+                    // true available width at any bar size.
+                    Layout.maximumWidth: topRow.titleCap
+                    textMaxWidth: Math.max(0, topRow.titleCap - 36)
                 }
             }
         }

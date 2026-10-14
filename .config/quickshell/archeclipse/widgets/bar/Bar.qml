@@ -295,13 +295,15 @@ PanelWindow {
             // per-frame (rigidly coupled to width animations). Discrete
             // open/close pushes animate through leftPush/rightPush with the
             // same easing as the width, so everything moves as one unit.
-            property real leftPush: (leftPanelPill.flag ? 8 + leftPanelPill.width + 8 : 0) + (leftSidePill.visible ? leftSidePill.width + Theme.sidePillMargin : 0)
+            // TEST-ONLY: side pills (weather/media) don't push the main pill;
+            // side panels still do.
+            property real leftPush: (leftPanelPill.flag ? 8 + leftPanelPill.width + 8 : 0)
             Behavior on leftPush {
                 Anim {
                     type: Anim.DefaultSpatial
                 }
             }
-            property real rightPush: (rightPanelPill.flag ? rightPanelPill.width + 8 : 0) + (rightSidePill.visible ? rightSidePill.width + Theme.sidePillMargin : 0)
+            property real rightPush: (rightPanelPill.flag ? rightPanelPill.width + 8 : 0)
             Behavior on rightPush {
                 Anim {
                     type: Anim.DefaultSpatial

@@ -6,7 +6,7 @@ source /usr/share/zsh/plugins/zsh-auto-notify/auto-notify.plugin.zsh
 source /usr/share/zsh/plugins/fzf-tab-git/fzf-tab.plugin.zsh
 
 # Zsh Auto-Suggestions
-[[ -f ~/.cache/cwal/colors.sh ]] && source ~/.cache/cwal/colors.sh
+[[ -f ~/.cache/coloreclipse/colors.sh ]] && source ~/.cache/coloreclipse/colors.sh
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=${color8:-#696969},bold"
 
 # Set up fzf key bindings and fuzzy completion

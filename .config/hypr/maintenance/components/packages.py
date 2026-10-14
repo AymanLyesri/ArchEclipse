@@ -76,7 +76,6 @@ PACKAGES: list[str] = [
     "greetd",
     # sync-greeter.sh mirrors the login theme with rsync -aL
     "rsync",
-    "cwal",
     "fastfetch",
     "starship",
     "libadwaita",
