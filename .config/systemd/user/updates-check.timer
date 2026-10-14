@@ -1,0 +1,10 @@
+[Unit]
+Description=Check repository for updates every six hours
+
+[Timer]
+OnBootSec=6h
+OnUnitActiveSec=6h
+Unit=updates-check.service
+
+[Install]
+WantedBy=timers.target

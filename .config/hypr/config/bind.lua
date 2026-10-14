@@ -1,6 +1,8 @@
 local home = os.getenv("HOME") or ""
 local scriptsDir = home .. "/.config/hypr/scripts"
 local screenshot = scriptsDir .. "/screenshot.sh"
+local brightnessScript = home .. "/.config/hypr/config/scripts/brightness.lua"
+local barScript = home .. "/.config/hypr/config/scripts/bar.lua"
 local terminal = "foot"
 local scripts = require("config.scripts")
 -- Quickshell secure lock (qs ipc) + suspend chain (sleep 1 lets grim
@@ -8,12 +10,10 @@ local scripts = require("config.scripts")
 local lock = "qs -p " .. home .. "/.config/quickshell/archeclipse ipc call lock activate"
 local suspend = "qs -p " ..
     home .. "/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend"
-local statusBar = scriptsDir .. "/bar.sh"
 -- Focused monitor, resolved at keypress time. Uses activeworkspace (small JSON)
 -- instead of full monitors list to avoid a hyprctl+jq scan per keypress.
 local monitor = "$(hyprctl activeworkspace -j | jq -r '.monitor')"
 local resizeAmount = 25
-local changeBrightness = scriptsDir .. "/change-brightness.sh"
 local volUp = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
 local volDown = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
 local volMute = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
@@ -25,8 +25,8 @@ local qsIpc = "qs -p " .. qsCfg .. " ipc call bar "
 -- the shell: `ipc call brightness increment|decrement`. If quickshell isn't
 -- running, `qs ipc` exits non-zero and the script fallback takes over.
 local qsBrightness = "qs -p " .. qsCfg .. " ipc call brightness "
-local brightnessUp = qsBrightness .. "increment || " .. changeBrightness .. " +10"
-local brightnessDown = qsBrightness .. "decrement || " .. changeBrightness .. " -10"
+local brightnessUp = qsBrightness .. "increment || lua " .. brightnessScript .. " +10"
+local brightnessDown = qsBrightness .. "decrement || lua " .. brightnessScript .. " -10"
 
 hl.config({
     binds = {
@@ -59,8 +59,9 @@ hl.bind(mainMod .. " + CTRL + Return", hl.dsp.exec_cmd("[float] " .. terminal))
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("[workspace 5] " .. terminal .. " btop"))
 
 -- Status Bar and Panels
---- restart status bar
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(statusBar))
+--- restart status bar (spawned: the bar script self-serializes and must not
+--- run inside the compositor)
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("lua " .. barScript))
 --- toggle status bar visibility
 hl.bind(mainMod .. " + ALT_L", hl.dsp.exec_cmd(qsIpc .. "toggleBar " .. monitor))
 --- toggle app launcher

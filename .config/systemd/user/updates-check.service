@@ -1,0 +1,6 @@
+[Unit]
+Description=Check repository for updates
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/hypr/config/scripts/updates_check.lua

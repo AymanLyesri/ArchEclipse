@@ -24,6 +24,9 @@
 !.config/starship.toml
 # include btop config
 !.config/btop/
+# include user systemd units
+!.config/systemd/
+!.config/systemd/user/
 # Include archeclipse quickshell and its greeter (parent dir must be
 # re-included too: git cannot re-include paths under an excluded dir)
 !.config/quickshell/

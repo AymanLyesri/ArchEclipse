@@ -1,8 +1,8 @@
 # AGENTS.md — hypr config (`~/.config/hypr`)
 
 ArchEclipse Hyprland configuration. Lua-based config (`hyprland.lua` entrypoint,
-requires Hyprland with Lua support), plus shell helpers, C daemons, wallpaper
-daemon, an external Rust theme applier, `evremap`, and Python maintenance tooling.
+requires Hyprland with Lua support), plus shell helpers, wallpaper daemon,
+an external Rust theme applier, `evremap`, and Python maintenance tooling.
 
 > Scope: this file covers `~/.config/hypr` only. Quickshell bar lives in
 > `~/.config/quickshell/archeclipse` — don't edit it from here.
@@ -15,8 +15,8 @@ config/*.lua            # tracked base config, one file per Hyprland section
 config/custom/*.lua     # MACHINE-LOCAL overrides (gitignored, except .gitkeep)
 config/defaults/*.lua   # template files with {{ PLACEHOLDERS }} for maintenance/install.py
 # theme applier is external: ~/.config/ColorEclipse (AUR coloreclipse-git)
-scripts/                # bar.sh, screenshot.sh, change-brightness.sh, ...
-scripts-c/              # battery-check.c, updates-check.c (compiled to /tmp by compile-run-binaries.sh)
+scripts/                # screenshot.sh, ...
+config/scripts/         # bar.lua, brightness.lua, scheduler Lua scripts, and Hyprland Lua modules
 evremap/                # remap.toml + configuration.sh + evremap.service (numlock/numpad remaps)
 maintenance/            # update.py + install.py + components/*.py (ArchEclipse installer/updater)
 ```
@@ -86,8 +86,8 @@ tracked base files for local-only needs).
   markers intact in the defaults templates or installs break.
 - `components/locales.py` (`ensure_arch_locale`) is wired as an opt-in
   install step — don't duplicate locale setup elsewhere.
-- C helpers: `battery-check` reads `/sys/class/power_supply/BAT0|BAT1`
-  directly (no `upower` dependency); `updates-check` uses `git -C $HOME`.
+- `battery_check.lua` reads `/sys/class/power_supply/BAT0|BAT1` directly
+  (no `upower` dependency); `updates_check.lua` uses `git -C $HOME`.
 
 ## Verify
 
@@ -97,7 +97,6 @@ tracked base files for local-only needs).
   `python3 -m py_compile maintenance/install.py maintenance/update.py maintenance/components/*.py`.
 - Reload live: `hyprctl reload` (or `hyprpm reload && hyprctl reload` after plugin changes).
 - Startup exec: `hyprctl exec-once '...'` semantics — check `hyprctl exec-once` for dupes.
-- C daemons: `gcc scripts-c/<name>.c -o /tmp/<name>` then run once manually.
 - Coloreclipse (`~/.config/ColorEclipse`, binary `coloreclipse`): `cargo test`, then
   run `target/release/coloreclipse get|switch|apply|wal` directly.
   `wal <path>` mutates wallpaper colors *and* the system variant whenever `autovariant` is on
@@ -120,9 +119,8 @@ tracked base files for local-only needs).
   `coloreclipse` binary (AUR `coloreclipse-git`, source `~/.config/ColorEclipse`) from
   `~/.config/coloreclipse/theme.conf` — hypr itself no longer builds or ships the
   applier, so nothing needs `cargo` at login.
-- `compile-run-binaries.sh` installs cron entries only when missing and
-  recompiles only stale binaries — safe to run once to test, but don't run
-  it in a loop.
+- The user `battery-check.timer` and `updates-check.timer` units run the
+  Lua checks on their own schedules.
 - Quickshell's ClipboardService owns the `wl-paste --watch` clipboard
   watcher (culls stale watchers at shell boot); when testing manually,
   still kill old `wl-paste --watch` processes first.

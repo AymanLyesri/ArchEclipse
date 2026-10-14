@@ -66,6 +66,7 @@ def load_components(maintenance_dir: Path) -> dict[str, Any]:
         "wallpapers": importlib.import_module("components.wallpapers"),
         "plugins": importlib.import_module("components.plugins"),
         "tweaks": importlib.import_module("components.tweaks"),
+        "services": importlib.import_module("components.services"),
     }
     return components
 
@@ -249,6 +250,7 @@ def main() -> None:
         lambda: sync_configuration_files(conf_dir),
         run=plan["config"],
     )
+    modules["services"].enable_user_timers()
 
     presentation.print_section_header("KEYBOARD & LOCALE (optional)")
     presentation.execute_planned_step(

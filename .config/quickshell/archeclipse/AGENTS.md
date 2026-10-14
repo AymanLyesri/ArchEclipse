@@ -259,7 +259,7 @@ wrappers. Rules:
    probe 2026-09-24).
 9. **`qmllint` 255 = env baseline, not a failure.** Files importing `qs.*` modules
    exit 255 with no output even on HEAD (verified via `git show HEAD:…` copies) —
-   quickshell types aren't visible to standalone lint. Real gate is a `bar.sh`
+   quickshell types aren't visible to standalone lint. Real gate is a `bar.lua`
    restart + clean `/tmp/qs-bar-$USER.log`. Files without `qs.*` imports must
    still exit 0.
 10. **Headless transition tests via IPC.** No keypress needed:
@@ -313,7 +313,7 @@ wrappers. Rules:
 - `qmllint <touched files>` must pass (exit 0) before claiming anything —
   except files importing `qs.*` modules, where 255 with no output matches the
   HEAD baseline (see §2.9); those are gated by live reload instead.
-- Reload with **SUPER+B** (= `~/.config/hypr/scripts/bar.sh`: SIGTERM→restart,
+- Reload with **SUPER+B** (= `~/.config/hypr/config/scripts/bar.lua`: SIGTERM→restart,
   singleton-guarded, logs to `/tmp/qs-bar-$USER.log`) and repro the exact thread
   steps; check off Discord message ids. For transition work, run the IPC matrix
   (§2.10) and confirm zero `typeerror|referenceerror` in the log.

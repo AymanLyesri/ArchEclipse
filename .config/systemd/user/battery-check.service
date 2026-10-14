@@ -1,0 +1,6 @@
+[Unit]
+Description=Check battery level
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/hypr/config/scripts/battery_check.lua

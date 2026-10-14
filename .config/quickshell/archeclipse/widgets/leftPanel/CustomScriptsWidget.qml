@@ -25,7 +25,7 @@ Item {
             icon: "󰜉",
             description: "Restart the shell bar",
             keybind: ["SUPER", "B"],
-            command: "bash -c \"$HOME/.config/hypr/scripts/bar.sh\""
+            command: "lua $HOME/.config/hypr/config/scripts/bar.lua"
         },
         {
             name: "HyprPicker",
@@ -294,7 +294,7 @@ Item {
                     // NOTE: must not go through Hyprland.dispatch("exec ...") —
                     // Hyprland >= 0.55 uses a Lua config and rejects the legacy
                     // string-dispatch exec syntax. execDetached spawns directly.
-                    Quickshell.execDetached(["bash", "-c", Quickshell.env("HOME") + "/.config/hypr/scripts/bar.sh"]);
+                    Quickshell.execDetached(["lua", Quickshell.env("HOME") + "/.config/hypr/config/scripts/bar.lua"]);
                     _resetProc.destroy();
                 }
             }

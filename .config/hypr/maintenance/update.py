@@ -247,6 +247,13 @@ def main() -> None:
         print("Greeter component not in local tree — skipping that step.")
         plan["archeclipse_greeter"] = False
 
+    try:
+        services = importlib.import_module("components.services")
+    except ModuleNotFoundError:
+        print("Services component not in local tree — skipping timer setup.")
+    else:
+        services.enable_user_timers()
+
     presentation.print_main_header("UPDATE")
     presentation.execute_planned_step(
         "*",
