@@ -443,6 +443,13 @@ Singleton {
 
     // Waifu widget setting group
     property var waifu: null
+    // Identity key for change detection: id+api+extension only. Tags carry
+    // no identity (and may contain any separator), so they stay out.
+    function waifuKey(w) {
+        if (!w || w.id === undefined || w.id === null)
+            return "";
+        return String(w.id) + "|" + ((w.api && w.api.value) || "") + "|" + String(w.extension || "");
+    }
 
     // ChatBot provider (default: first provider).
     property string chatBotApi: "openai/gpt-4o-mini"
@@ -1001,8 +1008,13 @@ Singleton {
                 root.apiKeys = root.mergeApiKeys(s.apiKeys);
                 root.userAgents = root.mergeUserAgents(s.userAgents);
 
-                // Waifu widget
-                root.waifu = s.waifuWidget?.current ?? null;
+                // Waifu widget: skip the assign when the post is unchanged
+                // (same id+api+extension) — every settings write would
+                // otherwise hand down a fresh object identity, replaying
+                // bound entrances and re-kicking downloads downstream.
+                const _w = s.waifuWidget?.current ?? null;
+                if (root.waifuKey(_w) !== root.waifuKey(root.waifu))
+                    root.waifu = _w;
 
                 // ChatBot provider (restored on launch; stored as the model
                 // value string here).

@@ -284,7 +284,8 @@ QtObject {
                         tags: raw.tags || [],
                         extension: raw.extension,
                         url: raw.url,
-                        preview: raw.preview
+                        preview: raw.preview,
+                        sample: raw.sample || null
                     }, "");
                 return;
             }

@@ -201,11 +201,15 @@ Item {
     // serves floating dialogs, so the grid boot fetch (network + preview
     // downloads + tag persistence) is skipped entirely.
     property bool dialogOnly: false
+    // Pinned-dialog mode (embedded waifu): dialogImage is owned externally
+    // (bound to Settings.waifu) — every path that clears it would snap the
+    // binding, so all close paths become no-ops while pinned.
+    property bool dialogPinned: false
 
     // Slide-out, then unmount: the overlay glides/fades away first and
     // only then (_closeTimer) is the content dropped.
     function requestClose() {
-        if (root.dialogImage === null)
+        if (root.dialogPinned || root.dialogImage === null)
             return;
 
         root.detailSlide = 0;
@@ -218,7 +222,7 @@ Item {
     // cached Loader). Drop the content at once — no slide-out, the host
     // is already gone.
     function closeDialogNow() {
-        if (root.dialogImage === null)
+        if (root.dialogPinned || root.dialogImage === null)
             return;
 
         _closeTimer.stop();
@@ -235,7 +239,12 @@ Item {
     function detachDialog() {
         if (root.dialogDetached || root.dialogImage === null)
             return;
-        root.dialogDetached = true;
+        // A pending slide-out close (anchor scrolled out, _closeTimer
+        // armed) must not nuke the freshly detached float 190ms later.
+        _closeTimer.stop();
+        // Size BEFORE flipping detached (which maps the window): the
+        // surface commits its size at map time, so post-map writes can
+        // lose to the declared implicitWidth/implicitHeight defaults.
         if (!root.floatSized) {
             const sw = root.screenW(), sh = root.screenH(), a = root.dialogAspect();
             let w = Math.min(380, sw - 40);
@@ -244,10 +253,11 @@ Item {
                 h = sh - 40;
                 w = h * a;
             }
-            detailFloat.width = Math.max(240, Math.min(sw, w));
-            detailFloat.height = Math.max(200, Math.min(sh, h));
+            detailFloat.implicitWidth = Math.max(240, Math.min(sw, w));
+            detailFloat.implicitHeight = Math.max(200, Math.min(sh, h));
             root.floatSized = true;
         }
+        root.dialogDetached = true;
     }
 
     // System move for the float window (called on first drag motion so
@@ -275,14 +285,16 @@ Item {
         const sw = root.screenW(), sh = root.screenH(), a = root.dialogAspect();
         const reqW = Math.max(240, Math.min(sw, detailFloat.width + dx));
         const reqH = Math.max(200, Math.min(sh, detailFloat.height + dy));
-        detailFloat.width = Math.max(240, Math.min(reqW, reqH * a));
-        detailFloat.height = Math.max(200, Math.min(reqH, detailFloat.width / a));
+        const w = Math.max(240, Math.min(reqW, reqH * a));
+        const h = Math.max(200, Math.min(reqH, w / a));
+        detailFloat.implicitWidth = w;
+        detailFloat.implicitHeight = h;
     }
 
     // Viewer hidden directly (e.g. Loader deactivated) → drop a docked
     // dialog. A detached card is its own window and stays open.
     onVisibleChanged: {
-        if (!root.visible && !root.dialogDetached)
+        if (!root.visible && !root.dialogDetached && !root.dialogPinned)
             root.closeDialogNow();
     }
 
@@ -296,7 +308,7 @@ Item {
     Connections {
         target: BarState
         function onLeftOpenChanged() {
-            if (!BarState.leftOpen && !root.dialogDetached)
+            if (!BarState.leftOpen && !root.dialogDetached && !root.dialogPinned)
                 root.closeDialogNow();
         }
     }
@@ -425,6 +437,12 @@ Item {
         return BooruActions.isVideo(img);
     }
 
+    // Ugoira (zip) with a transcoded sample video (booru.py "sample"):
+    // the zip itself is undecodable, the sample plays instead.
+    function hasSampleVideo(img) {
+        return BooruUtils.hasSampleVideo(img);
+    }
+
     function isDownloaded(img) {
         return !!img && !!root.downloadedIds[BooruUtils.cacheKey(img)];
     }
@@ -443,8 +461,10 @@ Item {
     // Dialog auto-downloads the full file into <api>/images/ with the same
     // Referer+UA headers as downloadPreviews (Qt gets 403 without them).
     // When it lands, downloadedIds flips and the Pin button auto-enables.
-    // Skips zip (dialog shows a placeholder) and anything already on disk.
-    // Legacy <api>/originals/ files are promoted into <api>/images/.
+    // Ugoira (zip) posts download their transcoded sample video instead
+    // (same name pattern, sample extension); zips without one keep the
+    // placeholder and are skipped. Legacy <api>/originals/ files are
+    // promoted into <api>/images/.
     function fetchOriginal(img) {
         if (!img || !img.url || !img.api || !img.api.value)
             return;
@@ -452,14 +472,19 @@ Item {
         // dialog plays the path directly (see dialogSource).
         if (!/^https?:\/\//.test(img.url))
             return;
-        if (BooruActions.isZip(img))
+        const sampleVideo = root.hasSampleVideo(img) ? img.sample : "";
+        if (!sampleVideo && BooruActions.isZip(img))
             return;
         if (root.isDownloaded(img) || root.fullIds[BooruUtils.cacheKey(img)])
             return;
 
         const dir = `${root.booruPath}/${img.api.value}/images`;
-        const filePath = `${dir}/${img.id}.${img.extension}`;
-        const legacyPath = `${root.booruPath}/${img.api.value}/originals/${img.id}.${img.extension}`;
+        const ext = sampleVideo ? BooruUtils.sampleExt(img) : img.extension;
+        const filePath = `${dir}/${img.id}.${ext}`;
+        // Legacy promotion is stills-only: a transcoded sample (webm/mp4)
+        // must never be overwritten by a legacy .zip of the same id.
+        const legacyPath = sampleVideo ? "" : `${root.booruPath}/${img.api.value}/originals/${img.id}.${img.extension}`;
+        const srcUrl = sampleVideo || img.url;
         const markDone = function () {
             const key = BooruUtils.cacheKey(img);
             const ids = Object.assign({}, root.downloadedIds);
@@ -472,7 +497,7 @@ Item {
         };
         const downloadMissing = function () {
             const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-            dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(dir)} && curl -sSfL --max-time 60 -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("booru"))} -H ${Settings.shQuote("Referer: " + img.api.url)} -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(filePath)} ${JSON.stringify(img.url)} && test -s ${JSON.stringify(filePath)}`];
+            dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(dir)} && curl -sSfL --max-time 60 -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("booru"))} -H ${Settings.shQuote("Referer: " + img.api.url)} -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(filePath)} ${JSON.stringify(srcUrl)} && test -s ${JSON.stringify(filePath)}`];
             dl.exited.connect(function (code) {
                 if (code === 0)
                     markDone();
@@ -481,7 +506,7 @@ Item {
             dl.running = true;
         };
         const checkProc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
-        checkProc.command = ["bash", "-c", "test -s " + JSON.stringify(filePath) + " && echo images || (test -s " + JSON.stringify(legacyPath) + " && echo legacy || echo no)"];
+        checkProc.command = ["bash", "-c", "test -s " + JSON.stringify(filePath) + " && echo images || " + (legacyPath !== "" ? "(test -s " + JSON.stringify(legacyPath) + " && echo legacy || echo no)" : "echo no")];
         checkProc.stdout.onStreamFinished.connect(function () {
             const res = checkProc.stdout.text.trim();
             checkProc.destroy();
@@ -590,7 +615,10 @@ Item {
         root.page = 1;
         Settings.booru.page = 1;
         Settings.updateSetting("booru.page", 1);
-        if (root.selectedTab !== "Bookmarks" && root.selectedTab !== "Pins")
+        // A dialog host has no grid of its own: persist the tags for the
+        // main viewer, but never fire a fetch here (Review: tag-hold from
+        // the waifu dialog must stay network-silent).
+        if (!root.dialogOnly && !root.dialogPinned && root.selectedTab !== "Bookmarks" && root.selectedTab !== "Pins")
             root.fetchImages();
     }
 
@@ -775,7 +803,8 @@ Item {
                             "tags": img.tags || [],
                             "extension": img.extension,
                             "url": img.url,
-                            "preview": img.preview
+                            "preview": img.preview,
+                            "sample": img.sample || null
                         });
                 });
                 root.calculateCacheSize();
@@ -1233,7 +1262,10 @@ Item {
         // an orphan popup on screen. closeDialogNow() clears the image
         // right after; this guard covers the debounce gap. Hidden while
         // detached — the card lives in the FloatingWindow below instead.
-        visible: root.dialogImage !== null && !root.dialogDetached && BarState.leftOpen && (!root.hostPanel || root.hostPanel.selectedWidget === "BooruViewer")
+        // Pinned hosts (embedded waifu) never use the docked popup — the
+        // card is embedded directly, and showing it here would pop an
+        // orphan card whenever the left island opens.
+        visible: root.dialogImage !== null && !root.dialogDetached && !root.dialogPinned && BarState.leftOpen && (!root.hostPanel || root.hostPanel.selectedWidget === "BooruViewer")
         color: "transparent"
         // Clickthrough everywhere except the card: the surface is
         // viewer-tall, so without this the transparent strip would eat
@@ -1250,6 +1282,7 @@ Item {
         Booru.BooruDialog {
             id: popupDialog
             viewer: root
+            videoActive: detailPopup.visible
             width: parent.width
             // Glide track: viewer coords == popup coords vertically (the
             // anchor pins popup-top to viewer-top), kept real-valued for
@@ -1291,16 +1324,23 @@ Item {
         onVisibleChanged: {
             if (!visible && root.dialogDetached && root.dialogImage !== null) {
                 _closeTimer.stop();
-                root.detailSlide = 0;
                 root.dialogDetached = false;
                 root.floatSized = false;
-                root.dialogImage = null;
+                // Pinned hosts (embedded waifu): dialogImage is an external
+                // binding (Settings.waifu) — nulling it would snap the
+                // binding and blank the widget, and dropping detailSlide
+                // would fade the embedded card with nothing restoring it.
+                if (!root.dialogPinned) {
+                    root.detailSlide = 0;
+                    root.dialogImage = null;
+                }
             }
         }
 
         Booru.BooruDialog {
             anchors.fill: parent
             viewer: root
+            videoActive: detailFloat.visible
         }
     }
     // --- keyboard navigation ---

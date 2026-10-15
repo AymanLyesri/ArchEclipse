@@ -315,17 +315,14 @@ Column {
                                 switch (modelData.name) {
                                 case "Waifu":
                                     {
-                                        const wd = Settings.waifu;
-                                        if (!wd || !wd.id)
-                                            return 200;
-                                        // Same base as WaifuWidget.mediaHeight
-                                        // (no outside container: full width).
-                                        const w = width;
-                                        const a = (wd.width > 0 && wd.height > 0) ? wd.width / wd.height : 1.0;
-                                        const h = Math.min(Math.max(w / a, 120), 520);
-                                        // Overlay layout: actions float on top of
-                                        // the image, so the card is just the media.
-                                        return h;
+                                        // The widget is an embedded BooruDialog
+                                        // now: follow its measured content
+                                        // height (Media-case pattern), with a
+                                        // placeholder fallback when unset.
+                                        const measured = widgetLoader.item ? widgetLoader.item.implicitHeight : 0;
+                                        if (measured > 0)
+                                            return measured;
+                                        return 190;
                                     }
                                 case "Media":
                                     {

@@ -185,8 +185,13 @@ Column {
             width: topRow.sideWidth
             height: parent.height
 
-            RowLayout {
-                anchors.fill: parent
+            // Plain Row (not RowLayout): RowLayout distributed the zone's
+            // mirror-slack around the title (measured title.x 75..88
+            // instead of 40), while a Row packs left with exact spacing.
+            Row {
+                id: leftRow
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.spacing
 
                 LauncherButton {
@@ -196,13 +201,13 @@ Column {
                     id: windowTitleButton
                     // Natural size (never stretches into the slack), capped
                     // so a long title elides instead of spilling past the
-                    // zone into the center pill. maximumWidth only caps the
-                    // layout's assignment — it never feeds WindowTitle's
-                    // implicitWidth, so it can't loop back into sideWidth.
-                    // textMaxWidth carries the same bound minus pill chrome
-                    // (margins + icon + spacing) so the text elides at the
-                    // true available width at any bar size.
-                    Layout.maximumWidth: topRow.titleCap
+                    // zone into the center pill. An explicit width (not a
+                    // layout cap) — it never feeds implicitWidth, so it
+                    // can't loop back into sideWidth. textMaxWidth carries
+                    // the same bound minus pill chrome (margins + icon +
+                    // spacing) so the text elides at the true available
+                    // width at any bar size.
+                    width: Math.min(implicitWidth, topRow.titleCap)
                     textMaxWidth: Math.max(0, topRow.titleCap - 36)
                 }
             }

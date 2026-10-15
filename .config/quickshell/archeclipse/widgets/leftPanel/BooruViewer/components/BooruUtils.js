@@ -34,14 +34,37 @@ function previewExt(img) {
         if (["jpg", "png", "webp", "gif"].indexOf(e) >= 0) return e
     }
     const ext = ((img && img.extension) || "jpg").toLowerCase()
-    if (["mp4", "webm", "mkv"].indexOf(ext) >= 0) return "jpg"
+    if (["mp4", "webm", "mkv", "zip"].indexOf(ext) >= 0) return "jpg"
     return ext || "jpg"
 }
 
 function getIconPath(booruPath, img, which) {
     const api = (img && img.api && img.api.value) || "danbooru"
-    const ext = (which === "previews") ? previewExt(img) : ((img && img.extension) || "png")
-    return booruPath + "/" + api + "/" + which + "/" + img.id + "." + ext
+    if (which === "previews")
+        return booruPath + "/" + api + "/" + which + "/" + img.id + "." + previewExt(img)
+    if (which === "images" && hasSampleVideo(img))
+        return booruPath + "/" + api + "/" + which + "/" + img.id + "." + sampleExt(img)
+    return booruPath + "/" + api + "/" + which + "/" + img.id + "." + ((img && img.extension) || "png")
+}
+
+// Ugoira (zip) posts cannot be decoded by Qt, but Danbooru/Safebooru
+// ship a transcoded sample video (booru.py "sample"); the viewer
+// downloads and plays that instead, stored next to the full files.
+function hasSampleVideo(img) {
+    return ((img && img.extension) || "").toLowerCase() === "zip" && !!(img && img.sample)
+}
+
+// Extension for the transcoded sample file, derived from its URL
+// (webm/mp4), never from the post's own "zip" extension.
+function sampleExt(img) {
+    const s = (img && img.sample) || ""
+    const m = String(s).match(/\.([a-z0-9]+)(?:\?|#|$)/i)
+    if (m) {
+        const e = m[1].toLowerCase()
+        if (["webm", "mp4"].indexOf(e) >= 0)
+            return e
+    }
+    return "webm"
 }
 
 function isDownloadedIn(downloadedIds, img) {
@@ -88,7 +111,9 @@ function gridSource(booruPath, downloadedIds, previewIds, img) {
     // GIFs are excluded: Image renders their first frame, so the full
     // file still shows (static) instead of blanking.
     const ext = ((img && img.extension) || "").toLowerCase()
-    const isUnrenderableVideo = ["mp4", "webm", "mkv"].includes(ext)
+    // Ugoira with a transcoded sample downloads as webm, which Image
+    // cannot decode either — same rule: the preview still stands in.
+    const isUnrenderableVideo = ["mp4", "webm", "mkv"].includes(ext) || hasSampleVideo(img)
     if (!isUnrenderableVideo && isDownloadedIn(downloadedIds, img))
         return "file://" + getIconPath(booruPath, img, "images")
     if (img && previewIds[cacheKey(img)])
@@ -120,6 +145,7 @@ function clonify(img, currentApiObj) {
         url: img.url,
         preview: img.preview,
         extension: img.extension,
+        sample: img.sample || null,
         api: img.api || currentApiObj
     }
 }

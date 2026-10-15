@@ -11,7 +11,8 @@ Rectangle {
 
     property var viewer
     required property var image
-    property bool isVideo: ["mp4", "webm", "mkv", "gif"].includes(((image && image.extension) || "").toLowerCase())
+    readonly property string _imgExt: (((image && image.extension) || "").toLowerCase())
+    property bool isVideo: ["mp4", "webm", "mkv", "gif"].includes(card._imgExt) || (card._imgExt === "zip" && !!(image && image.sample))
 
     width: parent ? parent.width : 0
     height: image && image.width && image.height ? Math.max(80, width * image.height / image.width) : width

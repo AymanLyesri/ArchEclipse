@@ -42,7 +42,7 @@ Item {
     }
 
     // (18px bar height - 2 * 3px spacing) / 3 = 4px per bar
-    readonly property int barHeight: 4
+    readonly property int barHeight: 2
 
     // Middle-click layer underneath — bar Items are mouse-transparent so
     // clicks fall through to here from anywhere on the stack. Left-click

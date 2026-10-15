@@ -112,6 +112,36 @@ def find_bookmark_index(
     return -1
 
 
+def sample_video_url(variants: Any) -> Optional[str]:
+    """Playable sample video (webm/mp4) for ugoira (zip) posts.
+
+    Danbooru/Safebooru ship a transcoded `sample` variant for zip posts;
+    Qt cannot decode the zip itself, so the viewer plays this instead.
+    Returns None when there is no video variant (preview still only).
+    """
+    if not isinstance(variants, list):
+        return None
+    fallback = None
+    for v in variants:
+        if not isinstance(v, dict):
+            continue
+        if str(v.get("file_ext", "")).lower() not in ("webm", "mp4"):
+            continue
+        if v.get("type") == "original":
+            continue
+        if v.get("type") == "sample":
+            return v.get("url")
+        if fallback is None:
+            fallback = v.get("url")
+    return fallback
+
+
+def is_complete_post(data: Dict[str, Any]) -> bool:
+    # NOTE: "sample" is excluded: it is legitimately None for every
+    # non-ugoira post, and all() would drop the whole result set.
+    return all(v for k, v in data.items() if k != "sample")
+
+
 def validate_bookmark_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     bookmark = payload.get("bookmark")
     if not isinstance(bookmark, dict):
@@ -311,9 +341,10 @@ class DanbooruProvider(BooruProvider):
                 "height": post.get("image_height"),
                 "extension": post.get("file_ext"),
                 "tags": post.get("tag_string", "").split(),
+                "sample": sample_video_url(variants),
             }
 
-            if all(data.values()):
+            if is_complete_post(data):
                 result.append(data)
 
         return result
@@ -425,9 +456,10 @@ class GelbooruProvider(BooruProvider):
                 "height": post.get("height"),
                 "extension": url.split(".")[-1] if url else None,
                 "tags": str(post.get("tags", "")).split(),
+                "sample": None,
             }
 
-            if all(data.values()):
+            if is_complete_post(data):
                 result.append(data)
 
         return result or None
@@ -465,9 +497,6 @@ class GelbooruProvider(BooruProvider):
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             raise Exception(f"Failed to parse tag response: {str(e)}")
 
-
-import requests
-from typing import List, Optional, Dict, Any
 
 # ============================================================
 # Safebooru provider
@@ -547,9 +576,10 @@ class SafebooruProvider(BooruProvider):
                 "height": post.get("image_height"),
                 "extension": post.get("file_ext"),
                 "tags": post.get("tag_string", "").split(),
+                "sample": sample_video_url(variants),
             }
 
-            if all(data.values()):
+            if is_complete_post(data):
                 result.append(data)
 
         return result or None

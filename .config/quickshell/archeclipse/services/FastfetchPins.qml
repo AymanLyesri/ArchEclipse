@@ -69,6 +69,10 @@ QtObject {
                     const radius = "%[fx:min(w,h)*" + (root.cornerRadiusPercent / 100) + "]"
                     command = [
                         "magick", currentSource,
+                        // Shrink-only (">" keeps small images untouched):
+                        // fastfetch renders at ~18 rows, so anything above
+                        // 1000px only costs decode/scale time on every open.
+                        "-thumbnail", "1000x1000>",
                         "-alpha", "set",
                         "(", "+clone",
                             "-alpha", "transparent",

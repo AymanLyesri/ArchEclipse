@@ -70,6 +70,10 @@ Item {
     readonly property bool dlgIsVideo: dlg ? (viewer ? viewer.isVideo(dlg) : false) : false
     readonly property bool dlgIsGif: dlg ? ((dlg.extension || "").toLowerCase() === "gif") : false
     readonly property bool dlgIsZip: dlg ? ((dlg.extension || "").toLowerCase() === "zip") : false
+    // Ugoira with a transcoded sample (booru.py "sample"): the zip itself
+    // never decodes, but the downloaded sample plays as video.
+    readonly property bool dlgHasSample: dlg ? (dialogRoot.dlgIsZip && !!dlg.sample) : false
+    readonly property bool dlgUnplayableZip: dialogRoot.dlgIsZip && !dialogRoot.dlgHasSample
     readonly property bool dlgDownloaded: dlg ? (viewer ? viewer.isDownloaded(dlg) : false) : false
     readonly property bool dlgBookmarked: dlg ? (viewer ? viewer.isBookmarked(dlg) : false) : false
     readonly property bool dlgPinned: dlg ? (viewer ? viewer.isPinned(dlg) : false) : false
@@ -77,15 +81,15 @@ Item {
     readonly property bool dlgIsLocal: dlg ? (dlg.url && !/^https?:\/\//.test(dlg.url)) : false
     // Full file still in flight: the dialog shows the preview still
     // meanwhile (see dialogSource fallback) with the spinner over it.
-    // Videos keep their placeholder text, zips never download (no
-    // eternal spinner), local files need no download.
-    readonly property bool dlgLoading: viewer ? (viewer.progressStatus === "loading" || (dlg && !dlgIsVideo && !dlgIsZip && !dlgIsLocal && !dlgDownloaded)) : false
-    // Full file pending (images AND videos/gifs): drives the top
-    // "Downloading…" pill over the preview still. Zips never download
-    // and local files need none, so both are excluded.
-    readonly property bool dlgDownloading: dlg ? (!dlgIsZip && !dlgIsLocal && !dlgDownloaded) : false
-    readonly property bool dlgVideoPlayable: dlg ? (dlgIsVideo && dlgDownloaded && !dlgIsZip && !dlgIsGif) : false
-    readonly property bool dlgVideoPlaceholder: dlg ? (dlgIsVideo && !dlgDownloaded) : false
+    // Videos keep their placeholder text, local files need no download,
+    // and only sampless zips skip the download (no eternal spinner).
+    readonly property bool dlgLoading: viewer ? (viewer.progressStatus === "loading" || (dlg && !dlgIsVideo && !dialogRoot.dlgUnplayableZip && !dlgIsLocal && !dlgDownloaded)) : false
+    // Full file pending (images AND videos/gifs AND zip samples): drives
+    // the top "Downloading…" pill over the preview still. Sampless zips
+    // never download and local files need none, so both are excluded.
+    readonly property bool dlgDownloading: dlg ? (!dialogRoot.dlgUnplayableZip && !dlgIsLocal && !dlgDownloaded) : false
+    readonly property bool dlgVideoPlayable: dlg ? ((dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample) && dlgDownloaded && !dialogRoot.dlgUnplayableZip && !dlgIsGif) : false
+    readonly property bool dlgVideoPlaceholder: dlg ? (!dlgDownloaded && (dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample)) : false
     readonly property string dlgTypeIcon: dlgIsZip ? "" : (dlgIsVideo ? "" : "")
     readonly property int dlgVisibleTagCount: showAllTags ? dlgTags.length : Math.min(dlgTags.length, 12)
     // Badge icons shared by the still preview (AppImage below) and the
@@ -103,6 +107,12 @@ Item {
             b.push("\uf004");
         return b;
     }
+    // Presentation gate for the video player: dialogs live inside
+    // windows that are often hidden (docked popup, undetached float)
+    // while their own `visible` stays true. Hosts bind this to their
+    // actual window/panel visibility so only the presented instance
+    // decodes (else every instance plays the same file concurrently).
+    property bool videoActive: true
     // Bottom sheet reveal (WaifuWidget parity): hovering anywhere on the
     // card (media or the sheet itself — all children of slider) slides
     // the sheet up. The handler must live on the container, not on
@@ -125,8 +135,6 @@ Item {
             anchors.fill: parent
             color: Theme.surface
             radius: Theme.radius
-            border.color: Theme.border
-            border.width: 1
         }
 
         // Card-wide hover (sheet reveal + island keep-alive input); the
@@ -145,11 +153,28 @@ Item {
             border.width: 1
             clip: true
 
-            // video downloaded → playable via QtMultimedia
+            // video downloaded → playable via QtMultimedia.
+            // The AppImage still below stays visible as the poster: the
+            // video covers it once the first frame arrives (hasVideo).
+            // Without this the card is blank during load — and permanently
+            // blank when the decode fails.
             MediaVideo {
+                id: dialogVideo
+                z: 1
                 anchors.fill: parent
-                anchors.margins: 4
-                source: dlg ? viewer.imageFileUrl(dlg).replace(/^file:\/\//, "") : ""
+                // Edge-to-edge like the AppImage still below (no inset):
+                // the old 4px margin only worked while the plain-Item
+                // video ignored clipping and painted over it; with the
+                // rounded clip it survives as a background ring. The -2
+                // overscan inside MediaVideo keeps fringe under the clip.
+                anchors.margins: 0
+                active: dialogRoot.videoActive
+                // Gate on playable: imageFileUrl() returns the remote https
+                // URL until the download lands, and prepending file:// to
+                // that feeds the player garbage (logged as
+                // file://https//...). The player only ever gets a local
+                // path or "" now.
+                source: dlg && dialogRoot.dlgVideoPlayable ? viewer.imageFileUrl(dlg).replace(/^file:\/\//, "") : ""
                 autoplay: true
                 loop: true
                 fill: true
@@ -198,18 +223,25 @@ Item {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: dialogRoot.dlgIsZip ? "Cannot be played." : (dialogRoot.dlgIsGif ? "GIF — downloading…" : "Video — downloading…")
+                    text: dialogRoot.dlgIsZip ? (dialogRoot.dlgHasSample ? "Video — downloading…" : "Cannot be played.") : (dialogRoot.dlgIsGif ? "GIF — downloading…" : "Video — downloading…")
                     color: Theme.fgDim
                     font.pixelSize: Theme.fontSize - 1
                     font.family: Theme.fontFamily
                 }
             }
             AppImage {
+                id: dialogStill
+                z: 0
                 anchors.fill: parent
-                source: dlg ? viewer.dialogSource(dlg) : ""
+                // Video posts keep their cached preview still as the poster
+                // (gridSource prefers the JPEG preview for mp4/webm/mkv —
+                // feeding the full video file to Image blanks it with
+                // "Unsupported image format"). Still images use the full
+                // file via dialogSource (gif animates through AnimatedImage).
+                source: dlg ? (dialogRoot.dlgVideoPlayable ? viewer.gridSource(dlg) : viewer.dialogSource(dlg)) : ""
                 sourceWidth: parent.width
                 animated: true
-                visible: !!dlg && !dialogRoot.dlgVideoPlayable
+                visible: !!dlg && (!dialogRoot.dlgVideoPlayable || !dialogVideo.hasVideo)
                 badges: dialogRoot.dlgBadges
             }
             AppProgress {
@@ -433,6 +465,9 @@ Item {
                             hoverFg: Theme.danger
                             tooltipText: "Close (Esc)"
                             Layout.alignment: Qt.AlignVCenter
+                            // Pinned hosts (embedded waifu) have nothing to
+                            // close to — closing would clear the waifu.
+                            visible: !(viewer && viewer.dialogPinned)
                             onClicked: {
                                 if (viewer)
                                     viewer.requestClose();
@@ -620,9 +655,12 @@ Item {
                         }
                     }
                     // Full file auto-downloads on open; Waifu takes the full row.
+                    // Hidden on pinned hosts (embedded waifu): it already is
+                    // the waifu, so the row would only re-set the same post.
                     AppButton {
                         width: parent.width
                         height: 30
+                        visible: !(viewer && viewer.dialogPinned)
                         icon: ""
                         text: dialogRoot.dlgIsWaifu ? "Waifu ✓" : "Waifu"
                         toggle: true
@@ -734,7 +772,7 @@ Item {
     } // slider
 
     Keys.onEscapePressed: {
-        if (viewer)
+        if (viewer && !viewer.dialogPinned)
             viewer.requestClose();
     }
     focus: visible

@@ -27,6 +27,11 @@
 # include user systemd units
 !.config/systemd/
 !.config/systemd/user/
+.config/systemd/user/*
+!.config/systemd/user/battery-check.service
+!.config/systemd/user/battery-check.timer
+!.config/systemd/user/updates-check.service
+!.config/systemd/user/updates-check.timer
 # Include archeclipse quickshell and its greeter (parent dir must be
 # re-included too: git cannot re-include paths under an excluded dir)
 !.config/quickshell/

@@ -62,8 +62,9 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    match = { title = "booru-image" },
+    match = { title = "Booru.*" },
     float = true,
+    pin = true,
     move = "cursor -50% -50%",
 })
 

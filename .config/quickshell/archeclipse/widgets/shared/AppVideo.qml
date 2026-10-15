@@ -104,10 +104,49 @@ ClippingRectangle {
     }
 
     onActiveChanged: {
-        if (!root.active)
+        if (!root.active) {
+            _playTimer.stop();
             player.stop();
-        else if (root.autoplay && root.source !== "")
+        } else if (root.autoplay && root.source !== "") {
+            root._kickPlayback();
+        }
+    }
+    // Same silent-stall class as MediaVideo's direct file→file switch:
+    // after source churn the backend can sit on a held source with no
+    // video and no error (probed on the waifu widget: valid local mp4,
+    // hasVideo false, _failed false). Bounce through stop() + retried
+    // play(): a single deferred play() races the source binding (lands
+    // while player.source is still "" → silent no-op → loaded but never
+    // playing), so retry until Playing (condition-based, bounded).
+    onSourceChanged: {
+        if (!root.active || root.source === "")
+            return;
+        player.stop();
+        root._kickPlayback();
+    }
+    property int _playAttempts: 0
+    function _kickPlayback() {
+        root._playAttempts = 0;
+        _playTimer.restart();
+    }
+    Timer {
+        id: _playTimer
+        interval: 120
+        repeat: true
+        onTriggered: {
+            if (!root.active || root.source === "" || player.source === "") {
+                if (++root._playAttempts > 25)
+                    stop();
+                return;
+            }
+            if (player.playbackState === MediaPlayer.PlayingState) {
+                stop();
+                return;
+            }
             player.play();
+            if (++root._playAttempts > 25)
+                stop();
+        }
     }
     Component.onDestruction: {
         player.stop();

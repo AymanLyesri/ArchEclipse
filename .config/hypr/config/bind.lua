@@ -48,7 +48,7 @@ hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.window.kill())
 --- float for active window
 hl.bind(mainMod .. " + SPACE", hl.dsp.window.float({ action = "toggle" }))
 --- pin active window
-hl.bind(mainMod .. " + CTRL + Space", hl.dsp.window.pin())
+hl.bind(mainMod .. " + ALT + Space", hl.dsp.window.pin())
 
 -- Open Apps
 --- open terminal
