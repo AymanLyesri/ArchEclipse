@@ -42,6 +42,30 @@ QtObject {
     // call returns). Direct apply when search is already open (no
     // creation/reset happens then) — see Ipc clipboard/emojis/notes/apps.
     property string pendingQuery: ""
+    // Quickshell exposes desktop-entry IDs and metadata, but not their source
+    // file paths. This index maps IDs to the XDG application-directory groups
+    // used by the old launcher.
+    property var appSourceById: ({})
+    property bool appSourceMapReady: false
+    property Process _appSourceProcess: Process {
+        command: ["python3", `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/scripts/desktop-entry-sources.py`]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.appSourceById = JSON.parse(text || "{}");
+                } catch (e) {
+                    root.appSourceById = {};
+                }
+                root.appSourceMapReady = true;
+            }
+        }
+        onExited: {
+            root.appSourceMapReady = true;
+            // Apps may have been requested while the source map was loading.
+            if (root.lastQuery.trimStart().startsWith("apps"))
+                root.runQuery(root.lastQuery);
+        }
+    }
 
     // Emitted when a navigation row wants the search box to adopt its query
     // (e.g. activating "cb ..." fills "cb " so typing continues from there).
@@ -164,7 +188,10 @@ QtObject {
         _qaFile.setText(JSON.stringify(next));
         refreshQuickApps();
     }
-    Component.onCompleted: refreshQuickApps()
+    Component.onCompleted: {
+        refreshQuickApps();
+        _appSourceProcess.running = true;
+    }
 
     function selectNext(dir) {
         if (!results.length)
@@ -335,18 +362,53 @@ QtObject {
             const bb = hb >= 0 ? Math.max(48 - hb * 8, 8) : 0;
             return (b.s + bb) - (a.s + ba) || a.e.name.localeCompare(b.e.name);
         });
-        return scored.slice(0, maxItems).map(({
+        // Bare `apps ` is the all-apps view; only filtered searches should
+        // use the normal result cap. ListView virtualizes the delegates, so
+        // exposing the full catalog here does not build every row at once.
+        const limit = q ? maxItems : scored.length;
+        const selected = scored.slice(0, limit).map(({
                 e
             }) => {
             const entry = e;
-            return mkResult(entry.name, entry.icon ? `image://icon/${entry.icon}` : "", entry.comment || "", () => {
-                if (withArgs && withArgs.length > 0)
-                    Quickshell.execDetached(["sh", "-c", `${entry.command} ${withArgs.join(" ")}`]);
-                else
-                    entry.execute();
-                touchHistory(entry.name);
-            }, withArgs ? withArgs.join(" ") : "");
+            return {
+                id: String(entry.id || ""),
+                result: mkResult(entry.name, entry.icon ? `image://icon/${entry.icon}` : "", entry.comment || "", () => {
+                    if (withArgs && withArgs.length > 0)
+                        Quickshell.execDetached(["sh", "-c", `${entry.command} ${withArgs.join(" ")}`]);
+                    else
+                        entry.execute();
+                    touchHistory(entry.name);
+                }, withArgs ? withArgs.join(" ") : "")
+            };
         });
+
+        // Keep the full catalog usable before the source index finishes
+        // loading, then group the active apps query when the map arrives.
+        if (!appSourceMapReady)
+            return selected.map(item => item.result);
+
+        const groupOrder = [
+            "User Applications",
+            "Flatpak User Applications",
+            "System Applications",
+            "Flatpak System Applications",
+            "Other Applications"
+        ];
+        const groups = {};
+        for (let i = 0; i < selected.length; i++) {
+            const item = selected[i];
+            const source = appSourceById[item.id] || "Other Applications";
+            if (!groups[source])
+                groups[source] = [];
+            groups[source].push(item.result);
+        }
+        const rows = [];
+        for (let i = 0; i < groupOrder.length; i++) {
+            const group = groupOrder[i];
+            if (groups[group] && groups[group].length > 0)
+                rows.push(mkHeader(group), ...groups[group]);
+        }
+        return rows;
     }
 
     // ---- custom commands ----
