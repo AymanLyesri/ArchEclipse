@@ -23,7 +23,7 @@ Rectangle {
         if (!t)
             return "";
         try {
-            return (t.lastIpcObject?.class ?? "") + "";
+            return WorkspaceIcons.classForToplevel(t);
         } catch (e) {
             return "";
         }

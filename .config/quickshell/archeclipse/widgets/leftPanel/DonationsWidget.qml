@@ -46,9 +46,9 @@ Item {
     // shell entirely (plain wallet transfer, no provider callback), so they
     // can NEVER be verified and do not activate supporter status.
     property var standaloneCryptos: [
-        { name: "Bitcoin", icon: "", address: "1JisW9xeatCFadtgsenjbpCcFePZGPyXow", color: "#F7931A" },
-        { name: "Ethereum", icon: "", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#627EEA" },
-        { name: "BSC (BEP20)", icon: "", description: "BNB Smart Chain", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#F3BA2F" }
+        { name: "Bitcoin", icon: "\uf15a", address: "1JisW9xeatCFadtgsenjbpCcFePZGPyXow", color: "#F7931A" },
+        { name: "Ethereum", icon: "\ued58", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#627EEA" },
+        { name: "BSC (BEP20)", icon: "\ued58", description: "BNB Smart Chain", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#F3BA2F" }
     ]
 
     property string linkCode: ""
@@ -615,7 +615,7 @@ Item {
                     AppButton {
                         width: parent.width
                         height: 46
-                        icon: ""
+                        icon: "\uf0f4"
                         text: "Support with Ko-fi — $" + root.selectedAmount
                         pixelSize: Theme.fontSize
                         outlined: true

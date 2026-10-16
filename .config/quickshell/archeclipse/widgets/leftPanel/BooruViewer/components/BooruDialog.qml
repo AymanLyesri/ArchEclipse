@@ -78,6 +78,9 @@ Item {
     readonly property bool dlgBookmarked: dlg ? (viewer ? viewer.isBookmarked(dlg) : false) : false
     readonly property bool dlgPinned: dlg ? (viewer ? viewer.isPinned(dlg) : false) : false
     readonly property bool dlgIsWaifu: dlg ? (viewer ? viewer.isCurrentWaifu(dlg) : false) : false
+    // Waifu mode = pinned embedded host (WaifuWidget). Tags start collapsed
+    // with zero shown; the expand button reveals them.
+    readonly property bool isWaifuMode: viewer ? !!viewer.dialogPinned : false
     readonly property bool dlgIsLocal: dlg ? (dlg.url && !/^https?:\/\//.test(dlg.url)) : false
     // Full file still in flight: the dialog shows the preview still
     // meanwhile (see dialogSource fallback) with the spinner over it.
@@ -91,7 +94,7 @@ Item {
     readonly property bool dlgVideoPlayable: dlg ? ((dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample) && dlgDownloaded && !dialogRoot.dlgUnplayableZip && !dlgIsGif) : false
     readonly property bool dlgVideoPlaceholder: dlg ? (!dlgDownloaded && (dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample)) : false
     readonly property string dlgTypeIcon: dlgIsZip ? "" : (dlgIsVideo ? "" : "")
-    readonly property int dlgVisibleTagCount: showAllTags ? dlgTags.length : Math.min(dlgTags.length, 12)
+    readonly property int dlgVisibleTagCount: showAllTags ? dlgTags.length : (isWaifuMode ? 0 : Math.min(dlgTags.length, 12))
     // Badge icons shared by the still preview (AppImage below) and the
     // video overlay: AppImage hides once a video plays, taking its own
     // badges with it, so both feed off this one list.
@@ -534,14 +537,14 @@ Item {
                                 elide: Text.ElideRight
                             }
                             AppButton {
-                                icon: dialogRoot.showAllTags ? "" : ""
+                                icon: dialogRoot.showAllTags ? "\uf102" : "\uf103"
                                 width: 24
                                 height: 22
                                 pixelSize: 10
                                 cornerRadius: 4
                                 outlined: true
                                 tooltipText: dialogRoot.showAllTags ? "Show fewer" : "Show all tags"
-                                visible: dialogRoot.dlgTags.length > 12
+                                visible: dialogRoot.dlgTags.length > 12 || (dialogRoot.isWaifuMode && dialogRoot.dlgTags.length > 0)
                                 onClicked: dialogRoot.showAllTags = !dialogRoot.showAllTags
                             }
                         }
@@ -550,6 +553,9 @@ Item {
                             implicitHeight: tagFlow.implicitHeight + 12
                             radius: 6
                             color: Theme.bg
+                            // Waifu mode starts collapsed: hide the empty chip
+                            // box until expanded (no-tags case still shows).
+                            visible: dialogRoot.dlgVisibleTagCount > 0 || dialogRoot.dlgTags.length === 0
                             Flow {
                                 id: tagFlow
                                 anchors.fill: parent

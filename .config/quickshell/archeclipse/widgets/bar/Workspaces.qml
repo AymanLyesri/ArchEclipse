@@ -167,7 +167,7 @@ Item {
             out.push({
                 id: i,
                 occupied: tops.length > 0,
-                icon: tops.length > 0 ? WorkspaceIcons.forClientClass(tops[0].lastIpcObject?.class ?? "") : WorkspaceIcons.emptyIcon
+                icon: tops.length > 0 ? WorkspaceIcons.forToplevel(tops[0]) : WorkspaceIcons.emptyIcon
             });
         }
         return out;
@@ -198,7 +198,7 @@ Item {
         if (root.specialOpen)
             root.requestExpand();
     }
-    readonly property string specialIconText: root.specialOccupied ? WorkspaceIcons.forClientClass(root.specialTops[0].lastIpcObject?.class ?? "") : WorkspaceIcons.specialIcon
+    readonly property string specialIconText: root.specialOccupied ? WorkspaceIcons.forToplevel(root.specialTops[0]) : WorkspaceIcons.specialIcon
 
     // Shared normal-slot delegate so left (1-5) and right (6-10) halves
     // stay identical.

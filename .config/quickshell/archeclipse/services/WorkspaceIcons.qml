@@ -33,6 +33,31 @@ QtObject {
         return extraIcon;
     }
 
+    // Fresh client class for a HyprlandToplevel. `lastIpcObject.class` is
+    // stale unless `Hyprland.refreshToplevels()` runs (see HyprlandToplevel
+    // docs) so it resolves to ""/extraIcon here — prefer the reactive
+    // `wayland.appId` (== class for native Wayland clients), falling back
+    // to the IPC snapshot for XWayland (wayland == null).
+    function classForToplevel(t: var): string {
+        if (!t)
+            return "";
+        try {
+            const appId = ((t.wayland?.appId ?? "") + "").trim();
+            if (appId !== "")
+                return appId;
+        } catch (e) {}
+        try {
+            const c = ((t.lastIpcObject?.class ?? "") + "").trim();
+            if (c !== "")
+                return c;
+        } catch (e) {}
+        return "";
+    }
+
+    function forToplevel(t: var): string {
+        return forClientClass(classForToplevel(t));
+    }
+
     // small number badge markup — mirrors workspaceNumberBadge()
     function numberBadge(id: int): string {
         return `<span size="x-small" alpha="65%"> ${id}</span>`;
