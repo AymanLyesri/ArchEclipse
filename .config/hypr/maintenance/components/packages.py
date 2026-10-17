@@ -88,6 +88,7 @@ PACKAGES: list[str] = [
     "whitesur-icon-theme",
     "quickshell",
     "qt6-multimedia",
+    "qt6ct-kde",
     "c-lolcat",
     # Extra build tools
     "meson",
