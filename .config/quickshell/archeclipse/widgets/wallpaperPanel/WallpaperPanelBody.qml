@@ -56,7 +56,13 @@ Item {
     // every set, so the tile below loads it cache:false + reloads
     // explicitly — a static cached source would serve the stale load).
     readonly property string greeterPath: "/etc/xdg/quickshell/archeclipse-greeter/greeter-wallpaper"
+    readonly property string greeterThemePath: "/etc/xdg/quickshell/archeclipse-greeter/colors.scss"
+    readonly property string greeterThemeCache: root.home + "/.cache/archeclipse-greeter-theme"
+    readonly property string greeterThemeConfig: root.home + "/.config/quickshell/archeclipse-greeter/greeter-theme-config"
+    readonly property string greeterPaletteNormalizer: root.home + "/.config/quickshell/archeclipse/scripts/normalize-greeter-palette.py"
     readonly property string greeterSource: "file://" + root.greeterPath
+    property string _pendingGreeterThemePath: ""
+    property string _greeterThemeWallpaper: ""
     // Re-read the greeter file from disk (same-URL assignments don't
     // reload, so clear first and restore deferred past the cancel).
     function refreshGreeterTile() {
@@ -598,7 +604,14 @@ Item {
                 // the indicator tile shows the wallpaper just installed.
                 if (root._pendingTarget === "greeter")
                     root.refreshGreeterTile();
+                const target = root._pendingTarget;
                 root._pendingTarget = "";
+                if (target === "greeter") {
+                    const wallpaper = root._pendingGreeterThemePath;
+                    root._pendingGreeterThemePath = "";
+                    root.regenGreeterTheme(wallpaper);
+                    return;
+                }
                 // Share the global theme: regenerate pywal/cwal colors from
                 // the new wallpaper (coloreclipse wal honors autocolor=false
                 // itself; _pendingThemeRegen is only set when workspace
@@ -610,6 +623,7 @@ Item {
             } else {
                 root._pendingThemeRegen = "";
                 root._pendingTarget = "";
+                root._pendingGreeterThemePath = "";
                 root.setProgress("error");
             }
         }
@@ -640,6 +654,7 @@ Item {
         setProgress("setting");
         root._pendingTarget = root.targetType;
         root._pendingThemeRegen = (root.targetType === "workspace" && Settings.dynamicThemeColors) ? path : "";
+        root._pendingGreeterThemePath = root.targetType === "greeter" ? String(path) : "";
         setProc.command = commandFor(root.targetType, path);
         setProc.running = true;
     }
@@ -726,6 +741,60 @@ Item {
         root._pendingThemeRegen = "";
         themeProc.command = ["coloreclipse", "wal", path];
         themeProc.running = true;
+    }
+
+    Process {
+        id: greeterThemeProc
+        onExited: code => {
+            if (code === 0) {
+                greeterPaletteNormalizeProc.command = [
+                    "python3", root.greeterPaletteNormalizer,
+                    root._greeterThemeWallpaper,
+                    root.greeterThemeCache + "/coloreclipse/colors.scss"
+                ];
+                greeterPaletteNormalizeProc.running = true;
+            } else {
+                root.notifyError("generating greeter theme", "coloreclipse wal failed (exit " + code + ")");
+            }
+        }
+    }
+    Process {
+        id: greeterPaletteNormalizeProc
+        onExited: code => {
+            if (code === 0) {
+                greeterPaletteInstallProc.command = [
+                    "pkexec", "install", "-m", "0644",
+                    root.greeterThemeCache + "/coloreclipse/colors.scss",
+                    root.greeterThemePath
+                ];
+                greeterPaletteInstallProc.running = true;
+            } else {
+                root.notifyError("normalizing greeter theme", "could not match the palette to the wallpaper (exit " + code + ")");
+            }
+        }
+    }
+    Process {
+        id: greeterPaletteInstallProc
+        onExited: code => {
+            if (code === 0)
+                root.setProgress("success");
+            else
+                root.notifyError("installing greeter theme", "could not update the greeter palette (exit " + code + ")");
+        }
+    }
+    function regenGreeterTheme(path) {
+        if (!path) {
+            root.notifyError("generating greeter theme", "no wallpaper path was provided");
+            return;
+        }
+        root._greeterThemeWallpaper = String(path);
+        greeterThemeProc.command = [
+            "env",
+            "XDG_CONFIG_HOME=" + root.greeterThemeConfig,
+            "XDG_CACHE_HOME=" + root.greeterThemeCache,
+            "coloreclipse", "wal", path
+        ];
+        greeterThemeProc.running = true;
     }
 
     function setRandomWallpaper() {

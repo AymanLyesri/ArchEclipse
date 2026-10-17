@@ -31,13 +31,14 @@ SUDO="${SYNC_GREETER_SUDO-sudo}"
 # carry their rationale here: *apiKey*/*secret*/*token*/*credential* and
 # settings*.json are secret-shaped names that must never leak into the
 # world-readable mirror; /greeter-wallpaper is panel-installed user data
-# (pkexec cp, see commandFor "greeter") that --delete must never remove.
+# (pkexec cp, see commandFor "greeter") and /colors.scss is the generated
+# wallpaper palette; --delete must never remove either.
 $SUDO mkdir -p "$DST"
 $SUDO rsync -aL --delete --chmod=Du+rX,go+rX,Fu+r,go+r \
     --exclude='*[Aa][Pp][Ii][Kk]ey*' --exclude='*[Ss][Ee][Cc][Rr][Ee][Tt]*' \
     --exclude='*[Tt][Oo][Kk][Ee][Nn]*' --exclude='*[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]*' \
     --exclude='settings.json' --exclude='settings-*.json' \
-    --exclude='/greeter-wallpaper' \
+    --exclude='/greeter-wallpaper' --exclude='/colors.scss' \
     "$SRC/" "$DST/"
 $SUDO chmod -R a+rX "$DST"
 
