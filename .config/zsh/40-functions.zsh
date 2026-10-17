@@ -20,7 +20,7 @@ _coloreclipse_refresh_colors() {
     local colors_mtime sequences_mtime
 
     [[ -r "$colors" && -r "$sequences" ]] || return
-    zmodload zsh/stat 2>/dev/null || return
+    zmodload -F zsh/stat b:zstat 2>/dev/null || return
     colors_mtime=$(zstat -L +mtime -- "$colors" 2>/dev/null) || return
     sequences_mtime=$(zstat -L +mtime -- "$sequences" 2>/dev/null) || return
     [[ "$colors_mtime:$sequences_mtime" == "$_COLORECLIPSE_COLOR_MTIME" ]] && return
@@ -39,7 +39,7 @@ _coloreclipse_watch_colors() {
     local last_mtime="" mtime
 
     while [[ -r "$sequences" ]]; do
-        zmodload zsh/stat 2>/dev/null || return
+        zmodload -F zsh/stat b:zstat 2>/dev/null || return
         mtime=$(zstat -L +mtime -- "$sequences" 2>/dev/null) || return
         if [[ -n "$last_mtime" && "$mtime" != "$last_mtime" ]]; then
             command cat "$sequences"

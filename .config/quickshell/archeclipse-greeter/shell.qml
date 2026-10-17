@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Greetd
+import qs.theme
 import qs.widgets.greeter
 
 // archeclipse-greeter: minimal greetd login shell (runs under
@@ -281,7 +282,7 @@ ShellRoot {
             anchors.bottom: true
             anchors.left: true
             anchors.right: true
-            color: "black"
+            color: Theme.background
 
             GreeterSurface {
                 anchors.fill: parent

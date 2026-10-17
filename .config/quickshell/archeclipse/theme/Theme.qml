@@ -3,9 +3,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// ArchEclipse theme — colors are read from the cwal (pywal) colors.scss
-// generated from the active wallpaper, so switching palettes re-themes the
-// shell live. Built-in fallbacks below apply until the file loads.
+// ArchEclipse theme — the greeter prefers its system palette; the desktop
+// reads the cwal (pywal) colors.scss generated from the active wallpaper.
+// Built-in fallbacks apply until a palette loads.
 QtObject {
     id: root
 
@@ -133,27 +133,48 @@ QtObject {
     readonly property string danger: "#ff4444"
     readonly property string dangerBg: Qt.rgba(1.0, 0.26, 0.26, 0.1).toString()
 
+    readonly property string _greeterPalettePath: String(Qt.resolvedUrl("../colors.scss")).replace(/^file:\/\//, "")
+    property bool _greeterPaletteLoaded: false
+
+    function applyPalette(t: string) {
+        const grab = (name, fb) => {
+            const m = t.match(new RegExp("\\$" + name + "\\s*:\\s*(#[0-9a-fA-F]{6})"));
+            return m ? m[1] : fb;
+        };
+        root.background = grab("background", "#08080c");
+        root.foreground = grab("foreground", "#aaabb2");
+        root.color0 = grab("color0", "#08080c");
+        root.color1 = grab("color1", "#493028");
+        root.color2 = grab("color2", "#413945");
+        root.color3 = grab("color3", "#4e505d");
+        root.color4 = grab("color4", "#917f7a");
+        root.color5 = grab("color5", "#b7b5ae");
+        root.color6 = grab("color6", "#d7af96");
+        root.color7 = grab("color7", "#aaabb2");
+        root.color8 = grab("color8", "#555765");
+    }
+
+    // The greeter mirror carries its own palette next to shell.qml; prefer
+    // it when present, while the desktop keeps its user palette.
+    property FileView _greeterPalette: FileView {
+        path: root._greeterPalettePath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            root._greeterPaletteLoaded = true;
+            root.applyPalette(text());
+        }
+    }
+
     property FileView _cwal: FileView {
         path: `${Quickshell.env("HOME")}/.cache/coloreclipse/colors.scss`
         watchChanges: true
+        printErrors: false
         onFileChanged: reload()
         onLoaded: {
-            const t = text();
-            const grab = (name, fb) => {
-                const m = t.match(new RegExp("\\$" + name + "\\s*:\\s*(#[0-9a-fA-F]{6})"));
-                return m ? m[1] : fb;
-            };
-            root.background = grab("background", "#08080c");
-            root.foreground = grab("foreground", "#aaabb2");
-            root.color0 = grab("color0", "#08080c");
-            root.color1 = grab("color1", "#493028");
-            root.color2 = grab("color2", "#413945");
-            root.color3 = grab("color3", "#4e505d");
-            root.color4 = grab("color4", "#917f7a");
-            root.color5 = grab("color5", "#b7b5ae");
-            root.color6 = grab("color6", "#d7af96");
-            root.color7 = grab("color7", "#aaabb2");
-            root.color8 = grab("color8", "#555765");
+            if (!root._greeterPaletteLoaded)
+                root.applyPalette(text());
         }
     }
 }

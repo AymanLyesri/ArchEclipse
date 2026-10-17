@@ -67,13 +67,9 @@ MouseArea {
         }
     }
 
-    // No session wallpaper behind the greeter (Hyprland-minimal starts
-    // blank), so the plain dim is the whole background — unlike the lock,
-    // there is no screenshot blur layer.
-    // Login wallpaper behind the dim (content-sniffed, any format; the
-    // panel installs it via pkexec). Missing file stays invisible: the
-    // plain dim underneath is the fallback. cache:false — the fixed path
-    // is reused on every change (same trick as the lock backgrounds).
+    // Login wallpaper behind a subtle palette-tinted overlay. Missing files
+    // leave Theme.background visible as the fallback. cache:false — the
+    // fixed path is reused on every change.
     Image {
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
@@ -84,7 +80,7 @@ MouseArea {
     }
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.45)
+        color: Theme.rgba(Theme.background, 0.2)
     }
 
     // Top-center island: username + password + session picker + actions.
