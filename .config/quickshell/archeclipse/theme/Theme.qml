@@ -12,6 +12,11 @@ QtObject {
     // --- raw palette (parsed from cwal colors.scss) ---
     property string background: "#08080c"
     property string foreground: "#aaabb2"
+    // Vivid, legible UI accent, chosen by the coloreclipse binary. cwal has no
+    // such concept: its color5 is a prominence rank and is often too dim to
+    // read against the background. Falls back to the old color5-derived value
+    // if the palette predates `$accent`.
+    property string rawAccent: "#b7b5ae"
     property string color0: "#08080c"
     property string color1: "#493028"
     property string color2: "#413945"
@@ -40,18 +45,22 @@ QtObject {
     }
 
     // --- semantic colors, derived from the raw palette ---
+    // `background` is used as-is: the binary already forces light-mode
+    // backgrounds to be genuinely light (luminance >= 0.92) with only a hint
+    // of the wallpaper's hue, so there is nothing to correct here.
     readonly property string bg: background
     readonly property string fg: foreground
     readonly property string fgDim: rgba(foreground, 0.5)
-    // Accent tracks a vibrant wallpaper color (not foreground, which pywal
-    // keeps a near-constant gray) so it visibly shifts with the wallpaper.
-    readonly property string accent: color5
+    // Accent comes from the binary, which ranks the six palette accents by
+    // contrast x saturation and enforces a WCAG floor. cwal's color5 is a
+    // prominence rank and is frequently too dim to use.
+    readonly property string accent: rawAccent
     // Muted secondary text/icons.
     readonly property string muted: mix(foreground, color2, phiMin)
     // Surfaces: translucent base, opaque hover, accent-tinted active.
-    readonly property string surface: rgba(background, Settings.uiOpacity)
-    readonly property string surfaceHover: background
-    readonly property string surfaceActive: mix(background, accent, 0.2)
+    readonly property string surface: rgba(bg, Settings.uiOpacity)
+    readonly property string surfaceHover: bg
+    readonly property string surfaceActive: mix(bg, accent, 0.2)
     readonly property string border: rgba(foreground, 0.15)
 
     // --- typography / scale (settings-driven, like $FONT-SIZE / $SCALE) ---
@@ -175,6 +184,23 @@ QtObject {
         onLoaded: {
             if (!root._greeterPaletteLoaded)
                 root.applyPalette(text());
+            const t = text();
+            const grab = (name, fb) => {
+                const m = t.match(new RegExp("\\$" + name + "\\s*:\\s*(#[0-9a-fA-F]{6})"));
+                return m ? m[1] : fb;
+            };
+            root.background = grab("background", "#08080c");
+            root.foreground = grab("foreground", "#aaabb2");
+            root.rawAccent = grab("accent", "#b7b5ae");
+            root.color0 = grab("color0", "#08080c");
+            root.color1 = grab("color1", "#493028");
+            root.color2 = grab("color2", "#413945");
+            root.color3 = grab("color3", "#4e505d");
+            root.color4 = grab("color4", "#917f7a");
+            root.color5 = grab("color5", "#b7b5ae");
+            root.color6 = grab("color6", "#d7af96");
+            root.color7 = grab("color7", "#aaabb2");
+            root.color8 = grab("color8", "#555765");
         }
     }
 }

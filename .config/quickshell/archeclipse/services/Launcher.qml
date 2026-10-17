@@ -387,11 +387,12 @@ QtObject {
         if (!appSourceMapReady)
             return selected.map(item => item.result);
 
+        // System-installed apps rank above user-local ones.
         const groupOrder = [
-            "User Applications",
-            "Flatpak User Applications",
             "System Applications",
             "Flatpak System Applications",
+            "User Applications",
+            "Flatpak User Applications",
             "Other Applications"
         ];
         const groups = {};
@@ -473,12 +474,17 @@ QtObject {
         return [mkResult(`Unknown command ">${cmd}"`, "?", "Try >quickapps - >recent - >commands", null)];
     }
     function setResults(rows) {
-        results = rows;
         // reset selection to first non-header row (skip headers)
         let i = 0;
         while (i < rows.length && rows[i] && rows[i].isHeader)
             i++;
+        // BEFORE the model swap: the panel binds ListView.currentIndex to
+        // selectedIndex and the view overwrites that property itself while
+        // the model changes. An unchanged index value emits nothing, so the
+        // binding would never re-apply and the highlight would park on the
+        // header row.
         selectedIndex = Math.min(i, Math.max(0, rows.length - 1));
+        results = rows;
     }
 
     // ---- default launcher state: recent apps, quick-apps fallback ----

@@ -36,7 +36,7 @@ Item {
     property bool supporterKnown: false
     property bool isSupporter: false
     property bool busy: false
-    property string statusText: "Sign in to support"
+    property string statusText: "No account needed to donate"
     property string statusKind: "idle" // idle | loading | ok | warn | error
 
     property var amounts: [3, 5, 10, 25]
@@ -53,6 +53,22 @@ Item {
 
     property string linkCode: ""
     property string linkCodeState: "idle" // idle | loading | ready | error
+
+    // mtime of the last session.json we acted on (0 = never seen). The tab
+    // Loader stays alive, so signing in on the Account tab later would never
+    // reach us without this watch.
+    property int sessionMtime: 0
+
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: {
+            const p = statComp.createObject(root);
+            p.command = ["bash", "-c", "stat -c %Y " + JSON.stringify(root.authSessionPath) + " 2>/dev/null"];
+            p.running = true;
+        }
+    }
 
     property string pendingPaymentId: ""
     property string pendingState: "" // "" | waiting | finished | failed
@@ -103,12 +119,24 @@ Item {
             root.signedIn = false;
             root.uid = "";
             root.supporterKnown = false;
-            root.setStatus("idle", "Sign in to support");
+            root.setStatus("idle", "No account needed to donate");
             return;
         }
         root.session = s;
         root.signedIn = true;
         root.resolveUid();
+    }
+
+    function onSessionMtime(text) {
+        const m = parseInt(String(text || "").trim(), 10);
+        if (isNaN(m) || m === root.sessionMtime)
+            return;
+        // First sighting while already signed in = the session boot() already
+        // read, not a change: record it and don't refetch.
+        const firstSighting = root.sessionMtime === 0;
+        root.sessionMtime = m;
+        if (!firstSighting || !root.signedIn)
+            root.boot();
     }
 
     function resolveUid() {
@@ -493,7 +521,7 @@ Item {
                         }
                         Item { Layout.fillWidth: true; Layout.fillHeight: true }
                         Label {
-                            text: !root.signedIn ? "signed out" : !root.supporterKnown ? "…" : root.isSupporter ? "active" : "not yet"
+                            text: !root.signedIn ? "optional" : !root.supporterKnown ? "…" : root.isSupporter ? "active" : "not yet"
                             font.pixelSize: Theme.fontSize - 1
                             color: Theme.fgDim
                         }
@@ -585,7 +613,7 @@ Item {
                     }
                     Label {
                         width: parent.width
-                        text: "Checkout happens on Ko-fi. Paste your link code into the Ko-fi message so the donation is linked to your account."
+                        text: root.signedIn ? "Checkout happens on Ko-fi. Paste your link code into the Ko-fi message so the donation is linked to your account and your supporter badge activates." : "Checkout happens on Ko-fi — no account needed. Sign in beforehand if you want a supporter badge; without it you can still claim the donation later with the same email."
                         font.pixelSize: Theme.fontSize - 1
                         color: Theme.fgDim
                         wrapMode: Text.WordWrap
@@ -597,9 +625,12 @@ Item {
                             id: codeField
                             width: parent.width - 108
                             height: 34
-                            text: root.linkCodeState === "ready" ? root.linkCode : root.linkCodeState === "loading" ? "…" : "—"
+                            // Never fake a value: an empty field shows the
+                            // placeholder, so "signed out" reads as words
+                            // instead of a bare dash.
+                            text: root.linkCode
                             readOnly: true
-                            placeholderText: "Sign in to get a code"
+                            placeholderText: !root.signedIn ? "Sign in to get a code" : root.linkCodeState === "loading" ? "Fetching your code…" : root.linkCodeState === "error" ? "Could not get a code — try Refresh" : "Getting your code…"
                         }
                         AppButton {
                             width: 100
@@ -624,15 +655,12 @@ Item {
                         hoverBg: "#29ABE0"
                         idleFg: Theme.fg
                         hoverFg: "white"
-                        tooltipText: "Open Ko-fi in your browser\nPut " + (root.linkCode || "your link code") + " in the message"
+                        tooltipText: root.signedIn ? "Open Ko-fi in your browser\nPut " + root.linkCode + " in the message" : "Open Ko-fi in your browser\nNo account needed — sign in later to claim the badge"
                         onClicked: {
-                            if (!root.signedIn) {
-                                root.goSignIn();
-                                return;
-                            }
-                            // The code-in-message link is a workaround (Ko-fi
-                            // has no metadata field), so at least make it
-                            // paste-ready: copy, then open checkout.
+                            // No account required: the checkout is external
+                            // (xdg-open ko-fi.com). The link code only exists
+                            // when signed in, and only links the donation to
+                            // an account so the badge can be granted.
                             if (root.linkCodeState === "ready" && root.linkCode !== "")
                                 root.copyToClipboard(root.linkCode, "Link code");
                             root.openUrl(root.kofiUrl);
@@ -887,6 +915,14 @@ Item {
         Process {
             stdout: StdioCollector {
                 onStreamFinished: root.onSessionText(text)
+            }
+        }
+    }
+    Component {
+        id: statComp
+        Process {
+            stdout: StdioCollector {
+                onStreamFinished: root.onSessionMtime(text)
             }
         }
     }

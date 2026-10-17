@@ -16,7 +16,12 @@ import qs.widgets.weather
 PanelWindow {
     id: root
 
-    required property ShellScreen screen
+    // NOTE: `screen` is intentionally NOT redeclared here. `PanelWindow`
+    // inherits `screen` from QsWindow; a `required property ShellScreen
+    // screen` in this subtype would shadow it, so `screen: modelData`
+    // (shell.qml) would bind the shadow and never reach the real window —
+    // every variant's layer surface then defaults to the same output,
+    // stacking all bars on one monitor (reported 2026-10-16/17).
     readonly property string monitorName: {
         const hmon = Hyprland.monitorFor(screen);
         if (hmon && hmon.name)

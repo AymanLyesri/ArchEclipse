@@ -13,7 +13,8 @@ import qs.services
 PanelWindow {
     id: root
 
-    required property ShellScreen screen
+    // `screen` is the inherited QsWindow property — do not redeclare it
+    // (see Bar.qml); a shadow would leave the surface on one output.
     readonly property string monitorName: Hyprland.monitorFor(screen)?.name ?? ""
 
     // Top-center floating panel (overlay layer,

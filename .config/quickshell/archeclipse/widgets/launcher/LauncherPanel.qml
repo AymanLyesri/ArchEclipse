@@ -22,7 +22,10 @@ Rectangle {
         // between the pill edge and content (the list used to add 8).
         clip: true
         model: Launcher.results
-        currentIndex: Launcher.selectedIndex
+        // `resultsList.model` in the expression re-evaluates this binding on
+        // every results swap (the view overwrites currentIndex itself then).
+        // See Launcher.setResults for the matching assignment order.
+        currentIndex: resultsList.model, Launcher.selectedIndex
         spacing: 2
         // Sliding selection pill (Caelestia AppList pattern): geometry
         // tracks the current item with expressive easing instead of

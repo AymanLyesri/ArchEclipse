@@ -570,8 +570,11 @@ Item {
                         body: "No session matches \"" + arg + "\""
                     });
             } else {
-                // Enter pick mode: session list appears under the input.
-                inputField.text = "/switch ";
+                // Bare /list stays a menu: keep the command in the input
+                // so the popup keeps showing the session rows and Down/Enter
+                // picks one. Rewriting the text to "/switch " made /list look
+                // like /switch had been chosen; a toast hid the rows.
+                inputField.text = "/" + name + " ";
                 inputField.forceActiveFocus();
             }
             return;
@@ -625,34 +628,38 @@ Item {
     // Returns true when a command ran (key event is consumed).
     function trySlashCommand() {
         const p = root.parseSlash(inputField.text);
+        const cmds = root.slashFilter();
+        // The popup is the source of truth for what Enter runs: bare "/"
+        // and bare prefixes ("/li") have no parseSlash def, yet the list
+        // is showing rows to pick from — honour the highlighted row.
+        if (cmds.length > 0 && (!p || p.arg === "")) {
+            const def = p ? root.findSlashCommand(p.cmd) : null;
+            // Bare list/switch/delete with the popup highlighting a
+            // session: Enter activates the highlighted session row
+            // instead of the command row (highlight past the rows).
+            if (def && root.isSessionListCmd(def.name)) {
+                const sess = root.sessionMatches();
+                if (sess.length > 0 && root.slashIndex >= cmds.length) {
+                    const pick = sess[Math.min(root.slashIndex - cmds.length, sess.length - 1)];
+                    inputField.text = "";
+                    root.slashIndex = 0;
+                    if (def.name === "delete")
+                        root.deleteSession(pick.id);
+                    else
+                        root.switchToSession(pick.id);
+                    return true;
+                }
+            }
+            root.runSlashCommand(cmds[Math.min(root.slashIndex, cmds.length - 1)].name, p ? p.arg : "");
+            return true;
+        }
+        // "/cmd args": exact command, run it with the arg.
         if (!p)
             return false;
         const def = root.findSlashCommand(p.cmd);
         if (!def)
             return false;
-        // Bare list/switch/delete with the popup highlighting a session:
-        // Enter activates the highlighted session row instead of the
-        // command row when the highlight sits past the command rows.
-        if (!p.arg && root.isSessionListCmd(p.cmd)) {
-            const cmds = root.slashFilter();
-            const sess = root.sessionMatches();
-            if (sess.length > 0 && root.slashIndex >= cmds.length) {
-                const pick = sess[Math.min(root.slashIndex - cmds.length, sess.length - 1)];
-                inputField.text = "";
-                root.slashIndex = 0;
-                if (p.cmd === "delete")
-                    root.deleteSession(pick.id);
-                else
-                    root.switchToSession(pick.id);
-                return true;
-            }
-        }
-        const cmds = root.slashFilter();
-        let name = def.name;
-        // No-space prefix with several matches: honour the highlight.
-        if (p.arg === "" && cmds.length > 1)
-            name = cmds[Math.min(root.slashIndex, cmds.length - 1)].name;
-        root.runSlashCommand(name, p.arg);
+        root.runSlashCommand(def.name, p.arg);
         return true;
     }
 
@@ -1228,8 +1235,6 @@ Item {
                                     AppButton {
                                         anchors.verticalCenter: actionsRow.verticalCenter
                                         visible: modelData.role === "user"
-                                        implicitHeight: 20
-                                        implicitWidth: 28
                                         text: "\uf0e2"
                                         pixelSize: 9
                                         tooltipText: "Revert to this message"
@@ -1238,9 +1243,7 @@ Item {
                                     // Whole-message copy (raw markdown).
                                     AppButton {
                                         anchors.verticalCenter: actionsRow.verticalCenter
-                                        implicitHeight: 20
-                                        implicitWidth: 52
-                                        text: "copy"
+                                        text: "\uf0c5"
                                         pixelSize: 9
                                         tooltipText: "Copy whole message"
                                         onClicked: root.copyToClipboard(modelData.content)
@@ -1276,12 +1279,11 @@ Item {
                                         visible: modelData.type === "code"
                                         anchors.top: parent.top
                                         anchors.right: parent.right
-                                        width: 54
-                                        height: 20
+                       
                                         idleBg: Theme.bg
                                         idleFg: Theme.accent
                                         hoverFg: Theme.accent
-                                        text: "copy"
+                                        text: "\uf0c5"
                                         pixelSize: 9
                                         tooltipText: "Copy code"
                                         onClicked: root.copyToClipboard(modelData.content)
