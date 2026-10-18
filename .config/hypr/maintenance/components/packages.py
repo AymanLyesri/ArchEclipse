@@ -84,10 +84,10 @@ PACKAGES: list[str] = [
     "ttf-jetbrains-mono-nerd",
     "noto-fonts-emoji",
     "phinger-cursors",
-    "whitesur-gtk-theme",
     "whitesur-icon-theme",
     "quickshell",
     "qt6-multimedia",
+    "qt6ct",
     "c-lolcat",
     # Extra build tools
     "meson",

@@ -60,6 +60,13 @@ urls_images_sfw = [
     "https://cdn.donmai.us/original/60/c8/__narantuya_arknights_drawn_by_helen_zzhao__60c81c2ace0b77d39c2537d4182d430f.jpg",
     "https://cdn.donmai.us/original/08/d0/__luci_hexia_drawn_by_damcheong__08d0e1c429ef1d88c0cd274cb75cbf86.jpg",
     "https://cdn.donmai.us/original/40/57/__yoru_mitaka_asa_pochita_war_devil_and_bucky_chainsaw_man_drawn_by_eaechas__40574201912be4a9dec5589b3374350c.jpg",
+    "https://cdn.donmai.us/original/f4/10/__yinlin_wuthering_waves_drawn_by_void_0__f4101f0f07a1b7cc65e545e90180881e.jpg",
+    "https://cdn.donmai.us/original/15/d9/__lumine_genshin_impact_drawn_by_void_0__15d9d2028600be71e78ed10fdda8a37c.jpg",
+    "https://cdn.donmai.us/original/86/cc/__columbina_genshin_impact_drawn_by_void_0__86cc14bd3da8a9578bff20e148c1e74a.jpg",
+    "https://cdn.donmai.us/original/2e/35/__cartethyia_wuthering_waves_drawn_by_void_0__2e35f55f3eb0407853fe119418e4a57e.jpg",
+    "https://cdn.donmai.us/original/a7/1a/__artoria_pendragon_and_saber_alter_fate_drawn_by_void_0__a71a1a801a7fb08dd7697018e484c58a.jpg",
+    "https://cdn.donmai.us/original/64/f5/__shorekeeper_wuthering_waves_drawn_by_void_0__64f5d0531e563ffa6397a023d1e59415.jpg",
+    "https://cdn.donmai.us/original/8b/6a/__chiori_genshin_impact_drawn_by_void_0__8b6aee8b720517f41c675fb49a0f02c1.jpg",
 ]
 
 urls_images_nsfw = [
@@ -150,6 +157,7 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/74/1f/__2b_and_pod_nier_and_1_more_drawn_by_kajin_kajinman__741fcb653a14aeb3db906080091d55fb.jpg",
     "https://cdn.donmai.us/original/85/4b/__brest_azur_lane_drawn_by_yolanda__854bb1c71e05317287583199ec536201.jpg",
     "https://cdn.donmai.us/original/95/e4/__dusk_arknights_drawn_by_omone_hokoma_agm__95e438265a597f57c5e7878aea35017d.jpg",
+    "https://cdn.donmai.us/original/3c/ed/__xilonen_genshin_impact_drawn_by_void_0__3ced6e28ec3bc14b4c69911032593b1c.jpg",
 ]
 
 urls_animated_sfw = [
@@ -162,6 +170,10 @@ urls_animated_sfw = [
     "https://motionbgs.com/dl/hd/8603",
     "https://motionbgs.com/dl/hd/7661",
     "https://motionbgs.com/dl/hd/7417",
+    "https://cdn.donmai.us/original/5c/5f/5c5fdeda81aeaa0a1c50ba8dda24a232.webm",
+    "https://cdn.donmai.us/original/ab/66/ab66f357dd3a68566342c5570be2f859.mp4",
+    "https://cdn.donmai.us/original/52/2d/522dda62d17aea4ee84b10c00df247e5.mp4",
+    "https://cdn.donmai.us/original/34/30/3430021ab0ef2233ecd7efd817de0b4e.mp4",
 ]
 
 urls_animated_nsfw = [
@@ -181,6 +193,14 @@ urls_animated_nsfw = [
     "https://cdn.donmai.us/original/d7/f2/d7f2dc6cb4be818b67c35e2366f4cd69.mp4",
     "https://cdn.donmai.us/original/33/28/3328518dc5859617c18c4bd8f564e374.mp4",
     "https://cdn.donmai.us/original/08/00/0800c53d039287c4b67c07a205eb0417.mp4",
+    "https://cdn.donmai.us/original/a8/f1/__ellin_meiji_and_lethe_rin_original_and_1_more_drawn_by_aduare__a8f132c769e2dffa511ffde6f58ec709.gif",
+    "https://cdn.donmai.us/original/25/a5/25a55b5aba44c6b52cca92b714bb01d9.mp4",
+    "https://cdn.donmai.us/sample/66/3b/sample-663b1ee63119e6ac073f22e8dbfa66e0.webm",
+    "https://cdn.donmai.us/sample/0e/8f/sample-0e8ff9e5080896a1dd7a5abb2aba98a8.webm",
+    "https://cdn.donmai.us/original/ab/66/ab66f357dd3a68566342c5570be2f859.mp4",
+    "https://cdn.donmai.us/original/f0/16/f016fd83fc2944f4df99b98785b8a83a.mp4",
+    "https://cdn.donmai.us/original/8d/b3/8db30161af571ddbdab42a2673649f7d.mp4",
+    "https://cdn.donmai.us/original/bb/59/bb5986d16a4995e502522012fa7b4299.mp4",
 ]
 
 

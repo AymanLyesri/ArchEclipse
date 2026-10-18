@@ -27,7 +27,7 @@ Item {
 
     property int count: 10
     property real barHeight: 4
-    property real iconSize: 14
+    property real iconSize: 11
     property real btnSpacing: 4
     // Horizontal inset of the strip Row within the widget: a little air
     // on the left and right so the end buttons don't flush against the
@@ -42,10 +42,10 @@ Item {
     // floor that already fits icon + bar with `headroom` to spare (so the
     // shortest button never clips). `maxRings` caps the ramp, which keeps
     // the strip a stable height no matter where focus sits.
-    property real headroom: 4
-    property real waveStep: 6
+    property real headroom: 0
+    property real waveStep: 4
     property real waveDelay: 50
-    property int maxRings: 5
+    property int maxRings: 4
     property int peekDuration: 1000
     // Width of the special slot relative to a normal one.
     property real specialRatio: 0.55
