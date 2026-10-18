@@ -46,7 +46,7 @@ PanelWindow {
         anchors.top: parent.top
         anchors.margins: 12
         color: Theme.bg
-        radius: 12
+        radius: Theme.radius
 
         border.color: Theme.border
 

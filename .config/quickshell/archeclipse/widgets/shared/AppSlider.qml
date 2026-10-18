@@ -32,7 +32,7 @@ Slider {
         y: root.topPadding + root.availableHeight / 2 - height / 2
         width: 14
         height: 14
-        radius: 7
+        radius: width / 2
         color: root.pressed ? Theme.accent : Theme.fg
     }
 }

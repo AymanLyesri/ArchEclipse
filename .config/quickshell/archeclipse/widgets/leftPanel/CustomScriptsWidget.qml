@@ -389,7 +389,7 @@ Item {
                         width: parent.width
                         implicitHeight: rowContent.implicitHeight + 20
                         color: Theme.surface
-                        radius: 8
+                        radius: Theme.cardRadius
                         // Row appears when the reveal counter passes its
                         // position (see root.playReveal).
                         opacity: index < root.revealCount ? 1 : 0

@@ -14,7 +14,7 @@ Rectangle {
     implicitHeight: signCol.implicitHeight + 20
     visible: !store.profile
     color: Theme.bg
-    radius: 8
+    radius: Theme.cardRadius
 
     Column {
         id: signCol

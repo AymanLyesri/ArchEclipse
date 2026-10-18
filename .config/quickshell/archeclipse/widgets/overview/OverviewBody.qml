@@ -232,7 +232,7 @@ Item {
                         color: Theme.muted
                         opacity: 0.35
                         font.family: Theme.fontFamily
-                        font.pixelSize: 40
+                        font.pixelSize: Theme.fs(3.33)
                         font.bold: true
                     }
 

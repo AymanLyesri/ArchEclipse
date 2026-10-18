@@ -144,7 +144,7 @@ Rectangle {
                 text: "󰎈"
                 color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 12
+                font.pixelSize: Theme.fontSize
             }
         }
 

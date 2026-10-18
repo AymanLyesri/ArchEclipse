@@ -341,7 +341,7 @@ Item {
                             // fixed 210px that tall covers would overflow.
                             implicitHeight: mangaCardCol.implicitHeight + 20
                             color: Theme.surface
-                            radius: 8
+                            radius: Theme.cardRadius
                             clip: true
 
                             MouseArea {
@@ -431,7 +431,7 @@ Item {
                             width: chapCol.width
                             implicitHeight: 36
                             color: Theme.bg
-                            radius: 6
+                            radius: Theme.chipRadius
 
                             AppButton {
                                 anchors.fill: parent
@@ -613,7 +613,7 @@ Item {
                 Layout.fillWidth: true
                 height: 28
                 color: Theme.bg
-                radius: 4
+                radius: Theme.radiusSm
 
                 Label {
                     anchors.fill: parent

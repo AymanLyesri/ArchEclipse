@@ -78,7 +78,7 @@ MouseArea {
     // fallback when no screenshot exists for this monitor.
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.45)
+        color: Theme.scrim
     }
     Item {
         id: bgShot
@@ -117,7 +117,7 @@ MouseArea {
     }
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.2)
+        color: Theme.scrimSoft
         visible: bgBlur.visible
         opacity: bgBlur.opacity
     }

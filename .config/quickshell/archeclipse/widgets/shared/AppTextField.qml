@@ -11,7 +11,7 @@ import qs.theme
 TextField {
     id: root
 
-    property int cornerRadius: 6
+    property int cornerRadius: Theme.chipRadius
     property color fillColor: Theme.bg
 
     font.pixelSize: Theme.fontSize

@@ -96,17 +96,17 @@ Item {
             model: [
                 {
                     frac: root.cpuFrac,
-                    color: "#ff9f1c",
+                    color: Theme.chart1,
                     tip: root.res ? `CPU Usage ${Number(root.res.cpuLoad).toFixed(1)}%` : "CPU: N/A"
                 },
                 {
                     frac: root.ramFrac,
-                    color: "#4aa8ff",
+                    color: Theme.chart2,
                     tip: root.res ? `RAM Usage ${Math.round(root.ramFrac * 100)}% (${Number(root.res.ramUsedGB).toFixed(2)}/${Number(root.res.ramTotalGB).toFixed(2)} GB)` : "RAM: N/A"
                 },
                 {
                     frac: root.gpuFrac,
-                    color: "#ff5d5d",
+                    color: Theme.chart3,
                     tip: root.gpuTip
                 }
             ]
@@ -126,14 +126,18 @@ Item {
                     id: track
                     anchors.fill: parent
                     radius: height / 2
-                    color: Qt.rgba(1, 1, 1, 0.15)
+                    color: Theme.track
 
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(1, barItem.frac))
                         height: parent.height
                         radius: parent.radius
                         color: barItem.modelData.color
-                        Behavior on width { NumberAnimation { duration: 150 } }
+                        Behavior on width {
+                            Anim {
+                                type: Anim.FastEffects
+                            }
+                        }
                     }
                 }
 

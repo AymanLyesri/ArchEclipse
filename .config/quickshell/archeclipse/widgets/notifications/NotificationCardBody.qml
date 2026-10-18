@@ -81,9 +81,9 @@ Column {
                 width: parent.width
                 height: parent.height
                 text: root.isRecorder ? "\uf111" : (root.critical ? "\u{F0266}" : "\u{F059A}")
-                color: root.isRecorder ? "#c95454" : (root.critical ? "white" : Theme.fg)
+                color: root.isRecorder ? Theme.danger : (root.critical ? Theme.criticalFg : Theme.fg)
                 font.family: Theme.fontFamily
-                font.pixelSize: 22
+                font.pixelSize: Theme.fs(1.83)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -153,7 +153,7 @@ Column {
                     textFormat: Text.StyledText
                     elide: Text.ElideRight
                     Layout.fillWidth: true
-                    color: root.critical ? "white" : Theme.fg
+                    color: root.critical ? Theme.criticalFg : Theme.fg
                     font.family: Theme.fontFamily
                     font.bold: true
                     font.pixelSize: Theme.fontSize
@@ -164,7 +164,7 @@ Column {
                         minute: "2-digit",
                         hour12: false
                     }) : ""
-                    color: root.critical ? Qt.alpha("white", 0.7) : Theme.fgDim
+                    color: root.critical ? Qt.alpha(Theme.criticalFg, Theme.opacity.hoverDim) : Theme.fgDim
                     font.pixelSize: Theme.fontSize - 2
                     visible: text !== ""
                 }
@@ -181,7 +181,7 @@ Column {
                 wrapMode: Text.WordWrap
                 maximumLineCount: root.bodyExpanded ? undefined : 4
                 elide: root.bodyExpanded ? Text.ElideNone : Text.ElideRight
-                color: root.critical ? Qt.alpha("white", 0.85) : Theme.muted
+                color: root.critical ? Qt.alpha(Theme.criticalFg, Theme.opacity.soft) : Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize - 1
 
@@ -233,8 +233,8 @@ Column {
         spacing: 4
         AppButton {
             icon: ""
-            pixelSize: 11
-            cornerRadius: 4
+            pixelSize: Theme.fontSizeSmall
+            cornerRadius: Theme.radiusSm
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.openFile
@@ -243,8 +243,8 @@ Column {
         }
         AppButton {
             icon: "󰃅"
-            pixelSize: 11
-            cornerRadius: 4
+            pixelSize: Theme.fontSizeSmall
+            cornerRadius: Theme.radiusSm
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.copyTip
@@ -252,8 +252,8 @@ Column {
         }
         AppButton {
             icon: root.bodyExpanded ? "󰁾" : "󰁼"
-            pixelSize: 11
-            cornerRadius: 4
+            pixelSize: Theme.fontSizeSmall
+            cornerRadius: Theme.radiusSm
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.bodyExpanded ? "Collapse" : "Expand"
@@ -262,8 +262,8 @@ Column {
         }
         AppButton {
             icon: "󰀍"
-            pixelSize: 11
-            cornerRadius: 4
+            pixelSize: Theme.fontSizeSmall
+            cornerRadius: Theme.radiusSm
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.dismissTip

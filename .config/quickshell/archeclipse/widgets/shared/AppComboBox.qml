@@ -24,7 +24,7 @@ ComboBox {
         color: Theme.surface
         border.color: root.activeFocus || root.popup.visible ? Theme.accent : Theme.border
         border.width: 1
-        radius: 6
+        radius: Theme.chipRadius
     }
 
     indicator: Text {
@@ -45,7 +45,7 @@ ComboBox {
             color: Theme.bg
             border.color: Theme.border
             border.width: 1
-            radius: 6
+            radius: Theme.chipRadius
         }
         contentItem: SmoothListView {
             clip: true
@@ -69,7 +69,7 @@ ComboBox {
             elide: Text.ElideRight
         }
         background: Rectangle {
-            radius: 4
+            radius: Theme.radiusSm
             color: parent.highlighted ? Theme.surfaceActive : "transparent"
             border.color: parent.highlighted ? Theme.border : "transparent"
             border.width: 1

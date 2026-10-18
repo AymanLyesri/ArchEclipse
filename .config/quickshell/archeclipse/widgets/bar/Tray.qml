@@ -112,7 +112,7 @@ Row {
             width: 20
             height: 20
             z: 1000
-            opacity: 0.9
+            opacity: Theme.opacity.soft
             property var icon: ""
             IconImage {
                 anchors.centerIn: parent
@@ -342,7 +342,7 @@ Row {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 4
+                radius: Theme.radiusSm
                 color: inlineHover.hovered ? Theme.surfaceHover : "transparent"
             }
 
@@ -432,7 +432,7 @@ Row {
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
-            radius: 4
+            radius: Theme.radiusSm
             color: Theme.accent
             opacity: root.dropZone === "overflowBtn" ? 0.3 : 0
         }
@@ -467,7 +467,7 @@ Row {
             closePolicy: Popup.CloseOnPressOutside
             background: Rectangle {
                 color: Theme.surface
-                radius: 8
+                radius: Theme.cardRadius
                 border.color: root.dropZone === "popup" ? Theme.accent : Theme.border
                 border.width: root.dropZone === "popup" ? 2 : 1
             }

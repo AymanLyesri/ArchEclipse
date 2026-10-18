@@ -77,7 +77,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: Weather.icon(root.cur.weather_code)
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSize + 12
+                                font.pixelSize: Theme.fs(2)
                                 color: Theme.accentFg
                             }
                             Text {
@@ -91,26 +91,26 @@ Item {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: Weather.fmtRaw(root.cur.temperature_2m, root.tempUnit)
-                                font.pixelSize: Theme.fontSize + 10
+                                font.pixelSize: Theme.fs(1.83)
                                 font.bold: true
                                 color: Theme.accentFg
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: Weather.description(root.cur.weather_code)
-                                color: "#E0E0E0"
+                                color: Theme.onPlateInk
                                 font.pixelSize: Theme.fontSize
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: `Feels like: ${Weather.fmtRaw(root.cur.apparent_temperature, root.tempUnit)}`
-                                color: "#CFCFCF"
+                                color: Theme.onPlateInkDim
                                 font.pixelSize: Theme.fontSize - 2
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: Weather.formatDate(root.day.time?.[0])
-                                color: "#CFCFCF"
+                                color: Theme.onPlateInkDim
                                 font.pixelSize: Theme.fontSize - 2
                             }
                         }
@@ -140,7 +140,7 @@ Item {
                                 }
                                 Text {
                                     text: "\u{F522}"
-                                    color: "#DDD"
+                                    color: Theme.onPlateInk
                                     font.pixelSize: Theme.fontSize
                                     font.family: Theme.fontFamily
                                 }
@@ -168,7 +168,7 @@ Item {
                                     width: 90
                                     height: 34
                                     radius: Theme.chipRadius
-                                    color: "#22FFFFFF"
+                                    color: Qt.alpha(Theme.onMediaInk, 0.13)
                                     Column {
                                         anchors.centerIn: parent
                                         spacing: 1
@@ -191,7 +191,7 @@ Item {
                                     width: 90
                                     height: 34
                                     radius: Theme.chipRadius
-                                    color: "#22FFFFFF"
+                                    color: Qt.alpha(Theme.onMediaInk, 0.13)
                                     Column {
                                         anchors.centerIn: parent
                                         spacing: 1
@@ -216,7 +216,7 @@ Item {
                                 width: 190
                                 height: 34
                                 radius: Theme.chipRadius
-                                color: "#22FFFFFF"
+                                color: Qt.alpha(Theme.onMediaInk, 0.13)
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 Column {
                                     anchors.centerIn: parent
@@ -252,21 +252,21 @@ Item {
                             width: parent.width - 76
                             height: 30
                             color: Theme.accentFg
-                            fillColor: "#33000000"
-                            placeholderTextColor: "#CCFFFFFF"
+                            fillColor: Theme.scrimSoft
+                            placeholderTextColor: Qt.alpha(Theme.onMediaInk, 0.8)
                             Component.onCompleted: text = Weather._cityOverride
                         }
                         AppButton {
                             width: 32
                             height: 30
                             icon: "\u{F00C}"
-                            pixelSize: 14
+                            pixelSize: Theme.fontSizeLarge
                             cornerRadius: Theme.chipRadius
-                            idleBg: "#33000000"
+                            idleBg: Theme.scrimSoft
                             idleFg: Theme.accentFg
-                            hoverBg: "#33000000"
+                            hoverBg: Theme.scrimSoft
                             outlined: true
-                            outlineColor: "#55FFFFFF"
+                            outlineColor: Qt.alpha(Theme.onMediaInk, 0.33)
                             tooltipText: "Search city"
                             onClicked: root.applyCity()
                         }
@@ -274,13 +274,13 @@ Item {
                             width: 32
                             height: 30
                             icon: "\u{F0453}"
-                            pixelSize: 14
+                            pixelSize: Theme.fontSizeLarge
                             cornerRadius: Theme.chipRadius
-                            idleBg: "#33000000"
+                            idleBg: Theme.scrimSoft
                             idleFg: Theme.accentFg
-                            hoverBg: "#33000000"
+                            hoverBg: Theme.scrimSoft
                             outlined: true
-                            outlineColor: "#55FFFFFF"
+                            outlineColor: Qt.alpha(Theme.onMediaInk, 0.33)
                             tooltipText: "Auto (IP)"
                             onClicked: root.clearCity()
                         }

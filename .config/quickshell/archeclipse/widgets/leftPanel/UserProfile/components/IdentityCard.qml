@@ -39,7 +39,7 @@ Column {
             Text {
                 anchors.centerIn: parent
                 text: "\u{F007}"
-                font.pixelSize: 48
+                font.pixelSize: Theme.fs(4)
                 color: Theme.accent
             }
         }
@@ -60,7 +60,7 @@ Column {
         width: parent.width
         height: cardCol.implicitHeight + 20
         color: Theme.bg
-        radius: 8
+        radius: Theme.cardRadius
 
         Column {
             id: cardCol

@@ -53,7 +53,7 @@ Item {
                 icon: "\u{F091}"
                 width: 28
                 height: 24
-                pixelSize: 11
+                pixelSize: Theme.fontSizeSmall
                 cornerRadius: 4
                 idleBg: Theme.surface
                 idleFg: Theme.accent
@@ -73,7 +73,7 @@ Item {
                 icon: "\u{F044}"
                 width: 28
                 height: 24
-                pixelSize: 11
+                pixelSize: Theme.fontSizeSmall
                 cornerRadius: 4
                 idleBg: Theme.surface
                 outlined: true
@@ -85,7 +85,7 @@ Item {
                 icon: "\u{F00D}"
                 width: 28
                 height: 24
-                pixelSize: 11
+                pixelSize: Theme.fontSizeSmall
                 cornerRadius: 4
                 idleBg: Theme.dangerBg
                 idleFg: Theme.danger

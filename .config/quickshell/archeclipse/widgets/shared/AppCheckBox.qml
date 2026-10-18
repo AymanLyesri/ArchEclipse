@@ -10,7 +10,7 @@ CheckBox {
         implicitHeight: 18
         x: root.leftPadding
         y: parent.height / 2 - height / 2
-        radius: 4
+        radius: Theme.radiusSm
         color: root.checked ? Theme.accent : Theme.surface
         border.color: root.checked ? Theme.accent : Theme.border
         border.width: 1
@@ -20,7 +20,7 @@ CheckBox {
             text: "\u{F012C}" // or checkmark Nerd Font
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
-            color: Theme.bg
+            color: Theme.pickOn(Theme.accent, Theme.accentFg, Theme.bg)
             visible: root.checked
         }
     }

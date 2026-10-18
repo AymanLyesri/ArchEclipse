@@ -125,7 +125,7 @@ Item {
         color: Theme.bg
         border.width: 1
         border.color: Theme.border
-        opacity: root.enabled ? 1 : 0.4
+        opacity: root.enabled ? 1 : Theme.opacity.disabled
 
         // Sliding selection pill — the only animated chrome. Geometry
         // follows highlightCell (reactive to Row layout), so it never
@@ -203,11 +203,9 @@ Item {
                             font.family: root.fontFamily
                             verticalAlignment: Text.AlignVCenter
                             color: cell.dimmed ? Theme.muted : (cell.selected ? Theme.accent : (cellMa.containsMouse ? Theme.fg : Theme.muted))
-                            opacity: cell.dimmed ? 0.5 : 1
+                            opacity: cell.dimmed ? Theme.opacity.disabled : 1
                             Behavior on color {
-                                ColorAnimation {
-                                    duration: 150
-                                }
+                                CAnim {}
                             }
                         }
                         Text {
@@ -216,11 +214,9 @@ Item {
                             font.family: root.fontFamily
                             verticalAlignment: Text.AlignVCenter
                             color: cell.dimmed ? Theme.muted : (cell.selected ? Theme.accent : (cellMa.containsMouse ? Theme.fg : Theme.muted))
-                            opacity: cell.dimmed ? 0.5 : 1
+                            opacity: cell.dimmed ? Theme.opacity.disabled : 1
                             Behavior on color {
-                                ColorAnimation {
-                                    duration: 150
-                                }
+                                CAnim {}
                             }
                         }
                     }

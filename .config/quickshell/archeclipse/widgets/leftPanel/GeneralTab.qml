@@ -200,7 +200,7 @@ Item {
                         cornerRadius: 8
                         outlined: true
                         icon: modelData.icon
-                        pixelSize: 18
+                        pixelSize: Theme.fs(1.5)
                         tooltipText: modelData.tip
                         onClicked: Quickshell.execDetached(["xdg-open", modelData.url])
                     }
@@ -300,7 +300,7 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                             text: "\u{F00C} Up to date" + (root.updateStatus ? " - " + root.updateStatus : "")
                             font.pixelSize: Theme.fontSize
-                            color: "#4CAF50"
+                            color: Theme.success
                         }
 
                         AppButton {

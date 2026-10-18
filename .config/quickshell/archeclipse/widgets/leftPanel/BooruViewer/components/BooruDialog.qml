@@ -205,9 +205,9 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: parent.modelData
-                            font.pixelSize: 9
+                            font.pixelSize: Theme.fontSizeBadge
                             font.family: Theme.fontFamily
-                            color: "white"
+                            color: Theme.accentFg
                         }
                     }
                 }
@@ -220,7 +220,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: dialogRoot.dlgIsZip ? "" : ""
-                    font.pixelSize: 32
+                    font.pixelSize: Theme.fs(2.67)
                     font.family: Theme.fontFamily
                     color: Theme.fgDim
                 }
@@ -265,8 +265,8 @@ Item {
                 anchors.margins: 8
                 implicitWidth: dlPillRow.implicitWidth + 18
                 implicitHeight: 24
-                radius: 12
-                color: Qt.rgba(0, 0, 0, 0.6)
+                radius: width / 2
+                color: Theme.scrimHeavy
                 visible: dialogRoot.dlgDownloading
                 Row {
                     id: dlPillRow
@@ -275,14 +275,14 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: ""
-                        color: "white"
-                        font.pixelSize: 11
+                        color: Theme.onMediaInk
+                        font.pixelSize: Theme.fontSizeSmall
                         font.family: Theme.fontFamily
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Downloading…"
-                        color: "white"
+                        color: Theme.onMediaInk
                         font.pixelSize: Theme.fontSize - 2
                         font.family: Theme.fontFamily
                     }
@@ -423,13 +423,13 @@ Item {
                         Rectangle {
                             width: 26
                             height: 26
-                            radius: 6
+                            radius: Theme.chipRadius
                             color: Theme.surfaceActive
                             Layout.alignment: Qt.AlignVCenter
                             Text {
                                 anchors.centerIn: parent
                                 text: dialogRoot.dlgTypeIcon
-                                font.pixelSize: 12
+                                font.pixelSize: Theme.fontSize
                                 font.family: Theme.fontFamily
                                 color: Theme.accent
                             }
@@ -462,7 +462,7 @@ Item {
                             icon: ""
                             width: 26
                             height: 26
-                            pixelSize: 11
+                            pixelSize: Theme.fontSizeSmall
                             cornerRadius: 6
                             outlined: true
                             hoverFg: Theme.danger
@@ -482,7 +482,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         implicitHeight: metaRow.implicitHeight + 12
-                        radius: 6
+                        radius: Theme.chipRadius
                         color: Theme.bg
                         RowLayout {
                             id: metaRow
@@ -540,8 +540,8 @@ Item {
                                 icon: dialogRoot.showAllTags ? "\uf102" : "\uf103"
                                 width: 24
                                 height: 22
-                                pixelSize: 10
-                                cornerRadius: 4
+                                pixelSize: Theme.fontSizeCaption
+                                cornerRadius: Theme.radiusSm
                                 outlined: true
                                 tooltipText: dialogRoot.showAllTags ? "Show fewer" : "Show all tags"
                                 visible: dialogRoot.dlgTags.length > 12 || (dialogRoot.isWaifuMode && dialogRoot.dlgTags.length > 0)
@@ -551,7 +551,7 @@ Item {
                         Rectangle {
                             width: parent.width
                             implicitHeight: tagFlow.implicitHeight + 12
-                            radius: 6
+                            radius: Theme.chipRadius
                             color: Theme.bg
                             // Waifu mode starts collapsed: hide the empty chip
                             // box until expanded (no-tags case still shows).
@@ -566,7 +566,7 @@ Item {
                                     delegate: Rectangle {
                                         width: tagDetail.implicitWidth + 14
                                         height: 22
-                                        radius: 11
+                                        radius: height / 2
                                         color: tagDetailMa.containsMouse ? Theme.surfaceActive : Theme.surface
                                         border.color: Theme.border
                                         border.width: 1

@@ -36,7 +36,7 @@ Rectangle {
             visible: root.hasData
             anchors.verticalCenter: parent.verticalCenter
             text: Weather.icon(root.cur.weather_code)
-            color: "white"
+            color: Theme.onPlateInk
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize + 1
         }
@@ -61,7 +61,7 @@ Rectangle {
                     return Math.min(implicitWidth, 120);
                 return Math.min(implicitWidth, avail);
             }
-            color: "white"
+            color: Theme.onPlateInk
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
         }

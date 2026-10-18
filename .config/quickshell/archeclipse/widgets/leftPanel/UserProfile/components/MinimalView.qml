@@ -34,7 +34,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     text: "\u{F007}"
-                    font.pixelSize: 56
+                    font.pixelSize: Theme.fs(4.67)
                     color: Theme.accent
                 }
             }

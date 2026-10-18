@@ -14,7 +14,7 @@ Rectangle {
     height: 18
     radius: Theme.radius
     color: Theme.muted
-    opacity: 0.75
+    opacity: Theme.opacity.hoverDim
     visible: root.text !== ""
 
     Text {
@@ -23,6 +23,6 @@ Rectangle {
         text: root.text
         font.pixelSize: Theme.fontSizeBadge
         font.family: Theme.fontFamily
-        color: "white"
+        color: Theme.onMediaInk
     }
 }

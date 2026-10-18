@@ -758,7 +758,7 @@ Item {
                                     width: parent.width
                                     height: 34
                                     color: Theme.bg
-                                    radius: 4
+                                    radius: Theme.radiusSm
 
                                     property bool reveal: false
 
@@ -883,7 +883,7 @@ Item {
                                     width: parent.width
                                     height: 34
                                     color: Theme.bg
-                                    radius: 4
+                                    radius: Theme.radiusSm
                                     objectName: modelData.path
 
                                     property bool reveal: false

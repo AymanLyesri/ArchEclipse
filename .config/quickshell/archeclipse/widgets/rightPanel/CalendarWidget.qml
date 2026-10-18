@@ -259,7 +259,7 @@ Item {
                     readonly property bool selected: root.isSelected(modelData.y, modelData.m, modelData.d)
                     width: Math.max(0, (dayGrid.width - 6) / 7)
                     height: 30
-                    radius: 8
+                    radius: Theme.cardRadius
                     color: {
                         if (selected)
                             return Theme.accent;
@@ -270,16 +270,14 @@ Item {
                     border.width: (!selected && today) ? 1 : 0
                     border.color: Theme.accent
                     Behavior on color {
-                        ColorAnimation {
-                            duration: 120
-                        }
+                        CAnim {}
                     }
                     Text {
                         anchors.centerIn: parent
                         text: modelData.d
                         color: {
                             if (parent.selected)
-                                return "white";
+                                return Theme.pickOn(Theme.accent, Theme.accentFg, Theme.bg);
                             if (!modelData.inMonth)
                                 return Theme.fgDim;
                             if (parent.today)

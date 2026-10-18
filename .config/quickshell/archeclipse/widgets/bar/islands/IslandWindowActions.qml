@@ -27,8 +27,8 @@ Column {
     AppButton {
         width: parent.width
         icon: "";
-        pixelSize: 14
-        cornerRadius: 6
+        pixelSize: Theme.fontSizeLarge
+        cornerRadius: Theme.chipRadius
         hoverBg: Theme.surface
         hoverFg: Theme.accent
         tooltipText: "Expand island"
@@ -43,8 +43,8 @@ Column {
     AppButton {
         width: parent.width
         icon: "";
-        pixelSize: 14
-        cornerRadius: 6
+        pixelSize: Theme.fontSizeLarge
+        cornerRadius: Theme.chipRadius
         hoverBg: Theme.surface
         hoverFg: Theme.accent
         tooltipText: "Shrink island"
@@ -59,8 +59,8 @@ Column {
     AppButton {
         width: parent.width
         icon: (root.isLeft ? Settings.leftPanelLock : Settings.rightPanelLock) ? "" : "";
-        pixelSize: 14
-        cornerRadius: 6
+        pixelSize: Theme.fontSizeLarge
+        cornerRadius: Theme.chipRadius
         toggle: true
         checked: root.isLeft ? Settings.leftPanelLock : Settings.rightPanelLock
         hoverBg: Theme.surface
@@ -76,8 +76,8 @@ Column {
     AppButton {
         width: parent.width
         icon: "";
-        pixelSize: 14
-        cornerRadius: 6
+        pixelSize: Theme.fontSizeLarge
+        cornerRadius: Theme.chipRadius
         hoverBg: Theme.surface
         hoverFg: Theme.danger
         tooltipText: "Close island"

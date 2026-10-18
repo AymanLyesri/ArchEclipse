@@ -12,7 +12,7 @@ Rectangle {
     implicitHeight: supporterCol.implicitHeight + 20
     visible: !!store.profile && store.profile.is_supporter !== null && store.profile.is_supporter !== undefined
     color: Theme.bg
-    radius: 8
+    radius: Theme.cardRadius
     Column {
         id: supporterCol
         anchors.left: parent.left

@@ -175,7 +175,7 @@ Item {
                     text: "󰖩"
                     color: Theme.fg
                     font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 18
+                    font.pixelSize: Theme.fs(1.5)
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
@@ -200,7 +200,7 @@ Item {
                 text: root.sectionOpen ? "\uf106" : "\uf107"
                 color: Theme.muted
                 font.family: "JetBrainsMono NFP"
-                font.pixelSize: 14
+                font.pixelSize: Theme.fontSizeLarge
             }
             MouseArea {
                 anchors.fill: parent
@@ -280,7 +280,7 @@ Item {
                                     text: apRow.linked ? "󰖩" : "󰖨"
                                     color: apRow.linked ? Theme.accent : Theme.muted
                                     font.family: "JetBrainsMono NFP"
-                                    font.pixelSize: 13
+                                    font.pixelSize: Theme.fs(1.08)
                                     verticalAlignment: Text.AlignVCenter
                                     height: parent.height
                                 }
@@ -381,7 +381,7 @@ Item {
                                     text: "󰂯"
                                     color: Theme.muted
                                     font.family: "JetBrainsMono NFP"
-                                    font.pixelSize: 13
+                                    font.pixelSize: Theme.fs(1.08)
                                     verticalAlignment: Text.AlignVCenter
                                     height: parent.height
                                 }

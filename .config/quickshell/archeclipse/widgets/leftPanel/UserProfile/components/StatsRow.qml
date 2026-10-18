@@ -13,7 +13,7 @@ Row {
         width: (parent.width - 10) / 2
         implicitHeight: favCol.implicitHeight + 20
         color: Theme.bg
-        radius: 8
+        radius: Theme.cardRadius
 
         Column {
             id: favCol
@@ -55,7 +55,7 @@ Row {
         width: (parent.width - 10) / 2
         implicitHeight: pinCol.implicitHeight + 20
         color: Theme.bg
-        radius: 8
+        radius: Theme.cardRadius
 
         Column {
             id: pinCol

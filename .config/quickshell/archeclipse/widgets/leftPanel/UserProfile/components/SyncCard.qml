@@ -11,7 +11,7 @@ Rectangle {
     implicitHeight: syncCol.implicitHeight + 20
     visible: !!store.profile
     color: Theme.bg
-    radius: 8
+    radius: Theme.cardRadius
 
     Column {
         id: syncCol

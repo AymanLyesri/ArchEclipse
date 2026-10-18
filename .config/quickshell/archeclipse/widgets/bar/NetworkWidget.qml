@@ -89,7 +89,7 @@ Item {
                 id: netIcon
                 text: root.icon
                 font.family: "JetBrainsMono NFP"
-                font.pixelSize: 14
+                font.pixelSize: Theme.fontSizeLarge
                 color: root.connected ? Theme.color2 : Theme.color8
                 verticalAlignment: Text.AlignVCenter
             }

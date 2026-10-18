@@ -25,7 +25,7 @@ Item {
     property string fontFamily: Theme.fontFamily
     property string labelFontFamily: ""
     property int pixelSize: Theme.fontSize
-    property int cornerRadius: 10
+    property int cornerRadius: Theme.radius
     property bool toggle: false
     property bool checked: false
     property bool autoToggle: false
@@ -111,7 +111,7 @@ Item {
 
             return root.outlined ? root.outlineColor : root.borderColor;
         }
-        opacity: root.enabled ? (root.dragging ? 0.6 : 1) : 0.4
+        opacity: root.enabled ? (root.dragging ? Theme.opacity.hoverDim : 1) : Theme.opacity.disabled
 
         Row {
             id: contentRow

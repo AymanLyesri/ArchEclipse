@@ -17,7 +17,7 @@ Rectangle {
     width: parent ? parent.width : 0
     height: image && image.width && image.height ? Math.max(80, width * image.height / image.width) : width
     color: Theme.surface
-    radius: 10
+    radius: Theme.radius
     clip: true
     // Staggered pop-in: the viewer reveals one id per tick (see
     // _revealTimer); the card fades/scales in only once its file is

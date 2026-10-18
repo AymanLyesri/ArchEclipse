@@ -216,7 +216,7 @@ Item {
             anchors.fill: parent
             source: root._lastCover || ""
 
-            opacity: 0.1
+            opacity: 0.15
             visible: root._lastCover !== ""
         }
 
@@ -257,7 +257,7 @@ Item {
                         anchors.top: parent.top
                         width: 10
                         height: 10
-                        radius: 5
+                        radius: height / 2
                         color: root.playing ? Theme.accent : Theme.fgDim
                         Behavior on color {
                             ColorAnimation {
@@ -361,7 +361,7 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                         text: ""  // music-note icon
                         color: Theme.fgDim
-                        font.pixelSize: 18
+                        font.pixelSize: Theme.fs(1.5)
                     }
                     AppTooltip {
                         visible: iconTip.hovered
@@ -452,7 +452,7 @@ Item {
                 AppButton {
                     enabled: root.player?.canGoPrevious ?? false
                     icon: "\uf060"
-                    pixelSize: 14
+                    pixelSize: Theme.fontSizeLarge
                     Layout.preferredWidth: 30
                     Layout.minimumWidth: 22
                     onClicked: root.player?.previous()
@@ -461,8 +461,8 @@ Item {
                 AppButton {
                     enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
                     icon: root.playing ? "\uf04c" : "\uf04b"
-                    pixelSize: 14
-                    cornerRadius: 16
+                    pixelSize: Theme.fontSizeLarge
+                    cornerRadius: Theme.radiusLg
                     Layout.preferredWidth: 30
                     Layout.minimumWidth: 22
                     implicitHeight: 30
@@ -479,7 +479,7 @@ Item {
                 AppButton {
                     enabled: root.player?.canGoNext ?? false
                     icon: "\uf061"
-                    pixelSize: 14
+                    pixelSize: Theme.fontSizeLarge
                     Layout.preferredWidth: 30
                     Layout.minimumWidth: 22
                     onClicked: root.player?.next()

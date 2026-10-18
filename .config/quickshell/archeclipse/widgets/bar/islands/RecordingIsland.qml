@@ -40,7 +40,7 @@ Item {
                     width: 8
                     height: 8
                     radius: 4
-                    color: "#a94545"
+                    color: Theme.danger
                     SequentialAnimation on opacity {
                         loops: Animation.Infinite
                         NumberAnimation {

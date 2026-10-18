@@ -1015,8 +1015,8 @@ Item {
                     id: greeterTile
                     width: 100
                     height: 66
-                    radius: 6
-                    color: "black"
+                    radius: Theme.chipRadius
+                    color: Theme.onMediaBg
                     border.width: root.targetType === "greeter" ? 2 : 0
                     border.color: Theme.accent
 
@@ -1032,15 +1032,15 @@ Item {
                         anchors.centerIn: parent
                         width: 28
                         height: 28
-                        radius: 14
+                        radius: width / 2
                         color: Theme.muted
-                        opacity: 0.85
+                        opacity: Theme.opacity.soft
                         Text {
                             anchors.centerIn: parent
                             text: "\uf023"
                             font.family: Theme.fontFamily
-                            font.pixelSize: 14
-                            color: "white"
+                            font.pixelSize: Theme.fontSizeLarge
+                            color: Theme.onMediaInk
                         }
                     }
                     MouseArea {
@@ -1142,7 +1142,7 @@ Item {
                             anchors.centerIn: parent
                             text: ""
                             font.family: Theme.fontFamily
-                            font.pixelSize: 20
+                            font.pixelSize: Theme.fs(1.67)
                             color: Theme.fgDim
                         }
                         Text {
@@ -1617,7 +1617,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: ""
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 24
+                                font.pixelSize: Theme.fs(2)
                                 color: Theme.fgDim
                             }
                             Text {
@@ -1689,13 +1689,13 @@ Item {
                                 height: 18
                                 radius: Theme.radius
                                 color: Theme.muted
-                                opacity: 0.9
+                                opacity: Theme.opacity.soft
                                 Text {
                                     anchors.centerIn: parent
                                     text: "\uf0c5"
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSizeBadge
-                                    color: "white"
+                                    color: Theme.onMediaInk
                                 }
                                 MouseArea {
                                     id: copyMa
@@ -1721,7 +1721,7 @@ Item {
                                     text: tile.deleteArmed ? "\uf00c" : "\uf1f8"
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSizeBadge
-                                    color: "white"
+                                    color: Theme.onMediaInk
                                 }
                                 MouseArea {
                                     id: delMa

@@ -169,7 +169,7 @@ Item {
                     text: VolumeWatcher.volumeIcon
                     color: Theme.fg
                     font.family: "JetBrainsMono NFP"
-                    font.pixelSize: 18
+                    font.pixelSize: Theme.fs(1.5)
                 }
                 Text {
                     id: volTitle
@@ -212,7 +212,7 @@ Item {
                 text: root.sectionOpen ? "\uf106" : "\uf107"
                 color: Theme.muted
                 font.family: "JetBrainsMono NFP"
-                font.pixelSize: 14
+                font.pixelSize: Theme.fontSizeLarge
             }
             MouseArea {
                 anchors.fill: parent
@@ -338,7 +338,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? "\uf026" : "\uf028"
-                                pixelSize: 12
+                                pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
                                 tooltipText: modelData.audio?.muted ? "Unmute" : "Mute"
@@ -353,7 +353,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: "\uf00d"
-                                pixelSize: 11
+                                pixelSize: Theme.fontSizeSmall
                                 tooltipText: "Terminate stream"
                                 onClicked: root.terminateStream(modelData)
                             }
@@ -478,7 +478,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? "\uf131" : "\uf130"
-                                pixelSize: 12
+                                pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
                                 tooltipText: modelData.audio?.muted ? "Unmute" : "Mute"
@@ -493,7 +493,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: "\uf00d"
-                                pixelSize: 11
+                                pixelSize: Theme.fontSizeSmall
                                 tooltipText: "Terminate stream"
                                 onClicked: root.terminateStream(modelData)
                             }
@@ -579,7 +579,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: "\uf005"
-                                pixelSize: 11
+                                pixelSize: Theme.fontSizeSmall
                                 toggle: true
                                 checked: isDefault
                                 tooltipText: isDefault ? "Default output" : "Set as default output"
@@ -610,7 +610,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? "\uf026" : "\uf028"
-                                pixelSize: 12
+                                pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
                                 tooltipText: modelData.audio?.muted ? "Unmute" : "Mute"
@@ -672,7 +672,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: "\uf005"
-                                pixelSize: 11
+                                pixelSize: Theme.fontSizeSmall
                                 toggle: true
                                 checked: isDefault
                                 tooltipText: isDefault ? "Default input" : "Set as default input"
@@ -703,7 +703,7 @@ Item {
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? "\uf131" : "\uf130"
-                                pixelSize: 12
+                                pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
                                 tooltipText: modelData.audio?.muted ? "Unmute" : "Mute"

@@ -160,13 +160,13 @@ Item {
                 Text {
                     text: root.uploadSpeed
                     color: Theme.fg
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.fontSizeCaption
                     font.family: Theme.fontFamily
                 }
                 Text {
                     text: "\u{F062}"
                     color: Theme.accent
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.fontSizeCaption
                 }
             }
             // Download (rx) — b[1]
@@ -175,13 +175,13 @@ Item {
                 Text {
                     text: root.downloadSpeed
                     color: Theme.fg
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.fontSizeCaption
                     font.family: Theme.fontFamily
                 }
                 Text {
                     text: "\u{F063}"
                     color: Theme.accent
-                    font.pixelSize: 10
+                    font.pixelSize: Theme.fontSizeCaption
                 }
             }
         }

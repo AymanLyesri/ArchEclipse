@@ -127,7 +127,7 @@ Item {
             Label {
                 text: (root.entry.symbol || "btc").toUpperCase()
                 font.pixelSize: Theme.fontSize
-                color: root.trendColor === "up" ? "#4ade80" : root.trendColor === "down" ? "#f87171" : Theme.fg
+                color: root.trendColor === "up" ? Theme.success : root.trendColor === "down" ? Theme.danger : Theme.fg
             }
 
             // Price
@@ -145,7 +145,7 @@ Item {
             Label {
                 text: root.formattedChange
                 font.pixelSize: Theme.fontSize - 1
-                color: root.trendColor === "up" ? "#4ade80" : root.trendColor === "down" ? "#f87171" : Theme.fgDim
+                color: root.trendColor === "up" ? Theme.success : root.trendColor === "down" ? Theme.danger : Theme.fgDim
                 visible: root.loadingState === "success" && root.prices.length >= 2
             }
             */
@@ -157,7 +157,7 @@ Item {
             text: root.graph
             font.family: "Monospace"
             font.pixelSize: Theme.fontSize - 2
-            color: root.trendColor === "up" ? "#4ade80" : root.trendColor === "down" ? "#f87171" : Theme.fgDim
+            color: root.trendColor === "up" ? Theme.success : root.trendColor === "down" ? Theme.danger : Theme.fgDim
             font.bold: true
             visible: root.entry.showGraph !== false
             width: parent.width
@@ -169,8 +169,8 @@ Item {
         Rectangle {
             width: parent.width
             height: 4
-            color: root.trendColor === "up" ? "#4ade80" : root.trendColor === "down" ? "#f87171" : Theme.fgDim
-            opacity: 0.3
+            color: root.trendColor === "up" ? Theme.success : root.trendColor === "down" ? Theme.danger : Theme.fgDim
+            opacity: 0.35
             visible: root.loadingState === "success"
             radius: 2
         }

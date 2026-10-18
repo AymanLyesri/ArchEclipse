@@ -205,7 +205,7 @@ Item {
                     }
                 }
                 radius: Theme.radius
-                color: critical ? Qt.rgba(0.66, 0.27, 0.27, 0.95) : Theme.surface
+                color: critical ? Theme.dangerSurface : Theme.surface
                 border.color: isHovered ? Qt.alpha(Theme.accent, 0.5) : Qt.alpha(Theme.fg, 0.1)
                 border.width: 1
                 Behavior on border.color {
@@ -352,7 +352,7 @@ Item {
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         width: barTrack.width
-                        color: card.critical ? Qt.alpha("white", 0.75) : Theme.accent
+                        color: card.critical ? Qt.alpha(Theme.criticalFg, Theme.opacity.hoverDim) : Theme.accent
                         // Transform-only: no layout pass per frame, GPU-composited.
                         transform: Scale {
                             id: barScale

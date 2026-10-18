@@ -59,7 +59,7 @@ PanelWindow {
         color: Theme.surface
         // border.color: Theme.accent
         // border.width: 2
-        radius: 16
+        radius: Theme.radiusLg
         visible: root.selecting
     }
 }

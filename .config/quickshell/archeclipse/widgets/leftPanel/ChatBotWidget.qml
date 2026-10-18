@@ -1132,7 +1132,7 @@ Item {
                 width: parent.width
                 height: setupGuide.implicitHeight + 8
                 color: Theme.surfaceActive
-                radius: 8
+                radius: Theme.cardRadius
                 border.color: Theme.accent
 
                 Column {
@@ -1191,7 +1191,7 @@ Item {
                         // (content overflows) so the bubble never hugs text.
                         height: msgContent.implicitHeight + 16
                         color: modelData.role === "user" ? Theme.surfaceActive : Theme.surface
-                        radius: 8
+                        radius: Theme.cardRadius
 
                         // Message text is mouse/keyboard selectable
                         // (bubble-wide click-to-copy removed — it swallowed
@@ -1236,7 +1236,7 @@ Item {
                                         anchors.verticalCenter: actionsRow.verticalCenter
                                         visible: modelData.role === "user"
                                         text: "\uf0e2"
-                                        pixelSize: 9
+                                        pixelSize: Theme.fontSizeBadge
                                         tooltipText: "Revert to this message"
                                         onClicked: root.revertMessage(index)
                                     }
@@ -1244,7 +1244,7 @@ Item {
                                     AppButton {
                                         anchors.verticalCenter: actionsRow.verticalCenter
                                         text: "\uf0c5"
-                                        pixelSize: 9
+                                        pixelSize: Theme.fontSizeBadge
                                         tooltipText: "Copy whole message"
                                         onClicked: root.copyToClipboard(modelData.content)
                                     }
@@ -1284,7 +1284,7 @@ Item {
                                         idleFg: Theme.accent
                                         hoverFg: Theme.accent
                                         text: "\uf0c5"
-                                        pixelSize: 9
+                                        pixelSize: Theme.fontSizeBadge
                                         tooltipText: "Copy code"
                                         onClicked: root.copyToClipboard(modelData.content)
                                     }
@@ -1342,7 +1342,7 @@ Item {
                     height: hasStream ? streamingContent.implicitHeight + 16 : 0
                     visible: hasStream
                     color: Theme.surface
-                    radius: 8
+                    radius: Theme.cardRadius
                     clip: true
 
                     Column {
@@ -1441,7 +1441,7 @@ Item {
                     height: isThinking ? thinkingContent.implicitHeight + 16 : 0
                     visible: isThinking
                     color: Theme.surface
-                    radius: 8
+                    radius: Theme.cardRadius
                     clip: true
 
                     Timer {
@@ -1482,7 +1482,7 @@ Item {
                     height: hasError ? errorContent.implicitHeight + 16 : 0
                     visible: hasError
                     color: Theme.dangerBg
-                    radius: 8
+                    radius: Theme.cardRadius
                     border.color: Theme.danger
                     clip: true
 
@@ -1560,7 +1560,7 @@ Item {
                 height: visible ? slashList.implicitHeight + 12 : 0
                 visible: root.slashPopupCount() > 0 && root.progressStatus !== "loading"
                 color: Theme.surface
-                radius: 8
+                radius: Theme.cardRadius
                 border.color: Theme.border
                 clip: true
 

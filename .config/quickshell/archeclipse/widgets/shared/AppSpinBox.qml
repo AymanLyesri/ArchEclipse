@@ -28,7 +28,7 @@ SpinBox {
         color: Theme.surface
         border.color: root.activeFocus ? Theme.accent : Theme.border
         border.width: 1
-        radius: 6
+        radius: Theme.chipRadius
     }
 
     up.indicator: Rectangle {
@@ -38,7 +38,7 @@ SpinBox {
         color: root.up.pressed ? Theme.surfaceActive : "transparent"
         border.color: Theme.border
         border.width: 1
-        radius: 4
+        radius: Theme.radiusSm
         Text {
             text: "+"
             color: Theme.fg
@@ -57,7 +57,7 @@ SpinBox {
         color: root.down.pressed ? Theme.surfaceActive : "transparent"
         border.color: Theme.border
         border.width: 1
-        radius: 4
+        radius: Theme.radiusSm
         Text {
             text: "-"
             color: Theme.fg

@@ -89,7 +89,7 @@ Rectangle {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: Rectangle {
             color: Theme.surface
-            radius: 8
+            radius: Theme.cardRadius
             border.color: Theme.border
         }
 
@@ -101,7 +101,7 @@ Rectangle {
                 delegate: Rectangle {
                     width: parent.width
                     height: 28
-                    radius: 4
+                    radius: Theme.radiusSm
                     color: ma.containsMouse ? Theme.surfaceActive : "transparent"
                     Text {
                         anchors.left: parent.left
@@ -150,7 +150,7 @@ Rectangle {
                     return "\uf0e7";
                 return p > 0.9 ? "\uf240" : p > 0.7 ? "\uf241" : p > 0.5 ? "\uf242" : p > 0.25 ? "\uf243" : "\uf244";
             }
-            color: root.pct < 0.15 ? "#a94545" : Theme.fg
+            color: root.pct < 0.15 ? Theme.danger : Theme.fg
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize + 1
         }

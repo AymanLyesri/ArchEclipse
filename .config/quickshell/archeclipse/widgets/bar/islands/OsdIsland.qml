@@ -91,7 +91,7 @@ Item {
                         text: root.brightnessIcon
                         color: Theme.fg
                         font.family: "JetBrainsMono NFP"
-                        font.pixelSize: 18
+                        font.pixelSize: Theme.fs(1.5)
                     }
                     Text {
                         id: brightTitle

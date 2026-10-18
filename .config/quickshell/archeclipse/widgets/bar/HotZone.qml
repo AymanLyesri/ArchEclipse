@@ -23,7 +23,7 @@ Rectangle {
 
     width: size
     height: parent.height
-    color: preview ? Qt.rgba(1, 0.33, 0.33, 0.4) : "transparent"
+    color: preview ? Qt.alpha(Theme.danger, 0.4) : "transparent"
 
     property bool preview: false
 

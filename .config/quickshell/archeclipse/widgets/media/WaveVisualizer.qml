@@ -53,7 +53,7 @@ Canvas {
         }
         ctx.lineTo(w, h)
         ctx.closePath()
-        ctx.fillStyle = Qt.rgba(root.color.r, root.color.g, root.color.b, 0.15)
+        ctx.fillStyle = Qt.alpha(root.color, 0.15)
         ctx.fill()
     }
 }

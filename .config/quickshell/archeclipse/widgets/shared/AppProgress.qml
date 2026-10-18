@@ -152,7 +152,7 @@ Item {
         Text {
             anchors.centerIn: parent
             text: root.displayText
-            color: root.status === "loading" ? Theme.fgDim : (root.status === "error" ? "#fff" : Theme.accent)
+            color: root.status === "loading" ? Theme.fgDim : (root.status === "error" ? Theme.criticalFg : Theme.accent)
             font.pixelSize: Theme.fontSizeSmall
             font.family: Theme.fontFamily
         }
@@ -195,6 +195,6 @@ Item {
         anchors.centerIn: parent
         visible: root.variant === "spinner" && root.active && root.status === "success"
         text: "✓"
-        color: "lightgreen"
+        color: Theme.success
     }
 }

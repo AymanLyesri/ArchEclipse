@@ -91,7 +91,7 @@ Item {
             }
         }
         radius: Theme.radius
-        color: root.critical ? Qt.rgba(0.66, 0.27, 0.27, 0.95) : Theme.surface
+        color: root.critical ? Theme.dangerSurface : Theme.surface
         border.color: root.isHovered ? Qt.alpha(Theme.accent, 0.5) : Qt.alpha(Theme.fg, 0.1)
         border.width: 1
         Behavior on border.color {

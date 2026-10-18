@@ -206,7 +206,7 @@ Item {
                         text: body.brightnessIcon
                         color: Theme.fg
                         font.family: "JetBrainsMono NFP"
-                        font.pixelSize: 18
+                        font.pixelSize: Theme.fs(1.5)
                         verticalAlignment: Text.AlignVCenter
                     }
                     Text {
@@ -239,7 +239,7 @@ Item {
                         text: "󰓅"
                         color: Theme.fg
                         font.family: "JetBrainsMono NFP"
-                        font.pixelSize: 18
+                        font.pixelSize: Theme.fs(1.5)
                         verticalAlignment: Text.AlignVCenter
                     }
                     Text {
