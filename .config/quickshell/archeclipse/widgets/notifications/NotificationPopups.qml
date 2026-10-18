@@ -47,6 +47,10 @@ Item {
     property bool osdVisible: false
     property real osdY: 0
     property real osdH: 0
+    // Workspace-wave push: extra y offset while the hang is up so toasts
+    // dock beneath the folding buttons instead of under them. (mediaY/
+    // osdY arrive already pushed — this is only the bare pill base.)
+    property real waveHang: 0
 
     width: 400
     height: popList.contentHeight
@@ -67,7 +71,7 @@ Item {
                 return root.osdY + root.osdH + 8;
             if (root.mediaVisible)
                 return root.mediaY + root.mediaH + 8;
-            return pillY + pillH + 8;
+            return pillY + pillH + 8 + root.waveHang;
         }
         if (root.osdVisible)
             return root.osdY - height - 8;

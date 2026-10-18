@@ -47,6 +47,14 @@ Column {
             root.barStack.rigidHeight = on;
     }
 
+    // Workspace-strip passthrough for the window mask + hover chaining
+    // (Bar.qml): the hanging wave buttons live BELOW the (never-growing)
+    // pill, so clicks/hover there need their own region.
+    readonly property Item waveHitbox: workspaces.waveHitbox
+    readonly property bool stripHovered: workspaces.stripHovered
+    readonly property bool stripExpanded: workspaces.stripExpanded
+    readonly property real stripHang: workspaces.stripHang
+
     // Fixed-width dynamic speed: always 4 chars (3-char numeric + 1-char
     // unit that scales B/K/M/G), so the bandwidth cell never shifts width
     // as speeds change. Monospace font keeps every string the same width.
@@ -103,7 +111,7 @@ Column {
             width: centerRow.implicitWidth + 20
             height: Theme.barContentHeight
             radius: Theme.radius
-            color: Theme.surfaceActive
+            color: Theme.surface
 
             Row {
                 id: centerRow

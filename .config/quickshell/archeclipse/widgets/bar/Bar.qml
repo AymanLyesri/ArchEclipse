@@ -81,6 +81,17 @@ PanelWindow {
     // a mask it eats every click outside the pills.
     mask: Region {
         item: pill
+        // Workspace wave hang: while the strip is expanded its buttons hang
+        // BELOW the (never-growing) pill, outside the pill's own region —
+        // give the strip its own region so clicks land there. Nulled the
+        // moment the wave is fully down so the full-height surface stays
+        // click-through under the settled bar.
+        Region {
+            item: {
+                var it = currentPageLoader.item;
+                return (it && it.stripExpanded) ? it.waveHitbox : null;
+            }
+        }
         Region {
             item: root.trayPopupItem
         }
@@ -147,10 +158,37 @@ PanelWindow {
         return BarState.barVisibleFor(monitorName);
     }
 
+    // Workspace wave hang (px) — reaches into the current DefaultBar page
+    // when the strip is expanded; the pillClip extends by this so the
+    // hanging buttons render below the still pill. 0 otherwise.
+    readonly property real waveHang: {
+        var it = currentPageLoader.item;
+        return (it && it.stripExpanded && it.stripHang !== undefined) ? it.stripHang : 0;
+    }
+
+    // Animated variant of waveHang for pushing the pills that dock BELOW
+    // the main pill (media OSD, volume/brightness OSD, notification
+    // toasts) out from under the hanging buttons: they slide down and
+    // back instead of jumping with the gate. Never written imperatively,
+    // so the binding drives every change through the Behavior.
+    property real waveHangPush: root.waveHang
+    Behavior on waveHangPush {
+        Anim {
+            duration: Theme.anim.small
+        }
+    }
+
     // --- hover: expand on enter, collapse after leave delay (motion
     // controller on the bar pill; leave arms a 250ms timer that collapses
     // only if the pointer is still off AND no popup is open) ---
-    property bool hovered: pillHover.hovered
+    // The workspace wave hang (buttons below the still pill) is outside
+    // pillHover's geometry — chain the strip HoverHandler so hovering
+    // a hanging button keeps the bar open.
+    readonly property bool stripHovered: {
+        var it = currentPageLoader.item;
+        return it && it.stripHovered !== undefined ? it.stripHovered : false;
+    }
+    property bool hovered: pillHover.hovered || root.stripHovered
     // Documentation capture: expose the captured pill, not always the
     // main one — side-pill shots must frame the side pill (and image
     // inspection must walk its tree, not the bar strip's).
@@ -393,9 +431,16 @@ PanelWindow {
             // Content clip (previously clip:true on the pill Rectangle):
             // cuts content spilling past the still-gliding pill edge. The
             // background above intentionally overhangs for the flares.
+            // Height extends by the workspace-wave hang while the strip is
+            // expanded: the wave buttons live BELOW the never-growing pill
+            // (intentionally outside it) and must not be clipped away —
+            // but only then, so the clip stays tight for width glides.
             Item {
                 id: pillClip
-                anchors.fill: parent
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: pill.height + root.waveHang
                 clip: true
 
             // ---- state stack (one beat) ----
@@ -990,7 +1035,7 @@ PanelWindow {
             x: Math.max(8, Math.min(parent.width - width - 8, pill.x + (pill.width - width) / 2))
             // Below the main pill like toasts; toasts stack underneath this
             // pill when both show (see the props pushed into notifPill).
-            y: Settings.barOrientation ? pill.y + pill.height + 8 : pill.y - height - 8
+            y: Settings.barOrientation ? pill.y + pill.height + 8 + root.waveHangPush : pill.y - height - 8
             visible: mediaPill.shown && root.barVisible
             property bool shown: false
             property bool flag: BarState.state === "player"
@@ -1054,7 +1099,7 @@ PanelWindow {
             x: Math.max(8, Math.min(parent.width - width - 8, pill.x + (pill.width - width) / 2))
             // Below the main pill like toasts; below the media pill when
             // both show (see the props pushed into notifPill).
-            y: Settings.barOrientation ? (mediaPill.visible ? mediaPill.y + mediaPill.height + 8 : pill.y + pill.height + 8) : (mediaPill.visible ? mediaPill.y - height - 8 : pill.y - height - 8)
+            y: Settings.barOrientation ? (mediaPill.visible ? mediaPill.y + mediaPill.height + 8 : pill.y + pill.height + 8) + root.waveHangPush : (mediaPill.visible ? mediaPill.y - height - 8 : pill.y - height - 8)
             visible: osdPill.shown && root.barVisible
             property bool shown: false
             // Membership, not resolved state: the resolved state holds one
@@ -1122,6 +1167,7 @@ PanelWindow {
             osdVisible: osdPill.visible
             osdY: osdPill.y
             osdH: osdPill.height
+            waveHang: root.waveHangPush
         }
 
         // ---- hot zones (left/right island reveal strips) ----
