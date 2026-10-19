@@ -12,6 +12,8 @@ import qs.widgets.shared
 // Middle-click dispatches to workspace 5 (monitor workspace).
 Item {
     id: root
+
+    property string monitorName: ""
     // Fixed footprint in the bar, but bars stretch to full widget width —
     // if the parent gives us more room the tracks expand with it.
     width: 70
@@ -68,7 +70,7 @@ Item {
         id: dwellTimer
         interval: Settings.revealInPressure
         repeat: false
-        onTriggered: BarState.activate("system", 3000)
+        onTriggered: BarState.activate("system", 3000, root.monitorName)
     }
 
     HoverHandler {
@@ -76,7 +78,7 @@ Item {
         onHoveredChanged: {
             if (rootHover.hovered) {
                 if (Settings.revealInPressure <= 0)
-                    BarState.activate("system", 3000);
+                    BarState.activate("system", 3000, root.monitorName);
                 else
                     dwellTimer.restart();
             } else {

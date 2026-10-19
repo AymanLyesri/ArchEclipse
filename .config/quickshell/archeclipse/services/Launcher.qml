@@ -62,7 +62,7 @@ QtObject {
         onExited: {
             root.appSourceMapReady = true;
             // Apps may have been requested while the source map was loading.
-            if (root.lastQuery.trimStart().startsWith("apps"))
+            if (String(root.lastQuery || "").replace(/^\s+/, "").startsWith("apps"))
                 root.runQuery(root.lastQuery);
         }
     }
@@ -93,6 +93,38 @@ QtObject {
         } catch (e) {
             return [];
         }
+    }
+    // DesktopEntries scans installed .desktop files asynchronously. The
+    // launcher can be opened before that scan finishes, so the initial
+    // recent-app lookup may mistake installed apps for shell commands. Wait
+    // for a short quiet period after model changes, then rebuild only results
+    // that depend on the desktop-entry catalog.
+    property Timer _desktopEntriesRefreshTimer: Timer {
+        interval: 250
+        repeat: false
+        onTriggered: {
+            if (root._shouldRefreshDesktopEntryResults())
+                root.runQuery(root.lastQuery);
+        }
+    }
+    property Connections _desktopEntriesChanges: Connections {
+        target: DesktopEntries.applications
+        function onObjectInsertedPost(object, index) {
+            root._desktopEntriesRefreshTimer.restart();
+        }
+        function onObjectRemovedPost(object, index) {
+            root._desktopEntriesRefreshTimer.restart();
+        }
+    }
+
+    function _shouldRefreshDesktopEntryResults() {
+        const query = String(lastQuery || "").replace(/^\s+/, "");
+        const normalized = query.toLowerCase();
+        if (normalized === "" || normalized.startsWith("apps"))
+            return true;
+        if (/^>(recent|recents|history)(?:\s|$)/.test(normalized))
+            return true;
+        return results.some(row => row && !row.isHeader && row.description === "Run as shell command" && String(row.name || "").startsWith("Try "));
     }
     function touchHistory(name) {
         let h = history.filter(n => n !== name);
@@ -133,7 +165,7 @@ QtObject {
     function openLeftIslandTab(selector) {
         // "Keybinds" quickapp: open the left island and switch tab.
         if (typeof Registry !== "undefined" && Registry.selectLeftTab) {
-            Registry.selectLeftTab(selector);
+            Registry.selectLeftTab(selector, undefined, BarState.searchMonitor);
         }
     }
 

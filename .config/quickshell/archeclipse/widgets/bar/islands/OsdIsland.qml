@@ -12,6 +12,8 @@ import qs.widgets.shared
 Item {
     id: root
 
+    property string monitorName: ""
+
     // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
     Component.onCompleted: expand = 1
@@ -20,11 +22,11 @@ Item {
     // exclusive in BarState, so only one shows at a time). Membership, not
     // resolved state: a main-pill island switch must not flip the content
     // under a visible OSD.
-    readonly property string mode: ("brightness" in BarState.activeStates) ? "brightness" : "volume"
+    readonly property string mode: BarState.isOpenFor("brightness", root.monitorName) ? "brightness" : "volume"
 
     // Dynamic brightness icon (3-level thresholds, mirrors ControlPanelBody).
     readonly property string brightnessIcon: {
-        const bri = Brightness.screen;
+        const bri = Brightness.screenFor(root.monitorName);
         if (bri > 0.75)
             return "\u{F00E0}";
         if (bri > 0.5)
@@ -68,6 +70,7 @@ Item {
             VolumeSection {
                 id: volSection
                 width: parent.width
+                monitorName: root.monitorName
                 visible: root.mode === "volume"
             }
 
@@ -108,19 +111,19 @@ Item {
                         from: 0
                         to: 1
                         stepSize: 0.01
-                        value: Brightness.screen
-                        onMoved: Brightness.setScreen(brightSlider.value)
+                        value: Brightness.screenFor(root.monitorName)
+                        onMoved: Brightness.setScreen(brightSlider.value, root.monitorName)
                     }
                     Binding {
                         target: brightSlider
                         property: "value"
-                        value: Brightness.screen
+                        value: Brightness.screenFor(root.monitorName)
                         when: !brightSlider.pressed
                     }
                     Text {
                         id: brightPct
                         anchors.verticalCenter: parent.verticalCenter
-                        text: Math.round(Brightness.screen * 100) + "%"
+                        text: Math.round(Brightness.screenFor(root.monitorName) * 100) + "%"
                         color: Theme.accent
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSize - 2
@@ -136,7 +139,8 @@ Item {
     // after the last keypress, not just the 1s open-grace.
     IslandHoverPin {
         id: hoverPin
-        stateName: ("brightness" in BarState.activeStates) ? "brightness" : "volume"
+        stateName: BarState.isOpenFor("brightness", root.monitorName) ? "brightness" : "volume"
+        monitorName: root.monitorName
         extraStates: ["volume", "brightness"]
         leaveDelay: 2500
         openGrace: 2500
@@ -153,11 +157,18 @@ Item {
     }
     Connections {
         target: BarState
-        function onVolumeEventsChanged() { root.pokeHideTimer(); }
-        function onBrightnessEventsChanged() { root.pokeHideTimer(); }
+        function onVolumeEventsChanged() {
+            if (BarState.lastVolumeMonitor === root.monitorName)
+                root.pokeHideTimer();
+        }
+        function onBrightnessEventsChanged() {
+            if (BarState.lastBrightnessMonitor === root.monitorName)
+                root.pokeHideTimer();
+        }
     }
 
     IslandEscClose {
         states: ["volume", "brightness"]
+        monitorName: root.monitorName
     }
 }

@@ -1,3 +1,4 @@
 module qs.widgets.wallpaperPanel
 
 WallpaperPanelBody 1.0 WallpaperPanelBody.qml
+WallpaperAnimatedPreview 1.0 WallpaperAnimatedPreview.qml

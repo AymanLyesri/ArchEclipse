@@ -19,6 +19,7 @@ import qs.widgets.shared
 Row {
     id: root
     spacing: 2
+    property string monitorName: ""
 
     // Maximum number of visible icons in the bar strip
     readonly property int maxVisible: 3
@@ -176,7 +177,7 @@ Row {
             root.dragActive = true;
             if (!root.dragHeld) {
                 root.dragHeld = true;
-                BarState.holdPopup();
+                BarState.holdPopup(root.monitorName);
             }
             
             const overlay = Overlay.overlay;
@@ -313,7 +314,7 @@ Row {
 
         if (root.dragHeld) {
             root.dragHeld = false;
-            BarState.releasePopup();
+            BarState.releasePopup(root.monitorName);
         }
 
         if (wasActive) {
@@ -398,7 +399,7 @@ Row {
                 property bool held: false
                 Component.onDestruction: {
                     if (held)
-                        BarState.releasePopup();
+                        BarState.releasePopup(root.monitorName);
                 }
             }
 
@@ -407,10 +408,10 @@ Row {
                 function onVisibleChanged() {
                     if (menu.visible && !menu.held) {
                         menu.held = true;
-                        BarState.holdPopup();
+                        BarState.holdPopup(root.monitorName);
                     } else if (!menu.visible && menu.held) {
                         menu.held = false;
-                        BarState.releasePopup();
+                        BarState.releasePopup(root.monitorName);
                     }
                 }
             }
@@ -473,13 +474,13 @@ Row {
             }
 
             onOpened: {
-                BarState.holdPopup();
+                BarState.holdPopup(root.monitorName);
                 root.setPopupMask(overflowPopup.background);
             }
             onClosed: {
                 root.popupClosedAt = Date.now();
                 root.setPopupMask(null);
-                BarState.releasePopup();
+                BarState.releasePopup(root.monitorName);
             }
 
             Grid {
@@ -556,7 +557,7 @@ Row {
                             property bool held: false
                             Component.onDestruction: {
                                 if (held)
-                                    BarState.releasePopup();
+                                    BarState.releasePopup(root.monitorName);
                             }
                         }
 
@@ -565,10 +566,10 @@ Row {
                             function onVisibleChanged() {
                                 if (hiddenMenu.visible && !hiddenMenu.held) {
                                     hiddenMenu.held = true;
-                                    BarState.holdPopup();
+                                    BarState.holdPopup(root.monitorName);
                                 } else if (!hiddenMenu.visible && hiddenMenu.held) {
                                     hiddenMenu.held = false;
-                                    BarState.releasePopup();
+                                    BarState.releasePopup(root.monitorName);
                                 }
                             }
                         }

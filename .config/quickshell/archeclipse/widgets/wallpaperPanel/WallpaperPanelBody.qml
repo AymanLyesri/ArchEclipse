@@ -47,6 +47,14 @@ Item {
         return WallpaperService.isVideoFile(file);
     }
 
+    function isGifFile(file) {
+        return /\.gif$/i.test(String(file || ""));
+    }
+
+    function isAnimatedPreviewFile(file) {
+        return root.isVideoFile(file) || root.isGifFile(file);
+    }
+
     // ---------------------------------------------------------------- state
 
     readonly property var targetTypes: ["workspace", "greeter"]
@@ -659,15 +667,23 @@ Item {
         setProc.running = true;
     }
 
-    // Fullscreen hover preview (WallEclipse overlay): hover a tile to cover
-    // the monitor, leave to dismiss. Daemon-down ERR is ignored silently —
-    // no toast, no progress change. Last-hover-wins ordering is enforced by
-    // the daemon (it serializes show/clear and supersedes by generation);
-    // _previewSeq is only a local bookkeeping counter, not the ordering
-    // mechanism. Leave only clears when the leaving tile still owns
-    // _previewPath.
+    // Fullscreen hover previews cover the monitor until the cursor leaves:
+    // WallEclipse handles still images; WallpaperAnimatedPreview handles GIFs
+    // and videos. Daemon-down ERR is ignored silently —
+    // no toast, no progress change. The client serializes show/clear requests
+    // before sending them; the daemon also supersedes requests by generation.
+    // _previewSeq is local bookkeeping only. Leave clears only when the
+    // leaving tile still owns _previewPath.
     property int _previewSeq: 0
     property string _previewPath: ""
+    property string _previewMonitor: ""
+    readonly property string animatedPreviewPath: BarState.stateFor(root.monitorName) === "wallpaper"
+        && root.isAnimatedPreviewFile(root._previewPath) ? root._previewPath : ""
+    property string _previewCommandPath: ""
+    property string _previewCommandMonitor: ""
+    property string _previewSentPath: ""
+    property string _previewSentMonitor: ""
+    property bool _previewCommandSent: false
     // Hover dwell: only preview once the cursor has settled on a tile, so
     // sweeping across the strip fires nothing (and the daemon allocates no
     // fade per tile crossed). Raise `previewDwellMs` to make it lazier.
@@ -685,7 +701,7 @@ Item {
             root._dwellPath = "";
         }
         if (root._previewPath === String(path))
-            root.clearPreview();
+            root.clearPreview(false);
     }
     Timer {
         id: previewDwell
@@ -698,28 +714,71 @@ Item {
         }
     }
     function previewWallpaper(path) {
-        if (!path || !root.effectiveMonitor)
+        const monitor = root.effectiveMonitor;
+        if (!path || !monitor || BarState.stateFor(root.monitorName) !== "wallpaper")
             return;
         root._previewSeq += 1;
         root._previewPath = String(path);
-        const p = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-        p.command = [root.walleclipseBin, "preview", root.effectiveMonitor, String(path)];
-        p.running = true;
-        p.exited.connect(function () {
-            p.destroy();
-        });
+        root._previewMonitor = monitor;
+        // WallEclipse previews static wallpapers as a still. Animated files
+        // use the per-monitor QML overlay instead, while clearing any static
+        // preview that may still be underneath it.
+        root.requestPreviewCommand(root.isAnimatedPreviewFile(root._previewPath) ? "" : root._previewPath, monitor);
     }
-    function clearPreview() {
-        if (!root.effectiveMonitor)
+
+    // Serialize preview/clear CLI requests. Separate short-lived clients can
+    // otherwise reach the daemon out of order if the pointer leaves while a
+    // preview request is still starting.
+    function requestPreviewCommand(path, monitor) {
+        root._previewCommandPath = String(path);
+        root._previewCommandMonitor = String(monitor);
+        root.pumpPreviewCommand();
+    }
+    function pumpPreviewCommand() {
+        if (previewCommand.running || root._previewCommandMonitor === "")
             return;
+        if (root._previewCommandSent
+            && root._previewCommandPath === root._previewSentPath
+            && root._previewCommandMonitor === root._previewSentMonitor)
+            return;
+
+        root._previewSentPath = root._previewCommandPath;
+        root._previewSentMonitor = root._previewCommandMonitor;
+        root._previewCommandSent = true;
+        previewCommand.command = root._previewCommandPath === ""
+            ? [root.walleclipseBin, "preview-clear", root._previewCommandMonitor]
+            : [root.walleclipseBin, "preview", root._previewCommandMonitor, root._previewCommandPath];
+        previewCommand.running = true;
+    }
+    Process {
+        id: previewCommand
+        onExited: root.pumpPreviewCommand()
+    }
+
+    function clearPreview(cancelDwell) {
+        if (cancelDwell !== false) {
+            previewDwell.stop();
+            root._dwellPath = "";
+        }
         root._previewSeq += 1;
         root._previewPath = "";
-        const p = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-        p.command = [root.walleclipseBin, "preview-clear", root.effectiveMonitor];
-        p.running = true;
-        p.exited.connect(function () {
-            p.destroy();
-        });
+        const monitor = root._previewMonitor || root._previewCommandMonitor || root.effectiveMonitor;
+        root._previewMonitor = "";
+        if (monitor)
+            root.requestPreviewCommand("", monitor);
+    }
+    function clearPreviewIfInactive() {
+        if (BarState.stateFor(root.monitorName) !== "wallpaper")
+            root.clearPreview();
+    }
+    Connections {
+        target: BarState
+        function onPanelStatesByMonitorChanged() {
+            root.clearPreviewIfInactive();
+        }
+        function onActiveStatesChanged() {
+            root.clearPreviewIfInactive();
+        }
     }
 
     // ---- global theme sharing (coloreclipse wal -> cwal colors.scss -> Theme) ----
@@ -1571,6 +1630,7 @@ Item {
                             // is the fixed rowHeight, so one size fits all.
                             sourceWidth: Math.max(1, Math.round(Settings.wallpaperTileSize * 2))
                             badges: tile.badgeIds
+                            animated: tileMa.containsMouse && tile.modelData !== undefined && root.isGifFile(tile.modelData)
                             onStatusChanged: {
                                 if (tileImg.status === Image.Ready && tileImg.implicitImageWidth > 0 && tileImg.implicitImageHeight > 0)
                                     root.noteLocalAspect(tile.modelData, tileImg.implicitImageWidth / tileImg.implicitImageHeight);
@@ -1638,7 +1698,7 @@ Item {
                         AppTooltip {
                             visible: tileMa.containsMouse && !wallScroll.moving
                             delay: 400
-                                text: `Click to set as ${root.targetType} wallpaper.\nRight-click to delete.\n${(tile.modelData !== undefined && root.isVideoFile(tile.modelData)) ? "Hover to preview.\n" : ""}${tile.fileName}\nSize: ${root.formatBytes(root.getFileSize(tile.modelData ?? ""))}`
+                                text: `Click to set as ${root.targetType} wallpaper.\nRight-click to delete.\n${(tile.modelData !== undefined && root.isAnimatedPreviewFile(tile.modelData)) ? "Hover to preview.\n" : ""}${tile.fileName}\nSize: ${root.formatBytes(root.getFileSize(tile.modelData ?? ""))}`
                         }
 
                         MouseArea {

@@ -8,6 +8,8 @@ import qs.theme
 Rectangle {
     id: root
 
+    property string monitorName: ""
+
     width: 32
     height: Theme.barContentHeight
     radius: Theme.radius
@@ -30,11 +32,11 @@ Rectangle {
             // Toggle the control island in the bar pill. Wallpaper sits
             // above control (priority), so yield it first — otherwise
             // opening control while the wallpaper island is up looks dead.
-            if (BarState.state === "control")
-                BarState.deactivate("control");
+            if (BarState.stateFor(root.monitorName) === "control")
+                BarState.deactivate("control", root.monitorName);
             else {
-                BarState.deactivate("wallpaper");
-                BarState.activate("control", 0);
+                BarState.deactivate("wallpaper", root.monitorName);
+                BarState.activate("control", 0, root.monitorName);
             }
         }
     }

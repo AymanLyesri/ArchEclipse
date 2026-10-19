@@ -41,11 +41,16 @@ Singleton {
     property bool rightPanelLock: false
     property int leftPanelWidth: 400
     property int rightPanelWidth: 250
+    // Per-monitor overrides. The flat properties above remain the defaults
+    // for monitors without an explicit override and for older settings files.
+    property var leftPanelByMonitor: ({})
+    property var rightPanelByMonitor: ({})
     // Lockscreen grace period in seconds (Esc dismisses the lock without a
     // password within this window after locking), persisted, default 10.
     property int lockGraceSeconds: 10
     // Selected left-panel tab (persisted)
     property string leftPanelWidget: "UserProfile"
+    readonly property var leftPanelWidgetNames: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"]
     // Wallpaper switcher category (persisted)
     property string wallpaperCategory: "defaults/sfw"
     // Wallpaper provider (persisted): "local" (default/* + custom folders)
@@ -515,6 +520,112 @@ Singleton {
         return `${p(d.getHours())}:${p(d.getMinutes())}`;
     }
 
+    function panelWidthFor(side, monitorName) {
+        const isLeft = side === "left";
+        const fallback = isLeft ? root.leftPanelWidth : root.rightPanelWidth;
+        const minimum = 200;
+        const name = String(monitorName || "");
+        const entries = isLeft ? root.leftPanelByMonitor : root.rightPanelByMonitor;
+        const override = name !== "" ? entries[name]?.width : undefined;
+        if (override === undefined)
+            return fallback;
+        const width = Number(override);
+        return isFinite(width) ? Math.min(1500, Math.max(minimum, Math.round(width))) : fallback;
+    }
+
+    function panelLockFor(side, monitorName) {
+        const isLeft = side === "left";
+        const fallback = isLeft ? root.leftPanelLock : root.rightPanelLock;
+        const name = String(monitorName || "");
+        const entries = isLeft ? root.leftPanelByMonitor : root.rightPanelByMonitor;
+        const override = name !== "" ? entries[name]?.lock : undefined;
+        return override === undefined ? fallback : !!override;
+    }
+
+    function leftPanelWidgetFor(monitorName) {
+        const name = String(monitorName || "");
+        const override = name !== "" ? root.leftPanelByMonitor[name]?.widget : undefined;
+        return override === undefined ? root.leftPanelWidget : String(override);
+    }
+
+    function setLeftPanelWidgetFor(monitorName, widget) {
+        const selected = String(widget || "");
+        if (!root.leftPanelWidgetNames.includes(selected))
+            return;
+        const name = String(monitorName || "");
+        if (name === "") {
+            if (root.leftPanelWidget !== selected) {
+                root.leftPanelWidget = selected;
+                root.persist();
+            }
+            return;
+        }
+        root.setPanelOverride("left", name, "widget", selected);
+    }
+
+    function setPanelOverride(side, monitorName, key, value) {
+        const name = String(monitorName || "");
+        if (name === "" || (side !== "left" && side !== "right"))
+            return;
+        const isLeft = side === "left";
+        const current = isLeft ? root.leftPanelByMonitor : root.rightPanelByMonitor;
+        const next = Object.assign({}, current || {});
+        const oldEntry = next[name] && typeof next[name] === "object" ? next[name] : {};
+        const updatedEntry = Object.assign({}, oldEntry);
+        updatedEntry[key] = value;
+        next[name] = updatedEntry;
+        if (isLeft)
+            root.leftPanelByMonitor = next;
+        else
+            root.rightPanelByMonitor = next;
+        root.persist();
+    }
+
+    function setPanelWidthFor(side, monitorName, value) {
+        const minimum = 200;
+        const width = Number(value);
+        if (!isFinite(width))
+            return;
+        root.setPanelOverride(side, monitorName, "width", Math.min(1500, Math.max(minimum, Math.round(width))));
+    }
+
+    function setPanelLockFor(side, monitorName, value) {
+        root.setPanelOverride(side, monitorName, "lock", !!value);
+    }
+
+    function normalizePanelOverrides(saved, side) {
+        if (!saved || typeof saved !== "object" || Array.isArray(saved))
+            return {};
+        const minimum = 200;
+        const normalized = {};
+        for (const name of Object.keys(saved)) {
+            const entry = saved[name];
+            if (!name || !entry || typeof entry !== "object" || Array.isArray(entry))
+                continue;
+            const clean = {};
+            if (entry.width !== undefined) {
+                const rawWidth = entry.width && typeof entry.width === "object" ? entry.width.value : entry.width;
+                const width = Number(rawWidth);
+                if (isFinite(width))
+                    clean.width = Math.min(1500, Math.max(minimum, Math.round(width)));
+            }
+            if (entry.lock !== undefined) {
+                const rawLock = entry.lock && typeof entry.lock === "object" ? entry.lock.value : entry.lock;
+                clean.lock = !!rawLock;
+            }
+            if (side === "left" && entry.widget !== undefined) {
+                const rawWidget = entry.widget && typeof entry.widget === "object"
+                    ? (entry.widget.name ?? entry.widget.value) : entry.widget;
+                const widget = String(rawWidget ?? "");
+                if (root.leftPanelWidgetNames.includes(widget))
+                    clean.widget = widget;
+            }
+            if (Object.keys(clean).length > 0)
+                normalized[name] = clean;
+        }
+        return normalized;
+    }
+
     // Update a setting by dotted path and persist to settings.json
     function updateSetting(path, value) {
         // Dotted paths that map to flat QS properties (Singleton cannot
@@ -604,8 +715,8 @@ Singleton {
     }
 
     // Persist current settings back to the JSON file.
-    // Shape is nested (bar.lock, leftPanel.width, ...) — reload() reads the
-    // same shape and tolerates unknown/missing keys.
+    // Shape is nested (bar.lock, leftPanel.width, ...); per-monitor panel
+    // overrides live under each panel's `monitors` object.
     // Leaf settings are written as {value}; plain-value settings (locks,
     // plain-value settings (locks, widths, dnd, fileManager) stay plain.
     function persist() {
@@ -681,6 +792,7 @@ Singleton {
                     },
                     lock: root.leftPanelLock,
                     width: root.leftPanelWidth,
+                    monitors: root.leftPanelByMonitor,
                     widget: {
                         name: root.leftPanelWidget
                     }
@@ -694,6 +806,7 @@ Singleton {
                     },
                     lock: root.rightPanelLock,
                     width: root.rightPanelWidth,
+                    monitors: root.rightPanelByMonitor,
                     // Icons are code-owned: persist only {name, enabled} +
                     // order so icon edits in code are never clobbered.
                     widgets: (root.rightPanelWidgets || []).map(w => ({
@@ -913,6 +1026,7 @@ Singleton {
                 root.leftPanelLock = !!s.leftPanel?.lock;
                 root.rightPanelLock = !!s.rightPanel?.lock;
                 root.leftPanelWidth = (typeof s.leftPanel?.width === "object" && s.leftPanel?.width !== null ? s.leftPanel.width.value : s.leftPanel?.width) ?? 400;
+                root.leftPanelByMonitor = root.normalizePanelOverrides(s.leftPanel?.monitors, "left");
                 // The file may store the selector object {name, icon}; QS persists
                 // only {name} and restores only the name — left icons live in
                 // (LeftIsland) and are never clobbered by the file.
@@ -961,6 +1075,7 @@ Singleton {
                 const _wth = s.weather?.city ?? s.weatherCity;
                 root.weatherCity = ((typeof _wth === "object" && _wth !== null ? _wth.value : _wth) ?? "");
                 root.rightPanelWidth = (typeof s.rightPanel?.width === "object" && s.rightPanel?.width !== null ? s.rightPanel.width.value : s.rightPanel?.width) ?? 250;
+                root.rightPanelByMonitor = root.normalizePanelOverrides(s.rightPanel?.monitors, "right");
                 // Drop stale/removed widgets (e.g. retired Crypto/ScriptTimer)
                 // so deleted options never reappear from an old settings file.
                 // Icons are code-owned: file contributes only order + enabled.

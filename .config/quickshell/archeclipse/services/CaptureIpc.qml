@@ -26,6 +26,17 @@ Item {
         onTriggered: root.restore()
     }
     function reply(value) { return JSON.stringify(value); }
+    function stopScopedTimers() {
+        const timers = Object.assign({}, BarState.holdTimers || {});
+        for (const key of Object.keys(timers)) {
+            if (key.indexOf("@") < 0)
+                continue;
+            if (timers[key])
+                timers[key].stop();
+            timers[key] = null;
+        }
+        BarState.holdTimers = timers;
+    }
     function restore() {
         watchdog.stop();
         if (!saved) return {ok: true, restored: false};
@@ -34,9 +45,12 @@ Item {
         rightWidgets = null;
         desiredState = "";
         overviewMode = false;
+        root.stopScopedTimers();
         for (const name of Object.keys(BarState.activeStates || {}))
             BarState.deactivate(name);
-        Settings.leftPanelWidget = s.tab;
+        BarState.panelStatesByMonitor = Object.assign({}, s.panelStates || {});
+        BarState.searchMonitor = s.searchMonitor || "";
+        Settings.setLeftPanelWidgetFor(s.monitor || root.monitor, s.tab);
         Settings.wallpaperCategory = s.wallpaperCategory;
         Settings.wallpaperProvider = s.wallpaperProvider;
         Launcher.lastQuery = s.query;
@@ -49,10 +63,25 @@ Item {
             if (!s.timers[name] || remaining > 0)
                 BarState.activate(name, remaining);
         }
-        BarState.state = BarState.resolveState();
+        for (const key of Object.keys(s.timers || {})) {
+            const separator = key.lastIndexOf("@");
+            if (separator < 0)
+                continue;
+            const name = key.slice(0, separator);
+            const monitor = key.slice(separator + 1);
+            if (!BarState.isOpenFor(name, monitor))
+                continue;
+            const remaining = s.timers[key] - (Date.now() - startedAt);
+            if (remaining > 0)
+                BarState.activate(name, remaining, monitor);
+            else
+                BarState.deactivate(name, monitor);
+        }
+        BarState.state = BarState.resolveState(Registry.monitorName);
         saved = null;
-        return {ok: Settings.leftPanelWidget === s.tab,
-                restored: true, state: BarState.state, tab: Settings.leftPanelWidget};
+        const restoredTab = Settings.leftPanelWidgetFor(s.monitor || root.monitor);
+        return {ok: restoredTab === s.tab,
+                restored: true, state: BarState.state, tab: restoredTab};
     }
     function inspectImages(item, result) {
         if (!item) return;
@@ -78,12 +107,16 @@ Item {
             if (root.active) return root.reply({ok: false, error: "Capture already active"});
             if (!Registry.get("capture-bar-" + mon)) return root.reply({ok: false, error: "Monitor bar unavailable"});
             const timers = {};
+            const panelStates = {};
+            for (const panelMonitor of Object.keys(BarState.panelStatesByMonitor || {}))
+                panelStates[panelMonitor] = Object.assign({}, BarState.panelStatesByMonitor[panelMonitor] || {});
             for (const name of Object.keys(BarState.holdTimers || {})) {
                 const t = BarState.holdTimers[name];
                 if (t && t.running) timers[name] = t.interval;
             }
-            root.saved = {tab: Settings.leftPanelWidget,
+            root.saved = {monitor: mon, tab: Settings.leftPanelWidgetFor(mon),
                 states: Object.keys(BarState.activeStates || {}), timers: timers,
+                panelStates: panelStates, searchMonitor: BarState.searchMonitor,
                 shown: Object.assign({}, BarState.barShown || {}),
                 query: Launcher.lastQuery, results: Launcher.results, index: Launcher.selectedIndex,
                 wallpaperCategory: Settings.wallpaperCategory,
@@ -104,6 +137,9 @@ Item {
             if (!tabs[name] && !states[name]) return root.reply({ok: false, error: "Unsupported capture"});
             root.desiredState = "";
             for (const state of Object.keys(BarState.activeStates || {})) BarState.deactivate(state);
+            root.stopScopedTimers();
+            BarState.panelStatesByMonitor = ({});
+            BarState.searchMonitor = "";
             const layouts = {
                 "right-panel-layout-1": ["Waifu", "Media", "Calendar", "NotificationHistory"],
                 "right-panel-layout-2": ["Calendar", "Media", "Waifu", "SystemResources"]
@@ -113,8 +149,8 @@ Item {
                 Object.assign({}, defs.find(w => w.name === n), {enabled: true})) : null;
             root.widget = tabs[name] || "";
             root.overviewMode = (name === "overview");
-            if (root.widget) Settings.leftPanelWidget = root.widget;
-            if (root.overviewMode) Settings.leftPanelWidget = "BooruViewer";
+            if (root.widget) Settings.setLeftPanelWidgetFor(root.monitor, root.widget);
+            if (root.overviewMode) Settings.setLeftPanelWidgetFor(root.monitor, "BooruViewer");
             if (name === "wallpaper-switcher") {
                 // README capture always shows the SFW set: after opening,
                 // jump straight to defaults/images_sfw (first sfw-bearing
@@ -129,12 +165,12 @@ Item {
                 if (target) Settings.wallpaperCategory = target;
             }
             root.desiredState = root.widget ? "left" : states[name];
-            BarState.activate(root.desiredState, 0);
+            BarState.activate(root.desiredState, 0, root.monitor);
             if (root.overviewMode) {
                 // ArchEclipse Overview hero: player island on the main pill
                 // plus both side pills (BooruViewer left, default right).
-                BarState.activate("left", 0);
-                BarState.activate("right", 0);
+                BarState.activate("left", 0, root.monitor);
+                BarState.activate("right", 0, root.monitor);
             }
             BarState.revealBar(root.monitor);
             if (name === "app-launcher") Launcher.runQuery("apps ");
@@ -152,13 +188,13 @@ Item {
                 // Hero shot: main pill shows the player island while both
                 // side pills are open, so captureGeometry reports the left
                 // pill — check the resolved main-pill state instead.
-                ready = ready && BarState.state === "player" && BarState.leftOpen && BarState.rightOpen;
+                ready = ready && BarState.stateFor(root.monitor) === "player" && BarState.isOpenFor("left", root.monitor) && BarState.isOpenFor("right", root.monitor);
             else if (root.desiredState === "left")
-                ready = ready && BarState.leftOpen;
+                ready = ready && BarState.isOpenFor("left", root.monitor);
             else if (root.desiredState === "right")
-                ready = ready && BarState.rightOpen;
+                ready = ready && BarState.isOpenFor("right", root.monitor);
             else
-                ready = ready && info.displayed === root.desiredState && BarState.state === root.desiredState;
+                ready = ready && info.displayed === root.desiredState && BarState.stateFor(root.monitor) === root.desiredState;
             const images = {loading: 0, errors: 0, wallpaperFound: false};
             root.inspectImages(bar.captureItem, images);
             ready = ready && images.loading === 0;
@@ -176,7 +212,7 @@ Item {
             }
             if (root.overviewMode) {
                 const island = Registry.get("left-island-" + root.monitor);
-                ready = ready && BarState.leftOpen && BarState.rightOpen;
+                ready = ready && BarState.isOpenFor("left", root.monitor) && BarState.isOpenFor("right", root.monitor);
                 ready = ready && !!island && island.selectedWidget === "BooruViewer" && !!island.activeWidget;
                 if (ready) {
                     const item = island.activeWidget;
@@ -185,7 +221,7 @@ Item {
             }
             if (root.desiredState === "wallpaper") ready = ready && images.wallpaperFound && images.errors === 0;
             if (root.desiredState === "search") ready = ready && Launcher.results.length > 0;
-            return root.reply({ok: true, ready: ready, state: BarState.state,
+            return root.reply({ok: true, ready: ready, state: BarState.stateFor(root.monitor),
                 visible: info.visible, rect: info.rect, images: images,
                 rightLayout: root.rightWidgets ? root.rightWidgets.map(w => w.name) : null});
         }

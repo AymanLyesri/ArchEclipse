@@ -12,6 +12,7 @@ Rectangle {
 
     implicitWidth: 500
     implicitHeight: 448
+    property string monitorName: ""
     radius: Theme.radius
     color: Theme.surface
 
@@ -139,7 +140,7 @@ Rectangle {
                         // bar's Exclusive grab releases first and the new
                         // app receives focus (see Launcher.activateSelected).
                         if (!keep) {
-                            BarState.deactivate("search");
+                            BarState.deactivate("search", root.monitorName);
                             Launcher.expectLaunchedWindow();
                         }
                         modelData.launch();
@@ -150,7 +151,7 @@ Rectangle {
     }
 
     // Prime the default state (recent apps) on creation. The island is
-    // instantiated by the bar Loader AFTER BarState.state is already
+    // instantiated by the bar Loader AFTER the monitor-local search state is already
     // "search", so onStateChanged below never fires for a fresh instance —
     // without this the first open shows an empty list.
     // Keybind presets (SUPER+SHIFT+V clipboard, SUPER+A apps, ...) stash
@@ -172,8 +173,8 @@ Rectangle {
     // keyboard nav comes from SearchIsland signals; reset state on close
     Connections {
         target: BarState
-        function onStateChanged() {
-            if (BarState.state === "search") {
+        function onPanelStatesByMonitorChanged() {
+            if (BarState.isOpenFor("search", root.monitorName)) {
                 Launcher.lastQuery = "";
                 root.applyPendingOrDefault();
             }

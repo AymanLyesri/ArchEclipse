@@ -12,6 +12,7 @@ import qs.services
 // Tabs: Manga (list/search) -> Chapters -> Pages (reader with prev/next)
 Item {
     id: root
+    property string monitorName: ""
 
     readonly property string scriptPath: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/manga.py"
 
@@ -362,7 +363,7 @@ Item {
                                 AppImage {
                                     width: parent.width
                                     // Aspect-aware height: (h/w) * panelWidth, fallback panelWidth
-                                    height: (modelData.cover_width && modelData.cover_height) ? (modelData.cover_height / modelData.cover_width) * width : Settings.leftPanelWidth
+                                    height: (modelData.cover_width && modelData.cover_height) ? (modelData.cover_height / modelData.cover_width) * width : Settings.panelWidthFor("left", root.monitorName)
                                     source: root.toFileUrl(modelData.cover_path)
                                     sourceWidth: Math.round(width)
 

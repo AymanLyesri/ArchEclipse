@@ -57,11 +57,11 @@ PanelWindow {
 
     // layer-shell keyboard grab while the search island is open
     // (the control island stays OnDemand so typing elsewhere keeps working).
-    // Bound to activeStates membership (not resolved state) so the grab
+    // Bound to monitor-scoped search membership (not resolved state) so the grab
     // releases the same tick deactivate() runs — resolved state lags ~100ms
     // behind (debounceResolve), which kept Exclusive held while a freshly
     // launched app mapped, stealing its focus back to the bar.
-    WlrLayershell.keyboardFocus: ("search" in BarState.activeStates) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
+    WlrLayershell.keyboardFocus: BarState.isOpenFor("search", root.monitorName) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
     WlrLayershell.exclusiveZone: Settings.barLock ? root.barHeight : -1
     // Toast breakthrough: while toasts are up the whole window jumps to
     // the Overlay layer (above fullscreen windows), then drops back to
@@ -149,7 +149,8 @@ PanelWindow {
     readonly property bool roomCheckLive: BarState.hyprlandTick >= 0
 
     readonly property bool barVisible: {
-        if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.leftOpen || BarState.rightOpen)
+        const localState = BarState.stateFor(root.monitorName);
+        if (localState === "search" || localState === "control" || localState === "overview" || localState === "wallpaper" || BarState.isOpenFor("left", root.monitorName) || BarState.isOpenFor("right", root.monitorName))
             return true;
         const override = (BarState.barShown || {})[monitorName];
         if (override !== undefined)
@@ -192,11 +193,11 @@ PanelWindow {
     // Documentation capture: expose the captured pill, not always the
     // main one — side-pill shots must frame the side pill (and image
     // inspection must walk its tree, not the bar strip's).
-    readonly property var captureItem: BarState.leftOpen && leftLoader.item ? leftLoader.item : (BarState.rightOpen && rightLoader.item ? rightLoader.item : pill)
+    readonly property var captureItem: BarState.isOpenFor("left", root.monitorName) && leftLoader.item ? leftLoader.item : (BarState.isOpenFor("right", root.monitorName) && rightLoader.item ? rightLoader.item : pill)
     function captureGeometry() {
-        if (BarState.leftOpen)
+        if (BarState.isOpenFor("left", root.monitorName))
             return root.sideCaptureGeometry(leftPanelPill, "left");
-        if (BarState.rightOpen)
+        if (BarState.isOpenFor("right", root.monitorName))
             return root.sideCaptureGeometry(rightPanelPill, "right");
         const p = pill.mapToItem(root.contentItem, 0, 0);
         return {visible: root.visible, displayed: stack.current,
@@ -227,9 +228,10 @@ PanelWindow {
         onTriggered: {
             // Leave handler: collapse default (guarded by hover+popup),
             // then conceal the bar when unlocked and search isn't pinning it.
-            if (!root.hovered && BarState.popupCount <= 0 && !Settings.barDefault)
+            if (!root.hovered && BarState.popupCountFor(root.monitorName) <= 0 && !Settings.barDefault)
                 BarState.deactivate("default");
-            if (BarState.state !== "search" && BarState.state !== "control" && BarState.state !== "overview" && BarState.state !== "wallpaper" && !BarState.leftOpen && !BarState.rightOpen && !Settings.barLock && !root.hovered && BarState.popupCount <= 0)
+            const localState = BarState.stateFor(root.monitorName);
+            if (localState !== "search" && localState !== "control" && localState !== "overview" && localState !== "wallpaper" && !BarState.isOpenFor("left", root.monitorName) && !BarState.isOpenFor("right", root.monitorName) && !Settings.barLock && !root.hovered && BarState.popupCountFor(root.monitorName) <= 0)
                 BarState.concealBar(root.monitorName);
         }
     }
@@ -251,7 +253,8 @@ PanelWindow {
         onTriggered: {
             if (Settings.barLock)
                 return;
-            if (BarState.state === "search" || BarState.state === "control" || BarState.state === "overview" || BarState.state === "wallpaper" || BarState.leftOpen || BarState.rightOpen) {
+            const localState = BarState.stateFor(root.monitorName);
+            if (localState === "search" || localState === "control" || localState === "overview" || localState === "wallpaper" || BarState.isOpenFor("left", root.monitorName) || BarState.isOpenFor("right", root.monitorName)) {
                 idleTimer.restart();
                 return;
             }
@@ -260,7 +263,7 @@ PanelWindow {
             // cursor actually is; if it is over the bar band or a popup is
             // open, keep waiting. If position is unknown, DON'T conceal
             // blindly — restart the check.
-            if (BarState.popupCount > 0) {
+            if (BarState.popupCountFor(root.monitorName) > 0) {
                 idleTimer.restart();
                 return;
             }
@@ -282,7 +285,7 @@ PanelWindow {
             root._cursorProc = null;
             var stillOff = root.cursorOffBar(out.text);
             if (stillOff === true) {
-                if (!root.hovered && BarState.popupCount <= 0)
+                if (!root.hovered && BarState.popupCountFor(root.monitorName) <= 0)
                     BarState.concealBar(root.monitorName);
             } else if (stillOff === false) {
                 idleTimer.restart();
@@ -506,14 +509,14 @@ PanelWindow {
                 // tab state survive.
                 property bool wallpaperPrimed: true
 
-                // The state actually shown — bound straight to BarState.state.
+                // The state actually shown on this monitor.
                 // (A Connections-guarded variant was tried and removed: the
                 // binding updates before signal handlers run, so any
                 // s === displayed guard exits early forever and branch logic
                 // placed there silently never executes — root-caused via
                 // probe 2026-09-24. All swap logic lives in onCurrentChanged
                 // + bindings below.)
-                property string displayed: BarState.state
+                property string displayed: BarState.stateFor(root.monitorName)
 
                 // Requested by the default bar page while its inner content
                 // animates the pill's width (volume/brightness slider
@@ -666,7 +669,9 @@ PanelWindow {
 
                 Component {
                     id: defaultPage
-                    DefaultBar {}
+                    DefaultBar {
+                        monitorName: root.monitorName
+                    }
                 }
                 Component {
                     id: weatherPage
@@ -694,7 +699,10 @@ PanelWindow {
                 }
                 Component {
                     id: wallpaperPage
-                    WallpaperIsland {}
+                    WallpaperIsland {
+                        monitorName: root.monitorName
+                        screen: root.screen
+                    }
                 }
                 Component {
                     id: emptyPage
@@ -731,7 +739,7 @@ PanelWindow {
             // inside the unfold clip below so the panel wipes as one unit.
             x: 8
             y: Settings.barOrientation ? 0 : parent.height - height
-            width: Settings.leftPanelWidth
+            width: Settings.panelWidthFor("left", root.monitorName)
             height: Math.max(400, root.screenHeight - 15)
             visible: leftPanelPill.shown && root.barVisible
             property bool primed: false
@@ -744,7 +752,7 @@ PanelWindow {
             // expand stays pinned at 1 after creation (dormant): a single
             // unfold plays, exactly like a main-stack island.
             property bool shown: false
-            property bool flag: BarState.leftOpen
+            property bool flag: BarState.isOpenFor("left", root.monitorName)
             onFlagChanged: leftPanelPill.setShown(leftPanelPill.flag)
             Component.onCompleted: leftPanelPill.setShown(leftPanelPill.flag)
             property real openT: 0
@@ -823,13 +831,13 @@ PanelWindow {
             // inside the unfold clip, like leftPanelPill.
             x: parent.width - width - 8
             y: Settings.barOrientation ? 0 : parent.height - height
-            width: Settings.rightPanelWidth
+            width: Settings.panelWidthFor("right", root.monitorName)
             height: Math.max(400, root.screenHeight - 15)
             visible: rightPanelPill.shown && root.barVisible
             property bool primed: false
             // Open/close transition, same pattern as leftPanelPill above.
             property bool shown: false
-            property bool flag: BarState.rightOpen
+            property bool flag: BarState.isOpenFor("right", root.monitorName)
             onFlagChanged: rightPanelPill.setShown(rightPanelPill.flag)
             Component.onCompleted: rightPanelPill.setShown(rightPanelPill.flag)
             property real openT: 0
@@ -920,6 +928,7 @@ PanelWindow {
                 WeatherButton {
                     id: weatherButton
                     anchors.verticalCenter: parent.verticalCenter
+                    monitorName: root.monitorName
                 }
             }
         }
@@ -956,6 +965,7 @@ PanelWindow {
                 MediaPill {
                     id: sideMedia
                     anchors.verticalCenter: parent.verticalCenter
+                    monitorName: root.monitorName
                     visible: sideMedia.hasPlayable
                 }
 
@@ -972,7 +982,7 @@ PanelWindow {
                     height: rightSidePill.height
                     visible: recordingPiece.shown
                     property bool shown: false
-                    property bool flag: ScreenRecorder.isRecording
+                    property bool flag: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(root.monitorName)
                     onFlagChanged: recordingPiece.setShown(recordingPiece.flag)
                     Component.onCompleted: recordingPiece.setShown(recordingPiece.flag)
                     property real openT: 0
@@ -1038,7 +1048,7 @@ PanelWindow {
             y: Settings.barOrientation ? pill.y + pill.height + 8 + root.waveHangPush : pill.y - height - 8
             visible: mediaPill.shown && root.barVisible
             property bool shown: false
-            property bool flag: BarState.state === "player"
+            property bool flag: BarState.isOpenFor("player", root.monitorName)
             onFlagChanged: mediaPill.setShown(mediaPill.flag)
             Component.onCompleted: mediaPill.setShown(mediaPill.flag)
             function setShown(open) {
@@ -1072,6 +1082,10 @@ PanelWindow {
                 active: mediaPill.shown
                 asynchronous: false
                 sourceComponent: mediaPlayerPage
+                onLoaded: {
+                    if (item && item["monitorName"] !== undefined)
+                        item.monitorName = root.monitorName;
+                }
             }
             Component {
                 id: mediaPlayerPage
@@ -1105,10 +1119,10 @@ PanelWindow {
             // Membership, not resolved state: the resolved state holds one
             // island at a time, so a main-pill switch (search/control/…)
             // would unmap the OSD mid-pulse. Membership survives switches
-            // (same reason the keyboard grab above reads activeStates) and
+            // (same reason the keyboard grab above reads monitor state) and
             // clears exactly when the hold timer, hover-leave, or Esc
             // deactivates the pulse.
-            property bool flag: ("volume" in BarState.activeStates) || ("brightness" in BarState.activeStates)
+            property bool flag: BarState.isOpenFor("volume", root.monitorName) || BarState.isOpenFor("brightness", root.monitorName)
             onFlagChanged: osdPill.setShown(osdPill.flag)
             Component.onCompleted: osdPill.setShown(osdPill.flag)
             function setShown(open) {
@@ -1142,6 +1156,10 @@ PanelWindow {
                 active: osdPill.shown
                 asynchronous: false
                 sourceComponent: osdPage
+                onLoaded: {
+                    if (item && item["monitorName"] !== undefined)
+                        item.monitorName = root.monitorName;
+                }
             }
             Component {
                 id: osdPage
@@ -1156,6 +1174,7 @@ PanelWindow {
         // notifPill.hasContent.
         NotificationPopups {
             id: notifPill
+            monitorName: root.monitorName
             pillX: pill.x
             pillY: pill.y
             pillW: pill.width
@@ -1174,16 +1193,18 @@ PanelWindow {
         HotZone {
             id: leftHot
             side: "left"
+            monitorName: root.monitorName
             size: Settings.leftPanelHotZoneSize
             enabled: Settings.leftPanelHotZone
-            panelLock: Settings.leftPanelLock
+            panelLock: Settings.panelLockFor("left", root.monitorName)
         }
         HotZone {
             id: rightHot
             side: "right"
+            monitorName: root.monitorName
             size: Settings.rightPanelHotZoneSize
             enabled: Settings.rightPanelHotZone
-            panelLock: Settings.rightPanelLock
+            panelLock: Settings.panelLockFor("right", root.monitorName)
         }
 
     }

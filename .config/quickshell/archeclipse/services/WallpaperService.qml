@@ -325,7 +325,8 @@ QtObject {
         // Fixed tmp suffix is safe: the queue is strictly sequential, so
         // no two ffmpeg runs share an `out`. Atomic mv publish, rm on fail.
         const tmp = out.slice(0, -4) + ".tmp.qs.jpg";
-        const ff = root._spawn(["ffmpeg", "-loglevel", "error", "-y", "-ss", "1", "-i", src, "-vframes", "1", "-vf", "scale=320:-1", tmp]);
+        // Read from the beginning: a fixed 1s seek skipped sub-second clips.
+        const ff = root._spawn(["ffmpeg", "-loglevel", "error", "-y", "-i", src, "-vframes", "1", "-vf", "scale=320:-1", tmp]);
         ff.exited.connect(function (code) {
             ff.destroy();
             if (code === 0) {

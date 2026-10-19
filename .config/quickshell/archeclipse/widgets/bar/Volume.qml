@@ -12,6 +12,7 @@ import qs.services
 Rectangle {
     id: root
 
+    property string monitorName: ""
     property bool pulse: false          // true when shown as a bar-state pulse
     readonly property int fixedWidth: 220
 
@@ -110,6 +111,7 @@ Rectangle {
                     if (!root.sink?.audio)
                         return;
                     const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
+                    BarState.noteVolumeTarget(root.monitorName);
                     root.sink.audio.volume = Math.max(0, Math.min(1, root.vol + step));
                     // Direct contact with the widget: reveal like hover/click.
                     // (Value-change reveal moved here from onVolChanged so
@@ -155,8 +157,10 @@ Rectangle {
             // Don't bind value directly: a direct `value: root.vol` binding
             // gets broken by the first manual drag, desyncing the slider.
             Component.onCompleted: slider.value = root.vol
-            onMoved: if (root.sink?.audio)
-                root.sink.audio.volume = slider.value
+            onMoved: if (root.sink?.audio) {
+                BarState.noteVolumeTarget(root.monitorName);
+                root.sink.audio.volume = slider.value;
+            }
         }
         Binding {
             target: slider

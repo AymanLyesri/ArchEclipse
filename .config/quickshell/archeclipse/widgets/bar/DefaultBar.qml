@@ -17,6 +17,7 @@ import qs.widgets.bar
 Column {
     id: root
     spacing: 4
+    property string monitorName: ""
 
     // Injected by Bar.qml (currentPageLoader.onLoaded) — the stack that owns
     // the pill width. The volume/brightness sliders animate their own width,
@@ -166,6 +167,7 @@ Column {
                 ControlPanelButton {
                     id: centerButton
                     anchors.verticalCenter: parent.verticalCenter
+                    monitorName: root.monitorName
                 }
 
                 // clock — right, same cell width as bandwidth side
@@ -204,9 +206,11 @@ Column {
 
                 LauncherButton {
                     id: launcherButton
+                    monitorName: root.monitorName
                 }
                 WindowTitle {
                     id: windowTitleButton
+                    monitorName: root.monitorName
                     // Natural size (never stretches into the slack), capped
                     // so a long title elides instead of spilling past the
                     // zone into the center pill. An explicit width (not a
@@ -239,15 +243,20 @@ Column {
 
       ResourceMonitor {
                     id: resourceMonitor
+                    monitorName: root.monitorName
                 }
                 Battery {}
                 Brightness {
                     id: brightnessWidget
+                    monitorName: root.monitorName
                 }
                 Volume {
                     id: volumeWidget
+                    monitorName: root.monitorName
                 }
-                Tray {}
+                Tray {
+                    monitorName: root.monitorName
+                }
             }
         }
     } // topRow
@@ -255,6 +264,7 @@ Column {
     // bottom workspace strip — full width of the bar content
     Workspaces {
         id: workspaces
+        monitorName: root.monitorName
         width: topRow.implicitWidth
     }
 }

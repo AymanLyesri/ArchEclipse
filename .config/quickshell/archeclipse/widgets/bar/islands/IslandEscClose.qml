@@ -5,10 +5,11 @@ import qs.services
 Item {
     id: root
     property var states: []
+    property string monitorName: ""
     width: 1; height: 1
     focus: true
     Keys.onEscapePressed: {
         for (let i = 0; i < root.states.length; i++)
-            BarState.deactivate(root.states[i]);
+            BarState.deactivate(root.states[i], root.monitorName);
     }
 }

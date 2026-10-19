@@ -8,6 +8,7 @@ import qs.widgets.shared
 Rectangle {
     id: root
     required property var store
+    property string monitorName: ""
     width: parent.width
     implicitHeight: supporterCol.implicitHeight + 20
     visible: !!store.profile && store.profile.is_supporter !== null && store.profile.is_supporter !== undefined
@@ -36,7 +37,7 @@ Rectangle {
         AppButton {
             width: parent.width
             text: store.profile?.is_supporter === true ? "View Donations" : "Become supporter"
-            onClicked: Registry.selectLeftTab("Donations")
+            onClicked: Registry.selectLeftTab("Donations", undefined, root.monitorName)
         }
     }
 }

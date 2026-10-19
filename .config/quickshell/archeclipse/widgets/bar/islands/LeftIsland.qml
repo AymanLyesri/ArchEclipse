@@ -6,7 +6,7 @@ import qs.widgets.bar.islands
 import qs.widgets.leftPanel
 
 // LeftIsland: the former LeftPanel body (sidebar + widget stack) living
-// in the left side pill beside the bar (BarState.leftOpen flag).
+// in the left side pill beside the bar, scoped to its owning monitor.
 //
 // Same unfold pattern as Search/ControlIsland — the pill grows
 // (width via the pill transition, height snapped on the window) while this
@@ -17,12 +17,12 @@ import qs.widgets.leftPanel
 //
 // Open: SUPER+L bind, left HotZone hover, launcher quick-app, IPC.
 // Close: bind toggle, Esc, close button, or 1s after the cursor leaves
-// (Settings.leftPanelLock pins it open). The booru detail popup is a
+// (the monitor's left-panel lock pins it open). The booru detail popup is a
 // separate surface: while it is hovered/open the island stays alive via
 // the same popupHovered/hostPanel handoff the panel used.
 Item {
     id: root
-    width: Settings.leftPanelWidth
+    width: Settings.panelWidthFor("left", root.monitorName)
     // Explicit full height (NOT implicit): positioner implicit sizes freeze
     // at completion-time values in this engine, so a height driven only by
     // the expand animation would never reach the pill — the Loader measures
@@ -69,6 +69,7 @@ Item {
     onMonitorNameChanged: {
         if (root.monitorName !== "")
             Registry.register(root.registryKey(), root);
+        root.syncSelectedWidget();
     }
     Component.onDestruction: {
         Registry.unregister("left-island");
@@ -78,9 +79,18 @@ Item {
         return `left-island-${root.monitorName || Registry.monitorName}`;
     }
 
-    // Selected widget — initialized from persisted Settings and written
-    // back on change (same contract the panel had).
-    property string selectedWidget: Settings.leftPanelWidget
+    // Per-monitor selected tab, with the persisted global tab as fallback
+    // for monitors that do not have an override yet.
+    property string selectedWidget: Settings.leftPanelWidgetFor(root.monitorName)
+    property bool _restoringSelectedWidget: false
+    function syncSelectedWidget() {
+        const selected = Settings.leftPanelWidgetFor(root.monitorName);
+        if (root.selectedWidget === selected)
+            return;
+        root._restoringSelectedWidget = true;
+        root.selectedWidget = selected;
+        root._restoringSelectedWidget = false;
+    }
     // Tabs visited this session — a tab's Loader activates on first select
     // and stays active (object replaced, never mutated, for change notify).
     property var _visited: ({})
@@ -88,8 +98,8 @@ Item {
         return root.selectedWidget === name || root._visited[name] === true;
     }
     onSelectedWidgetChanged: {
-        if (Settings.leftPanelWidget !== selectedWidget)
-            Settings.leftPanelWidget = selectedWidget;
+        if (!root._restoringSelectedWidget)
+            Settings.setLeftPanelWidgetFor(root.monitorName, selectedWidget);
         if (root._visited[selectedWidget] !== true) {
             var v = Object.assign({}, root._visited);
             v[selectedWidget] = true;
@@ -100,8 +110,12 @@ Item {
     Connections {
         target: Settings
         function onLeftPanelWidgetChanged() {
-            if (root.selectedWidget !== Settings.leftPanelWidget)
-                root.selectedWidget = Settings.leftPanelWidget;
+            const entry = (Settings.leftPanelByMonitor || {})[root.monitorName];
+            if (!entry || entry.widget === undefined)
+                root.syncSelectedWidget();
+        }
+        function onLeftPanelByMonitorChanged() {
+            root.syncSelectedWidget();
         }
     }
     // Expose the active tab's widget so IPC can poke into the live
@@ -182,14 +196,14 @@ Item {
                 leaveTimer.stop();
                 // Pin hover-driven islands so a hold expiry can't close
                 // the panel while it is being used.
-                BarState.activate("left", 0);
+                BarState.activate("left", 0, root.monitorName);
             } else {
                 root.requestAutoHide();
             }
         }
     }
     function requestAutoHide() {
-        if (Settings.leftPanelLock)
+        if (Settings.panelLockFor("left", root.monitorName))
             return;
         if (islandHover.hovered)
             return;
@@ -208,14 +222,15 @@ Item {
         id: leaveTimer
         interval: Settings.revealOutPressure
         onTriggered: {
-            if (!Settings.leftPanelLock && !islandHover.hovered && !(root.activeWidget && root.activeWidget.popupHovered))
-                BarState.deactivate("left");
+            if (!Settings.panelLockFor("left", root.monitorName) && !islandHover.hovered && !(root.activeWidget && root.activeWidget.popupHovered))
+                BarState.deactivate("left", root.monitorName);
         }
     }
 
     // Esc dismiss once the surface has focus (click a control first).
     IslandEscClose {
         states: ["left"]
+        monitorName: root.monitorName
     }
 
     IslandExpandClip {
@@ -297,6 +312,7 @@ Item {
                 // WindowActions: bottom cluster (valign END, shared).
                 IslandWindowActions {
                     side: "left"
+                    monitorName: root.monitorName
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -430,7 +446,7 @@ Item {
                 }
                 Component {
                     id: userProfileComp
-                    UserProfileWidget {}
+                    UserProfileWidget { monitorName: root.monitorName }
                 }
                 Component {
                     id: booruComp
@@ -438,19 +454,19 @@ Item {
                 }
                 Component {
                     id: chatBotComp
-                    ChatBotWidget {}
+                    ChatBotWidget { monitorName: root.monitorName }
                 }
                 Component {
                     id: mangaComp
-                    MangaViewerWidget {}
+                    MangaViewerWidget { monitorName: root.monitorName }
                 }
                 Component {
                     id: settingsComp
-                    SettingsWidget {}
+                    SettingsWidget { monitorName: root.monitorName }
                 }
                 Component {
                     id: scriptsComp
-                    CustomScriptsWidget {}
+                    CustomScriptsWidget { monitorName: root.monitorName }
                 }
                 Component {
                     id: keybindsComp
@@ -458,7 +474,7 @@ Item {
                 }
                 Component {
                     id: donationsComp
-                    DonationsWidget {}
+                    DonationsWidget { monitorName: root.monitorName }
                 }
             }
         }

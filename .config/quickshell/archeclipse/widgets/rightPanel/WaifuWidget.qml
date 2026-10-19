@@ -13,6 +13,7 @@ import qs.widgets.leftPanel.BooruViewer.components as Booru
 // nothing is set.
 Item {
     id: root
+    property string monitorName: ""
 
     readonly property string booruPath: `${Quickshell.env("HOME")}/.cache/quickshell/booru`
 
@@ -46,7 +47,7 @@ Item {
     Booru.BooruDialog {
         id: waifuDialog
         viewer: waifuViewer
-        videoActive: BarState.rightOpen
+        videoActive: BarState.isOpenFor("right", root.monitorName)
         width: parent.width
     }
 
@@ -206,7 +207,7 @@ Item {
                         // Show the left island + set its widget
                         // to BooruViewer. Registry.selectLeftTab does both
                         // (never toggles it off when already visible).
-                        Registry.selectLeftTab("BooruViewer");
+                        Registry.selectLeftTab("BooruViewer", undefined, root.monitorName);
                     }
                 }
                 AppButton {

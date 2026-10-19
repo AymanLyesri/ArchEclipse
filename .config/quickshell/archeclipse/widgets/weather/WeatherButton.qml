@@ -6,6 +6,7 @@ import qs.services
 // Hover/click pulses the full weather island (BarState "weather").
 Rectangle {
     id: root
+    property string monitorName: ""
     height: Theme.sidePillHeight
     // implicitWidth (not width) so the button keeps its natural size in
     // Row layouts but can stretch via anchors when there is empty space.
@@ -72,7 +73,7 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: BarState.activate("weather", 3000)
+        onClicked: BarState.activate("weather", 3000, root.monitorName)
     }
 
     // Hover dwell (Settings.revealInPressure, 0 = instant) so brushing the
@@ -81,7 +82,7 @@ Rectangle {
         id: dwellTimer
         interval: Settings.revealInPressure
         repeat: false
-        onTriggered: BarState.activate("weather", 3000)
+        onTriggered: BarState.activate("weather", 3000, root.monitorName)
     }
 
     HoverHandler {
@@ -89,7 +90,7 @@ Rectangle {
         onHoveredChanged: {
             if (hover.hovered) {
                 if (Settings.revealInPressure <= 0)
-                    BarState.activate("weather", 3000);
+                    BarState.activate("weather", 3000, root.monitorName);
                 else
                     dwellTimer.restart();
             } else {

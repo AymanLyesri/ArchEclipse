@@ -5,6 +5,7 @@ import qs.theme
 // App launcher button — Arch glyph, toggles the search/launcher island.
 Rectangle {
     id: root
+    property string monitorName: ""
 
     width: 32
     implicitWidth: 32
@@ -28,11 +29,11 @@ Rectangle {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: {
-            if (BarState.state === "search")
-                BarState.deactivate("search");
+            if (BarState.isOpenFor("search", root.monitorName))
+                BarState.deactivate("search", root.monitorName);
             else {
                 Launcher.pendingQuery = "";
-                BarState.activate("search", 0);
+                BarState.activate("search", 0, root.monitorName);
             }
         }
     }

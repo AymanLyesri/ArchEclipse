@@ -9,6 +9,7 @@ import Quickshell.Networking
 Item {
     id: root
 
+    property string monitorName: ""
     property real widthRequest: 0
 
     // Derive the primary (most relevant) device: first connected, else first available.
@@ -117,7 +118,7 @@ Item {
 
     MouseArea {
         anchors.fill: parent
-        onClicked: BarState.activate("network", 3000)
+        onClicked: BarState.activate("network", 3000, root.monitorName)
     }
 
     // Hover dwell (Settings.revealInPressure, 0 = instant) so brushing the
@@ -126,7 +127,7 @@ Item {
         id: dwellTimer
         interval: Settings.revealInPressure
         repeat: false
-        onTriggered: BarState.activate("network", 3000)
+        onTriggered: BarState.activate("network", 3000, root.monitorName)
     }
 
     HoverHandler {
@@ -134,7 +135,7 @@ Item {
         onHoveredChanged: {
             if (netHover.hovered) {
                 if (Settings.revealInPressure <= 0)
-                    BarState.activate("network", 3000);
+                    BarState.activate("network", 3000, root.monitorName);
                 else
                     dwellTimer.restart();
             } else {

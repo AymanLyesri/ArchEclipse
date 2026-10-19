@@ -9,6 +9,7 @@ import qs.widgets.shared
 Item {
     id: root
     property int islandWidth: 440
+    property string monitorName: ""
 
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
     // exit driver plays 1 -> 0 on close before swapping content.
@@ -40,5 +41,6 @@ Item {
     // (The pin self-arms its leave timer at creation.)
     IslandHoverPin {
         stateName: "system"
+        monitorName: root.monitorName
     }
 }

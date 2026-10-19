@@ -17,6 +17,7 @@ Item {
     id: root
     height: volCard.height
 
+    property string monitorName: ""
     property bool sectionOpen: false
     property int tabIndex: 0
     property int pressedCount: 0
@@ -187,8 +188,10 @@ Item {
                     to: 1.5
                     stepSize: 0.01
                     Component.onCompleted: masterSlider.value = root.defaultSink?.audio?.volume ?? 0
-                    onMoved: if (root.defaultSink?.audio)
-                        root.defaultSink.audio.volume = masterSlider.value
+                    onMoved: if (root.defaultSink?.audio) {
+                        BarState.noteVolumeTarget(root.monitorName);
+                        root.defaultSink.audio.volume = masterSlider.value;
+                    }
                     onPressedChanged: root.bumpPressed(pressed)
                 }
                 Binding {
@@ -343,7 +346,7 @@ Item {
                                 checked: modelData.audio?.muted ?? false
                                 tooltipText: modelData.audio?.muted ? "Unmute" : "Mute"
                                 onClicked: if (modelData.audio)
-                                    modelData.audio.muted = !modelData.audio.muted
+                                    modelData.audio.muted = !modelData.audio.muted;
                             }
                             AppButton {
                                 id: playKill
@@ -614,8 +617,11 @@ Item {
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
                                 tooltipText: modelData.audio?.muted ? "Unmute" : "Mute"
-                                onClicked: if (modelData.audio)
-                                    modelData.audio.muted = !modelData.audio.muted
+                                onClicked: if (modelData.audio) {
+                                    if (root.defaultSink && (modelData === root.defaultSink || modelData.name === root.defaultSink.name))
+                                        BarState.noteVolumeTarget(root.monitorName);
+                                    modelData.audio.muted = !modelData.audio.muted;
+                                }
                             }
                         }
                         AppSlider {
@@ -625,8 +631,11 @@ Item {
                             to: 1.5
                             stepSize: 0.01
                             Component.onCompleted: outSlider.value = modelData.audio?.volume ?? 0
-                            onMoved: if (modelData.audio)
-                                modelData.audio.volume = outSlider.value
+                            onMoved: if (modelData.audio) {
+                                if (root.defaultSink && (modelData === root.defaultSink || modelData.name === root.defaultSink.name))
+                                    BarState.noteVolumeTarget(root.monitorName);
+                                modelData.audio.volume = outSlider.value;
+                            }
                             onPressedChanged: root.bumpPressed(pressed)
                         }
                         Binding {

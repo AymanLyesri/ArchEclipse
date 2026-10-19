@@ -21,6 +21,7 @@ import qs.services
 // that table and opens external checkouts.
 Item {
     id: root
+    property string monitorName: ""
 
     // --- Config (public values only — no secrets in QML) ---
     readonly property string supabaseUrl: Supabase.url
@@ -444,7 +445,7 @@ Item {
 
     function goSignIn() {
         Notifications.notify({ summary: "Sign in required", body: "Please sign in first." });
-        Registry.selectLeftTab("UserProfile");
+        Registry.selectLeftTab("UserProfile", undefined, root.monitorName);
     }
 
     // --- UI ---
@@ -553,7 +554,7 @@ Item {
                             pixelSize: Theme.fontSize - 1
                             outlined: true
                             tooltipText: "Open profile / sign in"
-                            onClicked: Registry.selectLeftTab("UserProfile")
+                            onClicked: Registry.selectLeftTab("UserProfile", undefined, root.monitorName)
                         }
                     }
                 }

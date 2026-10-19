@@ -16,6 +16,8 @@ import qs.services
 Item {
     id: root
 
+    property string monitorName: ""
+
     // Utility script definitions — icons are Nerd Font codepoints. kind
     // marks entries whose callback does more than a plain exec (record
     // toggle, dynamic file manager, reset confirmation).
@@ -63,7 +65,7 @@ Item {
             keybind: ["SUPER", "SHIFT", "S"],
             app: "grimblast",
             package: "grimblast-git",
-            command: "bash -c \"$HOME/.config/hypr/scripts/screenshot.sh --now\""
+            kind: "screenshot-now"
         },
         {
             name: "Screenshot Area",
@@ -72,7 +74,7 @@ Item {
             keybind: ["SUPER", "CTRL", "SHIFT", "S"],
             app: "grimblast",
             package: "grimblast-git",
-            command: "bash -c \"$HOME/.config/hypr/scripts/screenshot.sh --area\""
+            kind: "screenshot-area"
         },
         {
             name: "Record Screen",
@@ -311,12 +313,20 @@ Item {
 
     function runScript(def) {
         // Special-kind callbacks that are more than a plain exec
+        if (def.kind === "screenshot-now") {
+            Quickshell.execDetached([Quickshell.env("HOME") + "/.config/hypr/scripts/screenshot.sh", "--now", "--monitor", root.monitorName]);
+            return;
+        }
+        if (def.kind === "screenshot-area") {
+            Quickshell.execDetached([Quickshell.env("HOME") + "/.config/hypr/scripts/screenshot.sh", "--area", "--monitor", root.monitorName]);
+            return;
+        }
         if (def.kind === "record-now") {
-            ScreenRecorder.toggleRecording("now");
+            ScreenRecorder.toggleRecording("now", root.monitorName);
             return;
         }
         if (def.kind === "record-area") {
-            ScreenRecorder.toggleRecording("area");
+            ScreenRecorder.toggleRecording("area", root.monitorName);
             return;
         }
         // NOTE: spawn via Quickshell.execDetached, NOT Hyprland.dispatch("exec ...").

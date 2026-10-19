@@ -25,6 +25,10 @@ import qs.services
 Item {
     id: root
 
+    // Each Bar creates its own strip. Keep workspace focus, special-workspace
+    // state, and client alerts tied to the monitor that owns this instance.
+    property string monitorName: ""
+
     property int count: 10
     property real barHeight: 4
     property real iconSize: 11
@@ -141,8 +145,8 @@ Item {
     }
 
     // --- new-client blink: 3 blinks on unfocused workspaces ---
-    // Tracks per-workspace client counts; a count increase on a
-    // non-focused workspace arms 6 half-blinks (3 full on/off cycles)
+    // Tracks client counts per monitor and workspace; a count increase on a
+    // non-focused workspace on this monitor arms 6 half-blinks (3 full cycles)
     // at 220ms cadence. Map wid -> remaining ticks; reassigned whole
     // so dependents re-evaluate (QML var-map pattern).
     property var _counts: ({})
@@ -155,6 +159,8 @@ Item {
         for (let i = 1; i <= root.count; i++)
             m[i] = 0;
         for (const t of Hyprland.toplevels.values) {
+            if (t.monitor?.name !== root.monitorName)
+                continue;
             const id = t.workspace?.id ?? -1;
             if (id >= 1 && id <= root.count)
                 m[id]++;
@@ -278,7 +284,23 @@ Item {
     // workspaces.waveHitbox for that.
     implicitHeight: hitHeight
 
-    readonly property int focusedId: Hyprland.focusedWorkspace?.id ?? 1
+    readonly property var localMonitor: {
+        Hyprland.monitors.values;
+        if (!root.monitorName)
+            return null;
+        return Hyprland.monitors.values.find(m => m.name === root.monitorName) ?? null;
+    }
+    // activeWorkspace stays local even when the pointer focuses another
+    // monitor. focusedWorkspace is only a fallback while Hyprland is still
+    // resolving this monitor's active workspace during startup/hotplug.
+    readonly property var localWorkspace: {
+        const active = root.localMonitor?.activeWorkspace;
+        if (active)
+            return active;
+        return Hyprland.focusedMonitor?.name === root.monitorName
+            ? Hyprland.focusedWorkspace : null;
+    }
+    readonly property int focusedId: root.localWorkspace?.id ?? 1
     onFocusedIdChanged: {
         root.requestExpand();
         // A genuine switch re-peaks the wave at the new workspace, even
@@ -319,21 +341,23 @@ Item {
     readonly property var specialTops: {
         Hyprland.toplevels.values;
         Hyprland.workspaces.values;
-        return Hyprland.toplevels.values.filter(t => ((t.workspace?.name ?? "") + "").startsWith("special"));
+        return Hyprland.toplevels.values.filter(t =>
+            t.monitor?.name === root.monitorName && ((t.workspace?.name ?? "") + "").startsWith("special"));
     }
     readonly property var specialWs: {
         Hyprland.workspaces.values;
-        const found = Hyprland.workspaces.values.find(w => ((w.name ?? "") + "").startsWith("special"));
+        const found = Hyprland.workspaces.values.find(w =>
+            w.monitor?.name === root.monitorName && ((w.name ?? "") + "").startsWith("special"));
         return found ?? null;
     }
     readonly property bool specialOccupied: root.specialTops.length > 0
     readonly property bool specialActive: root.specialWs?.active ?? false
-    // "Opened" = visible on screen. Focus moves into the special workspace
-    // when it is toggled open, so the focused workspace (and the active
-    // toplevel's workspace) is the most reliable reactive signal — the
-    // workspace object itself can be missing while empty.
-    readonly property bool specialFocusedHere: ((Hyprland.focusedWorkspace?.name ?? "") + "").startsWith("special")
-    readonly property bool specialHasFocus: ((Hyprland.activeToplevel?.workspace?.name ?? "") + "").startsWith("special")
+    // "Opened" = visible on this monitor. The focused-workspace and active-
+    // toplevel fallbacks also stay monitor-scoped when the special workspace
+    // object is absent while empty.
+    readonly property bool specialFocusedHere: ((root.localWorkspace?.name ?? "") + "").startsWith("special")
+    readonly property bool specialHasFocus: Hyprland.activeToplevel?.monitor?.name === root.monitorName
+        && ((Hyprland.activeToplevel?.workspace?.name ?? "") + "").startsWith("special")
     readonly property bool specialOpen: root.specialActive || root.specialFocusedHere || root.specialHasFocus
     onSpecialOpenChanged: {
         // Peek the strip so the highlight + icon are actually seen.

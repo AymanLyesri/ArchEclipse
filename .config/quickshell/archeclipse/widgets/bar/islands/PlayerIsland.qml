@@ -9,6 +9,8 @@ import qs.widgets.media
 Item {
     id: root
 
+    property string monitorName: ""
+
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
     // exit driver plays 1 -> 0 on close before swapping content.
     property real expand: 0
@@ -40,5 +42,6 @@ Item {
     // (The pin self-arms its leave timer at creation.)
     IslandHoverPin {
         stateName: "player"
+        monitorName: root.monitorName
     }
 }

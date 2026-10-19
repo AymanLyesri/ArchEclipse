@@ -178,7 +178,7 @@ Item {
     }
     function focusWorkspace(id) {
         body.dsp(`hl.dsp.focus({workspace = ${id}})`);
-        BarState.deactivate("overview");
+        BarState.deactivate("overview", root.monitorName);
     }
     function focusWindow(addr) {
         body.dsp(`hl.dsp.focus({window = "address:0x${body.normAddr(addr)}"})`);
