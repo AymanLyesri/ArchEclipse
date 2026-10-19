@@ -77,12 +77,23 @@ ShellRoot {
 
     }
 
+    // Standalone media controls (SUPER+M), independently toggleable per screen.
+    Variants {
+        model: Quickshell.screens
+
+        MediaWindow {
+            required property ShellScreen modelData
+
+            screen: modelData
+        }
+    }
+
     // Wallpaper switcher lives in the main bar pill as WallpaperIsland
     // (BarState "wallpaper", body in widgets/wallpaperPanel).
     // SUPER+W routes to the island via Ipc.togglePanel.
 
-    // Secure lockscreen (replaces the UserPanel overlay): single scope,
-    // the compositor instantiates one WlSessionLockSurface per screen.
+    // Secure lockscreen: single scope; the compositor instantiates one
+    // WlSessionLockSurface per screen. The UserProfile panel is a left-island tab.
     LockScreen {
     }
 

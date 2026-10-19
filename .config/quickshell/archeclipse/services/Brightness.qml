@@ -22,7 +22,7 @@ QtObject {
     // Emitted when the controlled monitor's brightness really changed (key, slider,
     // external write) — NOT when focus merely moves to a monitor with another value.
     // BarState / bar widget use it to pulse the OSD.
-    signal adjusted()
+    signal adjusted(string monitorName)
 
     // ---- internal backlight state ----
     property var _devices: []
@@ -35,6 +35,10 @@ QtObject {
     // ---- DDC/CI state ----
     // [{ name: "DP-1", bus: "5", max: 100, value: 0..1, ready: bool }]
     property var _ddc: []
+    // Reactive monitor -> brightness snapshot. DDC entries are plain JS
+    // objects, so copy ready values here whenever _refreshScreen runs; QML
+    // bindings for a non-focused monitor then receive change notifications.
+    property var _monitorBrightnessValues: ({})
     // bus -> raw value still to be written (latest wins)
     property var _ddcPending: ({})
     property var _ddcReadQueue: []
@@ -57,6 +61,19 @@ QtObject {
         return root._ddc.find(d => d.name === name) ?? null;
     }
 
+    function hasBacklightFor(monitorName) {
+        const name = monitorName || root._focusedName();
+        return root._ddcFor(name) !== null || (root._useInternal(name) && root._maxKnown);
+    }
+
+    function screenFor(monitorName) {
+        const name = monitorName || root._focusedName();
+        const d = root._ddcFor(name);
+        if (d)
+            return root._monitorBrightnessValues[name] ?? 0;
+        return root._useInternal(name) && root._maxKnown ? root._internal : 0;
+    }
+
     // Internal backlight is used for the laptop panel; on setups without any DDC
     // monitor it is used regardless of the output name (old behaviour).
     function _useInternal(name) {
@@ -68,6 +85,12 @@ QtObject {
     function _refreshScreen() {
         const name = root._focusedName();
         const d = root._ddcFor(name);
+        const byMonitor = {};
+        for (const display of root._ddc) {
+            if (display.ready)
+                byMonitor[display.name] = display.value;
+        }
+        root._monitorBrightnessValues = byMonitor;
         let t = "";
         let v = 0;
         if (d) {
@@ -97,32 +120,44 @@ QtObject {
     // =====================================================================
 
     // Absolute set, 0..1. Used by sliders. Returns a human-readable result.
-    function setScreen(percent) {
-        return root._apply(percent);
+    function setScreen(percent, monitorName) {
+        return root._apply(percent, monitorName);
     }
 
     // Relative change in percentage points (e.g. +10 / -10).
-    function adjust(delta) {
-        return root._apply((Math.round(root.screen * 100) + delta) / 100);
+    function adjust(delta, monitorName) {
+        const name = monitorName || root._focusedName();
+        return root._apply((Math.round(root.screenFor(name) * 100) + delta) / 100, name);
     }
 
-    function increment() {
-        return root.adjust(root.step);
+    function increment(monitorName) {
+        return root.adjust(root.step, monitorName);
     }
 
-    function decrement() {
-        return root.adjust(-root.step);
+    function decrement(monitorName) {
+        return root.adjust(-root.step, monitorName);
     }
 
     function describe() {
-        if (root.targetName === "")
-            return "no controllable display for '" + root._focusedName() + "'";
-        return root.targetName + ": " + Math.round(root.screen * 100) + "%";
+        return root.describeFor(root._focusedName());
     }
 
-    function _apply(percent) {
+    function describeFor(monitorName) {
+        const name = monitorName || root._focusedName();
+        const d = root._ddcFor(name);
+        if (d) {
+            if (!d.ready)
+                return name + ": DDC/CI not ready yet";
+            return name + ": " + Math.round(d.value * 100) + "%";
+        }
+        if (root._useInternal(name) && root._maxKnown)
+            return (name || root._primaryDevice) + ": " + Math.round(root._internal * 100) + "%";
+        return "no controllable display for '" + name + "'";
+    }
+
+    function _apply(percent, monitorName) {
         const p = Math.max(0, Math.min(1, percent));
-        const name = root._focusedName();
+        const name = monitorName || root._focusedName();
         const d = root._ddcFor(name);
 
         // --- external monitor over DDC/CI ---
@@ -130,20 +165,20 @@ QtObject {
             if (!d.ready)
                 return name + ": DDC/CI not ready yet";
             if (Math.abs(d.value - p) < 0.0005)
-                return root.describe();
+                return root.describeFor(name);
             d.value = p;
             // never write 0: many monitors go fully black / off
             root._ddcPending[d.bus] = Math.max(1, Math.round(p * d.max));
             root._pumpDdc();
             root._refreshScreen();
-            root.adjusted();
-            return root.describe();
+            root.adjusted(name);
+            return root.describeFor(name);
         }
 
         // --- internal panel over brightnessctl ---
         if (root._useInternal(name) && root._maxKnown) {
             if (Math.abs(root._internal - p) < 0.0005)
-                return root.describe();
+                return root.describeFor(name);
             root._internal = p;
             const targetPercent = Math.round(p * 100);
             // Fan out to ALL backlight devices via the serial queue
@@ -151,8 +186,8 @@ QtObject {
             if (!root._setBrightnessProc.running)
                 root._pumpSetQueue();
             root._refreshScreen();
-            root.adjusted();
-            return root.describe();
+            root.adjusted(name);
+            return root.describeFor(name);
         }
 
         return "no controllable display for '" + name + "'";
@@ -183,7 +218,7 @@ QtObject {
             root._internal = nv;
             root._refreshScreen();
             if (changed && root._internalReady && root.targetName !== "" && !root._ddcFor(root.targetName))
-                root.adjusted();
+                root.adjusted(root.targetName);
             root._internalReady = true;
         }
     }

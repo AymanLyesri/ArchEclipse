@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: screenshot.sh --now [output.png] | --area [output.png]
-#   Second arg overrides the destination path (must end in .png).
+# Usage: screenshot.sh (--now|--area) [--monitor NAME] [output.png]
+#   The monitor defaults to the focused Hyprland monitor.
+#   An optional output path overrides the destination (must end in .png).
 #   Set SCREENSHOT_OPTIMIZE=1 to run the (slow) ImageMagick strip/recompress.
 timestamp=$(date +%Y%m%d_%H%M%S)
 screenshot_dir="$HOME/Pictures/Screenshots"
@@ -14,19 +15,151 @@ mkdir -p "$screenshot_dir"
 mkdir -p "$screenshot_fullscreen_dir"
 mkdir -p "$screenshot_area_dir"
 
-mode="${1:-}"
-custom_out="${2:-}"
+mode=""
+monitor=""
+custom_out=""
+all=0
+while (($#)); do
+    case "$1" in
+        --now|--area)
+            mode="$1"
+            shift
+            ;;
+        --monitor)
+            monitor="${2:-}"
+            shift 2
+            ;;
+        --all)
+            all=1
+            shift
+            ;;
+        --)
+            shift
+            custom_out="${1:-}"
+            break
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            custom_out="$1"
+            shift
+            ;;
+    esac
+done
 
-if [[ "$mode" == "--now" ]]; then
+if [[ -z "$monitor" && "$all" -eq 0 ]]; then
+    monitor="$(hyprctl activeworkspace -j | jq -r '.monitor')"
+fi
+if [[ "$all" -eq 0 && ( -z "$monitor" || "$monitor" == "null" ) ]]; then
+    echo "Could not determine the focused monitor" >&2
+    exit 1
+fi
+
+if [[ "$all" -eq 1 ]]; then
+    # Capture each monitor separately
+    files=()
+    for m in $(hyprctl monitors -j | jq -r '.[].name'); do
+        safe_m=$(echo "$m" | tr '/ ' '__')
+        img="${custom_out:-$screenshot_fullscreen_dir/screenshot_${safe_m}_$timestamp.png}"
+        grim -o "$m" "$img" || {
+            echo "Failed to capture monitor $m" >&2
+            continue
+        }
+        files+=("$img")
+    done
+    if [[ ${#files[@]} -eq 0 ]]; then
+        echo "No monitors captured" >&2
+        exit 1
+    fi
+    # Copy file URIs to clipboard and notify
+    (for f in "${files[@]}"; do echo "file://$f"; done) | wl-copy --type text/uri-list || true
+    notify-send -a "Screenshot" -i "${files[0]}" "Screenshots saved" "Saved ${#files[@]} screenshots"
+    exit 0
+
+elif [[ "$mode" == "--now" ]]; then
     img="${custom_out:-$screenshot_fullscreen_dir/screenshot_$timestamp.png}"
-    # Full output (PNG: Qt/Quickshell has no webp plugin, so PNG is
-    # required for the notification preview and a correct image/png paste)
-    grimblast --freeze save screen "$img" || exit 1
+    # One focused output (PNG: Qt/Quickshell has no webp plugin, so PNG is
+    # required for the notification preview and a correct image/png paste).
+    grim -o "$monitor" "$img" || exit 1
 
 elif [[ "$mode" == "--area" ]]; then
     img="${custom_out:-$screenshot_area_dir/screenshot_area_$timestamp.png}"
-    # Select region (non-zero exit = user cancelled, stay silent)
-    grimblast --freeze save area "$img" || exit 1
+    monitor_info="$(hyprctl monitors -j | jq -c --arg name "$monitor" '.[] | select(.name == $name)')"
+    if [[ -z "$monitor_info" ]]; then
+        echo "Monitor '$monitor' is unavailable" >&2
+        exit 1
+    fi
+    monitor_data="$(jq -r '[.id, .activeWorkspace.id, .x, .y, .width, .height] | @tsv' <<< "$monitor_info")"
+    IFS=$'\t' read -r monitor_id workspace_id monitor_x monitor_y monitor_width monitor_height <<< "$monitor_data"
+
+    # Offer visible windows on this monitor's active workspace as slurp
+    # rectangles. `-r` makes this a window picker: it cannot create a
+    # freehand region. Clip floating windows to the selected monitor so grim
+    # can capture the returned geometry without combining `-o` and `-g`.
+    window_rects="$(hyprctl clients -j | jq -r \
+        --argjson monitor_id "$monitor_id" \
+        --argjson workspace_id "$workspace_id" \
+        --argjson mx "$monitor_x" \
+        --argjson my "$monitor_y" \
+        --argjson mw "$monitor_width" \
+        --argjson mh "$monitor_height" '
+        .[] |
+        select(.monitor == $monitor_id and .workspace.id == $workspace_id and (.hidden // false) == false) |
+        . as $client |
+        ($client.at[0] | floor) as $wx |
+        ($client.at[1] | floor) as $wy |
+        ($client.size[0] | floor) as $ww |
+        ($client.size[1] | floor) as $wh |
+        ($mx | floor) as $left_bound |
+        ($my | floor) as $top_bound |
+        (($mx + $mw) | floor) as $right_bound |
+        (($my + $mh) | floor) as $bottom_bound |
+        ([$wx, $left_bound] | max) as $x |
+        ([$wy, $top_bound] | max) as $y |
+        ([$wx + $ww, $right_bound] | min) as $right |
+        ([$wy + $wh, $bottom_bound] | min) as $bottom |
+        select($right > $x and $bottom > $y) |
+        (($client.title // $client.class // "Window") | gsub("[[:cntrl:]]"; " ")) as $label |
+        "\($x),\($y) \($right - $x)x\($bottom - $y) \($label)"
+    ' )"
+    if [[ -z "$window_rects" ]]; then
+        echo "No visible windows on '$monitor' to select" >&2
+        exit 1
+    fi
+
+    # Freeze while selecting. Escape cancels silently.
+    exec {area_lock}>/tmp/screenshot-area.lock
+    if ! flock -n "$area_lock"; then
+        exec {area_lock}>&-
+        exit 0
+    fi
+    freeze_pid=""
+    cleanup_area_capture() {
+        if [[ -n "${freeze_pid:-}" ]]; then
+            kill "$freeze_pid" 2>/dev/null || true
+            wait "$freeze_pid" 2>/dev/null || true
+            freeze_pid=""
+        fi
+        if [[ -n "${area_lock:-}" ]]; then
+            # Release before wl-copy: its clipboard owner can outlive this
+            # script, so it must not inherit a held screenshot lock.
+            flock -u "$area_lock" 2>/dev/null || true
+            exec {area_lock}>&-
+            area_lock=""
+        fi
+    }
+    trap cleanup_area_capture EXIT
+    if command -v hyprpicker >/dev/null 2>&1; then
+        hyprpicker -rz & freeze_pid=$!
+        sleep 0.2
+    fi
+    hyprctl keyword layerrule "match:selection, no_anim on" >/dev/null 2>&1 || true
+    geometry="$(printf '%s\n' "$window_rects" | slurp -r -f '%x,%y %wx%h')" || exit 1
+    grim -g "$geometry" "$img" || exit 1
+    cleanup_area_capture
+    trap - EXIT
 
 else
     echo "Available Options : --now --area" >&2

@@ -4,6 +4,7 @@ screenrecord_fullscreen_dir="$screenrecord_dir/fullscreen"
 screenrecord_area_dir="$screenrecord_dir/area"
 pid_file="/tmp/screenrecord.pid"
 file_name="/tmp/screenrecord_name"
+monitor_file="/tmp/screenrecord_monitor"
 log_file="/tmp/screenrecord.log"
 
 slog() {
@@ -24,9 +25,15 @@ is_recorder_pid() {
 
 drop_stale_pid() {
     if [[ -f "$pid_file" ]]; then
-        old_pid="$(cat "$pid_file" 2>/dev/null)"
-        if ! is_recorder_pid "$old_pid"; then
-            rm -f "$pid_file" "$file_name"
+        alive=0
+        while IFS= read -r p; do
+            if is_recorder_pid "$p"; then
+                alive=1
+                break
+            fi
+        done < "$pid_file" 2>/dev/null || true
+        if [[ $alive -eq 0 ]]; then
+            rm -f "$pid_file" "$file_name" "$monitor_file"
         fi
     fi
 }
@@ -72,116 +79,227 @@ pick_codec_args() {
 }
 
 start() {
-    slog "start args=[$*] wayland=${WAYLAND_DISPLAY:-UNSET} hypr=${HYPRLAND_INSTANCE_SIGNATURE:-UNSET}"
+    local area=0 monitor="" all=0
+    while (($#)); do
+        case "$1" in
+            --area) area=1; shift ;;
+            --monitor)
+                monitor="${2:-}"
+                shift 2
+                ;;
+            --all)
+                all=1; shift ;;
+            *)
+                echo "Unknown start option: $1" >&2
+                exit 2
+                ;;
+        esac
+    done
+
+    if [[ "$all" -eq 0 && -z "$monitor" ]]; then
+        monitor="$(hyprctl activeworkspace -j | jq -r '.monitor')"
+    fi
+    if [[ "$all" -eq 0 && ( -z "$monitor" || "$monitor" == "null" ) ]]; then
+        echo "Could not determine the focused monitor" >&2
+        exit 1
+    fi
+
+    slog "start monitor=[$monitor] area=[$area] all=[$all] wayland=${WAYLAND_DISPLAY:-UNSET} hypr=${HYPRLAND_INSTANCE_SIGNATURE:-UNSET}"
     drop_stale_pid
     if [[ -f "$pid_file" ]]; then
-        slog "start abort: already recording pid=$(cat "$pid_file" 2>/dev/null)"
-        echo "Already recording (pid $(cat "$pid_file"))" >&2
+        slog "start abort: already recording pid=$(cat "$pid_file" 2>/dev/null | tr '\n' ' ')"
+        echo "Already recording (pid $(cat "$pid_file" | tr '\n' ' '))" >&2
         exit 1
     fi
 
     timestamp=$(date +%Y%m%d_%H%M%S)
 
     # Audio source is optional: a broken value must not kill the recording.
-    # NOTE: wf-recorder's -a takes an OPTIONAL arg (getopt "a::"), so the
-    # device must be attached ("-afoo") or long-opt ("--audio=foo").
-    # "-a foo" with a space leaves optarg NULL and silently records the
-    # Pulse default source (here: audiorelay-virtual-mic-sink = silence).
     audio_args=()
     if sink=$(pactl get-default-sink 2>/dev/null) && [[ -n "$sink" ]]; then
         audio_args=("--audio=${sink}.monitor")
     fi
     slog "start audio sink=[${sink:-UNSET}] args=[${audio_args[*]:-none}]"
 
-    if [[ "$1" == "--area" ]]; then
-        # A single trigger must never stack two selectors: two slurp
-        # instances contend for the compositor overlay and NEITHER
-        # displays until one is killed (kill-one-side frees the other).
-        # The pgrep check alone races when two starts land within
-        # milliseconds, so the check+launch is serialized with an
-        # atomic flock (held until this script exits). Duplicates exit
-        # silent; the first selection keeps the display.
+    if [[ "$area" -eq 1 && "$all" -eq 1 ]]; then
+        echo "--area and --all cannot be combined" >&2
+        exit 1
+    fi
+
+    if [[ "$area" -eq 1 ]]; then
+        monitor_info="$(hyprctl monitors -j | jq -c --arg name "$monitor" '.[] | select(.name == $name)')"
+        if [[ -z "$monitor_info" ]]; then
+            echo "Monitor '$monitor' is unavailable" >&2
+            exit 1
+        fi
+        monitor_data="$(jq -r '[.id, .activeWorkspace.id, .x, .y, .width, .height] | @tsv' <<< "$monitor_info")"
+        IFS=$'\t' read -r monitor_id workspace_id monitor_x monitor_y monitor_width monitor_height <<< "$monitor_data"
+        window_rects="$(hyprctl clients -j | jq -r \
+            --argjson monitor_id "$monitor_id" \
+            --argjson workspace_id "$workspace_id" \
+            --argjson mx "$monitor_x" \
+            --argjson my "$monitor_y" \
+            --argjson mw "$monitor_width" \
+            --argjson mh "$monitor_height" '
+            .[] |
+            select(.monitor == $monitor_id and .workspace.id == $workspace_id and (.hidden // false) == false) |
+            . as $client |
+            ($client.at[0] | floor) as $wx |
+            ($client.at[1] | floor) as $wy |
+            ($client.size[0] | floor) as $ww |
+            ($client.size[1] | floor) as $wh |
+            ($mx | floor) as $left_bound |
+            ($my | floor) as $top_bound |
+            (($mx + $mw) | floor) as $right_bound |
+            (($my + $mh) | floor) as $bottom_bound |
+            ([$wx, $left_bound] | max) as $x |
+            ([$wy, $top_bound] | max) as $y |
+            ([$wx + $ww, $right_bound] | min) as $right |
+            ([$wy + $wh, $bottom_bound] | min) as $bottom |
+            select($right > $x and $bottom > $y) |
+            (($client.title // $client.class // "Window") | gsub("[[:cntrl:]]"; " ")) as $label |
+            "\($x),\($y) \($right - $x)x\($bottom - $y) \($label)"
+        ')"
+        if [[ -z "$window_rects" ]]; then
+            echo "No visible windows on '$monitor' to select" >&2
+            exit 1
+        fi
+
         exec {area_lock}>/tmp/screenrecord-area.lock
         if ! flock -n "$area_lock"; then
             slog "area: duplicate trigger ignored (selection already in progress)"
+            exec {area_lock}>&-
             exit 0
         fi
         if pgrep -x slurp >/dev/null 2>&1; then
             slog "area: duplicate trigger ignored (slurp already running)"
+            exec {area_lock}>&-
             exit 0
         fi
         file="$screenrecord_area_dir/screenrecord_area_${timestamp}.mp4"
-        slog "area: invoking slurp..."
-        # Parity with grimblast's working area selection (screenshot.sh):
-        # freeze the screen and disable the open-animation for slurp's
-        # layer namespace — without this the overlay can stay invisible.
+        slog "area: offering visible windows on monitor=[$monitor]"
         hyprctl keyword layerrule "match:selection, no_anim on" >/dev/null 2>&1 || true
         freeze_pid=""
         if command -v hyprpicker >/dev/null 2>&1; then
             hyprpicker -rz & freeze_pid=$!
             sleep 0.2
         fi
-        # NOTE: stdin MUST be /dev/null. Quickshell's Process (and any
-        # piped launcher) gives slurp an open-but-empty stdin pipe, and
-        # slurp blocks before creating its overlay surface while stdin
-        # has no data/EOF — alive, invisible, unresponsive. </dev/null
-        # makes the launch context irrelevant.
-        geometry=$(slurp </dev/null 2>>"$log_file") || {
+        selection=$(printf '%s\n' "$window_rects" | slurp -r -f '%x,%y %wx%h' 2>>"$log_file") || {
             code=$?
-            [[ -n "$freeze_pid" ]] && kill "$freeze_pid" 2>/dev/null || true
+            if [[ -n "$freeze_pid" ]]; then
+                kill "$freeze_pid" 2>/dev/null || true
+                wait "$freeze_pid" 2>/dev/null || true
+            fi
             slog "area: slurp exited code=${code} (cancel or crash)"
-            exit 1  # user cancelled selection
+            exit 1
         }
-        [[ -n "$freeze_pid" ]] && kill "$freeze_pid" 2>/dev/null || true
-        slog "area: geometry=[${geometry}]"
-        # Release the selection lock BEFORE spawning the recorder:
-        # background children inherit our fds, so a leaked lock would
-        # stay held for the whole recording and wrongly reject triggers.
-        # From here on the pid file owns mutual exclusion.
+        if [[ -n "$freeze_pid" ]]; then
+            kill "$freeze_pid" 2>/dev/null || true
+            wait "$freeze_pid" 2>/dev/null || true
+        fi
+        geometry="$selection"
+        slog "area: selected window geometry=[$geometry]"
         exec {area_lock}>&-
+        # The selected coordinates are compositor-global, so pass geometry
+        # without -o; wf-recorder captures the corresponding region directly.
         geom_args=(-g "$geometry")
+        output_args=()
     else
-        file="$screenrecord_fullscreen_dir/screenrecord_${timestamp}.mp4"
         geom_args=()
     fi
 
-    # Pick HW (VAAPI) when available, else fast software. This is the
-    # stutter fix: previous medium preset + fps CPU filter pegged the CPU
-    # at 1080p60; VAAPI moves encode to the RX 6600, veryfast keeps SW
-    # realtime on 8 threads.
+    # Pick codec once and reuse for launches
     codec_args=()
     if pick_codec_args; then
         used_hw=1
     else
         used_hw=0
     fi
-    slog "start cmd: wf-recorder ${geom_args[*]:-} ${audio_args[*]:-none} ${codec_args[*]} -f [${file}]"
 
-    wf-recorder "${geom_args[@]}" "${audio_args[@]}" "${codec_args[@]}" -f "$file" &
+    if [[ "$all" -eq 1 ]]; then
+        monitors=( $(hyprctl monitors -j | jq -r '.[].name') )
+        if [[ ${#monitors[@]} -eq 0 ]]; then
+            echo "No monitors found" >&2
+            exit 1
+        fi
+        pids=()
+        files=()
+        mons_out=()
+        for m in "${monitors[@]}"; do
+            safe_m=$(echo "$m" | tr '/ ' '__')
+            file="$screenrecord_fullscreen_dir/screenrecord_${safe_m}_${timestamp}.mp4"
+            output_args=( -o "$m" )
+            slog "start cmd: wf-recorder ${output_args[*]} ${geom_args[*]:-} ${audio_args[*]:-none} ${codec_args[*]} -f [${file}]"
+            wf-recorder "${output_args[@]}" "${geom_args[@]}" "${audio_args[@]}" "${codec_args[@]}" -f "$file" &
+            rec_pid=$!
+            pids+=("$rec_pid")
+            files+=("$file")
+            mons_out+=("$m")
+            sleep 0.15
+        done
+        # Persist pid/file/monitor lists
+        printf "%s\n" "${pids[@]}" > "$pid_file"
+        printf "%s\n" "${files[@]}" > "$file_name"
+        printf "%s\n" "${mons_out[@]}" > "$monitor_file"
+
+        # Verify startup; try software fallback for any dead pid
+        sleep 1
+        for idx in "${!pids[@]}"; do
+            pid=${pids[$idx]}
+            file=${files[$idx]}
+            mon=${mons_out[$idx]}
+            if ! is_recorder_pid "$pid"; then
+                if [[ "$used_hw" -eq 1 ]]; then
+                    slog "start HW FAILED for monitor $mon: pid=${pid} died, retrying software"
+                    codec_args_sw=( -p preset=veryfast -p crf=23 -p tune=zerolatency -r 60 )
+                    wf-recorder -o "$mon" "${geom_args[@]}" "${audio_args[@]}" "${codec_args_sw[@]}" -f "$file" &
+                    newpid=$!
+                    pids[$idx]="$newpid"
+                    sleep 0.2
+                fi
+            fi
+        done
+        # Rewrite pid file with updated pids
+        printf "%s\n" "${pids[@]}" > "$pid_file"
+        slog "start OK: pids=$(cat "$pid_file" | tr '\n' ' ') files=$(cat "$file_name" | tr '\n' ' ')"
+        notify-send -a "Recorder" -i "media-record" "Recording Started" "${#pids[@]} monitors"
+        exit 0
+    fi
+
+    # Single-monitor fullscreen or selected-window start
+    if [[ "$area" -eq 1 ]]; then
+        file="$screenrecord_area_dir/screenrecord_area_${timestamp}.mp4"
+    else
+        file="$screenrecord_fullscreen_dir/screenrecord_${timestamp}.mp4"
+        output_args=( -o "$monitor" )
+    fi
+
+    slog "start cmd: wf-recorder ${output_args[*]} ${geom_args[*]:-} ${audio_args[*]:-none} ${codec_args[*]} -f [${file}]"
+
+    wf-recorder "${output_args[@]}" "${geom_args[@]}" "${audio_args[@]}" "${codec_args[@]}" -f "$file" &
     rec_pid=$!
     echo "$rec_pid" > "$pid_file"
     echo "$file" > "$file_name"
+    echo "$monitor" > "$monitor_file"
 
-    # Verify it actually survived startup (bad args/codec fail fast).
     sleep 1
     if ! is_recorder_pid "$rec_pid"; then
-        # Auto-fallback: HW encode can fail on missing firmware/filter;
-        # one retry with software is cheaper than a lost recording.
         if [[ "$used_hw" -eq 1 ]]; then
             slog "start HW FAILED: pid=${rec_pid} died within 1s, retrying software fallback"
             wait "$rec_pid" 2>/dev/null || true
             codec_args=(-p preset=veryfast -p crf=23 -p tune=zerolatency -r 60)
-            slog "start retry cmd: wf-recorder ${geom_args[*]:-} ${audio_args[*]:-none} ${codec_args[*]} -f [${file}]"
-            wf-recorder "${geom_args[@]}" "${audio_args[@]}" "${codec_args[@]}" -f "$file" &
+            slog "start retry cmd: wf-recorder ${output_args[*]} ${geom_args[*]:-} ${audio_args[*]:-none} ${codec_args[*]} -f [${file}]"
+            wf-recorder "${output_args[@]}" "${geom_args[@]}" "${audio_args[@]}" "${codec_args[@]}" -f "$file" &
             rec_pid=$!
             echo "$rec_pid" > "$pid_file"
             echo "$file" > "$file_name"
+            echo "$monitor" > "$monitor_file"
             sleep 1
         fi
     fi
     if ! is_recorder_pid "$rec_pid"; then
         slog "start FAILED: wf-recorder pid=${rec_pid} died within 1s file=[${file}]"
-        rm -f "$pid_file" "$file_name"
+        rm -f "$pid_file" "$file_name" "$monitor_file"
         echo "wf-recorder failed to start — see output above" >&2
         exit 1
     fi
@@ -189,50 +307,65 @@ start() {
     notify-send -a "Recorder" -i "media-record" "Recording Started" "$(basename "$file")"
 }
 
+
 stop() {
     drop_stale_pid
 
-    target=""
+    if [[ ! -f "$pid_file" ]]; then
+        # Try to find any running wf-recorder as a fallback
+        if ! pgrep -x wf-recorder >/dev/null 2>&1; then
+            echo "No active recording found" >&2
+            exit 1
+        fi
+    fi
+
+    files=()
+    # read and kill each pid listed
     if [[ -f "$pid_file" ]]; then
-        target="$(cat "$pid_file")"
-    fi
-    # Fallback when the pid file leaked but a recorder is still running.
-    if ! is_recorder_pid "$target"; then
-        target="$(pgrep -x wf-recorder | head -n 1)"
-    fi
-    if ! is_recorder_pid "$target"; then
-        rm -f "$pid_file" "$file_name"
-        echo "No active recording found" >&2
-        exit 1
-    fi
-
-    file="$(cat "$file_name" 2>/dev/null)"
-    kill -INT "$target"
-
-    # `wait` only works for child processes; poll instead so the file
-    # is flushed before we announce completion (max ~5s).
-    for _ in $(seq 1 50); do
-        is_recorder_pid "$target" || break
-        sleep 0.1
-    done
-    if is_recorder_pid "$target"; then
-        kill -KILL "$target" 2>/dev/null
-        sleep 0.3
-    fi
-
-    rm -f "$pid_file" "$file_name"
-    if [[ -n "$file" ]]; then
-        wl-copy --type text/uri-list "file://${file}" 2>/dev/null
-        # Body carries the FULL path (not just basename) so the
-        # Quickshell toast can offer an Open button + video thumbnail.
-        notify-send -a "Recorder" -i "media-record" "Recording Stopped" "$file"
+        while IFS= read -r target; do
+            if is_recorder_pid "$target"; then
+                kill -INT "$target" 2>/dev/null || true
+            fi
+        done < "$pid_file"
     else
-        notify-send -a "Recorder" -i "media-record" "Recording Stopped" "File copied to clipboard."
+        # No pid file: kill any wf-recorder we can find (best-effort)
+        for p in $(pgrep -x wf-recorder || true); do
+            kill -INT "$p" 2>/dev/null || true
+        done
+    fi
+
+    # Wait for processes to exit (max ~5s)
+    for _ in $(seq 1 50); do
+        if pgrep -x wf-recorder >/dev/null 2>&1; then
+            sleep 0.1
+        else
+            break
+        fi
+    done
+    # Force-kill any remaining wf-recorder
+    for p in $(pgrep -x wf-recorder || true); do
+        kill -KILL "$p" 2>/dev/null || true
+    done
+    sleep 0.2
+
+    if [[ -f "$file_name" ]]; then
+        while IFS= read -r f; do
+            files+=("$f")
+        done < "$file_name"
+    fi
+
+    rm -f "$pid_file" "$file_name" "$monitor_file"
+
+    if [[ ${#files[@]} -gt 0 ]]; then
+        (for f in "${files[@]}"; do echo "file://$f"; done) | wl-copy --type text/uri-list 2>/dev/null || true
+        notify-send -a "Recorder" -i "media-record" "Recording Stopped" "Saved ${#files[@]} file(s)"
+    else
+        notify-send -a "Recorder" -i "media-record" "Recording Stopped" "Files copied to clipboard"
     fi
 }
 
 case "$1" in
-    start) start "$2" ;;
+    start) shift; start "$@" ;;
     stop) stop ;;
-    *) echo "Usage: $0 start [--area] | stop"; exit 1 ;;
+    *) echo "Usage: $0 start [--area] [--monitor NAME] [--all] | stop"; exit 1 ;;
 esac

@@ -9,19 +9,20 @@ import qs.widgets.shared
 // sections (own files in this dir), right holds the action grid,
 // brightness slider and power profile selector. Lives in the bar's dynamic
 // island (ControlIsland) instead of a side window.
-// Close behavior = BarState.deactivate("control").
+// Close behavior = BarState.deactivate("control", monitorName).
 Item {
     id: body
 
     property string monitorName: ""
     readonly property string effectiveMonitor: body.monitorName || Registry.monitorName
+    readonly property real monitorBrightness: Brightness.screenFor(body.effectiveMonitor)
 
     width: 680
     height: contentRow.height
 
     // ---- dynamic brightness icon (3-level thresholds) ----
     readonly property string brightnessIcon: {
-        const bri = Brightness.screen;
+        const bri = body.monitorBrightness;
         if (bri > 0.75)
             return "\u{F00E0}";       // full (󰃠)
         if (bri > 0.5)
@@ -35,7 +36,9 @@ Item {
     property bool dndPing: false
     Connections {
         target: Notifications
-        function onNotified() {
+        function onNotified(notification, monitorName) {
+            if (monitorName !== body.effectiveMonitor)
+                return;
             if (Settings.notifDnd)
                 body.dndPing = true;
             if (dndPingTimer.running)
@@ -108,6 +111,7 @@ Item {
             VolumeSection {
                 id: volSection
                 width: parent.width
+                monitorName: body.effectiveMonitor
             }
 
             ConnectivitySection {
@@ -198,7 +202,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: 6
-                visible: Brightness.hasBacklight
+                visible: Brightness.hasBacklightFor(body.effectiveMonitor)
                 Row {
                     width: parent.width
                     spacing: 8
@@ -222,8 +226,8 @@ Item {
                     from: 0
                     to: 1
                     stepSize: 0.01
-                    value: Brightness.screen
-                    onMoved: Brightness.setScreen(brightSlider.value)
+                    value: body.monitorBrightness
+                    onMoved: Brightness.setScreen(brightSlider.value, body.effectiveMonitor)
                 }
             }
 

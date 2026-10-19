@@ -107,6 +107,8 @@ Item {
     property bool popupHovered: false
     // Back-reference injected by LeftIsland (booruView.hostPanel = island).
     property var hostPanel: null
+    readonly property string panelMonitorName: root.hostPanel && root.hostPanel.monitorName
+        ? root.hostPanel.monitorName : Registry.monitorName
     // Monitor screen for float-window size clamps. Reactive binding (not
     // a one-shot onLoaded assign): the nested booru Loader can finish
     // before the island's own screen prop arrives from the bar, which
@@ -302,13 +304,13 @@ Item {
         _closeTimer.stop();
     }
 
-    // Island closed (BarState.leftOpen goes false) → a docked card's popup
+    // Host island closed on its monitor → a docked card's popup
     // surface would stay on screen orphaned, so drop it. A detached
     // card is its own window and stays open until explicitly closed.
     Connections {
         target: BarState
-        function onLeftOpenChanged() {
-            if (!BarState.leftOpen && !root.dialogDetached && !root.dialogPinned)
+        function onPanelStatesByMonitorChanged() {
+            if (!BarState.isOpenFor("left", root.panelMonitorName) && !root.dialogDetached && !root.dialogPinned)
                 root.closeDialogNow();
         }
     }
@@ -1265,7 +1267,7 @@ Item {
         // Pinned hosts (embedded waifu) never use the docked popup — the
         // card is embedded directly, and showing it here would pop an
         // orphan card whenever the left island opens.
-        visible: root.dialogImage !== null && !root.dialogDetached && !root.dialogPinned && BarState.leftOpen && (!root.hostPanel || root.hostPanel.selectedWidget === "BooruViewer")
+        visible: root.dialogImage !== null && !root.dialogDetached && !root.dialogPinned && BarState.isOpenFor("left", root.panelMonitorName) && (!root.hostPanel || root.hostPanel.selectedWidget === "BooruViewer")
         color: "transparent"
         // Clickthrough everywhere except the card: the surface is
         // viewer-tall, so without this the transparent strip would eat

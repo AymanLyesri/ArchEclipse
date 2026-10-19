@@ -30,6 +30,7 @@ import qs.widgets.shared
 Item {
     id: root
 
+    property string monitorName: ""
     // Pushed in from Bar.qml (stripRoot coordinates).
     property real pillX: 0
     property real pillY: 0
@@ -81,7 +82,8 @@ Item {
     }
 
     // Grace keeps the pill mapped while the last card slides out.
-    property int toastCount: Notifications.popupToasts.length
+    readonly property var localToasts: Notifications.popupToastsFor(root.monitorName)
+    property int toastCount: root.localToasts.length
     onToastCountChanged: {
         if (toastCount > 0)
             exitGuard.stop();
@@ -107,7 +109,7 @@ Item {
             spacing: Theme.spacing
             interactive: false
             model: ScriptModel {
-                values: Notifications.popupToasts
+                values: root.localToasts
             }
 
             populate: Transition {

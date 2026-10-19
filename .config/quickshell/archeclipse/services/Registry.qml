@@ -42,17 +42,36 @@ QtObject {
 
     // Optional `target` is a widget-defined key (e.g. an API key's
     // "provider.field" path) the destination widget can use to scroll to
-    // and briefly highlight a specific field after switching. It's a
-    // fire-and-forget request: the destination widget is expected to pick
-    // it up from pendingTarget and clear it once handled.
-    function selectLeftTab(tabName, target) {
-        Settings.leftPanelWidget = tabName;
-        BarState.activate("left", 0);
+    // and briefly highlight a specific field after switching. Requests are
+    // queued by monitor so only the destination island can consume one.
+    function selectLeftTab(tabName, target, monitorName) {
+        const monitor = monitorName || root.monitorName;
+        Settings.setLeftPanelWidgetFor(monitor, tabName);
+        BarState.activate("left", 0, monitor);
         if (target !== undefined)
-            root.pendingTarget = target;
+            root.setPendingTarget(target, monitor);
     }
 
-    // Consumed by whichever widget becomes visible via selectLeftTab's
-    // `target` argument; cleared by that widget once handled.
-    property string pendingTarget: ""
+    property var pendingTargets: ({})
+    function setPendingTarget(target, monitorName) {
+        const monitor = monitorName || root.monitorName;
+        if (!monitor)
+            return;
+        const next = Object.assign({}, root.pendingTargets || {});
+        next[monitor] = String(target || "");
+        root.pendingTargets = next;
+    }
+
+    function takePendingTarget(monitorName): string {
+        const monitor = monitorName || root.monitorName;
+        if (!monitor)
+            return "";
+        const next = Object.assign({}, root.pendingTargets || {});
+        const target = String(next[monitor] || "");
+        if (target !== "") {
+            delete next[monitor];
+            root.pendingTargets = next;
+        }
+        return target;
+    }
 }

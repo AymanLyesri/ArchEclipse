@@ -5,6 +5,8 @@ import qs.widgets.bar.islands
 Item {
     id: root
 
+    property string monitorName: ""
+
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
     // exit driver plays 1 -> 0 on close before swapping content.
     property real expand: 0
@@ -33,5 +35,6 @@ Item {
     }
     IslandHoverPin {
         stateName: "weather"
+        monitorName: root.monitorName
     }
 }

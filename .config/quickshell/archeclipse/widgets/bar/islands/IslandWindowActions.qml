@@ -14,9 +14,11 @@ import qs.widgets.shared
 Column {
     id: root
     property string side: "left"  // "left" | "right"
+    property string monitorName: ""
     spacing: 4
     readonly property bool isLeft: root.side === "left"
     readonly property int minWidth: root.isLeft ? 400 : 250
+    readonly property bool locked: Settings.panelLockFor(root.side, root.monitorName)
 
     Item {
         width: 1
@@ -33,10 +35,8 @@ Column {
         hoverFg: Theme.accent
         tooltipText: "Expand island"
         onClicked: {
-            if (root.isLeft)
-                Settings.leftPanelWidth = Math.min(1500, Settings.leftPanelWidth + 50);
-            else
-                Settings.rightPanelWidth = Math.min(1500, Settings.rightPanelWidth + 50);
+            const width = Settings.panelWidthFor(root.side, root.monitorName);
+            Settings.setPanelWidthFor(root.side, root.monitorName, width + 50);
         }
     }
     // Shrink (−50 to side min width)
@@ -49,27 +49,22 @@ Column {
         hoverFg: Theme.accent
         tooltipText: "Shrink island"
         onClicked: {
-            if (root.isLeft)
-                Settings.leftPanelWidth = Math.max(400, Settings.leftPanelWidth - 50);
-            else
-                Settings.rightPanelWidth = Math.max(250, Settings.rightPanelWidth - 50);
+            const width = Settings.panelWidthFor(root.side, root.monitorName);
+            Settings.setPanelWidthFor(root.side, root.monitorName, Math.max(root.minWidth, width - 50));
         }
     }
     // Lock — pins the island open across hover-leave.
     AppButton {
         width: parent.width
-        icon: (root.isLeft ? Settings.leftPanelLock : Settings.rightPanelLock) ? "" : "";
+        icon: root.locked ? "" : "";
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.chipRadius
         toggle: true
-        checked: root.isLeft ? Settings.leftPanelLock : Settings.rightPanelLock
+        checked: root.locked
         hoverBg: Theme.surface
-        tooltipText: (root.isLeft ? Settings.leftPanelLock : Settings.rightPanelLock) ? "Unlock island" : "Lock island"
+        tooltipText: root.locked ? "Unlock island" : "Lock island"
         onClicked: {
-            if (root.isLeft)
-                Settings.leftPanelLock = !checked;
-            else
-                Settings.rightPanelLock = !checked;
+            Settings.setPanelLockFor(root.side, root.monitorName, !root.locked);
         }
     }
     // Close
@@ -83,9 +78,9 @@ Column {
         tooltipText: "Close island"
         onClicked: {
             if (root.isLeft)
-                BarState.deactivate("left");
+                BarState.deactivate("left", root.monitorName);
             else
-                BarState.deactivate("right");
+                BarState.deactivate("right", root.monitorName);
         }
     }
 }

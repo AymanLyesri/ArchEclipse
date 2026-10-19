@@ -21,6 +21,8 @@ Item {
 
     property string icon: ""
     property string text: ""
+    // Optional maximum width for the text label; -1 keeps natural sizing.
+    property real labelMaxWidth: -1
     property string tooltipText: ""
     property string fontFamily: Theme.fontFamily
     property string labelFontFamily: ""
@@ -134,6 +136,7 @@ Item {
                 text: root.text
                 font.pixelSize: root.pixelSize
                 font.family: root.labelFontFamily !== "" ? root.labelFontFamily : Theme.fontFamily
+                width: root.labelMaxWidth >= 0 ? root.labelMaxWidth : implicitWidth
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight

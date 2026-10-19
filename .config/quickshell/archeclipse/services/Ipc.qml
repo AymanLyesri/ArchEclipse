@@ -9,61 +9,82 @@ import qs.theme
 // Hyprland keybinds talk to the bar through
 // `qs ipc`.
 //
-//   super+super_l -> qs -p <cfg> ipc call bar toggleSearch
+//   super+super_l -> qs -p <cfg> ipc call bar toggleSearch <monitor>
 //   super+alt_l   -> qs -p <cfg> ipc call bar toggleBar <monitor>
+//   super+m       -> qs -p <cfg> ipc call bar togglePanel media-panel <monitor>
 //   super+l       -> qs -p <cfg> ipc call bar toggleLeftPanel <monitor>
 //   super+r       -> qs -p <cfg> ipc call bar toggleRightPanel <monitor>
+//   super+w       -> qs -p <cfg> ipc call bar togglePanel wallpaper-switcher <monitor>
+//   super+escape  -> qs -p <cfg> ipc call bar togglePanel user-panel <monitor>
 //
 // This object must be instantiated (it's a child of ShellRoot in shell.qml,
 // not a singleton — Quickshell requires non-singleton IpcHandler roots).
 Item {
+    id: root
     property int _timerFired: 0
+
+    function toggleControlFor(monitorName): string {
+        const mon = monitorName || Registry.monitorName;
+        if (BarState.stateFor(mon) === "control") {
+            BarState.deactivate("control", mon);
+            return "control closed";
+        }
+        BarState.deactivate("wallpaper", mon);
+        BarState.activate("control", 0, mon);
+        return "control open";
+    }
+
+    function toggleWallpaperFor(monitorName): string {
+        const mon = monitorName || Registry.monitorName;
+        if (BarState.isOpenFor("wallpaper", mon)) {
+            BarState.deactivate("wallpaper", mon);
+            return "wallpaper closed";
+        }
+        BarState.activate("wallpaper", 0, mon);
+        return "wallpaper open";
+    }
+
     IpcHandler {
         target: "bar"
 
-        function toggleSearch(): string {
-            if (BarState.state === "search") {
-                BarState.deactivate("search");
+        function toggleSearch(monitor: string): string {
+            if (BarState.isOpenFor("search", monitor)) {
+                BarState.deactivate("search", monitor);
                 return "search closed";
             }
             // Generic open shows default recents: drop any stale preset so
             // LauncherPanel's reset path isn't hijacked by an old pending.
             Launcher.pendingQuery = "";
-            BarState.activate("search", 0);
+            BarState.activate("search", 0, monitor);
             return "search open";
         }
 
         function toggleControl(): string {
-            if (BarState.state === "control") {
-                BarState.deactivate("control");
-                return "control closed";
-            }
-            BarState.activate("control", 0);
-            return "control open";
+            return root.toggleControlFor(Registry.monitorName);
         }
 
-        function toggleOverview(): string {
-            if (BarState.state === "overview") {
-                BarState.deactivate("overview");
+        function toggleOverview(monitor: string): string {
+            if (BarState.isOpenFor("overview", monitor)) {
+                BarState.deactivate("overview", monitor);
                 return "overview closed";
             }
-            BarState.activate("overview", 0);
+            BarState.activate("overview", 0, monitor);
             return "overview open";
         }
 
         function toggleWallpaper(): string {
-            if (BarState.state === "wallpaper") {
-                BarState.deactivate("wallpaper");
-                return "wallpaper closed";
-            }
-            BarState.activate("wallpaper", 0);
-            return "wallpaper open";
+            return root.toggleWallpaperFor(Registry.monitorName);
         }
 
         // Diagnostic: force the network pulse state (mirrors a network change).
-        function pulseNetwork(): string {
-            BarState.activate("network", 3000);
+        function pulseNetwork(monitor: string): string {
+            BarState.activate("network", 3000, monitor);
             return "network state pulsed";
+        }
+
+        function noteVolumeTarget(monitor: string): string {
+            BarState.noteVolumeTarget(monitor);
+            return "volume OSD target set";
         }
 
         // Notification probe for history/popup QA: "history" -> count + first
@@ -93,7 +114,7 @@ Item {
                 // Live membership snapshot: proves a pulse (volume/brightness)
                 // stays active while a higher-priority island wins the
                 // resolved state (OSD independence QA).
-                if (query === "active") return Object.keys(BarState.activeStates || {}).join(",");
+                if (query === "active") return Object.keys(BarState.activeStatesFor(Registry.monitorName)).join(",");
                 if (query.startsWith("pulse:")) {
                     const rest = query.substring(6).split(":");
                     BarState.activate(rest[0], Number(rest[1]) || 2000);
@@ -228,36 +249,34 @@ Item {
         }
 
         function toggleLeftPanel(monitor: string): string {
-            if (BarState.leftOpen) {
-                BarState.deactivate("left");
+            if (BarState.isOpenFor("left", monitor)) {
+                BarState.deactivate("left", monitor);
                 return "left island closed";
             }
-            BarState.activate("left", 0);
+            BarState.activate("left", 0, monitor);
             return "left island open";
         }
 
         function toggleRightPanel(monitor: string): string {
-            if (BarState.rightOpen) {
-                BarState.deactivate("right");
+            if (BarState.isOpenFor("right", monitor)) {
+                BarState.deactivate("right", monitor);
                 return "right island closed";
             }
-            BarState.activate("right", 0);
+            BarState.activate("right", 0, monitor);
             return "right island open";
         }
 
         function showWidget(name: string, monitor: string): string {
             const valid = ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"];
             if (valid.indexOf(name) === -1) return "unknown widget: " + name;
-            // Write through Settings so the island binding (and persistence)
-            // stays intact — matches setSetting("leftPanel.widget").
-            Settings.leftPanelWidget = name;
-            BarState.activate("left", 0);
+            Settings.setLeftPanelWidgetFor(monitor, name);
+            BarState.activate("left", 0, monitor);
             return "left island showing " + name;
         }
 
         // Toggle stop/start.
-        function screenrecord(mode: string): string {
-            return ScreenRecorder.toggleRecording(mode);
+        function screenrecord(mode: string, monitor: string): string {
+            return ScreenRecorder.toggleRecording(mode, monitor);
         }
 
         // Keybind presets (clipboard/apps/notes/emojis): the search panel
@@ -266,59 +285,62 @@ Item {
         // panel exists and no reset fires — apply directly. Otherwise stash
         // the query in Launcher.pendingQuery and let LauncherPanel consume
         // it after its reset (covers both sync and deferred Loader paths).
-        // activeStates is synchronous (state resolves 100ms later), so the
-        // membership test is race-free here.
-        function presetSearch(query: string): string {
-            if ("search" in BarState.activeStates) {
+        // The per-monitor panel map updates synchronously (the resolved
+        // state follows after 100ms), so this membership check is race-free.
+        function presetSearch(query: string, monitor: string): string {
+            if (BarState.isOpenFor("search", monitor)) {
                 Launcher.fillInputRequested(query);
                 Launcher.runQuery(query);
             } else {
                 Launcher.pendingQuery = query;
-                BarState.activate("search", 0);
+                BarState.activate("search", 0, monitor);
             }
             return query;
         }
 
-        function clipboard(): string {
-            presetSearch("cb ");
+        function clipboard(monitor: string): string {
+            presetSearch("cb ", monitor);
             return "clipboard widget opened";
         }
 
-        function emojis(): string {
-            presetSearch("emoji ");
+        function emojis(monitor: string): string {
+            presetSearch("emoji ", monitor);
             return "emoji picker opened";
         }
 
-        function notes(): string {
-            presetSearch("note ");
+        function notes(monitor: string): string {
+            presetSearch("note ", monitor);
             return "notes opened";
         }
 
-        function apps(): string {
-            presetSearch("apps ");
+        function apps(monitor: string): string {
+            presetSearch("apps ", monitor);
             return "apps list opened";
         }
 
         function togglePanel(name: string, monitor: string): string {
+            // MediaWindow registers one standalone player handle per monitor;
+            // the generic lookup below uses the matching media-panel-<monitor> key.
             // Canonical UI moved into the bar island — keep the hypr
             // SUPER+W binding (`togglePanel wallpaper-switcher <mon>`) working.
             if (name === "wallpaper-switcher")
-                return toggleWallpaper();
+                return root.toggleWallpaperFor(monitor);
             // Side panels are bar islands now — keep the SUPER+L/R
             // (`togglePanel left-panel <mon>`) bindings working.
             if (name === "left-panel" || name === "leftPanel")
                 return toggleLeftPanel(monitor);
             if (name === "right-panel" || name === "rightPanel")
                 return toggleRightPanel(monitor);
-            // UserPanel was replaced by the secure lock — keep old
-            // SUPER+bindings (`togglePanel user-panel <mon>`) locking.
+            // The UserProfile moved into the left island — keep SUPER+ESC
+            // opening that profile tab instead of duplicating the lock bind.
             if (name === "user-panel" || name === "userPanel") {
-                const l = Registry.get("lock-screen");
-                if (l) {
-                    l.lock();
-                    return "lock activated (user-panel compat)";
+                if (BarState.isOpenFor("left", monitor) && Settings.leftPanelWidgetFor(monitor) === "UserProfile") {
+                    BarState.deactivate("left", monitor);
+                    return "user profile closed";
                 }
-                return "lock-screen not ready";
+                Settings.setLeftPanelWidgetFor(monitor, "UserProfile");
+                BarState.activate("left", 0, monitor);
+                return "user profile open";
             }
             const key = `${name}-${monitor}`;
             const w = Registry.get(key);
@@ -338,7 +360,7 @@ Item {
             try {
                 const w = Registry.get(`left-island-${monitor}`)
                     ?? Registry.get("left-island");
-                if (!w) return "no island (left=" + BarState.leftOpen + ")";
+                if (!w) return "no island (left=" + BarState.isOpenFor("left", monitor) + ")";
                 const item = w.activeWidget;
                 if (!item) return "no widget (selected=" + w.selectedWidget + ")";
                 // Debug echo so we can see exactly what the IPC layer delivered.
@@ -469,16 +491,16 @@ Item {
         // "stripdeep" + "scrollTo" are the automated regression hooks for
         // the strip blank-on-scroll bug: they dump masonry geometry and
         // drive contentX without a mouse (see strip-test.sh).
-        // monitor selects the per-monitor island body (default eDP-1).
+        // monitor selects the per-monitor island body.
         // Reads the bar island body (widgets/wallpaperPanel via WallpaperIsland).
         function wallpaperDiag(query: string, monitor: string): string {
             try {
-                const mon = (monitor && monitor !== "") ? monitor : "eDP-1";
+                const mon = (monitor && monitor !== "") ? monitor : Registry.monitorName;
                 const w = Registry.get(`wallpaper-island-${mon}`)
                     ?? Registry.get("wallpaper-island");
-                if (!w) return "no island: wallpaper-island-" + mon + " (island=" + (BarState.state === "wallpaper") + ")";
+                if (!w) return "no island: wallpaper-island-" + mon + " (island=" + (BarState.stateFor(mon) === "wallpaper") + ")";
                 if (query === "visible")
-                    return "island=" + (BarState.state === "wallpaper");
+                    return "island=" + (BarState.stateFor(mon) === "wallpaper");
                 if (query === "categories") return "categories=" + (w.categories || []).join(",");
                 if (query === "selected") return "selected=" + w.selectedCategory;
                 if (query === "count") return "count=" + (w.provider === "wallhaven" ? (w.whResults || []).length : (w.selectedWallpapers || []).length);
@@ -555,10 +577,10 @@ Item {
                     return "selected=" + Settings.wallpaperCategory;
                 }
                 if (query === "show") {
-                    BarState.activate("wallpaper", 0); return "shown (island)";
+                    BarState.activate("wallpaper", 0, mon); return "shown (island)";
                 }
                 if (query === "hide") {
-                    BarState.deactivate("wallpaper"); return "hidden (island)";
+                    BarState.deactivate("wallpaper", mon); return "hidden (island)";
                 }
                 return "unknown query";
             } catch (e) {
@@ -621,6 +643,7 @@ Item {
 
     // Brightness of the FOCUSED monitor (internal backlight or DDC/CI external).
     //   qs -p <cfg> ipc call brightness increment|decrement
+    //   qs -p <cfg> ipc call brightness incrementFor|decrementFor <monitor>
     //   qs -p <cfg> ipc call brightness adjust <±percent>
     //   qs -p <cfg> ipc call brightness set <0-100>
     //   qs -p <cfg> ipc call brightness get
@@ -633,16 +656,32 @@ Item {
             return Brightness.increment();
         }
 
+        function incrementFor(monitor: string): string {
+            return Brightness.increment(monitor);
+        }
+
         function decrement(): string {
             return Brightness.decrement();
+        }
+
+        function decrementFor(monitor: string): string {
+            return Brightness.decrement(monitor);
         }
 
         function adjust(delta: int): string {
             return Brightness.adjust(delta);
         }
 
+        function adjustFor(delta: int, monitor: string): string {
+            return Brightness.adjust(delta, monitor);
+        }
+
         function set(percent: int): string {
             return Brightness.setScreen(percent / 100);
+        }
+
+        function setFor(percent: int, monitor: string): string {
+            return Brightness.setScreen(percent / 100, monitor);
         }
 
         function get(): string {

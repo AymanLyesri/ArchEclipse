@@ -15,6 +15,8 @@ import qs.widgets.shared
 Rectangle {
     id: root
 
+    property string monitorName: ""
+
     // ---- media player state (playing-else-first) ----
     // Pass 1: active playing player. Pass 2: first with a title (so the
     // pill hides instead of showing an empty entry when nothing plays).
@@ -184,7 +186,7 @@ Rectangle {
         repeat: false
         onTriggered: {
             if (playerHover.hovered && root.firstPlayable)
-                BarState.activate("player", 2500);
+                BarState.activate("player", 2500, root.monitorName);
         }
     }
 
@@ -193,7 +195,7 @@ Rectangle {
         onHoveredChanged: {
             if (playerHover.hovered && root.firstPlayable) {
                 if (Settings.revealInPressure <= 0)
-                    BarState.activate("player", 2500);
+                    BarState.activate("player", 2500, root.monitorName);
                 else
                     playerDwellTimer.restart();
             } else {
@@ -213,7 +215,7 @@ Rectangle {
                 root.firstPlayable.togglePlaying();
                 return;
             }
-            BarState.activate("player", 2500);
+            BarState.activate("player", 2500, root.monitorName);
         }
     }
 }

@@ -26,6 +26,7 @@ Column {
 
     // Island owner passes the bar's monitor; body falls back to focused.
     property string monitorName: ""
+    property var screen: null
 
     // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
@@ -54,6 +55,7 @@ Column {
     // Esc dismiss once the surface has focus (click a control first).
     IslandEscClose {
         states: ["wallpaper"]
+        monitorName: root.monitorName
     }
 
     IslandExpandClip {
@@ -69,5 +71,11 @@ Column {
             height: body.implicitHeight
             monitorName: root.monitorName
         }
+    }
+
+    WallpaperAnimatedPreview {
+        screen: root.screen
+        monitorName: root.monitorName
+        source: body.animatedPreviewPath
     }
 }

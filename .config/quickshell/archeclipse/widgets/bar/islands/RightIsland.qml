@@ -9,7 +9,7 @@ import qs.widgets.media
 import qs.widgets.rightPanel
 
 // RightIsland: the former RightPanel body (widget stack + toggle sidebar)
-// living in the right side pill beside the bar (BarState.rightOpen flag).
+// living in the right side pill beside the bar, scoped to its owning monitor.
 //
 // Same unfold pattern as Search/ControlIsland — the pill grows
 // (width via the pill transition, height snapped on the window) while this
@@ -18,11 +18,11 @@ import qs.widgets.rightPanel
 //
 // Open: SUPER+R bind, right HotZone hover, IPC.
 // Close: bind toggle, Esc, close button, or 1s after the cursor leaves
-// (Settings.rightPanelLock pins it open; an active widget-selector drag
+// (the monitor's right-panel lock pins it open; an active widget-selector drag
 // also holds it open, matching the old panel).
-Column {
+Item {
     id: root
-    width: Settings.rightPanelWidth
+    width: Settings.panelWidthFor("right", root.monitorName)
     // Explicit full height (NOT implicit): positioner implicit sizes freeze
     // at completion-time values in this engine, so a height driven only by
     // the expand animation would never reach the pill — the Loader measures
@@ -30,7 +30,6 @@ Column {
     // static DefaultBar/PlayerIsland pages. The expand driver below still
     // unfolds the content inside the snapped pill (clip + opacity + scale).
     height: bodyHeight
-    spacing: 0
 
     // Island owner passes the bar's monitor; body falls back to focused.
     property string monitorName: ""
@@ -78,14 +77,14 @@ Column {
                 leaveTimer.stop();
                 // Pin hover-driven islands so a hold expiry can't close
                 // the panel while it is being used.
-                BarState.activate("right", 0);
+                BarState.activate("right", 0, root.monitorName);
             } else {
                 root.requestAutoHide();
             }
         }
     }
     function requestAutoHide() {
-        if (Settings.rightPanelLock)
+        if (Settings.panelLockFor("right", root.monitorName))
             return;
         if (islandHover.hovered)
             return;
@@ -105,14 +104,15 @@ Column {
         id: leaveTimer
         interval: Settings.revealOutPressure
         onTriggered: {
-            if (!Settings.rightPanelLock && !islandHover.hovered && !root.isDragging)
-                BarState.deactivate("right");
+            if (!Settings.panelLockFor("right", root.monitorName) && !islandHover.hovered && !root.isDragging)
+                BarState.deactivate("right", root.monitorName);
         }
     }
 
     // Esc dismiss once the surface has focus (click a control first).
     IslandEscClose {
         states: ["right"]
+        monitorName: root.monitorName
     }
 
     IslandExpandClip {
@@ -240,6 +240,7 @@ Column {
                 // Window Actions: bottom cluster (valign END, shared).
                 IslandWindowActions {
                     side: "right"
+                    monitorName: root.monitorName
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -443,6 +444,7 @@ Column {
             id: waifuWidget
             WaifuWidget {
                 Layout.fillWidth: true
+                monitorName: root.monitorName
             }
         }
     }

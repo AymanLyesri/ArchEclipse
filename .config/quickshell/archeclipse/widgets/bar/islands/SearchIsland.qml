@@ -12,6 +12,7 @@ Column {
     id: root
     width: 516
     spacing: 8
+    property string monitorName: ""
 
     signal queryChanged(string query)
     signal activateRequested
@@ -52,10 +53,10 @@ Column {
                 // Navigation rows (">" tips) and info rows keep the
                 // launcher open; real launches close it.
                 if (!Launcher.activateSelected())
-                    BarState.deactivate("search");
+                    BarState.deactivate("search", root.monitorName);
             }
 
-            Keys.onEscapePressed: BarState.deactivate("search")
+            Keys.onEscapePressed: BarState.deactivate("search", root.monitorName)
             Keys.onDownPressed: {
                 root.navigateRequested(1);
                 Launcher.selectNext(1);
@@ -78,8 +79,8 @@ Column {
         // strand the caret)
         Connections {
             target: BarState
-            function onStateChanged() {
-                if (BarState.state === "search") {
+            function onPanelStatesByMonitorChanged() {
+                if (BarState.isOpenFor("search", root.monitorName)) {
                     input.text = "";
                     input.forceActiveFocus();
                 }
@@ -119,6 +120,7 @@ Column {
             anchors.top: parent.top
             width: parent.width
             height: root.bodyFullHeight
+            monitorName: root.monitorName
         }
     }
 }

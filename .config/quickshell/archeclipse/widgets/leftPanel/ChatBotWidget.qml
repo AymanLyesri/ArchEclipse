@@ -15,6 +15,7 @@ import qs.services
 // thinking indicator, auto-scroll, auto-focus, multi-line input
 Item {
     id: root
+    property string monitorName: ""
 
     // --- State ---
     property var messages: []
@@ -148,7 +149,7 @@ Item {
     Connections {
         target: Hyprland
         function onRawEvent(event) {
-            if (!BarState.leftOpen || !(Settings.chatBotContext.file ?? true))
+            if (!BarState.isOpenFor("left", root.monitorName) || !(Settings.chatBotContext.file ?? true))
                 return;
             const name = event?.name ?? "";
             if (name === "activewindow" || name === "activewindowv2" ||
@@ -160,8 +161,8 @@ Item {
 
     Connections {
         target: BarState
-        function onLeftOpenChanged() {
-            if (BarState.leftOpen && (Settings.chatBotContext.file ?? true))
+        function onPanelStatesByMonitorChanged() {
+            if (BarState.isOpenFor("left", root.monitorName) && (Settings.chatBotContext.file ?? true))
                 root.refreshAutoFile();
             else
                 autoFileRefreshTimer.stop();
@@ -171,7 +172,7 @@ Item {
     Connections {
         target: Settings
         function onChatBotContextChanged() {
-            if (BarState.leftOpen && (Settings.chatBotContext.file ?? true))
+            if (BarState.isOpenFor("left", root.monitorName) && (Settings.chatBotContext.file ?? true))
                 root.refreshAutoFile();
             else
                 autoFileRefreshTimer.stop();
@@ -1822,6 +1823,6 @@ Item {
 
     function goToSettings(target) {
         if (typeof Registry !== "undefined" && Registry.selectLeftTab)
-            Registry.selectLeftTab("SettingsWidget", target);
+            Registry.selectLeftTab("SettingsWidget", target, root.monitorName);
     }
 }

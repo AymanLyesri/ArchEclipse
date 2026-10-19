@@ -6,10 +6,12 @@ import qs.widgets.shared
 Rectangle {
     id: root
 
+    property string monitorName: ""
+
     // Initialize from the service (not a hardcoded 1.0): DefaultBar is
     // recreated on every return to the default state, and a hardcoded
     // default would show a stale 100% until the next brightness change.
-    property real level: Brightness.screen
+    property real level: Brightness.screenFor(root.monitorName)
     property bool pulse: false
     readonly property int fixedWidth: 220
 
@@ -17,7 +19,7 @@ Rectangle {
     // desktops → hidden). Single source of truth is the Brightness service; the old local `backlightCheck.outputLines` read a
     // non-existent StdioCollector property, threw, and the catch{}
     // returned true — so the icon showed on desktops.
-    readonly property bool hasBacklight: Brightness.hasBacklight
+    readonly property bool hasBacklight: Brightness.hasBacklightFor(root.monitorName)
 
     width: pulse ? fixedWidth : content.width
     height: Theme.barContentHeight
@@ -29,15 +31,18 @@ Rectangle {
     // polling): external changes update the level silently and pulse the
     // OSD via BarState — the bar slider opens on hover dwell only.
     // (No onAdjusted hookup: value changes must not pop the slider.)
+    // Follow the brightness value for this widget's monitor while staying
+    // silent when focus moves or a different monitor changes brightness.
     Connections {
         target: Brightness
-        // Value follows the controlled (focused) monitor silently — moving focus
-        // to a monitor with another brightness must not pop the slider.
-        function onScreenChanged() {
-            const newLevel = Brightness.screen;
-            if (Math.abs(newLevel - root.level) > 0.005)
-                root.level = newLevel;
-        }
+        function onScreenChanged() { root.syncLevel(); }
+        function onTargetNameChanged() { root.syncLevel(); }
+    }
+    onMonitorNameChanged: root.syncLevel()
+    function syncLevel() {
+        const newLevel = Brightness.screenFor(root.monitorName);
+        if (Math.abs(newLevel - root.level) > 0.005)
+            root.level = newLevel;
     }
 
     // Hover/click reveal + reveal-out hide timeout
@@ -110,7 +115,13 @@ Rectangle {
             value: root.level
             onMoved: {
                 root.level = briSlider.value;
-                Brightness.setScreen(briSlider.value);
+                Brightness.setScreen(briSlider.value, root.monitorName);
+            }
+            Binding {
+                target: briSlider
+                property: "value"
+                value: root.level
+                when: !briSlider.pressed
             }
         }
     }

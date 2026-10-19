@@ -1,6 +1,7 @@
 local home = os.getenv("HOME") or ""
 local scriptsDir = home .. "/.config/hypr/scripts"
 local screenshot = scriptsDir .. "/screenshot.sh"
+local screenrecord = scriptsDir .. "/screenrecord.sh"
 local brightnessScript = home .. "/.config/hypr/config/scripts/brightness.lua"
 local barScript = home .. "/.config/hypr/config/scripts/bar.lua"
 local terminal = "foot"
@@ -22,11 +23,11 @@ local volMute = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
 local qsCfg = home .. "/.config/quickshell/archeclipse"
 local qsIpc = "qs -p " .. qsCfg .. " ipc call bar "
 -- Brightness of the focused monitor (internal backlight or DDC/CI) is handled by
--- the shell: `ipc call brightness increment|decrement`. If quickshell isn't
+-- the shell: `ipc call brightness incrementFor|decrementFor <monitor>`. If quickshell isn't
 -- running, `qs ipc` exits non-zero and the script fallback takes over.
 local qsBrightness = "qs -p " .. qsCfg .. " ipc call brightness "
-local brightnessUp = qsBrightness .. "increment || lua " .. brightnessScript .. " +10"
-local brightnessDown = qsBrightness .. "decrement || lua " .. brightnessScript .. " -10"
+local brightnessUp = qsBrightness .. "incrementFor \"" .. monitor .. "\" || lua " .. brightnessScript .. " +10"
+local brightnessDown = qsBrightness .. "decrementFor \"" .. monitor .. "\" || lua " .. brightnessScript .. " -10"
 
 hl.config({
     binds = {
@@ -63,9 +64,9 @@ hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("[workspace 5] " .. terminal .. " bto
 --- run inside the compositor)
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("lua " .. barScript))
 --- toggle status bar visibility
-hl.bind(mainMod .. " + ALT_L", hl.dsp.exec_cmd(qsIpc .. "toggleBar " .. monitor))
+hl.bind(mainMod .. " + ALT + BACKSPACE", hl.dsp.exec_cmd(qsIpc .. "toggleBar " .. monitor))
 --- toggle app launcher
-hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd(qsIpc .. "toggleSearch"))
+hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd(qsIpc .. "toggleSearch " .. monitor))
 --- toggle media panel
 hl.bind(mainMod .. " + m", hl.dsp.exec_cmd(qsIpc .. "togglePanel media-panel " .. monitor))
 --- toggle right panel (SUPER+R)
@@ -77,23 +78,27 @@ hl.bind(mainMod .. " + w", hl.dsp.exec_cmd(qsIpc .. "togglePanel wallpaper-switc
 --- toggle user panel
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(qsIpc .. "togglePanel user-panel " .. monitor))
 --- open clipboard manager
-hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd(qsIpc .. "clipboard"))
+hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd(qsIpc .. "clipboard " .. monitor))
 --- open emoji picker
-hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(qsIpc .. "emojis"))
+hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(qsIpc .. "emojis " .. monitor))
 --- open notes app
-hl.bind(mainMod .. " + SHIFT + n", hl.dsp.exec_cmd(qsIpc .. "notes"))
+hl.bind(mainMod .. " + SHIFT + n", hl.dsp.exec_cmd(qsIpc .. "notes " .. monitor))
 --- open all apps
-hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(qsIpc .. "apps"))
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(qsIpc .. "apps " .. monitor))
 
 -- Screenshot and Screen Record Keybinds
 --- screenshot workspace
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --now"))
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --now --monitor \"" .. monitor .. "\""))
 --- screenshot area
-hl.bind(mainMod .. " + CTRL + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --area"))
+hl.bind(mainMod .. " + CTRL + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --area --monitor \"" .. monitor .. "\""))
 --- screen record workspace
-hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord now"))
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord now \"" .. monitor .. "\""))
 --- screen record area
-hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord area"))
+hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord area \"" .. monitor .. "\""))
+--- screenshot all monitors (per-monitor files)
+hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd(screenshot .. " --now --all"))
+--- record all monitors (spawns one recorder per monitor)
+hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord all \"" .. monitor .. "\""))
 
 -- Special Workspace Keybinds
 --- move to special workspace
@@ -103,15 +108,18 @@ hl.bind(mainMod .. " + S", hl.dsp.workspace.toggle_special())
 
 -- Media, Brightness and Volume Controls
 --- volume up (XF86 + ALT fallback share one command)
-hl.bind("ALT + F12", hl.dsp.exec_cmd(volUp), { locked = true, repeating = true })
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(volUp),
+local volumeUp = qsIpc .. "noteVolumeTarget \"" .. monitor .. "\"; " .. volUp
+local volumeDown = qsIpc .. "noteVolumeTarget \"" .. monitor .. "\"; " .. volDown
+local volumeMute = qsIpc .. "noteVolumeTarget \"" .. monitor .. "\"; " .. volMute
+hl.bind("ALT + F12", hl.dsp.exec_cmd(volumeUp), { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(volumeUp),
     { locked = true, repeating = true })
 --- volume down (XF86 + ALT fallback share one command)
-hl.bind("ALT + F11", hl.dsp.exec_cmd(volDown), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(volDown),
+hl.bind("ALT + F11", hl.dsp.exec_cmd(volumeDown), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(volumeDown),
     { locked = true, repeating = true })
 --- toggle mute
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd(volMute), { locked = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd(volumeMute), { locked = true })
 
 --- brightness up (XF86 + ALT fallback share one command)
 hl.bind("ALT + F3", hl.dsp.exec_cmd(brightnessUp), { locked = true, repeating = true })
@@ -199,7 +207,7 @@ end
 --- previous workspace
 hl.bind(mainMod .. " + TAB", hl.dsp.focus({ workspace = "prev" }))
 --- workspace overview (quickshell overview island)
-hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(qsIpc .. "toggleOverview"))
+hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd(qsIpc .. "toggleOverview \"" .. monitor .. "\""))
 
 --- focus next workspace
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))

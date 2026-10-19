@@ -15,6 +15,7 @@ Item {
     id: root
     property int widgetWidth: parent.width
     property string className: ""
+    property string monitorName: ""
 
     // Replayable staggered section reveal (CustomScripts/KeyBinds parity):
     // StackLayout builds all tabs once at startup (hidden), so
@@ -51,10 +52,9 @@ Item {
     // only wired to apiKeyRepeater rows (matched by their "provider.field"
     // path) — extend the search below if other sections gain targets.
     function handlePendingTarget() {
-        if (Registry.pendingTarget === "")
+        const key = Registry.takePendingTarget(root.monitorName);
+        if (key === "")
             return;
-        const key = Registry.pendingTarget;
-        Registry.pendingTarget = "";
         // Rows aren't laid out yet on the very first frame a hidden tab
         // becomes visible; defer one tick so mapToItem/contentHeight are
         // accurate.
@@ -62,7 +62,7 @@ Item {
     }
     Connections {
         target: Registry
-        function onPendingTargetChanged() {
+        function onPendingTargetsChanged() {
             if (root.visible)
                 root.handlePendingTarget();
         }
@@ -281,18 +281,18 @@ Item {
                                 spacing: 8
                                 SettingLabel {
                                     text: "Left Panel Width"
-                                    tip: "Width of the left side panel in px."
+                                    tip: "Width of the left side panel on this monitor in px."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
                                     from: 200
-                                    to: 800
-                                    value: Settings.leftPanelWidth
+                                    to: 1500
+                                    value: Settings.panelWidthFor("left", root.monitorName)
                                     Layout.preferredWidth: 160
                                     onValueChanged: {
-                                        if (value === Settings.leftPanelWidth)
+                                        if (value === Settings.panelWidthFor("left", root.monitorName))
                                             return;
-                                        Settings.leftPanelWidth = value;
+                                        Settings.setPanelWidthFor("left", root.monitorName, value);
                                     }
                                 }
                             }
@@ -301,18 +301,18 @@ Item {
                                 spacing: 8
                                 SettingLabel {
                                     text: "Right Panel Width"
-                                    tip: "Width of the right side panel in px."
+                                    tip: "Width of the right side panel on this monitor in px."
                                     Layout.fillWidth: true
                                 }
                                 AppSpinBox {
                                     from: 200
-                                    to: 800
-                                    value: Settings.rightPanelWidth
+                                    to: 1500
+                                    value: Settings.panelWidthFor("right", root.monitorName)
                                     Layout.preferredWidth: 160
                                     onValueChanged: {
-                                        if (value === Settings.rightPanelWidth)
+                                        if (value === Settings.panelWidthFor("right", root.monitorName))
                                             return;
-                                        Settings.rightPanelWidth = value;
+                                        Settings.setPanelWidthFor("right", root.monitorName, value);
                                     }
                                 }
                             }
@@ -1894,6 +1894,8 @@ Item {
         Settings.barOrientation = true;
         Settings.leftPanelWidth = 400;
         Settings.rightPanelWidth = 250;
+        Settings.leftPanelByMonitor = ({});
+        Settings.rightPanelByMonitor = ({});
         Settings.leftPanelHotZone = true;
         Settings.rightPanelHotZone = true;
         Settings.leftPanelHotZoneSize = 5;

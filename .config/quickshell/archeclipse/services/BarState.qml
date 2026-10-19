@@ -14,10 +14,8 @@ Singleton {
     // Priority map (default base 0 < recording 40 < pulses 80 < search 100)
     // "compact"/"expanded" kept only for backward-compat with old persist files.
     // wallpaper (95) beats control (90) so SUPER+W opens over the control island.
-    // Side pills (left/right/recording) keep priority entries so activate()
-    // still records ordering metadata, but resolveState() skips them: side
-    // pills are independent overlays, never main-pill winners, and
-    // left+right open simultaneously.
+    // Side pills keep priority entries but resolveState() skips them. All
+    // interactive islands and transient pulses are stored per monitor.
     property var priority: {
         "default": 0,
         "recording": 40,
@@ -38,6 +36,20 @@ Singleton {
     // Active states with hold timers
     property var activeStates: {}
 
+    // Search is a single session because Launcher is a singleton; opening it
+    // on another monitor moves that session. Other islands and pulses may be
+    // active independently on multiple monitors.
+    property var panelStatesByMonitor: ({})
+    property string searchMonitor: ""
+    readonly property var monitorScopedStates: ({
+        search: true, left: true, right: true, control: true, wallpaper: true,
+        player: true, volume: true, brightness: true, network: true,
+        weather: true, system: true, overview: true, recording: true
+    })
+    function isMonitorScopedState(name): bool {
+        return root.monitorScopedStates[name] === true;
+    }
+
     // Bar shown overrides (per monitor)
     property var barShown: {}
 
@@ -54,21 +66,38 @@ Singleton {
     // Current resolved state (default is the permanent base, no compact)
     property string state: "default"
 
-    // Side-pill open flags: the resolved `state` never equals
-    // "left"/"right"/"recording" (resolveState skips them), so side-pill
-    // visibility and keep-alive key off these. activate()/deactivate()
-    // reassign the activeStates object, keeping these bindings reactive.
-    readonly property bool leftOpen: "left" in activeStates
-    readonly property bool rightOpen: "right" in activeStates
+    // Compatibility flags for callers that mean the focused monitor. Bar
+    // instances use isOpenFor() with their own monitor name.
+    readonly property bool leftOpen: isOpenFor("left", Registry.monitorName)
+    readonly property bool rightOpen: isOpenFor("right", Registry.monitorName)
 
-    // Open in-bar popovers (tray overflow/menu popups). Guards the
-    // hover-leave collapse (while a popup is open).
-    property int popupCount: 0
-    function holdPopup() {
-        root.popupCount++;
+    // Open in-bar popovers (tray overflow/menu popups), tracked by their
+    // owning monitor so a menu on one output cannot pin every bar open.
+    property var popupCountByMonitor: ({})
+    readonly property int popupCount: Object.values(root.popupCountByMonitor || {}).reduce((sum, count) => sum + Number(count || 0), 0)
+    function popupCountFor(monitorName): int {
+        const monitor = monitorName || Registry.monitorName || "";
+        return Number((root.popupCountByMonitor || {})[monitor] || 0);
     }
-    function releasePopup() {
-        root.popupCount = Math.max(0, root.popupCount - 1);
+    function holdPopup(monitorName) {
+        const monitor = monitorName || Registry.monitorName || "";
+        if (!monitor)
+            return;
+        const next = Object.assign({}, root.popupCountByMonitor || {});
+        next[monitor] = Number(next[monitor] || 0) + 1;
+        root.popupCountByMonitor = next;
+    }
+    function releasePopup(monitorName) {
+        const monitor = monitorName || Registry.monitorName || "";
+        if (!monitor)
+            return;
+        const next = Object.assign({}, root.popupCountByMonitor || {});
+        const count = Number(next[monitor] || 0);
+        if (count <= 1)
+            delete next[monitor];
+        else
+            next[monitor] = count - 1;
+        root.popupCountByMonitor = next;
     }
 
     // Hold timers
@@ -76,6 +105,12 @@ Singleton {
 
     // Debounce timer
     property var debounceTimer: null
+    property Connections _focusedMonitorConnection: Connections {
+        target: Hyprland
+        function onFocusedMonitorChanged() {
+            root.debounceResolve();
+        }
+    }
 
     // Settings reference
     property var settings: qs.theme.Settings
@@ -93,6 +128,13 @@ Singleton {
     property real _lastVolume: 0
     property bool _volumeFirstRender: true
     property int volumeEvents: 0
+    property string lastVolumeMonitor: ""
+    property string volumeTargetMonitor: ""
+    property Timer _volumeTargetTimer: Timer {
+        interval: 600
+        repeat: false
+        onTriggered: root.volumeTargetMonitor = ""
+    }
 
     // Brightness pulse tracking
     property real _lastBrightness: 0
@@ -100,6 +142,8 @@ Singleton {
     // guard here would swallow the first real keypress.
     property bool _brightnessFirstRender: false
     property int brightnessEvents: 0
+    property string lastBrightnessMonitor: ""
+    property var _lastBrightnessByMonitor: ({})
 
     // Player pulse tracking
     property var _activePlayer: null
@@ -192,7 +236,7 @@ Singleton {
         // Sync persistent recording state at startup (subscribe
         // isRecording from mount; a recording already in progress must show)
         if (ScreenRecorder.isRecording)
-            root.activate("recording");
+            root.activate("recording", 0, ScreenRecorder.targetMonitor || Registry.monitorName);
     }
 
     // -----------------------------------------------------------------
@@ -302,7 +346,6 @@ Singleton {
         root._volumeWired = true;
         root._lastVolume = sink.audio.volume ?? 0;
         sink.audio.volumesChanged.connect(() => {
-            root.volumeEvents++;
             if (!sink.audio)
                 return;
             const vol = sink.audio.volume;
@@ -319,14 +362,24 @@ Singleton {
             if (vol === root._lastVolume)
                 return;
             root._lastVolume = vol;
+            const monitor = root.volumeTargetMonitor || Registry.monitorName;
+            root.lastVolumeMonitor = monitor;
+            root._volumeTargetTimer.stop();
+            root.volumeTargetMonitor = "";
+            root.volumeEvents++;
 
             // Respect an existing hover-pin: re-pulsing with a hold timer
             // while pinned would arm an auto-deactivate that closes the
             // island under an attending cursor. 2500ms linger (like the
             // player pill) so the OSD stays readable after key repeats.
-            if (!root.isPersistent("volume"))
-                root.activate("volume", 2500);
+            if (!root.isPersistent("volume", monitor))
+                root.activate("volume", 2500, monitor);
         });
+    }
+
+    function noteVolumeTarget(monitorName) {
+        root.volumeTargetMonitor = monitorName || Registry.monitorName;
+        root._volumeTargetTimer.restart();
     }
 
     // ===== Brightness watcher (event-driven, like volume) =====
@@ -339,24 +392,33 @@ Singleton {
         // `adjusted` (not `screenChanged`): fires only on real changes — keys,
         // sliders, external writes — never on the initial load or when focus
         // merely moves to a monitor that has a different brightness.
-        function onAdjusted() {
-            const val = Brightness.screen;
+        function onAdjusted(monitorName) {
+            const monitor = monitorName || Brightness.targetName || Registry.monitorName;
+            const val = Brightness.screenFor(monitor);
             // Skip the initial notification on mount (first-render guard)
             if (root._brightnessFirstRender) {
                 root._brightnessFirstRender = false;
                 root._lastBrightness = val;
+                const baseline = Object.assign({}, root._lastBrightnessByMonitor || {});
+                baseline[monitor] = val;
+                root._lastBrightnessByMonitor = baseline;
                 return;
             }
             // Ignore spurious notifications where the value didn't change
-            if (val === root._lastBrightness)
+            const previous = (root._lastBrightnessByMonitor || {})[monitor];
+            if (previous !== undefined && val === previous)
                 return;
             root._lastBrightness = val;
+            const baseline = Object.assign({}, root._lastBrightnessByMonitor || {});
+            baseline[monitor] = val;
+            root._lastBrightnessByMonitor = baseline;
+            root.lastBrightnessMonitor = monitor;
             root.brightnessEvents++;
 
             // Respect an existing hover-pin (see volume watcher above).
             // 2500ms linger (like the player pill).
-            if (!root.isPersistent("brightness"))
-                root.activate("brightness", 2500);
+            if (!root.isPersistent("brightness", monitor))
+                root.activate("brightness", 2500, monitor);
         }
     }
 
@@ -444,7 +506,9 @@ Singleton {
         if (root._playerStarting)
             return;
 
-        root.activate("player", 2500);
+        // Track metadata is global, so place its brief reveal on the currently
+        // focused monitor. Hover and click reveals are targeted by MediaPill.
+        root.activate("player", 2500, Registry.monitorName);
     }
 
     function setupPlayerWatcher() {
@@ -493,21 +557,46 @@ Singleton {
             connected: device.connected
         };
         if (changed)
-            root.activate("network", 3000);
+            root.activate("network", 3000, Registry.monitorName);
     }
 
-    // Resolve highest priority active state (default is the base fallback)
-    function resolveState(): string {
+    function monitorStates(monitorName) {
+        const monitor = monitorName || Registry.monitorName || "";
+        return (root.panelStatesByMonitor || {})[monitor] || {};
+    }
+
+    function isOpenFor(name, monitorName): bool {
+        const monitor = monitorName || Registry.monitorName || "";
+        return root.monitorStates(monitor)[name] === true;
+    }
+
+    function activeStatesFor(monitorName) {
+        const states = Object.assign({}, root.activeStates || {});
+        const local = root.monitorStates(monitorName);
+        for (const name of Object.keys(local)) {
+            if (local[name] === true)
+                states[name] = {priority: root.priority[name] ?? 0};
+        }
+        return states;
+    }
+
+    function stateFor(monitorName): string {
+        return root.resolveState(monitorName);
+    }
+
+    // Resolve highest priority state for a monitor (default is the base fallback).
+    function resolveState(monitorName): string {
         var best = "default";
         var bestPriority = -Infinity;
-        for (var name in root.activeStates) {
+        const states = root.activeStatesFor(monitorName);
+        for (var name in states) {
             // Side pills (left/right/recording) are independent pills, not
             // main-pill states — the main pill never resolves them.
             if (name === "left" || name === "right" || name === "recording")
                 continue;
             // Legacy base names resolve to the default state
             var canonical = (name === "expanded" || name === "compact") ? "default" : name;
-            var entry = root.activeStates[name];
+            var entry = states[name];
             if (entry.priority > bestPriority) {
                 best = canonical;
                 bestPriority = entry.priority;
@@ -524,13 +613,18 @@ Singleton {
     // True when a state is active with no auto-deactivate timer — i.e.
     // persistently pinned (pulses always arm a timer otherwise, so a
     // timer-less pulse means something pinned it, e.g. IslandHoverPin).
-    function isPersistent(name) {
+    function isPersistent(name, monitorName) {
+        if (root.isMonitorScopedState(name)) {
+            const monitor = monitorName || Registry.monitorName || "";
+            const timers = root.holdTimers || {};
+            return root.isOpenFor(name, monitor) && !timers[name + "@" + monitor];
+        }
         const active = root.activeStates || {};
         const timers = root.holdTimers || {};
         return (name in active) && !timers[name];
     }
 
-    function activate(name, holdMs) {
+    function activate(name, holdMs, monitorName) {
         const capture = Registry.get("capture-session");
         if (capture && capture.active && capture.desiredState !== "" && name !== capture.desiredState
             && !(capture.overviewMode && (name === "left" || name === "right")))
@@ -540,18 +634,57 @@ Singleton {
         var priority = root.priority[name];
         if (priority === undefined)
             return;
-        // Volume/brightness pulses are mutually exclusive: both render
-        // through ControlIsland, so a lingering rival pulse flips the
-        // resolved state mid-session (when the older hold timer expires)
-        // and replays the pill swap churn. (Left/right side pills are
-        // independent and open simultaneously — no rival there.)
-        var rival = "";
-        if (name === "volume")
-            rival = "brightness";
-        else if (name === "brightness")
-            rival = "volume";
-        if (rival !== "")
-            root.deactivate(rival);
+
+        if (root.isMonitorScopedState(name)) {
+            const monitor = monitorName || Registry.monitorName || "";
+            // Volume and brightness share one OSD slot on this monitor.
+            // Clear the rival in the same scoped map before returning below.
+            if (name === "volume" || name === "brightness")
+                root.deactivate(name === "volume" ? "brightness" : "volume", monitor);
+            if (name === "search") {
+                // Launcher owns shared query/results state, so only one
+                // monitor may display its input at a time. Move it cleanly.
+                var moved = Object.assign({}, root.panelStatesByMonitor || {});
+                for (const key of Object.keys(moved)) {
+                    if (key !== monitor && moved[key] && moved[key].search) {
+                        const old = Object.assign({}, moved[key]);
+                        delete old.search;
+                        if (Object.keys(old).length)
+                            moved[key] = old;
+                        else
+                            delete moved[key];
+                    }
+                }
+                root.searchMonitor = monitor;
+                root.panelStatesByMonitor = moved;
+            }
+
+            const scopedTimers = root.holdTimers || {};
+            const timerKey = name + "@" + monitor;
+            if (scopedTimers[timerKey]) {
+                scopedTimers[timerKey].stop();
+                scopedTimers[timerKey] = null;
+            }
+            var byMonitor = Object.assign({}, root.panelStatesByMonitor || {});
+            const local = Object.assign({}, byMonitor[monitor] || {});
+            local[name] = true;
+            byMonitor[monitor] = local;
+            root.panelStatesByMonitor = byMonitor;
+
+            if (holdMs !== undefined && holdMs > 0) {
+                const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: ' + holdMs + ' }', root);
+                t.triggered.connect(() => {
+                    root.deactivate(name, monitor);
+                    t.destroy();
+                });
+                t.start();
+                scopedTimers[timerKey] = t;
+            }
+            root.holdTimers = scopedTimers;
+            root.debounceResolve();
+            return;
+        }
+
         const timers = root.holdTimers || {};
         // Cancel existing timer for this state
         if (timers[name]) {
@@ -580,13 +713,35 @@ Singleton {
     }
 
     // Deactivate a state (default is the permanent base and can't be removed)
-    function deactivate(name) {
+    function deactivate(name, monitorName) {
         const capture = Registry.get("capture-session");
         if (capture && capture.active && (capture.desiredState === name
             || (capture.overviewMode && (name === "left" || name === "right"))))
             return;
         if (name === "default")
             return;
+        if (root.isMonitorScopedState(name)) {
+            const monitor = monitorName || (name === "search" ? root.searchMonitor : "") || Registry.monitorName || "";
+            const scopedTimers = root.holdTimers || {};
+            const timerKey = name + "@" + monitor;
+            if (scopedTimers[timerKey]) {
+                scopedTimers[timerKey].stop();
+                scopedTimers[timerKey] = null;
+            }
+            root.holdTimers = scopedTimers;
+            var byMonitor = Object.assign({}, root.panelStatesByMonitor || {});
+            const local = Object.assign({}, byMonitor[monitor] || {});
+            delete local[name];
+            if (Object.keys(local).length)
+                byMonitor[monitor] = local;
+            else
+                delete byMonitor[monitor];
+            root.panelStatesByMonitor = byMonitor;
+            // Keep the last owner while closed: a launcher quick-app closes
+            // search before its callback opens a side panel on that monitor.
+            root.debounceResolve();
+            return;
+        }
         if (name === "expanded" || name === "compact") {
             // Migrate legacy base names to default
             var mig = Object.assign({}, root.activeStates || {});
@@ -623,7 +778,7 @@ Singleton {
         }
         const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: 100 }', root);
         t.triggered.connect(() => {
-            root.state = root.resolveState();
+            root.state = root.resolveState(Registry.monitorName);
             t.destroy();
         });
         t.start();
@@ -646,11 +801,11 @@ Singleton {
     }
 
     // Public API for IPC
-    function activateState(name, holdMs) {
-        root.activate(name, holdMs);
+    function activateState(name, holdMs, monitorName) {
+        root.activate(name, holdMs, monitorName);
     }
-    function deactivateState(name) {
-        root.deactivate(name);
+    function deactivateState(name, monitorName) {
+        root.deactivate(name, monitorName);
     }
     function setBarState(name) {
         root.activate(name);
@@ -669,15 +824,22 @@ Singleton {
         root.toggleBarShown(monitorName);
     }
 
-    // Recording watcher (isRecording changes -> activate/deactivate
-    // "recording" persistently). ScreenRecorder is a sibling singleton.
+    // Recording is a single system process, but its indicator belongs only
+    // to the monitor where recording started.
     Connections {
         target: ScreenRecorder
         function onIsRecordingChanged() {
             if (ScreenRecorder.isRecording)
-                root.activate("recording");
+                root.activate("recording", 0, ScreenRecorder.targetMonitor || Registry.monitorName);
             else
-                root.deactivate("recording");
+                root.deactivate("recording", ScreenRecorder.targetMonitor || Registry.monitorName);
+        }
+        function onTargetMonitorChanged() {
+            if (ScreenRecorder.isRecording) {
+                for (const monitor of Object.keys(root.panelStatesByMonitor || {}))
+                    root.deactivate("recording", monitor);
+                root.activate("recording", 0, ScreenRecorder.targetMonitor || Registry.monitorName);
+            }
         }
     }
 

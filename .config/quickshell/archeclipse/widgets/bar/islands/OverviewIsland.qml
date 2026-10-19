@@ -48,9 +48,11 @@ Item {
     // toggled, or Escaped.
     IslandHoverPin {
         stateName: "overview"
+        monitorName: root.monitorName
         armOnCreation: false
     }
     IslandEscClose {
         states: ["overview"]
+        monitorName: root.monitorName
     }
 }

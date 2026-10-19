@@ -13,6 +13,7 @@ import qs.theme
 HoverHandler {
     id: root
     property string stateName: ""
+    property string monitorName: ""
     property var extraStates: []
     // Leave delay before the state deactivates (defaults to
     // Settings.revealOutPressure; callers may override).
@@ -41,7 +42,7 @@ HoverHandler {
             // configured delay from here on.
             leaveTimer.interval = root.leaveDelay;
             if (root.stateName !== "")
-                BarState.activate(root.stateName, 0);
+                BarState.activate(root.stateName, 0, root.monitorName);
         } else if (!root.holdOpen) {
             leaveTimer.restart();
         }
@@ -54,9 +55,9 @@ HoverHandler {
         id: leaveTimer
         interval: root.leaveDelay
         onTriggered: {
-            BarState.deactivate(root.stateName);
+            BarState.deactivate(root.stateName, root.monitorName);
             for (let i = 0; i < root.extraStates.length; i++)
-                BarState.deactivate(root.extraStates[i]);
+                BarState.deactivate(root.extraStates[i], root.monitorName);
         }
     }
     function stop() { leaveTimer.stop(); }

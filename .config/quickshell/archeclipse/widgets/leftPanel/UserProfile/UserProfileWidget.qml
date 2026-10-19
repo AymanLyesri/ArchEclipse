@@ -17,6 +17,7 @@ import qs.services
 // minimal mode (for the lockscreen overlay): shows only avatar + username
 Item {
     id: root
+    property string monitorName: ""
     property int widgetWidth: parent.width
     property string className: ""
     property bool minimal: false
@@ -921,6 +922,7 @@ Item {
 
                     Profile.SupporterCard {
                         store: root
+                        monitorName: root.monitorName
                     }
 
                     Profile.ProfileActions {

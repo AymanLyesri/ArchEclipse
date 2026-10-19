@@ -8,6 +8,8 @@ import qs.theme
 Rectangle {
     id: root
 
+    property string monitorName: ""
+
     height: Theme.barContentHeight
     implicitWidth: content.implicitWidth + 16
     // Width is assigned by the parent layout (capped via
@@ -89,10 +91,10 @@ Rectangle {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: {
-            if (BarState.state === "overview")
-                BarState.deactivate("overview");
+            if (BarState.isOpenFor("overview", root.monitorName))
+                BarState.deactivate("overview", root.monitorName);
             else
-                BarState.activate("overview", 0);
+                BarState.activate("overview", 0, root.monitorName);
         }
     }
 }

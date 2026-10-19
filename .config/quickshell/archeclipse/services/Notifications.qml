@@ -39,6 +39,7 @@ Singleton {
         property string previewFile: ""
         property string openFile: ""
         property string videoFile: ""
+        property string monitorName: ""
         property bool isRecorder: false
         property bool critical: false
         property bool hideBody: true
@@ -83,17 +84,18 @@ Singleton {
         persistenceSupported: false
 
         onNotification: notification => {
-            root.notified(notification);          // emit for ControlPanel DND ping etc.
+            const monitorName = root.monitorForNotification(notification);
+            root.notified(notification, monitorName); // ControlPanel DND ping etc.
             notification.tracked = true;
             root.watchClosed(notification);
             root.addHistory(notification);
-            if (!root.dnd) root.addPopup(notification);
+            if (!root.dnd) root.addPopup(notification, monitorName);
         }
     }
 
     // Emitted on every incoming notification (even when DND skips the toast),
     // mirrors the notifd "notified" handler used by the DND ping.
-    signal notified(var notification)
+    signal notified(var notification, string monitorName)
 
     // Prune toast + history when the notification closes from anywhere
     // (dismiss button, history clear, external retraction). Mirrors
@@ -136,7 +138,24 @@ Singleton {
         root.toasts = root.toasts.slice();
     }
 
-    function addPopup(n) {
+    function monitorForNotification(n) {
+        if (root.isRecorder(n)) {
+            const targets = ScreenRecorder.targetMonitors || [];
+            const focused = Registry.monitorName || "";
+            if (targets.includes(focused))
+                return focused;
+            if (targets.length > 0)
+                return targets[0];
+        }
+        return Registry.monitorName || "";
+    }
+
+    function popupToastsFor(monitorName) {
+        const monitor = monitorName || Registry.monitorName || "";
+        return root.toasts.filter(t => t.popup && t.monitorName === monitor);
+    }
+
+    function addPopup(n, monitorName) {
         // A replaced toast must not keep its old countdown.
         root.stopToastTimer(root.findToast(n.id));
 
@@ -164,6 +183,7 @@ Singleton {
             previewFile: previewFile,
             openFile: openFile,
             videoFile: videoFile,
+            monitorName: monitorName || Registry.monitorName || "",
             isRecorder: root.isRecorder(n),
             critical: n.urgency === NotificationUrgency.Critical,
             hideBody: body === "" || body === openFile || root.bodyIsImage(n, iconFile),

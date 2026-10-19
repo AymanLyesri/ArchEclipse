@@ -31,6 +31,7 @@ Column {
     IslandHoverPin {
         id: hoverPin
         stateName: "control"
+        monitorName: root.monitorName
         // Slider drags press the mouse (dropping HoverHandler.hovered), so
         // hold the island open for the length of the drag. ComboBox popups
         // render outside hover bounds too, so hold while one is open.
@@ -40,6 +41,7 @@ Column {
     // Esc dismiss once the surface has focus (click a slider first).
     IslandEscClose {
         states: ["control"]
+        monitorName: root.monitorName
     }
 
     IslandExpandClip {

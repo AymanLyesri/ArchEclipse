@@ -15,7 +15,7 @@ PanelWindow {
 
     // `screen` is the inherited QsWindow property — do not redeclare it
     // (see Bar.qml); a shadow would leave the surface on one output.
-    readonly property string monitorName: Hyprland.monitorFor(screen)?.name ?? ""
+    readonly property string monitorName: Hyprland.monitorFor(screen)?.name ?? screen?.name ?? ""
 
     // Top-center floating panel (overlay layer,
     // no exclusive zone, on-demand keyboard focus).
@@ -36,6 +36,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     Component.onCompleted: Registry.register(`media-panel-${monitorName}`, root)
+    Component.onDestruction: Registry.unregister(`media-panel-${monitorName}`)
 
     Rectangle {
         id: mediaRect

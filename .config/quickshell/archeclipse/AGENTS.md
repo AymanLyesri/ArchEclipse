@@ -16,6 +16,7 @@
 |---|---|---|
 | `Bar` | `widgets/bar/Bar.qml` | Main pill; one instance per monitor |
 | `BarHoverWindow` | `widgets/bar/BarHoverWindow.qml` | Edge strip that dwell-reveals an auto-hidden bar |
+| `MediaWindow` | `widgets/media/MediaWindow.qml` | Standalone media controls; one instance per monitor, toggled by `SUPER+M` |
 | `NotificationPopups` | `widgets/notifications/NotificationPopups.qml` | Toast popups, per monitor |
 | `LockScreen` | `widgets/lock/LockScreen.qml` | Single scope; compositor creates one `WlSessionLockSurface` per screen (no `Variants`) |
 
@@ -26,19 +27,26 @@ Startup also `mkdir -p`s every cache dir `FileView` writes to (writes to missing
 
 ### 1.2 Bar state machine — `services/BarState.qml` (singleton)
 
-One pill, many states — plus independent side pills. `activate(name, holdMs)` /
-`deactivate(name)` manipulate `activeStates`; `resolveState()` picks the
-highest-priority entry (debounced 100ms). Priorities (main pill only):
+One pill, many states — plus independent side pills. `activate(name, holdMs,
+monitorName)` / `deactivate(name, monitorName)` keep islands and transient
+pulses per monitor; `activeStates` holds the shared default state.
+`resolveState()` picks the highest-priority state for the requested monitor
+(debounced 100ms).
+Priorities (main pill only):
 
 ```
 default 0 < pulses 80 (volume/brightness/network/player/weather/system)
   < control 90 < wallpaper 95 < search 100
 ```
-`left`/`right`/`recording` keep priority entries but are **side pills, not
-main-pill states**: `resolveState()` skips them, so the main pill never
-hijacks. Side-pill visibility keys off `BarState.leftOpen`/`rightOpen`
-(membership in `activeStates`) and `ScreenRecorder.isRecording` — never off
-`state`, which never equals them.
+`left`/`right`/`recording` are **side pills, not main-pill states**:
+`resolveState()` skips them, so the main pill never hijacks. Side-pill
+visibility keys off `BarState.isOpenFor(name, monitorName)`; the recording
+indicator is scoped to `ScreenRecorder.targetMonitor` — never off `state`,
+which never equals them.
+Search has one owner monitor because `Launcher` is a singleton; opening it on
+another monitor moves the search session there. Control, wallpaper, and player
+have separate state on each monitor; their per-bar buttons, hover/Esc handlers,
+and IPC toggles must pass that monitor through.
 
 Rules that bite:
 - `left`/`right` open **simultaneously** — no mutual exclusion. The main pill
@@ -58,9 +66,9 @@ Rules that bite:
   0.96-scale recipe as main-stack islands, `openT` set discretely and
   animated inside the clip; the islands' own `expand` stays dormant at 1
   so exactly one unfold plays.
-- Closing a side pill never fires `BarState.onStateChanged` (resolved state
-  doesn't move) — close-guards must listen to `onLeftOpenChanged`
-  (see `BooruViewer` dialog) instead of `onStateChanged`.
+- Closing a side pill does not change the main pill's resolved state —
+  close-guards must listen to `onPanelStatesByMonitorChanged` and check
+  `isOpenFor()` (see `BooruViewer` dialog) instead of `onStateChanged`.
 - `default` is the permanent base and cannot be deactivated. `expanded`/`compact` are
   legacy aliases for `default`.
 - Omit `holdMs` (or `0`) = persistent until explicitly deactivated. `holdMs > 0` = auto-deactivate timer.
@@ -81,11 +89,13 @@ left/right islands live in **side pills** flanking it
 
 | Island | State | Body |
 |---|---|---|
-| `LeftIsland.qml` | side pill (`BarState.leftOpen` flag) | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4); cached `Loader` owned by `leftPanelPill` |
-| `RightIsland.qml` | side pill (`BarState.rightOpen` flag) | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll; cached `Loader` owned by `rightPanelPill` |
-| `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | `search` | Launcher results (input lives in the island, results in the panel) |
-| `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) / `PlayerIsland` (`widgets/media/MediaWidget.qml`) / `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `SystemMonitorIsland` | pulses | Transient/utility pages — **all** islands now carry an `expand` 0→1 driver + `IslandExpandClip` unfold (Player/Weather/System/Overview/Recording gained it 2026-09-21; previously static snap + hover timer only) |
-| `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) | `wallpaper` (cached) | Heavy switcher: `wallpaperPrimed` latch + `wallpaperCacheLoader` in the `Bar.qml` stack (created once, visibility-toggled) so image decodes, aspect caches and scroll survive closes; no refetch on reopen |
+| `LeftIsland.qml` | monitor-scoped side pill (`isOpenFor("left", monitorName)`) | Former left panel via `StackLayout` of lazy `Loader`s (see 1.4); cached `Loader` owned by `leftPanelPill` |
+| `RightIsland.qml` | monitor-scoped side pill (`isOpenFor("right", monitorName)`) | Enabled `Settings.rightPanelWidgets`, outer `SmoothFlickable` + per-widget inner scroll; cached `Loader` owned by `rightPanelPill` |
+| `SearchIsland.qml` + `widgets/launcher/LauncherPanel.qml` | monitor-scoped `search` | Launcher results (input lives in the island, results in the panel) |
+| `ControlIsland` (`widgets/controlPanel/ControlPanelBody.qml`) | monitor-scoped `control` | Quick settings; display brightness reads/writes the island's monitor |
+| `PlayerIsland` (`widgets/media/MediaWidget.qml`) | monitor-scoped `player` pulse | Track-change reveals target the focused monitor; hover/click reveals target the bar under the pointer |
+| `WeatherIsland` (`widgets/weather/WeatherCard.qml`) / `SystemMonitorIsland` | pulses | Transient/utility pages — **all** islands now carry an `expand` 0→1 driver + `IslandExpandClip` unfold (Player/Weather/System/Overview/Recording gained it 2026-09-21; previously static snap + hover timer only) |
+| `WallpaperIsland` (`widgets/wallpaperPanel/WallpaperPanelBody.qml`) | monitor-scoped `wallpaper` (cached) | Heavy switcher: `wallpaperPrimed` latch + `wallpaperCacheLoader` in the `Bar.qml` stack (created once, visibility-toggled) so image decodes, aspect caches and scroll survive closes; no refetch on reopen |
 
 Shared island helpers (`widgets/bar/islands/`, module `qs.widgets.bar.islands`):
 
@@ -132,12 +142,12 @@ All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb
 |---|---|
 | `BarState` | Pill state machine (1.2) |
 | `Registry` | Island/window handle map (`left-island-<mon>`, `lock-screen`); `selectLeftTab()` |
-| `Ipc` (non-singleton) | `qs ipc call …` targets: `toggleSearch/Control/Wallpaper/Bar/LeftPanel/RightPanel/Panel`, `showWidget`, `screenrecord <mode>`, `lock …`, `clipboard event`; `brightness increment/decrement/adjust <±N>/set <N>/get` (focused monitor) |
+| `Ipc` (non-singleton) | `qs ipc call …` targets: `toggleSearch/Control/Wallpaper/Bar/LeftPanel/RightPanel/Panel`, `showWidget`, `screenrecord <mode> <monitor>`, `lock …`, `clipboard event`; brightness `incrementFor/decrementFor <monitor>` plus focused-monitor `increment/decrement/adjust/set/get` |
 | `Launcher` | Query pipeline (`cb/note/apps/emoji/translate/units/arithmetic/URL/>palette/fuzzy`), `results`, `selectedIndex`, `quickAppOrder` + history files under `~/.cache/quickshell/launcher/` (`cb` binds `ClipboardService.history` live — never file-watch it, rename-replace freezes the watch) |
 | `ScreenRecorder` | `wf-recorder` via `~/.config/hypr/scripts/screenrecord.sh`; `isRecording` is **polled** (`pgrep`, 1s) + 1.2s settle — lags reality ~2s, never use it for rapid toggle decisions |
 | `Notifications` | Daemon mirror: ephemeral `popupToasts` vs retained `history`; `Recorder` toasts get red-dot treatment |
 | `Settings` | Persisted config (`theme/Settings.qml`, ~1270 lines): bar/panel geometry, hotzones, `revealPressure`, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
-| `Brightness` | Focused-monitor brightness: internal backlight via `brightnessctl` (inotify), external monitors via DDC/CI `ddcutil` (detected at boot + on screen hotplug). Optimistic `screen`, **coalesced** ddcutil writes (one process at a time, latest value wins) so held keys never pile up; `adjusted()` signal (not `screenChanged`) drives OSD pulses |
+| `Brightness` | Focused-monitor brightness for keybinds; `screenFor/setScreen` also target a named monitor for quick settings. Internal backlight via `brightnessctl` (inotify), external monitors via DDC/CI `ddcutil` (detected at boot + on screen hotplug). Optimistic `screen`, **coalesced** ddcutil writes (one process at a time, latest value wins) so held keys never pile up; `adjusted(monitorName)` signal (not `screenChanged`) drives that monitor's OSD pulse |
 | `Weather, KeyboardLayout, SysInfo, VolumeWatcher` | Device/API polling singletons (`Weather` owns `fmt/fmtRaw/formatTime/formatDate` for `WeatherCard`; `SysInfo.bandwidth` is the single `bandwidth-loop` owner bound by `Bandwidth`) |
 | `FastfetchPins, AutoWorkspaceSwitching, GlobalTheme, UserProfileState` | Boot/prefs singletons: pins self-heal + watcher, workspace auto-switch, global theme bridge, profile cache |
 | `BooruActions, Supabase, WorkspaceIcons` | Domain helpers: booru download/fav actions, Supabase client config, workspace glyph map |
@@ -262,9 +272,15 @@ wrappers. Rules:
    quickshell types aren't visible to standalone lint. Real gate is a `bar.lua`
    restart + clean `/tmp/qs-bar-$USER.log`. Files without `qs.*` imports must
    still exit 0.
-10. **Headless transition tests via IPC.** No keypress needed:
-   `qs -p ~/.config/quickshell/archeclipse ipc call bar toggleSearch|toggleControl|toggleOverview|toggleWallpaper|toggleLeftPanel|toggleRightPanel <mon>|pulseNetwork`
-   + `barDiag state`; then grep the boot log for `typeerror|referenceerror`.
+10. **Headless state checks via IPC.** No keypress needed:
+   `qs -p ~/.config/quickshell/archeclipse ipc call bar toggleSearch <mon>`
+   (also `toggleLeftPanel <mon>` / `toggleRightPanel <mon>` and
+   `togglePanel wallpaper-switcher <mon>`, `togglePanel media-panel <mon>`,
+   and `togglePanel user-panel <mon>`) take a monitor name. The latter opens
+   the left panel on the `UserProfile` tab. Direct
+   `toggleControl` and `toggleWallpaper` IPC calls use the focused monitor;
+   `toggleOverview` and `pulseNetwork` remain shared. Then query `barDiag
+   state` and grep the boot log for `typeerror|referenceerror`.
    Control auto-closes ~1s after open (HoverPin grace, never hovered) — a second
    `toggleControl` printing "open" again is the pin timer, not a stuck state.
 
