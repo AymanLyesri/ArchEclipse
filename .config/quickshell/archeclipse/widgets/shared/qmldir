@@ -12,6 +12,7 @@ AppImage 1.0 AppImage.qml
 AppVideo 1.0 AppVideo.qml
 AppBadge 1.0 AppBadge.qml
 AppCheckBox 1.0 AppCheckBox.qml
+AppToggle 1.0 AppToggle.qml
 AppSpinBox 1.0 AppSpinBox.qml
 AppComboBox 1.0 AppComboBox.qml
 AppTextField 1.0 AppTextField.qml
@@ -25,6 +26,7 @@ AppSegmentedControl 1.0 AppSegmentedControl.qml
 AppProgress 1.0 AppProgress.qml
 AppTooltip 1.0 AppTooltip.qml
 SettingLabel 1.0 SettingLabel.qml
+SettingRow 1.0 SettingRow.qml
 Card 1.0 Card.qml
 PillBackground 1.0 PillBackground.qml
 SystemResourcesContent 1.0 SystemResourcesContent.qml

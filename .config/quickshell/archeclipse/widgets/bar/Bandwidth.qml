@@ -157,14 +157,14 @@ Item {
             // Upload (tx) — b[0]
             Row {
                 spacing: 1
-            Text {
-                text: root.uploadSpeed
-                color: Theme.fg
-                font.pixelSize: Theme.fontSizeCaption
-                font.family: Theme.fontFamily
-                // Fixed ASCII digits+units, repainted every second — skip HarfBuzz.
-                font.preferShaping: false
-            }
+                Text {
+                    text: root.uploadSpeed
+                    color: Theme.fg
+                    font.pixelSize: Theme.fontSizeCaption
+                    font.family: Theme.fontFamily
+                    // Fixed ASCII digits+units, repainted every second — skip HarfBuzz.
+                    font.preferShaping: false
+                }
                 Text {
                     text: "\u{F062}"
                     color: Theme.accent

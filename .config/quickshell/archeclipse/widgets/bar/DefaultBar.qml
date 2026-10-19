@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import qs.theme
 import qs.services
 import qs.widgets.bar
+import qs.widgets.shared
 
 // Center section (ex-Information) is inlined here directly:
 // launcher + focused window title on the left; center rectangle with
@@ -89,20 +90,35 @@ Column {
         height: Theme.barContentHeight
 
         // Center rectangle — bandwidth on the left, control panel
-        // button dead-center, clock on the right.
-        Rectangle {
+        // button dead-center, clock on the right. No top margin: the
+        // body reaches the bar's screen-edge wall, traced by
+        // PillBackground as one fill (straight wall edge + concave
+        // inverted corners, rounded lower corners like before).
+        Item {
             id: centerPill
+            // Gap between the content row and the pill's wall = the
+            // stack's per-state outer inset (only shown for states that
+            // render this bar, which all keep the default 4).
+            readonly property real edgePad: root.barStack ? root.barStack.effPad : 0
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
+            // Bottom stays on the content line; the growth goes toward
+            // the wall (up for a top bar, mirrored down).
+            anchors.verticalCenterOffset: (Settings.barOrientation ? -1 : 1) * edgePad / 2
             width: centerRow.implicitWidth + 20
-            height: Theme.barContentHeight
-            radius: Theme.radius
-            color: Theme.surface
+            height: Theme.barContentHeight + edgePad
+
+            PillBackground {
+                topBar: Settings.barOrientation
+                bodyWidth: centerPill.width
+                bodyHeight: centerPill.height
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
 
             Row {
                 id: centerRow
                 anchors.centerIn: parent
-                spacing: Theme.spacing
+                spacing: Theme.spacing / 2
                 height: parent.height
                 // Equal-width side cells so the control button stays
                 // dead-center relative to the whole bar even when
@@ -115,7 +131,7 @@ Column {
                     height: parent.height
                     Row {
                         id: bandwidthRow
-                        spacing: Theme.spacing
+                        spacing: Theme.spacing / 2
                         anchors.centerIn: parent
                         Text {
                             anchors.verticalCenter: parent.verticalCenter

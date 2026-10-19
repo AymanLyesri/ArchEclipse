@@ -91,8 +91,8 @@ Item {
     readonly property bool popupOpen: volSection.popupCount > 0
 
     // ---- content: two columns ----
-    // Left: volume + connectivity sections (own files).
-    // Right: action grid + brightness + power profile.
+    // Left: volume + connectivity sections (own files) + brightness + power.
+    // Right: action grid.
     Row {
         id: contentRow
         anchors.top: parent.top
@@ -116,86 +116,6 @@ Item {
 
             ConnectivitySection {
                 width: parent.width
-            }
-        }
-
-        // ===== Right column: actions + brightness + power =====
-        Column {
-            id: rightCol
-            width: (parent.width - parent.spacing) / 2
-            spacing: Theme.spacing
-
-            // ===== Action buttons (shared AppButton cells, 2x2) =====
-            Grid {
-                width: parent.width
-                columns: 2
-                columnSpacing: Theme.spacing
-                rowSpacing: Theme.spacing
-                // Theme toggle
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: GlobalTheme.currentTheme ? "\uf185" : "\uf186"
-                    pixelSize: Theme.fontSize + 2
-                    tooltipText: GlobalTheme.currentTheme ? "Switch to Light Theme" : "Switch to Dark Theme"
-                    onClicked: GlobalTheme.setTheme(!GlobalTheme.currentTheme)
-                }
-                // DND toggle
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: Settings.notifDnd ? "\uf1f6" : "\uf0f3"
-                    pixelSize: Theme.fontSize + 2
-                    toggle: true
-                    checked: Settings.notifDnd || body.dndPing
-                    tooltipText: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
-                    onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd)
-                }
-                // Game Mode: always applies the Hyprland preset; gamemoded and
-                // powerprofilesctl are optional integrations.
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: "\u{F11B}"
-                    pixelSize: Theme.fontSize + 2
-                    toggle: true
-                    checked: Settings.gameModeEnabled
-                    tooltipText: Settings.gameModeEnabled ? "Disable Game Mode" : "Enable Game Mode"
-                    onClicked: Settings.applyGameMode(!Settings.gameModeEnabled)
-                }
-                // Blue light filter (hyprsunset). Temperature lives in
-                // Settings.blueLightTemperature (settings key blueLight.temperature).
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: "\uf0eb"
-                    pixelSize: Theme.fontSize + 2
-                    toggle: true
-                    checked: Settings.blueLightEnabled
-                    tooltipText: (Settings.blueLightEnabled ? "Disable Blue Light Filter" : "Enable Blue Light Filter (" + Settings.blueLightTemperature + "K)")
-                        + (Settings.blueLightAuto ? "\nAuto: " + Settings.blueLightStart + " \u2013 " + Settings.blueLightEnd : "")
-                    onClicked: Settings.applyBlueLight(!Settings.blueLightEnabled)
-                }
-                // Keyboard layout — shows the current layout code, click cycles
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    text: KeyboardLayout.layout
-                    visible: KeyboardLayout.layout !== ""
-                    pixelSize: Theme.fontSize + 2
-                    tooltipText: (KeyboardLayout.layoutName || "Keyboard Layout") + "\nClick to switch layout"
-                    onClicked: KeyboardLayout.nextLayout()
-                }
             }
 
             // ===== Brightness =====
@@ -286,6 +206,86 @@ Item {
                     ]
                     currentIndex: body.powerIndex
                     onActivated: (i, v) => PowerProfiles.profile = v
+                }
+            }
+        }
+
+        // ===== Right column: action grid =====
+        Column {
+            id: rightCol
+            width: (parent.width - parent.spacing) / 2
+            spacing: Theme.spacing
+
+            // ===== Action buttons (shared AppButton cells, 2x2) =====
+            Grid {
+                width: parent.width
+                columns: 2
+                columnSpacing: Theme.spacing
+                rowSpacing: Theme.spacing
+                // Theme toggle
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: GlobalTheme.currentTheme ? "\uf185" : "\uf186"
+                    pixelSize: Theme.fontSize + 2
+                    tooltipText: GlobalTheme.currentTheme ? "Switch to Light Theme" : "Switch to Dark Theme"
+                    onClicked: GlobalTheme.setTheme(!GlobalTheme.currentTheme)
+                }
+                // DND toggle
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: Settings.notifDnd ? "\uf1f6" : "\uf0f3"
+                    pixelSize: Theme.fontSize + 2
+                    toggle: true
+                    checked: Settings.notifDnd || body.dndPing
+                    tooltipText: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
+                    onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd)
+                }
+                // Game Mode: always applies the Hyprland preset; gamemoded and
+                // powerprofilesctl are optional integrations.
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: "\u{F11B}"
+                    pixelSize: Theme.fontSize + 2
+                    toggle: true
+                    checked: Settings.gameModeEnabled
+                    tooltipText: Settings.gameModeEnabled ? "Disable Game Mode" : "Enable Game Mode"
+                    onClicked: Settings.applyGameMode(!Settings.gameModeEnabled)
+                }
+                // Blue light filter (hyprsunset). Temperature lives in
+                // Settings.blueLightTemperature (settings key blueLight.temperature).
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    icon: "\uf0eb"
+                    pixelSize: Theme.fontSize + 2
+                    toggle: true
+                    checked: Settings.blueLightEnabled
+                    tooltipText: (Settings.blueLightEnabled ? "Disable Blue Light Filter" : "Enable Blue Light Filter (" + Settings.blueLightTemperature + "K)")
+                        + (Settings.blueLightAuto ? "\nAuto: " + Settings.blueLightStart + " \u2013 " + Settings.blueLightEnd : "")
+                    onClicked: Settings.applyBlueLight(!Settings.blueLightEnabled)
+                }
+                // Keyboard layout — shows the current layout code, click cycles
+                AppButton {
+                    width: (parent.width - parent.columnSpacing) / 2
+                    height: 46
+                    cornerRadius: Theme.radius
+                    idleBg: Theme.surface
+                    text: KeyboardLayout.layout
+                    visible: KeyboardLayout.layout !== ""
+                    pixelSize: Theme.fontSize + 2
+                    tooltipText: (KeyboardLayout.layoutName || "Keyboard Layout") + "\nClick to switch layout"
+                    onClicked: KeyboardLayout.nextLayout()
                 }
             }
         }

@@ -160,14 +160,9 @@ Item {
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Orientation"
-                                    tip: "Top or bottom edge for the bar."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Orientation"
+                                tip: "Top or bottom edge for the bar."
                                 AppComboBox {
                                     model: ["Top", "Bottom"]
                                     currentIndex: Settings.barOrientation ? 0 : 1
@@ -175,40 +170,25 @@ Item {
                                     Layout.preferredWidth: 160
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Lock Bar"
-                                    tip: "Keep bar visible; when off it auto-hides."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Lock Bar"
+                                tip: "Keep bar visible; when off it auto-hides."
+                                AppToggle {
                                     checked: Settings.barLock
                                     onToggled: Settings.barLock = checked
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Always Expanded"
-                                    tip: "Show full bar content instead of collapsed."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Always Expanded"
+                                tip: "Show full bar content instead of collapsed."
+                                AppToggle {
                                     checked: Settings.barDefault
                                     onToggled: Settings.barDefault = checked
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Reveal-In Pressure"
-                                    tip: "Cursor push needed to reveal a hidden bar."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Reveal-In Pressure"
+                                tip: "Cursor push needed to reveal a hidden bar."
                                 AppSpinBox {
                                     from: 0
                                     to: 5000
@@ -221,14 +201,9 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Reveal-Out Pressure"
-                                    tip: "Cursor push needed to hide the bar."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Reveal-Out Pressure"
+                                tip: "Cursor push needed to hide the bar."
                                 AppSpinBox {
                                     from: 0
                                     to: 5000
@@ -276,14 +251,9 @@ Item {
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Left Panel Width"
-                                    tip: "Width of the left side panel on this monitor in px."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Left Panel Width"
+                                tip: "Width of the left side panel on this monitor in px."
                                 AppSpinBox {
                                     from: 200
                                     to: 1500
@@ -296,14 +266,9 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Right Panel Width"
-                                    tip: "Width of the right side panel on this monitor in px."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Right Panel Width"
+                                tip: "Width of the right side panel on this monitor in px."
                                 AppSpinBox {
                                     from: 200
                                     to: 1500
@@ -316,40 +281,25 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Left Panel Hot Zone"
-                                    tip: "Hover the left edge to open the left panel."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Left Panel Hot Zone"
+                                tip: "Hover the left edge to open the left panel."
+                                AppToggle {
                                     checked: Settings.leftPanelHotZone
                                     onToggled: Settings.leftPanelHotZone = checked
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Right Panel Hot Zone"
-                                    tip: "Hover the right edge to open the right panel."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Right Panel Hot Zone"
+                                tip: "Hover the right edge to open the right panel."
+                                AppToggle {
                                     checked: Settings.rightPanelHotZone
                                     onToggled: Settings.rightPanelHotZone = checked
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Left Hot Zone Size"
-                                    tip: "Hover strip width on the left edge in px."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Left Hot Zone Size"
+                                tip: "Hover strip width on the left edge in px."
                                 AppSpinBox {
                                     from: 1
                                     to: 50
@@ -362,14 +312,9 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Right Hot Zone Size"
-                                    tip: "Hover strip width on the right edge in px."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Right Hot Zone Size"
+                                tip: "Hover strip width on the right edge in px."
                                 AppSpinBox {
                                     from: 1
                                     to: 50
@@ -422,15 +367,10 @@ Item {
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Dynamic Theme Colors"
-                                    tip: "Recolor the theme from the wallpaper."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Dynamic Theme Colors"
+                                tip: "Recolor the theme from the wallpaper."
+                                AppToggle {
                                     checked: Settings.dynamicThemeColors
                                     onToggled: {
                                         Settings.dynamicThemeColors = checked;
@@ -438,15 +378,10 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Dynamic Theme Variants"
-                                    tip: "Switch light/dark variant from wallpaper."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Dynamic Theme Variants"
+                                tip: "Switch light/dark variant from wallpaper."
+                                AppToggle {
                                     checked: Settings.dynamicThemeVariants
                                     onToggled: {
                                         Settings.dynamicThemeVariants = checked;
@@ -454,27 +389,17 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Blur"
-                                    tip: "Blur the background behind the bar."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Blur"
+                                tip: "Blur the background behind the bar."
+                                AppToggle {
                                     checked: Settings.barBlur
                                     onToggled: Settings.barBlur = checked
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Blur Size"
-                                    tip: "Blur radius; higher is softer."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Blur Size"
+                                tip: "Blur radius; higher is softer."
                                 AppSpinBox {
                                     from: 1
                                     to: 20
@@ -487,14 +412,9 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Blur Passes"
-                                    tip: "Blur quality passes; higher costs GPU."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Blur Passes"
+                                tip: "Blur quality passes; higher costs GPU."
                                 AppSpinBox {
                                     from: 1
                                     to: 10
@@ -542,14 +462,9 @@ Item {
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Opacity"
-                                    tip: "Shell opacity; 1 is fully opaque."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Opacity"
+                                tip: "Shell opacity; 1 is fully opaque."
                                 AppSlider {
                                     from: 0
                                     to: 1
@@ -570,14 +485,9 @@ Item {
                                     horizontalAlignment: Text.AlignRight
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Scale"
-                                    tip: "Global UI scale factor."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Scale"
+                                tip: "Global UI scale factor."
                                 AppSpinBox {
                                     from: 10
                                     to: 30
@@ -590,14 +500,9 @@ Item {
                                     }
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Font Size"
-                                    tip: "Base font size for shell text."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Font Size"
+                                tip: "Base font size for shell text."
                                 AppSpinBox {
                                     from: 10
                                     to: 30
@@ -648,27 +553,17 @@ Item {
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Enabled"
-                                    tip: "Turn all shell animations on or off."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Enabled"
+                                tip: "Turn all shell animations on or off."
+                                AppToggle {
                                     checked: Settings.animationsEnabled
                                     onToggled: Settings.animationsEnabled = checked
                                 }
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Speed"
-                                    tip: "Duration multiplier; lower is faster."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Speed"
+                                tip: "Duration multiplier; lower is faster."
                                 AppSlider {
                                     from: 0.2
                                     to: 2.0
@@ -697,14 +592,9 @@ Item {
                                 color: Theme.fgDim
                                 font.pixelSize: Theme.fontSize - 1
                             }
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Island Style"
-                                    tip: "Motion style used by bar islands."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Island Style"
+                                tip: "Motion style used by bar islands."
                                 AppComboBox {
                                     model: animSec.styleLabels
                                     currentIndex: Math.max(0, animSec.styleValues.indexOf(Settings.islandAnimStyle))
@@ -958,19 +848,12 @@ Item {
                             }
                             // ChatBot reply notifications (replies stay in the
                             // tab unless this is on; errors always notify).
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                AppCheckBox {
-                                    id: notifyCheck
-                                    Layout.fillWidth: true
-                                    text: "Notify on chatbot reply"
+                            SettingRow {
+                                text: "Notify on chatbot reply"
+                                tip: "Pop a notification when the chatbot replies."
+                                AppToggle {
                                     checked: Settings.chatBotNotify
-                                    onCheckedChanged: Settings.chatBotNotify = checked
-                                    AppTooltip {
-                                        visible: notifyCheck.hovered
-                                        text: "<b>Notify on chatbot reply</b><br>Pop a notification when the chatbot replies."
-                                    }
+                                    onToggled: Settings.chatBotNotify = checked
                                 }
                             }
                         }
@@ -1010,15 +893,10 @@ Item {
                             Repeater {
                                 id: fmRepeater
                                 model: root.fileManagerOptions.length ? root.fileManagerOptions : root.allFileManagers
-                                delegate: RowLayout {
-                                    width: parent.width
-                                    spacing: Theme.spacing
-                                    SettingLabel {
-                                        text: modelData.name
-                                        tip: "Use " + modelData.name + " as the default file manager."
-                                        Layout.fillWidth: true
-                                    }
-                                    AppCheckBox {
+                                delegate: SettingRow {
+                                    text: modelData.name
+                                    tip: "Use " + modelData.name + " as the default file manager."
+                                    AppToggle {
                                         checked: Settings.fileManager === modelData.id
                                         onToggled: {
                                             if (checked) {
@@ -1069,44 +947,29 @@ Item {
                             spacing: Theme.spacing
 
                             // Game Mode
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Game Mode"
-                                    tip: "Disable blur and animations for performance."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Game Mode"
+                                tip: "Disable blur and animations for performance."
+                                AppToggle {
                                     checked: Settings.gameModeEnabled
                                     onToggled: Settings.applyGameMode(checked)
                                 }
                             }
 
                             // Blue light filter (hyprsunset)
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Blue Light Filter"
-                                    tip: "Warm tint for eyes via hyprsunset."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Blue Light Filter"
+                                tip: "Warm tint for eyes via hyprsunset."
+                                AppToggle {
                                     checked: Settings.blueLightEnabled
                                     onToggled: Settings.applyBlueLight(checked)
                                 }
                             }
 
                             // Blue light: temperature (Kelvin, lower = warmer)
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Blue Light: Temperature (K)"
-                                    tip: "Tint warmth in Kelvin; lower is warmer."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Blue Light: Temperature (K)"
+                                tip: "Tint warmth in Kelvin; lower is warmer."
                                 AppSpinBox {
                                     from: 1000
                                     to: 6500
@@ -1117,18 +980,13 @@ Item {
                                 }
                             }
 
-                            // Blue light: auto mode — checkbox + "from – to" time in ONE row
-                            // (checkbox toggles the schedule; the times stay editable
+                            // Blue light: auto mode — toggle + "from – to" time in ONE row
+                            // (the toggle drives the schedule; the times stay editable
                             // when it is off so they can be preset)
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Blue Light: Auto Mode"
-                                    tip: "Run the blue-light filter on a schedule."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Blue Light: Auto Mode"
+                                tip: "Run the blue-light filter on a schedule."
+                                AppToggle {
                                     checked: Settings.blueLightAuto
                                     onToggled: Settings.blueLightAuto = checked
                                 }
@@ -1192,14 +1050,10 @@ Item {
                             }
 
                             // Decoration: Rounding
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Rounding"
-                                    tip: "Window corner radius in px."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "Decoration: Rounding"
+                                tip: "Window corner radius in px."
+                                labelWidth: 170
                                 AppSlider {
                                     id: hypRounding
                                     from: 0
@@ -1222,15 +1076,10 @@ Item {
                                 }
                             }
                             // Decoration: Blur Enabled
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Blur Enabled"
-                                    tip: "Hyprland blur behind windows."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Decoration: Blur Enabled"
+                                tip: "Hyprland blur behind windows."
+                                AppToggle {
                                     checked: root.hyprGet("decoration.blur.enabled")
                                     onToggled: {
                                         root.hyprSet("decoration.blur.enabled", checked);
@@ -1239,14 +1088,10 @@ Item {
                                 }
                             }
                             // Decoration: Blur Size
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Blur Size"
-                                    tip: "Hyprland blur radius."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "Decoration: Blur Size"
+                                tip: "Hyprland blur radius."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 10
@@ -1268,14 +1113,10 @@ Item {
                                 }
                             }
                             // Decoration: Blur Passes
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Blur Passes"
-                                    tip: "Hyprland blur quality passes."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "Decoration: Blur Passes"
+                                tip: "Hyprland blur quality passes."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 10
@@ -1297,15 +1138,10 @@ Item {
                                 }
                             }
                             // Decoration: Blur Xray
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Blur Xray"
-                                    tip: "Blur behind windows even when fullscreen."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Decoration: Blur Xray"
+                                tip: "Blur behind windows even when fullscreen."
+                                AppToggle {
                                     checked: root.hyprGet("decoration.blur.xray")
                                     onToggled: {
                                         root.hyprSet("decoration.blur.xray", checked);
@@ -1314,15 +1150,10 @@ Item {
                                 }
                             }
                             // Decoration: Shadow Enabled
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Shadow Enabled"
-                                    tip: "Draw Hyprland window shadows."
-                                    Layout.fillWidth: true
-                                }
-                                AppCheckBox {
+                            SettingRow {
+                                text: "Decoration: Shadow Enabled"
+                                tip: "Draw Hyprland window shadows."
+                                AppToggle {
                                     checked: root.hyprGet("decoration.shadow.enabled")
                                     onToggled: {
                                         root.hyprSet("decoration.shadow.enabled", checked);
@@ -1331,14 +1162,10 @@ Item {
                                 }
                             }
                             // Decoration: Shadow Range
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Shadow Range"
-                                    tip: "Shadow spread distance in px."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "Decoration: Shadow Range"
+                                tip: "Shadow spread distance in px."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 20
@@ -1360,14 +1187,10 @@ Item {
                                 }
                             }
                             // Decoration: Shadow Render Power
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Shadow Render Power"
-                                    tip: "Shadow softness and strength."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "Shadow Render Power"
+                                tip: "Shadow softness and strength."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 20
@@ -1389,14 +1212,10 @@ Item {
                                 }
                             }
                             // General: Border Size
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "General: Border Size"
-                                    tip: "Window border thickness in px."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "General: Border Size"
+                                tip: "Window border thickness in px."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 10
@@ -1418,14 +1237,10 @@ Item {
                                 }
                             }
                             // General: Gaps In
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "General: Gaps In"
-                                    tip: "Gap between windows in px."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "General: Gaps In"
+                                tip: "Gap between windows in px."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 20
@@ -1447,14 +1262,10 @@ Item {
                                 }
                             }
                             // General: Gaps Out
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "General: Gaps Out"
-                                    tip: "Gap between windows and screen edge."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "General: Gaps Out"
+                                tip: "Gap between windows and screen edge."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 40
@@ -1476,14 +1287,10 @@ Item {
                                 }
                             }
                             // Decoration: Active Opacity (float)
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Active Opacity"
-                                    tip: "Opacity of the focused window."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "Decoration: Active Opacity"
+                                tip: "Opacity of the focused window."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 1
@@ -1506,14 +1313,10 @@ Item {
                                 }
                             }
                             // Decoration: Inactive Opacity (float)
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Decoration: Inactive Opacity"
-                                    tip: "Opacity of unfocused windows."
-                                    Layout.preferredWidth: 170
-                                }
+                            SettingRow {
+                                text: "Decoration: Inactive Opacity"
+                                tip: "Opacity of unfocused windows."
+                                labelWidth: 170
                                 AppSlider {
                                     from: 0
                                     to: 1
@@ -1587,14 +1390,9 @@ Item {
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                SettingLabel {
-                                    text: "Grace Period (seconds)"
-                                    tip: "Time Esc unlocks without a password."
-                                    Layout.fillWidth: true
-                                }
+                            SettingRow {
+                                text: "Grace Period (seconds)"
+                                tip: "Time Esc unlocks without a password."
                                 AppSpinBox {
                                     from: 0
                                     to: 120
@@ -1843,12 +1641,14 @@ Item {
 
     // Apply single Hyprland setting immediately (live): nested-table lua
     // file per key (`${fullKey}.lua`) + instant
-    // `hyprctl keyword`.
+    // `hyprctl eval` (hyprctl keyword is rejected on Lua-parser builds
+    // 0.56+: "keyword can't work with non-legacy parsers").
     function applyHyprlandSettingLive(fullKey, value) {
         const keyword = fullKey.replace(/\./g, ":");
+        const fileName = fullKey.replace(/\./g, "_");
         const luaConfig = root.buildLuaConfig(keyword, value);
         try {
-            Quickshell.execDetached(["bash", "-c", `mkdir -p $HOME/.config/hypr/config/custom && ` + `cat > $HOME/.config/hypr/config/custom/${keyword}.lua <<'EOF'\n${luaConfig}\nEOF\n` + `hyprctl keyword ${keyword} ${value}`]);
+            Quickshell.execDetached(["bash", "-c", `mkdir -p $HOME/.config/hypr/config/custom && ` + `cat > $HOME/.config/hypr/config/custom/${fileName}.lua <<'EOF'\n${luaConfig}\nEOF\n` + `hyprctl eval '${luaConfig}'`]);
         } catch (e) {
             console.warn("[Settings] apply live:", e);
         }
@@ -1875,7 +1675,7 @@ Item {
             for (const [full, v] of leaves) {
                 const keyword = full.replace(/\./g, ":");
                 const lua = root.buildLuaConfig(keyword, v);
-                script += ` && cat > $HOME/.config/hypr/config/custom/${keyword}.lua <<'EOF'\n${lua}\nEOF\n`;
+                script += ` && cat > $HOME/.config/hypr/config/custom/${full.replace(/\./g, "_")}.lua <<'EOF'\n${lua}\nEOF\n`;
             }
             script += " && hyprctl reload";
             Quickshell.execDetached(["bash", "-c", script]);
