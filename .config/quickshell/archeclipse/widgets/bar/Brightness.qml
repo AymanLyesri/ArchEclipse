@@ -81,6 +81,7 @@ Rectangle {
             color: Theme.fg
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
+            font.preferShaping: false
         }
         AppSlider {
             id: briSlider

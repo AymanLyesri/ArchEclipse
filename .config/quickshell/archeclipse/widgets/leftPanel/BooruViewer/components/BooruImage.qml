@@ -48,6 +48,10 @@ Rectangle {
         id: previewImg
         anchors.fill: parent
 
+        // Bound the decode to display size — previews can carry full-scale
+        // source pixels; decoding those for a grid card wastes memory.
+        sourceWidth: parent.width
+
         source: viewer.gridSource(image)
         badges: {
             if (!viewer || !image)

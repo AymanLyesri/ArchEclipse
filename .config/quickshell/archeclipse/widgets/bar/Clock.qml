@@ -55,6 +55,7 @@ Rectangle {
             color: Theme.fg
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
+            font.preferShaping: false
         }
 
         // Revealer: clipped date expands on hover, collapses on leave.
@@ -80,6 +81,7 @@ Rectangle {
                 color: Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize
+                font.preferShaping: false
             }
         }
     }

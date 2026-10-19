@@ -189,6 +189,11 @@ Item {
     // api:id per _revealTimer tick so cards pop in sequentially instead of
     // bursting all at once.
     property var revealedIds: ({})
+
+    // Bumped on every reveal mutation: isRevealed() reads it so delegate
+    // bindings re-evaluate without reassigning the whole ids object.
+    property int revealVersion: 0
+    property int _revealIdx: 0
     property var _revealQueue: []
     // Local full-image ids verified present on disk (dialog cache).
     // Keys are api:id. Remote danbooru URLs 403 inside Qt, so the dialog
@@ -830,12 +835,17 @@ Item {
     }
 
     function isRevealed(img) {
-        return !!img && !!root.revealedIds[BooruUtils.cacheKey(img)];
+        if (!img)
+            return false;
+        // Dependency marker: bump along with the ids map above.
+        void root.revealVersion;
+        return !!root.revealedIds[BooruUtils.cacheKey(img)];
     }
 
     function resetReveal() {
         root.revealedIds = ({});
         root._revealQueue = [];
+        root._revealIdx = 0;
     }
 
     // Scan images in order; anything cached/downloaded but neither
@@ -1168,22 +1178,23 @@ Item {
         interval: 45
         repeat: true
         onTriggered: {
-            // Drain one card per tick: the sequential pop-in.
+            // Drain one card per tick: the sequential pop-in. An index
+            // pointer instead of slice()-per-tick — the queue only ever
+            // grows here, so nothing needs un-draining.
             const q = root._revealQueue || [];
-            if (q.length === 0) {
+            if (root._revealIdx >= q.length) {
                 _revealTimer.stop();
                 return;
             }
-            const key = q[0];
-            root._revealQueue = q.slice(1);
+            const key = String(q[root._revealIdx]);
+            root._revealIdx = root._revealIdx + 1;
             // Skip keys that vanished from the current result set.
-            const stillThere = (root.images || []).some(img => img && BooruUtils.cacheKey(img) === String(key));
+            const stillThere = (root.images || []).some(img => img && BooruUtils.cacheKey(img) === key);
             if (!stillThere)
                 return;
-            const ids = Object.assign({}, root.revealedIds);
-            ids[String(key)] = true;
-            root.revealedIds = ids;
-            if (root._revealQueue.length === 0)
+            root.revealedIds[key] = true;
+            root.revealVersion++;
+            if (root._revealIdx >= q.length)
                 _revealTimer.stop();
         }
     }

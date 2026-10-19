@@ -378,6 +378,8 @@ Item {
                         id: booruLoader
                         active: root.tabPrimed("BooruViewer")
                         sourceComponent: booruComp
+                        // 1-2k-line tab: parse off the UI thread (first click hitch).
+                        asynchronous: true
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         onLoaded: {
@@ -405,6 +407,7 @@ Item {
                         id: chatBotLoader
                         active: root.tabPrimed("ChatBot")
                         sourceComponent: chatBotComp
+                        asynchronous: true
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                     }
@@ -412,6 +415,7 @@ Item {
                         id: mangaLoader
                         active: root.tabPrimed("MangaViewer")
                         sourceComponent: mangaComp
+                        asynchronous: true
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                     }
@@ -419,6 +423,7 @@ Item {
                         id: settingsLoader
                         active: root.tabPrimed("SettingsWidget")
                         sourceComponent: settingsComp
+                        asynchronous: true
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                     }

@@ -418,32 +418,23 @@ Item {
         }
         Component {
             id: calendarWidget
-            CalendarWidget {
-                Layout.fillWidth: true
-            }
+            CalendarWidget {}
         }
         Component {
             id: mediaWidget
-            MediaWidget {
-                Layout.fillWidth: true
-            }
+            MediaWidget {}
         }
         Component {
             id: notificationHistoryWidget
-            NotificationHistoryWidget {
-                Layout.fillWidth: true
-            }
+            NotificationHistoryWidget {}
         }
         Component {
             id: systemResourcesWidget
-            SystemResourcesWidget {
-                Layout.fillWidth: true
-            }
+            SystemResourcesWidget {}
         }
         Component {
             id: waifuWidget
             WaifuWidget {
-                Layout.fillWidth: true
                 monitorName: root.monitorName
             }
         }
