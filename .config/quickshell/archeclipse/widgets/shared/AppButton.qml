@@ -69,6 +69,22 @@ Item {
     implicitWidth: contentRow.implicitWidth + 28
     implicitHeight: 34
 
+    // Keyboard activation: Return/Enter/Space click the cell, one focus
+    // ring style for every button instance in the shell.
+    activeFocusOnTab: true
+    Keys.onReturnPressed: event => {
+        event.accepted = true;
+        root.clicked();
+    }
+    Keys.onEnterPressed: event => {
+        event.accepted = true;
+        root.clicked();
+    }
+    Keys.onSpacePressed: event => {
+        event.accepted = true;
+        root.clicked();
+    }
+
     AppTooltip {
         visible: root.hovered && root.tooltipText !== ""
         text: root.tooltipText
@@ -103,8 +119,12 @@ Item {
                 type: Anim.FastEffects
             }
         }
-        border.width: root.outlined ? 1 : ((root.highlighted || root.dragging) && root.borderedWhenActive ? 1 : 0)
+        border.width: root.activeFocus ? 2 : (root.outlined ? 1 : ((root.highlighted || root.dragging) && root.borderedWhenActive ? 1 : 0))
         border.color: {
+            // Focus ring: accent ring beats every idle/outline border.
+            if (root.activeFocus)
+                return Theme.accent;
+
             if (root.dragging)
                 return Theme.accent;
 

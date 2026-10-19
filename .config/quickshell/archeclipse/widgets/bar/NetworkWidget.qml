@@ -77,14 +77,14 @@ Item {
     Rectangle {
         id: bg
         anchors.fill: parent
-        radius: 8
+        radius: Theme.radius
         color: root.connected ? Theme.surface : Theme.color0
         border.color: Theme.color8
 
         Row {
             anchors.fill: parent
-            spacing: 6
-            anchors.margins: 8
+            spacing: Theme.spacing
+            anchors.margins: Theme.pad
 
             Text {
                 id: netIcon

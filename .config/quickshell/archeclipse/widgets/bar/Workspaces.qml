@@ -494,17 +494,17 @@ Item {
 
                     Behavior on color {
                         ColorAnimation {
-                            duration: 200
+                            duration: Theme.anim.defaultEffects
                         }
                     }
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 200
+                            duration: Theme.anim.defaultEffects
                         }
                     }
                     Behavior on width {
                         NumberAnimation {
-                            duration: 200
+                            duration: Theme.anim.small
                             easing.type: Easing.OutCubic
                         }
                     }
@@ -673,12 +673,12 @@ Item {
 
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 200
+                            duration: Theme.anim.defaultEffects
                         }
                     }
                     Behavior on width {
                         NumberAnimation {
-                            duration: 200
+                            duration: Theme.anim.small
                             easing.type: Easing.OutCubic
                         }
                     }

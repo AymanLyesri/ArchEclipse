@@ -110,7 +110,7 @@ MouseArea {
         opacity: bgImage.status === Image.Ready ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
-                duration: 300
+                duration: Theme.anim.slowEffects
                 easing.type: Easing.OutCubic
             }
         }
@@ -154,7 +154,7 @@ MouseArea {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 20
-            spacing: 12
+            spacing: Theme.spacing
 
             // Shared login-box UI (also used by the future greeter).
             AuthCard {

@@ -86,17 +86,17 @@ Item {
         id: scrollAnim
         target: settingsScroll
         property: "contentY"
-        duration: 350
+        duration: Theme.anim.fastSpatial
         easing.type: Easing.OutCubic
     }
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spacing
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.spacing
             Label {
                 text: "Settings"
                 font.pixelSize: Theme.fontSize + 4
@@ -119,9 +119,9 @@ Item {
 
             Column {
                 id: settingsCol
-                spacing: 10
+                spacing: Theme.spacing
                 width: settingsScroll.width
-                bottomPadding: 20
+                bottomPadding: Theme.pad
 
                 // ============ BAR SETTINGS ============
                 // NOTE: smart-hide and full-width
@@ -148,8 +148,8 @@ Item {
                     Column {
                         id: barSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "Bar"
                             font.pixelSize: Theme.fontSize + 2
@@ -159,10 +159,10 @@ Item {
 
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Orientation"
                                     tip: "Top or bottom edge for the bar."
@@ -177,7 +177,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Lock Bar"
                                     tip: "Keep bar visible; when off it auto-hides."
@@ -190,7 +190,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Always Expanded"
                                     tip: "Show full bar content instead of collapsed."
@@ -203,7 +203,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Reveal-In Pressure"
                                     tip: "Cursor push needed to reveal a hidden bar."
@@ -223,7 +223,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Reveal-Out Pressure"
                                     tip: "Cursor push needed to hide the bar."
@@ -264,8 +264,8 @@ Item {
                     Column {
                         id: panelSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "Panels"
                             font.pixelSize: Theme.fontSize + 2
@@ -275,10 +275,10 @@ Item {
 
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Left Panel Width"
                                     tip: "Width of the left side panel on this monitor in px."
@@ -298,7 +298,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Right Panel Width"
                                     tip: "Width of the right side panel on this monitor in px."
@@ -318,7 +318,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Left Panel Hot Zone"
                                     tip: "Hover the left edge to open the left panel."
@@ -331,7 +331,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Right Panel Hot Zone"
                                     tip: "Hover the right edge to open the right panel."
@@ -344,7 +344,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Left Hot Zone Size"
                                     tip: "Hover strip width on the left edge in px."
@@ -364,7 +364,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Right Hot Zone Size"
                                     tip: "Hover strip width on the right edge in px."
@@ -410,8 +410,8 @@ Item {
                     Column {
                         id: themeSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "Theme"
                             font.pixelSize: Theme.fontSize + 2
@@ -421,10 +421,10 @@ Item {
 
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Dynamic Theme Colors"
                                     tip: "Recolor the theme from the wallpaper."
@@ -440,7 +440,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Dynamic Theme Variants"
                                     tip: "Switch light/dark variant from wallpaper."
@@ -456,7 +456,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Blur"
                                     tip: "Blur the background behind the bar."
@@ -469,7 +469,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Blur Size"
                                     tip: "Blur radius; higher is softer."
@@ -489,7 +489,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Blur Passes"
                                     tip: "Blur quality passes; higher costs GPU."
@@ -530,8 +530,8 @@ Item {
                     Column {
                         id: ifaceSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "Interface"
                             font.pixelSize: Theme.fontSize + 2
@@ -541,10 +541,10 @@ Item {
 
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Opacity"
                                     tip: "Shell opacity; 1 is fully opaque."
@@ -572,7 +572,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Scale"
                                     tip: "Global UI scale factor."
@@ -592,7 +592,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Font Size"
                                     tip: "Base font size for shell text."
@@ -633,8 +633,8 @@ Item {
                     Column {
                         id: animSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "Animations"
                             font.pixelSize: Theme.fontSize + 2
@@ -647,10 +647,10 @@ Item {
 
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Enabled"
                                     tip: "Turn all shell animations on or off."
@@ -663,7 +663,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Speed"
                                     tip: "Duration multiplier; lower is faster."
@@ -699,7 +699,7 @@ Item {
                             }
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Island Style"
                                     tip: "Motion style used by bar islands."
@@ -735,8 +735,8 @@ Item {
                     Column {
                         id: uaSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "User Agents"
                             font.pixelSize: Theme.fontSize + 2
@@ -745,7 +745,7 @@ Item {
                         }
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             Repeater {
                                 model: [
                                     { key: "booru", label: "Booru" },
@@ -758,14 +758,14 @@ Item {
                                     width: parent.width
                                     height: 34
                                     color: Theme.bg
-                                    radius: Theme.radiusSm
+                                    radius: Theme.radius
 
                                     property bool reveal: false
 
                                     RowLayout {
                                         anchors.fill: parent
                                         anchors.margins: 6
-                                        spacing: 6
+                                        spacing: Theme.spacing
                                         SettingLabel {
                                             text: modelData.label
                                             tip: "Custom User-Agent sent with " + modelData.label + " requests."
@@ -825,8 +825,8 @@ Item {
                     Column {
                         id: apiSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "API Keys"
                             font.pixelSize: Theme.fontSize + 2
@@ -835,7 +835,7 @@ Item {
                         }
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             Repeater {
                                 id: apiKeyRepeater
                                 model: [
@@ -883,7 +883,7 @@ Item {
                                     width: parent.width
                                     height: 34
                                     color: Theme.bg
-                                    radius: Theme.radiusSm
+                                    radius: Theme.radius
                                     objectName: modelData.path
 
                                     property bool reveal: false
@@ -901,7 +901,7 @@ Item {
                                             property: "border.width"
                                             from: 0
                                             to: 2
-                                            duration: 200
+                                            duration: Theme.anim.small
                                             easing.type: Easing.OutCubic
                                         }
                                         NumberAnimation {
@@ -909,7 +909,7 @@ Item {
                                             property: "border.width"
                                             from: 2
                                             to: 0
-                                            duration: 500
+                                            duration: Theme.anim.defaultSpatial
                                             easing.type: Easing.InCubic
                                         }
                                     }
@@ -917,7 +917,7 @@ Item {
                                     RowLayout {
                                         anchors.fill: parent
                                         anchors.margins: 6
-                                        spacing: 6
+                                        spacing: Theme.spacing
                                         SettingLabel {
                                             text: modelData.label
                                             tip: root.apiKeyTip(modelData.path, modelData.label)
@@ -960,7 +960,7 @@ Item {
                             // tab unless this is on; errors always notify).
                             RowLayout {
                                 width: parent.width
-                                spacing: 6
+                                spacing: Theme.spacing
                                 AppCheckBox {
                                     id: notifyCheck
                                     Layout.fillWidth: true
@@ -996,8 +996,8 @@ Item {
                     Column {
                         id: fmSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "File Manager"
                             font.pixelSize: Theme.fontSize + 2
@@ -1006,13 +1006,13 @@ Item {
                         }
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             Repeater {
                                 id: fmRepeater
                                 model: root.fileManagerOptions.length ? root.fileManagerOptions : root.allFileManagers
                                 delegate: RowLayout {
                                     width: parent.width
-                                    spacing: 8
+                                    spacing: Theme.spacing
                                     SettingLabel {
                                         text: modelData.name
                                         tip: "Use " + modelData.name + " as the default file manager."
@@ -1056,8 +1056,8 @@ Item {
                     Column {
                         id: hyprSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "Hyprland"
                             font.pixelSize: Theme.fontSize + 2
@@ -1066,12 +1066,12 @@ Item {
                         }
                         Column {
                             width: parent.width
-                            spacing: 6
+                            spacing: Theme.spacing
 
                             // Game Mode
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Game Mode"
                                     tip: "Disable blur and animations for performance."
@@ -1086,7 +1086,7 @@ Item {
                             // Blue light filter (hyprsunset)
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Blue Light Filter"
                                     tip: "Warm tint for eyes via hyprsunset."
@@ -1101,7 +1101,7 @@ Item {
                             // Blue light: temperature (Kelvin, lower = warmer)
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Blue Light: Temperature (K)"
                                     tip: "Tint warmth in Kelvin; lower is warmer."
@@ -1122,7 +1122,7 @@ Item {
                             // when it is off so they can be preset)
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Blue Light: Auto Mode"
                                     tip: "Run the blue-light filter on a schedule."
@@ -1194,7 +1194,7 @@ Item {
                             // Decoration: Rounding
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Rounding"
                                     tip: "Window corner radius in px."
@@ -1224,7 +1224,7 @@ Item {
                             // Decoration: Blur Enabled
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Blur Enabled"
                                     tip: "Hyprland blur behind windows."
@@ -1241,7 +1241,7 @@ Item {
                             // Decoration: Blur Size
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Blur Size"
                                     tip: "Hyprland blur radius."
@@ -1270,7 +1270,7 @@ Item {
                             // Decoration: Blur Passes
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Blur Passes"
                                     tip: "Hyprland blur quality passes."
@@ -1299,7 +1299,7 @@ Item {
                             // Decoration: Blur Xray
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Blur Xray"
                                     tip: "Blur behind windows even when fullscreen."
@@ -1316,7 +1316,7 @@ Item {
                             // Decoration: Shadow Enabled
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Shadow Enabled"
                                     tip: "Draw Hyprland window shadows."
@@ -1333,7 +1333,7 @@ Item {
                             // Decoration: Shadow Range
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Shadow Range"
                                     tip: "Shadow spread distance in px."
@@ -1362,7 +1362,7 @@ Item {
                             // Decoration: Shadow Render Power
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Shadow Render Power"
                                     tip: "Shadow softness and strength."
@@ -1391,7 +1391,7 @@ Item {
                             // General: Border Size
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "General: Border Size"
                                     tip: "Window border thickness in px."
@@ -1420,7 +1420,7 @@ Item {
                             // General: Gaps In
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "General: Gaps In"
                                     tip: "Gap between windows in px."
@@ -1449,7 +1449,7 @@ Item {
                             // General: Gaps Out
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "General: Gaps Out"
                                     tip: "Gap between windows and screen edge."
@@ -1478,7 +1478,7 @@ Item {
                             // Decoration: Active Opacity (float)
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Active Opacity"
                                     tip: "Opacity of the focused window."
@@ -1508,7 +1508,7 @@ Item {
                             // Decoration: Inactive Opacity (float)
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Decoration: Inactive Opacity"
                                     tip: "Opacity of unfocused windows."
@@ -1539,7 +1539,7 @@ Item {
                             // Apply / Reset
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 AppButton {
                                     text: "Apply Hyprland Settings"
                                     tooltipText: "Write settings to Hyprland and reload."
@@ -1576,8 +1576,8 @@ Item {
                     Column {
                         id: lockSec
                         anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
                         Label {
                             text: "Lockscreen"
                             font.pixelSize: Theme.fontSize + 2
@@ -1586,10 +1586,10 @@ Item {
                         }
                         Column {
                             width: parent.width
-                            spacing: 4
+                            spacing: Theme.spacing
                             RowLayout {
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 SettingLabel {
                                     text: "Grace Period (seconds)"
                                     tip: "Time Esc unlocks without a password."

@@ -10,7 +10,7 @@ import qs.widgets.shared
 // them full-width (Flow wraps automatically).
 Column {
     id: root
-    spacing: 8
+    spacing: Theme.spacing
 
     readonly property var stats: SysInfo.systemResources
     readonly property var gpus: stats?.gpus ?? []
@@ -39,7 +39,7 @@ Column {
     // ---- header ----
     Row {
         width: parent.width
-        spacing: 8
+        spacing: Theme.spacing
         Label {
             text: "System Resources"
             font.pixelSize: Theme.fontSizeLarge
@@ -70,13 +70,13 @@ Column {
     Flow {
         visible: root.stats
         width: parent.width
-        spacing: 8
+        spacing: Theme.spacing
 
         // CPU card
         Rectangle {
             width: root.cardWidth
             height: cpuCol.height + 16
-            radius: 8
+            radius: Theme.radius
             color: Theme.surface
             border.color: Theme.border
             Column {
@@ -84,8 +84,8 @@ Column {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: 8
-                spacing: 4
+                anchors.margins: Theme.pad
+                spacing: Theme.spacing
                 Text {
                     text: " " + (root.stats?.cpuLabel || "CPU")
                     font.pixelSize: Theme.fontSize
@@ -122,7 +122,7 @@ Column {
         Rectangle {
             width: root.cardWidth
             height: ramCol.height + 16
-            radius: 8
+            radius: Theme.radius
             color: Theme.surface
             border.color: Theme.border
             Column {
@@ -130,8 +130,8 @@ Column {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: 8
-                spacing: 4
+                anchors.margins: Theme.pad
+                spacing: Theme.spacing
                 Text {
                     text: " RAM"
                     font.pixelSize: Theme.fontSize
@@ -171,7 +171,7 @@ Column {
                 required property int index
                 width: root.cardWidth
                 height: gpuCol.height + 16
-                radius: 8
+                radius: Theme.radius
                 color: Theme.surface
                 border.color: Theme.border
                 readonly property real frac: (modelData.load ?? null) !== null ? Math.max(0, Math.min(1, modelData.load / 100)) : 0
@@ -180,8 +180,8 @@ Column {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: 8
-                    spacing: 4
+                    anchors.margins: Theme.pad
+                    spacing: Theme.spacing
                     Text {
                         text: "󱤟 " + (gpuCard.modelData.label || "GPU")
                         font.pixelSize: Theme.fontSize

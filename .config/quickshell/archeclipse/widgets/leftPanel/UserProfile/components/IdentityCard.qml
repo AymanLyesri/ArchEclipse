@@ -12,7 +12,7 @@ Column {
     required property var store
     property alias username: usernameField.text
     width: parent.width
-    spacing: 12
+    spacing: Theme.spacing
     // Explicit height: plain Column parents position by explicit height.
     height: avatarBox.height + card.height + spacing
 
@@ -60,20 +60,20 @@ Column {
         width: parent.width
         height: cardCol.implicitHeight + 20
         color: Theme.bg
-        radius: Theme.cardRadius
+        radius: Theme.radius
 
         Column {
             id: cardCol
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 10
-            spacing: 10
+            anchors.margins: Theme.pad
+            spacing: Theme.spacing
 
             Column {
                 id: idCol
                 width: parent.width
-                spacing: 6
+                spacing: Theme.spacing
                 AppTextField {
                     id: usernameField
                     width: parent.width
@@ -90,7 +90,7 @@ Column {
                 }
                 Flow {
                     width: parent.width
-                    spacing: 5
+                    spacing: Theme.spacing
                     Label {
                         text: store.maskEmail(store.profile?.email ?? "")
                         font.pixelSize: Theme.fontSize - 1

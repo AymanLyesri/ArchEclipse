@@ -58,7 +58,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.leftMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 6
+        spacing: Theme.spacing
         width: Math.max(0, Math.min(implicitWidth, parent.width - 16))
 
         Text {

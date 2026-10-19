@@ -153,8 +153,8 @@ Item {
     Card {
         id: connCard
         width: parent.width
-        contentMargins: 12
-        contentSpacing: 8
+        contentMargins: Theme.pad
+        contentSpacing: Theme.spacing
         height: contentMargins * 2 + headRow.height + (connBody.visible ? contentSpacing + connBody.height : 0)
         Behavior on height {
             Anim {
@@ -169,7 +169,7 @@ Item {
             Row {
                 id: headRow
                 width: parent.width - 22
-                spacing: 8
+                spacing: Theme.spacing
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "󰖩"
@@ -217,13 +217,13 @@ Item {
         Column {
             id: connBody
             width: parent.width
-            spacing: 10
+            spacing: Theme.spacing
             visible: root.sectionOpen
 
             // ----- Network -----
             Column {
                 width: parent.width
-                spacing: 6
+                spacing: Theme.spacing
                 Text {
                     text: "Network"
                     color: Theme.muted
@@ -232,7 +232,7 @@ Item {
                 }
                 Row {
                     width: parent.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     AppCheckBox {
                         text: "Wi-Fi"
                         checked: root.wifiEnabled
@@ -243,7 +243,7 @@ Item {
                     AppButton {
                         width: 70
                         height: 28
-                        cornerRadius: Theme.chipRadius
+                        cornerRadius: Theme.radius
                         idleBg: Theme.surface
                         text: "Rescan"
                         pixelSize: Theme.fontSize - 2
@@ -268,14 +268,14 @@ Item {
                             width: parent.width
                             // Explicit height (see AGENTS.md §2.3).
                             height: 26
-                            radius: Theme.chipRadius
+                            radius: Theme.radius
                             color: apRow.linked ? Theme.surfaceActive : "transparent"
 
                             Row {
                                 anchors.fill: parent
                                 anchors.leftMargin: 6
                                 anchors.rightMargin: 6
-                                spacing: 6
+                                spacing: Theme.spacing
                                 Text {
                                     text: apRow.linked ? "󰖩" : "󰖨"
                                     color: apRow.linked ? Theme.accent : Theme.muted
@@ -326,7 +326,7 @@ Item {
             }
             Column {
                 width: parent.width
-                spacing: 6
+                spacing: Theme.spacing
                 visible: root.btAvailable
                 Text {
                     text: "Bluetooth"
@@ -336,7 +336,7 @@ Item {
                 }
                 Row {
                     width: parent.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     AppCheckBox {
                         text: "Power"
                         checked: root.btPowered
@@ -347,7 +347,7 @@ Item {
                     AppButton {
                         width: 70
                         height: 28
-                        cornerRadius: Theme.chipRadius
+                        cornerRadius: Theme.radius
                         idleBg: Theme.surface
                         text: "Refresh"
                         pixelSize: Theme.fontSize - 2
@@ -369,14 +369,14 @@ Item {
 
                             width: parent.width
                             height: 26
-                            radius: Theme.chipRadius
+                            radius: Theme.radius
                             color: "transparent"
 
                             Row {
                                 anchors.fill: parent
                                 anchors.leftMargin: 6
                                 anchors.rightMargin: 6
-                                spacing: 6
+                                spacing: Theme.spacing
                                 Text {
                                     text: "󰂯"
                                     color: Theme.muted

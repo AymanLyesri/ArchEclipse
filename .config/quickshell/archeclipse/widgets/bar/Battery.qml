@@ -89,19 +89,19 @@ Rectangle {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: Rectangle {
             color: Theme.surface
-            radius: Theme.cardRadius
+            radius: Theme.radius
             border.color: Theme.border
         }
 
         Column {
-            spacing: 4
+            spacing: Theme.spacing
             width: parent.width
             Repeater {
                 model: root.profiles
                 delegate: Rectangle {
                     width: parent.width
                     height: 28
-                    radius: Theme.radiusSm
+                    radius: Theme.radius
                     color: ma.containsMouse ? Theme.surfaceActive : "transparent"
                     Text {
                         anchors.left: parent.left

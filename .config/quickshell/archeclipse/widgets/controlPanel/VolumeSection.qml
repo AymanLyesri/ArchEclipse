@@ -147,8 +147,8 @@ Item {
     Card {
         id: volCard
         width: parent.width
-        contentMargins: 12
-        contentSpacing: 8
+        contentMargins: Theme.pad
+        contentSpacing: Theme.spacing
         height: contentMargins * 2 + headRow.height + (volBody.visible ? contentSpacing + volBody.height : 0)
         Behavior on height {
             Anim {
@@ -163,7 +163,7 @@ Item {
             Row {
                 id: headRow
                 width: parent.width - 22
-                spacing: 8
+                spacing: Theme.spacing
                 Text {
                     id: volIcon
                     anchors.verticalCenter: parent.verticalCenter
@@ -232,7 +232,7 @@ Item {
         Column {
             id: volBody
             width: parent.width
-            spacing: 10
+            spacing: Theme.spacing
             visible: root.sectionOpen || root.pressedCount > 0 || root.popupCount > 0
 
             AppSegmentedControl {
@@ -269,14 +269,14 @@ Item {
             // ----- Playback -----
             Column {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 visible: root.tabIndex === 0
                 Repeater {
                     model: root.playbackStreams
                     delegate: Column {
                         required property var modelData
                         width: parent.width
-                        spacing: 4
+                        spacing: Theme.spacing
                         PwObjectTracker {
                             objects: [modelData]
                         }
@@ -314,7 +314,7 @@ Item {
                         }
                         Row {
                             width: parent.width
-                            spacing: 6
+                            spacing: Theme.spacing
                             Text {
                                 id: playName
                                 anchors.verticalCenter: parent.verticalCenter
@@ -419,14 +419,14 @@ Item {
             // ----- Recording -----
             Column {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 visible: root.tabIndex === 1
                 Repeater {
                     model: root.recordingStreams
                     delegate: Column {
                         required property var modelData
                         width: parent.width
-                        spacing: 4
+                        spacing: Theme.spacing
                         PwObjectTracker {
                             objects: [modelData]
                         }
@@ -455,7 +455,7 @@ Item {
                         }
                         Row {
                             width: parent.width
-                            spacing: 6
+                            spacing: Theme.spacing
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.streamTitle(modelData)
@@ -559,21 +559,21 @@ Item {
             // ----- Output devices -----
             Column {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 visible: root.tabIndex === 2
                 Repeater {
                     model: root.outputDevices
                     delegate: Column {
                         required property var modelData
                         width: parent.width
-                        spacing: 4
+                        spacing: Theme.spacing
                         PwObjectTracker {
                             objects: [modelData]
                         }
                         readonly property bool isDefault: root.defaultSink != null && (modelData === root.defaultSink || modelData.name === root.defaultSink.name)
                         Row {
                             width: parent.width
-                            spacing: 6
+                            spacing: Theme.spacing
                             AppButton {
                                 id: outStar
                                 anchors.verticalCenter: parent.verticalCenter
@@ -658,21 +658,21 @@ Item {
             // ----- Input devices -----
             Column {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 visible: root.tabIndex === 3
                 Repeater {
                     model: root.inputDevices
                     delegate: Column {
                         required property var modelData
                         width: parent.width
-                        spacing: 4
+                        spacing: Theme.spacing
                         PwObjectTracker {
                             objects: [modelData]
                         }
                         readonly property bool isDefault: root.defaultSource != null && (modelData === root.defaultSource || modelData.name === root.defaultSource.name)
                         Row {
                             width: parent.width
-                            spacing: 6
+                            spacing: Theme.spacing
                             AppButton {
                                 id: inStar
                                 anchors.verticalCenter: parent.verticalCenter
@@ -751,7 +751,7 @@ Item {
             AppButton {
                 width: parent.width
                 height: 28
-                cornerRadius: Theme.chipRadius
+                cornerRadius: Theme.radius
                 idleBg: Theme.surface
                 icon: "\ueb14"
                 text: "pavucontrol"

@@ -914,7 +914,7 @@ PanelWindow {
             Row {
                 id: leftSideContents
                 anchors.centerIn: parent
-                spacing: 8
+                spacing: Theme.spacing
                 WeatherButton {
                     id: weatherButton
                     anchors.verticalCenter: parent.verticalCenter
@@ -947,7 +947,7 @@ PanelWindow {
             Row {
                 id: rightSideContents
                 anchors.centerIn: parent
-                spacing: 8
+                spacing: Theme.spacing
 
                 // mini media status (app icon + play state + track title):
                 // hover/click pulses the player island, middle-click toggles

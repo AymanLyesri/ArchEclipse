@@ -37,7 +37,7 @@ import qs.theme
 Row {
     id: root
 
-    spacing: 6
+    spacing: Theme.spacing
 
     property string label: ""
     property var model: []

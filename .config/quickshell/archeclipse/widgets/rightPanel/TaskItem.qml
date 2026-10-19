@@ -29,14 +29,14 @@ Item {
         Column {
             id: innerCol
             width: parent.width
-            spacing: 6
+            spacing: Theme.spacing
 
             // Header (RowLayout: the text column takes leftover width and
             // elides — a plain Row with a dead Layout.fillWidth spacer and
             // an unbounded text column overflowed).
             RowLayout {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 Column {
                     Layout.fillWidth: true
                     spacing: 2
@@ -50,14 +50,14 @@ Item {
                         elide: Text.ElideRight
                     }
                     Row {
-                        spacing: 5
+                        spacing: Theme.spacing
                         width: parent.width
                         Label {
                             id: scheduleLabel
                             text: root.formatNextRun(task.nextRun)
                             font.pixelSize: Theme.fontSize - 1
                             color: Theme.fgDim
-                            width: parent.width - typeLabel.implicitWidth - 5
+                            width: parent.width - typeLabel.implicitWidth - Theme.spacing
                             elide: Text.ElideRight
                         }
                         Label {
@@ -72,12 +72,12 @@ Item {
                 // Hover actions
                 Row {
                     id: actionButtons
-                    spacing: 4
+                    spacing: Theme.spacing
                     visible: isHovered
                     opacity: isHovered ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 150
+                            duration: Theme.anim.fastEffects
                         }
                     }
 

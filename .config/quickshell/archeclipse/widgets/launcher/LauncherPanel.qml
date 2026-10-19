@@ -66,7 +66,7 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: 12
-                spacing: 5
+                spacing: Theme.spacing
                 Rectangle {
                     width: 4
                     height: 16
@@ -103,7 +103,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 4
+                spacing: Theme.spacing
                 Repeater {
                     model: modelData.actions
                     delegate: AppButton {

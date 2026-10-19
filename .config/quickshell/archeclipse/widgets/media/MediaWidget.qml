@@ -204,7 +204,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 8
+        radius: Theme.radius
         clip: true
         color: Theme.surface
 
@@ -222,20 +222,20 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 12
-            spacing: 8
+            anchors.margins: Theme.pad
+            spacing: Theme.spacing
 
             // Top row: spinner cover art + title/artist + app icon
             Row {
                 Layout.fillWidth: true
-                spacing: 10
+                spacing: Theme.spacing
 
                 // Spinning cover art thumbnail
                 Rectangle {
                     id: coverBox
                     width: 64
                     height: 64
-                    radius: 8
+                    radius: Theme.radius
                     clip: true
                     color: Theme.bg
 
@@ -249,7 +249,7 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         color: "transparent"
-                        radius: 8
+                        radius: Theme.radius
                     }
                     // spinning indicator (rotation while playing)
                     Rectangle {
@@ -261,7 +261,7 @@ Item {
                         color: root.playing ? Theme.accent : Theme.fgDim
                         Behavior on color {
                             ColorAnimation {
-                                duration: 200
+                                duration: Theme.anim.defaultEffects
                             }
                         }
                     }
@@ -334,7 +334,7 @@ Item {
                         id: slideAnim
                         target: textLayer
                         property: "anchors.verticalCenterOffset"
-                        duration: 200
+                        duration: Theme.anim.small
                         easing.type: Easing.OutCubic
                     }
                 }
@@ -462,7 +462,7 @@ Item {
                     enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
                     icon: root.playing ? "\uf04c" : "\uf04b"
                     pixelSize: Theme.fontSizeLarge
-                    cornerRadius: Theme.radiusLg
+                    cornerRadius: Theme.radius
                     Layout.preferredWidth: 30
                     Layout.minimumWidth: 22
                     implicitHeight: 30

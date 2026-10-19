@@ -8,10 +8,10 @@ import qs.theme
 Rectangle {
     id: root
     default property alias content: col.children
-    property int contentMargins: 12
-    property int contentSpacing: 8
+    property int contentMargins: Theme.pad
+    property int contentSpacing: Theme.spacing
     color: Theme.surface
-    radius: Theme.cardRadius
+    radius: Theme.radius
     border.color: Theme.border
     Column {
         id: col

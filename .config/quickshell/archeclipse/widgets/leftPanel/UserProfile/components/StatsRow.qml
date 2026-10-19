@@ -7,21 +7,21 @@ Row {
     id: root
     required property var store
     width: parent.width
-    spacing: 10
+    spacing: Theme.spacing
     visible: !!store.profile
     Rectangle {
         width: (parent.width - 10) / 2
         implicitHeight: favCol.implicitHeight + 20
         color: Theme.bg
-        radius: Theme.cardRadius
+        radius: Theme.radius
 
         Column {
             id: favCol
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 10
-            spacing: 5
+            anchors.margins: Theme.pad
+            spacing: Theme.spacing
             Label {
                 text: "Booru Favorites"
                 font.pixelSize: Theme.fontSize
@@ -32,7 +32,7 @@ Row {
                 model: store.booruApis
                 delegate: Row {
                     width: parent.width
-                    spacing: 5
+                    spacing: Theme.spacing
                     Label {
                         width: parent.width - 32
                         text: modelData.name
@@ -55,15 +55,15 @@ Row {
         width: (parent.width - 10) / 2
         implicitHeight: pinCol.implicitHeight + 20
         color: Theme.bg
-        radius: Theme.cardRadius
+        radius: Theme.radius
 
         Column {
             id: pinCol
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: 10
-            spacing: 5
+            anchors.margins: Theme.pad
+            spacing: Theme.spacing
             Label {
                 text: "Pinned Images"
                 font.pixelSize: Theme.fontSize

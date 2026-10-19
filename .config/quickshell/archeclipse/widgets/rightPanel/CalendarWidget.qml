@@ -117,14 +117,14 @@ Item {
 
     Column {
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 6
+        anchors.margins: Theme.pad
+        spacing: Theme.spacing
 
         // Header: year step, month step, centered title (click = today),
         // month step, year step.
         RowLayout {
             width: parent.width
-            spacing: 4
+            spacing: Theme.spacing
 
             AppButton {
                 Layout.preferredWidth: root.navButtonSize
@@ -204,7 +204,7 @@ Item {
         // Sub-header: selected date + Today shortcut.
         RowLayout {
             width: parent.width
-            spacing: 8
+            spacing: Theme.spacing
             Text {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignVCenter
@@ -259,7 +259,7 @@ Item {
                     readonly property bool selected: root.isSelected(modelData.y, modelData.m, modelData.d)
                     width: Math.max(0, (dayGrid.width - 6) / 7)
                     height: 30
-                    radius: Theme.cardRadius
+                    radius: Theme.radius
                     color: {
                         if (selected)
                             return Theme.accent;

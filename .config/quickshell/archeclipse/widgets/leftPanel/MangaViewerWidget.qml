@@ -301,7 +301,7 @@ Item {
     // parent.height - N math; the content rect takes leftover space) =====
     ColumnLayout {
         anchors.fill: parent
-        spacing: 8
+        spacing: Theme.spacing
 
         // Content area (fills leftover space)
         Rectangle {
@@ -322,7 +322,7 @@ Item {
                 Column {
                     id: mangaCol
                     width: mangaFlick.width
-                    spacing: 10
+                    spacing: Theme.spacing
 
                     // Progress
                     AppProgress {
@@ -344,7 +344,7 @@ Item {
                             // fixed 210px that tall covers would overflow.
                             implicitHeight: mangaCardCol.implicitHeight + 20
                             color: Theme.surface
-                            radius: Theme.cardRadius
+                            radius: Theme.radius
                             clip: true
 
                             MouseArea {
@@ -359,8 +359,8 @@ Item {
                             Column {
                                 id: mangaCardCol
                                 anchors.fill: parent
-                                spacing: 6
-                                anchors.margins: 10
+                                spacing: Theme.spacing
+                                anchors.margins: Theme.pad
 
                                 AppImage {
                                     width: parent.width
@@ -417,7 +417,7 @@ Item {
                 Column {
                     id: chapCol
                     width: chapFlick.width
-                    spacing: 6
+                    spacing: Theme.spacing
 
                     Label {
                         width: parent.width
@@ -434,7 +434,7 @@ Item {
                             width: chapCol.width
                             implicitHeight: 36
                             color: Theme.bg
-                            radius: Theme.chipRadius
+                            radius: Theme.radius
 
                             AppButton {
                                 anchors.fill: parent
@@ -454,7 +454,7 @@ Item {
             ColumnLayout {
                 anchors.fill: parent
                 visible: root.currentTab === "Pages"
-                spacing: 8
+                spacing: Theme.spacing
 
                 SmoothFlickable {
                     id: pagesFlickable
@@ -497,7 +497,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: 10
+                    spacing: Theme.spacing
                     AppButton {
                         Layout.fillWidth: true
                         text: "\u25C0 Previous Page"
@@ -527,7 +527,7 @@ Item {
         // Reveal button
         RowLayout {
             Layout.fillWidth: true
-            spacing: 10
+            spacing: Theme.spacing
             AppButton {
                 Layout.fillWidth: true
                 text: root.bottomRevealed ? "\uf107" : "\uf106" // down/up chevron
@@ -538,11 +538,11 @@ Item {
         // Revealable search actions
         Column {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.spacing
             visible: root.bottomRevealed
             Behavior on opacity {
                 NumberAnimation {
-                    duration: 150
+                    duration: Theme.anim.fastEffects
                 }
             }
             opacity: root.bottomRevealed ? 1 : 0
@@ -556,7 +556,7 @@ Item {
             }
             RowLayout {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 AppButton {
                     Layout.fillWidth: true
                     text: "\u{f002} Search"
@@ -573,7 +573,7 @@ Item {
         // Chapter navigation — always visible
         RowLayout {
             Layout.fillWidth: true
-            spacing: 10
+            spacing: Theme.spacing
             AppButton {
                 Layout.fillWidth: true
                 text: "\u25C0 Previous Chapter"
@@ -611,16 +611,16 @@ Item {
         // URL bar — visible complexity low, always rendered
         RowLayout {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: Theme.spacing
             Rectangle {
                 Layout.fillWidth: true
                 height: 28
                 color: Theme.bg
-                radius: Theme.radiusSm
+                radius: Theme.radius
 
                 Label {
                     anchors.fill: parent
-                    anchors.margins: 8
+                    anchors.margins: Theme.pad
                     text: root.getUrl()
                     color: Theme.fgDim
                     font.pixelSize: Theme.fontSize - 2
@@ -640,7 +640,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignHCenter
-            spacing: 4
+            spacing: Theme.spacing
             AppSegmentedControl {
                 // Per-tab availability rides in the model (Chapters needs a
                 // manga, Pages a chapter) — disabled cells don't activate.
@@ -670,7 +670,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignHCenter
-            spacing: 4
+            spacing: Theme.spacing
             AppSegmentedControl {
                 Layout.alignment: Qt.AlignHCenter
                 model: root.providers.map(p => ({

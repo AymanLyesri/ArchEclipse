@@ -32,7 +32,7 @@ Column {
     signal accepted()
     signal escapePressed()
     signal action(int index)
-    spacing: 12
+    spacing: Theme.spacing
     function forceFieldFocus() {
         passwordField.forceActiveFocus();
     }
@@ -59,7 +59,7 @@ Column {
     }
     Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; visible: root.showError; text: root.errorText; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSize - 1; color: Theme.danger }
     Row {
-        width: parent.width; spacing: 8
+        width: parent.width; spacing: Theme.spacing
         AppButton { visible: root.logoutVisible; width: (parent.width - 24) / 4; icon: root.logoutIcon; tooltipText: root.logoutTooltip; onClicked: root.action(0) }
         AppButton { width: root.logoutVisible ? (parent.width - 24) / 4 : (parent.width - 16) / 3; icon: root.poweroffIcon; tooltipText: root.poweroffTooltip; onClicked: root.action(1) }
         AppButton { width: root.logoutVisible ? (parent.width - 24) / 4 : (parent.width - 16) / 3; icon: root.suspendIcon; tooltipText: root.suspendTooltip; onClicked: root.action(2) }

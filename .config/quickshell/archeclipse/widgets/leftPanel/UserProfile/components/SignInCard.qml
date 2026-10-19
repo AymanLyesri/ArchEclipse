@@ -14,15 +14,15 @@ Rectangle {
     implicitHeight: signCol.implicitHeight + 20
     visible: !store.profile
     color: Theme.bg
-    radius: Theme.cardRadius
+    radius: Theme.radius
 
     Column {
         id: signCol
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: 10
-        spacing: 10
+        anchors.margins: Theme.pad
+        spacing: Theme.spacing
         Label {
             text: "Sign in to sync"
             font.pixelSize: Theme.fontSize + 1

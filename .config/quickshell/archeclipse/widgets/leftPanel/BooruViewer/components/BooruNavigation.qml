@@ -14,7 +14,7 @@ Column {
 
     Layout.fillWidth: true
     width: parent.width
-    spacing: 4
+    spacing: Theme.spacing
 
     // Tab values mirror viewer.selectedTab: API names + Bookmarks + Pins.
     readonly property var tabValues: viewer ? viewer.booruApis.map(a => a.name).concat(["Bookmarks", "Pins"]) : []
@@ -65,7 +65,7 @@ Column {
     Row {
         id: pageBar
 
-        spacing: 4
+        spacing: Theme.spacing
         anchors.horizontalCenter: parent.horizontalCenter
 
         // Windowed page buttons as a sliding segment: the
@@ -103,7 +103,7 @@ Column {
     Row {
         id: tabBar
 
-        spacing: 4
+        spacing: Theme.spacing
         anchors.horizontalCenter: parent.horizontalCenter
 
         AppSegmentedControl {
@@ -135,7 +135,7 @@ Column {
     Row {
         id: triggerRow
 
-        spacing: 8
+        spacing: Theme.spacing
         width: parent.width
         height: 28
 

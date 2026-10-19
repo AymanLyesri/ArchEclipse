@@ -34,13 +34,14 @@
 //   layout if needed.
 
 import QtQuick
+import qs.theme
 
 Item {
     id: root
 
     property var model: []
     property int columns: 2
-    property real spacing: 10
+    property real spacing: Theme.spacing
     // function(item) -> height/width ratio, or null for round-robin
     property var aspectRatio: null
     property Component delegate

@@ -72,7 +72,7 @@ Item {
 
     RightPanelCard {
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: Theme.pad
         title: "Crypto Tracker"
         showAddForm: root.showAddForm
         formComponent: cryptoForm
@@ -102,7 +102,7 @@ Item {
 
             // Symbol
             Column {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 Label {
                     text: "Crypto Symbol"
@@ -122,7 +122,7 @@ Item {
 
             // Timeframe (row of toggle buttons, not a dropdown)
             Column {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 Label {
                     text: "Timeframe"
@@ -131,7 +131,7 @@ Item {
                 }
                 RowLayout {
                     width: parent.width
-                    spacing: 4
+                    spacing: Theme.spacing
                     Repeater {
                         model: root.timeframes
                         delegate: AppButton {
@@ -150,7 +150,7 @@ Item {
 
             // Display Options
             Column {
-                spacing: 8
+                spacing: Theme.spacing
                 width: parent.width
                 Label {
                     text: "Display Options"
@@ -159,7 +159,7 @@ Item {
                 }
                 RowLayout {
                     width: parent.width
-                    spacing: 16
+                    spacing: Theme.spacing
                     AppCheckBox {
                         id: showPriceCheck
                         text: "Show Price"
@@ -178,7 +178,7 @@ Item {
             // Actions
             RowLayout {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 AppButton {
                     text: editingEntry ? "✓ Update" : "+ Add Crypto"
                     pixelSize: Theme.fontSize

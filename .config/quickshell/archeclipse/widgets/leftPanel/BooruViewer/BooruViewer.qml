@@ -1215,7 +1215,7 @@ Item {
         // floating popup (below), so opening it never resizes or relayouts
         // the grid, navigation or settings panels.
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spacing
 
         // Image masonry grid (Flickable: ScrollView hides contentY, and
         // scrolls to top after every page transition)
@@ -1236,7 +1236,7 @@ Item {
         Column {
             Layout.fillWidth: true
             width: parent.width
-            spacing: 4
+            spacing: Theme.spacing
 
             Booru.BooruNavigation {
                 viewer: root

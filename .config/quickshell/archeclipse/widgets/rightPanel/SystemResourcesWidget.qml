@@ -1,4 +1,5 @@
 import QtQuick
+import qs.theme
 import qs.widgets.shared
 
 // System Resources widget — thin wrapper around the shared
@@ -11,6 +12,6 @@ Item {
     SystemResourcesContent {
         id: content
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: Theme.pad
     }
 }

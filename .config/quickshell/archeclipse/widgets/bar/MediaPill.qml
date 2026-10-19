@@ -118,14 +118,14 @@ Rectangle {
 
     Behavior on color {
         ColorAnimation {
-            duration: 150
+            duration: Theme.anim.fastEffects
         }
     }
 
     Row {
         id: contentRow
         anchors.centerIn: parent
-        spacing: 6
+        spacing: Theme.spacing
 
         // app icon (fallback: music-note glyph for the empty state)
         Item {

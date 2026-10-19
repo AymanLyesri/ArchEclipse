@@ -96,7 +96,7 @@ Item {
         border.width: 1
         Behavior on border.color {
             ColorAnimation {
-                duration: 200
+                duration: Theme.anim.defaultEffects
             }
         }
         clip: true

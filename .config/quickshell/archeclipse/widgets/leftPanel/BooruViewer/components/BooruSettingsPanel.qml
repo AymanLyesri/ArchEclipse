@@ -21,20 +21,20 @@ Rectangle {
 
     Behavior on height {
         NumberAnimation {
-            duration: 200
+            duration: Theme.anim.small
             easing.type: Easing.InOutQuad
         }
     }
 
     Column {
         id: settingsCol
-        spacing: 8
+        spacing: Theme.spacing
         width: parent.width
-        anchors.margins: 8
+        anchors.margins: Theme.pad
 
         // Limit slider
         Row {
-            spacing: 8
+            spacing: Theme.spacing
             width: parent.width
             Text {
                 text: "Limit: " + viewer.limit
@@ -67,7 +67,7 @@ Rectangle {
 
         // Columns slider
         Row {
-            spacing: 8
+            spacing: Theme.spacing
             width: parent.width
             Text {
                 text: "Columns: " + viewer.columns
@@ -97,12 +97,12 @@ Rectangle {
 
         // Tags
         Column {
-            spacing: 4
+            spacing: Theme.spacing
             width: parent.width
 
             // Tags flow
             Flow {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 Repeater {
                     model: viewer.currentTags
@@ -152,7 +152,7 @@ Rectangle {
 
             // Add tag entry + search
             Row {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 AppTextField {
                     id: tagEntry
@@ -191,7 +191,7 @@ Rectangle {
 
             // Fetched tag suggestions
             Flow {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 visible: viewer.fetchedTags.length > 0
                 Repeater {

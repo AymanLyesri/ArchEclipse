@@ -13,14 +13,14 @@ Rectangle {
     implicitHeight: supporterCol.implicitHeight + 20
     visible: !!store.profile && store.profile.is_supporter !== null && store.profile.is_supporter !== undefined
     color: Theme.bg
-    radius: Theme.cardRadius
+    radius: Theme.radius
     Column {
         id: supporterCol
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: 10
-        spacing: 8
+        anchors.margins: Theme.pad
+        spacing: Theme.spacing
         Label {
             text: store.profile?.is_supporter === true ? "Supporter active" : "Member"
             font.pixelSize: Theme.fontSize + 1

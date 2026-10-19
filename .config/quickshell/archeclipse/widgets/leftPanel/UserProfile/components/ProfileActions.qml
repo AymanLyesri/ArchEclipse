@@ -1,12 +1,13 @@
 import QtQuick
 import qs.widgets.shared
+import qs.theme
 
 // Update / Refresh / Logout action row.
 Row {
     id: root
     required property var store
     width: parent.width
-    spacing: 8
+    spacing: Theme.spacing
     visible: !!store.profile
     AppButton {
         width: (parent.width - 16) / 3

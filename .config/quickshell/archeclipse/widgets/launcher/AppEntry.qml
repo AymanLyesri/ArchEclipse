@@ -74,7 +74,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: 6
-        spacing: 10
+        spacing: Theme.spacing
 
         // ---------- icon slot ----------
         Item {

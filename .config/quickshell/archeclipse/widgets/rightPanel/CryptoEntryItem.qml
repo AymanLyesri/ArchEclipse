@@ -23,7 +23,7 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: 6
+        spacing: Theme.spacing
 
         // Crypto price/graph display
         Card {
@@ -31,7 +31,7 @@ Item {
             width: parent.width
             height: 80
             radius: Theme.radius
-            contentMargins: 8
+            contentMargins: Theme.pad
 
             CryptoItem {
                 width: parent.width

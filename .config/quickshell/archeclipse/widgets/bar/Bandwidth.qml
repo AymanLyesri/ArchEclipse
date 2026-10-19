@@ -28,16 +28,16 @@ Item {
         parent: root
         y: root.height + 6
         x: root.width / 2 - bwPopup.implicitWidth / 2
-        padding: 8
+        padding: Theme.pad
         closePolicy: Popup.CloseOnPressOutside
         background: Rectangle {
             color: Theme.surface
-            radius: 8
+            radius: Theme.radius
             border.color: Theme.border
         }
 
         Column {
-            spacing: 8
+            spacing: Theme.spacing
             Text {
                 text: "Network Statistics"
                 font.pixelSize: Theme.fontSize + 2
@@ -46,18 +46,18 @@ Item {
             }
 
             Row {
-                spacing: 24
+                spacing: Theme.spacing
 
                 // Upload section
                 Column {
-                    spacing: 4
+                    spacing: Theme.spacing
                     Text {
                         text: "Upload"
                         color: Theme.muted
                         font.pixelSize: Theme.fontSize
                     }
                     Row {
-                        spacing: 16
+                        spacing: Theme.spacing
                         Column {
                             spacing: 2
                             Text {
@@ -89,14 +89,14 @@ Item {
 
                 // Download section
                 Column {
-                    spacing: 4
+                    spacing: Theme.spacing
                     Text {
                         text: "Download"
                         color: Theme.muted
                         font.pixelSize: Theme.fontSize
                     }
                     Row {
-                        spacing: 16
+                        spacing: Theme.spacing
                         Column {
                             spacing: 2
                             Text {
@@ -133,7 +133,7 @@ Item {
     Rectangle {
         id: bg
         anchors.fill: parent
-        radius: 6
+        radius: Theme.radius
         color: "transparent"
 
         MouseArea {
@@ -151,8 +151,8 @@ Item {
 
         Row {
             anchors.fill: parent
-            spacing: 5
             anchors.margins: 6
+            spacing: Theme.spacing
 
             // Upload (tx) — b[0]
             Row {

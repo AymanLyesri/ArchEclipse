@@ -16,7 +16,7 @@ import qs.widgets.bar
 // stretched across the full bar width.
 Column {
     id: root
-    spacing: 4
+    spacing: Theme.spacing / 2
     property string monitorName: ""
 
     // Injected by Bar.qml (currentPageLoader.onLoaded) — the stack that owns
@@ -115,7 +115,7 @@ Column {
                     height: parent.height
                     Row {
                         id: bandwidthRow
-                        spacing: 4
+                        spacing: Theme.spacing
                         anchors.centerIn: parent
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
@@ -226,7 +226,7 @@ Column {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
 
-      ResourceMonitor {
+                ResourceMonitor {
                     id: resourceMonitor
                     monitorName: root.monitorName
                 }

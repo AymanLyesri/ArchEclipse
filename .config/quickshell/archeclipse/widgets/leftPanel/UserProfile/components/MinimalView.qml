@@ -12,7 +12,7 @@ Item {
     Column {
         anchors.centerIn: parent
         width: store.width
-        spacing: 10
+        spacing: Theme.spacing
         ClippingRectangle {
             // Centered manually: parent is a Column positioner,
             // which ignores anchors on children.

@@ -24,12 +24,12 @@ Rectangle {
     readonly property string weatherBg: hasData ? Weather.background(cur.weather_code) : "transparent"
     color: hover.hovered ? (hasData ? root.weatherBg : Theme.surfaceHover) : (hasData ? root.weatherBg : "transparent")
 
-    Behavior on color { ColorAnimation { duration: 200 } }
+    Behavior on color { ColorAnimation { duration: Theme.anim.defaultEffects } }
 
     Row {
         id: content
         anchors.centerIn: parent
-        spacing: 6
+        spacing: Theme.spacing
 
         // Weather icon
         Text {

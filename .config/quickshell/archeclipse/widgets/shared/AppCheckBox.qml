@@ -10,7 +10,7 @@ CheckBox {
         implicitHeight: 18
         x: root.leftPadding
         y: parent.height / 2 - height / 2
-        radius: Theme.radiusSm
+        radius: Theme.radius
         color: root.checked ? Theme.accent : Theme.surface
         border.color: root.checked ? Theme.accent : Theme.border
         border.width: 1

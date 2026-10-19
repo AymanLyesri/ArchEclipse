@@ -11,15 +11,15 @@ Rectangle {
     implicitHeight: syncCol.implicitHeight + 20
     visible: !!store.profile
     color: Theme.bg
-    radius: Theme.cardRadius
+    radius: Theme.radius
 
     Column {
         id: syncCol
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: 10
-        spacing: 8
+        anchors.margins: Theme.pad
+        spacing: Theme.spacing
         Label {
             text: "Settings Sync"
             font.pixelSize: Theme.fontSize + 2
@@ -28,7 +28,7 @@ Rectangle {
         }
         Row {
             width: parent.width
-            spacing: 8
+            spacing: Theme.spacing
             AppButton {
                 width: (parent.width - 8) / 2
                 text: store.isSyncing ? "Downloading..." : "Download"

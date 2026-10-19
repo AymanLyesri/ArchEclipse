@@ -154,8 +154,8 @@ Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: 8
-                    spacing: 8
+                    anchors.margins: Theme.pad / 2
+                    spacing: Theme.spacing
 
                     Repeater {
                         id: widgetSelectorRepeater
@@ -244,7 +244,7 @@ Item {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: 8
+                    anchors.margins: Theme.pad / 2
                 }
             }
 
@@ -271,7 +271,7 @@ Item {
                     // with content size, which feeds back through delegates and
                     // wedges the scene in a silent polish loop (0-width freeze).
                     width: contentScroll.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     padding: 4
 
                     Repeater {
@@ -279,8 +279,7 @@ Item {
                         model: {
                             // Filter to only enabled widgets, preserving order
                             const capture = Registry.get("capture-session");
-                            const widgets = capture && capture.active && capture.monitor === root.monitorName && capture.rightWidgets
-                                ? capture.rightWidgets : Settings.rightPanelWidgets;
+                            const widgets = capture && capture.active && capture.monitor === root.monitorName && capture.rightWidgets ? capture.rightWidgets : Settings.rightPanelWidgets;
                             const result = [];
                             for (let i = 0; i < widgets.length; i++) {
                                 if (widgets[i].enabled) {
@@ -302,7 +301,7 @@ Item {
                             opacity: 0
                             Behavior on opacity {
                                 NumberAnimation {
-                                    duration: 600
+                                    duration: Theme.anim.large
                                     easing.type: Easing.OutCubic
                                 }
                             }

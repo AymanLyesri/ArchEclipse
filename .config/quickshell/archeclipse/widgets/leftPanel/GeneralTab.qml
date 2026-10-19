@@ -135,8 +135,8 @@ Item {
             id: contentColumn
             width: generalFlick.width - 20
             x: 10
-            spacing: 16
-            topPadding: 10
+            spacing: Theme.spacing
+            topPadding: Theme.pad
 
             // Avatar (circular clip via rounded container, like UserProfile).
             // NOTE: manual x-centering — parent is a Column positioner,
@@ -158,7 +158,7 @@ Item {
             // Title + Stars
             Row {
                 x: (parent.width - width) / 2
-                spacing: 8
+                spacing: Theme.spacing
                 Text {
                     text: "ArchEclipse"
                     font.pixelSize: Theme.fontSize + 6
@@ -175,7 +175,7 @@ Item {
             // Link buttons
             Row {
                 x: (parent.width - width) / 2
-                spacing: 12
+                spacing: Theme.spacing
                 Repeater {
                     model: [
                         {
@@ -217,7 +217,7 @@ Item {
             // Version section
             Column {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
 
                 // Loading state
                 Text {
@@ -233,17 +233,17 @@ Item {
                 Column {
                     visible: !root.isCheckingVersion
                     width: parent.width
-                    spacing: 10
+                    spacing: Theme.spacing
 
                     // Outdated → show versions + update button
                     Column {
                         visible: root.isOutdated
                         width: parent.width
-                        spacing: 8
+                        spacing: Theme.spacing
 
                         Row {
                             x: (parent.width - width) / 2
-                            spacing: 10
+                            spacing: Theme.spacing
                             Text {
                                 text: root.currentVersion
                                 font.pixelSize: Theme.fontSize
@@ -293,7 +293,7 @@ Item {
                     Column {
                         visible: !root.isOutdated
                         width: parent.width
-                        spacing: 8
+                        spacing: Theme.spacing
 
                         Text {
                             width: parent.width

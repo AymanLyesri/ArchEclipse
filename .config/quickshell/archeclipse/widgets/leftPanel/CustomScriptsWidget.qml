@@ -363,7 +363,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spacing
 
         Label {
             text: "Custom Scripts"
@@ -386,9 +386,9 @@ Item {
 
             Column {
                 id: scriptCol
-                spacing: 8
+                spacing: Theme.spacing
                 width: scriptScroll.width
-                bottomPadding: 20
+                bottomPadding: Theme.pad
 
                 Repeater {
                     model: root.scriptDefs
@@ -399,7 +399,7 @@ Item {
                         width: parent.width
                         implicitHeight: rowContent.implicitHeight + 20
                         color: Theme.surface
-                        radius: Theme.cardRadius
+                        radius: Theme.radius
                         // Row appears when the reveal counter passes its
                         // position (see root.playReveal).
                         opacity: index < root.revealCount ? 1 : 0
@@ -432,15 +432,15 @@ Item {
 
                         Column {
                             anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 8
+                            anchors.margins: Theme.pad
+                            spacing: Theme.spacing
 
                             // NOTE: RowLayout (not Row) — verticalCenter anchors
                             // are ignored inside positioners, so alignment
                             // goes through Layout.alignment instead.
                             RowLayout {
                                 id: rowContent
-                                spacing: 12
+                                spacing: Theme.spacing
                                 width: parent.width
 
                                 Label {
@@ -495,7 +495,7 @@ Item {
                             // Reset confirmation (Yes/No buttons)
                             RowLayout {
                                 visible: modelData.kind === "reset-settings" && confirming
-                                spacing: 10
+                                spacing: Theme.spacing
                                 width: parent.width
                                 Label {
                                     text: "Reset all settings?"

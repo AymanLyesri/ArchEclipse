@@ -11,7 +11,7 @@ import qs.widgets.launcher
 Column {
     id: root
     width: 516
-    spacing: 8
+    spacing: Theme.spacing
     property string monitorName: ""
 
     signal queryChanged(string query)

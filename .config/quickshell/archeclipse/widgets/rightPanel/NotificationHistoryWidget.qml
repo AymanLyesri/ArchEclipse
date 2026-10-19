@@ -69,14 +69,14 @@ Item {
     Column {
         id: mainCol
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
+        anchors.margins: Theme.pad
+        spacing: Theme.spacing
 
         // Header: title + match count + clear-all.
         RowLayout {
             id: headerRow
             width: parent.width
-            spacing: 6
+            spacing: Theme.spacing
 
             Label {
                 text: "Notification History"
@@ -150,7 +150,7 @@ Item {
             Column {
                 id: listColumn
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
 
                 Repeater {
                     model: visibleNotifications

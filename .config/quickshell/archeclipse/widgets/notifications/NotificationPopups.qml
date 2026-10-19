@@ -212,7 +212,7 @@ Item {
                 border.width: 1
                 Behavior on border.color {
                     ColorAnimation {
-                        duration: 200
+                        duration: Theme.anim.defaultEffects
                     }
                 }
                 clip: true
@@ -275,7 +275,7 @@ Item {
                         target: shift
                         property: "opacity"
                         to: 0
-                        duration: 200
+                        duration: Theme.anim.defaultEffects
                     }
                     onFinished: {
                         if (card.toastId >= 0)

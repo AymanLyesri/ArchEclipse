@@ -34,7 +34,7 @@ Item {
 
     Column {
         id: content
-        spacing: 12
+        spacing: Theme.spacing
         width: parent.width
 
         // No-data placeholder
@@ -47,7 +47,7 @@ Item {
         Column {
             visible: root.hasData
             width: parent.width
-            spacing: 12
+            spacing: Theme.spacing
 
             // Current conditions panel (code-colored background)
             Rectangle {
@@ -62,15 +62,15 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.topMargin: 14
                     width: parent.width - 28
-                    spacing: 10
+                    spacing: Theme.spacing
 
                     Row {
-                        spacing: 25
+                        spacing: Theme.spacing
                         width: parent.width
 
                         // Main column: icon, city, temp, description, feels-like, date
                         Column {
-                            spacing: 4
+                            spacing: Theme.spacing
                             width: parent.width / 2
 
                             Text {
@@ -117,11 +117,11 @@ Item {
 
                         // Right column: sun, humidity, precip, wind
                         Column {
-                            spacing: 5
+                            spacing: Theme.spacing
                             width: parent.width / 2
 
                             Row {
-                                spacing: 5
+                                spacing: Theme.spacing
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 Column {
                                     spacing: 2
@@ -162,12 +162,12 @@ Item {
                             }
 
                             Row {
-                                spacing: 5
+                                spacing: Theme.spacing
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 Rectangle {
                                     width: 90
                                     height: 34
-                                    radius: Theme.chipRadius
+                                    radius: Theme.radius
                                     color: Qt.alpha(Theme.onMediaInk, 0.13)
                                     Column {
                                         anchors.centerIn: parent
@@ -190,7 +190,7 @@ Item {
                                 Rectangle {
                                     width: 90
                                     height: 34
-                                    radius: Theme.chipRadius
+                                    radius: Theme.radius
                                     color: Qt.alpha(Theme.onMediaInk, 0.13)
                                     Column {
                                         anchors.centerIn: parent
@@ -215,7 +215,7 @@ Item {
                             Rectangle {
                                 width: 190
                                 height: 34
-                                radius: Theme.chipRadius
+                                radius: Theme.radius
                                 color: Qt.alpha(Theme.onMediaInk, 0.13)
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 Column {
@@ -241,7 +241,7 @@ Item {
 
                     // City search entry + apply + clear
                     Row {
-                        spacing: 8
+                        spacing: Theme.spacing
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: parent.width * 0.9
 
@@ -261,7 +261,7 @@ Item {
                             height: 30
                             icon: "\u{F00C}"
                             pixelSize: Theme.fontSizeLarge
-                            cornerRadius: Theme.chipRadius
+                            cornerRadius: Theme.radius
                             idleBg: Theme.scrimSoft
                             idleFg: Theme.accentFg
                             hoverBg: Theme.scrimSoft
@@ -275,7 +275,7 @@ Item {
                             height: 30
                             icon: "\u{F0453}"
                             pixelSize: Theme.fontSizeLarge
-                            cornerRadius: Theme.chipRadius
+                            cornerRadius: Theme.radius
                             idleBg: Theme.scrimSoft
                             idleFg: Theme.accentFg
                             hoverBg: Theme.scrimSoft
@@ -292,7 +292,7 @@ Item {
             Column {
                 visible: root.showForecast
                 width: parent.width
-                spacing: 12
+                spacing: Theme.spacing
 
                 Label {
                     text: "Today's Forecast"
@@ -302,7 +302,7 @@ Item {
                 }
 
                 Row {
-                    spacing: 8
+                    spacing: Theme.spacing
                     width: parent.width
                     Repeater {
                         model: [
@@ -326,7 +326,7 @@ Item {
                         delegate: Rectangle {
                             width: parent.width / 4 - 6
                             height: 56
-                            radius: Theme.cardRadius
+                            radius: Theme.radius
                             color: Theme.surface
                             border.color: Theme.border
                             Column {
@@ -357,7 +357,7 @@ Item {
             Column {
                 visible: root.showForecast
                 width: parent.width
-                spacing: 12
+                spacing: Theme.spacing
 
                 Label {
                     text: "Hourly Forecast"
@@ -367,19 +367,19 @@ Item {
                 }
 
                 Row {
-                    spacing: 8
+                    spacing: Theme.spacing
                     width: parent.width
                     Repeater {
                         model: root.hourlyItems()
                         delegate: Rectangle {
                             width: parent.width / 4 - 6
                             height: 78
-                            radius: Theme.cardRadius
+                            radius: Theme.radius
                             color: Theme.surface
                             border.color: Theme.border
                             Column {
                                 anchors.centerIn: parent
-                                spacing: 4
+                                spacing: Theme.spacing
                                 Text {
                                     text: Weather.icon(modelData.code)
                                     font.family: Theme.fontFamily

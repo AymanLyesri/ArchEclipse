@@ -45,7 +45,7 @@ PanelWindow {
         height: Math.max(240, media.implicitHeight + 24)
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
-        anchors.margins: 12
+        anchors.margins: Theme.pad
         color: Theme.bg
         radius: Theme.radius
 
@@ -54,7 +54,7 @@ PanelWindow {
         MediaWidget {
             id: media
             anchors.fill: parent
-            anchors.margins: 12
+            anchors.margins: Theme.pad
         }
     }
 }

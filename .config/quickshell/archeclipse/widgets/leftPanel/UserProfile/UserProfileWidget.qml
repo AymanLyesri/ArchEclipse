@@ -865,14 +865,14 @@ Item {
     Column {
         id: fullView
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spacing
         visible: !root.minimal
 
         // Tab buttons
         Row {
             id: tabRow
             width: parent.width
-            spacing: 6
+            spacing: Theme.spacing
             AppButton {
                 width: (parent.width - 6) / 2
                 implicitHeight: 30
@@ -912,7 +912,7 @@ Item {
                 Column {
                     id: acctCol
                     width: acctFlick.width
-                    spacing: 10
+                    spacing: Theme.spacing
 
                     // ── Identity block: avatar above, fields in the card ──
                     Profile.IdentityCard {

@@ -191,7 +191,7 @@ Item {
                 anchors.top: parent.top
                 anchors.right: parent.right
                 anchors.margins: 4
-                spacing: 4
+                spacing: Theme.spacing
                 visible: dialogRoot.dlgVideoPlayable && dialogRoot.dlgBadges.length > 0
                 Repeater {
                     model: dialogRoot.dlgBadges
@@ -215,7 +215,7 @@ Item {
             // video not downloaded → placeholder
             Column {
                 anchors.centerIn: parent
-                spacing: 6
+                spacing: Theme.spacing
                 visible: dialogRoot.dlgVideoPlaceholder || dialogRoot.dlgIsZip
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -262,7 +262,7 @@ Item {
             Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
-                anchors.margins: 8
+                anchors.margins: Theme.pad
                 implicitWidth: dlPillRow.implicitWidth + 18
                 implicitHeight: 24
                 radius: width / 2
@@ -271,7 +271,7 @@ Item {
                 Row {
                     id: dlPillRow
                     anchors.centerIn: parent
-                    spacing: 6
+                    spacing: Theme.spacing
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: ""
@@ -297,7 +297,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 40
             height: 5
-            radius: 3
+            radius: height / 2
             color: Theme.fg
             opacity: dialogRoot.sheetRevealed ? 0 : 0.65
             visible: opacity > 0
@@ -334,7 +334,7 @@ Item {
             opacity: dialogRoot.sheetRevealed ? 1 : 0
             Behavior on opacity {
                 NumberAnimation {
-                    duration: 200
+                    duration: Theme.anim.defaultEffects
                 }
             }
             // Ignore pointer input while hidden so media hovers pass through.
@@ -342,7 +342,7 @@ Item {
 
             SmoothFlickable {
                 anchors.fill: parent
-                anchors.margins: 8
+                anchors.margins: Theme.pad
                 contentWidth: width
                 contentHeight: sheetContent.height
                 clip: true
@@ -351,7 +351,7 @@ Item {
                 Column {
                     id: sheetContent
                     width: parent.width
-                    spacing: 6
+                    spacing: Theme.spacing
 
                     // Header (merged top bar — NotificationItem parity:
                     // icon, bold title fillWidth, dim meta, 24px outlined
@@ -359,7 +359,7 @@ Item {
                     // only in the meta pill below.
                     RowLayout {
                         width: parent.width
-                        spacing: 6
+                        spacing: Theme.spacing
 
                         // Drag grip: floats the card into its own window
                         // on first move, then moves it anywhere on screen
@@ -423,7 +423,7 @@ Item {
                         Rectangle {
                             width: 26
                             height: 26
-                            radius: Theme.chipRadius
+                            radius: Theme.radius
                             color: Theme.surfaceActive
                             Layout.alignment: Qt.AlignVCenter
                             Text {
@@ -482,7 +482,7 @@ Item {
                     Rectangle {
                         width: parent.width
                         implicitHeight: metaRow.implicitHeight + 12
-                        radius: Theme.chipRadius
+                        radius: Theme.radius
                         color: Theme.bg
                         RowLayout {
                             id: metaRow
@@ -523,10 +523,10 @@ Item {
                     // Tags section (BooruSettingsPanel chip parity + expand).
                     Column {
                         width: parent.width
-                        spacing: 4
+                        spacing: Theme.spacing
                         RowLayout {
                             width: parent.width
-                            spacing: 6
+                            spacing: Theme.spacing
                             Text {
                                 text: `TAGS (${dialogRoot.dlgTags.length})`
                                 color: Theme.fgDim
@@ -541,7 +541,7 @@ Item {
                                 width: 24
                                 height: 22
                                 pixelSize: Theme.fontSizeCaption
-                                cornerRadius: Theme.radiusSm
+                                cornerRadius: Theme.radius
                                 outlined: true
                                 tooltipText: dialogRoot.showAllTags ? "Show fewer" : "Show all tags"
                                 visible: dialogRoot.dlgTags.length > 12 || (dialogRoot.isWaifuMode && dialogRoot.dlgTags.length > 0)
@@ -551,7 +551,7 @@ Item {
                         Rectangle {
                             width: parent.width
                             implicitHeight: tagFlow.implicitHeight + 12
-                            radius: Theme.chipRadius
+                            radius: Theme.radius
                             color: Theme.bg
                             // Waifu mode starts collapsed: hide the empty chip
                             // box until expanded (no-tags case still shows).
@@ -560,7 +560,7 @@ Item {
                                 id: tagFlow
                                 anchors.fill: parent
                                 anchors.margins: 6
-                                spacing: 4
+                                spacing: Theme.spacing
                                 Repeater {
                                     model: dlg ? dialogRoot.dlgTags.slice(0, dialogRoot.dlgVisibleTagCount) : []
                                     delegate: Rectangle {
@@ -625,7 +625,7 @@ Item {
                     // fillWidth buttons).
                     RowLayout {
                         width: parent.width
-                        spacing: 6
+                        spacing: Theme.spacing
                         AppButton {
                             Layout.fillWidth: true
                             height: 30
@@ -699,7 +699,7 @@ Item {
                     }
                     RowLayout {
                         width: parent.width
-                        spacing: 6
+                        spacing: Theme.spacing
                         AppButton {
                             Layout.fillWidth: true
                             height: 28

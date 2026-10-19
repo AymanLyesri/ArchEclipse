@@ -114,13 +114,13 @@ Item {
 
     Column {
         anchors.fill: parent
-        spacing: 4
+        spacing: Theme.spacing
 
         // Entry header: symbol, price, change (RowLayout: the price takes
         // leftover width and elides — the fixed width math overflowed).
         RowLayout {
             id: headerRow
-            spacing: 8
+            spacing: Theme.spacing
             width: parent.width
 
             // Symbol

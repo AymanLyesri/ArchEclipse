@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.widgets.shared
+import qs.theme
 
 // Masonry image grid (shared AppMasonry + slide transition).
 // viewer: entry root (images, columns).
@@ -91,7 +92,7 @@ SmoothFlickable {
 
         target: masonry
         property: "x"
-        duration: 200
+        duration: Theme.anim.small
         to: 0
     }
 

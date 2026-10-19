@@ -1075,20 +1075,20 @@ Item {
             // No outer margin: the bar's Theme.islandPad is the only inset
             // between the pill edge and content. Adding one here would stack
             // a second one on top of it (this body used to add 12).
-            spacing: 8
+            spacing: Theme.spacing
 
             // per-workspace current wallpaper strip — workspace tiles
             // scroll so 11+ workspaces glide instead of overflowing;
             // greeter + separator stay fixed outside the flickable.
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
-                spacing: 10
+                spacing: Theme.spacing
                 // Greeter (login) wallpaper indicator — first tile, lock in center.
                 Rectangle {
                     id: greeterTile
                     width: 100
                     height: 66
-                    radius: Theme.chipRadius
+                    radius: Theme.radius
                     color: Theme.onMediaBg
                     border.width: root.targetType === "greeter" ? 2 : 0
                     border.color: Theme.accent
@@ -1155,7 +1155,7 @@ Item {
                     Row {
                         id: wsStripRow
                         height: wsStripScroll.height
-                        spacing: 10
+                        spacing: Theme.spacing
                         // Content-driven width, never bound to the viewport
                         // (see polish-loop pitfall in AGENTS.md). Left-origin
                         // so tiles hug the separator instead of centering
@@ -1170,7 +1170,7 @@ Item {
 
                         width: 100
                         height: 66
-                        radius: 6
+                        radius: Theme.radius
                         color: modelData === "" ? "black" : "transparent"
                         border.width: isFocused ? 1 : 0
                         border.color: Theme.muted
@@ -1244,7 +1244,7 @@ Item {
                 RowLayout {
                     id: actionBar
                     anchors.centerIn: parent
-                    spacing: 6
+                    spacing: Theme.spacing
 
                     // Provider switch: local folders vs. wallhaven.cc API.
                     AppSegmentedControl {
@@ -1388,13 +1388,13 @@ Item {
                     id: whFilterCol
                     anchors.fill: parent
                     anchors.margins: 6
-                    spacing: 4
+                    spacing: Theme.spacing
 
                     // filters: one wrapping row (query, sort, categories,
                     // purity, size) so every provider filter lives together.
                     Flow {
                         Layout.fillWidth: true
-                        spacing: 6
+                        spacing: Theme.spacing
                         AppTextField {
                             id: whQuery
                             width: 180
@@ -1503,7 +1503,7 @@ Item {
                     // result count + page nav
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 6
+                        spacing: Theme.spacing
                         Text {
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
@@ -1548,7 +1548,7 @@ Item {
                     width: wallScroll.width
                     height: implicitHeight
                     rows: Settings.wallpaperMasonryRows
-                    spacing: 6
+                    spacing: Theme.spacing
                     rowHeight: Settings.wallpaperTileSize
                     // Preserve the (now alphabetically sorted) file order
                     // left-to-right instead of shortest-row bin-packing,
@@ -1566,7 +1566,7 @@ Item {
                     buffer: 700
                     placeholder: Rectangle {
                         color: Theme.surface
-                        radius: 6
+                        radius: Theme.radius
                     }
                     delegate: Rectangle {
                         id: tile
@@ -1620,7 +1620,7 @@ Item {
                             interval: 3000
                             onTriggered: tile.deleteArmed = false
                         }
-                        radius: 6
+                        radius: Theme.radius
                         color: tileMa.containsMouse ? Theme.surfaceHover : Theme.surface
                         border.width: tileMa.containsMouse ? 2 : 0
                         border.color: Theme.muted
@@ -1686,7 +1686,7 @@ Item {
                             // Hover swaps in the live preview above instead.
                             visible: tile.modelData !== undefined && root.isVideoFile(tile.modelData) && !tile.previewing && (tile.tileThumb === "" || tileImg.status === Image.Error)
                             anchors.centerIn: parent
-                            spacing: 4
+                            spacing: Theme.spacing
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: ""
@@ -1749,7 +1749,7 @@ Item {
                             anchors.top: parent.top
                             anchors.left: parent.left
                             anchors.margins: 4
-                            spacing: 4
+                            spacing: Theme.spacing
                             readonly property bool hovered: tile.modelData !== undefined && (tileMa.containsMouse || copyMa.containsMouse || delMa.containsMouse)
                             opacity: hovered ? 1 : 0
                             visible: hovered || opacity > 0
@@ -1846,7 +1846,7 @@ Item {
                     width: whScroll.width
                     height: implicitHeight
                     rows: Settings.wallpaperMasonryRows
-                    spacing: 6
+                    spacing: Theme.spacing
                     rowHeight: Settings.wallpaperTileSize
                     model: root.whResults
                     aspectRatio: function (item) {
@@ -1857,7 +1857,7 @@ Item {
                     buffer: 700
                     placeholder: Rectangle {
                         color: Theme.surface
-                        radius: 6
+                        radius: Theme.radius
                     }
                     delegate: Rectangle {
                         id: whTile
@@ -1877,7 +1877,7 @@ Item {
                                 easing.type: Easing.OutCubic
                             }
                         }
-                        radius: 6
+                        radius: Theme.radius
                         color: whTileMa.containsMouse ? Theme.surfaceHover : Theme.surface
                         border.width: whTileMa.containsMouse ? 2 : 0
                         border.color: Theme.muted

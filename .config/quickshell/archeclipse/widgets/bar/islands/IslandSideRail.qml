@@ -28,7 +28,7 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: 8
+        spacing: Theme.spacing
 
         Repeater {
             model: root.model

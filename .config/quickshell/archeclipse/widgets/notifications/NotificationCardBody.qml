@@ -14,7 +14,7 @@ import qs.widgets.shared
 // (history).
 Column {
     id: root
-    spacing: 6
+    spacing: Theme.spacing
 
     property string iconFile: ""
     property string iconName: ""
@@ -46,7 +46,7 @@ Column {
     Row {
         id: contentRow
         width: parent.width
-        spacing: 10
+        spacing: Theme.spacing
 
         // ---- app icon / image: the image takes the icon's
         // place, spanning the text height (72-120px) ----
@@ -96,7 +96,7 @@ Column {
                     }
                 }
                 anchors.fill: parent
-                radius: 8
+                radius: Theme.radius
                 clip: true
                 color: Qt.alpha(Theme.fg, 0.06)
                 Image {
@@ -116,7 +116,7 @@ Column {
             Rectangle {
                 visible: parent.showVideo && !parent.showPreview
                 anchors.fill: parent
-                radius: 8
+                radius: Theme.radius
                 clip: true
                 color: Qt.alpha(Theme.fg, 0.06)
                 AppVideo {
@@ -135,7 +135,7 @@ Column {
 
         Column {
             id: textCol
-            width: (root.previewFile !== "" || root.videoFile !== "") ? parent.width - 130 : parent.width - 38
+            width: (root.previewFile !== "" || root.videoFile !== "") ? parent.width - 128 : parent.width - 36
             Behavior on width {
                 NumberAnimation {
                     duration: 250
@@ -146,7 +146,7 @@ Column {
 
             // ---- top bar: title + time (24h %H:%M) ----
             RowLayout {
-                spacing: 6
+                spacing: Theme.spacing
                 width: parent.width
                 Text {
                     text: root.title
@@ -230,11 +230,11 @@ Column {
                 duration: 180
             }
         }
-        spacing: 4
+        spacing: Theme.spacing
         AppButton {
             icon: ""
             pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radiusSm
+            cornerRadius: Theme.radius
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.openFile
@@ -244,7 +244,7 @@ Column {
         AppButton {
             icon: "󰃅"
             pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radiusSm
+            cornerRadius: Theme.radius
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.copyTip
@@ -253,7 +253,7 @@ Column {
         AppButton {
             icon: root.bodyExpanded ? "󰁾" : "󰁼"
             pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radiusSm
+            cornerRadius: Theme.radius
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.bodyExpanded ? "Collapse" : "Expand"
@@ -263,7 +263,7 @@ Column {
         AppButton {
             icon: "󰀍"
             pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radiusSm
+            cornerRadius: Theme.radius
             idleBg: Theme.surface
             outlined: true
             tooltipText: root.dismissTip

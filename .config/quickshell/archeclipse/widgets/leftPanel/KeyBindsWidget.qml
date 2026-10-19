@@ -327,7 +327,7 @@ Item {
     // ---- UI: vertical category list (no filter row) ----
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: Theme.spacing
 
         Label {
             text: "Key Binds"
@@ -360,8 +360,8 @@ Item {
             Column {
                 id: keyCol
                 width: keyScroll.width
-                spacing: 10
-                bottomPadding: 20
+                spacing: Theme.spacing
+                bottomPadding: Theme.pad
 
                 Repeater {
                     model: root.categories
@@ -373,7 +373,7 @@ Item {
                         // order (inner rows add their own index to it).
                         property int rowBase: root.catBase(index)
                         width: parent.width
-                        spacing: 5
+                        spacing: Theme.spacing
                         // Header appears just before its first row.
                         opacity: root.revealCount > rowBase ? 1 : 0
                         Behavior on opacity {
@@ -416,7 +416,7 @@ Item {
                                 // anchors are ignored inside positioners).
                                 RowLayout {
                                     anchors.fill: parent
-                                    spacing: 10
+                                    spacing: Theme.spacing
                                     Label {
                                         text: modelData.description
                                         font.pixelSize: Theme.fontSize

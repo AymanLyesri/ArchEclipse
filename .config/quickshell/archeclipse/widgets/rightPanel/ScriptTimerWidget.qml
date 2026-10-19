@@ -149,7 +149,7 @@ Item {
 
     RightPanelCard {
         anchors.fill: parent
-        anchors.margins: 8
+        anchors.margins: Theme.pad
         title: "Script Timer"
         showAddForm: root.showAddForm
         formComponent: scriptForm
@@ -181,7 +181,7 @@ Item {
 
             // Name
             Column {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 Label {
                     text: "Task Name"
@@ -198,7 +198,7 @@ Item {
 
             // Time
             Column {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 Label {
                     text: "Time (HH:MM 24-hour)"
@@ -216,7 +216,7 @@ Item {
 
             // Command
             Column {
-                spacing: 4
+                spacing: Theme.spacing
                 width: parent.width
                 Label {
                     text: "Command"
@@ -254,7 +254,7 @@ Item {
 
             // Task Type
             Column {
-                spacing: 8
+                spacing: Theme.spacing
                 width: parent.width
                 Label {
                     text: "Task Type"
@@ -263,7 +263,7 @@ Item {
                 }
                 RowLayout {
                     width: parent.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     AppCheckBox {
                         id: dailyCheck
                         Layout.fillWidth: true
@@ -292,7 +292,7 @@ Item {
             // Actions
             RowLayout {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 AppButton {
                     text: editingTask ? "✓ Update" : "+ Add Task"
                     pixelSize: Theme.fontSize

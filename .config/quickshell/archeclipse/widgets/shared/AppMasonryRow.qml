@@ -47,13 +47,14 @@
 //   the viewport (same 0-width wedge rule as AppMasonry).
 
 import QtQuick
+import qs.theme
 
 Item {
     id: root
 
     property var model: []
     property int rows: 2
-    property real spacing: 6
+    property real spacing: Theme.spacing
     property real rowHeight: 120
     // function(item) -> width/height ratio, or null for round-robin
     property var aspectRatio: null

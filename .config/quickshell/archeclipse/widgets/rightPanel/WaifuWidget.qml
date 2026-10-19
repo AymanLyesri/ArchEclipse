@@ -56,7 +56,7 @@ Item {
     AppButton {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: 12
+        anchors.margins: Theme.pad
         width: 32
         height: 32
         text: "\uf093"
@@ -176,8 +176,8 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.margins: 16
-            spacing: 12
+            anchors.margins: Theme.pad
+            spacing: Theme.spacing
 
             Text {
                 width: parent.width
@@ -200,7 +200,7 @@ Item {
             // that's Layouts-only).
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 8
+                spacing: Theme.spacing
                 AppButton {
                     text: "Open Booru Viewer"
                     onClicked: {

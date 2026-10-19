@@ -92,7 +92,7 @@ ClippingRectangle {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: 4
-        spacing: 4
+        spacing: Theme.spacing
         visible: root.badges.length > 0
         Repeater {
             model: root.badges

@@ -195,7 +195,7 @@ Item {
                     Row {
                         id: cellRow
                         anchors.centerIn: parent
-                        spacing: 6
+                        spacing: Theme.spacing
                         Text {
                             visible: cell.icon !== ""
                             text: cell.icon

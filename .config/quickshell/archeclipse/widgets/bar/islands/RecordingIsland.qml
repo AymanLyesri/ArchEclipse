@@ -33,25 +33,25 @@ Item {
 
             Row {
                 anchors.centerIn: parent
-                spacing: 6
+                spacing: Theme.spacing
 
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 8
                     height: 8
-                    radius: 4
+                    radius: width / 2
                     color: Theme.danger
                     SequentialAnimation on opacity {
                         loops: Animation.Infinite
                         NumberAnimation {
                             from: 1
                             to: 0.3
-                            duration: 600
+                            duration: Theme.anim.large
                         }
                         NumberAnimation {
                             from: 0.3
                             to: 1
-                            duration: 600
+                            duration: Theme.anim.large
                         }
                     }
                 }

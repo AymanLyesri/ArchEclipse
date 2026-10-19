@@ -81,13 +81,13 @@ Item {
                 id: brightCard
                 width: parent.width
                 visible: root.mode === "brightness"
-                contentMargins: 12
-                contentSpacing: 8
+                contentMargins: Theme.pad
+                contentSpacing: Theme.spacing
                 height: contentMargins * 2 + brightRow.height
                 Row {
                     id: brightRow
                     width: parent.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     Text {
                         id: brightIcon
                         anchors.verticalCenter: parent.verticalCenter

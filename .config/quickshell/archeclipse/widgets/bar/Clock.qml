@@ -39,14 +39,14 @@ Rectangle {
 
     Behavior on color {
         ColorAnimation {
-            duration: 200
+            duration: Theme.anim.defaultEffects
         }
     }
 
     Row {
         id: row
         anchors.centerIn: parent
-        spacing: 6
+        spacing: Theme.spacing
 
         Text {
             id: clockLabel

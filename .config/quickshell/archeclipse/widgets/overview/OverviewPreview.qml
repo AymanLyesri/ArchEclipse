@@ -31,7 +31,7 @@ Item {
     // clips rectangularly).
     ClippingRectangle {
         anchors.fill: parent
-        radius: Theme.chipRadius
+        radius: Theme.radius
         color: "transparent"
         // Constant width (color-only hover): toggling width 0→1 would
         // shift the tile content by a pixel on every hover.

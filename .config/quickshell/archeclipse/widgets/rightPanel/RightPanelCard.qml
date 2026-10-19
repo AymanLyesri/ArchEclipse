@@ -16,12 +16,12 @@ Column {
     property bool showAddForm: false
     property Component formComponent: null
     property int listSpacing: 8
-    signal addClicked()
-    signal closeClicked()
-    spacing: 8
+    signal addClicked
+    signal closeClicked
+    spacing: Theme.spacing
     RowLayout {
         width: parent.width
-        spacing: 8
+        spacing: Theme.spacing
         Label {
             text: root.title
             font.pixelSize: Theme.fontSize + 4
@@ -29,8 +29,16 @@ Column {
             color: Theme.fg
             Layout.fillWidth: true
         }
-        AppButton { text: "+"; implicitWidth: 40; onClicked: root.addClicked() }
-        AppButton { text: "\u2715"; implicitWidth: 40; onClicked: root.closeClicked() }
+        AppButton {
+            text: "+"
+            implicitWidth: 40
+            onClicked: root.addClicked()
+        }
+        AppButton {
+            text: "\u2715"
+            implicitWidth: 40
+            onClicked: root.closeClicked()
+        }
     }
     Loader {
         sourceComponent: root.showAddForm ? root.formComponent : null

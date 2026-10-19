@@ -15,7 +15,7 @@ Column {
     id: root
     property string side: "left"  // "left" | "right"
     property string monitorName: ""
-    spacing: 4
+    spacing: Theme.spacing
     readonly property bool isLeft: root.side === "left"
     readonly property int minWidth: root.isLeft ? 400 : 250
     readonly property bool locked: Settings.panelLockFor(root.side, root.monitorName)
@@ -30,7 +30,7 @@ Column {
         width: parent.width
         icon: "";
         pixelSize: Theme.fontSizeLarge
-        cornerRadius: Theme.chipRadius
+        cornerRadius: Theme.radius
         hoverBg: Theme.surface
         hoverFg: Theme.accent
         tooltipText: "Expand island"
@@ -44,7 +44,7 @@ Column {
         width: parent.width
         icon: "";
         pixelSize: Theme.fontSizeLarge
-        cornerRadius: Theme.chipRadius
+        cornerRadius: Theme.radius
         hoverBg: Theme.surface
         hoverFg: Theme.accent
         tooltipText: "Shrink island"
@@ -58,7 +58,7 @@ Column {
         width: parent.width
         icon: root.locked ? "" : "";
         pixelSize: Theme.fontSizeLarge
-        cornerRadius: Theme.chipRadius
+        cornerRadius: Theme.radius
         toggle: true
         checked: root.locked
         hoverBg: Theme.surface
@@ -72,7 +72,7 @@ Column {
         width: parent.width
         icon: "";
         pixelSize: Theme.fontSizeLarge
-        cornerRadius: Theme.chipRadius
+        cornerRadius: Theme.radius
         hoverBg: Theme.surface
         hoverFg: Theme.danger
         tooltipText: "Close island"

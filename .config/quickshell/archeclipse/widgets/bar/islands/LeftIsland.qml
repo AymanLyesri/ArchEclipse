@@ -265,7 +265,7 @@ Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: 8
+                    anchors.margins: Theme.pad / 2
                     // Tab order + icons: UserProfile, BooruViewer,
                     // ChatBot, MangaViewer, Settings, CustomScripts,
                     // KeyBinds, Donations. Names keep the QS "Widget"
@@ -316,7 +316,7 @@ Item {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: 8
+                    anchors.margins: Theme.pad / 2
                 }
             }
 
@@ -338,7 +338,7 @@ Item {
                     id: switchAnim
                     from: 0
                     to: 1
-                    duration: 600
+                    duration: Theme.anim.large
                     easing.type: Easing.OutCubic
                 }
                 StackLayout {
@@ -451,7 +451,9 @@ Item {
                 }
                 Component {
                     id: userProfileComp
-                    UserProfileWidget { monitorName: root.monitorName }
+                    UserProfileWidget {
+                        monitorName: root.monitorName
+                    }
                 }
                 Component {
                     id: booruComp
@@ -459,19 +461,27 @@ Item {
                 }
                 Component {
                     id: chatBotComp
-                    ChatBotWidget { monitorName: root.monitorName }
+                    ChatBotWidget {
+                        monitorName: root.monitorName
+                    }
                 }
                 Component {
                     id: mangaComp
-                    MangaViewerWidget { monitorName: root.monitorName }
+                    MangaViewerWidget {
+                        monitorName: root.monitorName
+                    }
                 }
                 Component {
                     id: settingsComp
-                    SettingsWidget { monitorName: root.monitorName }
+                    SettingsWidget {
+                        monitorName: root.monitorName
+                    }
                 }
                 Component {
                     id: scriptsComp
-                    CustomScriptsWidget { monitorName: root.monitorName }
+                    CustomScriptsWidget {
+                        monitorName: root.monitorName
+                    }
                 }
                 Component {
                     id: keybindsComp
@@ -479,7 +489,9 @@ Item {
                 }
                 Component {
                     id: donationsComp
-                    DonationsWidget { monitorName: root.monitorName }
+                    DonationsWidget {
+                        monitorName: root.monitorName
+                    }
                 }
             }
         }

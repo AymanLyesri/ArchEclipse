@@ -197,7 +197,7 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: 8
+        spacing: Theme.spacing
 
         // ===== workspace grid: 5 columns × 2 rows, all 10 =====
         GridLayout {
@@ -220,7 +220,7 @@ Item {
                     // Explicit size (see AGENTS.md §2.3).
                     width: body.cardW
                     height: body.cardH
-                    radius: Theme.cardRadius
+                    radius: Theme.radius
                     color: wsCard.dropHot ? Theme.surfaceActive : Theme.surface
                     border.color: wsCard.dropHot ? Theme.accent : (wsCard.isFocused ? Theme.accent : Theme.border)
                     border.width: (wsCard.dropHot || wsCard.isFocused) ? 2 : 1

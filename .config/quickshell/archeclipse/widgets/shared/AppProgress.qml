@@ -86,7 +86,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         visible: root.variant === "pill" && root.active
-        radius: 6
+        radius: Theme.radius
         color: root.statusBg
         border.color: root.statusColor
         clip: true
@@ -145,7 +145,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         visible: root.variant === "badge" && root.active
-        radius: 4
+        radius: Theme.radius
         color: root.status === "error" ? Theme.danger : (root.status === "success" ? Theme.surfaceActive : Theme.bg)
         border.color: root.status === "error" ? Theme.danger : Theme.border
 

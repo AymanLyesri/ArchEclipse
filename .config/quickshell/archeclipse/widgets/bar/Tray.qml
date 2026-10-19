@@ -130,7 +130,7 @@ Row {
         Rectangle {
             z: 999
             width: 2
-            radius: 1
+            radius: width / 2
             color: Theme.accent
             visible: false
         }
@@ -343,7 +343,7 @@ Row {
 
             Rectangle {
                 anchors.fill: parent
-                radius: Theme.radiusSm
+                radius: Theme.radius
                 color: inlineHover.hovered ? Theme.surfaceHover : "transparent"
             }
 
@@ -433,7 +433,7 @@ Row {
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
-            radius: Theme.radiusSm
+            radius: Theme.radius
             color: Theme.accent
             opacity: root.dropZone === "overflowBtn" ? 0.3 : 0
         }
@@ -468,7 +468,7 @@ Row {
             closePolicy: Popup.CloseOnPressOutside
             background: Rectangle {
                 color: Theme.surface
-                radius: Theme.cardRadius
+                radius: Theme.radius
                 border.color: root.dropZone === "popup" ? Theme.accent : Theme.border
                 border.width: root.dropZone === "popup" ? 2 : 1
             }
@@ -486,7 +486,7 @@ Row {
             Grid {
                 id: popupGrid
                 columns: Math.max(1, Math.min(4, popupRep.count))
-                spacing: 4
+                spacing: Theme.spacing
 
                 Repeater {
                     id: popupRep
@@ -523,7 +523,7 @@ Row {
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: 6
+                            radius: Theme.radius
                             color: hiddenHover.hovered ? Theme.surfaceHover : "transparent"
                         }
 

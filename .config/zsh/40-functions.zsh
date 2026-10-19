@@ -38,7 +38,8 @@ _coloreclipse_watch_colors() {
     local sequences="$HOME/.cache/coloreclipse/sequences"
     local last_mtime="" mtime
 
-    while [[ -r "$sequences" ]]; do
+    # exit when the parent shell dies, else disowned forks leak as orphans
+    while kill -0 $PPID 2>/dev/null && [[ -r "$sequences" ]]; do
         zmodload -F zsh/stat b:zstat 2>/dev/null || return
         mtime=$(zstat -L +mtime -- "$sequences" 2>/dev/null) || return
         if [[ -n "$last_mtime" && "$mtime" != "$last_mtime" ]]; then

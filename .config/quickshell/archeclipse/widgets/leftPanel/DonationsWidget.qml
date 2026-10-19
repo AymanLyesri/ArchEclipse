@@ -462,7 +462,7 @@ Item {
         Column {
             id: donateCol
             width: donateScroll.width
-            spacing: 16
+            spacing: Theme.spacing
             topPadding: 4
 
             GeneralTab {
@@ -476,7 +476,7 @@ Item {
 
             Column {
                 width: parent.width
-                spacing: 5
+                spacing: Theme.spacing
                 Label {
                     width: parent.width
                     text: "Support ArchEclipse"
@@ -509,11 +509,11 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 10
-                    spacing: 8
+                    anchors.margins: Theme.pad
+                    spacing: Theme.spacing
                     RowLayout {
                         width: parent.width
-                        spacing: 8
+                        spacing: Theme.spacing
                         Label {
                             text: root.isSupporter ? "♥ Supporter" : "Supporter status"
                             font.pixelSize: Theme.fontSize + 1
@@ -536,7 +536,7 @@ Item {
                     }
                     Row {
                         width: parent.width
-                        spacing: 8
+                        spacing: Theme.spacing
                         AppButton {
                             width: (parent.width - 8) / 2
                             height: 32
@@ -563,7 +563,7 @@ Item {
             // Amount selector (one-time)
             Column {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 Label {
                     width: parent.width
                     text: "One-time amount (USD)"
@@ -574,7 +574,7 @@ Item {
                 }
                 Row {
                     width: parent.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     Repeater {
                         model: root.amounts
                         delegate: AppButton {
@@ -604,8 +604,8 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 10
-                    spacing: 8
+                    anchors.margins: Theme.pad
+                    spacing: Theme.spacing
                     Label {
                         text: "Ko-fi — card / PayPal"
                         font.pixelSize: Theme.fontSize + 1
@@ -621,7 +621,7 @@ Item {
                     }
                     Row {
                         width: parent.width
-                        spacing: 8
+                        spacing: Theme.spacing
                         AppTextField {
                             id: codeField
                             width: parent.width - 108
@@ -683,8 +683,8 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 10
-                    spacing: 8
+                    anchors.margins: Theme.pad
+                    spacing: Theme.spacing
                     Label {
                         text: "Crypto — NOWPayments"
                         font.pixelSize: Theme.fontSize + 1
@@ -741,8 +741,8 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 10
-                    spacing: 8
+                    anchors.margins: Theme.pad
+                    spacing: Theme.spacing
                     Label {
                         text: "Direct wallet transfer — standalone"
                         font.pixelSize: Theme.fontSize + 1
@@ -759,7 +759,7 @@ Item {
                     AppMasonry {
                         width: parent.width
                         columns: 2
-                        spacing: 10
+                        spacing: Theme.spacing
                         model: root.standaloneCryptos
                         delegate: Item {
                             property var modelData
@@ -772,7 +772,7 @@ Item {
                             Column {
                                 id: standCardCol
                                 width: parent.width
-                                spacing: 6
+                                spacing: Theme.spacing
                                 AppButton {
                                     width: parent.width
                                     height: 46
@@ -831,8 +831,8 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 10
-                    spacing: 8
+                    anchors.margins: Theme.pad
+                    spacing: Theme.spacing
                     Label {
                         text: "Donated on Ko-fi without a code?"
                         font.pixelSize: Theme.fontSize
@@ -857,7 +857,7 @@ Item {
                     Column {
                         visible: root.claimChecked
                         width: parent.width
-                        spacing: 6
+                        spacing: Theme.spacing
                         Label {
                             visible: root.claimRows.length === 0
                             width: parent.width
@@ -871,7 +871,7 @@ Item {
                             delegate: Row {
                                 required property var modelData
                                 width: parent.width
-                                spacing: 8
+                                spacing: Theme.spacing
                                 Label {
                                     width: parent.width - 108
                                     text: (modelData.amount ?? "?") + " " + (modelData.currency ?? "") + " • " + String(modelData.created_at ?? "").slice(0, 10)
@@ -896,7 +896,7 @@ Item {
 
             Column {
                 width: parent.width
-                spacing: 8
+                spacing: Theme.spacing
                 Label {
                     width: parent.width
                     text: "Thank you for your support! 💖"

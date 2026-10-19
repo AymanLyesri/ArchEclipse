@@ -1117,7 +1117,7 @@ Item {
     // would fight the layout, so they are derived, not hardcoded.
     ColumnLayout {
         anchors.fill: parent
-        spacing: 6
+        spacing: Theme.spacing
 
         // [1] Info: provider name + description + session (always visible)
         Column {
@@ -1151,13 +1151,13 @@ Item {
         // [2] Setup guide (only when API key missing)
         Column {
             Layout.fillWidth: true
-            spacing: 4
+            spacing: Theme.spacing
             visible: root.apiKey() === ""
             Rectangle {
                 width: parent.width
                 height: setupGuide.implicitHeight + 8
                 color: Theme.surfaceActive
-                radius: Theme.cardRadius
+                radius: Theme.radius
                 border.color: Theme.accent
 
                 Column {
@@ -1165,7 +1165,7 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.margins: 6
-                    spacing: 4
+                    spacing: Theme.spacing
                     AppButton {
                         text: "1. Visit openrouter and Sign-up for FREE  \u{f08e}"
                         width: parent.width
@@ -1202,7 +1202,7 @@ Item {
             Column {
                 id: msgColumn
                 width: flick.width
-                spacing: 8
+                spacing: Theme.spacing
 
                 Repeater {
                     id: msgRepeater
@@ -1216,7 +1216,7 @@ Item {
                         // (content overflows) so the bubble never hugs text.
                         height: msgContent.implicitHeight + 16
                         color: modelData.role === "user" ? Theme.surfaceActive : Theme.surface
-                        radius: Theme.cardRadius
+                        radius: Theme.radius
 
                         // Message text is mouse/keyboard selectable
                         // (bubble-wide click-to-copy removed — it swallowed
@@ -1227,13 +1227,13 @@ Item {
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.right: parent.right
-                            anchors.margins: 8
+                            anchors.margins: Theme.pad
                             spacing: 3
 
                             Row {
                                 id: messageHeader
                                 width: parent.width
-                                spacing: 6
+                                spacing: Theme.spacing
 
                                 Label {
                                     id: roleLabel
@@ -1251,7 +1251,7 @@ Item {
 
                                 Row {
                                     id: actionsRow
-                                    spacing: 6
+                                    spacing: Theme.spacing
                                     anchors.verticalCenter: messageHeader.verticalCenter
 
              // Per-message revert (user only, OpenCode-style):
@@ -1318,7 +1318,7 @@ Item {
 
                             // Info: timestamp + response time
                             Row {
-                                spacing: 8
+                                spacing: Theme.spacing
                                 Label {
                                     text: root.formatTime(modelData.timestamp)
                                     font.pixelSize: Theme.fontSize - 2
@@ -1367,7 +1367,7 @@ Item {
                     height: hasStream ? streamingContent.implicitHeight + 16 : 0
                     visible: hasStream
                     color: Theme.surface
-                    radius: Theme.cardRadius
+                    radius: Theme.radius
                     clip: true
 
                     Column {
@@ -1375,7 +1375,7 @@ Item {
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.right: parent.right
-                        anchors.margins: 8
+                        anchors.margins: Theme.pad
                         spacing: 3
 
                         Label {
@@ -1434,7 +1434,7 @@ Item {
                             width: 8
                             height: Theme.fontSize + 2
                             color: Theme.accent
-                            radius: 2
+                            radius: width / 2
                             SequentialAnimation on opacity {
                                 loops: Animation.Infinite
                                 NumberAnimation {
@@ -1466,7 +1466,7 @@ Item {
                     height: isThinking ? thinkingContent.implicitHeight + 16 : 0
                     visible: isThinking
                     color: Theme.surface
-                    radius: Theme.cardRadius
+                    radius: Theme.radius
                     clip: true
 
                     Timer {
@@ -1481,8 +1481,8 @@ Item {
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.right: parent.right
-                        anchors.margins: 8
-                        spacing: 8
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
 
                         BusyIndicator {
                             width: 16
@@ -1507,7 +1507,7 @@ Item {
                     height: hasError ? errorContent.implicitHeight + 16 : 0
                     visible: hasError
                     color: Theme.dangerBg
-                    radius: Theme.cardRadius
+                    radius: Theme.radius
                     border.color: Theme.danger
                     clip: true
 
@@ -1516,7 +1516,7 @@ Item {
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.right: parent.right
-                        anchors.margins: 8
+                        anchors.margins: Theme.pad
                         spacing: 3
 
                         Label {
@@ -1557,7 +1557,7 @@ Item {
         // [4] BottomBar: input + clear + image toggle + session tabs + API tabs
         Column {
             Layout.fillWidth: true
-            spacing: 6
+            spacing: Theme.spacing
 
                 Label {
                     Layout.fillWidth: true
@@ -1585,7 +1585,7 @@ Item {
                 height: visible ? slashList.implicitHeight + 12 : 0
                 visible: root.slashPopupCount() > 0 && root.progressStatus !== "loading"
                 color: Theme.surface
-                radius: Theme.cardRadius
+                radius: Theme.radius
                 border.color: Theme.border
                 clip: true
 
@@ -1638,7 +1638,7 @@ Item {
             // Input row (RowLayout: input stretches, buttons keep size)
             RowLayout {
                 width: parent.width
-                spacing: 6
+                spacing: Theme.spacing
                 // Multiline input (word wrap): Enter sends, Shift+Enter inserts
                 // a newline. TextArea is NOT scrollable by itself (Qt docs),
                 // so it lives inside a ScrollView: grows with content up to
@@ -1740,7 +1740,7 @@ Item {
             // Centered like the provider segmented control below.
             RowLayout {
                 width: parent.width
-                spacing: 4
+                spacing: Theme.spacing
                 AppFilterChips {
                     Layout.alignment: Qt.AlignHCenter
                     chipHeight: 26
@@ -1795,7 +1795,7 @@ Item {
             // API provider tabs (stretched row; filtered by live model list)
             RowLayout {
                 width: parent.width
-                spacing: 4
+                spacing: Theme.spacing
                 AppSegmentedControl {
                     Layout.alignment: Qt.AlignHCenter
                     model: root.visibleProviders().map(p => ({

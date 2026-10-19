@@ -100,13 +100,13 @@ Item {
         anchors.right: parent.right
         // No outer margin: the bar's Theme.islandPad is the only inset
         // between the pill edge and content (this row used to add 16).
-        spacing: 16
+        spacing: Theme.spacing
 
         // ===== Left column: sections =====
         Column {
             id: leftCol
             width: (parent.width - parent.spacing) / 2
-            spacing: 16
+            spacing: Theme.spacing
 
             VolumeSection {
                 id: volSection
@@ -123,14 +123,14 @@ Item {
         Column {
             id: rightCol
             width: (parent.width - parent.spacing) / 2
-            spacing: 16
+            spacing: Theme.spacing
 
             // ===== Action buttons (shared AppButton cells, 2x2) =====
             Grid {
                 width: parent.width
                 columns: 2
-                columnSpacing: 10
-                rowSpacing: 10
+                columnSpacing: Theme.spacing
+                rowSpacing: Theme.spacing
                 // Theme toggle
                 AppButton {
                     width: (parent.width - parent.columnSpacing) / 2
@@ -201,11 +201,11 @@ Item {
             // ===== Brightness =====
             Column {
                 width: parent.width
-                spacing: 6
+                spacing: Theme.spacing
                 visible: Brightness.hasBacklightFor(body.effectiveMonitor)
                 Row {
                     width: parent.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     Text {
                         text: body.brightnessIcon
                         color: Theme.fg
@@ -234,11 +234,11 @@ Item {
             // ===== Power profile (power-profiles-daemon, native UPower service) =====
             Column {
                 width: parent.width
-                spacing: 6
+                spacing: Theme.spacing
                 visible: PpdState.available
                 Row {
                     width: parent.width
-                    spacing: 8
+                    spacing: Theme.spacing
                     Text {
                         text: "󰓅"
                         color: Theme.fg
