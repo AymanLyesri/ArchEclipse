@@ -5,3 +5,4 @@ tests/
 *.pyc
 
 docs
+profiler/traces/*.qtd

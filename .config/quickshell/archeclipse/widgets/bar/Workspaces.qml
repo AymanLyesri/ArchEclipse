@@ -121,7 +121,7 @@ Item {
             hangHoldTimer.restart();
         }
     }
-    readonly property bool stripExpanded: root.waveIdx >= 0 || root.hasBlinks || root._hangHold
+    readonly property bool stripExpanded: root.waveIdx >= 0 || root.hasBlinks || root._hangHold || root.specialOpen
     readonly property bool stripHovered: stripHover.hovered
     // How far, in px, the wave buttons hang below the pill while expanded
     // (strip top is hitHeight above the pill's bottom edge): the clip in
@@ -175,7 +175,8 @@ Item {
             const o = prev[i] ?? 0, n = cur[i] ?? 0;
             if (n > o && i !== root.focusedId) {
                 // Any new client on an unfocused workspace rides its own
-                // button alone (alerting clause in the reveal binding):
+                // button alone (alerting clause in the reveal binding: its
+                // normal wave target height, never the full expanded stop):
                 // no strip-wide reveal ever, and no conflict if a wave is
                 // already up — the alert simply overrides that button's
                 // height until its ticks run out.
@@ -296,7 +297,11 @@ Item {
     }
     readonly property int focusedId: root.localWorkspace?.id ?? 1
     onFocusedIdChanged: {
-        root.requestExpand();
+        // Entering the special workspace is not a numbered-workspace
+        // switch: only the special tab hangs. Leaving it lands on a real
+        // workspace and peeks as any genuine switch would.
+        if (!root.specialFocusedHere)
+            root.requestExpand();
         // A genuine switch re-peaks the wave at the new workspace, even
         // when the mouse is on its way out of the strip: clear the stale
         // hover anchor here (silent while collapsed; if tabs are in
@@ -354,9 +359,14 @@ Item {
         && ((Hyprland.activeToplevel?.workspace?.name ?? "") + "").startsWith("special")
     readonly property bool specialOpen: root.specialActive || root.specialFocusedHere || root.specialHasFocus
     onSpecialOpenChanged: {
-        // Peek the strip so the highlight + icon are actually seen.
-        if (root.specialOpen)
-            root.requestExpand();
+        // Special toggling never peeks the strip wave; the special tab
+        // hangs on its own via its reveal binding. On close the strip may
+        // be fully collapsed — grab the one-flight hold so the fold can
+        // play out under the clip (same mechanism as hiddenDone).
+        if (!root.specialOpen) {
+            root._hangHold = true;
+            hangHoldTimer.restart();
+        }
     }
     readonly property string specialIconText: root.specialOccupied ? WorkspaceIcons.forToplevel(root.specialTops[0]) : WorkspaceIcons.specialIcon
 
@@ -389,7 +399,7 @@ Item {
             // size change — the stagger itself comes from when the wave
             // stepper flips the target, so reveal and collapse order can
             // never invert the way a self-delayed PauseAnimation did.
-            property real reveal: slot.alerting ? root.expandedHeight : ((slot.ring <= root.waveIdx) ? slot.targetH : root.hitHeight)
+            property real reveal: slot.alerting ? slot.targetH : ((slot.ring <= root.waveIdx) ? slot.targetH : root.hitHeight)
             Behavior on reveal {
                 NumberAnimation {
                     duration: 250
@@ -584,9 +594,15 @@ Item {
             // the +1 on the target height.
             readonly property int ring: Math.min(root.maxRings, Math.abs(5 - root.focusIndex))
             readonly property real targetH: root.expandedHeight - root.waveStep * specialSlot.ring + 1
-                        // Animated per button: rises to its own target on reveal, back to the
+            readonly property bool open: root.specialOpen
+            // Open special overrides the wave: this tab hangs alone, the
+            // rest of the strip stays collapsed unless it has its own
+            // reason to unfold (hover / numbered-workspace switch).
+            // Animated per button: rises to its own target on reveal, back to the
             // collapsed stop on hide.
-            property real reveal: (specialSlot.ring <= root.waveIdx) ? specialSlot.targetH : root.hitHeight
+            property real reveal: specialSlot.open
+                ? specialSlot.targetH
+                : ((specialSlot.ring <= root.waveIdx) ? specialSlot.targetH : root.hitHeight)
             Behavior on reveal {
                 NumberAnimation {
                     duration: 250
@@ -647,7 +663,7 @@ Item {
 
                 Item {
                     width: specialSlot.width
-                    height: root.showIcons ? root.iconSize + 2 : 0
+                    height: (root.showIcons || root.specialOpen) ? root.iconSize + 2 : 0
 
                     Text {
                         anchors.centerIn: parent

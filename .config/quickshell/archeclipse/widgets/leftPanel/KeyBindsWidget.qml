@@ -88,20 +88,12 @@ Item {
         return s.slice(0, i);
     }
     function _squeeze(s) {
-        return s.split(/\s+/).filter(w => w !== "").join(" ");
+        return s.replace(/\s+/g, " ").trim();
     }
     function _normalizeCombo(expr, main) {
-        expr = expr.split("mainMod").join(main);
-        expr = expr.split('"').join("");
-        expr = expr.split("..").join(" ");
-        expr = root._squeeze(expr);
-        expr = expr.split(" +").join("+");
-        expr = expr.split("+ ").join("+");
-        while (expr.includes("++"))
-            expr = expr.split("++").join("+");
-        expr = expr.split("+").join(" + ");
-        expr = root._squeeze(expr);
-        return expr;
+        expr = expr.split("mainMod").join(main).split('"').join("").replace(/\.\./g, " ");
+        expr = expr.replace(/\++/g, " + ");
+        return root._squeeze(expr);
     }
     function _extractKeys(combo) {
         return combo.split("+").map(p => p.trim()).filter(p => p !== "");

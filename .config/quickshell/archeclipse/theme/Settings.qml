@@ -742,6 +742,40 @@ Singleton {
     // overrides live under each panel's `monitors` object.
     // Leaf settings are written as {value}; plain-value settings (locks,
     // plain-value settings (locks, widths, dnd, fileManager) stay plain.
+    // Hyprland subtree for persist(): derived from _hyprlandLeafSchema above
+    // (single source for labels/limits) but bound to root.hyprland only, so a
+    // persist() triggered by any other setting no longer re-walks the leaf
+    // tree. Blur/shadow leaves keep their {name,value,type,min,max} order via
+    // typeFirst so on-disk bytes never change.
+    readonly property var _hyprlandOut: (() => {
+            const out = {};
+            for (const leaf of root._hyprlandLeafSchema) {
+                const v = leaf.path.reduce((o, k) => ((o == null) ? o : o[k]), root.hyprland) ?? leaf.def;
+                let node = out;
+                for (let i = 0; i < leaf.path.length - 1; i++) {
+                    const g = leaf.path[i];
+                    if (node[g] === undefined)
+                        node[g] = {};
+                    node = node[g];
+                }
+                const key = leaf.path[leaf.path.length - 1];
+                node[key] = (leaf.typeFirst === true) ? {
+                    name: leaf.name,
+                    value: v,
+                    type: leaf.type,
+                    min: leaf.min,
+                    max: leaf.max
+                } : {
+                    name: leaf.name,
+                    value: v,
+                    min: leaf.min,
+                    max: leaf.max,
+                    type: leaf.type
+                };
+            }
+            return out;
+        })()
+
     function persist() {
         if (!root.ready)
             return;
@@ -881,38 +915,7 @@ Singleton {
                 },
                 // Hyprland leaf shape {name,value,min,max,type} — the settings
                 // panel renders from it (plain numbers would be mistaken for
-                // nested groups and render nothing). Driven by
-                // _hyprlandLeafSchema above (single source for labels/limits);
-                // blur/shadow leaves keep their {name,value,type,min,max}
-                // order via typeFirst so on-disk bytes never change.
-                "hyprland": (() => {
-                        const out = {};
-                        for (const leaf of root._hyprlandLeafSchema) {
-                            const v = leaf.path.reduce((o, k) => ((o == null) ? o : o[k]), root.hyprland) ?? leaf.def;
-                            let node = out;
-                            for (let i = 0; i < leaf.path.length - 1; i++) {
-                                const g = leaf.path[i];
-                                if (node[g] === undefined)
-                                    node[g] = {};
-                                node = node[g];
-                            }
-                            const key = leaf.path[leaf.path.length - 1];
-                            node[key] = (leaf.typeFirst === true) ? {
-                                name: leaf.name,
-                                value: v,
-                                type: leaf.type,
-                                min: leaf.min,
-                                max: leaf.max
-                            } : {
-                                name: leaf.name,
-                                value: v,
-                                min: leaf.min,
-                                max: leaf.max,
-                                type: leaf.type
-                            };
-                        }
-                        return out;
-                    })(),
+                // nested groups and render nothing). Prebuilt in _hyprlandOut.
                 dynamicThemeColors: {
                     value: root.dynamicThemeColors
                 },

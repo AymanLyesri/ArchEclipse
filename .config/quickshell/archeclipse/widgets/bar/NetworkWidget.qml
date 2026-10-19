@@ -6,11 +6,25 @@ import Quickshell.Networking
 
 // Port of barStates/NetworkWidget.tsx — compact network status + signal.
 // Uses Quickshell.Networking (Networking singleton → devices, each a NetworkDevice).
-Item {
+Rectangle {
     id: root
 
     property string monitorName: ""
     property real widthRequest: 0
+
+    // Side-pill shell: same recipe as MediaPill/WeatherButton (theme
+    // surface, radius, sidePillHeight) so it reads as a chained sibling.
+    height: Theme.sidePillHeight
+    implicitWidth: contentRow.implicitWidth + Theme.islandPad * 2
+    width: implicitWidth
+    radius: Theme.radius
+    color: netHover.hovered ? Theme.surfaceHover : Theme.surfaceActive
+
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.anim.fastEffects
+        }
+    }
 
     // Derive the primary (most relevant) device: first connected, else first available.
     readonly property var device: {
@@ -74,45 +88,37 @@ Item {
         return "\uF074";  // 󰑴 (disconnected)
     }
 
-    Rectangle {
-        id: bg
-        anchors.fill: parent
-        radius: Theme.radius
-        color: root.connected ? Theme.surface : Theme.color0
-        border.color: Theme.color8
+    Row {
+        id: contentRow
+        anchors.centerIn: parent
+        spacing: Theme.spacing
 
-        Row {
-            anchors.fill: parent
-            spacing: Theme.spacing
-            anchors.margins: Theme.pad
+        Text {
+            id: netIcon
+            text: root.icon
+            font.family: "JetBrainsMono NFP"
+            font.pixelSize: Theme.fontSize
+            color: root.connected ? Theme.accent : Theme.muted
+            verticalAlignment: Text.AlignVCenter
+        }
 
-            Text {
-                id: netIcon
-                text: root.icon
-                font.family: "JetBrainsMono NFP"
-                font.pixelSize: Theme.fontSizeLarge
-                color: root.connected ? Theme.color2 : Theme.color8
-                verticalAlignment: Text.AlignVCenter
-            }
+        Text {
+            text: root.label
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize
+            color: Theme.fg
+            elide: Text.ElideRight
+            width: 120
+            verticalAlignment: Text.AlignVCenter
+        }
 
-            Text {
-                text: root.label
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize
-                color: Theme.fg
-                elide: Text.ElideRight
-                width: 120
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            Text {
-                visible: root.signal > 0
-                text: root.signal + "%"
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize - 1
-                color: Theme.color8
-                verticalAlignment: Text.AlignVCenter
-            }
+        Text {
+            visible: root.signal > 0
+            text: root.signal + "%"
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSize - 2
+            color: Theme.muted
+            verticalAlignment: Text.AlignVCenter
         }
     }
 

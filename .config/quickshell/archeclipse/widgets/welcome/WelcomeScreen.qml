@@ -322,6 +322,7 @@ Scope {
 
     function moveLeftWidgetTour(direction) {
         root.leftWidgetIndex = Math.max(0, Math.min(root._leftWidgetTour.length - 1, root.leftWidgetIndex + direction));
+        root.openLeftWidgetTour();
     }
 
     function openLeftWidgetTour() {
@@ -971,24 +972,15 @@ Scope {
                                 text: "Press <b>Get started</b> and the tour won't open again on startup."
                             }
                             BodyText {
-                                text: "To see it again, run:"
+                                text: "To see it again at any time, press:"
                             }
-                            Rectangle {
+                            RowLayout {
                                 Layout.fillWidth: true
-                                implicitHeight: cmdLabel.implicitHeight + 18
-                                radius: Theme.chipRadius
-                                color: Theme.surface
-                                border.color: Theme.border
-                                Label {
-                                    id: cmdLabel
-                                    anchors.fill: parent
-                                    anchors.margins: 9
-                                    text: "qs -p ~/.config/quickshell/archeclipse ipc call welcome open"
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSize
-                                    color: Theme.accent
-                                    wrapMode: Text.WrapAnywhere
-                                    verticalAlignment: Text.AlignVCenter
+                                AppKeybind {
+                                    keys: ["SUPER", "F1"]
+                                }
+                                Item {
+                                    Layout.fillWidth: true
                                 }
                             }
                             Item {

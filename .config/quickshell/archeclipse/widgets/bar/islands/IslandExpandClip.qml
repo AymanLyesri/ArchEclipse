@@ -10,6 +10,13 @@ Item {
     id: root
     property real expand: 0
     property real contentHeight: 0
+    // Horizontal variant (side-pill rows: pieces push their Row smoothly
+    // because the caller binds its width to the clip's own). fromLeft=true
+    // grows rightward from a left-pinned reveal; false grows leftward from
+    // a right-pinned one.
+    property bool horizontal: false
+    property bool fromLeft: true
+    property real contentWidth: 0
     // How long the Behavior on expand actually runs (same mapping as the
     // Anim type below, with animScale already applied) — fold-then-hide
     // close timers must wait exactly this long, not a fixed normal.
@@ -25,12 +32,13 @@ Item {
             return Theme.anim.slowSpatial;
         return Theme.anim.normal; // Standard + Emphasized both = normal
     }
-    width: parent ? parent.width : 0
-    height: Math.max(0, root.expand * root.contentHeight)
+    width: root.horizontal ? Math.max(0, root.expand * root.contentWidth) : (parent ? parent.width : 0)
+    height: root.horizontal ? (parent ? parent.height : 0) : Math.max(0, root.expand * root.contentHeight)
     clip: true
     opacity: Math.max(0, Math.min(1, root.expand * 1.2))
     scale: 0.96 + 0.04 * root.expand
-    transformOrigin: Settings.barOrientation ? Item.Top : Item.Bottom
+    transformOrigin: root.horizontal ? (root.fromLeft ? Item.Left : Item.Right)
+                                     : (Settings.barOrientation ? Item.Top : Item.Bottom)
     Behavior on expand {
         enabled: Settings.animationsEnabled
         Anim {

@@ -38,6 +38,20 @@ QtObject {
         return ((img && img.extension) || "").toLowerCase() === "zip";
     }
 
+    // Keyed `api:id` Sets so per-delegate isBookmarked/isPinned checks are
+    // O(1) instead of an O(n) scan over the whole list (n² over a booru page).
+    // `Settings.booru` reassigns a fresh clone on mutation, so these rebuild
+    // exactly when the lists change.
+    function _keys(list) {
+        const s = new Set();
+        for (const x of list || []) s.add(root.apiOf(x) + ":" + x.id);
+        return s;
+    }
+
+    readonly property var _bookmarkKeys: root._keys((Settings.booru || {}).bookmarks)
+
+    readonly property var _pinKeys: root._keys((Settings.booru || {}).pins)
+
     function isInArray(arr, img) {
         if (!img)
             return false;
@@ -45,11 +59,11 @@ QtObject {
     }
 
     function isBookmarked(img) {
-        return root.isInArray((Settings.booru || {}).bookmarks, img);
+        return !!img && root._bookmarkKeys.has(root.apiOf(img) + ":" + img.id);
     }
 
     function isPinned(img) {
-        return root.isInArray((Settings.booru || {}).pins, img);
+        return !!img && root._pinKeys.has(root.apiOf(img) + ":" + img.id);
     }
 
     function isCurrentWaifu(img) {

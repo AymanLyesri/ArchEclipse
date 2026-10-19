@@ -75,8 +75,8 @@ hl.bind(mainMod .. " + r", hl.dsp.exec_cmd(qsIpc .. "toggleRightPanel " .. monit
 hl.bind(mainMod .. " + l", hl.dsp.exec_cmd(qsIpc .. "toggleLeftPanel " .. monitor))
 --- toggle wallpaper switcher
 hl.bind(mainMod .. " + w", hl.dsp.exec_cmd(qsIpc .. "togglePanel wallpaper-switcher " .. monitor))
---- toggle user panel
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(qsIpc .. "togglePanel user-panel " .. monitor))
+--- lock screen
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(lock))
 --- open clipboard manager
 hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd(qsIpc .. "clipboard " .. monitor))
 --- open emoji picker

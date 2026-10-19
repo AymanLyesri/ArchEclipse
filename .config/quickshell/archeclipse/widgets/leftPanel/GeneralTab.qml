@@ -152,6 +152,9 @@ Item {
                 AppImage {
                     anchors.fill: parent
                     source: root.avatarPath
+                    // 384px decode of a 3543×3489 source: full-size decode
+                    // blocked the UI thread ~1s in the profiler trace.
+                    sourceWidth: 384
                 }
             }
 

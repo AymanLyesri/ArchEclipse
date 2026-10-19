@@ -458,7 +458,7 @@ PanelWindow {
                 // default inset —
                 // otherwise opening the OSD flips effPad 4->8 and the
                 // bar visibly grows.
-                property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording"
+                property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording" || stack.current === "network"
                 property int effPad: stack.showsDefault ? 4 : Theme.islandPad
                 // Docked to the bar edge (top for a top bar, bottom for a
                 // bottom bar) — never centered: centering lets content drift
@@ -626,8 +626,10 @@ PanelWindow {
                         case "weather":
                             return weatherPage;
                         case "network":
-                            return networkPage;
-                        case "search":
+                            // Network lives in the left side pill beside the
+                            // main pill — the main stack shows default content
+                            // so the bar is never hijacked (same as player).
+                            return defaultPage;                        case "search":
                             return searchPage;
                         case "system":
                             return systemPage;
@@ -663,10 +665,6 @@ PanelWindow {
                 Component {
                     id: weatherPage
                     WeatherIsland {}
-                }
-                Component {
-                    id: networkPage
-                    NetworkWidget {}
                 }
                 Component {
                     id: searchPage
@@ -920,6 +918,72 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     monitorName: root.monitorName
                 }
+
+                // network pulse — horizontal wipe piece: it appears on
+                // network change (BarState "network", 3s hold re-armed by
+                // the widget's own hover/click) and never touches the main
+                // stack. The piece's width rides the wipe so the Row
+                // reflows smoothly; reveal is right-pinned, growing
+                // leftward (left side pills wipe right -> left).
+                Item {
+                    id: networkPiece
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: netClip.width
+                    height: leftSidePill.height
+                    visible: networkPiece.shown
+                    readonly property real targetWidth: netLoader.item ? netLoader.item.implicitWidth : 140
+                    property bool shown: false
+                    property bool flag: BarState.isOpenFor("network", root.monitorName)
+                    onFlagChanged: networkPiece.setShown(networkPiece.flag)
+                    Component.onCompleted: networkPiece.setShown(networkPiece.flag)
+                    property real openT: 0
+                    function setShown(open) {
+                        if (open) {
+                            netCloseTimer.stop();
+                            shown = true;
+                            openT = 1;
+                        } else {
+                            if (!shown)
+                                return;
+                            openT = 0;
+                            netCloseTimer.restart();
+                        }
+                    }
+                    Timer {
+                        id: netCloseTimer
+                        interval: leftClip.expandDuration
+                        onTriggered: networkPiece.shown = false
+                    }
+                    IslandExpandClip {
+                        id: netClip
+                        horizontal: true
+                        fromLeft: false
+                        expand: networkPiece.openT
+                        contentWidth: networkPiece.targetWidth
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        Item {
+                            width: networkPiece.targetWidth
+                            height: networkPiece.height
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            Loader {
+                                id: netLoader
+                                anchors.centerIn: parent
+                                active: networkPiece.shown
+                                sourceComponent: networkPiecePage
+                                onLoaded: {
+                                    if (item && item["monitorName"] !== undefined)
+                                        item.monitorName = root.monitorName;
+                                }
+                            }
+                        }
+                    }
+                    Component {
+                        id: networkPiecePage
+                        NetworkWidget {}
+                    }
+                }
             }
         }
 
@@ -943,7 +1007,7 @@ PanelWindow {
             // when the parent hides, so a parent binding on a child's
             // `visible` latches itself off permanently (measured: media
             // had a title, still reported visible=false for good).
-            visible: root.barVisible && (sideMedia.hasPlayable || recordingPiece.shown)
+            visible: root.barVisible && (mediaPiece.hasPlayable || recordingPiece.shown)
             Row {
                 id: rightSideContents
                 anchors.centerIn: parent
@@ -951,26 +1015,71 @@ PanelWindow {
 
                 // mini media status (app icon + play state + track title):
                 // hover/click pulses the player island, middle-click toggles
-                // playback (MediaPill owns both behaviours).
-                MediaPill {
-                    id: sideMedia
+                // playback (MediaPill owns both behaviours). Wiped left -> right
+                // like the recording piece; the wrapper's width rides the clip
+                // so the Row reflows smoothly on both edges.
+                Item {
+                    id: mediaPiece
                     anchors.verticalCenter: parent.verticalCenter
-                    monitorName: root.monitorName
-                    visible: sideMedia.hasPlayable
+                    width: mediaWipe.width
+                    height: rightSidePill.height
+                    readonly property bool hasPlayable: sideMedia.hasPlayable
+                    property bool shown: false
+                    property bool flag: sideMedia.hasPlayable
+                    onFlagChanged: mediaPiece.setShown(mediaPiece.flag)
+                    Component.onCompleted: mediaPiece.setShown(mediaPiece.flag)
+                    property real openT: 0
+                    function setShown(open) {
+                        if (open) {
+                            mediaPieceCloseTimer.stop();
+                            shown = true;
+                            openT = 1;
+                        } else {
+                            if (!shown)
+                                return;
+                            openT = 0;
+                            mediaPieceCloseTimer.restart();
+                        }
+                    }
+                    Timer {
+                        id: mediaPieceCloseTimer
+                        interval: leftClip.expandDuration
+                        onTriggered: mediaPiece.shown = false
+                    }
+                    IslandExpandClip {
+                        id: mediaWipe
+                        horizontal: true
+                        fromLeft: true
+                        expand: mediaPiece.openT
+                        contentWidth: sideMedia.width
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        Item {
+                            width: sideMedia.width
+                            height: mediaPiece.height
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            MediaPill {
+                                id: sideMedia
+                                anchors.centerIn: parent
+                                monitorName: root.monitorName
+                            }
+                        }
+                    }
                 }
 
-                // recording status — fold/unfold driver kept from the old
-                // standalone recording pill: fixed-width body, only the clip
-                // height animates (expand 1 -> 0 on close, hide after the
-                // fold; reopen mid-fold cancels the hide). The box stays
-                // root.barHeight tall so neither the fold nor the Row resizes
-                // anything while it plays.
+                // recording status — horizontal wipe piece (right side pills
+                // wipe left -> right): fixed-height body, the clip's width
+                // animates (expand 1 -> 0 on close, hide after the wipe;
+                // reopen mid-wipe cancels the hide) and the Row reflows on
+                // the animated width so nothing jumps.
                 Item {
                     id: recordingPiece
                     anchors.verticalCenter: parent.verticalCenter
-                    width: recLoader.item ? (recLoader.item.implicitWidth + Theme.islandPad * 2) : 190
+                    width: recWipeClip.width
                     height: rightSidePill.height
                     visible: recordingPiece.shown
+                    readonly property real targetWidth: recLoader.item ? (recLoader.item.implicitWidth + Theme.islandPad * 2) : 190
                     property bool shown: false
                     property bool flag: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(root.monitorName)
                     onFlagChanged: recordingPiece.setShown(recordingPiece.flag)
@@ -994,12 +1103,18 @@ PanelWindow {
                         onTriggered: recordingPiece.shown = false
                     }
                     IslandExpandClip {
+                        id: recWipeClip
+                        horizontal: true
+                        fromLeft: true
                         expand: recordingPiece.openT
-                        contentHeight: recordingPiece.height
+                        contentWidth: recordingPiece.targetWidth
+                        anchors.left: parent.left
                         anchors.top: parent.top
                         Item {
-                            width: parent.width
+                            width: recordingPiece.targetWidth
                             height: recordingPiece.height
+                            anchors.left: parent.left
+                            anchors.top: parent.top
                             Loader {
                                 id: recLoader
                                 anchors.centerIn: parent
