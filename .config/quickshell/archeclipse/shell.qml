@@ -8,6 +8,7 @@ import qs.widgets.launcher
 import qs.widgets.lock
 import qs.widgets.media
 import qs.widgets.selection
+import qs.widgets.welcome
 
 // ArchEclipse shell — multi-monitor via Variants over Quickshell.screens.
 // Each window is instantiated once per monitor.
@@ -39,6 +40,11 @@ ShellRoot {
     Ipc {
     }
     CaptureIpc {
+    }
+
+    // The welcome tour is a single overlay window. It follows the focused
+    // monitor by default and can target a specific output through its IPC.
+    WelcomeScreen {
     }
 
     // Selection rectangle used by SUPER + left-drag. Hyprland sends the

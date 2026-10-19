@@ -1,0 +1,3 @@
+module qs.widgets.welcome
+
+WelcomeScreen 1.0 WelcomeScreen.qml

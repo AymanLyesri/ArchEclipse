@@ -85,6 +85,8 @@ hl.bind(mainMod .. " + period", hl.dsp.exec_cmd(qsIpc .. "emojis " .. monitor))
 hl.bind(mainMod .. " + SHIFT + n", hl.dsp.exec_cmd(qsIpc .. "notes " .. monitor))
 --- open all apps
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(qsIpc .. "apps " .. monitor))
+--- toggle welcome tour
+hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("qs -p " .. qsCfg .. " ipc call welcome toggle"))
 
 -- Screenshot and Screen Record Keybinds
 --- screenshot workspace

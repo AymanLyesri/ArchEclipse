@@ -84,6 +84,8 @@ Item {
         }
     }
     function requestAutoHide() {
+        if (BarState.tourHoldFor(root.monitorName))
+            return;
         if (Settings.panelLockFor("right", root.monitorName))
             return;
         if (islandHover.hovered)
@@ -104,7 +106,7 @@ Item {
         id: leaveTimer
         interval: Settings.revealOutPressure
         onTriggered: {
-            if (!Settings.panelLockFor("right", root.monitorName) && !islandHover.hovered && !root.isDragging)
+            if (!BarState.tourHoldFor(root.monitorName) && !Settings.panelLockFor("right", root.monitorName) && !islandHover.hovered && !root.isDragging)
                 BarState.deactivate("right", root.monitorName);
         }
     }
@@ -189,6 +191,8 @@ Item {
                                 icon: modelData.icon
                                 toggle: true
                                 checked: modelData.enabled
+                                outlined: BarState.tourHighlightMonitor === (root.monitorName || Registry.monitorName) && BarState.tourHighlightTab === modelData.name
+                                outlineColor: Theme.accent
                                 // Tooltip: "<b>Hold To Drag</b>\n${name}"
                                 tooltipText: "Hold To Drag\n" + modelData.name
                                 draggable: true
@@ -279,7 +283,14 @@ Item {
                         model: {
                             // Filter to only enabled widgets, preserving order
                             const capture = Registry.get("capture-session");
-                            const widgets = capture && capture.active && capture.monitor === root.monitorName && capture.rightWidgets ? capture.rightWidgets : Settings.rightPanelWidgets;
+                            const widgets = capture && capture.active && capture.monitor === root.monitorName && capture.rightWidgets
+                                ? capture.rightWidgets : Settings.rightPanelWidgets;
+                            const monitorName = root.monitorName || Registry.monitorName;
+                            const tourWidget = BarState.tourHighlightMonitor === monitorName ? BarState.tourRightWidget : "";
+                            if (tourWidget !== "") {
+                                const selected = widgets.find(widget => widget.name === tourWidget);
+                                return selected ? [selected] : [];
+                            }
                             const result = [];
                             for (let i = 0; i < widgets.length; i++) {
                                 if (widgets[i].enabled) {

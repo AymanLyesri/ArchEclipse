@@ -203,6 +203,8 @@ Item {
         }
     }
     function requestAutoHide() {
+        if (BarState.tourHoldFor(root.monitorName))
+            return;
         if (Settings.panelLockFor("left", root.monitorName))
             return;
         if (islandHover.hovered)
@@ -222,7 +224,7 @@ Item {
         id: leaveTimer
         interval: Settings.revealOutPressure
         onTriggered: {
-            if (!Settings.panelLockFor("left", root.monitorName) && !islandHover.hovered && !(root.activeWidget && root.activeWidget.popupHovered))
+            if (!BarState.tourHoldFor(root.monitorName) && !Settings.panelLockFor("left", root.monitorName) && !islandHover.hovered && !(root.activeWidget && root.activeWidget.popupHovered))
                 BarState.deactivate("left", root.monitorName);
         }
     }
@@ -266,6 +268,7 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.margins: Theme.pad / 2
+                    highlightedName: BarState.tourHighlightMonitor === root.monitorName ? BarState.tourHighlightTab : ""
                     // Tab order + icons: UserProfile, BooruViewer,
                     // ChatBot, MangaViewer, Settings, CustomScripts,
                     // KeyBinds, Donations. Names keep the QS "Widget"
