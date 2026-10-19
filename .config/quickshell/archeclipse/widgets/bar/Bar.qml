@@ -372,11 +372,8 @@ PanelWindow {
             // height (closes), ease down; when growing, track the unfolding
             // content rigidly per-frame — gliding there would chase a moving
             // target and lag behind it (verified via probe).
-            // Also suspended (stack.rigidHeight) while the workspace strip
-            // animates its own height: there the strip's collapse IS the
-            // motion, and gliding after it leaves the bar hanging tall.
             Behavior on height {
-                enabled: pill.height > pill.targetHeight && !stack.rigidHeight
+                enabled: pill.height > pill.targetHeight
                 Anim {
                     type: Anim.DefaultSpatial
                 }
@@ -536,16 +533,6 @@ PanelWindow {
                         stack.rigidApplied = true;
                 }
                 onRigidWidthChanged: stack.syncRigid()
-
-                // Height twin of rigidWidth, requested by the default bar
-                // page while the workspace strip runs its own height
-                // animation (icon reveal/collapse). No convergence gate here:
-                // the request arrives exactly while the pill is parked tall by
-                // an open peek, so waiting for convergence could never suspend
-                // the glide in time. The strip's 250ms animation is the
-                // motion; the pill follows it rigidly and the flag drops when
-                // the strip settles.
-                property bool rigidHeight: false
 
                 // The live item for a shown state (cached wallpaper via
                 // its Loader, transient islands via currentPageLoader).
@@ -774,7 +761,10 @@ PanelWindow {
             }
             Timer {
                 id: leftCloseTimer
-                interval: Theme.anim.normal
+                // The fold waiting on this timer runs at the island's actual
+                // clip duration (per islandAnimStyle/animScale) — any close
+                // timer here uses the same mapping, so leftClip is the source.
+                interval: leftClip.expandDuration
                 onTriggered: leftPanelPill.shown = false
             }
             IslandExpandClip {
@@ -859,7 +849,7 @@ PanelWindow {
             }
             Timer {
                 id: rightCloseTimer
-                interval: Theme.anim.normal
+                interval: leftClip.expandDuration
                 onTriggered: rightPanelPill.shown = false
             }
             IslandExpandClip {
@@ -1000,7 +990,7 @@ PanelWindow {
                     }
                     Timer {
                         id: recCloseTimer
-                        interval: Theme.anim.normal
+                        interval: leftClip.expandDuration
                         onTriggered: recordingPiece.shown = false
                     }
                     IslandExpandClip {
@@ -1073,7 +1063,7 @@ PanelWindow {
             }
             Timer {
                 id: mediaCloseTimer
-                interval: Theme.anim.normal
+                interval: leftClip.expandDuration
                 onTriggered: mediaPill.shown = false
             }
             Loader {
@@ -1147,7 +1137,7 @@ PanelWindow {
             }
             Timer {
                 id: osdCloseTimer
-                interval: Theme.anim.normal
+                interval: leftClip.expandDuration
                 onTriggered: osdPill.shown = false
             }
             Loader {

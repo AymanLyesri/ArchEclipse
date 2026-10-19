@@ -831,24 +831,33 @@ Item {
     // --- Process Components ---
     Component {
         id: _mkDir
-        Process {}
+        Process {
+            onExited: destroy()
+        }
     }
     Component {
         id: _rmDir
-        Process {}
+        Process {
+            onExited: destroy()
+        }
     }
     Component {
         id: _clearFile
-        Process {}
+        Process {
+            onExited: destroy()
+        }
     }
     Component {
         id: _truncateFile
-        Process {}
+        Process {
+            onExited: destroy()
+        }
     }
 
     Component {
         id: _listDir
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -884,6 +893,7 @@ Item {
                         root.activeSessionId = "default";
                     }
                     root.loadMessages();
+                    proc.destroy();
                 }
             }
         }
@@ -892,6 +902,7 @@ Item {
     Component {
         id: _modelsProc
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -899,6 +910,7 @@ Item {
                         if (Array.isArray(ids) && ids.length > 0)
                             root.modelCache = ids;
                     } catch (e) {}
+                    proc.destroy();
                 }
             }
         }
@@ -907,6 +919,7 @@ Item {
     Component {
         id: _renameProc
         Process {
+            id: proc
             property string _sid: ""
             property string _name: ""
             onExited: code => {
@@ -920,6 +933,7 @@ Item {
                             } : s);
                 }
                 root.renamingSessionId = "";
+                proc.destroy();
             }
         }
     }
@@ -927,6 +941,7 @@ Item {
     Component {
         id: _autoFileProc
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -937,6 +952,7 @@ Item {
                                 name: obj.name
                             };
                     } catch (e) {}
+                    proc.destroy();
                 }
             }
         }
@@ -945,6 +961,7 @@ Item {
     Component {
         id: _readFile
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -953,6 +970,7 @@ Item {
                     } catch (e) {
                         root.messages = [];
                     }
+                    proc.destroy();
                 }
             }
         }
@@ -962,6 +980,7 @@ Item {
     Component {
         id: _firstMsg
         Process {
+            id: proc
             property string _sid: ""
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -975,6 +994,7 @@ Item {
                     } catch (e) {
                         root.sessionFirsts[parent._sid] = "";
                     }
+                    proc.destroy();
                 }
             }
         }
@@ -983,6 +1003,7 @@ Item {
     Component {
         id: _chatAPI
         Process {
+            id: proc
             property int _requestId: 0
             stdout: StdioCollector {
                 id: _apiStdout
@@ -1002,6 +1023,9 @@ Item {
                 }
             }
             onExited: code => {
+                // Deferred: the rest of this (synchronous) handler still
+                // reads the collectors' buffered text fine.
+                proc.destroy();
                 if (root._requestSerial !== _requestId)
                     return;
                 const stopped = root._stopRequested;

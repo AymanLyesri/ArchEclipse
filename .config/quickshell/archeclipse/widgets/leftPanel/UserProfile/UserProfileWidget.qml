@@ -957,30 +957,46 @@ Item {
     Component {
         id: netGateComp
         Process {
-            onExited: code => root.onNetGateDone(code === 0)
+            id: proc
+            onExited: code => {
+                root.onNetGateDone(code === 0);
+                proc.destroy();
+            }
         }
     }
     Component {
         id: pollSessionComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onPollSession(text)
+                onStreamFinished: {
+                    root.onPollSession(text);
+                    proc.destroy();
+                }
             }
         }
     }
     Component {
         id: loadAuthComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.handleSessionJson(text)
+                onStreamFinished: {
+                    root.handleSessionJson(text);
+                    proc.destroy();
+                }
             }
         }
     }
     Component {
         id: fetchUserComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onUserFetched(text)
+                onStreamFinished: {
+                    root.onUserFetched(text);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0 && !root.profile) {
@@ -994,6 +1010,7 @@ Item {
     Component {
         id: fetchProfileComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -1053,6 +1070,7 @@ Item {
                 }
             }
             onExited: code => {
+                proc.destroy();
                 root.isRefreshing = false;
                 if (code !== 0) {
                     root.progressStatus = "error";
@@ -1064,16 +1082,19 @@ Item {
     Component {
         id: supporterCheckComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: root.onSupporterChecked(text)
             }
             onExited: code => {
+                proc.destroy();
             }
         }
     }
     Component {
         id: magicLinkComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -1096,6 +1117,7 @@ Item {
                             body: "Failed to send magic link"
                         });
                     }
+                    proc.destroy();
                 }
             }
         }
@@ -1150,7 +1172,9 @@ Item {
     Component {
         id: manualSaveComp
         Process {
+            id: proc
             onExited: code => {
+                proc.destroy();
                 if (code !== 0) {
                     Notifications.notify({
                         summary: "Auth",
@@ -1171,6 +1195,7 @@ Item {
     Component {
         id: updateProfileComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -1199,6 +1224,7 @@ Item {
                             body: "Failed to update profile."
                         });
                     }
+                    proc.destroy();
                 }
             }
         }
@@ -1206,7 +1232,9 @@ Item {
     Component {
         id: logoutComp
         Process {
+            id: proc
             command: ["rm", "-f", root.authSessionPath]
+            onExited: proc.destroy()
         }
     }
     // SettingsSyncMeta is camelCase {lastSyncAt, lastDirection,
@@ -1214,6 +1242,7 @@ Item {
     Component {
         id: readMetaComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -1228,6 +1257,7 @@ Item {
                         root.lastSyncResult = "-";
                         root.lastRemoteUpdatedAt = "Never";
                     }
+                    proc.destroy();
                 }
             }
         }
@@ -1244,6 +1274,7 @@ Item {
     Component {
         id: syncUploadComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
@@ -1255,6 +1286,7 @@ Item {
                 }
             }
             onExited: code => {
+                proc.destroy();
                 root.isSyncing = false;
                 if (code !== 0 || !root._syncOut) {
                     root.progressStatus = "error";
@@ -1306,12 +1338,14 @@ Item {
     Component {
         id: syncDownloadComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     root._syncOut = text;
                 }
             }
             onExited: code => {
+                proc.destroy();
                 root.isSyncing = false;
                 if (code !== 0) {
                     root.progressStatus = "error";
@@ -1365,10 +1399,12 @@ Item {
     Component {
         id: refreshTokenComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: root.onRefreshFinished(text)
             }
             onExited: code => {
+                proc.destroy();
                 if (code !== 0 && root._refreshing) {
                     root._refreshing = false;
                     root._retryAfterRefresh = "";
@@ -1385,26 +1421,34 @@ Item {
     }
     Component {
         id: refreshSaveComp
-        Process {}
+        Process {
+            onExited: destroy()
+        }
     }
     Component {
         id: writeSettingsComp
-        Process {}
+        Process {
+            onExited: destroy()
+        }
     }
     Component {
         id: metaWriteComp
-        Process {}
+        Process {
+            onExited: destroy()
+        }
     }
     // zenity exits 1 on cancel — silent.
     Component {
         id: zenityComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     root._zenityOut = text.trim();
                 }
             }
             onExited: code => {
+                proc.destroy();
                 if (code === 0)
                     root.onAvatarPicked(root._zenityOut);
                 else if (code !== 1)
@@ -1420,7 +1464,9 @@ Item {
     Component {
         id: setAvatarComp
         Process {
+            id: proc
             onExited: code => {
+                proc.destroy();
                 if (code !== 0) {
                     root.progressStatus = "error";
                     root.progressText = "Local update failed";
@@ -1443,31 +1489,45 @@ Item {
     Component {
         id: avatarConvertComp
         Process {
-            onExited: code => root.onAvatarConverted(code === 0)
+            id: proc
+            onExited: code => {
+                proc.destroy();
+                root.onAvatarConverted(code === 0);
+            }
         }
     }
     Component {
         id: avatarUploadComp
         Process {
+            id: proc
             stdout: StdioCollector {
                 onStreamFinished: {
                     root._avatarUpOut = text;
                 }
             }
-            onExited: code => root.onAvatarUploaded(code === 0)
+            onExited: code => {
+                proc.destroy();
+                root.onAvatarUploaded(code === 0);
+            }
         }
     }
     property string _avatarUpOut: ""
     Component {
         id: avatarPatchComp
         Process {
-            onExited: code => root.onAvatarPatched(code === 0)
+            id: proc
+            onExited: code => {
+                proc.destroy();
+                root.onAvatarPatched(code === 0);
+            }
         }
     }
     Component {
         id: avatarFetchComp
         Process {
+            id: proc
             onExited: code => {
+                proc.destroy();
                 root.reloadAvatar();
                 root.onAvatarFetched(code === 0);
             }
@@ -1485,7 +1545,9 @@ Item {
     Component {
         id: avatarSyncComp
         Process {
+            id: proc
             onExited: code => {
+                proc.destroy();
                 if (code === 0) {
                     root.reloadAvatar();
                 } else {

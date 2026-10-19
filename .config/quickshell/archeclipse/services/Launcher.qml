@@ -814,12 +814,17 @@ QtObject {
     }
 
     // ---- translate (trans(1) direct; wrapper script deleted) ----
+    property int _trSeq: 0
     property Process _trProc: Process {
         id: trProc
         property string mode: ""
+        property int _seq: 0
         command: ["true"]
         stdout: StdioCollector {
             onStreamFinished: {
+                // Stale guard: a newer query replaced this run's answer.
+                if (trProc._seq !== root._trSeq)
+                    return;
                 if (trProc.mode === "translate") {
                     const out = text.trim();
                     if (out === "")
@@ -888,9 +893,17 @@ QtObject {
         // translate "hello > es" — trans(1) direct (auto-detect source)
         const trMatch = t.match(/^(.+?)\s*>\s*(\w{2})$/);
         if (trMatch) {
-            _trProc.mode = "translate";
-            _trProc.command = ["trans", "-brief", trMatch[1].trim(), "-t", trMatch[2] || "en"];
-            _trProc.running = true;
+            // Setting ·starting on an in-flight Process is a no-op (same
+            // trap the wallpaper search documents), so kill + rearm + bump
+            // the seq: the killed run's delivery is dropped by _seq, not
+            // published under the new query.
+            root._trSeq++;
+            trProc._seq = root._trSeq;
+            trProc.mode = "translate";
+            trProc.command = ["trans", "-brief", trMatch[1].trim(), "-t", trMatch[2] || "en"];
+            if (trProc.running)
+                trProc.running = false;
+            trProc.running = true;
             results = [mkResult("Translating…", "\u{F10CC}", "", null)];
             return;
         }

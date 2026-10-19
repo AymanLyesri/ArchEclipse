@@ -113,18 +113,17 @@ Item {
     }
 
     function addTask(task) {
-        const newTask = Object.assign({}, task, {
+        const newTask = updateNextRun(Object.assign({}, task, {
             id: task.id || Date.now().toString(),
             active: true
-        });
-        updateNextRun(newTask);
+        }));
         scriptTasks = [...scriptTasks, newTask];
         saveTasks();
     }
 
     function updateTask(task) {
-        updateNextRun(task);
-        scriptTasks = scriptTasks.map(t => t.id === task.id ? task : t);
+        const updatedTask = updateNextRun(task);
+        scriptTasks = scriptTasks.map(t => t.id === task.id ? updatedTask : t);
         saveTasks();
     }
 

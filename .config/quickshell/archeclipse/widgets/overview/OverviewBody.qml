@@ -143,9 +143,9 @@ Item {
     // onDropped never arrives for internal drags and exit-before-release
     // races clear tracked state). DropAreas remain as hover highlight.
     // Which card (1-10) contains body-local point (px, py)? -1 = none.
-    // Grid is uniform: content margins 16, then cards + gaps.
+    // Grid is uniform: cards + gaps start at x=0 (no content margins).
     function cardAt(px, py) {
-        const gx = px - 16, gy = py - 16;
+        const gx = px, gy = py;
         const col = Math.floor(gx / (body.cardW + body.gap));
         const row = Math.floor(gy / (body.cardH + body.gap));
         if (col < 0 || col >= body.cols || row < 0 || row > 1)

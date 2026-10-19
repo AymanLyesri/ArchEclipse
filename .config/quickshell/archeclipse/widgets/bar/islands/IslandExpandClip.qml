@@ -10,6 +10,21 @@ Item {
     id: root
     property real expand: 0
     property real contentHeight: 0
+    // How long the Behavior on expand actually runs (same mapping as the
+    // Anim type below, with animScale already applied) — fold-then-hide
+    // close timers must wait exactly this long, not a fixed normal.
+    readonly property int expandDuration: {
+        if (!Settings.animationsEnabled)
+            return 0;
+        const s = Settings.islandAnimStyle;
+        if (s === "ExpressiveFast")
+            return Theme.anim.fastSpatial;
+        if (s === "ExpressiveDefault")
+            return Theme.anim.defaultSpatial;
+        if (s === "ExpressiveSlow")
+            return Theme.anim.slowSpatial;
+        return Theme.anim.normal; // Standard + Emphasized both = normal
+    }
     width: parent ? parent.width : 0
     height: Math.max(0, root.expand * root.contentHeight)
     clip: true

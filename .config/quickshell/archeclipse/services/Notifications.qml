@@ -109,12 +109,23 @@ Singleton {
         n.closed.connect(() => root.pruneClosed(n.id));
     }
     function pruneClosed(id) {
-        root.stopToastTimer(root.findToast(id));
+        const w = root.findToast(id);
+        root.stopToastTimer(w);
         root.toasts = root.toasts.filter(t => t.notificationId !== id);
+        root.destroyToast(w);
         root.history = root.history.filter(h => h.id !== id);
         const ids = Object.assign({}, root._watched);
         delete ids[id];
         root._watched = ids;
+    }
+
+    // A wrapper removed from `toasts` must be destroyed — it is parented to
+    // the singleton, so filtering alone leaks it for the session. Its `live`
+    // NotificationObject is daemon-owned; only the reference is dropped.
+    function destroyToast(w) {
+        if (!w) return;
+        w.live = null;
+        w.destroy();
     }
 
     function addHistory(n) {
@@ -157,7 +168,8 @@ Singleton {
 
     function addPopup(n, monitorName) {
         // A replaced toast must not keep its old countdown.
-        root.stopToastTimer(root.findToast(n.id));
+        const old = root.findToast(n.id);
+        root.stopToastTimer(old);
 
         const iconFile = root.isRecorder(n) ? "" : root.imageFile(n);
         const iconName = root.iconNameFor(n);
@@ -193,6 +205,7 @@ Singleton {
             life: root.toastLifetime(n),
             popup: false
         });
+        if (old) root.destroyToast(old);
         root.toasts = [w].concat(root.toasts.filter(t => t.notificationId !== n.id));
 
         // auto-hide the TOAST after its life; critical lingers. Hiding never
@@ -251,6 +264,7 @@ Singleton {
         if (live) {
             try { live.dismiss(); } catch (e) {}
         }
+        root.destroyToast(w);
     }
 
     function stopToastTimer(w) {

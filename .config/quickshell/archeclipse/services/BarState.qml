@@ -256,6 +256,8 @@ Singleton {
         pc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
         pc.stdout.onStreamFinished.connect(() => {
             root._roomClientText = pc.stdout.text;
+            pc.stdout.destroy();
+            pc.destroy();
             root.finishRoomCheck();
         });
     }
@@ -268,6 +270,8 @@ Singleton {
         pm.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
         pm.stdout.onStreamFinished.connect(() => {
             root.computeRoomCheck(root._roomClientText, pm.stdout.text);
+            pm.stdout.destroy();
+            pm.destroy();
         });
     }
 
@@ -464,9 +468,13 @@ Singleton {
     }
 
     function playerItemKey(p) {
-        if (!p)
-            return "";
-        return (p.uniqueId ?? "?") + "|" + (p.trackTitle ?? "") + "|" + (p.trackArtist ?? "") + "|" + previewUrl(p);
+        try {
+            if (!p)
+                return "";
+            return (p.uniqueId ?? "?") + "|" + (p.trackTitle ?? "") + "|" + (p.trackArtist ?? "") + "|" + previewUrl(p);
+        } catch (e) {
+            return ""; // player proxy died between events; re-pick on next valuesChanged
+        }
     }
 
     // True when the player exposes preview noise rather than an actual
@@ -663,6 +671,7 @@ Singleton {
             const timerKey = name + "@" + monitor;
             if (scopedTimers[timerKey]) {
                 scopedTimers[timerKey].stop();
+                scopedTimers[timerKey].destroy();
                 scopedTimers[timerKey] = null;
             }
             var byMonitor = Object.assign({}, root.panelStatesByMonitor || {});
@@ -673,10 +682,7 @@ Singleton {
 
             if (holdMs !== undefined && holdMs > 0) {
                 const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: ' + holdMs + ' }', root);
-                t.triggered.connect(() => {
-                    root.deactivate(name, monitor);
-                    t.destroy();
-                });
+                t.triggered.connect(() => root.deactivate(name, monitor));
                 t.start();
                 scopedTimers[timerKey] = t;
             }
@@ -689,6 +695,7 @@ Singleton {
         // Cancel existing timer for this state
         if (timers[name]) {
             timers[name].stop();
+            timers[name].destroy();
             timers[name] = null;
         }
         root.holdTimers = timers;
@@ -701,10 +708,7 @@ Singleton {
 
         if (holdMs !== undefined && holdMs > 0) {
             const t = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: ' + holdMs + ' }', root);
-            t.triggered.connect(() => {
-                root.deactivate(name);
-                t.destroy();
-            });
+            t.triggered.connect(() => root.deactivate(name));
             t.start();
             timers[name] = t;
         }
@@ -726,6 +730,7 @@ Singleton {
             const timerKey = name + "@" + monitor;
             if (scopedTimers[timerKey]) {
                 scopedTimers[timerKey].stop();
+                scopedTimers[timerKey].destroy();
                 scopedTimers[timerKey] = null;
             }
             root.holdTimers = scopedTimers;
@@ -760,6 +765,7 @@ Singleton {
         const timers = root.holdTimers || {};
         if (timers[name]) {
             timers[name].stop();
+            timers[name].destroy();
             timers[name] = null;
         }
         root.holdTimers = timers;

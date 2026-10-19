@@ -463,8 +463,11 @@ QtObject {
         printErrors: false
         onFileChanged: reload()
         onLoaded: {
-            if (!root._greeterPaletteLoaded)
-                root.applyPalette(text());
+            // The greeter mirror is the palette owner once loaded; skip the
+            // whole cwal parse. Before that point this file is the source.
+            if (root._greeterPaletteLoaded)
+                return;
+            root.applyPalette(text());
             const t = text();
             const grab = (name, fb) => {
                 const m = t.match(new RegExp("\\$" + name + "\\s*:\\s*(#[0-9a-fA-F]{6})"));

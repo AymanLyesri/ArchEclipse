@@ -244,6 +244,29 @@ QtObject {
     property var _thumbQueue: []
     property var _thumbResults: ({})
 
+    // Stuck-step watchdog: ffmpeg wedged on a corrupt container never
+    // fires `exited`, so the queue would stall thumbProc.running forever.
+    // A step outliving 120s counts as failed: drop it and advance.
+    property var _thumbStep: null
+    property Timer _thumbWatchdog: Timer {
+        interval: 120000
+        repeat: false
+        onTriggered: {
+            if (root._thumbStep) {
+                root._thumbStep.destroy();
+                root._thumbStep = null;
+            }
+            root._thumbQueue.shift();
+            root._pumpThumbs();
+        }
+    }
+    function _thumbSpawnAndArm(args) {
+        const p = root._spawn(args);
+        root._thumbStep = p;
+        root._thumbWatchdog.restart();
+        return p;
+    }
+
     // Deterministic thumb name from the source path so QML derives it
     // without hashing: sanitized path + ".jpg". Mirrors the old script's
     // sed 's/[^A-Za-z0-9._-]/_/g' byte-wise for ASCII paths (all shipped
@@ -281,8 +304,9 @@ QtObject {
         root._thumbQueue = vids.slice();
         root._thumbResults = {};
         root.thumbProc.running = true;
-        const mk = root._spawn(["mkdir", "-p", root.thumbCacheDir]);
+        const mk = root._thumbSpawnAndArm(["mkdir", "-p", root.thumbCacheDir]);
         mk.exited.connect(function () {
+            root._thumbWatchdog.stop();
             mk.destroy();
             root._pumpThumbs();
         });
@@ -307,8 +331,9 @@ QtObject {
         }
         const src = root._thumbQueue[0];
         const out = root.thumbPathFor(src);
-        const probe = root._spawn(["bash", "-c", 'test -f "$1" && test "$1" -nt "$2"', "--", out, src]);
+        const probe = root._thumbSpawnAndArm(["bash", "-c", 'test -f "$1" && test "$1" -nt "$2"', "--", out, src]);
         probe.exited.connect(function (code) {
+            root._thumbWatchdog.stop();
             probe.destroy();
             if (code === 0) {
                 root._thumbResults[src] = out;
@@ -326,12 +351,14 @@ QtObject {
         // no two ffmpeg runs share an `out`. Atomic mv publish, rm on fail.
         const tmp = out.slice(0, -4) + ".tmp.qs.jpg";
         // Read from the beginning: a fixed 1s seek skipped sub-second clips.
-        const ff = root._spawn(["ffmpeg", "-loglevel", "error", "-y", "-i", src, "-vframes", "1", "-vf", "scale=320:-1", tmp]);
+        const ff = root._thumbSpawnAndArm(["ffmpeg", "-loglevel", "error", "-y", "-i", src, "-vframes", "1", "-vf", "scale=320:-1", tmp]);
         ff.exited.connect(function (code) {
+            root._thumbWatchdog.stop();
             ff.destroy();
             if (code === 0) {
-                const mv = root._spawn(["mv", "-f", tmp, out]);
+                const mv = root._thumbSpawnAndArm(["mv", "-f", tmp, out]);
                 mv.exited.connect(function (mvCode) {
+                    root._thumbWatchdog.stop();
                     mv.destroy();
                     if (mvCode === 0)
                         root._thumbResults[src] = out;
@@ -340,8 +367,9 @@ QtObject {
                 });
                 mv.running = true;
             } else {
-                const rm = root._spawn(["rm", "-f", tmp]);
+                const rm = root._thumbSpawnAndArm(["rm", "-f", tmp]);
                 rm.exited.connect(function () {
+                    root._thumbWatchdog.stop();
                     rm.destroy();
                     root._thumbQueue.shift();
                     root._pumpThumbs();

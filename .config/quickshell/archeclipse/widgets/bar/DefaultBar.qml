@@ -26,26 +26,11 @@ Column {
     property var barStack: null
     readonly property bool contentGliding: volumeWidget.revealing || brightnessWidget.revealing
     onContentGlidingChanged: root.setContentGliding(root.contentGliding)
-    // Workspace-strip icon reveal glides the strip's OWN height, so the pill
-    // must track it per-frame (rigidHeight) instead of easing after it — the
-    // same deal as the slider reveals above, on the vertical axis.
-    readonly property bool stripGliding: workspaces.revealing
-    onStripGlidingChanged: root.setStripGliding(root.stripGliding)
-    onBarStackChanged: {
-        root.setContentGliding(root.contentGliding);
-        root.setStripGliding(root.stripGliding);
-    }
-    Component.onDestruction: {
-        root.setContentGliding(false);
-        root.setStripGliding(false);
-    }
+    onBarStackChanged: root.setContentGliding(root.contentGliding)
+    Component.onDestruction: root.setContentGliding(false)
     function setContentGliding(on) {
         if (root.barStack)
             root.barStack.rigidWidth = on;
-    }
-    function setStripGliding(on) {
-        if (root.barStack)
-            root.barStack.rigidHeight = on;
     }
 
     // Workspace-strip passthrough for the window mask + hover chaining

@@ -261,6 +261,7 @@ Item {
     Component {
         id: _runScript
         Process {
+            id: proc
             property var onJson: null
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -281,6 +282,7 @@ Item {
                             body: "Manga script returned no handler"
                         });
                     }
+                    proc.destroy();
                 }
             }
             onExited: function (code) {

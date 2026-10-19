@@ -914,24 +914,36 @@ Item {
     Component {
         id: readSessionComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onSessionText(text)
+                onStreamFinished: {
+                    root.onSessionText(text);
+                    proc.destroy();
+                }
             }
         }
     }
     Component {
         id: statComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onSessionMtime(text)
+                onStreamFinished: {
+                    root.onSessionMtime(text);
+                    proc.destroy();
+                }
             }
         }
     }
     Component {
         id: whoAmIComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onWhoAmI(text)
+                onStreamFinished: {
+                    root.onWhoAmI(text);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0)
@@ -942,8 +954,12 @@ Item {
     Component {
         id: supporterComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onSupporter(text)
+                onStreamFinished: {
+                    root.onSupporter(text);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0)
@@ -954,8 +970,12 @@ Item {
     Component {
         id: codeGetComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onCodeGet(text)
+                onStreamFinished: {
+                    root.onCodeGet(text);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0)
@@ -966,10 +986,14 @@ Item {
     Component {
         id: codePutComp
         Process {
+            id: proc
             property int attempt: 0
             property string code: ""
             stdout: StdioCollector {
-                onStreamFinished: root.onCodePut(text, attempt, code)
+                onStreamFinished: {
+                    root.onCodePut(text, attempt, code);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0)
@@ -980,8 +1004,12 @@ Item {
     Component {
         id: createPayComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onCheckout(text)
+                onStreamFinished: {
+                    root.onCheckout(text);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0) {
@@ -994,8 +1022,12 @@ Item {
     Component {
         id: payStatusComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onPayStatus(text)
+                onStreamFinished: {
+                    root.onPayStatus(text);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0)
@@ -1006,16 +1038,24 @@ Item {
     Component {
         id: claimGetComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onClaimGet(text)
+                onStreamFinished: {
+                    root.onClaimGet(text);
+                    proc.destroy();
+                }
             }
         }
     }
     Component {
         id: claimPutComp
         Process {
+            id: proc
             stdout: StdioCollector {
-                onStreamFinished: root.onClaimPut(text)
+                onStreamFinished: {
+                    root.onClaimPut(text);
+                    proc.destroy();
+                }
             }
             onExited: code => {
                 if (code !== 0)
@@ -1034,6 +1074,7 @@ Item {
 
     property Component copyProcComp: Component {
         Process {
+            id: proc
             property string label: ""
             onExited: (code) => {
                 if (code === 0) {
@@ -1041,6 +1082,7 @@ Item {
                 } else {
                     Notifications.notify({ summary: "Error", body: "Failed to copy to clipboard" });
                 }
+                proc.destroy();
             }
         }
     }
@@ -1061,6 +1103,7 @@ Item {
 
     property Component qrProcComp: Component {
         Process {
+            id: proc
             property string qrPath: ""
             property string name: ""
             onExited: (code) => {
@@ -1070,6 +1113,7 @@ Item {
                 } else {
                     Notifications.notify({ summary: "Error", body: "QR code generation failed. Install 'qrencode' package." });
                 }
+                proc.destroy();
             }
         }
     }

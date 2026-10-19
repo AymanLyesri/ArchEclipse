@@ -489,6 +489,12 @@ Item {
             cmd.push("--api-key", root.whApiKey);
         whSearchProc._seq = seq;
         whSearchProc.command = cmd;
+        // Assigning ·starting on an in-flight Process is a no-op — kill first
+        // so the new search actually runs; the killed run's stale delivery
+        // is dropped by the _seq guard (a no-op start wedged whLoading true
+        // forever, verified by trace).
+        if (whSearchProc.running)
+            whSearchProc.running = false;
         whSearchProc.running = true;
     }
 
@@ -655,6 +661,10 @@ Item {
     }
 
     function applyWallpaper(path) {
+        // One at a time: setProc consumes the pending-_ values from the last
+        // call, so a second apply mid-flight would overwrite the first's.
+        if (setProc.running)
+            return;
         // A set supersedes any live hover preview on this monitor. The
         // daemon cuts it too, but clearing first leaves no frame of stale
         // preview over the incoming wallpaper.
@@ -881,6 +891,8 @@ Item {
         }
     }
     function deleteWallpaper(path) {
+        if (deleteProc.running)
+            return;
         setProgress("deleting");
         deleteProc.command = ["bash", "-c", `rm -f ${JSON.stringify(path)}`];
         deleteProc.running = true;
@@ -1007,6 +1019,8 @@ Item {
         }
     }
     function importWallpaper(sourcePath) {
+        if (importProc.running)
+            return;
         setProgress("adding");
         const targetDir = root.home + "/.config/wallpapers/custom";
         const basename = sourcePath.split("/").pop();

@@ -18,9 +18,23 @@ Rectangle {
     color: hover.hovered ? hoverColor : "transparent"
 
     property string timeText: Settings.fmt(new Date(), Settings.dateFormat)
+    property string dateStr: Qt.formatDate(new Date(), "dddd · d MMM")
+    // Single owner: the binding above dies on the first tick, so every
+    // refresh path (minute, format change, manual cycle) must go through
+    // refreshClock() or both labels go stale.
+    function refreshClock() {
+        root.timeText = Settings.fmt(new Date(), Settings.dateFormat);
+        root.dateStr = Qt.formatDate(new Date(), "dddd · d MMM");
+    }
     SystemClock {
         precision: SystemClock.Minutes
-        onDateChanged: root.timeText = Settings.fmt(new Date(), Settings.dateFormat)
+        onDateChanged: root.refreshClock()
+    }
+    Connections {
+        target: Settings
+        function onDateFormatChanged() {
+            root.refreshClock();
+        }
     }
 
     Behavior on color {
@@ -62,7 +76,7 @@ Rectangle {
             Text {
                 id: dateText
                 anchors.verticalCenter: parent.verticalCenter
-                text: Qt.formatDate(new Date(), "dddd · d MMM")
+                text: root.dateStr
                 color: Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize
@@ -79,7 +93,7 @@ Rectangle {
             const idx = Settings.dateFormats.indexOf(Settings.dateFormat);
             const next = Settings.dateFormats[(idx + 1) % Settings.dateFormats.length];
             Settings.dateFormat = next;
-            root.timeText = Settings.fmt(new Date(), next);
+            root.refreshClock();
         }
     }
 
