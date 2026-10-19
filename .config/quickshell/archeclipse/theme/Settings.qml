@@ -581,6 +581,29 @@ Singleton {
         root.persist();
     }
 
+    function clearPanelOverride(side, monitorName, key) {
+        const name = String(monitorName || "");
+        if (name === "" || (side !== "left" && side !== "right"))
+            return;
+        const isLeft = side === "left";
+        const current = isLeft ? root.leftPanelByMonitor : root.rightPanelByMonitor;
+        const next = Object.assign({}, current || {});
+        const oldEntry = next[name];
+        if (!oldEntry || typeof oldEntry !== "object" || !(key in oldEntry))
+            return;
+        const updatedEntry = Object.assign({}, oldEntry);
+        delete updatedEntry[key];
+        if (Object.keys(updatedEntry).length)
+            next[name] = updatedEntry;
+        else
+            delete next[name];
+        if (isLeft)
+            root.leftPanelByMonitor = next;
+        else
+            root.rightPanelByMonitor = next;
+        root.persist();
+    }
+
     function setPanelWidthFor(side, monitorName, value) {
         const minimum = 200;
         const width = Number(value);

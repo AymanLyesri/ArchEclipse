@@ -100,6 +100,16 @@ Singleton {
         root.popupCountByMonitor = next;
     }
 
+    // The welcome tour is a singleton window with one owning monitor. Keep
+    // its auto-hide hold and highlights scoped to that bar instance.
+    property string tourHoldMonitor: ""
+    property string tourHighlightTab: ""
+    property string tourHighlightMonitor: ""
+    property string tourRightWidget: ""
+    function tourHoldFor(monitorName): bool {
+        return monitorName !== "" && root.tourHoldMonitor === monitorName;
+    }
+
     // Hold timers
     property var holdTimers: {}
 

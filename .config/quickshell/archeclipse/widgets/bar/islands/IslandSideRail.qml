@@ -18,6 +18,7 @@ Rectangle {
     property var model: []
     property bool dragEnabled: false
     property int currentIndex: 0
+    property string highlightedName: ""
     signal selected(int index)
     color: "transparent"
     implicitHeight: railColumn.implicitHeight
@@ -46,6 +47,8 @@ Rectangle {
                     icon: modelData.icon !== undefined ? modelData.icon : ""
                     toggle: true
                     checked: index === root.currentIndex
+                    outlined: modelData.name === root.highlightedName
+                    outlineColor: Theme.accent
                     // Donations special red color to nudge users toward
                     // the support widget (preserved from LeftIsland).
                     idleBg: modelData.name === "Donations" ? "#f96854" : "transparent"

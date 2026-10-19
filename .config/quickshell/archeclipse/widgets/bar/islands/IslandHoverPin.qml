@@ -55,6 +55,8 @@ HoverHandler {
         id: leaveTimer
         interval: root.leaveDelay
         onTriggered: {
+            if (BarState.tourHoldFor(root.monitorName))
+                return;
             BarState.deactivate(root.stateName, root.monitorName);
             for (let i = 0; i < root.extraStates.length; i++)
                 BarState.deactivate(root.extraStates[i], root.monitorName);
