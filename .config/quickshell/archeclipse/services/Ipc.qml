@@ -318,6 +318,62 @@ Item {
             return "apps list opened";
         }
 
+        // Scripted capture helpers: fire the same path the search island's
+        // Enter key run (Launcher.activateSelected). Selection state is left
+        // to whatever runQuery last set — the launcher panel shows the
+        // highlight, this only completes the gesture.
+        function launcherActivate(monitor: string): string {
+            try {
+                return "activated=" + Launcher.activateSelected();
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        function launcherRow(monitor: string): string {
+            try {
+                const r = Launcher.results[Launcher.selectedIndex];
+                return "selected=" + Launcher.selectedIndex + " of " + Launcher.results.length + " [" + (r ? r.name : "?") + "]";
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        // Scripted capture helper: push a live settings leaf exactly the way
+        // QML writers do (the widget drag-reorder and wallpaper picker push
+        // through updateSetting directly). Writing settings.json from
+        // outside races the shell's own persist and gets clobbered before
+        // adoption — this is the supported path. The value travels
+        // base64-encoded: qs ipc splits raw args on commas/spaces.
+        function settingsSet(key: string, valueB64: string): string {
+            try {
+                const value = JSON.parse(Qt.atob(valueB64));
+                Settings.updateSetting(key, value);
+                return "set " + key;
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        // Scripted capture helper: prime the ChatBot tab and switch the live
+        // widget to a session id. The tab Loader may not have an item yet on
+        // the tick the tab primes — callers retry with a short delay.
+        function chatSession(id: string, monitor: string): string {
+            try {
+                const mon = (monitor && monitor !== "") ? monitor : Registry.monitorName;
+                const isl = Registry.get(`left-island-${mon}`) ?? Registry.get("left-island");
+                if (!isl) return "no island: left-island-" + mon;
+                Registry.selectLeftTab("ChatBot", undefined, mon);
+                const w = isl.activeWidget;
+                if (!w || !w.switchToSession) return "chat widget not ready";
+                w.loadSessions();
+                w.switchToSession(id);
+                return "chat session=" + w.activeSessionId;
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
         function togglePanel(name: string, monitor: string): string {
             // MediaWindow registers one standalone player handle per monitor;
             // the generic lookup below uses the matching media-panel-<monitor> key.

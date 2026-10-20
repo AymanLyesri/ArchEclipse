@@ -646,15 +646,14 @@ Item {
                                 ]
                                 delegate: Rectangle {
                                     width: parent.width
-                                    height: 34
-                                    color: Theme.bg
-                                    radius: Theme.radius
+                                    height: uaRow.implicitHeight
+                                    color: "transparent"
 
                                     property bool reveal: false
 
                                     RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 6
+                                        id: uaRow
+                                        width: parent.width
                                         spacing: Theme.spacing
                                         SettingLabel {
                                             text: modelData.label
@@ -771,8 +770,8 @@ Item {
                                     // NOTE: Repeater has no width — size off the
                                     // section Column instead.
                                     width: parent.width
-                                    height: 34
-                                    color: Theme.bg
+                                    height: keyRowLayout.implicitHeight
+                                    color: "transparent"
                                     radius: Theme.radius
                                     objectName: modelData.path
 
@@ -805,8 +804,8 @@ Item {
                                     }
 
                                     RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 6
+                                        id: keyRowLayout
+                                        width: parent.width
                                         spacing: Theme.spacing
                                         SettingLabel {
                                             text: modelData.label

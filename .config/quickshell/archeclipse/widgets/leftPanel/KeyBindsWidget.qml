@@ -316,7 +316,7 @@ Item {
     // sorted category names
     property var categories: Object.keys(root.keybinds).sort()
 
-    // ---- UI: vertical category list (no filter row) ----
+    // ---- UI: one Settings-style card per category, divider lines between ----
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
@@ -358,6 +358,7 @@ Item {
                 Repeater {
                     model: root.categories
                     delegate: Column {
+                        id: catSec
                         required property string modelData
                         required property int index
                         property string category: modelData
@@ -366,7 +367,8 @@ Item {
                         property int rowBase: root.catBase(index)
                         width: parent.width
                         spacing: Theme.spacing
-                        // Header appears just before its first row.
+                        // The whole group (divider + card) fades in just
+                        // before its first row.
                         opacity: root.revealCount > rowBase ? 1 : 0
                         Behavior on opacity {
                             NumberAnimation {
@@ -375,53 +377,78 @@ Item {
                             }
                         }
 
-                        Label {
-                            text: category
-                            font.pixelSize: Theme.fontSize
-                            font.bold: true
-                            color: Theme.fg
-                            elide: Text.ElideRight
-                            maximumLineCount: 1
+                        // Divider line between categories (first one has none)
+                        Rectangle {
+                            visible: catSec.index > 0
                             width: parent.width
+                            height: 1
+                            color: Theme.border
                         }
 
-                        // binds within this category
-                        Repeater {
-                            model: root.keybinds[category] || []
-                            delegate: Rectangle {
-                                required property var modelData
-                                required property int index
-                                width: parent.width
-                                color: "transparent"
-                                height: 28
-                                // Flat position (category base + row) vs the
-                                // reveal counter; +1 so rows trail the header.
-                                opacity: (rowBase + index + 1) <= root.revealCount ? 1 : 0
-                                Behavior on opacity {
-                                    NumberAnimation {
-                                        duration: 220
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                                // NOTE: RowLayout — the description stretches,
-                                // chips keep implicit size (verticalCenter
-                                // anchors are ignored inside positioners).
-                                RowLayout {
-                                    anchors.fill: parent
-                                    spacing: Theme.spacing
-                                    Label {
-                                        text: modelData.description
-                                        font.pixelSize: Theme.fontSize
-                                        color: Theme.fg
-                                        elide: Text.ElideRight
-                                        maximumLineCount: 1
-                                        Layout.fillWidth: true
-                                    }
+                        // Category card (Settings-section style)
+                        Rectangle {
+                            width: parent.width
+                            implicitHeight: cardBody.implicitHeight + 20
+                            radius: Theme.radius
+                            color: Theme.surface
+                            border.color: Theme.border
+                            border.width: 1
 
-                                    // key chips joined by "+" (shared AppKeybind widget)
-                                    AppKeybind {
-                                        keys: modelData.keys || []
-                                        Layout.alignment: Qt.AlignVCenter
+                            Column {
+                                id: cardBody
+                                anchors.fill: parent
+                                anchors.margins: Theme.pad
+                                spacing: Theme.spacing
+
+                                Label {
+                                    text: catSec.category
+                                    font.pixelSize: Theme.fontSize + 2
+                                    font.bold: true
+                                    color: Theme.accent
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
+                                    width: parent.width
+                                }
+
+                                // binds within this category
+                                Repeater {
+                                    model: root.keybinds[catSec.category] || []
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        required property int index
+                                        width: parent.width
+                                        height: 28
+                                        color: "transparent"
+                                        // Flat position (category base + row) vs the
+                                        // reveal counter; +1 so rows trail the header.
+                                        opacity: (catSec.rowBase + index + 1) <= root.revealCount ? 1 : 0
+                                        Behavior on opacity {
+                                            NumberAnimation {
+                                                duration: 220
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                        // NOTE: RowLayout — the description stretches,
+                                        // chips keep implicit size (verticalCenter
+                                        // anchors are ignored inside positioners).
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            spacing: Theme.spacing
+                                            Label {
+                                                text: modelData.description
+                                                font.pixelSize: Theme.fontSize
+                                                color: Theme.fg
+                                                elide: Text.ElideRight
+                                                maximumLineCount: 1
+                                                Layout.fillWidth: true
+                                            }
+
+                                            // key chips joined by "+" (shared AppKeybind widget)
+                                            AppKeybind {
+                                                keys: modelData.keys || []
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+                                        }
                                     }
                                 }
                             }
