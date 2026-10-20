@@ -85,16 +85,26 @@ Item {
     property string progressStatus: "idle"
     readonly property string progressText: {
         switch (root.progressStatus) {
-        case "searching": return "Searching…";
-        case "downloading": return "Downloading…";
-        case "setting": return "Setting…";
-        case "deleting": return "Deleting…";
-        case "adding": return "Adding…";
-        case "reloading": return "Reloading…";
-        case "loading": return "Working…";
-        case "success": return "Done";
-        case "error": return "Failed";
-        default: return "";
+        case "searching":
+            return "Searching…";
+        case "downloading":
+            return "Downloading…";
+        case "setting":
+            return "Setting…";
+        case "deleting":
+            return "Deleting…";
+        case "adding":
+            return "Adding…";
+        case "reloading":
+            return "Reloading…";
+        case "loading":
+            return "Working…";
+        case "success":
+            return "Done";
+        case "error":
+            return "Failed";
+        default:
+            return "";
         }
     }
     readonly property string progressColor: {
@@ -161,10 +171,7 @@ Item {
     readonly property var selectedWallpapers: wallpapers[selectedCategory] ?? []
     // Capture must wait for data/thumbnail generation and masonry aspect updates;
     // CaptureIpc separately checks instantiated tiles (including opacity-zero ones).
-    readonly property bool captureReady: !WallpaperService.fetchProc.running && !WallpaperService.thumbProc.running && !WallpaperService._thumbPending
-        && !whLoading && Object.keys(WallpaperService._pendingAspect).length === 0
-        && (progressStatus === "idle" || progressStatus === "success")
-        && (isWallhaven ? whResults.length > 0 : selectedWallpapers.length > 0)
+    readonly property bool captureReady: !WallpaperService.fetchProc.running && !WallpaperService.thumbProc.running && !WallpaperService._thumbPending && !whLoading && Object.keys(WallpaperService._pendingAspect).length === 0 && (progressStatus === "idle" || progressStatus === "success") && (isWallhaven ? whResults.length > 0 : selectedWallpapers.length > 0)
     // Exposed for Ipc wallpaperDiag ("strip" query) and tests.
     readonly property alias wallStrip: wallScroll
     // Test hook for the "stripdeep" diag: lets automation walk the local
@@ -432,9 +439,7 @@ Item {
         const p = root.home + "/.config/walleclipse/config/" + monitor + "/defaults.conf";
         const esc = p.split("\\").join("\\\\").split('"').join('\\"');
         try {
-            root._currentReader = Qt.createQmlObject('import Quickshell.Io; FileView { path: "' + esc + '"; watchChanges: false; printErrors: false;'
-                + ' onLoaded: root._adoptCurrent(' + seq + ', text());'
-                + ' onLoadFailed: root._adoptCurrent(' + seq + ', "") }', root);
+            root._currentReader = Qt.createQmlObject('import Quickshell.Io; FileView { path: "' + esc + '"; watchChanges: false; printErrors: false;' + ' onLoaded: root._adoptCurrent(' + seq + ', text());' + ' onLoadFailed: root._adoptCurrent(' + seq + ', "") }', root);
         } catch (e) {
             root._adoptCurrent(seq, "");
         }
@@ -687,8 +692,7 @@ Item {
     property int _previewSeq: 0
     property string _previewPath: ""
     property string _previewMonitor: ""
-    readonly property string animatedPreviewPath: BarState.stateFor(root.monitorName) === "wallpaper"
-        && root.isAnimatedPreviewFile(root._previewPath) ? root._previewPath : ""
+    readonly property string animatedPreviewPath: BarState.stateFor(root.monitorName) === "wallpaper" && root.isAnimatedPreviewFile(root._previewPath) ? root._previewPath : ""
     property string _previewCommandPath: ""
     property string _previewCommandMonitor: ""
     property string _previewSentPath: ""
@@ -697,7 +701,7 @@ Item {
     // Hover dwell: only preview once the cursor has settled on a tile, so
     // sweeping across the strip fires nothing (and the daemon allocates no
     // fade per tile crossed). Raise `previewDwellMs` to make it lazier.
-    readonly property int previewDwellMs: 400
+    readonly property int previewDwellMs: 1000
     property string _dwellPath: ""
     function hoverPreview(path) {
         if (!path || !root.effectiveMonitor)
@@ -747,17 +751,13 @@ Item {
     function pumpPreviewCommand() {
         if (previewCommand.running || root._previewCommandMonitor === "")
             return;
-        if (root._previewCommandSent
-            && root._previewCommandPath === root._previewSentPath
-            && root._previewCommandMonitor === root._previewSentMonitor)
+        if (root._previewCommandSent && root._previewCommandPath === root._previewSentPath && root._previewCommandMonitor === root._previewSentMonitor)
             return;
 
         root._previewSentPath = root._previewCommandPath;
         root._previewSentMonitor = root._previewCommandMonitor;
         root._previewCommandSent = true;
-        previewCommand.command = root._previewCommandPath === ""
-            ? [root.walleclipseBin, "preview-clear", root._previewCommandMonitor]
-            : [root.walleclipseBin, "preview", root._previewCommandMonitor, root._previewCommandPath];
+        previewCommand.command = root._previewCommandPath === "" ? [root.walleclipseBin, "preview-clear", root._previewCommandMonitor] : [root.walleclipseBin, "preview", root._previewCommandMonitor, root._previewCommandPath];
         previewCommand.running = true;
     }
     Process {
@@ -816,11 +816,7 @@ Item {
         id: greeterThemeProc
         onExited: code => {
             if (code === 0) {
-                greeterPaletteNormalizeProc.command = [
-                    "python3", root.greeterPaletteNormalizer,
-                    root._greeterThemeWallpaper,
-                    root.greeterThemeCache + "/coloreclipse/colors.scss"
-                ];
+                greeterPaletteNormalizeProc.command = ["python3", root.greeterPaletteNormalizer, root._greeterThemeWallpaper, root.greeterThemeCache + "/coloreclipse/colors.scss"];
                 greeterPaletteNormalizeProc.running = true;
             } else {
                 root.notifyError("generating greeter theme", "coloreclipse wal failed (exit " + code + ")");
@@ -831,11 +827,7 @@ Item {
         id: greeterPaletteNormalizeProc
         onExited: code => {
             if (code === 0) {
-                greeterPaletteInstallProc.command = [
-                    "pkexec", "install", "-m", "0644",
-                    root.greeterThemeCache + "/coloreclipse/colors.scss",
-                    root.greeterThemePath
-                ];
+                greeterPaletteInstallProc.command = ["pkexec", "install", "-m", "0644", root.greeterThemeCache + "/coloreclipse/colors.scss", root.greeterThemePath];
                 greeterPaletteInstallProc.running = true;
             } else {
                 root.notifyError("normalizing greeter theme", "could not match the palette to the wallpaper (exit " + code + ")");
@@ -857,12 +849,7 @@ Item {
             return;
         }
         root._greeterThemeWallpaper = String(path);
-        greeterThemeProc.command = [
-            "env",
-            "XDG_CONFIG_HOME=" + root.greeterThemeConfig,
-            "XDG_CACHE_HOME=" + root.greeterThemeCache,
-            "coloreclipse", "wal", path
-        ];
+        greeterThemeProc.command = ["env", "XDG_CONFIG_HOME=" + root.greeterThemeConfig, "XDG_CACHE_HOME=" + root.greeterThemeCache, "coloreclipse", "wal", path];
         greeterThemeProc.running = true;
     }
 
@@ -1160,74 +1147,74 @@ Item {
                         // (see polish-loop pitfall in AGENTS.md). Left-origin
                         // so tiles hug the separator instead of centering
                         // in the leftover viewport width.
-                Repeater {
-                    model: root.currentWallpapers
-                    delegate: Rectangle {
-                        id: wsTile
-                        required property string modelData
-                        required property int index
-                        readonly property bool isFocused: Hyprland.focusedWorkspace?.id === index + 1
+                        Repeater {
+                            model: root.currentWallpapers
+                            delegate: Rectangle {
+                                id: wsTile
+                                required property string modelData
+                                required property int index
+                                readonly property bool isFocused: Hyprland.focusedWorkspace?.id === index + 1
 
-                        width: 100
-                        height: 66
-                        radius: Theme.radius
-                        color: modelData === "" ? "black" : "transparent"
-                        border.width: isFocused ? 1 : 0
-                        border.color: Theme.muted
+                                width: 100
+                                height: 66
+                                radius: Theme.radius
+                                color: modelData === "" ? "black" : "transparent"
+                                border.width: isFocused ? 1 : 0
+                                border.color: Theme.muted
 
-                        AppImage {
-                            visible: wsTile.modelData !== ""
-                            anchors.fill: parent
-                            anchors.margins: 2
-                            // Native preview: original file, decoded near
-                            // tile size (async + cached inside AppImage).
-                            // Videos play live below (wsVideo) — empty
-                            // source here keeps just the badges.
-                            source: (wsTile.modelData === "" || root.isVideoFile(wsTile.modelData)) ? "" : "file://" + wsTile.modelData
-                            sourceWidth: wsTile.width
-                            badges: [(wsTile.index + 1).toString()]
-                        }
-                        // Live animated preview for workspace videos: ALWAYS
-                        // live (restored ac33749c behavior — the hover-only
-                        // gate added in the masonry refactor left the decoder
-                        // off, so video tiles showed the icon forever).
-                        // Unlike the main strip (100+ videos), this strip
-                        // holds one tile per workspace, so always-on decoders
-                        // stay cheap. The icon below stays until the first
-                        // frame lands, or permanently on decode failure.
-                        readonly property bool wsPreviewing: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData)
-                        AppVideo {
-                            id: wsVideo
-                            anchors.fill: parent
-                            anchors.margins: 2
-                            visible: wsTile.wsPreviewing
-                            source: wsTile.wsPreviewing ? wsTile.modelData : ""
-                            active: wsTile.wsPreviewing
-                            muted: true
-                            fillMode: VideoOutput.PreserveAspectCrop
-                            badges: [(wsTile.index + 1).toString()]
-                            onErrorOccurred: message => {
-                                console.warn("[WallpaperSwitcher] video preview failed for " + wsTile.modelData + ": " + message);
+                                AppImage {
+                                    visible: wsTile.modelData !== ""
+                                    anchors.fill: parent
+                                    anchors.margins: 2
+                                    // Native preview: original file, decoded near
+                                    // tile size (async + cached inside AppImage).
+                                    // Videos play live below (wsVideo) — empty
+                                    // source here keeps just the badges.
+                                    source: (wsTile.modelData === "" || root.isVideoFile(wsTile.modelData)) ? "" : "file://" + wsTile.modelData
+                                    sourceWidth: wsTile.width
+                                    badges: [(wsTile.index + 1).toString()]
+                                }
+                                // Live animated preview for workspace videos: ALWAYS
+                                // live (restored ac33749c behavior — the hover-only
+                                // gate added in the masonry refactor left the decoder
+                                // off, so video tiles showed the icon forever).
+                                // Unlike the main strip (100+ videos), this strip
+                                // holds one tile per workspace, so always-on decoders
+                                // stay cheap. The icon below stays until the first
+                                // frame lands, or permanently on decode failure.
+                                readonly property bool wsPreviewing: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData)
+                                AppVideo {
+                                    id: wsVideo
+                                    anchors.fill: parent
+                                    anchors.margins: 2
+                                    visible: wsTile.wsPreviewing
+                                    source: wsTile.wsPreviewing ? wsTile.modelData : ""
+                                    active: wsTile.wsPreviewing
+                                    muted: true
+                                    fillMode: VideoOutput.PreserveAspectCrop
+                                    badges: [(wsTile.index + 1).toString()]
+                                    onErrorOccurred: message => {
+                                        console.warn("[WallpaperSwitcher] video preview failed for " + wsTile.modelData + ": " + message);
+                                    }
+                                }
+                                Text {
+                                    visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && (!wsVideo.ready || wsVideo._failed)
+                                    anchors.centerIn: parent
+                                    text: ""
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fs(1.67)
+                                    color: Theme.fgDim
+                                }
+                                Text {
+                                    visible: wsTile.modelData === ""
+                                    anchors.centerIn: parent
+                                    text: "No Wallpaper"
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                }
                             }
                         }
-                        Text {
-                            visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && (!wsVideo.ready || wsVideo._failed)
-                            anchors.centerIn: parent
-                            text: ""
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fs(1.67)
-                            color: Theme.fgDim
-                        }
-                        Text {
-                            visible: wsTile.modelData === ""
-                            anchors.centerIn: parent
-                            text: "No Wallpaper"
-                            color: Theme.muted
-                            font.family: Theme.fontFamily
-                        }
                     }
-                }
-                }
                 }
             }
 
@@ -1588,7 +1575,7 @@ Item {
                         // decoder); "" until the background run maps it, in
                         // which case the icon fallback below holds the tile.
                         readonly property string tileThumb: root.thumbFor(tile.modelData)
-                            readonly property bool thumbSettled: (tile.modelData !== undefined && root.isVideoFile(tile.modelData)) ? (tile.previewing ? tileVideo.ready : (tile.tileThumb === "" || tileImg.status === Image.Ready || tileImg.status === Image.Error)) : (tileImg.status === Image.Ready || tileImg.status === Image.Error)
+                        readonly property bool thumbSettled: (tile.modelData !== undefined && root.isVideoFile(tile.modelData)) ? (tile.previewing ? tileVideo.ready : (tile.tileThumb === "" || tileImg.status === Image.Ready || tileImg.status === Image.Error)) : (tileImg.status === Image.Ready || tileImg.status === Image.Error)
                         // Workspace number badges: which workspace(s)
                         // currently use this wallpaper (top-right).
                         // Shared by the still preview and the live
@@ -1650,31 +1637,31 @@ Item {
                                     root.noteLocalAspect(tile.modelData, tileImg.implicitImageWidth / tileImg.implicitImageHeight);
                             }
                         }
-                            // Live video preview (MP4/WebM): shared AppVideo,
-                            // muted + looping, cropped like the static tiles.
-                            // Plays ON HOVER ONLY: a video folder opens ~25
-                            // tiles in-window and each decoder eats a full
-                            // file (103×15MB in grey/), so autoplaying all
-                            // of them freezes the panel. Non-hovered tiles
-                            // show the icon fallback below (same look as a
-                            // failed decode); empty source = zero decoder work.
-                            // No viewport gating (masonry positions are
-                            // layout-driven, not x-derived).
-                            readonly property bool previewing: tile.modelData !== undefined && root.isVideoFile(tile.modelData) && tileMa.containsMouse
-                            AppVideo {
-                                id: tileVideo
-                                anchors.fill: parent
-                                anchors.margins: 3
-                                visible: tile.previewing
-                                source: tile.previewing ? tile.modelData : ""
-                                active: tile.previewing
-                                muted: true
-                                fillMode: VideoOutput.PreserveAspectCrop
-                                badges: tile.badgeIds
-                                onReadyChanged: {
-                                    if (tileVideo.ready && tileVideo.videoRatio > 0)
-                                        root.noteLocalAspect(tile.modelData, tileVideo.videoRatio);
-                                }
+                        // Live video preview (MP4/WebM): shared AppVideo,
+                        // muted + looping, cropped like the static tiles.
+                        // Plays ON HOVER ONLY: a video folder opens ~25
+                        // tiles in-window and each decoder eats a full
+                        // file (103×15MB in grey/), so autoplaying all
+                        // of them freezes the panel. Non-hovered tiles
+                        // show the icon fallback below (same look as a
+                        // failed decode); empty source = zero decoder work.
+                        // No viewport gating (masonry positions are
+                        // layout-driven, not x-derived).
+                        readonly property bool previewing: tile.modelData !== undefined && root.isVideoFile(tile.modelData) && tileMa.containsMouse
+                        AppVideo {
+                            id: tileVideo
+                            anchors.fill: parent
+                            anchors.margins: 3
+                            visible: tile.previewing
+                            source: tile.previewing ? tile.modelData : ""
+                            active: tile.previewing
+                            muted: true
+                            fillMode: VideoOutput.PreserveAspectCrop
+                            badges: tile.badgeIds
+                            onReadyChanged: {
+                                if (tileVideo.ready && tileVideo.videoRatio > 0)
+                                    root.noteLocalAspect(tile.modelData, tileVideo.videoRatio);
+                            }
                             onErrorOccurred: message => {
                                 console.warn("[WallpaperSwitcher] video preview failed for " + tile.modelData + ": " + message);
                             }
@@ -1712,7 +1699,7 @@ Item {
                         AppTooltip {
                             visible: tileMa.containsMouse && !wallScroll.moving
                             delay: 400
-                                text: `Click to set as ${root.targetType} wallpaper.\nRight-click to delete.\n${(tile.modelData !== undefined && root.isAnimatedPreviewFile(tile.modelData)) ? "Hover to preview.\n" : ""}${tile.fileName}\nSize: ${root.formatBytes(root.getFileSize(tile.modelData ?? ""))}`
+                            text: `Click to set as ${root.targetType} wallpaper.\nRight-click to delete.\n${(tile.modelData !== undefined && root.isAnimatedPreviewFile(tile.modelData)) ? "Hover to preview.\n" : ""}${tile.fileName}\nSize: ${root.formatBytes(root.getFileSize(tile.modelData ?? ""))}`
                         }
 
                         MouseArea {

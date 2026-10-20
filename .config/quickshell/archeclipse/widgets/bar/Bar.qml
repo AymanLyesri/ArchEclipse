@@ -127,6 +127,13 @@ PanelWindow {
         Region {
             item: rightHot
         }
+        // Empty right-side hover zone (idle record-circle reveal): must
+        // enter the input mask or the full-height surface passes the
+        // pointer through and the HoverHandler never fires. The band is
+        // pill-height, so the surface stays click-through above/below it.
+        Region {
+            item: recHotZone
+        }
     }
 
     readonly property int barHeight: 28
@@ -987,6 +994,22 @@ PanelWindow {
             }
         }
 
+        // hover zone on the empty right side of the bar: hovering the dead
+        // area right of the main pill reveals the record circle in the right
+        // side pill. Suppressed while the right island panel is open — the
+        // cursor dwells at the edge to open that panel and must not pop it.
+        Item {
+            id: recHotZone
+            x: pill.x + pill.width
+            y: pill.y
+            width: parent.width - x
+            height: pill.height
+            HoverHandler {
+                id: recHover
+                enabled: !BarState.isOpenFor("right", root.monitorName)
+            }
+        }
+
         // ---- right side pill (media + recording) ----
         // Same contract as leftSidePill, chained right of the main pill; the
         // right island panel sits outermost after it. Left to right: the mini
@@ -1080,8 +1103,11 @@ PanelWindow {
                     height: rightSidePill.height
                     visible: recordingPiece.shown
                     readonly property real targetWidth: recLoader.item ? (recLoader.item.implicitWidth + Theme.islandPad * 2) : 190
+                    // recording on THIS monitor, or the idle circle revealed
+                    // by hovering the empty right zone
+                    readonly property bool recFlag: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(root.monitorName)
                     property bool shown: false
-                    property bool flag: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(root.monitorName)
+                    property bool flag: recHover.hovered || recFlag
                     onFlagChanged: recordingPiece.setShown(recordingPiece.flag)
                     Component.onCompleted: recordingPiece.setShown(recordingPiece.flag)
                     property real openT: 0
@@ -1120,6 +1146,10 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 active: recordingPiece.shown
                                 sourceComponent: recordingPage
+                                onLoaded: {
+                                    if (item && item["monitorName"] !== undefined)
+                                        item.monitorName = root.monitorName;
+                                }
                             }
                         }
                     }
