@@ -1102,7 +1102,7 @@ PanelWindow {
                     width: recWipeClip.width
                     height: rightSidePill.height
                     visible: recordingPiece.shown
-                    readonly property real targetWidth: recLoader.item ? (recLoader.item.implicitWidth + Theme.islandPad * 2) : 190
+                    readonly property real targetWidth: recLoader.item ? recLoader.item.implicitWidth : 190
                     // recording on THIS monitor, or the idle circle revealed
                     // by hovering the empty right zone
                     readonly property bool recFlag: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(root.monitorName)

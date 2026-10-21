@@ -23,8 +23,12 @@ Item {
 
     // Circle when idle, full pill once this monitor records; the animated
     // pillW feeds Bar.qml's targetWidth so the wipe clip tracks the morph.
-    property real pillW: recording ? 180 : Theme.sidePillHeight
-    Behavior on pillW { Anim { duration: Theme.anim.fastSpatial } }
+    property real pillW: recording ? 64 : Theme.sidePillHeight
+    Behavior on pillW {
+        Anim {
+            duration: Theme.anim.fastSpatial
+        }
+    }
     implicitWidth: pillW
     implicitHeight: clip.height
     width: implicitWidth
@@ -46,7 +50,11 @@ Item {
             width: root.pillW
             height: Theme.sidePillHeight
             radius: root.recording ? Theme.radius : height / 2
-            Behavior on radius { Anim { duration: Theme.anim.fastSpatial } }
+            Behavior on radius {
+                Anim {
+                    duration: Theme.anim.fastSpatial
+                }
+            }
             color: Theme.surface
 
             Row {
@@ -73,12 +81,6 @@ Item {
                             duration: Theme.anim.large
                         }
                     }
-                }
-                Text {
-                    text: "Recording"
-                    color: Theme.fg
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize
                 }
                 Text {
                     text: root.elapsed

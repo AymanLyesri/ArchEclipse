@@ -53,7 +53,7 @@ WS9 = 9
 WORKSPACE_SETTLE = 1.0
 WALLPAPER_SETTLE = 1.0
 STEP_SETTLE = 1.0
-IPC_SETTLE = 1.0
+IPC_SETTLE = 0.5
 RECORD_SETTLE = 1.0
 # Settings.qml watches the file and reloads after a short delay — the
 # reactive bindings (right-island widget order, waifu, booru) follow once
@@ -64,6 +64,11 @@ SETTINGS_SETTLE = 2.0
 LAYOUT_SWITCH_DWELL = 1.0
 # Window for in-flight shell writers to flush before the drift re-check.
 RESTORE_RECHECK = 4.0
+# Final mp4 pass goes through compress-video.py (never-bigger in-place).
+COMPRESS_AFTER_TAKE = True
+# The GIF is the README-sharable artifact (repo mp4 links don't render);
+# with dither=none defaults it lands near mp4 size. Off via --no-gif.
+GIF_AFTER_TAKE = False
 
 SHELL_API_BOORU = "danbooru"
 
@@ -80,11 +85,12 @@ WALLPAPERS = {
     "columbina": "~/.config/wallpapers/defaults/images_sfw/__columbina_genshin_impact_drawn_by_void_0__86cc14bd3da8a9578bff20e148c1e74a.jpg",
 }
 # Overview hero floats, from capture-readme.py's OVERVIEW_FLOATS (1920x1080).
-# cava has no desktop entry: it rides the launcher's fuzzy "Try ... in
-# terminal" row (foot running bash -c cava).
+# cava has no desktop entry: the launcher's `term` prefix mode runs it in
+# foot (foot running bash -c cava) — deterministic, unlike the fuzzy
+# "Try ... in terminal" fallback that vanishes once any entry matches.
 OVERVIEW_FLOATS = [
     dict(query="apps foot", row="foot", x=935, y=580, w=1091, h=469),
-    dict(query="cava", row="cava", x=1184, y=389, w=652, h=161),
+    dict(query="term cava", row="Run cava", x=1184, y=389, w=652, h=161),
 ]
 RIGHT_LAYOUTS = [
     (
@@ -101,14 +107,14 @@ RIGHT_LAYOUTS = [
     ),
 ]
 LEFT_TABS = [
-    "UserProfile",
+    # "UserProfile",
     "BooruViewer",
     "ChatBot",
-    "MangaViewer",
+    # "MangaViewer",
     "SettingsWidget",
     "CustomScripts",
     "KeyBinds",
-    "Donations",
+    # "Donations",
 ]
 CHAT_CONVERSATION = [
     ("user", "Hi! Can you create a Java hello world block for me?"),
@@ -490,7 +496,7 @@ def launcher_place_floats(snap, on_spawned):
                 'hl.dsp.window.float({window = "address:%s"})' % address,
             ]
         )
-        time.sleep(0.6)
+        time.sleep(0.2)
         run(
             [
                 "hyprctl",
@@ -499,7 +505,7 @@ def launcher_place_floats(snap, on_spawned):
                 % (address, spec["w"], spec["h"]),
             ]
         )
-        time.sleep(0.4)
+        time.sleep(0.2)
         run(
             [
                 "hyprctl",
@@ -637,15 +643,17 @@ def restore_settings(snap):
 
 def settings_drifted(snap, current):
     widgets = current.get("rightPanel", {}).get("widgets", [])
-    if (
-        snap.right_widgets is not None
-        and [w.get("name") for w in widgets] != [w.get("name") for w in snap.right_widgets]
-    ):
+    if snap.right_widgets is not None and [w.get("name") for w in widgets] != [
+        w.get("name") for w in snap.right_widgets
+    ]:
         return True
     waifu = current.get("waifuWidget", {}).get("current") or {}
     if snap.waifu is not None and waifu.get("id") != (snap.waifu or {}).get("id"):
         return True
-    if snap.left_monitors is not None and current.get("leftPanel", {}).get("monitors") != snap.left_monitors:
+    if (
+        snap.left_monitors is not None
+        and current.get("leftPanel", {}).get("monitors") != snap.left_monitors
+    ):
         return True
     return False
 
@@ -743,6 +751,39 @@ def capture_run(args):
     finally:
         restore_state(snap, args.keep)
     collect_recording(snap.recordings, OUTPUT)
+    if COMPRESS_AFTER_TAKE and not args.raw:
+        # The take is secured: a compression failure must not fail it.
+        # In-place + the compressor's never-bigger guard.
+        try:
+            run(
+                [
+                    sys.executable,
+                    Path(__file__).parent / "compress-video.py",
+                    "--silent",
+                    str(OUTPUT),
+                ],
+                timeout=900,
+            )
+            print(f"Compressed: {OUTPUT.stat().st_size/1e6:.1f} MB", flush=True)
+        except BaseException as e:
+            print(f"WARNING: compression skipped: {e}", flush=True)
+    if (GIF_AFTER_TAKE or args.gif) and not args.no_gif:
+        try:
+            run(
+                [
+                    sys.executable,
+                    Path(__file__).parent / "video-to-gif.py",
+                    "--silent",
+                    str(OUTPUT),
+                ],
+                timeout=900,
+            )
+            print(
+                f"GIF: {OUTPUT.with_suffix('.gif').stat().st_size/1e6:.1f} MB",
+                flush=True,
+            )
+        except BaseException as e:
+            print("WARNING: GIF skipped: " + str(e), flush=True)
 
 
 def parse_cli(argv):
@@ -759,6 +800,15 @@ def parse_cli(argv):
     )
     ap.add_argument(
         "--keep", action="store_true", help="restore nothing; keep demo state"
+    )
+    ap.add_argument(
+        "--raw", action="store_true", help="skip the final mp4 compression pass"
+    )
+    ap.add_argument(
+        "--no-gif", action="store_true", help="skip the final GIF conversion pass"
+    )
+    ap.add_argument(
+        "--gif", action="store_true", help="also produce overview.gif alongside the mp4"
     )
     return ap.parse_args(argv)
 

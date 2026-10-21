@@ -47,6 +47,7 @@ Singleton {
         property var actionDefs: []     // [{identifier, text}] plain snapshot
         property double stamp: 0
         property int life: 4000         // ms, 0 = never auto-hide
+        property double progress: -1    // 0..1 live progress bar; -1 = none
         property bool popup: false
         property Timer timer: null
     }
@@ -71,6 +72,38 @@ Singleton {
 
     property var toasts: []             // newest-first Toast wrappers (reassigned on every mutation)
     property var popupToasts: root.toasts.filter(t => t.popup)
+
+    // In-process progress toasts (compile jobs etc.): snapshot wrappers are
+    // plain properties, so the caller mutates .progress/.body live and the
+    // popup card's bar re-binds. daemon-independent: no history, no countdown,
+    // ids stay negative so they never collide with daemon notification ids.
+    property int _nextProgressId: -1
+
+    // Returns the wrapper; caller drives .progress (0..1) and .body, then
+    // calls closeProgress(). progress < 0 means regular toast everywhere.
+    function progressToast(summary) {
+        const w = toastComp.createObject(root, {
+            notificationId: root._nextProgressId--,
+            summary: summary,
+            body: "1%",
+            progress: 0,
+            hideBody: false,
+            life: 0,
+            popup: true,
+            monitorName: Registry.monitorName || "",
+            stamp: Date.now() / 1000
+        });
+        root.toasts = [w].concat(root.toasts);
+        return w;
+    }
+
+    // Fully remove an in-process toast (unlike hideToast, no wrapper leak).
+    // Identity check against toasts — never dereference a swiped-away wrapper.
+    function closeProgress(w) {
+        if (!root.toasts.includes(w)) return;
+        root.toasts = root.toasts.filter(t => t !== w);
+        root.destroyToast(w);
+    }
 
     // ---- the daemon ----
     NotificationServer {

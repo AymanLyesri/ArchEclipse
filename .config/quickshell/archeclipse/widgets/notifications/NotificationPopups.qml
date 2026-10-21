@@ -244,12 +244,16 @@ Item {
                 HoverHandler {
                     onHoveredChanged: {
                         card.isHovered = hovered;
-                        if (card.toastId < 0)
-                            return;
-                        if (hovered)
-                            Notifications.holdToast(card.toastId);
-                        else
-                            Notifications.releaseToast(card.toastId);
+                        if (hovered) {
+                            if (card.toastId >= 0)
+                                Notifications.holdToast(card.toastId);
+                        } else if (!card.toast || card.toast.progress < 0) {
+                            // Progress toasts persist through unhover — the
+                            // countdown they replace doesn't exist; they only
+                            // leave via completion, swipe or right-click.
+                            if (card.toastId >= 0)
+                                Notifications.releaseToast(card.toastId);
+                        }
                     }
                 }
 
@@ -336,17 +340,18 @@ Item {
                     }
                 }
 
-                // Timeout bar: a single animation (end4 ReloadPopup pattern).
-                // Declaratively paused on hover; the service countdown is held
-                // alongside, so visuals and expiry can never drift. Firing is
-                // idempotent with the service timer.
+                // Timeout bar: one animation (end4 ReloadPopup pattern),
+                // paused declaratively on hover — bar and expiry can't drift.
+                // A progress toast (progress >= 0, life = 0) instead GROWS
+                // with the job: the service mutates toast.progress, and the
+                // xScale binding re-evaluates per tick (Behavior smooths it).
                 Rectangle {
                     id: barTrack
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     height: 2
-                    visible: card.toast ? card.toast.life > 0 : false
+                    visible: card.toast ? (card.toast.life > 0 || card.toast.progress >= 0) : false
                     color: Qt.alpha(Theme.fg, 0.08)
                     Rectangle {
                         id: barFill
@@ -359,7 +364,12 @@ Item {
                         transform: Scale {
                             id: barScale
                             origin.x: 0
-                            xScale: 1
+                            xScale: card.toast && card.toast.progress >= 0 ? Math.max(0.015, card.toast.progress) : 1
+                            Behavior on xScale {
+                                Anim {
+                                    duration: 180
+                                }
+                            }
                         }
                         PropertyAnimation {
                             id: barAnim

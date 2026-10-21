@@ -168,16 +168,28 @@ Rectangle {
             Launcher.runQuery("");
         }
     }
-    Component.onCompleted: applyPendingOrDefault()
+    // Search-open transition tracker: applyPendingOrDefault with an empty
+    // pendingQuery pushes the default recents list — correct only when the
+    // island actually OPENS. Any other panelStatesByMonitor mutation must
+    // not widen it: ScreenRecorder's polled isRecording flips `recording`
+    // ~2s after the IPC, and (left/right/pulse changes) while a search is
+    // live would clobber the applied preset back to defaults.
+    property bool _searchOpen: false
+    Component.onCompleted: {
+        root._searchOpen = BarState.isOpenFor("search", root.monitorName);
+        applyPendingOrDefault();
+    }
 
     // keyboard nav comes from SearchIsland signals; reset state on close
     Connections {
         target: BarState
         function onPanelStatesByMonitorChanged() {
-            if (BarState.isOpenFor("search", root.monitorName)) {
+            const open = BarState.isOpenFor("search", root.monitorName);
+            if (open && !root._searchOpen) {
                 Launcher.lastQuery = "";
                 root.applyPendingOrDefault();
             }
+            root._searchOpen = open;
         }
     }
 }

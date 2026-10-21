@@ -11,66 +11,17 @@ import Quickshell.Io
 //                 updatedAt}          (every 5s, first sample after 300ms)
 //   BW  [...] -> [upBytes/s, downBytes/s, upBytesToday, downBytesToday]
 //                                        (every 3s, first sample after one interval)
-// The binary is built from scripts/sysmonitor.rs with rustc (single file,
-// zero deps — no cargo manifest/target weight) into
-// ~/.cache/quickshell/binaries/ and recompiled ONLY when the source is
-// newer (gated, not every reload like the old gcc-to-/tmp flow).
+// The binary is built by the AutoCompiling singleton from scripts/sysmonitor.rs.
 QtObject {
     id: root
 
     property var systemResources: null
     property var bandwidth: [0, 0, 0, 0]
 
-    property string binDir: `${Quickshell.env("HOME")}/.cache/quickshell/binaries`
-    property string srcPath: `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/scripts/sysmonitor.rs`
-    property string binPath: root.binDir + "/sysmonitor"
+    property string binPath: ""
 
     property var loopProcObj: null
     property int resourceConsumers: 0
-    property bool binariesReady: false
-
-    // Gated compile: mkdir -p first (fresh $HOME without the dir fails
-    // otherwise), then skip when the binary is newer than the source.
-    // rustc missing / compile error exits nonzero -> retry path below.
-    property Process compileProc: Process {
-        command: [
-            "bash", "-c",
-            "mkdir -p " + root.binDir
-            + ' && if [ "' + root.binPath + '" -nt "' + root.srcPath + '" ]; then echo "sysmonitor up to date, skipping compile";'
-            + ' else rustc --edition=2021 -O -o "' + root.binPath + '" "' + root.srcPath + '"; fi'
-        ]
-        stdout: SplitParser {
-            splitMarker: "\n"
-            onRead: data => console.log("[SysInfo] compile: " + data)
-        }
-        stderr: SplitParser {
-            splitMarker: "\n"
-            onRead: data => console.warn("[SysInfo] compile stderr: " + data)
-        }
-        onExited: (exitCode, exitStatus) => {
-            if (exitCode === 0) {
-                console.log("[SysInfo] sysmonitor binary ready");
-                root.binariesReady = true;
-                retryTimer.stop();
-                startLoop();
-            } else {
-                console.warn("[SysInfo] compilation failed, exitCode=" + exitCode + " — retrying");
-                // Retry after a delay (handles source missing, rustc missing, etc.)
-                if (!retryTimer.running)
-                    retryTimer.start();
-            }
-        }
-    }
-
-    property Timer retryTimer: Timer {
-        interval: 10000
-        repeat: true
-        triggeredOnStart: false
-        onTriggered: {
-            if (!compileProc.running)
-                compileProc.running = true;
-        }
-    }
 
     // Backoff restart for the loop: an immediate `running = true` on exit
     // spin-loops at 100% CPU when the binary is missing/crashing (e.g.
@@ -80,7 +31,7 @@ QtObject {
         interval: 2000
         repeat: false
         onTriggered: {
-            if (root.binariesReady && root.loopProcObj && !root.loopProcObj.running)
+            if (root.loopProcObj && !root.loopProcObj.running)
                 root.loopProcObj.running = true;
         }
     }
@@ -131,7 +82,7 @@ QtObject {
     // lifecycle gate (the loop idles at ~0% CPU between samples anyway).
     function acquireResources() {
         root.resourceConsumers++;
-        if (root.binariesReady && !root.loopProcObj)
+        if (root.binPath && !root.loopProcObj)
             root.startLoop();
     }
 
@@ -140,6 +91,12 @@ QtObject {
     }
 
     Component.onCompleted: {
-        compileProc.running = true;
+        AutoCompiling.build(
+            `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/scripts/sysmonitor.rs`,
+            "sysmonitor",
+            p => {
+                root.binPath = p;
+                startLoop();
+            });
     }
 }

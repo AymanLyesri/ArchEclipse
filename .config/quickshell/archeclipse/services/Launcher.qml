@@ -444,6 +444,20 @@ QtObject {
         return rows;
     }
 
+    // ---- term <command>: run a shell command in a new foot ----
+    // Deterministic twin of the fuzzy "Try … in terminal" fallback row
+    // (that row only exists when no desktop entry matches). The whole
+    // argument text is the command, so multi-word commands work.
+    function termResults(cmd) {
+        const c = (cmd || "").trim();
+        if (!c)
+            return [mkResult("Usage: term <command>", "\u{F15BB}", "e.g. term cava", null)];
+        return [mkResult(`Run ${c} in terminal`, "\u{F15BB}", "Run as shell command", () => {
+            Quickshell.execDetached(["foot", "bash", "-c", c]);
+            touchHistory(c);
+        })];
+    }
+
     // ---- custom commands ----
     function customCommandsList() {
         return [mkResult("Light Theme", "\u{F1042}", "Switch to light theme", () => Quickshell.execDetached(["coloreclipse", "switch", "light"])), mkResult("Dark Theme", "\u{F1046}", "Switch to dark theme", () => Quickshell.execDetached(["coloreclipse", "switch", "dark"])), mkResult("System Sleep", "\u{F1046}", "Suspend system", () => Quickshell.execDetached(["bash", "-c", `qs -p ${Quickshell.env("HOME")}/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend`])), mkResult("System Restart", "\u{F1781}", "Reboot system", () => Quickshell.execDetached(["reboot"])), mkResult("System Shutdown", "\u{F1741}", "Power off system", () => Quickshell.execDetached(["shutdown", "now"]))];
@@ -463,7 +477,7 @@ QtObject {
             r.keepOpen = true;
             return r;
         }
-        return [mkHeader("Commands"), nav(">quickapps", ">quickapps", "favorite apps - e.g. >quickapps term"), nav(">recent", ">recent", "recently launched apps - e.g. >recent fire"), nav(">commands", ">commands", "system commands - e.g. >commands shut"), nav("cb ...", "cb ", "clipboard history (text/html/image)"), nav("note ...", "note ", "add/list/edit/remove notes"), nav("apps ...", "apps", "list all installed applications"), nav("emoji ...", "emoji ", "search emojis"), nav("app --arg ...", "firefox --private", "open app with argument - e.g. firefox --private"), nav("hello > es", "hello > es", "translate into (en,fr,es,de,pt,ru,ar…)"), nav("example.com", "example.com", "open link (… .com or https://…)"), nav("2+2", "2+2", "arithmetics (../*/+-..)"), nav("100c to f", "100c to f", "unit conversion (temp/weight/length/volume/speed/digital)")];
+        return [mkHeader("Commands"), nav(">quickapps", ">quickapps", "favorite apps - e.g. >quickapps term"), nav(">recent", ">recent", "recently launched apps - e.g. >recent fire"), nav(">commands", ">commands", "system commands - e.g. >commands shut"), nav("cb ...", "cb ", "clipboard history (text/html/image)"), nav("note ...", "note ", "add/list/edit/remove notes"), nav("apps ...", "apps", "list all installed applications"), nav("emoji ...", "emoji ", "search emojis"), nav("term ...", "term ", "run a command in the terminal"), nav("app --arg ...", "firefox --private", "open app with argument - e.g. firefox --private"), nav("hello > es", "hello > es", "translate into (en,fr,es,de,pt,ru,ar…)"), nav("example.com", "example.com", "open link (… .com or https://…)"), nav("2+2", "2+2", "arithmetics (../*/+-..)"), nav("100c to f", "100c to f", "unit conversion (temp/weight/length/volume/speed/digital)")];
     }
     function filterRows(rows, needle) {
         const q = (needle || "").toLowerCase().trim();
@@ -875,6 +889,10 @@ QtObject {
         }
         if (t.startsWith("note ")) {
             setResults(noteResults(t.slice(5)));
+            return;
+        }
+        if (t.startsWith("term ")) {
+            setResults(termResults(t.slice(5)));
             return;
         }
         if (t.startsWith("apps")) {
