@@ -30,7 +30,7 @@ Item {
     property string monitorName: ""
 
     property int count: 10
-    property real barHeight: 4
+    property real barHeight: 3
     property real iconSize: 11
     property real btnSpacing: 4
     // Horizontal inset of the strip Row within the widget: a little air
@@ -65,7 +65,7 @@ Item {
     // Strip position of a normal slot: 1-5 are indices 0-4, then the
     // narrow special slot takes index 5, then 6-10 follow as 6-10.
     function slotIndex(wid) {
-        return wid <= 5 ? wid - 1 : wid
+        return wid <= 5 ? wid - 1 : wid;
     }
     // Index of the button the wave radiates from. A hovered button takes
     // priority (the wave peaks where the mouse is, tracked by the slots'
@@ -75,10 +75,10 @@ Item {
     property int hoverAnchor: -1
     readonly property int focusIndex: {
         if (root.hoverAnchor >= 0)
-            return root.hoverAnchor
+            return root.hoverAnchor;
         if (root.specialFocusedHere)
-            return 5
-        return Math.max(0, Math.min(root.count, root.slotIndex(root.focusedId)))
+            return 5;
+        return Math.max(0, Math.min(root.count, root.slotIndex(root.focusedId)));
     }
     // Full height of a button's content (icon holder + gap + bar).
     readonly property real contentMin: root.iconSize + root.iconSpacing + root.barHeight
@@ -135,7 +135,7 @@ Item {
     // is invisible rather than just short, and so the icon fades with its own
     // delayed collapse instead of popping out when the strip starts closing.
     function revealProgress(reveal, target) {
-        return Math.max(0, Math.min(1, (reveal - root.hitHeight) / Math.max(1, target - root.hitHeight)))
+        return Math.max(0, Math.min(1, (reveal - root.hitHeight) / Math.max(1, target - root.hitHeight)));
     }
 
     // --- new-client blink: 3 blinks on unfocused workspaces ---
@@ -292,8 +292,7 @@ Item {
         const active = root.localMonitor?.activeWorkspace;
         if (active)
             return active;
-        return Hyprland.focusedMonitor?.name === root.monitorName
-            ? Hyprland.focusedWorkspace : null;
+        return Hyprland.focusedMonitor?.name === root.monitorName ? Hyprland.focusedWorkspace : null;
     }
     readonly property int focusedId: root.localWorkspace?.id ?? 1
     onFocusedIdChanged: {
@@ -340,13 +339,11 @@ Item {
     readonly property var specialTops: {
         Hyprland.toplevels.values;
         Hyprland.workspaces.values;
-        return Hyprland.toplevels.values.filter(t =>
-            t.monitor?.name === root.monitorName && ((t.workspace?.name ?? "") + "").startsWith("special"));
+        return Hyprland.toplevels.values.filter(t => t.monitor?.name === root.monitorName && ((t.workspace?.name ?? "") + "").startsWith("special"));
     }
     readonly property var specialWs: {
         Hyprland.workspaces.values;
-        const found = Hyprland.workspaces.values.find(w =>
-            w.monitor?.name === root.monitorName && ((w.name ?? "") + "").startsWith("special"));
+        const found = Hyprland.workspaces.values.find(w => w.monitor?.name === root.monitorName && ((w.name ?? "") + "").startsWith("special"));
         return found ?? null;
     }
     readonly property bool specialOccupied: root.specialTops.length > 0
@@ -355,8 +352,7 @@ Item {
     // toplevel fallbacks also stay monitor-scoped when the special workspace
     // object is absent while empty.
     readonly property bool specialFocusedHere: ((root.localWorkspace?.name ?? "") + "").startsWith("special")
-    readonly property bool specialHasFocus: Hyprland.activeToplevel?.monitor?.name === root.monitorName
-        && ((Hyprland.activeToplevel?.workspace?.name ?? "") + "").startsWith("special")
+    readonly property bool specialHasFocus: Hyprland.activeToplevel?.monitor?.name === root.monitorName && ((Hyprland.activeToplevel?.workspace?.name ?? "") + "").startsWith("special")
     readonly property bool specialOpen: root.specialActive || root.specialFocusedHere || root.specialHasFocus
     onSpecialOpenChanged: {
         // Special toggling never peeks the strip wave; the special tab
@@ -475,50 +471,50 @@ Item {
                     anchors.bottom: parent.bottom
                     spacing: root.iconSpacing
 
-                // icon holder — the reveal box clips it while the wave runs.
-                // An alerting button shows its icon even with the strip
-                // collapsed (independent new-client hang): the blink tick
-                // in the text opacity below drives the flicker.
-                Item {
-                    width: slot.width
-                    height: (root.showIcons || slot.alerting) ? root.iconSize : 0
+                    // icon holder — the reveal box clips it while the wave runs.
+                    // An alerting button shows its icon even with the strip
+                    // collapsed (independent new-client hang): the blink tick
+                    // in the text opacity below drives the flicker.
+                    Item {
+                        width: slot.width
+                        height: (root.showIcons || slot.alerting) ? root.iconSize : 0
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: slot.iconText
+                        Text {
+                            anchors.centerIn: parent
+                            text: slot.iconText
+                            color: slot.alerting ? Theme.accent : slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
+                            opacity: slot.revealT * (slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : ((slot.focused || slot.occupied) ? 1.0 : 0.35))
+                            font.family: Theme.fontFamily
+                            font.pixelSize: root.iconSize
+                        }
+                    }
+
+                    Rectangle {
+                        id: bar
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: slot.width
+                        height: root.barHeight
+                        radius: root.barHeight / 2
                         color: slot.alerting ? Theme.accent : slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
-                        opacity: slot.revealT * (slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : ((slot.focused || slot.occupied) ? 1.0 : 0.35))
-                        font.family: Theme.fontFamily
-                        font.pixelSize: root.iconSize
-                    }
-                }
+                        opacity: slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : (slot.focused || slot.occupied) ? 1.0 : 0.35
 
-                Rectangle {
-                    id: bar
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: slot.width
-                    height: root.barHeight
-                    radius: root.barHeight / 2
-                    color: slot.alerting ? Theme.accent : slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
-                    opacity: slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : (slot.focused || slot.occupied) ? 1.0 : 0.35
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Theme.anim.defaultEffects
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.anim.defaultEffects
+                            }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Theme.anim.defaultEffects
+                            }
+                        }
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.anim.small
+                                easing.type: Easing.OutCubic
+                            }
                         }
                     }
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Theme.anim.defaultEffects
-                        }
-                    }
-                    Behavior on width {
-                        NumberAnimation {
-                            duration: Theme.anim.small
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                }
                 }
             }
 
@@ -600,9 +596,7 @@ Item {
             // reason to unfold (hover / numbered-workspace switch).
             // Animated per button: rises to its own target on reveal, back to the
             // collapsed stop on hide.
-            property real reveal: specialSlot.open
-                ? specialSlot.targetH
-                : ((specialSlot.ring <= root.waveIdx) ? specialSlot.targetH : root.hitHeight)
+            property real reveal: specialSlot.open ? specialSlot.targetH : ((specialSlot.ring <= root.waveIdx) ? specialSlot.targetH : root.hitHeight)
             Behavior on reveal {
                 NumberAnimation {
                     duration: 250
@@ -661,44 +655,44 @@ Item {
                     anchors.bottom: parent.bottom
                     spacing: root.iconSpacing
 
-                Item {
-                    width: specialSlot.width
-                    height: (root.showIcons || root.specialOpen) ? root.iconSize + 2 : 0
+                    Item {
+                        width: specialSlot.width
+                        height: (root.showIcons || root.specialOpen) ? root.iconSize + 2 : 0
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: root.specialIconText
+                        Text {
+                            anchors.centerIn: parent
+                            text: root.specialIconText
+                            color: Theme.accent
+                            opacity: specialSlot.revealT * (root.specialOpen ? 1.0 : root.specialOccupied ? 0.9 : 0.55)
+                            font.family: Theme.fontFamily
+                            font.pixelSize: root.iconSize
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: specialSlot.width
+                        // Slightly taller bar + accent border so it pops
+                        // against the grey normal slots.
+                        height: root.barHeight
+                        radius: (root.barHeight + 1) / 2
                         color: Theme.accent
-                        opacity: specialSlot.revealT * (root.specialOpen ? 1.0 : root.specialOccupied ? 0.9 : 0.55)
-                        font.family: Theme.fontFamily
-                        font.pixelSize: root.iconSize
-                    }
-                }
+                        opacity: root.specialOpen ? 1.0 : root.specialOccupied ? 0.8 : 0.45
+                        border.color: Theme.accent
+                        border.width: root.specialOpen ? 1 : 0
 
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: specialSlot.width
-                    // Slightly taller bar + accent border so it pops
-                    // against the grey normal slots.
-                    height: root.barHeight + 1
-                    radius: (root.barHeight + 1) / 2
-                    color: Theme.accent
-                    opacity: root.specialOpen ? 1.0 : root.specialOccupied ? 0.8 : 0.45
-                    border.color: Theme.accent
-                    border.width: root.specialOpen ? 1 : 0
-
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Theme.anim.defaultEffects
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Theme.anim.defaultEffects
+                            }
+                        }
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.anim.small
+                                easing.type: Easing.OutCubic
+                            }
                         }
                     }
-                    Behavior on width {
-                        NumberAnimation {
-                            duration: Theme.anim.small
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                }
                 }
             }
 

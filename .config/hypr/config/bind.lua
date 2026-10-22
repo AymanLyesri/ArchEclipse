@@ -94,13 +94,13 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --now --monit
 --- screenshot area
 hl.bind(mainMod .. " + CTRL + SHIFT + S", hl.dsp.exec_cmd(screenshot .. " --area --monitor \"" .. monitor .. "\""))
 --- screen record workspace
-hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord now \"" .. monitor .. "\""))
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(screenrecord .. " toggle --monitor \"" .. monitor .. "\""))
 --- screen record area
-hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord area \"" .. monitor .. "\""))
+hl.bind(mainMod .. " + CTRL + SHIFT + R", hl.dsp.exec_cmd(screenrecord .. " toggle --area --monitor \"" .. monitor .. "\""))
 --- screenshot all monitors (per-monitor files)
 hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd(screenshot .. " --now --all"))
 --- record all monitors (spawns one recorder per monitor)
-hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd(qsIpc .. "screenrecord all \"" .. monitor .. "\""))
+hl.bind(mainMod .. " + ALT + R", hl.dsp.exec_cmd(screenrecord .. " toggle --all"))
 
 -- Special Workspace Keybinds
 --- move to special workspace

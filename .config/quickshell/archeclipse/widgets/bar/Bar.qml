@@ -207,13 +207,29 @@ PanelWindow {
         if (BarState.isOpenFor("right", root.monitorName))
             return root.sideCaptureGeometry(rightPanelPill, "right");
         const p = pill.mapToItem(root.contentItem, 0, 0);
-        return {visible: root.visible, displayed: stack.current,
-            rect: {x: p.x, y: p.y, w: pill.width, h: pill.height}};
+        return {
+            visible: root.visible,
+            displayed: stack.current,
+            rect: {
+                x: p.x,
+                y: p.y,
+                w: pill.width,
+                h: pill.height
+            }
+        };
     }
     function sideCaptureGeometry(pillItem, name) {
         const g = pillItem.mapToItem(root.contentItem, 0, 0);
-        return {visible: root.visible, displayed: name,
-            rect: {x: g.x, y: g.y, w: pillItem.width, h: pillItem.height}};
+        return {
+            visible: root.visible,
+            displayed: name,
+            rect: {
+                x: g.x,
+                y: g.y,
+                w: pillItem.width,
+                h: pillItem.height
+            }
+        };
     }
     Component.onDestruction: Registry.unregister("capture-bar-" + root.monitorName)
     Component.onCompleted: {
@@ -450,257 +466,258 @@ PanelWindow {
                 height: pill.height + root.waveHang
                 clip: true
 
-            // ---- state stack (one beat) ----
-            // Content swaps the same frame the state resolves; the pill
-            // width glides under it while the island unfolds — background
-            // and content animate as one unit, like the side pills.
-            Item {
-                id: stack
-                // Per-state outer inset: default rests tighter (4), all
-                // other islands use Theme.islandPad (8). Pill width/height
-                // above derive from this so the surround stays exact.
-                // volume/brightness/player/recording render DefaultBar in
-                // the main stack (their UI lives in the OSD/media
-                // floaters and the right side pill), so they keep the
-                // default inset —
-                // otherwise opening the OSD flips effPad 4->8 and the
-                // bar visibly grows.
-                property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording" || stack.current === "network"
-                property int effPad: stack.showsDefault ? 4 : Theme.islandPad
-                // Docked to the bar edge (top for a top bar, bottom for a
-                // bottom bar) — never centered: centering lets content drift
-                // vertically while the pill height glides. Edge margin is
-                // effPad so the settled surround matches the pill
-                // sizing (stack + effPad * 2) exactly.
-                anchors.top: Settings.barOrientation ? parent.top : undefined
-                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.topMargin: stack.effPad
-                anchors.bottomMargin: stack.effPad
+                // ---- state stack (one beat) ----
+                // Content swaps the same frame the state resolves; the pill
+                // width glides under it while the island unfolds — background
+                // and content animate as one unit, like the side pills.
+                Item {
+                    id: stack
+                    // Per-state outer inset: default rests tighter (4), all
+                    // other islands use Theme.islandPad (8). Pill width/height
+                    // above derive from this so the surround stays exact.
+                    // volume/brightness/player/recording render DefaultBar in
+                    // the main stack (their UI lives in the OSD/media
+                    // floaters and the right side pill), so they keep the
+                    // default inset —
+                    // otherwise opening the OSD flips effPad 4->8 and the
+                    // bar visibly grows.
+                    property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording" || stack.current === "network"
+                    property int effPad: stack.showsDefault ? 4 : Theme.islandPad
+                    // Docked to the bar edge (top for a top bar, bottom for a
+                    // bottom bar) — never centered: centering lets content drift
+                    // vertically while the pill height glides. Edge margin is
+                    // effPad so the settled surround matches the pill
+                    // sizing (stack + effPad * 2) exactly.
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.topMargin: stack.effPad
+                    anchors.bottomMargin: stack.effPad
 
-                // Size from implicit* only — never .height/.width/childrenRect.
-                // Those depend on stack's assigned size and create binding loops.
-                property real activeWidth: {
-                    if (stack.current === "wallpaper" && wallpaperCacheLoader.item)
-                        return wallpaperCacheLoader.item.implicitWidth || 0;
-                    var it = currentPageLoader.item;
-                    return it ? (it.implicitWidth || 0) : 0;
-                }
-
-                onActiveWidthChanged: {
-                    if (activeWidth > 0) {
-                        stack.width = activeWidth;
+                    // Size from implicit* only — never .height/.width/childrenRect.
+                    // Those depend on stack's assigned size and create binding loops.
+                    property real activeWidth: {
+                        if (stack.current === "wallpaper" && wallpaperCacheLoader.item)
+                            return wallpaperCacheLoader.item.implicitWidth || 0;
+                        var it = currentPageLoader.item;
+                        return it ? (it.implicitWidth || 0) : 0;
                     }
-                }
 
-                property real activeHeight: {
-                    if (stack.current === "wallpaper" && wallpaperCacheLoader.item)
-                        return wallpaperCacheLoader.item.implicitHeight || 0;
-                    var hit = currentPageLoader.item;
-                    return hit ? (hit.implicitHeight || 0) : 0;
-                }
-
-                onActiveHeightChanged: {
-                    if (activeHeight > 0) {
-                        stack.height = activeHeight;
-                    }
-                }
-
-                // Latch: the heavy wallpaper island is created once (primed
-                // async at boot so the first open binds warm shared data)
-                // and then kept alive across closes — reopens only toggle
-                // visibility, so image decodes, aspect caches, scroll and
-                // tab state survive.
-                property bool wallpaperPrimed: true
-
-                // The state actually shown on this monitor.
-                // (A Connections-guarded variant was tried and removed: the
-                // binding updates before signal handlers run, so any
-                // s === displayed guard exits early forever and branch logic
-                // placed there silently never executes — root-caused via
-                // probe 2026-09-24. All swap logic lives in onCurrentChanged
-                // + bindings below.)
-                property string displayed: BarState.stateFor(root.monitorName)
-
-                // Requested by the default bar page while its inner content
-                // animates the pill's width (volume/brightness slider
-                // reveal). `rigidApplied` is what actually suspends the
-                // pill's glide, and only once the pill has converged on the
-                // target — suspending mid-glide would snap the edge instead
-                // of tracking it. Released on every state swap and when the
-                // page unloads, so an interrupted glide can't strand it.
-                property bool rigidWidth: false
-                property bool rigidApplied: false
-                function syncRigid() {
-                    if (!stack.rigidWidth) {
-                        stack.rigidApplied = false;
-                        return;
-                    }
-                    if (!stack.rigidApplied && Math.abs(pill.width - pill.targetWidth) <= 1)
-                        stack.rigidApplied = true;
-                }
-                onRigidWidthChanged: stack.syncRigid()
-
-                // The live item for a shown state (cached wallpaper via
-                // its Loader, transient islands via currentPageLoader).
-
-                property string current: stack.displayed
-                // Note: control resolves to controlPage; volume/brightness
-                // render in the bottom OSD pill (like player in the media
-                // pill) and recording in its side pill, so the main stack
-                // shows default content for those — no swap churn.
-                // (Recording maps to defaultPage for the same reason.)
-                onCurrentChanged: {
-                    // Leaving default (or any swap) mid-slider-glide: the old
-                    // page is about to be torn down, so the pill goes back to
-                    // easing for the swap itself.
-                    stack.rigidWidth = false;
-                    // Prime the wallpaper cache on first open; the Loader
-                    // stays active from then on (created once, kept alive).
-                    var firstLoad = false;
-                    if (current === "wallpaper" && !stack.wallpaperPrimed) {
-                        stack.wallpaperPrimed = true;
-                        firstLoad = true;
-                    }
-                    // Reopen unfold: the island always rests folded (expand 0)
-                    // — via the exit fold, or the silent reset below for
-                    // fold-skipping direct switches — so a single assignment
-                    // unfolds cleanly. (A 0-then-1 replay in the same tick
-                    // self-cancels the Behavior: it retargets before anything
-                    // renders and nothing moves. Verified via probe.)
-                    var wisl = current === "wallpaper" ? wallpaperCacheLoader.item : null;
-                    if (wisl && !firstLoad && wisl["expand"] !== undefined)
-                        wisl.expand = 1;
-                    // Fold-skipping switches (island -> island) hide the cached
-                    // island with expand still 1 — reset silently while hidden
-                    // so the next reopen unfolds from 0 with one assignment.
-                    if (current !== "wallpaper" && wallpaperCacheLoader.item && wallpaperCacheLoader.item["expand"] !== undefined)
-                        wallpaperCacheLoader.item.expand = 0;
-                }
-                readonly property string previous: ""
-
-                // Wallpaper lives here permanently (async-cached): created at
-                // boot in the background, then visibility-toggled so decodes,
-                // aspect caches and scroll survive closes. Async so the boot
-                // prime never janks the first frame; visible toggles the
-                // already-built subtree (no paint cost hidden).
-                Loader {
-                    id: wallpaperCacheLoader
-                    active: stack.wallpaperPrimed
-                    visible: stack.current === "wallpaper"
-                    asynchronous: true
-                    sourceComponent: wallpaperPage
-                    onLoaded: {
-                        if (item && item["monitorName"] !== undefined)
-                            item.monitorName = root.monitorName;
-                        // Boot prime builds hidden with expand 1 (island's
-                        // own onCompleted unfolds); fold silently while hidden
-                        // so the first open unfolds 0 -> 1 visibly.
-                        if (stack.current !== "wallpaper" && item && item["expand"] !== undefined)
-                            item.expand = 0;
-                    }
-                }
-
-                Loader {
-                    id: currentPageLoader
-                    // Handles the small transient states only — left/right
-                    // live in their own panels, recording in the right side pill,
-                    // wallpaper in the cached Loader above (show an empty
-                    // page here so the transient Loader never instantiates
-                    // and destroys it on open/close).
-                    sourceComponent: {
-                        switch (stack.current) {
-                        case "default":
-                            return defaultPage;
-                        case "volume":
-                            // Volume lives in the bottom OSD pill beside
-                            // the media pill — the main stack shows default
-                            // content so pulses never hijack the bar.
-                            return defaultPage;
-                        case "brightness":
-                            // Same as volume above.
-                            return defaultPage;
-                        case "recording":
-                            // Recording lives in the right side pill beside
-                            // the main pill — the main stack shows default
-                            // content so the bar is never hijacked.
-                            return defaultPage;
-                        case "player":
-                            // Player lives in the bottom media pill at the
-                            // opposite screen edge — the main stack shows
-                            // default content so the bar is never hijacked.
-                            return defaultPage;
-                        case "weather":
-                            return weatherPage;
-                        case "network":
-                            // Network lives in the left side pill beside the
-                            // main pill — the main stack shows default content
-                            // so the bar is never hijacked (same as player).
-                            return defaultPage;                        case "search":
-                            return searchPage;
-                        case "system":
-                            return systemPage;
-                        case "control":
-                            return controlPage;
-                        case "overview":
-                            return overviewPage;
-                        case "wallpaper":
-                            return emptyPage;
-                        default:
-                            return defaultPage;
+                    onActiveWidthChanged: {
+                        if (activeWidth > 0) {
+                            stack.width = activeWidth;
                         }
                     }
-                    // Probe pass-through for per-state bodies.
-                    onLoaded: {
-                        if (item && item["monitorName"] !== undefined)
-                            item.monitorName = root.monitorName;
-                        if (item && item["screenHeight"] !== undefined)
-                            item.screenHeight = root.screenHeight;
-                        // DefaultBar suspends the pill's width glide while its
-                        // sliders animate their own (see stack.rigidWidth).
-                        if (item && item["barStack"] !== undefined)
-                            item.barStack = stack;
-                    }
-                }
 
-                Component {
-                    id: defaultPage
-                    DefaultBar {
-                        monitorName: root.monitorName
+                    property real activeHeight: {
+                        if (stack.current === "wallpaper" && wallpaperCacheLoader.item)
+                            return wallpaperCacheLoader.item.implicitHeight || 0;
+                        var hit = currentPageLoader.item;
+                        return hit ? (hit.implicitHeight || 0) : 0;
+                    }
+
+                    onActiveHeightChanged: {
+                        if (activeHeight > 0) {
+                            stack.height = activeHeight;
+                        }
+                    }
+
+                    // Latch: the heavy wallpaper island is created once (primed
+                    // async at boot so the first open binds warm shared data)
+                    // and then kept alive across closes — reopens only toggle
+                    // visibility, so image decodes, aspect caches, scroll and
+                    // tab state survive.
+                    property bool wallpaperPrimed: true
+
+                    // The state actually shown on this monitor.
+                    // (A Connections-guarded variant was tried and removed: the
+                    // binding updates before signal handlers run, so any
+                    // s === displayed guard exits early forever and branch logic
+                    // placed there silently never executes — root-caused via
+                    // probe 2026-09-24. All swap logic lives in onCurrentChanged
+                    // + bindings below.)
+                    property string displayed: BarState.stateFor(root.monitorName)
+
+                    // Requested by the default bar page while its inner content
+                    // animates the pill's width (volume/brightness slider
+                    // reveal). `rigidApplied` is what actually suspends the
+                    // pill's glide, and only once the pill has converged on the
+                    // target — suspending mid-glide would snap the edge instead
+                    // of tracking it. Released on every state swap and when the
+                    // page unloads, so an interrupted glide can't strand it.
+                    property bool rigidWidth: false
+                    property bool rigidApplied: false
+                    function syncRigid() {
+                        if (!stack.rigidWidth) {
+                            stack.rigidApplied = false;
+                            return;
+                        }
+                        if (!stack.rigidApplied && Math.abs(pill.width - pill.targetWidth) <= 1)
+                            stack.rigidApplied = true;
+                    }
+                    onRigidWidthChanged: stack.syncRigid()
+
+                    // The live item for a shown state (cached wallpaper via
+                    // its Loader, transient islands via currentPageLoader).
+
+                    property string current: stack.displayed
+                    // Note: control resolves to controlPage; volume/brightness
+                    // render in the bottom OSD pill (like player in the media
+                    // pill) and recording in its side pill, so the main stack
+                    // shows default content for those — no swap churn.
+                    // (Recording maps to defaultPage for the same reason.)
+                    onCurrentChanged: {
+                        // Leaving default (or any swap) mid-slider-glide: the old
+                        // page is about to be torn down, so the pill goes back to
+                        // easing for the swap itself.
+                        stack.rigidWidth = false;
+                        // Prime the wallpaper cache on first open; the Loader
+                        // stays active from then on (created once, kept alive).
+                        var firstLoad = false;
+                        if (current === "wallpaper" && !stack.wallpaperPrimed) {
+                            stack.wallpaperPrimed = true;
+                            firstLoad = true;
+                        }
+                        // Reopen unfold: the island always rests folded (expand 0)
+                        // — via the exit fold, or the silent reset below for
+                        // fold-skipping direct switches — so a single assignment
+                        // unfolds cleanly. (A 0-then-1 replay in the same tick
+                        // self-cancels the Behavior: it retargets before anything
+                        // renders and nothing moves. Verified via probe.)
+                        var wisl = current === "wallpaper" ? wallpaperCacheLoader.item : null;
+                        if (wisl && !firstLoad && wisl["expand"] !== undefined)
+                            wisl.expand = 1;
+                        // Fold-skipping switches (island -> island) hide the cached
+                        // island with expand still 1 — reset silently while hidden
+                        // so the next reopen unfolds from 0 with one assignment.
+                        if (current !== "wallpaper" && wallpaperCacheLoader.item && wallpaperCacheLoader.item["expand"] !== undefined)
+                            wallpaperCacheLoader.item.expand = 0;
+                    }
+                    readonly property string previous: ""
+
+                    // Wallpaper lives here permanently (async-cached): created at
+                    // boot in the background, then visibility-toggled so decodes,
+                    // aspect caches and scroll survive closes. Async so the boot
+                    // prime never janks the first frame; visible toggles the
+                    // already-built subtree (no paint cost hidden).
+                    Loader {
+                        id: wallpaperCacheLoader
+                        active: stack.wallpaperPrimed
+                        visible: stack.current === "wallpaper"
+                        asynchronous: true
+                        sourceComponent: wallpaperPage
+                        onLoaded: {
+                            if (item && item["monitorName"] !== undefined)
+                                item.monitorName = root.monitorName;
+                            // Boot prime builds hidden with expand 1 (island's
+                            // own onCompleted unfolds); fold silently while hidden
+                            // so the first open unfolds 0 -> 1 visibly.
+                            if (stack.current !== "wallpaper" && item && item["expand"] !== undefined)
+                                item.expand = 0;
+                        }
+                    }
+
+                    Loader {
+                        id: currentPageLoader
+                        // Handles the small transient states only — left/right
+                        // live in their own panels, recording in the right side pill,
+                        // wallpaper in the cached Loader above (show an empty
+                        // page here so the transient Loader never instantiates
+                        // and destroys it on open/close).
+                        sourceComponent: {
+                            switch (stack.current) {
+                            case "default":
+                                return defaultPage;
+                            case "volume":
+                                // Volume lives in the bottom OSD pill beside
+                                // the media pill — the main stack shows default
+                                // content so pulses never hijack the bar.
+                                return defaultPage;
+                            case "brightness":
+                                // Same as volume above.
+                                return defaultPage;
+                            case "recording":
+                                // Recording lives in the right side pill beside
+                                // the main pill — the main stack shows default
+                                // content so the bar is never hijacked.
+                                return defaultPage;
+                            case "player":
+                                // Player lives in the bottom media pill at the
+                                // opposite screen edge — the main stack shows
+                                // default content so the bar is never hijacked.
+                                return defaultPage;
+                            case "weather":
+                                return weatherPage;
+                            case "network":
+                                // Network lives in the left side pill beside the
+                                // main pill — the main stack shows default content
+                                // so the bar is never hijacked (same as player).
+                                return defaultPage;
+                            case "search":
+                                return searchPage;
+                            case "system":
+                                return systemPage;
+                            case "control":
+                                return controlPage;
+                            case "overview":
+                                return overviewPage;
+                            case "wallpaper":
+                                return emptyPage;
+                            default:
+                                return defaultPage;
+                            }
+                        }
+                        // Probe pass-through for per-state bodies.
+                        onLoaded: {
+                            if (item && item["monitorName"] !== undefined)
+                                item.monitorName = root.monitorName;
+                            if (item && item["screenHeight"] !== undefined)
+                                item.screenHeight = root.screenHeight;
+                            // DefaultBar suspends the pill's width glide while its
+                            // sliders animate their own (see stack.rigidWidth).
+                            if (item && item["barStack"] !== undefined)
+                                item.barStack = stack;
+                        }
+                    }
+
+                    Component {
+                        id: defaultPage
+                        DefaultBar {
+                            monitorName: root.monitorName
+                        }
+                    }
+                    Component {
+                        id: weatherPage
+                        WeatherIsland {}
+                    }
+                    Component {
+                        id: searchPage
+                        SearchIsland {}
+                    }
+                    Component {
+                        id: systemPage
+                        SystemMonitorIsland {}
+                    }
+                    Component {
+                        id: controlPage
+                        ControlIsland {}
+                    }
+                    Component {
+                        id: overviewPage
+                        OverviewIsland {}
+                    }
+                    Component {
+                        id: wallpaperPage
+                        WallpaperIsland {
+                            monitorName: root.monitorName
+                            screen: root.screen
+                        }
+                    }
+                    Component {
+                        id: emptyPage
+                        Item {}
                     }
                 }
-                Component {
-                    id: weatherPage
-                    WeatherIsland {}
-                }
-                Component {
-                    id: searchPage
-                    SearchIsland {}
-                }
-                Component {
-                    id: systemPage
-                    SystemMonitorIsland {}
-                }
-                Component {
-                    id: controlPage
-                    ControlIsland {}
-                }
-                Component {
-                    id: overviewPage
-                    OverviewIsland {}
-                }
-                Component {
-                    id: wallpaperPage
-                    WallpaperIsland {
-                        monitorName: root.monitorName
-                        screen: root.screen
-                    }
-                }
-                Component {
-                    id: emptyPage
-                    Item {}
-                }
-            }
             } // pillClip
         }
 
@@ -913,17 +930,31 @@ PanelWindow {
             id: leftSidePill
             x: pill.x - width - Theme.sidePillMargin
             y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
-            height: root.barHeight
+            // grows (Behavior-free — the pill's own height Behavior drives it
+            // per-frame) when a side pill unfolds, so the click-mask Region
+            // tracks the expanded pill
+            height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + weatherButton.height)
             width: leftSideContents.implicitWidth
             visible: root.barVisible
             Row {
                 id: leftSideContents
-                anchors.centerIn: parent
+                anchors.horizontalCenter: parent.horizontalCenter
+                // pinned to the band edge so pill growth always extends away
+                // from the screen edge (down for top bars, up for bottom bars)
+                anchors.top: Settings.barOrientation ? parent.top : undefined
+                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 spacing: Theme.spacing
                 WeatherButton {
                     id: weatherButton
-                    anchors.verticalCenter: parent.verticalCenter
+                    // band-centered when compact (the inset keeps the pill's
+                    // compact block centered in the barHeight band); grows
+                    // off the band while the launcher island is open
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                    anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                    anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
                     monitorName: root.monitorName
+                    expanded: BarState.isOpenFor("search", root.monitorName)
                 }
 
                 // network pulse — horizontal wipe piece: it appears on
@@ -934,9 +965,10 @@ PanelWindow {
                 // leftward (left side pills wipe right -> left).
                 Item {
                     id: networkPiece
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                     width: netClip.width
-                    height: leftSidePill.height
+                    height: root.barHeight
                     visible: networkPiece.shown
                     readonly property real targetWidth: netLoader.item ? netLoader.item.implicitWidth : 140
                     property bool shown: false
@@ -1023,7 +1055,9 @@ PanelWindow {
             // Rigid chain right of the main pill (no Behavior).
             x: pill.x + pill.width + Theme.sidePillMargin
             y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
-            height: root.barHeight
+            // grows per-frame (Behavior-free — media's own height Behavior
+            // drives it) so the click-mask Region tracks the expanded pill
+            height: Math.max(root.barHeight, mediaPiece.height)
             width: rightSideContents.implicitWidth
             // Read the contents' OWN inputs, never a child's `visible`:
             // Qt Quick propagates `visible = false` into every descendant
@@ -1033,7 +1067,11 @@ PanelWindow {
             visible: root.barVisible && (mediaPiece.hasPlayable || recordingPiece.shown)
             Row {
                 id: rightSideContents
-                anchors.centerIn: parent
+                anchors.horizontalCenter: parent.horizontalCenter
+                // pinned to the band edge (see leftSidePill) so pill growth
+                // always extends away from the screen edge
+                anchors.top: Settings.barOrientation ? parent.top : undefined
+                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 spacing: Theme.spacing
 
                 // mini media status (app icon + play state + track title):
@@ -1043,9 +1081,11 @@ PanelWindow {
                 // so the Row reflows smoothly on both edges.
                 Item {
                     id: mediaPiece
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                     width: mediaWipe.width
-                    height: rightSidePill.height
+                    // covers the band and media's vertical growth
+                    height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + sideMedia.height)
                     readonly property bool hasPlayable: sideMedia.hasPlayable
                     property bool shown: false
                     property bool flag: sideMedia.hasPlayable
@@ -1084,8 +1124,15 @@ PanelWindow {
                             anchors.top: parent.top
                             MediaPill {
                                 id: sideMedia
-                                anchors.centerIn: parent
+                                // band-centered when compact, grows off the
+                                // band edge while the launcher island is open
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: Settings.barOrientation ? parent.top : undefined
+                                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                                anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                                anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
                                 monitorName: root.monitorName
+                                expanded: BarState.isOpenFor("search", root.monitorName)
                             }
                         }
                     }
@@ -1098,17 +1145,33 @@ PanelWindow {
                 // the animated width so nothing jumps.
                 Item {
                     id: recordingPiece
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                     width: recWipeClip.width
-                    height: rightSidePill.height
+                    height: root.barHeight
                     visible: recordingPiece.shown
                     readonly property real targetWidth: recLoader.item ? recLoader.item.implicitWidth : 190
                     // recording on THIS monitor, or the idle circle revealed
                     // by hovering the empty right zone
-                    readonly property bool recFlag: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(root.monitorName)
+                    // `starting` pins the piece open through the ~2s pgrep
+                    // lag after a start click — it must not fold away
+                    // before wf-recorder is actually up.
+                    readonly property bool recFlag: (ScreenRecorder.isRecording || ScreenRecorder.starting) && ScreenRecorder.targetMonitors.includes(root.monitorName)
                     property bool shown: false
                     property bool flag: recHover.hovered || recFlag
-                    onFlagChanged: recordingPiece.setShown(recordingPiece.flag)
+                    onFlagChanged: {
+                        if (recordingPiece.flag) {
+                            recCloseConfirm.stop();
+                            recordingPiece.setShown(true);
+                        } else {
+                            // probes: recHover flaps while the pointer sits
+                            // on the island (delivery churn, static zone) and
+                            // each fold's openT wipe re-churns the re-eval —
+                            // a self-sustain. Require the absence to persist
+                            // before folding so one-frame flips are swallowed.
+                            recCloseConfirm.restart();
+                        }
+                    }
                     Component.onCompleted: recordingPiece.setShown(recordingPiece.flag)
                     property real openT: 0
                     function setShown(open) {
@@ -1122,6 +1185,15 @@ PanelWindow {
                             openT = 0;
                             recCloseTimer.restart();
                         }
+                    }
+                    Timer {
+                        id: recCloseConfirm
+                        // island-standard 1s leave grace: only a genuinely
+                        // left pointer may fold the piece — any shorter hover
+                        // stutter is swallowed and never touches the wipe
+                        interval: 1000
+                        onTriggered: if (!recordingPiece.flag)
+                            recordingPiece.setShown(false)
                     }
                     Timer {
                         id: recCloseTimer
@@ -1154,10 +1226,91 @@ PanelWindow {
                         }
                     }
                 }
+
+                // screenshot piece — same wipe-piece mechanics as the
+                // recording piece, reveal parked on the empty right-zone
+                // hover only (no persistent state to pin). Folds after the
+                // island-standard 1s leave grace: hover-delivery flaps must
+                // never start a wipe (each wipe re-churns the re-eval —
+                // probe-proven self-sustain on the record piece).
+                Item {
+                    id: screenshotPiece
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                    width: shotWipeClip.width
+                    height: root.barHeight
+                    visible: screenshotPiece.shown
+                    readonly property real targetWidth: shotLoader.item ? shotLoader.item.implicitWidth : 190
+                    property bool shown: false
+                    property bool flag: recHover.hovered
+                    onFlagChanged: {
+                        if (screenshotPiece.flag) {
+                            shotCloseConfirm.stop();
+                            screenshotPiece.setShown(true);
+                        } else {
+                            // require the leave to persist (probe-proven
+                            // transient flap must not start a wipe)
+                            shotCloseConfirm.restart();
+                        }
+                    }
+                    property real openT: 0
+                    function setShown(open) {
+                        if (open) {
+                            shotCloseTimer.stop();
+                            shown = true;
+                            openT = 1;
+                        } else {
+                            if (!shown)
+                                return;
+                            openT = 0;
+                            shotCloseTimer.restart();
+                        }
+                    }
+                    Timer {
+                        id: shotCloseConfirm
+                        interval: 1000
+                        onTriggered: if (!screenshotPiece.flag)
+                            screenshotPiece.setShown(false)
+                    }
+                    Timer {
+                        id: shotCloseTimer
+                        interval: leftClip.expandDuration
+                        onTriggered: screenshotPiece.shown = false
+                    }
+                    IslandExpandClip {
+                        id: shotWipeClip
+                        horizontal: true
+                        fromLeft: true
+                        expand: screenshotPiece.openT
+                        contentWidth: screenshotPiece.targetWidth
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        Item {
+                            width: screenshotPiece.targetWidth
+                            height: screenshotPiece.height
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            Loader {
+                                id: shotLoader
+                                anchors.centerIn: parent
+                                active: screenshotPiece.shown
+                                sourceComponent: screenshotPage
+                                onLoaded: {
+                                    if (item && item["monitorName"] !== undefined)
+                                        item.monitorName = root.monitorName;
+                                }
+                            }
+                        }
+                    }
+                }
             }
             Component {
                 id: recordingPage
                 RecordingIsland {}
+            }
+            Component {
+                id: screenshotPage
+                ScreenshotIsland {}
             }
         }
 
@@ -1341,7 +1494,6 @@ PanelWindow {
             enabled: Settings.rightPanelHotZone
             panelLock: Settings.panelLockFor("right", root.monitorName)
         }
-
     }
 
     // The toast pill maps on toasts alone so notifications survive a

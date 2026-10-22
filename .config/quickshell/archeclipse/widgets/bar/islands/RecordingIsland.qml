@@ -4,12 +4,15 @@ import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.shared
 
-// Recording island — idle: circular record button (hover-revealed in the
-// empty right pill zone); click starts the recording and the circle morphs
-// into pulsing-dot pill + "Recording" + TRUE elapsed timer (mm:ss since the
-// recording actually started, via ScreenRecorder.startTimestamp). Clicking
-// while recording stops it and morphs back. When not recording, elapsed
-// resets to 00:00.
+// Recording island — idle: 56px stadium with two start-mode buttons
+// (fullscreen / area), revealed by hovering the empty right pill zone —
+// widths only ever change on state transitions (hover-coupled resizes
+// churn hover re-evaluation: probe-proven flap). Starting shows a
+// spinner (pinned open via ScreenRecorder.starting) until wf-recorder is
+// actually up, then the pulsing-dot pill + "Recording" + TRUE elapsed
+// timer (mm:ss since the recording actually started, via
+// ScreenRecorder.startTimestamp). Clicking while recording stops it and
+// morphs back. When not recording, elapsed resets to 00:00.
 Item {
     id: root
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
@@ -20,10 +23,17 @@ Item {
     property string monitorName: ""
     property string elapsed: "00:00"
     readonly property bool recording: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(monitorName)
+    // start intent in flight: spinner state until wf-recorder is actually up
+    readonly property bool starting: ScreenRecorder.starting && ScreenRecorder.targetMonitors.includes(monitorName)
 
-    // Circle when idle, full pill once this monitor records; the animated
-    // pillW feeds Bar.qml's targetWidth so the wipe clip tracks the morph.
-    property real pillW: recording ? 64 : Theme.sidePillHeight
+    // Idle hugs its content (8px dot + two 20px buttons + 16px gutters) so
+    // the gutters can never go asymmetric; recording/loading is a fixed
+    // 96px pill so the elapsed text doesn't resize it. Deliberately NO
+    // hover-driven width animation: a resize tied to hover churns hover
+    // re-evaluation every animated frame and the reveal flaps on/off
+    // forever (probe-proven limit cycle). Widths change only on state
+    // transitions.
+    property real pillW: root.recording || root.starting ? 96 : idleRow.implicitWidth + 16
     Behavior on pillW {
         Anim {
             duration: Theme.anim.fastSpatial
@@ -35,10 +45,17 @@ Item {
     height: implicitHeight
 
     MouseArea {
+        id: idleMouse
         anchors.fill: parent
         // isRecording lags reality ~2s (pgrep poll): one honest click per
         // intent; rapid re-clicks inside the settle window re-issue toggles.
-        onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
+        // `starting` = start already in flight (would double-start; no
+        // cancel path) — ignored. Recording click stops it; idle click on
+        // the padding (outside the mode buttons) starts fullscreen.
+        // NO hoverEnabled here: hover-coupled MouseAreas churned the hover
+        // state and made the reveal flap on/off (probe-proven).
+        onClicked: if (!root.starting)
+            ScreenRecorder.toggleRecording("now", root.monitorName)
     }
 
     IslandExpandClip {
@@ -90,14 +107,42 @@ Item {
                 }
             }
 
-            // idle record button: static dot centered in the circle
-            Rectangle {
+            // idle stadium: recording indicator on the left, mode buttons
+            // after it — uniform cells, centered in the hugging pill
+            Row {
+                id: idleRow
                 anchors.centerIn: parent
-                visible: !root.recording
-                width: 8
-                height: 8
-                radius: width / 2
-                color: Theme.danger
+                spacing: 4
+                visible: !root.recording && !root.starting
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 8
+                    height: 8
+                    radius: width / 2
+                    color: Theme.danger
+                }
+
+                ModeButton {
+                    glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+                    onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
+                }
+                ModeButton {
+                    glyph: "\u{F125}"   // nf-fa-crop — area record
+                    onClicked: ScreenRecorder.toggleRecording("area", root.monitorName)
+                }
+            }
+
+            // loading circle: a start click keeps the piece visible (Bar pins
+            // it open via ScreenRecorder.starting) and shows a spinner until
+            // the recorder is actually up
+            AppProgress {
+                anchors.centerIn: parent
+                visible: root.starting
+                status: "loading"
+                variant: "spinner"
+                width: 14
+                height: 14
             }
         }
     }
@@ -108,6 +153,10 @@ Item {
         const s = (total % 60).toString().padStart(2, "0");
         return m + ":" + s;
     }
+
+    // icon cells are the shared ModeButton (qs.widgets.bar.islands): glyph
+    // only, no hover machinery — hover-toggled feedback inside the island
+    // churned the bar hot-zone hover re-eval (probe-proven)
 
     Timer {
         interval: 1000

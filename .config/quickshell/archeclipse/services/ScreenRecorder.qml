@@ -16,6 +16,11 @@ QtObject {
     property bool _startRequested: false
     property bool _startProcessFinished: true
 
+    // UI-facing mirror of `_startRequested`: start intent in flight but the
+    // recorder not yet up — the pgrep poll lags the wf-recorder spawn ~2s.
+    // Clears on recorder-up or failed start, exactly like `_startRequested`.
+    readonly property bool starting: root._startRequested && !root.isRecording
+
     // Epoch ms when the current recording started (0 when not recording).
     // Elapsed is computed as Date.now() - start.
     property double startTimestamp: 0

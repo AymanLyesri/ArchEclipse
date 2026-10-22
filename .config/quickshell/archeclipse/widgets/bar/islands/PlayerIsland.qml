@@ -38,10 +38,14 @@ Item {
         }
     }
 
-    // Pin while hovered so the 2.5s pulse doesn't close it mid-interaction.
-    // (The pin self-arms its leave timer at creation.)
+    // Pin while hovered so it doesn't close mid-interaction. The pin must
+    // NOT self-arm its open-grace timer at creation: the Loader recreates
+    // the island on every open, and a hover/click reveal (cursor on the
+    // sidepill, never on this island) would be killed ~1s later by the
+    // grace. Closers: hold timer (pulses), pill hover-out, island leave.
     IslandHoverPin {
         stateName: "player"
         monitorName: root.monitorName
+        armOnCreation: false
     }
 }

@@ -91,43 +91,9 @@ elif [[ "$mode" == "--area" ]]; then
         echo "Monitor '$monitor' is unavailable" >&2
         exit 1
     fi
-    monitor_data="$(jq -r '[.id, .activeWorkspace.id, .x, .y, .width, .height] | @tsv' <<< "$monitor_info")"
-    IFS=$'\t' read -r monitor_id workspace_id monitor_x monitor_y monitor_width monitor_height <<< "$monitor_data"
-
-    # Offer visible windows on this monitor's active workspace as slurp
-    # rectangles. `-r` makes this a window picker: it cannot create a
-    # freehand region. Clip floating windows to the selected monitor so grim
-    # can capture the returned geometry without combining `-o` and `-g`.
-    window_rects="$(hyprctl clients -j | jq -r \
-        --argjson monitor_id "$monitor_id" \
-        --argjson workspace_id "$workspace_id" \
-        --argjson mx "$monitor_x" \
-        --argjson my "$monitor_y" \
-        --argjson mw "$monitor_width" \
-        --argjson mh "$monitor_height" '
-        .[] |
-        select(.monitor == $monitor_id and .workspace.id == $workspace_id and (.hidden // false) == false) |
-        . as $client |
-        ($client.at[0] | floor) as $wx |
-        ($client.at[1] | floor) as $wy |
-        ($client.size[0] | floor) as $ww |
-        ($client.size[1] | floor) as $wh |
-        ($mx | floor) as $left_bound |
-        ($my | floor) as $top_bound |
-        (($mx + $mw) | floor) as $right_bound |
-        (($my + $mh) | floor) as $bottom_bound |
-        ([$wx, $left_bound] | max) as $x |
-        ([$wy, $top_bound] | max) as $y |
-        ([$wx + $ww, $right_bound] | min) as $right |
-        ([$wy + $wh, $bottom_bound] | min) as $bottom |
-        select($right > $x and $bottom > $y) |
-        (($client.title // $client.class // "Window") | gsub("[[:cntrl:]]"; " ")) as $label |
-        "\($x),\($y) \($right - $x)x\($bottom - $y) \($label)"
-    ' )"
-    if [[ -z "$window_rects" ]]; then
-        echo "No visible windows on '$monitor' to select" >&2
-        exit 1
-    fi
+    # Free-form region: plain slurp drag over any area (compositor-global
+    # coordinates), so it works even with no visible windows. Previously a
+    # window-picker over the visible windows of the active workspace.
 
     # Freeze while selecting. Escape cancels silently.
     exec {area_lock}>/tmp/screenshot-area.lock
@@ -156,7 +122,7 @@ elif [[ "$mode" == "--area" ]]; then
         sleep 0.2
     fi
     hyprctl keyword layerrule "match:selection, no_anim on" >/dev/null 2>&1 || true
-    geometry="$(printf '%s\n' "$window_rects" | slurp -r -f '%x,%y %wx%h')" || exit 1
+    geometry="$(slurp -f '%x,%y %wx%h')" || exit 1
     grim -g "$geometry" "$img" || exit 1
     cleanup_area_capture
     trap - EXIT

@@ -127,44 +127,6 @@ start() {
     fi
 
     if [[ "$area" -eq 1 ]]; then
-        monitor_info="$(hyprctl monitors -j | jq -c --arg name "$monitor" '.[] | select(.name == $name)')"
-        if [[ -z "$monitor_info" ]]; then
-            echo "Monitor '$monitor' is unavailable" >&2
-            exit 1
-        fi
-        monitor_data="$(jq -r '[.id, .activeWorkspace.id, .x, .y, .width, .height] | @tsv' <<< "$monitor_info")"
-        IFS=$'\t' read -r monitor_id workspace_id monitor_x monitor_y monitor_width monitor_height <<< "$monitor_data"
-        window_rects="$(hyprctl clients -j | jq -r \
-            --argjson monitor_id "$monitor_id" \
-            --argjson workspace_id "$workspace_id" \
-            --argjson mx "$monitor_x" \
-            --argjson my "$monitor_y" \
-            --argjson mw "$monitor_width" \
-            --argjson mh "$monitor_height" '
-            .[] |
-            select(.monitor == $monitor_id and .workspace.id == $workspace_id and (.hidden // false) == false) |
-            . as $client |
-            ($client.at[0] | floor) as $wx |
-            ($client.at[1] | floor) as $wy |
-            ($client.size[0] | floor) as $ww |
-            ($client.size[1] | floor) as $wh |
-            ($mx | floor) as $left_bound |
-            ($my | floor) as $top_bound |
-            (($mx + $mw) | floor) as $right_bound |
-            (($my + $mh) | floor) as $bottom_bound |
-            ([$wx, $left_bound] | max) as $x |
-            ([$wy, $top_bound] | max) as $y |
-            ([$wx + $ww, $right_bound] | min) as $right |
-            ([$wy + $wh, $bottom_bound] | min) as $bottom |
-            select($right > $x and $bottom > $y) |
-            (($client.title // $client.class // "Window") | gsub("[[:cntrl:]]"; " ")) as $label |
-            "\($x),\($y) \($right - $x)x\($bottom - $y) \($label)"
-        ')"
-        if [[ -z "$window_rects" ]]; then
-            echo "No visible windows on '$monitor' to select" >&2
-            exit 1
-        fi
-
         exec {area_lock}>/tmp/screenrecord-area.lock
         if ! flock -n "$area_lock"; then
             slog "area: duplicate trigger ignored (selection already in progress)"
@@ -177,14 +139,17 @@ start() {
             exit 0
         fi
         file="$screenrecord_area_dir/screenrecord_area_${timestamp}.mp4"
-        slog "area: offering visible windows on monitor=[$monitor]"
+        slog "area: opening free-form selection on monitor=[$monitor]"
         hyprctl keyword layerrule "match:selection, no_anim on" >/dev/null 2>&1 || true
         freeze_pid=""
         if command -v hyprpicker >/dev/null 2>&1; then
             hyprpicker -rz & freeze_pid=$!
             sleep 0.2
         fi
-        selection=$(printf '%s\n' "$window_rects" | slurp -r -f '%x,%y %wx%h' 2>>"$log_file") || {
+        # Same free-form region drag as screenshot.sh --area: slurp without
+        # window-rects restriction (the old window-list slurp failed with
+        # "No visible windows" whenever the active workspace had no matches).
+        selection=$(slurp -f '%x,%y %wx%h' 2>>"$log_file") || {
             code=$?
             if [[ -n "$freeze_pid" ]]; then
                 kill "$freeze_pid" 2>/dev/null || true
@@ -198,7 +163,7 @@ start() {
             wait "$freeze_pid" 2>/dev/null || true
         fi
         geometry="$selection"
-        slog "area: selected window geometry=[$geometry]"
+        slog "area: selected region geometry=[$geometry]"
         exec {area_lock}>&-
         # The selected coordinates are compositor-global, so pass geometry
         # without -o; wf-recorder captures the corresponding region directly.
@@ -366,6 +331,18 @@ stop() {
 
 case "$1" in
     start) shift; start "$@" ;;
+    toggle)
+        # Keybind convenience: stop when a recorder is up, else start with
+        # the remaining args. Runs the script directly from Hyprland — no
+        # quickshell dependency (the bar island mirrors state via pgrep).
+        shift
+        drop_stale_pid
+        if [[ -f "$pid_file" ]]; then
+            stop
+        else
+            start "$@"
+        fi
+        ;;
     stop) stop ;;
-    *) echo "Usage: $0 start [--area] [--monitor NAME] [--all] | stop"; exit 1 ;;
+    *) echo "Usage: $0 start [--area] [--monitor NAME] [--all] | stop | toggle"; exit 1 ;;
 esac

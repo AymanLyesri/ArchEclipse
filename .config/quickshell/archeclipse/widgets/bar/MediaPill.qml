@@ -17,6 +17,13 @@ Rectangle {
 
     property string monitorName: ""
 
+    // search-open expansion (Bar.qml binds this): artist row unfolds off the
+    // band beside the launcher island, and the title's elide cap lifts
+    property bool expanded: false
+    readonly property bool growUp: !Settings.barOrientation
+    readonly property real extraGap: Theme.spacing / 2
+    readonly property string expandedArtist: (root.firstPlayable?.trackArtist ?? "").trim()
+
     // ---- media player state (playing-else-first) ----
     // Pass 1: active playing player. Pass 2: first with a title (so the
     // pill hides instead of showing an empty entry when nothing plays).
@@ -110,7 +117,10 @@ Rectangle {
         return (id !== "" ? id : "Player") + (track !== "" ? "\n" + track : "");
     }
 
-    height: Theme.sidePillHeight
+    height: root.expanded && root.expandedArtist !== ""
+        ? Theme.sidePillHeight + root.extraGap + artistLine.implicitHeight
+        : Theme.sidePillHeight
+    Behavior on height { Anim {} }
     implicitWidth: root.hasPlayable ? contentRow.implicitWidth + Theme.islandPad * 2 : 0
     width: implicitWidth
     radius: Theme.radius
@@ -124,7 +134,10 @@ Rectangle {
 
     Row {
         id: contentRow
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        // pinned inside the pill's compact band so the artist row hangs off it
+        y: growUp ? parent.height - Theme.sidePillHeight + (Theme.sidePillHeight - height) / 2
+                  : (Theme.sidePillHeight - height) / 2
         spacing: Theme.spacing
 
         // app icon (fallback: music-note glyph for the empty state)
@@ -164,11 +177,28 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: root.playerTitleText
             elide: Text.ElideRight
-            width: Math.min(implicitWidth, 180)
+            width: Math.min(implicitWidth, root.expanded ? 260 : 180)
             color: Theme.fg
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
         }
+    }
+
+    Text {
+        id: artistLine
+        visible: root.expandedArtist !== ""
+        opacity: root.expanded ? 1 : 0
+        Behavior on opacity { Anim { type: Anim.FastEffects } }
+        x: Theme.islandPad
+        width: Math.max(0, root.width - Theme.islandPad * 2)
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
+        y: growUp ? contentRow.y - height - root.extraGap
+                  : contentRow.y + contentRow.height + root.extraGap
+        text: root.expandedArtist
+        color: Theme.muted
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.fontSize - 2
     }
 
     AppTooltip {
@@ -179,14 +209,17 @@ Rectangle {
 
     // Hover dwell (Settings.revealInPressure, 0 = instant) so
     // brushing the cursor across the bar doesn't pulse the
-    // island by accident.
+    // island by accident. While hovering, the pulse is pinned
+    // persistent (holdMs 0) so it never closes under the cursor;
+    // hover-out hands back to the standard 2.5s pulse (the island's
+    // own pin cancels it if the cursor reaches the island).
     Timer {
         id: playerDwellTimer
         interval: Settings.revealInPressure
         repeat: false
         onTriggered: {
             if (playerHover.hovered && root.firstPlayable)
-                BarState.activate("player", 2500, root.monitorName);
+                BarState.activate("player", 0, root.monitorName);
         }
     }
 
@@ -195,12 +228,24 @@ Rectangle {
         onHoveredChanged: {
             if (playerHover.hovered && root.firstPlayable) {
                 if (Settings.revealInPressure <= 0)
-                    BarState.activate("player", 2500, root.monitorName);
+                    BarState.activate("player", 0, root.monitorName);
                 else
                     playerDwellTimer.restart();
             } else {
                 playerDwellTimer.stop();
+                if (BarState.isOpenFor("player", root.monitorName))
+                    BarState.activate("player", 2500, root.monitorName);
             }
+        }
+    }
+
+    // Re-pin while hovered: a mid-hover track-change pulse or click arms a
+    // 2.5s hold timer that would otherwise close the island under the cursor.
+    Connections {
+        target: BarState
+        function onHoldTimersChanged() {
+            if (playerHover.hovered && BarState.isOpenFor("player", root.monitorName))
+                BarState.activate("player", 0, root.monitorName);
         }
     }
     MouseArea {
