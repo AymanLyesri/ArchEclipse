@@ -519,6 +519,7 @@ Scope {
             }
             AppButton {
                 text: ls.active ? "Close it" : "Open it for me"
+                tooltipText: "Open or close the panel shown in this tip"
                 cornerRadius: Theme.chipRadius
                 outlined: true
                 onClicked: ls.toggleRequested()
@@ -644,7 +645,7 @@ Scope {
                             icon: ""
                             implicitWidth: 34
                             cornerRadius: Theme.chipRadius
-                            tooltipText: "Close"
+                            tooltipText: "Close · <b>SUPER+F1</b>"
                             onClicked: root.close()
                         }
                     }
@@ -768,6 +769,7 @@ Scope {
                                         spacing: 6
                                         AppButton {
                                             text: "Previous"
+                                            tooltipText: "Previous featured widget"
                                             outlined: true
                                             enabled: root.leftWidgetIndex > 0
                                             onClicked: root.moveLeftWidgetTour(-1)
@@ -777,6 +779,7 @@ Scope {
                                         }
                                         AppButton {
                                             text: root.leftWidgetTourIsOpen ? "Open now" : "Open it for me"
+                                            tooltipText: "Open the featured widget on screen"
                                             toggle: true
                                             checked: root.leftWidgetTourIsOpen
                                             onClicked: root.openLeftWidgetTour()
@@ -786,6 +789,7 @@ Scope {
                                         }
                                         AppButton {
                                             text: "Next"
+                                            tooltipText: "Next featured widget"
                                             outlined: true
                                             enabled: root.leftWidgetIndex < root._leftWidgetTour.length - 1
                                             onClicked: root.moveLeftWidgetTour(1)
@@ -875,6 +879,7 @@ Scope {
                                         spacing: 6
                                         AppButton {
                                             text: "Previous"
+                                            tooltipText: "Previous featured widget"
                                             outlined: true
                                             enabled: root.rightWidgetIndex > 0
                                             onClicked: root.moveRightWidgetTour(-1)
@@ -884,6 +889,7 @@ Scope {
                                         }
                                         AppButton {
                                             text: root.rightWidgetTourIsOpen ? "Open now" : "Open it for me"
+                                            tooltipText: "Open the featured widget on screen"
                                             toggle: true
                                             checked: root.rightWidgetTourIsOpen
                                             onClicked: root.openRightWidgetTour()
@@ -893,6 +899,7 @@ Scope {
                                         }
                                         AppButton {
                                             text: "Next"
+                                            tooltipText: "Next featured widget"
                                             outlined: true
                                             enabled: root.rightWidgetIndex < root._rightWidgetTour.length - 1
                                             onClicked: root.moveRightWidgetTour(1)
@@ -1047,6 +1054,7 @@ Scope {
 
                         AppButton {
                             text: "Back"
+                            tooltipText: "Previous welcome page"
                             visible: root.page > 0
                             cornerRadius: Theme.chipRadius
                             outlined: true
@@ -1054,6 +1062,7 @@ Scope {
                         }
                         AppButton {
                             text: root.page >= root.pageCount - 1 ? "Get started" : "Next"
+                            tooltipText: "Next welcome page"
                             cornerRadius: Theme.chipRadius
                             toggle: true
                             checked: true

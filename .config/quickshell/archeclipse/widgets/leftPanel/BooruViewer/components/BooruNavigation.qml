@@ -141,6 +141,7 @@ Column {
 
         AppButton {
             text: "\u{F053}" // chevron left (prev)
+            tooltipText: "Previous page"
             width: 32
             height: 28
             enabled: viewer.progressStatus !== "loading"
@@ -161,6 +162,7 @@ Column {
 
         AppButton {
             text: "\u{F054}" // chevron right (next)
+            tooltipText: "Next page"
             width: 32
             height: 28
             enabled: viewer.progressStatus !== "loading"

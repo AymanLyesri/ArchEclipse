@@ -450,6 +450,7 @@ Item {
 
                 // prev
                 AppButton {
+                    tooltipText: "Previous track"
                     enabled: root.player?.canGoPrevious ?? false
                     icon: "\uf060"
                     pixelSize: Theme.fontSizeLarge
@@ -461,6 +462,7 @@ Item {
                 AppButton {
                     enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
                     icon: root.playing ? "\uf04c" : "\uf04b"
+                    tooltipText: root.playing ? "Pause" : "Play"
                     pixelSize: Theme.fontSizeLarge
                     cornerRadius: Theme.radius
                     Layout.preferredWidth: 30
@@ -478,6 +480,7 @@ Item {
                 // next
                 AppButton {
                     enabled: root.player?.canGoNext ?? false
+                    tooltipText: "Next track"
                     icon: "\uf061"
                     pixelSize: Theme.fontSizeLarge
                     Layout.preferredWidth: 30

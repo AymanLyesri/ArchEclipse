@@ -137,6 +137,7 @@ Item {
                         delegate: AppButton {
                             toggle: true
                             text: modelData
+                            tooltipText: "Chart timeframe"
                             Layout.fillWidth: true
                             pixelSize: Theme.fontSize - 1
                             cornerRadius: 4
@@ -181,6 +182,7 @@ Item {
                 spacing: Theme.spacing
                 AppButton {
                     text: editingEntry ? "✓ Update" : "+ Add Crypto"
+                    tooltipText: "Save this crypto entry"
                     pixelSize: Theme.fontSize
                     cornerRadius: 4
                     idleBg: Theme.surfaceActive
@@ -214,6 +216,7 @@ Item {
                 }
                 AppButton {
                     text: "\u{f00d} Cancel"
+                    tooltipText: "Close the add form"
                     pixelSize: Theme.fontSize
                     cornerRadius: 4
                     idleBg: Theme.dangerBg

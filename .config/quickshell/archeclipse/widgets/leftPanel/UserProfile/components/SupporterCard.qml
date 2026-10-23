@@ -36,6 +36,7 @@ Rectangle {
         }
         AppButton {
             width: parent.width
+            tooltipText: "Open the Donations tab"
             text: store.profile?.is_supporter === true ? "View Donations" : "Become supporter"
             onClicked: Registry.selectLeftTab("Donations", undefined, root.monitorName)
         }

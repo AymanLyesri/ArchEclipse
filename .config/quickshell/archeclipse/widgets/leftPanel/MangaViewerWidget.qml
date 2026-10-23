@@ -439,6 +439,7 @@ Item {
                             AppButton {
                                 anchors.fill: parent
                                 anchors.leftMargin: modelData.isAttachment ? 25 : 0
+                                tooltipText: "Read this chapter"
                                 text: root.formatChapterLabel(modelData, modelData.isAttachment)
                                 onClicked: {
                                     root.selectedChapter = modelData;
@@ -501,12 +502,14 @@ Item {
                     AppButton {
                         Layout.fillWidth: true
                         text: "\u25C0 Previous Page"
+                        tooltipText: "Previous page"
                         enabled: root.currentPageIndex > 0
                         onClicked: root.navigatePage("prev")
                     }
                     AppButton {
                         Layout.fillWidth: true
                         text: "Next Page \u25B6"
+                        tooltipText: "Next page"
                         enabled: root.pages.length > 0 && root.currentPageIndex < root.pages.length - 1
                         onClicked: root.navigatePage("next")
                     }
@@ -531,6 +534,7 @@ Item {
             AppButton {
                 Layout.fillWidth: true
                 text: root.bottomRevealed ? "\uf107" : "\uf106" // down/up chevron
+                tooltipText: root.bottomRevealed ? "Hide settings" : "Show settings"
                 onClicked: root.bottomRevealed = !root.bottomRevealed
             }
         }
@@ -560,11 +564,13 @@ Item {
                 AppButton {
                     Layout.fillWidth: true
                     text: "\u{f002} Search"
+                    tooltipText: "Search manga"
                     onClicked: root.searchManga(root.searchQuery)
                 }
                 AppButton {
                     Layout.fillWidth: true
                     text: "\u{f06d} Popular"
+                    tooltipText: "Browse popular manga"
                     onClicked: root.fetchPopular()
                 }
             }
@@ -577,12 +583,14 @@ Item {
             AppButton {
                 Layout.fillWidth: true
                 text: "\u25C0 Previous Chapter"
+                tooltipText: "Previous chapter"
                 enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
                 onClicked: root.goToChapter("prev")
             }
             AppButton {
                 Layout.fillWidth: true
                 text: "Next Chapter \u25B6"
+                tooltipText: "Next chapter"
                 enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
                 onClicked: root.goToChapter("next")
             }
@@ -630,6 +638,7 @@ Item {
             }
             AppButton {
                 text: "\u{f0c5} Copy"
+                tooltipText: "Copy the image URL"
                 onClicked: {
                     const url = root.getUrl();
                     Quickshell.execDetached(["bash", "-c", "echo -n '" + url + "' | wl-copy 2>/dev/null || echo -n '" + url + "' | xclip -selection clipboard"]);

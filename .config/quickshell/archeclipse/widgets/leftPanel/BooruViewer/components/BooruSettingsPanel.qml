@@ -198,6 +198,7 @@ Rectangle {
                     model: viewer.fetchedTags
                     delegate: AppButton {
                         text: modelData
+                        tooltipText: "Add this tag to the search"
                         height: 20
                         pixelSize: Theme.fontSize - 3
                         onClicked: {

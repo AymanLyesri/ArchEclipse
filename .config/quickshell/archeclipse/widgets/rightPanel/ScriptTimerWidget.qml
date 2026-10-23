@@ -240,6 +240,7 @@ Item {
                         model: root.predefinedCommands.filter(cmd => cmd.label.toLowerCase().includes(commandField.text.toLowerCase()))
                         delegate: AppButton {
                             text: modelData.label
+                            tooltipText: "Use this command preset"
                             width: parent.width
                             pixelSize: Theme.fontSize
                             cornerRadius: 4
@@ -295,6 +296,7 @@ Item {
                 spacing: Theme.spacing
                 AppButton {
                     text: editingTask ? "✓ Update" : "+ Add Task"
+                    tooltipText: "Save this task"
                     pixelSize: Theme.fontSize
                     cornerRadius: 4
                     idleBg: Theme.surfaceActive
@@ -332,6 +334,7 @@ Item {
                 }
                 AppButton {
                     text: "\u{f00d} Cancel"
+                    tooltipText: "Close the add form"
                     pixelSize: Theme.fontSize
                     cornerRadius: 4
                     idleBg: Theme.dangerBg

@@ -19,9 +19,9 @@ Column {
     property string logoutIcon: "\uf08b"
     property string logoutTooltip: "Logout from Hyprland"
     property string poweroffIcon: "\uf011"
-    property string poweroffTooltip: "Shutdown immediately"
+    property string poweroffTooltip: "Shutdown now · <b>SUPER+CTRL+SHIFT+ESCAPE</b>"
     property string suspendIcon: "\uf186"
-    property string suspendTooltip: "Put system to sleep"
+    property string suspendTooltip: "Put system to sleep · <b>SUPER+CTRL+ESCAPE</b>"
     property string rebootIcon: "\uf021"
     property string rebootTooltip: "Reboot immediately"
     // Optional user picker (greeter only; empty list = hidden, lock unaffected).

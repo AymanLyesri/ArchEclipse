@@ -268,6 +268,7 @@ Item {
                         AppButton {
                             x: (parent.width - width) / 2
                             width: 120
+                            tooltipText: "Download and install updates"
                             height: 32
                             cornerRadius: 6
                             idleBg: Theme.accent
@@ -309,6 +310,7 @@ Item {
                         AppButton {
                             x: (parent.width - width) / 2
                             width: 130
+                            tooltipText: "Check for new versions"
                             height: 28
                             cornerRadius: 6
                             icon: "\u{F2F1}"

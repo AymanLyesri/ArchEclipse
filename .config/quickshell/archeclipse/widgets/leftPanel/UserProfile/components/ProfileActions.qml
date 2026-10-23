@@ -12,6 +12,7 @@ Row {
     AppButton {
         width: (parent.width - 16) / 3
         text: "Update"
+        tooltipText: "Save profile changes"
         onClicked: store.updateProfile()
     }
     AppButton {
@@ -34,6 +35,7 @@ Row {
     AppButton {
         width: (parent.width - 16) / 3
         text: "Logout"
+        tooltipText: "Sign out"
         onClicked: store.logout()
     }
 }

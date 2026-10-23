@@ -1287,17 +1287,20 @@ Item {
                     }
 
                     AppButton {
+                        tooltipText: "Set a random wallpaper from this view"
                         text: "Random"
                         visible: !root.isWallhaven
                         Layout.preferredHeight: 26
                         onClicked: root.setRandomWallpaper()
                     }
                     AppButton {
+                        tooltipText: "Reload the wallpaper daemon"
                         text: "Reload"
                         Layout.preferredHeight: 26
                         onClicked: root.reloadDaemon()
                     }
                     AppButton {
+                        tooltipText: "Pick a wallpaper image to add"
                         text: "Add…"
                         Layout.preferredHeight: 26
                         onClicked: root.pickWallpaper()
@@ -1306,6 +1309,7 @@ Item {
                     // Shared masonry view (both providers, persisted).
                     AppButton {
                         text: "‹"
+                        tooltipText: "Fewer masonry rows"
                         enabled: Settings.wallpaperMasonryRows > 1
                         Layout.preferredHeight: 26
                         onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows - 1)
@@ -1318,6 +1322,7 @@ Item {
                     }
                     AppButton {
                         text: "›"
+                        tooltipText: "More masonry rows"
                         enabled: Settings.wallpaperMasonryRows < 4
                         Layout.preferredHeight: 26
                         onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows + 1)
@@ -1502,12 +1507,14 @@ Item {
                         }
                         AppButton {
                             text: "‹"
+                            tooltipText: "Previous Wallhaven page"
                             enabled: root.wh.page > 1 && !root.whLoading
                             Layout.preferredHeight: 26
                             onClicked: root.setWh("page", Math.max(1, root.wh.page - 1), true)
                         }
                         AppButton {
                             text: "›"
+                            tooltipText: "Next Wallhaven page"
                             enabled: root.wh.page < root.whMeta.last_page && !root.whLoading
                             Layout.preferredHeight: 26
                             onClicked: root.setWh("page", root.wh.page + 1, true)

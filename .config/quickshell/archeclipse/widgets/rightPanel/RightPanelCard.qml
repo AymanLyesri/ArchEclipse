@@ -31,11 +31,13 @@ Column {
         }
         AppButton {
             text: "+"
+            tooltipText: "Add a new entry"
             implicitWidth: 40
             onClicked: root.addClicked()
         }
         AppButton {
             text: "\u2715"
+            tooltipText: "Close this card"
             implicitWidth: 40
             onClicked: root.closeClicked()
         }

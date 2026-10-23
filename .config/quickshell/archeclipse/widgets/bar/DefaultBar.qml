@@ -164,11 +164,28 @@ Column {
                     }
                 }
 
-                // control panel toggle — center
-                ControlPanelButton {
+                // control panel toggle — center (inlined: was
+                // ControlPanelButton.qml, now the shared AppButton cell)
+                AppButton {
                     id: centerButton
                     anchors.verticalCenter: parent.verticalCenter
-                    monitorName: root.monitorName
+                    implicitWidth: 32
+                    width: implicitWidth
+                    height: Theme.barContentHeight
+                    icon: "\uf303"
+                    pixelSize: Theme.fontSize + 1
+                    tooltipText: "Quick settings"
+                    onClicked: {
+                        // Toggle the control island in the bar pill. Wallpaper sits
+                        // above control (priority), so yield it first — otherwise
+                        // opening control while the wallpaper island is up looks dead.
+                        if (BarState.stateFor(root.monitorName) === "control")
+                            BarState.deactivate("control", root.monitorName);
+                        else {
+                            BarState.deactivate("wallpaper", root.monitorName);
+                            BarState.activate("control", 0, root.monitorName);
+                        }
+                    }
                 }
 
                 // clock — right, same cell width as bandwidth side
@@ -205,9 +222,26 @@ Column {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.spacing
 
-                LauncherButton {
+                // search/app launcher at the far left (inlined: was
+                // LauncherButton.qml, now the shared AppButton cell)
+                AppButton {
                     id: launcherButton
-                    monitorName: root.monitorName
+                    implicitWidth: 32
+                    width: implicitWidth
+                    height: Theme.barContentHeight
+                    icon: "\uf002"
+                    pixelSize: Theme.fontSize + 3
+                    idleFg: Theme.accent
+                    hoverFg: Theme.accent
+                    tooltipText: "Search apps · <b>SUPER</b>"
+                    onClicked: {
+                        if (BarState.isOpenFor("search", root.monitorName))
+                            BarState.deactivate("search", root.monitorName);
+                        else {
+                            Launcher.pendingQuery = "";
+                            BarState.activate("search", 0, root.monitorName);
+                        }
+                    }
                 }
                 WindowTitle {
                     id: windowTitleButton

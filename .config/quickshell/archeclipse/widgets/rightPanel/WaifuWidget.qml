@@ -203,6 +203,7 @@ Item {
                 spacing: Theme.spacing
                 AppButton {
                     text: "Open Booru Viewer"
+                    tooltipText: "Open Booru Viewer in the left panel"
                     onClicked: {
                         // Show the left island + set its widget
                         // to BooruViewer. Registry.selectLeftTab does both

@@ -87,10 +87,12 @@ Item {
 
                 ModeButton {
                     glyph: "\u{F03E}"  // nf-fa-image — fullscreen shot
+                    tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
                     onClicked: root.shoot("now")
                 }
                 ModeButton {
                     glyph: "\u{F125}"  // nf-fa-crop — area shot
+                    tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
                     onClicked: root.shoot("area")
                 }
             }

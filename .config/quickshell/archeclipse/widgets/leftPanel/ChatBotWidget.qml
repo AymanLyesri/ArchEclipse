@@ -1168,18 +1168,21 @@ Item {
                     spacing: Theme.spacing
                     AppButton {
                         text: "1. Visit openrouter and Sign-up for FREE  \u{f08e}"
+                        tooltipText: "Open openrouter.ai in the browser"
                         width: parent.width
                         implicitHeight: 28
                         onClicked: Quickshell.execDetached(["xdg-open", "https://openrouter.ai/"])
                     }
                     AppButton {
                         text: "2. Generate a FREE API key  \u{f08e}"
+                        tooltipText: "Open the OpenRouter API key page"
                         width: parent.width
                         implicitHeight: 28
                         onClicked: Quickshell.execDetached(["xdg-open", "https://openrouter.ai/settings/keys"])
                     }
                     AppButton {
                         text: "3. Copy & Paste it in the settings"
+                        tooltipText: "Open the OpenRouter key in settings"
                         width: parent.width
                         implicitHeight: 28
                         onClicked: root.goToSettings("openrouter.key")
@@ -1605,6 +1608,7 @@ Item {
                             width: slashList.width
                             implicitHeight: 30
                             text: "/" + modelData.name + "  —  " + modelData.description
+                            tooltipText: "Run command /" + modelData.name
                             onClicked: {
                                 const p = root.parseSlash(inputField.text);
                                 root.runSlashCommand(modelData.name, p ? p.arg : "");

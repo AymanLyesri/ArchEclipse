@@ -878,6 +878,7 @@ Item {
                 implicitHeight: 30
                 toggle: true
                 checked: root.activeTab === 0
+                tooltipText: "Show the account tab"
                 outlined: true
                 text: "Account"
                 onClicked: root.activeTab = 0
@@ -887,6 +888,7 @@ Item {
                 implicitHeight: 30
                 toggle: true
                 checked: root.activeTab === 1
+                tooltipText: "Show the about tab"
                 outlined: true
                 text: "About"
                 onClicked: root.activeTab = 1

@@ -505,6 +505,7 @@ Item {
                                 }
                                 AppButton {
                                     text: "Yes"
+                                    tooltipText: "Confirm the settings reset"
                                     Layout.alignment: Qt.AlignVCenter
                                     onClicked: {
                                         confirming = false;
@@ -513,6 +514,7 @@ Item {
                                 }
                                 AppButton {
                                     text: "No"
+                                    tooltipText: "Cancel the reset"
                                     Layout.alignment: Qt.AlignVCenter
                                     onClicked: confirming = false
                                 }

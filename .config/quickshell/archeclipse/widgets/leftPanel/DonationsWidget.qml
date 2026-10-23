@@ -579,6 +579,7 @@ Item {
                         model: root.amounts
                         delegate: AppButton {
                             required property var modelData
+                            tooltipText: "Choose a donation amount"
                             width: (parent.width - 24) / 4
                             height: 38
                             text: "$" + modelData
@@ -850,6 +851,7 @@ Item {
                         width: parent.width
                         height: 34
                         text: "Check for my donation"
+                        tooltipText: "Look up payments waiting to be claimed"
                         pixelSize: Theme.fontSize - 1
                         outlined: true
                         onClicked: root.checkClaim()
@@ -884,6 +886,7 @@ Item {
                                     width: 100
                                     height: 30
                                     text: "Claim"
+                                    tooltipText: "Claim this donation"
                                     pixelSize: Theme.fontSize - 1
                                     outlined: true
                                     onClicked: root.claimRow(modelData.id)

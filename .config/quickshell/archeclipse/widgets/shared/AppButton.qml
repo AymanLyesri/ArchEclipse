@@ -23,7 +23,21 @@ Item {
     property string text: ""
     // Optional maximum width for the text label; -1 keeps natural sizing.
     property real labelMaxWidth: -1
-    property string tooltipText: ""
+    // Required: every button must explain itself — a description, plus the
+    // matching keybind when one exists in ~/.config/hypr/config/bind.lua
+    // (see AGENTS.md). The engine refuses to instantiate an AppButton
+    // without tooltipText, so leaving it out fails loudly on reload.
+    required property string tooltipText
+    // False opts a button out of the hover tooltip popup entirely (the
+    // button still must carry tooltipText). For stadiums where a popup
+    // grab stealing the pointer reads as hover-out and closes the pill.
+    property bool showTooltip: true
+    // Quiet mode: no hover reading at all (hoverEnabled off, no hover
+    // scale). For cells inside auto-revealing stadium islands where ANY
+    // hover reaction churned the reveal and closed the pill (probe-proven
+    // in RecordingIsland/ScreenshotIsland). Press feedback stays: clicks
+    // are allowed to land, readings happen outside the cell.
+    property bool quiet: false
     property string fontFamily: Theme.fontFamily
     property string labelFontFamily: ""
     property int pixelSize: Theme.fontSize
@@ -86,7 +100,7 @@ Item {
     }
 
     AppTooltip {
-        visible: root.hovered && root.tooltipText !== ""
+        visible: root.showTooltip && root.hovered && root.tooltipText !== ""
         text: root.tooltipText
     }
 
@@ -95,7 +109,8 @@ Item {
         anchors.fill: parent
         radius: root.cornerRadius
         // Subtle grow on hover, shrink on press — visual only, layout unchanged.
-        scale: !root.enabled ? 1 : (hoverArea.pressed ? 0.96 : (root.hovered ? 1.04 : 1))
+        // Quiet cells skip the hover branch entirely (hover stays unread).
+        scale: !root.enabled ? 1 : (hoverArea.pressed ? 0.96 : (root.hovered && !root.quiet ? 1.04 : 1))
         color: {
             if (root.dragging)
                 return Theme.accent;
@@ -169,7 +184,7 @@ Item {
         id: hoverArea
 
         anchors.fill: parent
-        hoverEnabled: true
+        hoverEnabled: !root.quiet
         acceptedButtons: Qt.LeftButton
         enabled: root.enabled
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor

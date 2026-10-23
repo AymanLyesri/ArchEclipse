@@ -125,10 +125,12 @@ Item {
 
                 ModeButton {
                     glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+                    tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
                     onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
                 }
                 ModeButton {
                     glyph: "\u{F125}"   // nf-fa-crop — area record
+                    tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
                     onClicked: ScreenRecorder.toggleRecording("area", root.monitorName)
                 }
             }

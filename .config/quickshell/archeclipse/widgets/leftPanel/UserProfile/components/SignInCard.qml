@@ -49,6 +49,7 @@ Rectangle {
             }
         }
         AppButton {
+            tooltipText: "Email a sign-in link"
             text: store.magicState
             width: parent.width
             enabled: emailField.text.trim().length > 0
@@ -70,6 +71,7 @@ Rectangle {
             onAccepted: store.importCallbackUrl(text)
         }
         AppButton {
+            tooltipText: "Complete sign-in from a pasted link"
             text: "Import Pasted Link"
             width: parent.width
             enabled: store.callbackUrlText.trim().length > 0

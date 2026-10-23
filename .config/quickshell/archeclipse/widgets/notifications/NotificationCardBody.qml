@@ -210,6 +210,7 @@ Column {
             delegate: AppButton {
                 required property var modelData
                 text: Notifications.actionLabel(modelData)
+                tooltipText: "Run this action"
                 height: 24
                 pixelSize: Theme.fontSize - 2
                 cornerRadius: 4
