@@ -25,9 +25,12 @@ Item {
     property real labelMaxWidth: -1
     // Required: every button must explain itself — a description, plus the
     // matching keybind when one exists in ~/.config/hypr/config/bind.lua
-    // (see AGENTS.md). The engine refuses to instantiate an AppButton
-    // without tooltipText, so leaving it out fails loudly on reload.
-    required property string tooltipText
+    // (see AGENTS.md). Not a `required property`: a delegate root with ANY
+    // required property makes Qt withhold context modelData/index from that
+    // delegate (repeater arrays read it — hard-required buttons caused
+    // silent empty icons/text shell-wide, GeneralTab being the visible one).
+    // Instead renders fail-soft and logs an error at instantiation below.
+    property string tooltipText: ""
     // False opts a button out of the hover tooltip popup entirely (the
     // button still must carry tooltipText). For stadiums where a popup
     // grab stealing the pointer reads as hover-out and closes the pill.
@@ -79,6 +82,13 @@ Item {
     signal clicked
     signal pressed
     signal released
+
+    // Loud stand-in for the (removed) required-property hard gate — see the
+    // comment above. Warn (not error): some cells legitimately ship an empty
+    // tooltip (e.g. purity chips hint only while disabled). Greppable on
+    // boot/reload in /tmp/qs-bar-$USER.log.
+    Component.onCompleted: if (tooltipText === "" && showTooltip)
+        console.warn("MISSING TOOLTIPTEXT AppButton:", this, "icon:", JSON.stringify(icon), "text:", JSON.stringify(text))
 
     implicitWidth: contentRow.implicitWidth + 28
     implicitHeight: 34

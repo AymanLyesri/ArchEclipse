@@ -95,7 +95,15 @@ Item {
         spacing: 3
 
         Repeater {
-            model: [
+            id: rep
+
+            model: 3
+
+            // Per-index lookup instead of a rebuilt JS-array model: every
+            // sysmonitor tick (2s) used to re-create the whole bar tree,
+            // which dominated idle CPU (bar visible = 15% core). Restore the
+            // array-as-model form only for per-tick structural changes.
+            readonly property var bars: [
                 {
                     frac: root.cpuFrac,
                     color: Theme.chart1,
@@ -115,7 +123,8 @@ Item {
 
             Item {
                 id: barItem
-                required property var modelData
+                required property int index
+                readonly property var modelData: rep.bars[index]
                 // -1 = no data -> hide bar
                 readonly property real frac: modelData.frac
                 visible: frac >= 0

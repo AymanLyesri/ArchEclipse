@@ -2,6 +2,7 @@ module qs.widgets.leftPanel
 
 BooruViewer 1.0 BooruViewer/BooruViewer.qml
 ChatBotWidget 1.0 ChatBotWidget.qml
+CommitGrid 1.0 CommitGrid.qml
 CustomScriptsWidget 1.0 CustomScriptsWidget.qml
 DonationsWidget 1.0 DonationsWidget.qml
 GeneralTab 1.0 GeneralTab.qml

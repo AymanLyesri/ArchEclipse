@@ -22,7 +22,7 @@
 | `LockScreen` | `widgets/lock/LockScreen.qml` | Single scope; compositor creates one `WlSessionLockSurface` per screen (no `Variants`) |
 
 Startup also `mkdir -p`s every cache dir `FileView` writes to (writes to missing dirs fail silently):
-`~/.cache/quickshell/{settings,booru,launcher,script-timer,crypto,chatbot,auth,manga,wallpaper-thumbs}`,
+`~/.cache/quickshell/{settings,booru,launcher,script-timer,crypto,chatbot,auth,manga,wallpaper-thumbs,activity}`,
 `~/.cache/coloreclipse`, `~/.config/wallpapers/{custom,wallhaven,defaults}`, `~/.config/fastfetch/cache`
 — and primes `FastfetchPins` so its pins-watcher attaches at boot.
 
