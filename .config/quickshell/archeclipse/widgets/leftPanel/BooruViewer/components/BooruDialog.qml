@@ -98,7 +98,12 @@ Item {
     // Badge icons shared by the still preview (AppImage below) and the
     // video overlay: AppImage hides once a video plays, taking its own
     // badges with it, so both feed off this one list.
+    // Waifu mode (pinned host) shows none: the chips permanently sit in
+    // the image's top-right corner there (bookmark/download/pin states
+    // are still reachable via the hover sheet actions).
     readonly property var dlgBadges: {
+        if (dialogRoot.isWaifuMode)
+            return [];
         const b = [];
         if (dialogRoot.dlgDownloaded)
             b.push("\uf019");

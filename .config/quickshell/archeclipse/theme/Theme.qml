@@ -348,7 +348,7 @@ QtObject {
     // The ONE padding token: content inset for cards, panels and island
     // bodies. Margins/paddings ≥ 8 must bind this (smaller values are
     // optical micro-adjustments and stay literal).
-    readonly property int pad: 12
+    readonly property int pad: 8
     // Single source of truth for bar content height — every bar widget
     // (Clock, Battery, Volume, ...) binds to this instead of hardcoding
     // its own height, so all bar content stays the same height.

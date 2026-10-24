@@ -1057,7 +1057,7 @@ PanelWindow {
             y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
             // grows per-frame (Behavior-free — media's own height Behavior
             // drives it) so the click-mask Region tracks the expanded pill
-            height: Math.max(root.barHeight, mediaPiece.height)
+            height: Math.max(root.barHeight, mediaPiece.height, recordingPiece.height, screenshotPiece.height)
             width: rightSideContents.implicitWidth
             // Read the contents' OWN inputs, never a child's `visible`:
             // Qt Quick propagates `visible = false` into every descendant
@@ -1148,9 +1148,15 @@ PanelWindow {
                     anchors.top: Settings.barOrientation ? parent.top : undefined
                     anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                     width: recWipeClip.width
-                    height: root.barHeight
+                    // grows with the launcher-expanded island (weather-pill
+                    // recipe: band pinned, growth extends away from the
+                    // screen edge) — Behavior-free: rides the island's own
+                    // height stem per-frame
+                    height: Math.max(root.barHeight,
+                        (root.barHeight - Theme.sidePillHeight) / 2
+                            + (recLoader.item ? recLoader.item.height : Theme.sidePillHeight))
                     visible: recordingPiece.shown
-                    readonly property real targetWidth: recLoader.item ? recLoader.item.implicitWidth : 190
+                    readonly property real targetWidth: recLoader.item ? recLoader.item.width : 190
                     // recording on THIS monitor, or the idle circle revealed
                     // by hovering the empty right zone
                     // `starting` pins the piece open through the ~2s pgrep
@@ -1158,7 +1164,11 @@ PanelWindow {
                     // before wf-recorder is actually up.
                     readonly property bool recFlag: (ScreenRecorder.isRecording || ScreenRecorder.starting) && ScreenRecorder.targetMonitors.includes(root.monitorName)
                     property bool shown: false
+                    // reveal on the empty-right-zone hover, on an actual
+                    // recording/start, or while the launcher island is open
+                    // (expansion moment, weather-pill recipe)
                     property bool flag: recHover.hovered || recFlag
+                        || BarState.isOpenFor("search", root.monitorName)
                     onFlagChanged: {
                         if (recordingPiece.flag) {
                             recCloseConfirm.stop();
@@ -1215,12 +1225,20 @@ PanelWindow {
                             anchors.top: parent.top
                             Loader {
                                 id: recLoader
-                                anchors.centerIn: parent
+                                // MediaPill pin: edge-pinned so the grown
+                                // island extends away from the screen edge
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: Settings.barOrientation ? parent.top : undefined
+                                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                                anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                                anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
                                 active: recordingPiece.shown
                                 sourceComponent: recordingPage
                                 onLoaded: {
                                     if (item && item["monitorName"] !== undefined)
                                         item.monitorName = root.monitorName;
+                                    if (item && item["expanded"] !== undefined)
+                                        item.expanded = Qt.binding(() => BarState.isOpenFor("search", root.monitorName));
                                 }
                             }
                         }
@@ -1238,11 +1256,18 @@ PanelWindow {
                     anchors.top: Settings.barOrientation ? parent.top : undefined
                     anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                     width: shotWipeClip.width
-                    height: root.barHeight
+                    // grows with the launcher-expanded island (see the
+                    // recording piece above for the same recipe)
+                    height: Math.max(root.barHeight,
+                        (root.barHeight - Theme.sidePillHeight) / 2
+                            + (shotLoader.item ? shotLoader.item.height : Theme.sidePillHeight))
                     visible: screenshotPiece.shown
-                    readonly property real targetWidth: shotLoader.item ? shotLoader.item.implicitWidth : 190
+                    readonly property real targetWidth: shotLoader.item ? shotLoader.item.width : 190
                     property bool shown: false
+                    // reveal on the empty-right-zone hover, or while the
+                    // launcher island is open (expansion moment)
                     property bool flag: recHover.hovered
+                        || BarState.isOpenFor("search", root.monitorName)
                     onFlagChanged: {
                         if (screenshotPiece.flag) {
                             shotCloseConfirm.stop();
@@ -1292,12 +1317,19 @@ PanelWindow {
                             anchors.top: parent.top
                             Loader {
                                 id: shotLoader
-                                anchors.centerIn: parent
+                                // MediaPill pin (see the recording loader)
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: Settings.barOrientation ? parent.top : undefined
+                                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                                anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                                anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
                                 active: screenshotPiece.shown
                                 sourceComponent: screenshotPage
                                 onLoaded: {
                                     if (item && item["monitorName"] !== undefined)
                                         item.monitorName = root.monitorName;
+                                    if (item && item["expanded"] !== undefined)
+                                        item.expanded = Qt.binding(() => BarState.isOpenFor("search", root.monitorName));
                                 }
                             }
                         }

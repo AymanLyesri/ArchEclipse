@@ -156,7 +156,7 @@ Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: Theme.pad / 2
+                    anchors.margins: Theme.pad
                     spacing: Theme.spacing
 
                     Repeater {
@@ -248,7 +248,7 @@ Item {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: Theme.pad / 2
+                    anchors.margins: Theme.pad
                 }
             }
 
@@ -276,7 +276,7 @@ Item {
                     // wedges the scene in a silent polish loop (0-width freeze).
                     width: contentScroll.width
                     spacing: Theme.spacing
-                    padding: 4
+                    padding: Theme.pad
 
                     Repeater {
                         id: enabledWidgetRepeater

@@ -15,7 +15,7 @@ Column {
     property string title: ""
     property bool showAddForm: false
     property Component formComponent: null
-    property int listSpacing: 8
+    property int listSpacing: Theme.spacing
     signal addClicked
     signal closeClicked
     spacing: Theme.spacing

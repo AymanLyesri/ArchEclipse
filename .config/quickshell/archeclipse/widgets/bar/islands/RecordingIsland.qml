@@ -13,6 +13,15 @@ import qs.widgets.shared
 // timer (mm:ss since the recording actually started, via
 // ScreenRecorder.startTimestamp). Clicking while recording stops it and
 // morphs back. When not recording, elapsed resets to 00:00.
+//
+// Launcher expansion (Bar.qml binds `expanded` to the monitor's search
+// state, weather-pill recipe): the pill grows vertically off the band
+// (away from the screen edge) and the modes re-represent as labeled
+// IslandActionRow cards stacked outside the stadium — compact = idle
+// modes as stadium buttons; expanded = each mode as its own row, and an
+// active recording becomes a Stop row (same toggle handler, clearer
+// representation; the stadium keeps the dot/timer pill). No hover
+// machinery: rows are click-only ModeButton/label cells.
 Item {
     id: root
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
@@ -25,6 +34,32 @@ Item {
     readonly property bool recording: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(monitorName)
     // start intent in flight: spinner state until wf-recorder is actually up
     readonly property bool starting: ScreenRecorder.starting && ScreenRecorder.targetMonitors.includes(monitorName)
+
+    // ---- launcher expansion stem (cf. WeatherButton) ----
+    property bool expanded: false
+    // bottom-oriented bars grow upward instead of off-screen
+    readonly property bool growUp: !Settings.barOrientation
+    readonly property real extraGap: Theme.spacing / 2
+    // rows exist whenever expanded (any live state except starting): idle
+    // shows the two mode rows, an active recording shows one Stop row
+    readonly property int expandedRowCount: root.expanded && !root.starting ? (root.recording ? 1 : 2) : 0
+    property real extraT: root.expandedRowCount > 0 ? 1 : 0
+    Behavior on extraT {
+        Anim {}
+    }
+    // band offset while grown: clears the stacked rows above/below
+    readonly property real extraH: root.extraT * (root.extraGap + expandedRows.implicitHeight)
+    implicitHeight: clip.height + root.extraH
+    height: implicitHeight
+    // width hugs the wider of stadium / row block; the row-block term
+    // releases at the state flip (not after the fade) so fold-in wide →
+    // band width glides concurrently with the row fade instead of after it
+    width: Math.max(root.pillW, root.expandedRowCount > 0 ? expandedRows.implicitWidth : 0)
+    Behavior on width {
+        Anim {
+            duration: Theme.anim.fastSpatial
+        }
+    }
 
     // Idle hugs its content (8px dot + two 20px buttons + 16px gutters) so
     // the gutters can never go asymmetric; recording/loading is a fixed
@@ -39,10 +74,6 @@ Item {
             duration: Theme.anim.fastSpatial
         }
     }
-    implicitWidth: pillW
-    implicitHeight: clip.height
-    width: implicitWidth
-    height: implicitHeight
 
     MouseArea {
         id: idleMouse
@@ -60,6 +91,9 @@ Item {
 
     IslandExpandClip {
         id: clip
+        // pinned to the band edge: grown rows stack ABOVE the band on
+        // bottom-oriented bars (below on top bars — see expandedRows)
+        y: root.growUp ? root.extraH : 0
         expand: root.expand
         contentHeight: Theme.sidePillHeight
 
@@ -125,11 +159,17 @@ Item {
 
                 ModeButton {
                     glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+                    // park while the launcher expansion re-represents the
+                    // modes as rows; return at the flip, not at the end of
+                    // the geometry unwind — a late return reads as the pill
+                    // clipping to a dot width and then popping back
+                    visible: !root.expanded
                     tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
                     onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
                 }
                 ModeButton {
                     glyph: "\u{F125}"   // nf-fa-crop — area record
+                    visible: !root.expanded
                     tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
                     onClicked: ScreenRecorder.toggleRecording("area", root.monitorName)
                 }
@@ -146,6 +186,50 @@ Item {
                 width: 14
                 height: 14
             }
+        }
+    }
+
+    // ---- launcher-expanded rows: modes re-represented as card rows ----
+    // Hang off the band, away from the screen edge (weather-pill recipe):
+    // below the stadium on top bars, above on bottom-oriented ones. The
+    // reveal rides extraT (FastEffects fade, like the weather stats rows);
+    // rows stay laid out while extraT > 0 so the width/height stems glide
+    // through fade-out instead of yanking. Handlers are the SAME actions
+    // the stadium buttons run — representation only, no new actions.
+    Column {
+        id: expandedRows
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: root.growUp ? 0 : Theme.sidePillHeight + root.extraGap
+        spacing: root.extraGap
+        visible: root.extraT > 0
+        // fade rides its OWN fast stem (like the weather stats rows), never
+        // the spatial extraT curve — opacity tracking the geometry animation
+        // gates the rows on the pill's full growth and reads as a delay
+        opacity: root.expandedRowCount > 0 ? 1 : 0
+        Behavior on opacity {
+            Anim { type: Anim.FastEffects }
+        }
+
+        IslandActionRow {
+            visible: !root.recording && !root.starting
+            glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+            label: "Fullscreen"
+            tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
+            onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
+        }
+        IslandActionRow {
+            visible: !root.recording && !root.starting
+            glyph: "\u{F125}"   // nf-fa-crop — area record
+            label: "Area"
+            tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
+            onActivated: ScreenRecorder.toggleRecording("area", root.monitorName)
+        }
+        IslandActionRow {
+            visible: root.recording
+            glyph: "\u{F04D}"   // nf-fa-stop — stop record
+            label: "Stop"
+            tooltipText: "Stop recording"
+            onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
         }
     }
 

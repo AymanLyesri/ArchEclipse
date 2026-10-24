@@ -388,7 +388,8 @@ Item {
                 id: scriptCol
                 spacing: Theme.spacing
                 width: scriptScroll.width
-                bottomPadding: Theme.pad
+                // No edge padding: the panel owns the content inset (the
+                // island's Theme.pad), right-panel parity.
 
                 Repeater {
                     model: root.scriptDefs

@@ -50,7 +50,8 @@ SmoothFlickable {
 
         width: parent.width
         columns: viewer ? viewer.columns : 3
-        spacing: 6
+        // No spacing override: inherits the shared Theme.spacing default,
+        // same as the wallpaper masonry rows.
         model: viewer ? viewer.images : []
         aspectRatio: function (img) {
             return (img && img.width && img.height) ? img.height / img.width : 1;

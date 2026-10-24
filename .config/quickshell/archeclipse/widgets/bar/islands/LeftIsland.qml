@@ -267,7 +267,7 @@ Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: Theme.pad / 2
+                    anchors.margins: Theme.pad
                     highlightedName: BarState.tourHighlightMonitor === root.monitorName ? BarState.tourHighlightTab : ""
                     // Tab order + icons: UserProfile, BooruViewer,
                     // ChatBot, MangaViewer, Settings, CustomScripts,
@@ -319,7 +319,7 @@ Item {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.margins: Theme.pad / 2
+                    anchors.margins: Theme.pad
                 }
             }
 
@@ -347,7 +347,10 @@ Item {
                 StackLayout {
                     id: widgetStack
                     anchors.fill: parent
-                    anchors.margins: 4
+                    // Content inset owned by the panel (right-panel parity:
+                    // its scroll column pads Theme.pad too) — tab bodies stay
+                    // flush and never add their own outer margin.
+                    anchors.margins: Theme.pad
                     currentIndex: {
                         switch (root.selectedWidget) {
                         case "UserProfile":

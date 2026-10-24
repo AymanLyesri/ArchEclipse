@@ -353,7 +353,8 @@ Item {
                 id: keyCol
                 width: keyScroll.width
                 spacing: Theme.spacing
-                bottomPadding: Theme.pad
+                // No edge padding: the panel owns the content inset (the
+                // island's Theme.pad), right-panel parity.
 
                 Repeater {
                     model: root.categories

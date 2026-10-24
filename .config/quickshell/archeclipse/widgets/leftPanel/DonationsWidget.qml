@@ -463,7 +463,8 @@ Item {
             id: donateCol
             width: donateScroll.width
             spacing: Theme.spacing
-            topPadding: 4
+            // No edge padding: the panel owns the content inset (the
+            // island's Theme.pad), right-panel parity.
 
             GeneralTab {
                 id: generalEmbed

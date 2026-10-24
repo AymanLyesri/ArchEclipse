@@ -1154,6 +1154,16 @@ Item {
                                 required property string modelData
                                 required property int index
                                 readonly property bool isFocused: Hyprland.focusedWorkspace?.id === index + 1
+                                // Tile source: original for images, first-frame
+                                // thumb for videos. A live AppVideo here decoded
+                                // every workspace video wallpaper forever (one
+                                // full h264 pipeline each, panel closed or not
+                                // — boot-primed cached loader + `active` bound
+                                // to nothing but the file), measured ~10% CPU
+                                // per video + ~1GB RSS with two video
+                                // workspaces. Static thumbs, same as the main
+                                // strip's idle tiles.
+                                readonly property string wsSource: wsTile.modelData === "" ? "" : (root.isVideoFile(wsTile.modelData) ? root.thumbFor(wsTile.modelData) : wsTile.modelData)
 
                                 width: 100
                                 height: 66
@@ -1168,37 +1178,17 @@ Item {
                                     anchors.margins: 2
                                     // Native preview: original file, decoded near
                                     // tile size (async + cached inside AppImage).
-                                    // Videos play live below (wsVideo) — empty
-                                    // source here keeps just the badges.
-                                    source: (wsTile.modelData === "" || root.isVideoFile(wsTile.modelData)) ? "" : "file://" + wsTile.modelData
+                                    // Videos use the first-frame thumb (wsSource
+                                    // resolves it) — never a live decoder here.
+                                    source: wsTile.wsSource === "" ? "" : "file://" + wsTile.wsSource
                                     sourceWidth: wsTile.width
                                     badges: [(wsTile.index + 1).toString()]
                                 }
-                                // Live animated preview for workspace videos: ALWAYS
-                                // live (restored ac33749c behavior — the hover-only
-                                // gate added in the masonry refactor left the decoder
-                                // off, so video tiles showed the icon forever).
-                                // Unlike the main strip (100+ videos), this strip
-                                // holds one tile per workspace, so always-on decoders
-                                // stay cheap. The icon below stays until the first
-                                // frame lands, or permanently on decode failure.
-                                readonly property bool wsPreviewing: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData)
-                                AppVideo {
-                                    id: wsVideo
-                                    anchors.fill: parent
-                                    anchors.margins: 2
-                                    visible: wsTile.wsPreviewing
-                                    source: wsTile.wsPreviewing ? wsTile.modelData : ""
-                                    active: wsTile.wsPreviewing
-                                    muted: true
-                                    fillMode: VideoOutput.PreserveAspectCrop
-                                    badges: [(wsTile.index + 1).toString()]
-                                    onErrorOccurred: message => {
-                                        console.warn("[WallpaperSwitcher] video preview failed for " + wsTile.modelData + ": " + message);
-                                    }
-                                }
                                 Text {
-                                    visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && (!wsVideo.ready || wsVideo._failed)
+                                    // Video icon until the background thumb run
+                                    // delivers a first frame (or permanently when
+                                    // no thumb exists).
+                                    visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && wsTile.wsSource === ""
                                     anchors.centerIn: parent
                                     text: ""
                                     font.family: Theme.fontFamily
@@ -1622,7 +1612,11 @@ Item {
                         AppImage {
                             id: tileImg
                             anchors.fill: parent
-                            anchors.margins: 3
+                            // Zero inset: tiles read edge-to-edge like the booru
+                            // masonry (the card ring used to add +6px to every gap).
+                            // AppImage is a ClippingRectangle, so thumbs keep
+                            // their own rounded corners. Hover border overlaps
+                            // the thumb edge by design.
                             // Native preview: original file decoded near
                             // tile size (asynchronous + cached; the
                             // strip's virtualized Repeater keeps the
@@ -1658,7 +1652,8 @@ Item {
                         AppVideo {
                             id: tileVideo
                             anchors.fill: parent
-                            anchors.margins: 3
+                            // Zero inset: parity with the still thumb (and thus
+                            // the booru masonry gaps) — no ring on hover-expand.
                             visible: tile.previewing
                             source: tile.previewing ? tile.modelData : ""
                             active: tile.previewing
@@ -1879,7 +1874,8 @@ Item {
                         AppImage {
                             id: whImg
                             anchors.fill: parent
-                            anchors.margins: 3
+                            // Zero inset: parity with the local-masonry thumb
+                            // (tiles read edge-to-edge, booru masonry gaps).
                             source: whTile.modelData === undefined ? "" : whTile.modelData.preview
                             sourceWidth: Math.max(1, Math.round(whTile.width))
                             badges: [whTile.res !== "" ? whTile.res : (whTile.modelData === undefined ? "" : whTile.modelData.purity)]

@@ -476,7 +476,7 @@ Scope {
         property var keys: []
         property bool active: false
         signal toggleRequested
-        spacing: 12
+        spacing: Theme.spacing
         PageTitle {
             text: ls.title
         }
@@ -485,7 +485,7 @@ Scope {
         }
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: Theme.spacing
             Rectangle {
                 width: 10
                 height: 10
@@ -502,7 +502,7 @@ Scope {
         }
         RowLayout {
             Layout.fillWidth: true
-            spacing: 10
+            spacing: Theme.spacing
             Label {
                 visible: ls.keys.length > 0
                 text: "Try it yourself:"
@@ -535,7 +535,7 @@ Scope {
         property string title: ""
         property string text: ""
         Layout.fillWidth: true
-        spacing: 12
+        spacing: Theme.spacing
         Label {
             text: tr.glyph
             Layout.alignment: Qt.AlignTop
@@ -621,12 +621,12 @@ Scope {
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 24
-                    spacing: 14
+                    spacing: Theme.spacing
 
                     // header
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: Theme.spacing
                         Label {
                             text: "ArchEclipse"
                             font.pixelSize: Theme.fontSize
@@ -661,7 +661,7 @@ Scope {
 
                         // 0 — welcome
                         ColumnLayout {
-                            spacing: 14
+                            spacing: Theme.spacing
                             Item {
                                 Layout.fillHeight: true
                             }
@@ -691,7 +691,7 @@ Scope {
 
                         // 2 — left panel widget walkthrough
                         ColumnLayout {
-                            spacing: 8
+                            spacing: Theme.spacing
 
                             PageTitle {
                                 text: "Explore the left panel"
@@ -748,7 +748,7 @@ Scope {
                                     RowLayout {
                                         Layout.fillWidth: true
                                         Layout.topMargin: 8
-                                        spacing: 8
+                                        spacing: Theme.spacing
                                         Rectangle {
                                             width: 9
                                             height: 9
@@ -801,7 +801,7 @@ Scope {
 
                         // 3 — right-panel widget walkthrough
                         ColumnLayout {
-                            spacing: 8
+                            spacing: Theme.spacing
 
                             PageTitle {
                                 text: "Explore the right panel"
@@ -858,7 +858,7 @@ Scope {
                                     RowLayout {
                                         Layout.fillWidth: true
                                         Layout.topMargin: 8
-                                        spacing: 8
+                                        spacing: Theme.spacing
                                         Rectangle {
                                             width: 9
                                             height: 9
@@ -929,7 +929,7 @@ Scope {
 
                         // 6 — tips
                         ColumnLayout {
-                            spacing: 14
+                            spacing: Theme.spacing
                             PageTitle {
                                 text: "Good to know"
                             }
@@ -967,7 +967,7 @@ Scope {
 
                         // 8 — done
                         ColumnLayout {
-                            spacing: 14
+                            spacing: Theme.spacing
                             Item {
                                 Layout.fillHeight: true
                             }
@@ -999,7 +999,7 @@ Scope {
                     // footer
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 10
+                        spacing: Theme.spacing
 
                         AppCheckBox {
                             text: "Don't show again at startup"

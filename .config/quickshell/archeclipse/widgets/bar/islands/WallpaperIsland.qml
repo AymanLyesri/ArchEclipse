@@ -22,7 +22,6 @@ Column {
     // property") and the whole island fails to load with that error.
     // Verify with: ipc call bar wallpaperDiag width <mon>
     width: root.screen ? Math.min(1280, root.screen.width - 64) : 1280
-    spacing: 0
 
     // Island owner passes the bar's monitor; body falls back to focused.
     property string monitorName: ""

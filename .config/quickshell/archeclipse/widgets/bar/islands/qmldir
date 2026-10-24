@@ -16,5 +16,6 @@ IslandHoverPin 1.0 IslandHoverPin.qml
 IslandEscClose 1.0 IslandEscClose.qml
 IslandWindowActions 1.0 IslandWindowActions.qml
 IslandSideRail 1.0 IslandSideRail.qml
+IslandActionRow 1.0 IslandActionRow.qml
 ModeButton 1.0 ModeButton.qml
 ScreenshotIsland 1.0 ScreenshotIsland.qml

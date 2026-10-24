@@ -113,7 +113,7 @@ MouseArea {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 20
-            spacing: 12
+            spacing: Theme.spacing
 
             // Shared login-box UI (same component as the lock screen):
             // Welcome title, then the user picker, then password.

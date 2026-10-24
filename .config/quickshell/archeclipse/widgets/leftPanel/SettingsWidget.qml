@@ -121,7 +121,8 @@ Item {
                 id: settingsCol
                 spacing: Theme.spacing
                 width: settingsScroll.width
-                bottomPadding: Theme.pad
+                // No edge padding: the panel owns the content inset (the
+                // island's Theme.pad), right-panel parity.
 
                 // ============ BAR SETTINGS ============
                 // NOTE: smart-hide and full-width
