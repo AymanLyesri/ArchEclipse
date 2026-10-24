@@ -1,6 +1,4 @@
 import QtQuick
-import Quickshell
-import Quickshell.Io
 import qs.theme
 import qs.services
 import qs.widgets.bar.islands
@@ -62,24 +60,12 @@ Item {
         }
     }
 
-    // spawn via a plain Process — execDetached silently never launched the
-    // script here (probe-proven: shoot() fired, no PNG); the ScreenRecorder
-    // Process pattern reports failure through onExited instead
-    property Process _shotProc: Process {
-        stdout: StdioCollector {}
-        stderr: StdioCollector {}
-        onExited: code => {
-            const detail = ((_shotProc.stderr.text ?? "") + " " + (_shotProc.stdout.text ?? "")).trim();
-            console.warn("[ScreenshotIsland] shot exited (" + code + "): " + detail);
-            if (code !== 0 && detail !== "")
-                Notifications.send("Screenshot Error", detail);
-        }
-    }
-
+    // spawn via the Screenshot service, never a Process owned here: this
+    // island is destroyed when the hover reveal folds (~1s after the pointer
+    // leaves the bar), which kills any child Process mid-slurp — the area
+    // selection then never reaches grim. See services/Screenshot.qml.
     function shoot(mode) {
-        const arg = mode === "area" ? "--area" : "--now";
-        _shotProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/screenshot.sh", arg, "--monitor", root.monitorName];
-        _shotProc.running = true;
+        Screenshot.capture(mode, root.monitorName);
     }
 
     // padding click (outside the mode buttons) takes a fullscreen shot

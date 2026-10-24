@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import qs.services
 import qs.theme
 
@@ -11,7 +12,7 @@ QtObject {
     id: root
 
     readonly property string monitorName: {
-        const mon = Quickshell.Hyprland?.focusedMonitor
+        const mon = Hyprland.focusedMonitor
         return mon ? mon.name : Quickshell.env("MONITOR_NAME") || "eDP-1"
     }
 

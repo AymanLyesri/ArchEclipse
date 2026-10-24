@@ -122,7 +122,12 @@ elif [[ "$mode" == "--area" ]]; then
         sleep 0.2
     fi
     hyprctl keyword layerrule "match:selection, no_anim on" >/dev/null 2>&1 || true
-    geometry="$(slurp -f '%x,%y %wx%h')" || exit 1
+    # slurp switches to "read predefined rectangles from stdin" whenever
+    # stdin is not a TTY, and waits forever on a pipe that never closes
+    # (measured: spawned from a Quickshell Process the selection never
+    # appeared until the shell died and the pipe hit EOF). /dev/null gives
+    # it an immediate EOF so it stays interactive.
+    geometry="$(slurp -f '%x,%y %wx%h' </dev/null)" || exit 1
     grim -g "$geometry" "$img" || exit 1
     cleanup_area_capture
     trap - EXIT

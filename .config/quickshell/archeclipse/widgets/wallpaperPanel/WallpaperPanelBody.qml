@@ -1828,6 +1828,7 @@ Item {
                 contentHeight: height
                 ScrollBar.horizontal: ScrollBar {
                     policy: ScrollBar.AsNeeded
+                    
                 }
 
                 AppMasonryRow {

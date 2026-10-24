@@ -25,6 +25,22 @@
 
 ---
 
+## Community — join the Discord
+
+<div align="center">
+
+**Stuck on install? Got a bug, an idea, or a screenshot to show off? The Discord is where it all happens.**
+
+<a href="https://discord.gg/fMGt4vH6s5">
+  <img src="https://img.shields.io/badge/Join_the_Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join the ArchEclipse Discord" />
+</a>
+
+</div>
+
+Fastest place to get help — faster than issues, and the maintainer hangs out there.
+
+---
+
 ## Install
 
 **Need:** Arch / Arch-based + Hyprland + Python 3. Rest is auto-installed.
@@ -225,7 +241,7 @@ Light/dark theme applier for ArchEclipse — drives gsettings, the GTK/icon/curs
 - [ ] Gaming perf tuning _(in progress)_
 - [ ] Ongoing polish
 
-Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issues) or in [Discord](https://discord.gg/fMGt4vH6s5).
+Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issues) or come say hi in **[Discord](https://discord.gg/fMGt4vH6s5)**.
 
 ---
 

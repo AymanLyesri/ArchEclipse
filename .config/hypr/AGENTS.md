@@ -72,6 +72,12 @@ tracked base files for local-only needs).
   never deleted; subdirs/symlinks are ignored entirely.
 - Screenshots: `scripts/screenshot.sh --now|--area [output.png]`; heavy
   ImageMagick recompress is opt-in via `SCREENSHOT_OPTIMIZE=1` — keep it off.
+- `slurp` reads a rectangle list from stdin whenever stdin is **not a TTY**
+  (man page), and blocks forever on a pipe that never closes — exactly what a
+  Quickshell `Process` child gets. Spawning `screenshot.sh`/`screenrecord.sh`
+  from the bar then left the selection unmapped until the shell restarted and
+  the pipe hit EOF. Always give slurp `</dev/null` when the caller may not be a
+  terminal (both scripts do now).
 
 ## Maintenance (`maintenance/`)
 

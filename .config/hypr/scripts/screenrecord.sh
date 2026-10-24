@@ -149,7 +149,11 @@ start() {
         # Same free-form region drag as screenshot.sh --area: slurp without
         # window-rects restriction (the old window-list slurp failed with
         # "No visible windows" whenever the active workspace had no matches).
-        selection=$(slurp -f '%x,%y %wx%h' 2>>"$log_file") || {
+        # stdin must be /dev/null: slurp reads predefined rectangles from
+        # stdin whenever it is not a TTY, and a Quickshell Process hands the
+        # child a pipe that never closes — the selection then never maps
+        # (it appears only after the shell restarts and the pipe hits EOF).
+        selection=$(slurp -f '%x,%y %wx%h' </dev/null 2>>"$log_file") || {
             code=$?
             if [[ -n "$freeze_pid" ]]; then
                 kill "$freeze_pid" 2>/dev/null || true
