@@ -92,6 +92,10 @@ Item {
     }
     function _normalizeCombo(expr, main) {
         expr = expr.split("mainMod").join(main).split('"').join("").replace(/\.\./g, " ");
+        // bind.lua uses named physical-key aliases (keycode.S = "code:39").
+        // Show the readable key label instead of the Lua table expression.
+        expr = expr.replace(/\bkeycode\.([A-Za-z_][A-Za-z0-9_]*)/g,
+            (_, key) => key === "period" ? "." : key);
         expr = expr.replace(/\++/g, " + ");
         return root._squeeze(expr);
     }
@@ -114,12 +118,20 @@ Item {
     }
     function _parseMain(text, out, state) {
         const reMainMod = /^\s*local\s+mainMod\s*=\s*"(.+)"/;
+        const reKeyLabels = /^\s*--\s*@keybind-labels\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$/;
         const reDesc = /^\s*---\s*(.+)$/;
         const reCat = /^\s*--\s+(.+)$/;
         const reBind = /^\s*hl\.bind/;
         const reDigits = /^[0-9]+$/;
         for (const line of root._splitLines(text)) {
             let m;
+            if ((m = line.match(reKeyLabels))) {
+                // Bind loops use a Lua variable for the key; this comment supplies
+                // the readable labels to expand in the KeyBinds widget.
+                state.keyLabels = state.keyLabels || {};
+                state.keyLabels[m[1]] = m[2].split(",").map(label => root._squeeze(label)).filter(label => label !== "");
+                continue;
+            }
             if ((m = line.match(reMainMod))) {
                 state.mainMod = m[1];
                 continue;
@@ -128,6 +140,7 @@ Item {
                 state.comment = m[1];
                 continue;
             } else if ((m = line.match(reCat))) {
+                state.keyLabels = {};
                 if (state.open !== null)
                     state.open = null;
                 let cat = m[1];
@@ -146,7 +159,18 @@ Item {
                     root._openCategory(out, state, "Default Keybinds");
                 }
                 const keys = root._extractKeys(root._normalizeCombo(root._extractBindExpr(line), state.mainMod));
-                out.map[state.open].push({ description: state.comment !== "" ? state.comment : "Unknown Keybind", keys: keys });
+                const hintKey = keys.find(key => Object.prototype.hasOwnProperty.call(state.keyLabels || {}, key));
+                const labels = hintKey ? state.keyLabels[hintKey] : null;
+                const description = state.comment !== "" ? state.comment : "Unknown Keybind";
+                if (labels && labels.length > 0) {
+                    for (const label of labels) {
+                        const displayKeys = keys.map(key => key === hintKey ? label : key);
+                        const displayDescription = description.split("[" + hintKey + "]").join(label);
+                        out.map[state.open].push({ description: displayDescription, keys: displayKeys });
+                    }
+                } else {
+                    out.map[state.open].push({ description: description, keys: keys });
+                }
                 state.firstItem = false;
             }
         }
@@ -202,7 +226,7 @@ Item {
     }
     function _buildKeybinds(mainText, customTexts) {
         const out = { order: [], map: {} };
-        const state = { mainMod: "SUPER", comment: "", pending: null, open: null, firstItem: true, lastCat: "" };
+        const state = { mainMod: "SUPER", comment: "", pending: null, open: null, firstItem: true, lastCat: "", keyLabels: {} };
         root._parseMain(mainText, out, state);
         for (const t of customTexts)
             root._parseCustom(t, out, state);
@@ -435,12 +459,22 @@ Item {
                                             anchors.fill: parent
                                             spacing: Theme.spacing
                                             Label {
+                                                id: descriptionLabel
                                                 text: modelData.description
                                                 font.pixelSize: Theme.fontSize
                                                 color: Theme.fg
                                                 elide: Text.ElideRight
                                                 maximumLineCount: 1
                                                 Layout.fillWidth: true
+
+                                                HoverHandler {
+                                                    id: descriptionHover
+                                                }
+
+                                                AppTooltip {
+                                                    visible: descriptionHover.hovered && descriptionLabel.truncated
+                                                    text: descriptionLabel.text
+                                                }
                                             }
 
                                             // key chips joined by "+" (shared AppKeybind widget)
