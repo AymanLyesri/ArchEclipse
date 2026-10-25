@@ -15,7 +15,8 @@ import qs.widgets.shared
 //
 // Launcher expansion (Bar.qml binds `expanded` to the monitor's search
 // state, weather-pill recipe): the pill grows vertically off the band and
-// the two modes re-represent as labeled IslandActionRow cards stacked
+// the two modes re-represent as labeled IslandActionRow rows on one
+// shared surface sheet stacked
 // outside the stadium — the compact band parks down to just the camera
 // indicator while the rows are shown. Same actions, new representation.
 Item {
@@ -126,17 +127,21 @@ Item {
         }
     }
 
-    // ---- launcher-expanded rows: modes re-represented as card rows ----
+    // ---- launcher-expanded rows: modes re-represented as rows on a shared
+    // sheet ----
     // Hang off the band, away from the screen edge (weather-pill recipe).
     // Reveal rides extraT (FastEffects fade, like the weather stats rows);
     // rows stay laid out while extraT > 0 so the width/height stems glide
     // through fade-out. Handlers are the SAME actions the stadium buttons
     // run — representation only, no new actions.
-    Column {
+    //
+    // The sheet owns the only background: rows are background-less
+    // (see IslandActionRow) so the expanded stack reads as one surface,
+    // not a stack of separated pill cards.
+    Rectangle {
         id: expandedRows
         anchors.horizontalCenter: parent.horizontalCenter
         y: root.growUp ? 0 : Theme.sidePillHeight + root.extraGap
-        spacing: root.extraGap
         visible: root.extraT > 0
         // fade rides its OWN fast stem (like the weather stats rows), never
         // the spatial extraT curve — opacity tracking the geometry animation
@@ -145,18 +150,30 @@ Item {
         Behavior on opacity {
             Anim { type: Anim.FastEffects }
         }
+        radius: Theme.radius
+        color: Theme.surface
+        implicitWidth: rows.implicitWidth + 16
+        implicitHeight: rows.implicitHeight + 8
+        width: implicitWidth
+        height: implicitHeight
 
-        IslandActionRow {
-            glyph: "\u{F03E}"   // nf-fa-image — fullscreen shot
-            label: "Fullscreen"
-            tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
-            onActivated: root.shoot("now")
-        }
-        IslandActionRow {
-            glyph: "\u{F125}"   // nf-fa-crop — area shot
-            label: "Area"
-            tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
-            onActivated: root.shoot("area")
+        Column {
+            id: rows
+            anchors.centerIn: parent
+            spacing: root.extraGap
+
+            IslandActionRow {
+                glyph: "\u{F03E}"   // nf-fa-image — fullscreen shot
+                label: "Fullscreen"
+                tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
+                onActivated: root.shoot("now")
+            }
+            IslandActionRow {
+                glyph: "\u{F125}"   // nf-fa-crop — area shot
+                label: "Area"
+                tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
+                onActivated: root.shoot("area")
+            }
         }
     }
 }

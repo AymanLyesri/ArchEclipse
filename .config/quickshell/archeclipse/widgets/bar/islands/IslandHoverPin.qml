@@ -64,6 +64,14 @@ HoverHandler {
     }
     function stop() { leaveTimer.stop(); }
     function restart() { leaveTimer.restart(); }
+    // Arm with the open-grace. Creation arms through this (Component.onCompleted
+    // below); long-lived pins that are re-opened later (e.g. ControlCard, which
+    // exists for the bar's whole lifetime) call it on every open so the grace
+    // is fresh instead of having expired while the pin sat idle.
+    function arm() {
+        leaveTimer.interval = root.openGrace;
+        leaveTimer.restart();
+    }
     // Arm the timer at creation too (unless opted out): if the cursor never enters,
     // no hover transition fires and the island would stay open forever.
     // (The first arm grants an open-grace — time to travel to a
@@ -73,7 +81,6 @@ HoverHandler {
     Component.onCompleted: {
         if (!root.armOnCreation)
             return;
-        leaveTimer.interval = root.openGrace;
-        leaveTimer.restart();
+        root.arm();
     }
 }

@@ -475,13 +475,14 @@ PanelWindow {
                     // Per-state outer inset: default rests tighter (4), all
                     // other islands use Theme.islandPad (8). Pill width/height
                     // above derive from this so the surround stays exact.
-                    // volume/brightness/player/recording render DefaultBar in
-                    // the main stack (their UI lives in the OSD/media
-                    // floaters and the right side pill), so they keep the
-                    // default inset —
-                    // otherwise opening the OSD flips effPad 4->8 and the
-                    // bar visibly grows.
-                    property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording" || stack.current === "network"
+                    // volume/brightness/player/recording/network render
+                    // DefaultBar in the main stack (their UI lives in the
+                    // OSD/media floaters and the side pills), and control
+                    // keeps DefaultBar too (the panel is the bar's own center
+                    // pill), so they keep the default inset — otherwise
+                    // opening one flips effPad 4->8 and the bar visibly
+                    // grows.
+                    property bool showsDefault: stack.current === "default" || stack.current === "volume" || stack.current === "brightness" || stack.current === "player" || stack.current === "recording" || stack.current === "network" || stack.current === "control"
                     property int effPad: stack.showsDefault ? 4 : Theme.islandPad
                     // Docked to the bar edge (top for a top bar, bottom for a
                     // bottom bar) — never centered: centering lets content drift
@@ -561,11 +562,13 @@ PanelWindow {
                     // its Loader, transient islands via currentPageLoader).
 
                     property string current: stack.displayed
-                    // Note: control resolves to controlPage; volume/brightness
-                    // render in the bottom OSD pill (like player in the media
-                    // pill) and recording in its side pill, so the main stack
-                    // shows default content for those — no swap churn.
-                    // (Recording maps to defaultPage for the same reason.)
+                    // Note: control now renders defaultPage (DefaultBar hosts
+                    // the quick-settings panel inside its center pill); volume/
+                    // brightness render in the bottom OSD pill (like player in
+                    // the media pill) and recording in its side pill, so the
+                    // main stack shows default content for those — no swap
+                    // churn. (Recording maps to defaultPage for the same
+                    // reason.)
                     onCurrentChanged: {
                         // Leaving default (or any swap) mid-slider-glide: the old
                         // page is about to be torn down, so the pill goes back to
@@ -658,7 +661,11 @@ PanelWindow {
                             case "system":
                                 return systemPage;
                             case "control":
-                                return controlPage;
+                                // The quick-settings panel lives inside
+                                // DefaultBar's center pill (ControlCard) — the
+                                // page never swaps, so the band is never
+                                // hijacked.
+                                return defaultPage;
                             case "overview":
                                 return overviewPage;
                             case "wallpaper":
@@ -697,10 +704,6 @@ PanelWindow {
                     Component {
                         id: systemPage
                         SystemMonitorIsland {}
-                    }
-                    Component {
-                        id: controlPage
-                        ControlIsland {}
                     }
                     Component {
                         id: overviewPage

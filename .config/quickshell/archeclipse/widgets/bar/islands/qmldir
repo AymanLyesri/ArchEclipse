@@ -1,6 +1,6 @@
 module qs.widgets.bar.islands
 
-ControlIsland 1.0 ControlIsland.qml
+ControlCard 1.0 ControlCard.qml
 LeftIsland 1.0 LeftIsland.qml
 OsdIsland 1.0 OsdIsland.qml
 OverviewIsland 1.0 OverviewIsland.qml

@@ -8,7 +8,7 @@ import qs.widgets.shared
 // Volume/brightness OSD pill: shows the full VolumeSection or the
 // brightness section collapsed until hovered, floating centered below
 // the main pill like the media pill — never hijacks the main pill.
-// Full quick-settings stay on explicit toggleControl (ControlIsland).
+// Full quick-settings stay on explicit toggleControl (ControlCard).
 Item {
     id: root
 
@@ -147,8 +147,8 @@ Item {
         holdOpen: root.adjusting
     }
 
-    // Volume/brightness changes reset the close timer (same as the old
-    // ControlIsland poke): without this a leave armed before the key
+    // Volume/brightness changes reset the close timer (same as the control
+    // card's poke): without this a leave armed before the key
     // repeat would shut the pill mid-adjustment. Skipped while hovered.
     function pokeHideTimer() {
         if (hoverPin.hovered || !hoverPin.running)

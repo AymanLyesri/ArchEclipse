@@ -7,8 +7,9 @@ import qs.widgets.shared
 
 // Quick-settings body: two columns — left holds the volume + connectivity
 // sections (own files in this dir), right holds the action grid,
-// brightness slider and power profile selector. Lives in the bar's dynamic
-// island (ControlIsland) instead of a side window.
+// brightness slider and power profile selector. Lives in the bar's
+// ControlCard, inside DefaultBar's center pill (the bump grows around it
+// instead of swapping the stack page).
 // Close behavior = BarState.deactivate("control", monitorName).
 Item {
     id: body
@@ -79,7 +80,7 @@ Item {
             return "Power Saver";
         return "Balanced";
     }
-    // True while the user is dragging a slider. ControlIsland binds the
+    // True while the user is dragging a slider. ControlCard binds the
     // hover-pin's holdOpen to this: HoverHandler.hovered drops while a button
     // is pressed, so a drag would otherwise read as "left" and arm the leave
     // timer mid-adjustment.

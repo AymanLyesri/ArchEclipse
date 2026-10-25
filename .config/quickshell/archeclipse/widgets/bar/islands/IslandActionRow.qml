@@ -3,12 +3,12 @@ import qs.theme
 import qs.widgets.bar.islands
 
 // Labeled action row for the expanded side-pill layouts (record /
-// screenshot launcher expansion): a pill-card with the shared inert
-// ModeButton cell plus a text label, re-representing a compact-stadium
-// mode button as its own row (no new actions — same handlers). Row cards
-// live OUTSIDE the stadium clip as siblings, styled by Theme like
-// everything else.
-Rectangle {
+// screenshot launcher expansion): a background-less ModeButton cell plus
+// a text label, re-representing a compact-stadium mode button as its own
+// row (no new actions — same handlers). Rows draw nothing themselves:
+// they sit inside a shared surface card owned by the islands, so the
+// expanded stack reads as one background instead of stacked pills.
+Item {
     id: root
 
     property string glyph: ""
@@ -16,12 +16,10 @@ Rectangle {
     property string tooltipText: ""
     signal activated()
 
-    implicitWidth: row.implicitWidth + 16
+    implicitWidth: row.implicitWidth
     implicitHeight: 22
     width: implicitWidth
     height: implicitHeight
-    radius: height / 2
-    color: Theme.surface
 
     Row {
         id: row

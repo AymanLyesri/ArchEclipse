@@ -8,7 +8,7 @@ import qs.widgets.leftPanel
 // LeftIsland: the former LeftPanel body (sidebar + widget stack) living
 // in the left side pill beside the bar, scoped to its owning monitor.
 //
-// Same unfold pattern as Search/ControlIsland — the pill grows
+// Same expand-driver unfold as SearchIsland — the pill grows
 // (width via the pill transition, height snapped on the window) while this
 // body unfolds via the expand driver (clip + opacity + scale only, so no
 // expensive layout animates per-frame). Each tab is a Loader that builds

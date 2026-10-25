@@ -17,7 +17,8 @@ import qs.widgets.shared
 // Launcher expansion (Bar.qml binds `expanded` to the monitor's search
 // state, weather-pill recipe): the pill grows vertically off the band
 // (away from the screen edge) and the modes re-represent as labeled
-// IslandActionRow cards stacked outside the stadium — compact = idle
+// IslandActionRow rows on one shared surface sheet stacked outside the
+// stadium — compact = idle
 // modes as stadium buttons; expanded = each mode as its own row, and an
 // active recording becomes a Stop row (same toggle handler, clearer
 // representation; the stadium keeps the dot/timer pill). No hover
@@ -189,18 +190,22 @@ Item {
         }
     }
 
-    // ---- launcher-expanded rows: modes re-represented as card rows ----
+    // ---- launcher-expanded rows: modes re-represented as rows on a shared
+    // sheet ----
     // Hang off the band, away from the screen edge (weather-pill recipe):
     // below the stadium on top bars, above on bottom-oriented ones. The
     // reveal rides extraT (FastEffects fade, like the weather stats rows);
     // rows stay laid out while extraT > 0 so the width/height stems glide
     // through fade-out instead of yanking. Handlers are the SAME actions
     // the stadium buttons run — representation only, no new actions.
-    Column {
+    //
+    // The sheet owns the only background: rows are background-less
+    // (see IslandActionRow) so the expanded stack reads as one surface,
+    // not a stack of separated pill cards.
+    Rectangle {
         id: expandedRows
         anchors.horizontalCenter: parent.horizontalCenter
         y: root.growUp ? 0 : Theme.sidePillHeight + root.extraGap
-        spacing: root.extraGap
         visible: root.extraT > 0
         // fade rides its OWN fast stem (like the weather stats rows), never
         // the spatial extraT curve — opacity tracking the geometry animation
@@ -209,27 +214,39 @@ Item {
         Behavior on opacity {
             Anim { type: Anim.FastEffects }
         }
+        radius: Theme.radius
+        color: Theme.surface
+        implicitWidth: rows.implicitWidth + 16
+        implicitHeight: rows.implicitHeight + 8
+        width: implicitWidth
+        height: implicitHeight
 
-        IslandActionRow {
-            visible: !root.recording && !root.starting
-            glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
-            label: "Fullscreen"
-            tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
-            onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
-        }
-        IslandActionRow {
-            visible: !root.recording && !root.starting
-            glyph: "\u{F125}"   // nf-fa-crop — area record
-            label: "Area"
-            tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
-            onActivated: ScreenRecorder.toggleRecording("area", root.monitorName)
-        }
-        IslandActionRow {
-            visible: root.recording
-            glyph: "\u{F04D}"   // nf-fa-stop — stop record
-            label: "Stop"
-            tooltipText: "Stop recording"
-            onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
+        Column {
+            id: rows
+            anchors.centerIn: parent
+            spacing: root.extraGap
+
+            IslandActionRow {
+                visible: !root.recording && !root.starting
+                glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+                label: "Fullscreen"
+                tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
+                onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
+            }
+            IslandActionRow {
+                visible: !root.recording && !root.starting
+                glyph: "\u{F125}"   // nf-fa-crop — area record
+                label: "Area"
+                tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
+                onActivated: ScreenRecorder.toggleRecording("area", root.monitorName)
+            }
+            IslandActionRow {
+                visible: root.recording
+                glyph: "\u{F04D}"   // nf-fa-stop — stop record
+                label: "Stop"
+                tooltipText: "Stop recording"
+                onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
+            }
         }
     }
 
