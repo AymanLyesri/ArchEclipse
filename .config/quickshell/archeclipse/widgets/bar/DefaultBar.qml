@@ -32,12 +32,27 @@ Column {
     // toward a target that moves every frame (see stack.rigidWidth in Bar.qml).
     property var barStack: null
     readonly property bool contentGliding: volumeWidget.revealing || brightnessWidget.revealing
+    // True while the center pill's own box animates (control open/close).
+    // Its width/height targets move every frame during that unfold, so the
+    // bar pill must track them rigidly instead of easing after a moving target.
+    readonly property bool panelGliding: controlCard.gliding
     onContentGlidingChanged: root.setContentGliding(root.contentGliding)
-    onBarStackChanged: root.setContentGliding(root.contentGliding)
-    Component.onDestruction: root.setContentGliding(false)
+    onPanelGlidingChanged: root.setPanelGliding(root.panelGliding)
+    onBarStackChanged: {
+        root.setContentGliding(root.contentGliding);
+        root.setPanelGliding(root.panelGliding);
+    }
+    Component.onDestruction: {
+        root.setContentGliding(false);
+        root.setPanelGliding(false);
+    }
     function setContentGliding(on) {
         if (root.barStack)
             root.barStack.rigidWidth = on;
+    }
+    function setPanelGliding(on) {
+        if (root.barStack)
+            root.barStack.rigidDirect = on;
     }
 
     // Workspace-strip passthrough for the window mask + hover chaining
@@ -100,17 +115,25 @@ Column {
         // Quick settings up: the bar IS the panel. Zones drop out, the row
         // takes the panel's height (which pushes the workspace strip below
         // it) and the width collapses to the panel + the pill's own inset.
-        readonly property bool panelUp: controlCard.shown
-        implicitWidth: panelUp ? centerPill.width : 2 * sideWidth + centerPill.collapsedWidth + Theme.spacing * 2
+        // Follows the *intent* (`open`), not the body's lifetime (`shown`):
+        // `shown` outlives the close retract, so keying the chrome off it kept
+        // the band content away for the whole fold and landed it afterwards.
+        readonly property bool panelUp: controlCard.open
+        // The shell morphs with the same unfold driver as the center pill, so
+        // the bar (and the strip below it) narrows as the panel grows instead
+        // of snapping to the open width on the first frame.
+        readonly property real closedWidth: 2 * sideWidth + centerPill.collapsedWidth + Theme.spacing * 2
+        implicitWidth: closedWidth + (centerPill.openWidth - closedWidth) * controlCard.openT
         width: implicitWidth
-        height: panelUp ? Math.max(controlCard.cardHang, Theme.barContentHeight) : Theme.barContentHeight
+        height: Theme.barContentHeight + (Math.max(controlCard.cardHang, Theme.barContentHeight) - Theme.barContentHeight) * controlCard.openT
 
         // Bar chrome (zones, band row, notch) cross-fades out while the panel
-        // opens and back in once its close fold has finished. Fading in
-        // mid-fold would ghost the icons over the collapsing panel, and
-        // leaving them merely transparent while open would keep invisible
-        // buttons live on top of the panel — so they stay `visible` for the
-        // length of the fade-out, then drop out of hit-testing.
+        // opens, and back in from the FIRST frame of the close retract: the
+        // band content returns gradually across the shrinking panel instead of
+        // popping in once the box has already folded. Opening keeps the short
+        // effects fade; closing spans the whole retract so the two halves land
+        // together. `chromeVisible` only gates hit-testing — it stays live for
+        // the length of the fade-out, then drops the invisible buttons.
         property real chromeOpacity: panelUp ? 0 : 1
         property bool chromeVisible: true
         onPanelUpChanged: {
@@ -129,6 +152,7 @@ Column {
             enabled: Settings.animationsEnabled
             Anim {
                 type: Anim.DefaultEffects
+                duration: topRow.panelUp ? Theme.anim.defaultEffects : controlCard.expandDuration
             }
         }
         Timer {
@@ -160,14 +184,17 @@ Column {
             readonly property real collapsedWidth: centerRow.implicitWidth + 20
             readonly property real collapsedHeight: Theme.barContentHeight + edgePad
             readonly property real collapsedY: (Theme.barContentHeight - collapsedHeight) / 2 + (Settings.barOrientation ? -1 : 1) * edgePad / 2
+            // Full panel footprint. `openT` is the single unfold driver: this
+            // item's real width/height grow from the band bump and the bar pill
+            // + strip morph with it (topRow above). Height tracks cardHang
+            // while open, so the volume section's own growth still pushes the
+            // pill (and the strip) down live.
+            readonly property real openWidth: controlCard.cardWidth
+            readonly property real openHeight: Math.max(controlCard.cardHang, collapsedHeight)
 
             anchors.horizontalCenter: parent.horizontalCenter
-            // Held at the open size until the close fold finishes
-            // (controlCard.shown), so the panel never outgrows its bump.
-            // Width snaps and lets the pill's own width glide carry the
-            // motion; height tracks the unfold per-frame.
-            width: controlCard.shown ? controlCard.cardWidth : collapsedWidth
-            height: controlCard.shown ? Math.max(controlCard.cardHang, collapsedHeight) : collapsedHeight
+            width: collapsedWidth + (openWidth - collapsedWidth) * controlCard.openT
+            height: collapsedHeight + (openHeight - collapsedHeight) * controlCard.openT
             // Wall edge pinned, growth away from the screen edge.
             y: Settings.barOrientation ? collapsedY : collapsedY + collapsedHeight - height
 
@@ -175,12 +202,11 @@ Column {
                 topBar: Settings.barOrientation
                 bodyWidth: centerPill.width
                 bodyHeight: centerPill.height
-                // While the panel is up the bar pill itself is the surface
-                // (the panel sits inside it and the strip below it), so this
-                // inset bump would only double-blend over that fill. It
-                // cross-fades into that surface instead of blinking out.
-                visible: topRow.chromeVisible
-                opacity: topRow.chromeOpacity
+                // The bump is the center pill's own surface: it is what you
+                // see unfold into the panel and retract back into the band,
+                // so it stays fully opaque the whole way — no hand-off fade,
+                // no double-blend shortcut.
+                visible: topRow.chromeVisible || controlCard.shown
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
@@ -283,23 +309,34 @@ Column {
                 }
             }
 
-            // Quick settings — the pill's own content while open: it opens
-            // out of the center pill's resting rect (iris, see ControlCard)
-            // and is not sized by the Row. The row and the center bump take
-            // their width/height from this card (cardWidth/cardHang), so bar
-            // width, unfold and strip push stay one unit.
-            ControlCard {
-                id: controlCard
-                monitorName: root.monitorName
-                open: centerPill.controlOpen
-                bandHovered: bandHover.hovered
-                // Seed for the iris unfold: the resting bump's footprint.
-                // Safe to read while the band row is hidden — a positioner's
-                // implicit size is cached from its last visible layout.
-                fromWidth: centerPill.collapsedWidth
+            // Quick settings — the pill's own content while open. The card is
+            // full panel size; this wrapper is clipped to the center pill's
+            // real box, so the content is revealed by that box growing (the
+            // pill's own geometry), not by an inner iris animation.
+            Item {
+                id: panelClip
+                width: centerPill.width
+                height: centerPill.height
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                clip: true
+                // The card sits above the band row, so an opaque card would
+                // hide the chrome fading in underneath it for the whole
+                // retract. Fading the content with the same driver as the
+                // box makes the close a real cross-fade; opening keeps it
+                // fully opaque (the growing box is the reveal there).
+                opacity: controlCard.open ? 1 : controlCard.openT
+
+                ControlCard {
+                    id: controlCard
+                    monitorName: root.monitorName
+                    open: centerPill.controlOpen
+                    bandHovered: bandHover.hovered
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: Settings.barOrientation ? parent.top : undefined
+                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                }
             }
         }
 

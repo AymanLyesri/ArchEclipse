@@ -4,7 +4,7 @@ import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.shared
 
-// Recording island — idle: 56px stadium with two start-mode buttons
+// Recording island — idle: 24px stadium with two start-mode buttons
 // (fullscreen / area), revealed by hovering the empty right pill zone —
 // widths only ever change on state transitions (hover-coupled resizes
 // churn hover re-evaluation: probe-proven flap). Starting shows a
@@ -17,12 +17,13 @@ import qs.widgets.shared
 // Launcher expansion (Bar.qml binds `expanded` to the monitor's search
 // state, weather-pill recipe): the pill grows vertically off the band
 // (away from the screen edge) and the modes re-represent as labeled
-// IslandActionRow rows on one shared surface sheet stacked outside the
-// stadium — compact = idle
-// modes as stadium buttons; expanded = each mode as its own row, and an
-// active recording becomes a Stop row (same toggle handler, clearer
-// representation; the stadium keeps the dot/timer pill). No hover
-// machinery: rows are click-only ModeButton/label cells.
+// IslandActionRow rows — compact = idle modes as stadium buttons;
+// expanded = each mode as its own row, and an active recording becomes a
+// Stop row (same toggle handler, clearer representation; the band keeps
+// the dot/timer pill). ONE card owns the whole grown body: the band and
+// the rows share a single surface, so the expanded pill reads as one card
+// rather than a chip plus a sheet. No hover machinery: rows are
+// click-only ModeButton/label cells.
 Item {
     id: root
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
@@ -48,14 +49,16 @@ Item {
     Behavior on extraT {
         Anim {}
     }
+    // rows block that the card carries beyond the band: rows plus the
+    // card's 4px outer padding (the band-side gap is extraGap)
+    readonly property real rowsBlockW: recRows.implicitWidth + 16
+    readonly property real rowsBlockH: recRows.implicitHeight + 4
     // band offset while grown: clears the stacked rows above/below
-    readonly property real extraH: root.extraT * (root.extraGap + expandedRows.implicitHeight)
-    implicitHeight: clip.height + root.extraH
+    readonly property real extraH: root.extraT * (root.extraGap + root.rowsBlockH)
+    // the card IS the island: band + rows, one background
+    implicitHeight: Theme.sidePillHeight + root.extraH
     height: implicitHeight
-    // width hugs the wider of stadium / row block; the row-block term
-    // releases at the state flip (not after the fade) so fold-in wide →
-    // band width glides concurrently with the row fade instead of after it
-    width: Math.max(root.pillW, root.expandedRowCount > 0 ? expandedRows.implicitWidth : 0)
+    width: Math.max(root.pillW, root.expandedRowCount > 0 ? root.rowsBlockW : 0)
     Behavior on width {
         Anim {
             duration: Theme.anim.fastSpatial
@@ -69,7 +72,8 @@ Item {
     // re-evaluation every animated frame and the reveal flaps on/off
     // forever (probe-proven limit cycle). Widths change only on state
     // transitions.
-    property real pillW: root.recording || root.starting ? 96 : idleRow.implicitWidth + 16
+    readonly property real idleW: idleRow.implicitWidth + 16
+    property real pillW: root.recording || root.starting ? 96 : idleW
     Behavior on pillW {
         Anim {
             duration: Theme.anim.fastSpatial
@@ -92,160 +96,171 @@ Item {
 
     IslandExpandClip {
         id: clip
-        // pinned to the band edge: grown rows stack ABOVE the band on
-        // bottom-oriented bars (below on top bars — see expandedRows)
-        y: root.growUp ? root.extraH : 0
+        // opposite edge pinned to the band: the card wipes away from the
+        // screen edge on bottom bars (opposite on top bars)
+        y: root.growUp ? root.height - clip.height : 0
         expand: root.expand
-        contentHeight: Theme.sidePillHeight
+        contentHeight: root.implicitHeight
 
-        Rectangle {
-            width: root.pillW
-            height: Theme.sidePillHeight
-            radius: root.recording ? Theme.radius : height / 2
-            Behavior on radius {
-                Anim {
-                    duration: Theme.anim.fastSpatial
-                }
-            }
-            color: Theme.surface
+        Item {
+            id: body
+            width: root.width
+            height: root.implicitHeight
+            // band stays parked at its edge while the card grows
+            anchors.bottom: root.growUp ? parent.bottom : undefined
+            anchors.top: root.growUp ? undefined : parent.top
 
-            Row {
-                anchors.centerIn: parent
-                spacing: Theme.spacing
-                visible: root.recording
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 8
-                    height: 8
-                    radius: width / 2
-                    color: Theme.danger
-                    SequentialAnimation on opacity {
-                        loops: Animation.Infinite
-                        NumberAnimation {
-                            from: 1
-                            to: 0.3
-                            duration: Theme.anim.large
-                        }
-                        NumberAnimation {
-                            from: 0.3
-                            to: 1
-                            duration: Theme.anim.large
-                        }
+            // ONE background for the whole island: band + rows share it, so
+            // the expanded stack reads as one card, not a chip plus a sheet
+            Rectangle {
+                anchors.fill: parent
+                // stadium only while it is a bare band; the grown card is a
+                // rounded card (never radius == height/2, which a tall card
+                // would bow into a lozenge)
+                radius: root.recording || root.starting || root.extraT > 0 ? Theme.radius : Theme.sidePillHeight / 2
+                Behavior on radius {
+                    Anim {
+                        duration: Theme.anim.fastSpatial
                     }
                 }
-                Text {
-                    text: root.elapsed
-                    color: Theme.fg
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize
+                color: Theme.surface
+            }
+
+            // band: dot + elapsed (recording), dot + mode buttons (idle), or
+            // the start spinner — parked at the band edge
+            Item {
+                id: band
+                width: parent.width
+                height: Theme.sidePillHeight
+                y: root.growUp ? parent.height - height : 0
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: Theme.spacing
+                    visible: root.recording
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 8
+                        height: 8
+                        radius: width / 2
+                        color: Theme.danger
+                        SequentialAnimation on opacity {
+                            loops: Animation.Infinite
+                            NumberAnimation {
+                                from: 1
+                                to: 0.3
+                                duration: Theme.anim.large
+                            }
+                            NumberAnimation {
+                                from: 0.3
+                                to: 1
+                                duration: Theme.anim.large
+                            }
+                        }
+                    }
+                    Text {
+                        text: root.elapsed
+                        color: Theme.fg
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize
+                    }
+                }
+
+                // idle stadium: recording indicator on the left, mode buttons
+                // after it — uniform cells, centered in the hugging pill
+                Row {
+                    id: idleRow
+                    anchors.centerIn: parent
+                    spacing: 4
+                    visible: !root.recording && !root.starting
+
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 8
+                        height: 8
+                        radius: width / 2
+                        color: Theme.danger
+                    }
+
+                    ModeButton {
+                        glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+                        // park while the launcher expansion re-represents
+                        // the modes as rows; return at the flip, not at the
+                        // end of the geometry unwind — a late return reads as
+                        // the band clipping to a dot width and then popping
+                        // back
+                        visible: !root.expanded
+                        tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
+                        onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
+                    }
+                    ModeButton {
+                        glyph: "\u{F125}"   // nf-fa-crop — area record
+                        visible: !root.expanded
+                        tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
+                        onClicked: ScreenRecorder.toggleRecording("area", root.monitorName)
+                    }
+                }
+
+                // loading circle: a start click keeps the piece visible (Bar
+                // pins it open via ScreenRecorder.starting) and shows a
+                // spinner until the recorder is actually up
+                AppProgress {
+                    anchors.centerIn: parent
+                    visible: root.starting
+                    status: "loading"
+                    variant: "spinner"
+                    width: 14
+                    height: 14
                 }
             }
 
-            // idle stadium: recording indicator on the left, mode buttons
-            // after it — uniform cells, centered in the hugging pill
-            Row {
-                id: idleRow
-                anchors.centerIn: parent
-                spacing: 4
-                visible: !root.recording && !root.starting
-
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 8
-                    height: 8
-                    radius: width / 2
-                    color: Theme.danger
+            // ---- launcher-expanded rows: modes re-represented as rows on
+            // the SAME card as the band ----
+            // Away from the screen edge: above the band on bottom-oriented
+            // bars, below it on top bars — 4px card padding at the outer end.
+            // The reveal rides extraT (FastEffects fade, like the weather
+            // stats rows); rows stay laid out while extraT > 0 so the
+            // width/height stems glide through fade-out instead of yanking.
+            // Handlers are the SAME actions the band buttons run —
+            // representation only, no new actions. Background-less rows
+            // (IslandActionRow) keep the card's single surface intact.
+            Column {
+                id: recRows
+                x: (parent.width - width) / 2
+                y: root.growUp ? 4 : Theme.sidePillHeight + root.extraGap
+                visible: root.extraT > 0
+                // fade rides its OWN fast stem (like the weather stats rows),
+                // never the spatial extraT curve — opacity tracking the
+                // geometry animation gates the rows on the pill's full growth
+                // and reads as a delay
+                opacity: root.expandedRowCount > 0 ? 1 : 0
+                Behavior on opacity {
+                    Anim { type: Anim.FastEffects }
                 }
+                spacing: root.extraGap
 
-                ModeButton {
+                IslandActionRow {
+                    visible: !root.recording && !root.starting
                     glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
-                    // park while the launcher expansion re-represents the
-                    // modes as rows; return at the flip, not at the end of
-                    // the geometry unwind — a late return reads as the pill
-                    // clipping to a dot width and then popping back
-                    visible: !root.expanded
+                    label: "Fullscreen"
                     tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
-                    onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
+                    onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
                 }
-                ModeButton {
+                IslandActionRow {
+                    visible: !root.recording && !root.starting
                     glyph: "\u{F125}"   // nf-fa-crop — area record
-                    visible: !root.expanded
+                    label: "Area"
                     tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
-                    onClicked: ScreenRecorder.toggleRecording("area", root.monitorName)
+                    onActivated: ScreenRecorder.toggleRecording("area", root.monitorName)
                 }
-            }
-
-            // loading circle: a start click keeps the piece visible (Bar pins
-            // it open via ScreenRecorder.starting) and shows a spinner until
-            // the recorder is actually up
-            AppProgress {
-                anchors.centerIn: parent
-                visible: root.starting
-                status: "loading"
-                variant: "spinner"
-                width: 14
-                height: 14
-            }
-        }
-    }
-
-    // ---- launcher-expanded rows: modes re-represented as rows on a shared
-    // sheet ----
-    // Hang off the band, away from the screen edge (weather-pill recipe):
-    // below the stadium on top bars, above on bottom-oriented ones. The
-    // reveal rides extraT (FastEffects fade, like the weather stats rows);
-    // rows stay laid out while extraT > 0 so the width/height stems glide
-    // through fade-out instead of yanking. Handlers are the SAME actions
-    // the stadium buttons run — representation only, no new actions.
-    //
-    // The sheet owns the only background: rows are background-less
-    // (see IslandActionRow) so the expanded stack reads as one surface,
-    // not a stack of separated pill cards.
-    Rectangle {
-        id: expandedRows
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: root.growUp ? 0 : Theme.sidePillHeight + root.extraGap
-        visible: root.extraT > 0
-        // fade rides its OWN fast stem (like the weather stats rows), never
-        // the spatial extraT curve — opacity tracking the geometry animation
-        // gates the rows on the pill's full growth and reads as a delay
-        opacity: root.expandedRowCount > 0 ? 1 : 0
-        Behavior on opacity {
-            Anim { type: Anim.FastEffects }
-        }
-        radius: Theme.radius
-        color: Theme.surface
-        implicitWidth: rows.implicitWidth + 16
-        implicitHeight: rows.implicitHeight + 8
-        width: implicitWidth
-        height: implicitHeight
-
-        Column {
-            id: rows
-            anchors.centerIn: parent
-            spacing: root.extraGap
-
-            IslandActionRow {
-                visible: !root.recording && !root.starting
-                glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
-                label: "Fullscreen"
-                tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
-                onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
-            }
-            IslandActionRow {
-                visible: !root.recording && !root.starting
-                glyph: "\u{F125}"   // nf-fa-crop — area record
-                label: "Area"
-                tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
-                onActivated: ScreenRecorder.toggleRecording("area", root.monitorName)
-            }
-            IslandActionRow {
-                visible: root.recording
-                glyph: "\u{F04D}"   // nf-fa-stop — stop record
-                label: "Stop"
-                tooltipText: "Stop recording"
-                onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
+                IslandActionRow {
+                    visible: root.recording
+                    glyph: "\u{F04D}"   // nf-fa-stop — stop record
+                    label: "Stop"
+                    tooltipText: "Stop recording"
+                    onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
+                }
             }
         }
     }

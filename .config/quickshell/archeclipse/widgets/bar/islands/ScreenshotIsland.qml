@@ -15,10 +15,11 @@ import qs.widgets.shared
 //
 // Launcher expansion (Bar.qml binds `expanded` to the monitor's search
 // state, weather-pill recipe): the pill grows vertically off the band and
-// the two modes re-represent as labeled IslandActionRow rows on one
-// shared surface sheet stacked
-// outside the stadium — the compact band parks down to just the camera
-// indicator while the rows are shown. Same actions, new representation.
+// the two modes re-represent as labeled IslandActionRow rows. ONE card
+// owns the whole grown body — the band indicator and the rows sit on the
+// same surface (no separate chip + sheet pair), so the expanded pill reads
+// as a single card with the camera cell parked at the band edge. Same
+// actions, new representation.
 Item {
     id: root
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
@@ -37,14 +38,16 @@ Item {
     Behavior on extraT {
         Anim {}
     }
+    // rows block that the card carries beyond the band: rows plus the
+    // card's 4px outer padding (the band-side gap is extraGap)
+    readonly property real rowsBlockW: shotRows.implicitWidth + 16
+    readonly property real rowsBlockH: shotRows.implicitHeight + 4
     // band offset while grown: clears the stacked rows above/below
-    readonly property real extraH: root.extraT * (root.extraGap + expandedRows.implicitHeight)
-    implicitHeight: clip.height + root.extraH
+    readonly property real extraH: root.extraT * (root.extraGap + root.rowsBlockH)
+    // the card IS the island: band + rows, one background
+    implicitHeight: Theme.sidePillHeight + root.extraH
     height: implicitHeight
-    // width hugs the wider of stadium / row block; the row-block term
-    // releases at the state flip (not after the fade) so fold-in wide →
-    // band width glides concurrently with the row fade instead of after it
-    width: Math.max(root.pillW, root.expanded ? expandedRows.implicitWidth : 0)
+    width: Math.max(root.pillW, root.expanded ? root.rowsBlockW : 0)
     Behavior on width {
         Anim {
             duration: Theme.anim.fastSpatial
@@ -77,102 +80,117 @@ Item {
 
     IslandExpandClip {
         id: clip
-        // pinned to the band edge: grown rows stack ABOVE the band on
-        // bottom-oriented bars (below on top bars — see expandedRows)
-        y: root.growUp ? root.extraH : 0
+        // opposite edge pinned to the band: the card wipes away from the
+        // screen edge on bottom bars (opposite on top bars)
+        y: root.growUp ? root.height - clip.height : 0
         expand: root.expand
-        contentHeight: Theme.sidePillHeight
+        contentHeight: root.implicitHeight
 
-        Rectangle {
-            width: root.pillW
-            height: Theme.sidePillHeight
-            radius: height / 2
-            color: Theme.surface
+        Item {
+            id: body
+            width: root.width
+            height: root.implicitHeight
+            // band stays parked at its edge while the card grows
+            anchors.bottom: root.growUp ? parent.bottom : undefined
+            anchors.top: root.growUp ? undefined : parent.top
 
-            // camera + buttons content — the camera is a fixed 20px cell
-            // (same grid as the buttons), Row centered in the hugging pill
-            Row {
-                id: idleRow
-                anchors.centerIn: parent
-                spacing: 4
-
-                Text {
-                    width: 20
-                    height: 20
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    text: "\u{F030}"   // nf-fa-camera — screenshot indicator
-                    color: Theme.fg
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSizeSmall
+            // ONE background for the whole island: band + rows share it, so
+            // the expanded stack reads as one card, not a chip plus a sheet
+            Rectangle {
+                anchors.fill: parent
+                // stadium only while it is a bare band; the grown card is a
+                // rounded card (never radius == height/2, which a tall card
+                // would bow into a lozenge)
+                radius: root.extraT > 0 ? Theme.radius : Theme.sidePillHeight / 2
+                Behavior on radius {
+                    Anim {
+                        duration: Theme.anim.fastSpatial
+                    }
                 }
+                color: Theme.surface
+            }
 
-                ModeButton {
-                    glyph: "\u{F03E}"  // nf-fa-image — fullscreen shot
-                    // park while the launcher expansion re-represents the
-                    // modes as rows; return at the flip, not at the end of
-                    // the geometry unwind — a late return reads as the pill
-                    // clipping to the camera-cell width and then popping back
-                    visible: !root.expanded
+            // band: camera cell + mode buttons (expanded parks the buttons)
+            Item {
+                id: band
+                width: parent.width
+                height: Theme.sidePillHeight
+                y: root.growUp ? parent.height - height : 0
+
+                Row {
+                    id: idleRow
+                    anchors.centerIn: parent
+                    spacing: 4
+
+                    Text {
+                        width: 20
+                        height: 20
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        text: "\u{F030}"   // nf-fa-camera — screenshot indicator
+                        color: Theme.fg
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSizeSmall
+                    }
+
+                    ModeButton {
+                        glyph: "\u{F03E}"  // nf-fa-image — fullscreen shot
+                        // park while the launcher expansion re-represents
+                        // the modes as rows; return at the flip, not at the
+                        // end of the geometry unwind — a late return reads
+                        // as the band clipping to the camera-cell width and
+                        // then popping back
+                        visible: !root.expanded
+                        tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
+                        onClicked: root.shoot("now")
+                    }
+                    ModeButton {
+                        glyph: "\u{F125}"  // nf-fa-crop — area shot
+                        visible: !root.expanded
+                        tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
+                        onClicked: root.shoot("area")
+                    }
+                }
+            }
+
+            // ---- launcher-expanded rows: modes re-represented as rows on
+            // the SAME card as the band ----
+            // Reveal rides extraT (FastEffects fade, like the weather stats
+            // rows); rows stay laid out while extraT > 0 so the width/height
+            // stems glide through fade-out. Handlers are the SAME actions
+            // the band buttons run — representation only, no new actions.
+            // Background-less rows (IslandActionRow) keep the card's single
+            // surface intact.
+            Column {
+                id: shotRows
+                x: (parent.width - width) / 2
+                // away from the screen edge: above the band on bottom bars,
+                // below it on top ones — 4px card padding at the outer end,
+                // extraGap between the rows and the band
+                y: root.growUp ? 4 : Theme.sidePillHeight + root.extraGap
+                visible: root.extraT > 0
+                // fade rides its OWN fast stem (like the weather stats rows),
+                // never the spatial extraT curve — opacity tracking the
+                // geometry animation gates the rows on the pill's full growth
+                // and reads as a delay
+                opacity: root.expanded ? 1 : 0
+                Behavior on opacity {
+                    Anim { type: Anim.FastEffects }
+                }
+                spacing: root.extraGap
+
+                IslandActionRow {
+                    glyph: "\u{F03E}"   // nf-fa-image — fullscreen shot
+                    label: "Fullscreen"
                     tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
-                    onClicked: root.shoot("now")
+                    onActivated: root.shoot("now")
                 }
-                ModeButton {
-                    glyph: "\u{F125}"  // nf-fa-crop — area shot
-                    visible: !root.expanded
+                IslandActionRow {
+                    glyph: "\u{F125}"   // nf-fa-crop — area shot
+                    label: "Area"
                     tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
-                    onClicked: root.shoot("area")
+                    onActivated: root.shoot("area")
                 }
-            }
-        }
-    }
-
-    // ---- launcher-expanded rows: modes re-represented as rows on a shared
-    // sheet ----
-    // Hang off the band, away from the screen edge (weather-pill recipe).
-    // Reveal rides extraT (FastEffects fade, like the weather stats rows);
-    // rows stay laid out while extraT > 0 so the width/height stems glide
-    // through fade-out. Handlers are the SAME actions the stadium buttons
-    // run — representation only, no new actions.
-    //
-    // The sheet owns the only background: rows are background-less
-    // (see IslandActionRow) so the expanded stack reads as one surface,
-    // not a stack of separated pill cards.
-    Rectangle {
-        id: expandedRows
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: root.growUp ? 0 : Theme.sidePillHeight + root.extraGap
-        visible: root.extraT > 0
-        // fade rides its OWN fast stem (like the weather stats rows), never
-        // the spatial extraT curve — opacity tracking the geometry animation
-        // gates the rows on the pill's full growth and reads as a delay
-        opacity: root.expanded ? 1 : 0
-        Behavior on opacity {
-            Anim { type: Anim.FastEffects }
-        }
-        radius: Theme.radius
-        color: Theme.surface
-        implicitWidth: rows.implicitWidth + 16
-        implicitHeight: rows.implicitHeight + 8
-        width: implicitWidth
-        height: implicitHeight
-
-        Column {
-            id: rows
-            anchors.centerIn: parent
-            spacing: root.extraGap
-
-            IslandActionRow {
-                glyph: "\u{F03E}"   // nf-fa-image — fullscreen shot
-                label: "Fullscreen"
-                tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
-                onActivated: root.shoot("now")
-            }
-            IslandActionRow {
-                glyph: "\u{F125}"   // nf-fa-crop — area shot
-                label: "Area"
-                tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
-                onActivated: root.shoot("area")
             }
         }
     }

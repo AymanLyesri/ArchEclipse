@@ -396,7 +396,7 @@ PanelWindow {
             // content rigidly per-frame — gliding there would chase a moving
             // target and lag behind it (verified via probe).
             Behavior on height {
-                enabled: pill.height > pill.targetHeight
+                enabled: pill.height > pill.targetHeight && !stack.rigidDirect
                 Anim {
                     type: Anim.DefaultSpatial
                 }
@@ -416,7 +416,7 @@ PanelWindow {
             // trails the content (the trap the shrink-only height Behavior
             // above documents). Suspended via stack.rigidApplied.
             Behavior on width {
-                enabled: pill.widthAnimReady && !stack.rigidApplied
+                enabled: pill.widthAnimReady && !stack.rigidApplied && !stack.rigidDirect
                 Anim {
                     type: Anim.DefaultSpatial
                 }
@@ -548,6 +548,14 @@ PanelWindow {
                     // page unloads, so an interrupted glide can't strand it.
                     property bool rigidWidth: false
                     property bool rigidApplied: false
+                    // Direct rigid tracking: suspends both pill Behaviors
+                    // immediately for a caller whose own geometry animation
+                    // moves the targets every frame (the center pill unfolding
+                    // its real box for quick settings). Unlike rigidWidth this
+                    // does not wait for convergence — the caller only sets it
+                    // from a settled bar, and waiting would let the Behaviors
+                    // chase a target that never stands still.
+                    property bool rigidDirect: false
                     function syncRigid() {
                         if (!stack.rigidWidth) {
                             stack.rigidApplied = false;
