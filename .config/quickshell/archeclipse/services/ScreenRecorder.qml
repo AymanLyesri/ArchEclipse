@@ -149,10 +149,14 @@ QtObject {
     }
 
     function toggleRecording(mode, monitorName) {
+        if (root._stopRecProc.running)
+            return "stopping";
         if (root.isRecording) {
             root._stopRecProc.running = true;
             return "stopped";
         }
+        if (root._startRequested || root._startRecProc.running)
+            return "starting";
 
         // Start recording
         const monitor = monitorName || Registry.monitorName;

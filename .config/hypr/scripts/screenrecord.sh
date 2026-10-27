@@ -10,6 +10,7 @@ pid_file="/tmp/screenrecord.pid"
 file_name="/tmp/screenrecord_name"
 monitor_file="/tmp/screenrecord_monitor"
 log_file="/tmp/screenrecord.log"
+recorder_log_file="/tmp/screenrecord-gpu.log"
 
 slog() {
     echo "$(date +%Y%m%d_%H%M%S) [$$] $*" >> "$log_file" 2>/dev/null || true
@@ -164,6 +165,7 @@ start() {
         echo "Already recording (pid $(tr '\n' ' ' < "$pid_file"))" >&2
         exit 1
     fi
+    : > "$recorder_log_file" 2>/dev/null || true
     if ! command -v gpu-screen-recorder >/dev/null 2>&1; then
         echo "gpu-screen-recorder is not installed" >&2
         exit 127
@@ -216,7 +218,7 @@ start() {
     local -a recorder_options audio_options monitors pids files monitor_names
     recorder_options=(-c "$container" -k "$video_codec" -q "$video_quality" -cr "$color_range" \
         -ac "$audio_codec" -f "$frame_rate" \
-        -cursor "$([[ "$record_cursor" == "true" ]] && echo yes || echo no)")
+        -cursor "$([[ "$record_cursor" == "true" ]] && echo yes || echo no)" -v no)
     [[ "$frame_rate_mode" == "auto" ]] || recorder_options+=(-fm "$frame_rate_mode")
     audio_options=()
     audio_source=""
@@ -243,7 +245,9 @@ start() {
         local command_log
         printf -v command_log '%q ' "${command[@]}"
         slog "start cmd: ${command_log}[${output_file}]"
-        "${command[@]}" &
+        # Quickshell may close the launch Process' output pipes as soon as
+        # this script exits. Keep the long-running recorder off those pipes.
+        "${command[@]}" </dev/null >>"$recorder_log_file" 2>&1 &
         rec_pid=$!
         pids+=("$rec_pid")
         files+=("$output_file")
@@ -308,7 +312,11 @@ start() {
         sleep 0.2
         rm -f "$pid_file" "$file_name" "$monitor_file"
         rm -f -- "${files[@]}"
-        echo "gpu-screen-recorder failed to start — see output above or $log_file" >&2
+        echo "gpu-screen-recorder failed to start — see $log_file and $recorder_log_file" >&2
+        if [[ -s "$recorder_log_file" ]]; then
+            echo "gpu-screen-recorder output:" >&2
+            tail -n 20 "$recorder_log_file" >&2 || true
+        fi
         exit 1
     fi
 
