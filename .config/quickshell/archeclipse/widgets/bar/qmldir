@@ -2,7 +2,6 @@ module qs.widgets.bar
 
 Bandwidth 1.0 Bandwidth.qml
 Bar 1.0 Bar.qml
-BarHoverWindow 1.0 BarHoverWindow.qml
 Battery 1.0 Battery.qml
 Brightness 1.0 Brightness.qml
 Clock 1.0 Clock.qml

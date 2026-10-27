@@ -71,18 +71,6 @@ ShellRoot {
 
     }
 
-    // per-monitor bar edge-hover strip (dwell-reveals the auto-hidden bar)
-    Variants {
-        model: Quickshell.screens
-
-        BarHoverWindow {
-            required property ShellScreen modelData
-
-            screen: modelData
-        }
-
-    }
-
     // Standalone media controls (SUPER+M), independently toggleable per screen.
     Variants {
         model: Quickshell.screens

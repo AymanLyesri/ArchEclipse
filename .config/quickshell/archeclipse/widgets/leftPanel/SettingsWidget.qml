@@ -9,8 +9,8 @@ import qs.services
 
 // Settings Widget — shell settings panel
 // Sections: Bar (layout reorder + toggles), Panels, Theme, Interface,
-// Animations, User Agents, Api Keys, File Manager, Hyprland, Lockscreen,
-// Recording, Apply/Reset buttons
+// Animations, User Agents, Api Keys, Hyprland, Lockscreen, Recording,
+// Screenshots, Apply/Reset buttons
 Item {
     id: root
     property int widgetWidth: parent.width
@@ -125,12 +125,11 @@ Item {
                 // island's Theme.pad), right-panel parity.
 
                 // ============ BAR SETTINGS ============
-                // NOTE: smart-hide and full-width
-                // are intentionally not
-                // exposed here: the bar always shows all sections in a
-                // centered pill, and an unlocked bar always auto-hides until
-                // the screen edge is hovered. Lock Bar below is the only
-                // visibility switch.
+                // NOTE: smart-hide, full-width and visibility are
+                // intentionally not exposed here: the bar always shows all
+                // sections in a centered pill and never auto-hides. The
+                // SUPER+ALT+BACKSPACE IPC toggle is the only visibility
+                // switch.
                 Rectangle {
                     width: parent.width
                     implicitHeight: barSec.implicitHeight + 20
@@ -169,52 +168,6 @@ Item {
                                     currentIndex: Settings.barOrientation ? 0 : 1
                                     onActivated: Settings.barOrientation = (index === 0)
                                     Layout.preferredWidth: 160
-                                }
-                            }
-                            SettingRow {
-                                text: "Lock Bar"
-                                tip: "Keep bar visible; when off it auto-hides."
-                                AppToggle {
-                                    checked: Settings.barLock
-                                    onToggled: Settings.barLock = checked
-                                }
-                            }
-                            SettingRow {
-                                text: "Always Expanded"
-                                tip: "Show full bar content instead of collapsed."
-                                AppToggle {
-                                    checked: Settings.barDefault
-                                    onToggled: Settings.barDefault = checked
-                                }
-                            }
-                            SettingRow {
-                                text: "Reveal-In Pressure"
-                                tip: "Cursor push needed to reveal a hidden bar."
-                                AppSpinBox {
-                                    from: 0
-                                    to: 5000
-                                    value: Settings.revealInPressure
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.revealInPressure)
-                                            return;
-                                        Settings.revealInPressure = value;
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Reveal-Out Pressure"
-                                tip: "Cursor push needed to hide the bar."
-                                AppSpinBox {
-                                    from: 0
-                                    to: 5000
-                                    value: Settings.revealOutPressure
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.revealOutPressure)
-                                            return;
-                                        Settings.revealOutPressure = value;
-                                    }
                                 }
                             }
                         }
@@ -391,40 +344,47 @@ Item {
                                 }
                             }
                             SettingRow {
-                                text: "Blur"
-                                tip: "Blur the background behind the bar."
-                                AppToggle {
-                                    checked: Settings.barBlur
-                                    onToggled: Settings.barBlur = checked
-                                }
-                            }
-                            SettingRow {
-                                text: "Blur Size"
-                                tip: "Blur radius; higher is softer."
+                                text: "Radius"
+                                tip: "Corner radius for pills, cards and panels."
                                 AppSpinBox {
-                                    from: 1
-                                    to: 20
-                                    value: Settings.barBlurSize
+                                    from: 0
+                                    to: 24
+                                    value: Settings.uiRadius
                                     Layout.preferredWidth: 160
                                     onValueChanged: {
-                                        if (value === Settings.barBlurSize)
+                                        if (value === Settings.uiRadius)
                                             return;
-                                        Settings.barBlurSize = value;
+                                        Settings.uiRadius = value;
                                     }
                                 }
                             }
                             SettingRow {
-                                text: "Blur Passes"
-                                tip: "Blur quality passes; higher costs GPU."
+                                text: "Pad (Inset)"
+                                tip: "Content inset inside cards, panels and islands."
                                 AppSpinBox {
-                                    from: 1
-                                    to: 10
-                                    value: Settings.barBlurPasses
+                                    from: 0
+                                    to: 16
+                                    value: Settings.uiPad
                                     Layout.preferredWidth: 160
                                     onValueChanged: {
-                                        if (value === Settings.barBlurPasses)
+                                        if (value === Settings.uiPad)
                                             return;
-                                        Settings.barBlurPasses = value;
+                                        Settings.uiPad = value;
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                text: "Spacing"
+                                tip: "Gap between bar elements and stacked sections."
+                                AppSpinBox {
+                                    from: 2
+                                    to: 16
+                                    value: Settings.uiSpacing
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.uiSpacing)
+                                            return;
+                                        Settings.uiSpacing = value;
                                     }
                                 }
                             }
@@ -484,21 +444,6 @@ Item {
                                     color: Theme.fgDim
                                     Layout.preferredWidth: 34
                                     horizontalAlignment: Text.AlignRight
-                                }
-                            }
-                            SettingRow {
-                                text: "Scale"
-                                tip: "Global UI scale factor."
-                                AppSpinBox {
-                                    from: 10
-                                    to: 30
-                                    value: Settings.uiScale
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.uiScale)
-                                            return;
-                                        Settings.uiScale = value;
-                                    }
                                 }
                             }
                             SettingRow {
@@ -601,6 +546,36 @@ Item {
                                     currentIndex: Math.max(0, animSec.styleValues.indexOf(Settings.islandAnimStyle))
                                     onActivated: Settings.islandAnimStyle = animSec.styleValues[index]
                                     Layout.preferredWidth: 160
+                                }
+                            }
+                            SettingRow {
+                                text: "Reveal-In Pressure"
+                                tip: "Hover dwell before a bar pill or island reveals."
+                                AppSpinBox {
+                                    from: 0
+                                    to: 5000
+                                    value: Settings.revealInPressure
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.revealInPressure)
+                                            return;
+                                        Settings.revealInPressure = value;
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                text: "Reveal-Out Pressure"
+                                tip: "Delay before a hovered island closes."
+                                AppSpinBox {
+                                    from: 0
+                                    to: 5000
+                                    value: Settings.revealOutPressure
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.revealOutPressure)
+                                            return;
+                                        Settings.revealOutPressure = value;
+                                    }
                                 }
                             }
                         }
@@ -864,66 +839,11 @@ Item {
                     }
                 }
 
-                // ============ FILE MANAGER ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: fmSec.implicitHeight + 20
-                    opacity: root.revealCount > 7 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: fmSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "File Manager"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-                            Repeater {
-                                id: fmRepeater
-                                model: root.fileManagerOptions.length ? root.fileManagerOptions : root.allFileManagers
-                                delegate: SettingRow {
-                                    text: modelData.name
-                                    tip: "Use " + modelData.name + " as the default file manager."
-                                    AppToggle {
-                                        checked: Settings.fileManager === modelData.id
-                                        onToggled: {
-                                            if (checked) {
-                                                Settings.fileManager = modelData.id;
-                                                // Notify "Changed to <name>"
-                                                Notifications.notify({
-                                                    summary: "File Manager",
-                                                    body: "Changed to " + modelData.name
-                                                });
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 // ============ HYPRLAND ============
                 Rectangle {
                     width: parent.width
                     implicitHeight: hyprSec.implicitHeight + 20
-                    opacity: root.revealCount > 8 ? 1 : 0
+                    opacity: root.revealCount > 7 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -1368,7 +1288,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: lockSec.implicitHeight + 20
-                    opacity: root.revealCount > 9 ? 1 : 0
+                    opacity: root.revealCount > 8 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -1424,7 +1344,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     implicitHeight: recordingSec.implicitHeight + 20
-                    opacity: root.revealCount > 10 ? 1 : 0
+                    opacity: root.revealCount > 9 ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: 250
@@ -1761,42 +1681,6 @@ Item {
 
     // ------- helpers -------
 
-    readonly property var allFileManagers: [
-        {
-            id: "nautilus",
-            name: "Nautilus (GNOME)",
-            command: "nautilus"
-        },
-        {
-            id: "thunar",
-            name: "Thunar (XFCE)",
-            command: "thunar"
-        },
-        {
-            id: "dolphin",
-            name: "Dolphin (KDE)",
-            command: "dolphin"
-        },
-        {
-            id: "nemo",
-            name: "Nemo (Cinnamon)",
-            command: "nemo"
-        },
-        {
-            id: "pcmanfm",
-            name: "PCManFM",
-            command: "pcmanfm"
-        },
-        {
-            id: "ranger",
-            name: "Ranger (Terminal)",
-            command: "foot ranger"
-        }
-    ]
-
-    property var fileManagerOptions: Settings.fileManagerOptions || []
-    property var installedFileManagers: []
-
     readonly property var videoQualityOptions: [
         { value: "medium", name: "Medium" },
         { value: "high", name: "High" },
@@ -2026,32 +1910,7 @@ Item {
         }
     }
 
-    // Detect installed file managers via `command -v`
-    function detectFileManagers() {
-        const found = [];
-        for (let i = 0; i < root.allFileManagers.length; i++) {
-            const fm = root.allFileManagers[i];
-            const bin = fm.command.split(" ")[0];
-            const proc = Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "command -v ' + bin + ' >/dev/null 2>&1 && echo yes || echo no"]; running: true; stdout: StdioCollector {} }', root);
-            proc.stdout.onStreamFinished.connect(function (fmref, binref) {
-                return function () {
-                    const r = proc.stdout.text.trim();
-                    if (r === "yes")
-                        found.push(fmref);
-                    proc.destroy();
-                };
-            }(fm, bin));
-        }
-        // Set after a short delay to let all processes finish
-        Qt.callLater(function () {
-            // prefer Settings-selected fm in list
-            root.installedFileManagers = found;
-            root.fileManagerOptions = found;
-        });
-    }
-
     Component.onCompleted: {
-        root.detectFileManagers();
         root.recorderInfoProcess.running = true;
         root.audioDevicesProcess.running = true;
         root.recorderHelpProcess.running = true;
@@ -2257,9 +2116,7 @@ Item {
     }
 
     function resetToDefaults() {
-        Settings.barLock = true;
         Settings.barSmartHide = false;
-        Settings.barDefault = true;
         Settings.barFullWidth = false;
         Settings.revealInPressure = 250;
         Settings.revealOutPressure = 1000;
@@ -2274,16 +2131,14 @@ Item {
         Settings.rightPanelHotZoneSize = 5;
         Settings.dynamicThemeColors = false;
         Settings.dynamicThemeVariants = false;
-        Settings.barBlur = true;
-        Settings.barBlurSize = 4;
-        Settings.barBlurPasses = 4;
         Settings.uiOpacity = 0.618;
-        Settings.uiScale = 10;
+        Settings.uiRadius = 12;
+        Settings.uiPad = 8;
+        Settings.uiSpacing = 8;
         Settings.uiFontSize = 12;
         Settings.animationsEnabled = true;
         Settings.animScale = 1.0;
         Settings.islandAnimStyle = "Emphasized";
-        Settings.fileManager = "nautilus";
         Settings.screenshot = Settings.defaultScreenshotSettings();
         Settings.recording = Settings.defaultRecordingSettings();
         // Hyprland defaults

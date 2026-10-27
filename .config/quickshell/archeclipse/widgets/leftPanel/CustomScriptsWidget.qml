@@ -9,8 +9,9 @@ import qs.services
 
 // Custom Scripts widget — scrollable list of utility scripts. Record
 // entries route through the ScreenRecorder service, the file manager entry
-// uses Settings.fileManager, reset shows a Yes/No confirmation, everything
-// else spawns via Quickshell.execDetached. Scripts requiring an installed
+// opens the system default via xdg-open, reset shows a Yes/No confirmation,
+// everything else spawns via Quickshell.execDetached. Scripts requiring an
+// installed
 // binary show an install button when the app is missing (yay/paru/pacman
 // via foot).
 Item {
@@ -304,10 +305,8 @@ Item {
     }
 
     function displayName(def) {
-        if (def.kind === "file-manager") {
-            const fm = Settings.fileManager || "";
-            return fm ? fm + " File Manager" : "File Manager";
-        }
+        if (def.kind === "file-manager")
+            return "File Manager";
         return def.name;
     }
 
@@ -334,7 +333,8 @@ Item {
         // syntax ("... ')' expected ..."), so every click silently did nothing.
         // Running through bash -c preserves the complex quoted commands below.
         if (def.kind === "file-manager") {
-            Quickshell.execDetached(["bash", "-c", (Settings.fileManager || "thunar")]);
+            // xdg-open honours the system default file manager.
+            Quickshell.execDetached(["bash", "-c", "xdg-open \"$HOME\""]);
             return;
         }
         if (def.command)

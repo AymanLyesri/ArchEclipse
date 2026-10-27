@@ -125,11 +125,6 @@ Singleton {
     // Settings reference
     property var settings: qs.theme.Settings
 
-    // Lock setting (from settings)
-    // `expanded` kept for compat (always true — default is the base state).
-    property bool lock: true
-    property bool expanded: true
-    property bool isDefault: true
     property bool orientation: true
     property bool smartHide: false
     property bool fullWidth: false
@@ -195,9 +190,6 @@ Singleton {
 
     Component.onCompleted: {
         root.settings = Settings;
-        root.lock = Settings.barLock ?? true;
-        root.expanded = Settings.barDefault ?? true;
-        root.isDefault = Settings.barDefault ?? true;
         root.orientation = Settings.barOrientation ?? true;
         root.smartHide = Settings.barSmartHide ?? false;
         root.fullWidth = Settings.barFullWidth ?? false;
@@ -325,16 +317,6 @@ Singleton {
             blocked[m.name] = hit;
         }
         root.blockedMonitors = blocked;
-    }
-
-    // Bar auto-visibility core:
-    // lock => always visible; unlocked => hidden until the screen-edge
-    // hover strip (BarHoverWindow) sets an explicit override. The override
-    // wins over this in Bar.barVisible.
-    function barVisibleFor(monitorName) {
-        if (root.lock)
-            return true;
-        return false;
     }
 
     // ===== Volume watcher =====
@@ -831,7 +813,7 @@ Singleton {
         var shown = root.barShown || {};
         var current = shown[monitorName];
         if (current === undefined)
-            current = root.barVisibleFor(monitorName);
+            current = true;
         var next = Object.assign({}, shown);
         next[monitorName] = !current;
         root.barShown = next;
@@ -859,21 +841,10 @@ Singleton {
         }
     }
 
-    // Live mirror of the lock/orientation/expanded settings. Without this
-    // took effect after a shell restart. Re-locking clears stale
-    // per-monitor overrides — otherwise a bar hidden while unlocked stays
-    // hidden with no hover strip left to reveal it.
+    // Live mirror of the orientation setting (without this it only took
+    // effect after a shell restart).
     Connections {
         target: Settings
-        function onBarLockChanged() {
-            root.lock = Settings.barLock ?? true;
-            if (root.lock)
-                root.barShown = {};
-        }
-        function onBarDefaultChanged() {
-            root.expanded = Settings.barDefault ?? true;
-            root.isDefault = Settings.barDefault ?? true;
-        }
         function onBarOrientationChanged() {
             root.orientation = Settings.barOrientation ?? true;
         }

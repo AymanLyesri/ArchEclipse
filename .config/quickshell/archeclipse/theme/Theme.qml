@@ -340,15 +340,14 @@ QtObject {
     readonly property int fontSizeCaption: Math.max(7, fontSize - 2)
     readonly property int fontSizeBadge: Math.max(7, fontSize - 3)
     readonly property int fontSizeLarge: fontSize + 2
-    readonly property int scale: Settings.uiScale
-    readonly property int radius: 10
+    readonly property int radius: Settings.uiRadius
     readonly property string accentFg: "white"
-    readonly property int spacing: 8          // bar element spacing
+    readonly property int spacing: Settings.uiSpacing   // bar element spacing
     readonly property int sectionSpacing: 20  // between compact sections / expanded groups
     // The ONE padding token: content inset for cards, panels and island
     // bodies. Margins/paddings ≥ 8 must bind this (smaller values are
     // optical micro-adjustments and stay literal).
-    readonly property int pad: 8
+    readonly property int pad: Settings.uiPad
     // Single source of truth for bar content height — every bar widget
     // (Clock, Battery, Volume, ...) binds to this instead of hardcoding
     // its own height, so all bar content stays the same height.

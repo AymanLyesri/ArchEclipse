@@ -11,9 +11,7 @@ Singleton {
     id: root
 
     // --- simple booleans / ints / strings ---
-    property bool barLock: true
     property bool barSmartHide: false
-    property bool barDefault: true
     property bool barFullWidth: false
     property real revealInPressure: 250
     property real revealOutPressure: 1000
@@ -22,7 +20,9 @@ Singleton {
     property string dateFormat: "%H:%M"
     readonly property var dateFormats: ["%H:%M", "%I:%M %p"]
     property real uiOpacity: 0.618
-    property int uiScale: 10
+    property int uiRadius: 12
+    property int uiPad: 6
+    property int uiSpacing: 6
     property int uiFontSize: 12
 
     // Island / shell motion (persisted, surfaced in Settings > Animations).
@@ -40,7 +40,7 @@ Singleton {
     property bool leftPanelLock: false
     property bool rightPanelLock: false
     property int leftPanelWidth: 400
-    property int rightPanelWidth: 250
+    property int rightPanelWidth: 350
     // Per-monitor overrides. The flat properties above remain the defaults
     // for monitors without an explicit override and for older settings files.
     property var leftPanelByMonitor: ({})
@@ -181,7 +181,7 @@ Singleton {
                     idSearchUrl: "https://danbooru.donmai.us/posts/"
                 }),
             tags: ["-rating:explicit"],
-            limit: 100,
+            limit: 30,
             page: 1,
             columns: 3,
             bookmarks: [],
@@ -468,18 +468,9 @@ Singleton {
     // ChatBot reply notifications (default off — replies stay in the tab).
     property bool chatBotNotify: false
 
-    // Blur settings (size / passes / enabled)
-    property bool barBlur: true
-    property int barBlurPasses: 3
-    property int barBlurSize: 4
-
     // Theme variants
     property bool dynamicThemeColors: true
     property bool dynamicThemeVariants: false
-
-    // File manager (detected + selected)
-    property var fileManagerOptions: []
-    property string fileManager: ""
 
     // Screenshot capture settings used by ~/.config/hypr/scripts/screenshot.sh.
     property var screenshot: root.defaultScreenshotSettings()
@@ -728,20 +719,16 @@ Singleton {
         // Dotted paths that map to flat QS properties (Singleton cannot
         // gain new properties at runtime, so root["rightPanel"] = {} throws).
         const aliases = {
-            "bar.lock": "barLock",
             "bar.smartHide": "barSmartHide",
-            "bar.expanded": "barDefault",
-            "bar.default": "barDefault",
             "bar.fullWidth": "barFullWidth",
             "bar.revealPressure": "revealInPressure",
             "bar.revealInPressure": "revealInPressure",
             "bar.revealOutPressure": "revealOutPressure",
             "bar.orientation": "barOrientation",
-            "bar.blur": "barBlur",
-            "bar.blurSize": "barBlurSize",
-            "bar.blurPasses": "barBlurPasses",
             "ui.opacity": "uiOpacity",
-            "ui.scale": "uiScale",
+            "ui.radius": "uiRadius",
+            "ui.pad": "uiPad",
+            "ui.spacing": "uiSpacing",
             "ui.fontSize": "uiFontSize",
             "animations.enabled": "animationsEnabled",
             "animations.scale": "animScale",
@@ -775,7 +762,6 @@ Singleton {
             "blueLight.end": "blueLightEnd",
             "dynamicThemeColors": "dynamicThemeColors",
             "dynamicThemeVariants": "dynamicThemeVariants",
-            "fileManager": "fileManager",
             "chatBot.api": "chatBotApi",
             "waifuWidget.current": "waifu"
         };
@@ -815,7 +801,7 @@ Singleton {
     // Shape is nested (bar.lock, leftPanel.width, ...); per-monitor panel
     // overrides live under each panel's `monitors` object.
     // Leaf settings are written as {value}; plain-value settings (locks,
-    // plain-value settings (locks, widths, dnd, fileManager) stay plain.
+    // plain-value settings (locks, widths, dnd) stay plain.
     // Hyprland subtree for persist(): derived from _hyprlandLeafSchema above
     // (single source for labels/limits) but bound to root.hyprland only, so a
     // persist() triggered by any other setting no longer re-walks the leaf
@@ -853,20 +839,19 @@ Singleton {
     function persist() {
         if (!root.ready)
             return;
+        // Never write until a settings file has actually been read. FileView
+        // loads asynchronously, and a persist() in that window writes the
+        // in-memory code defaults straight over the user's file (lost booru
+        // pins/bookmarks, waifu and API keys on 2026-10-27).
+        if (!root._adopted) {
+            console.warn("[Settings] persist skipped: settings not adopted yet");
+            return;
+        }
         try {
             const s = {
                 bar: {
-                    lock: {
-                        value: root.barLock
-                    },
                     smartHide: {
                         value: root.barSmartHide
-                    },
-                    default: {
-                        value: root.barDefault
-                    },
-                    expanded: {
-                        value: root.barDefault
                     },
                     fullWidth: {
                         value: root.barFullWidth
@@ -879,15 +864,6 @@ Singleton {
                     },
                     orientation: {
                         value: root.barOrientation
-                    },
-                    blur: {
-                        value: root.barBlur
-                    },
-                    blurSize: {
-                        value: root.barBlurSize
-                    },
-                    blurPasses: {
-                        value: root.barBlurPasses
                     }
                 },
                 dateFormat: root.dateFormat,
@@ -898,8 +874,14 @@ Singleton {
                     opacity: {
                         value: root.uiOpacity
                     },
-                    scale: {
-                        value: root.uiScale
+                    radius: {
+                        value: root.uiRadius
+                    },
+                    pad: {
+                        value: root.uiPad
+                    },
+                    spacing: {
+                        value: root.uiSpacing
                     },
                     fontSize: {
                         value: root.uiFontSize
@@ -989,14 +971,16 @@ Singleton {
                 },
                 // Hyprland leaf shape {name,value,min,max,type} — the settings
                 // panel renders from it (plain numbers would be mistaken for
-                // nested groups and render nothing). Prebuilt in _hyprlandOut.
+                // nested groups and render nothing). Prebuilt in _hyprlandOut;
+                // it must be written here too or the whole section resets to
+                // schema defaults on every restart.
+                hyprland: root._hyprlandOut,
                 dynamicThemeColors: {
                     value: root.dynamicThemeColors
                 },
                 dynamicThemeVariants: {
                     value: root.dynamicThemeVariants
                 },
-                fileManager: root.fileManager,
                 screenshot: root.screenshot,
                 recording: root.recording,
                 "waifuWidget": {
@@ -1020,6 +1004,11 @@ Singleton {
                 "apiKeys": root.apiKeys,
                 "userAgents": root.userAgents
             };
+            // One-generation backup: keep the bytes that were on disk before
+            // this write, so the previous settings state is always recoverable.
+            const prev = _file.text();
+            if (prev && prev.trim().startsWith("{"))
+                _backupFile.setText(prev);
             _lastText = JSON.stringify(s, null, 2);
             _file.setText(_lastText);
         } catch (e) {
@@ -1063,6 +1052,16 @@ Singleton {
                 return;
             root.reload();
             root.ready = true;
+            const disk = (_file.text() || "").trim();
+            // A missing/empty file has nothing to lose: create it from the
+            // code defaults. A file that exists but did not parse is left
+            // untouched — overwriting bytes we could not read is how the
+            // 2026-10-27 settings wipe happened.
+            if (disk !== "" && !root._adopted) {
+                console.warn("[Settings] settings file unreadable — refusing to overwrite");
+                return;
+            }
+            root._adopted = true;
             root.persist();
         }
     }
@@ -1071,6 +1070,17 @@ Singleton {
     // booru.limit 20 clobbered back to 100 on restart). Nothing persists
     // until the on-disk values have been adopted.
     property bool ready: false
+    // Set by reload() once a settings file has actually been parsed. persist()
+    // refuses to write while false, so a slow/failed FileView load can never
+    // replace the user's file with code defaults.
+    property bool _adopted: false
+
+    // One-generation safety net: before each overwrite, keep the bytes that
+    // were on disk (when they differ from what we last wrote), so any future
+    // clobber is recoverable without the Supabase copy.
+    property FileView _backupFile: FileView {
+        path: `${Quickshell.env("HOME")}/.cache/quickshell/settings/settings.prev.json`
+    }
 
     // Fresh on-disk settings for upload sync — never an empty stub
     // (uploading {} would wipe remote).
@@ -1091,9 +1101,8 @@ Singleton {
                     return;
                 const s = JSON.parse(text);
                 root._lastText = text;
-                root.barLock = s.bar?.lock?.value ?? true;
+                root._adopted = true;
                 root.barSmartHide = s.bar?.smartHide?.value ?? false;
-                root.barDefault = s.bar?.default?.value ?? s.bar?.expanded?.value ?? true;
                 root.barFullWidth = s.bar?.fullWidth?.value ?? false;
                 root.revealInPressure = s.bar?.revealInPressure?.value ?? s.bar?.revealPressure?.value ?? 250;
                 root.revealOutPressure = s.bar?.revealOutPressure?.value ?? s.bar?.revealPressure?.value ?? 1000;
@@ -1105,7 +1114,9 @@ Singleton {
                     timeframe: ""
                 };
                 root.uiOpacity = s.ui?.opacity?.value ?? 0.618;
-                root.uiScale = s.ui?.scale?.value ?? 10;
+                root.uiRadius = s.ui?.radius?.value ?? 12;
+                root.uiPad = s.ui?.pad?.value ?? 8;
+                root.uiSpacing = s.ui?.spacing?.value ?? 8;
                 root.uiFontSize = s.ui?.fontSize?.value ?? 12;
 
                 // Shell motion: accept both {value} leaves and plain values;
@@ -1247,11 +1258,6 @@ Singleton {
                 });
                 root.chatBotNotify = s.chatBot?.notify ?? false;
 
-                // Blur settings
-                root.barBlur = s.bar?.blur?.value ?? true;
-                root.barBlurPasses = s.bar?.blurPasses?.value ?? 3;
-                root.barBlurSize = s.bar?.blurSize?.value ?? 4;
-
                 // Lockscreen grace period (seconds of free Esc dismiss)
                 root.lockGraceSeconds = s.lockscreen?.graceSeconds ?? 10;
 
@@ -1260,8 +1266,6 @@ Singleton {
                 const _dtv = s.dynamicThemeVariants;
                 root.dynamicThemeVariants = (typeof _dtv === "object" && _dtv !== null ? _dtv.value : _dtv) ?? false;
 
-                // File manager
-                root.fileManager = s.fileManager ?? "";
                 root.screenshot = root.normalizeScreenshotSettings(s.screenshot);
                 root.recording = root.normalizeRecordingSettings(s.recording);
 
@@ -1500,13 +1504,7 @@ Singleton {
     // in reload() normalizes credentials on external edits).
     Connections {
         target: root
-        function onBarLockChanged() {
-            root.schedulePersist();
-        }
         function onBarSmartHideChanged() {
-            root.schedulePersist();
-        }
-        function onBarDefaultChanged() {
             root.schedulePersist();
         }
         function onBarFullWidthChanged() {
@@ -1536,7 +1534,13 @@ Singleton {
         function onUiOpacityChanged() {
             root.schedulePersist();
         }
-        function onUiScaleChanged() {
+        function onUiRadiusChanged() {
+            root.schedulePersist();
+        }
+        function onUiPadChanged() {
+            root.schedulePersist();
+        }
+        function onUiSpacingChanged() {
             root.schedulePersist();
         }
         function onUiFontSizeChanged() {
@@ -1582,15 +1586,6 @@ Singleton {
             root.schedulePersist();
         }
         function onHyprlandChanged() {
-            root.schedulePersist();
-        }
-        function onBarBlurChanged() {
-            root.schedulePersist();
-        }
-        function onBarBlurPassesChanged() {
-            root.schedulePersist();
-        }
-        function onBarBlurSizeChanged() {
             root.schedulePersist();
         }
         function onDynamicThemeColorsChanged() {
@@ -1640,9 +1635,6 @@ Singleton {
             root.schedulePersist();
         }
         function onChatBotNotifyChanged() {
-            root.schedulePersist();
-        }
-        function onFileManagerChanged() {
             root.schedulePersist();
         }
     }
