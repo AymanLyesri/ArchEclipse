@@ -4,8 +4,8 @@ import Quickshell
 import Quickshell.Io
 import qs.services
 
-// Port of services/record.service.ts — manages screen recording via wf-recorder
-// and a user script. Polls for recording state.
+// Manages GPU Screen Recorder through the Hyprland helper script and polls
+// for recording state.
 QtObject {
     id: root
 
@@ -17,7 +17,7 @@ QtObject {
     property bool _startProcessFinished: true
 
     // UI-facing mirror of `_startRequested`: start intent in flight but the
-    // recorder not yet up — the pgrep poll lags the wf-recorder spawn ~2s.
+    // recorder not yet up — the process poll lags the spawn briefly.
     // Clears on recorder-up or failed start, exactly like `_startRequested`.
     readonly property bool starting: root._startRequested && !root.isRecording
 
@@ -53,7 +53,7 @@ QtObject {
 
     // Process for checking recording state
     property Process _checkRecProc: Process {
-        command: ["pgrep", "-x", "wf-recorder"]
+        command: ["pgrep", "-f", "(^|/)gpu-screen-recorder([[:space:]]|$)"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const running = text.trim().length > 0;
@@ -79,7 +79,7 @@ QtObject {
         }
     }
 
-    // Stop recording process: the script now verifies the target PID,
+    // Stop recording process: the script now verifies the target PIDs,
     // falls back to pgrep, and exits non-zero with a message when there
     // is nothing to stop — surface that instead of failing silently.
     property Process _stopRecProc: Process {
@@ -101,7 +101,7 @@ QtObject {
     }
 
     // Start recording process: the script exits non-zero when the user
-    // cancels area selection or wf-recorder dies on startup — report it
+    // cancels area selection or GPU Screen Recorder exits on startup — report it
     // (slurp-cancel stays silent, that is a deliberate no-op).
     property Process _startRecProc: Process {
         stdout: StdioCollector {}

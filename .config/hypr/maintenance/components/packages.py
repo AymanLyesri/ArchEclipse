@@ -63,7 +63,7 @@ PACKAGES: list[str] = [
     "foot",
     "grimblast-git",
     "grim",
-    "wf-recorder",
+    "gpu-screen-recorder",
     "vlc",
     "imagemagick",
     "mpvpaper",

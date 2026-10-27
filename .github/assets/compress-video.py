@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Standalone mp4 screen-recording compressor.
 
-Re-encodes once with libx264 CRF — static desktop content packs far tighter
-than wf-recorder's capture defaults. Same container/codec, audio copied
+Re-encodes once with libx264 CRF — static desktop content often packs tighter
+than the source recording's capture settings. Same container/codec, audio copied
 untouched. In-place by default (input replaced via tmp + atomic rename);
 pass a second path to write to a different file. Never grows the file: if
 the re-encode is not smaller, the failure keeps the source untouched.

@@ -1172,7 +1172,7 @@ PanelWindow {
                     // by hovering the empty right zone
                     // `starting` pins the piece open through the ~2s pgrep
                     // lag after a start click — it must not fold away
-                    // before wf-recorder is actually up.
+                    // before gpu-screen-recorder is actually up.
                     readonly property bool recFlag: (ScreenRecorder.isRecording || ScreenRecorder.starting) && ScreenRecorder.targetMonitors.includes(root.monitorName)
                     property bool shown: false
                     // reveal on the empty-right-zone hover, on an actual
