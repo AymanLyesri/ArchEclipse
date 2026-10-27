@@ -8,7 +8,7 @@ import qs.widgets.shared
 // (fullscreen / area), revealed by hovering the empty right pill zone —
 // widths only ever change on state transitions (hover-coupled resizes
 // churn hover re-evaluation: probe-proven flap). Starting shows a
-// spinner (pinned open via ScreenRecorder.starting) until wf-recorder is
+// spinner (pinned open via ScreenRecorder.starting) until gpu-screen-recorder is
 // actually up, then the pulsing-dot pill + "Recording" + TRUE elapsed
 // timer (mm:ss since the recording actually started, via
 // ScreenRecorder.startTimestamp). Clicking while recording stops it and
@@ -34,7 +34,7 @@ Item {
     property string monitorName: ""
     property string elapsed: "00:00"
     readonly property bool recording: ScreenRecorder.isRecording && ScreenRecorder.targetMonitors.includes(monitorName)
-    // start intent in flight: spinner state until wf-recorder is actually up
+    // start intent in flight: spinner state until gpu-screen-recorder is actually up
     readonly property bool starting: ScreenRecorder.starting && ScreenRecorder.targetMonitors.includes(monitorName)
 
     // ---- launcher expansion stem (cf. WeatherButton) ----

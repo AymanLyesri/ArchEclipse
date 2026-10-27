@@ -9,8 +9,8 @@ import qs.services
 
 // Settings Widget — shell settings panel
 // Sections: Bar (layout reorder + toggles), Panels, Theme, Interface,
-// Animations, User Agents, Api Keys, File Manager, Hyprland,
-// Apply/Reset buttons
+// Animations, User Agents, Api Keys, Hyprland, Lockscreen, Recording,
+// Screenshots, Apply/Reset buttons
 Item {
     id: root
     property int widgetWidth: parent.width
@@ -24,7 +24,7 @@ Item {
     // each time this tab becomes visible and sections key their opacity
     // off their index.
     property int revealCount: 0
-    property int sectionCount: 9
+    property int sectionCount: 11
     Timer {
         id: revealTimer
         interval: 60
@@ -1339,13 +1339,581 @@ Item {
                         }
                     }
                 }
+
+                // ============ RECORDING SETTINGS ============
+                Rectangle {
+                    width: parent.width
+                    implicitHeight: recordingSec.implicitHeight + 20
+                    opacity: root.revealCount > 9 ? 1 : 0
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 250
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    radius: Theme.radius
+                    color: Theme.surface
+                    border.color: Theme.border
+                    border.width: 1
+
+                    Column {
+                        id: recordingSec
+                        anchors.fill: parent
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
+
+                        Label {
+                            text: "Recording"
+                            font.pixelSize: Theme.fontSize + 2
+                            font.bold: true
+                            color: Theme.accent
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: Theme.spacing
+
+                            SettingRow {
+                                text: "Video Codec"
+                                tip: "GPU encoder used for the video stream. Available codecs depend on your GPU."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.videoCodecOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.videoCodecOptions, root.recordingValue("videoCodec"))
+                                    onActivated: index => root.setRecordingVideoCodec(root.videoCodecOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                text: "Video Quality"
+                                tip: "Higher quality creates larger files."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.videoQualityOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.videoQualityOptions, root.recordingValue("quality"))
+                                    onActivated: index => root.setRecordingSetting("quality", root.videoQualityOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                text: "Color range"
+                                tip: "Limited is more widely compatible; Full preserves the full RGB range."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.colorRangeOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.colorRangeOptions, root.recordingValue("colorRange"))
+                                    onActivated: index => root.setRecordingSetting("colorRange", root.colorRangeOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                text: "Audio Codec"
+                                tip: "Codec used for recorded audio."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.audioCodecOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.audioCodecOptions, root.recordingValue("audioCodec"))
+                                    onActivated: index => root.setRecordingSetting("audioCodec", root.audioCodecOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                text: "Frame rate"
+                                tip: "Enter any value from 1 to 360 FPS. In Variable mode, this is the maximum FPS."
+                                labelWidth: 150
+                                AppSpinBox {
+                                    from: 1
+                                    to: 360
+                                    stepSize: 1
+                                    value: root.recordingValue("frameRate")
+                                    Layout.preferredWidth: 130
+                                    onValueChanged: {
+                                        if (value !== root.recordingValue("frameRate"))
+                                            root.setRecordingSetting("frameRate", value);
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                text: "Frame rate mode"
+                                tip: "Auto uses GPU Screen Recorder's default. Sync to content is supported only on X11 or portal capture; this script uses direct monitor capture on Wayland."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.frameRateModeOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.frameRateModeOptions, root.recordingValue("frameRateMode"))
+                                    onActivated: index => root.setRecordingSetting("frameRateMode", root.frameRateModeOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                text: "Record Cursor"
+                                tip: "Include the mouse pointer in the recording."
+                                labelWidth: 150
+                                AppToggle {
+                                    checked: root.recordingValue("recordCursor")
+                                    onToggled: root.setRecordingSetting("recordCursor", checked)
+                                }
+                            }
+                            SettingRow {
+                                text: "Output Device"
+                                tip: "Desktop audio source. Choose None to record without system audio."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.outputAudioOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.outputAudioOptions, root.recordingValue("outputDevice"))
+                                    onActivated: index => root.setRecordingSetting("outputDevice", root.outputAudioOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                text: "Input Device"
+                                tip: "Microphone or other input source. Choose None to disable it."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.inputAudioOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.inputAudioOptions, root.recordingValue("inputDevice"))
+                                    onActivated: index => root.setRecordingSetting("inputDevice", root.inputAudioOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                text: "Directory to save videos"
+                                tip: "Recordings are placed in fullscreen/ and area/ subfolders. You can use an absolute path or ~/…"
+                                labelWidth: 150
+                                AppTextField {
+                                    Layout.fillWidth: true
+                                    placeholderText: Quickshell.env("HOME") + "/Videos/ScreenRecords"
+                                    text: root.recordingValue("directory")
+                                    onEditingFinished: {
+                                        root.setRecordingSetting("directory", text.trim());
+                                        text = Qt.binding(() => root.recordingValue("directory"));
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                text: "Container"
+                                tip: "Video file format. The available formats depend on GPU Screen Recorder."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.containerOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.containerOptions, root.recordingValue("container"))
+                                    onActivated: index => root.setRecordingContainer(root.containerOptions[index].value)
+                                }
+                            }
+
+                            Label {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                visible: root.recordingContainerWarning(root.recordingValue("videoCodec"), root.recordingValue("container")) !== ""
+                                text: root.recordingContainerWarning(root.recordingValue("videoCodec"), root.recordingValue("container"))
+                                color: Theme.accent
+                                font.pixelSize: Theme.fontSize - 1
+                            }
+                            Label {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Audio devices and supported video codecs are loaded from gpu-screen-recorder. Settings apply the next time you start a recording."
+                                color: Theme.fgDim
+                                font.pixelSize: Theme.fontSize - 1
+                            }
+                        }
+                    }
+                }
+
+                // ============ SCREENSHOT SETTINGS ============
+                Rectangle {
+                    width: parent.width
+                    implicitHeight: screenshotSec.implicitHeight + 20
+                    opacity: root.revealCount > 10 ? 1 : 0
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 250
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    radius: Theme.radius
+                    color: Theme.surface
+                    border.color: Theme.border
+                    border.width: 1
+
+                    Column {
+                        id: screenshotSec
+                        anchors.fill: parent
+                        anchors.margins: Theme.pad
+                        spacing: Theme.spacing
+
+                        Label {
+                            text: "Screenshots"
+                            font.pixelSize: Theme.fontSize + 2
+                            font.bold: true
+                            color: Theme.accent
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: Theme.spacing
+
+                            SettingRow {
+                                text: "Directory to save screenshots"
+                                tip: "Screenshots are stored in fullscreen/ and area/ subfolders. You can use an absolute path or ~/…"
+                                labelWidth: 150
+                                AppTextField {
+                                    Layout.fillWidth: true
+                                    placeholderText: Quickshell.env("HOME") + "/Pictures/Screenshots"
+                                    text: root.screenshotValue("directory")
+                                    onEditingFinished: {
+                                        root.setScreenshotSetting("directory", text.trim());
+                                        text = Qt.binding(() => root.screenshotValue("directory"));
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                text: "Image format"
+                                tip: "PNG is lossless. JPEG makes smaller files using lossy compression."
+                                labelWidth: 150
+                                AppComboBox {
+                                    model: root.screenshotFormatOptions
+                                    textRole: "name"
+                                    Layout.fillWidth: true
+                                    currentIndex: root.optionIndex(root.screenshotFormatOptions, root.screenshotValue("format"))
+                                    onActivated: index => root.setScreenshotSetting("format", root.screenshotFormatOptions[index].value)
+                                }
+                            }
+                            SettingRow {
+                                visible: root.screenshotValue("format") === "jpeg"
+                                text: "JPEG quality"
+                                tip: "Higher values preserve more detail and create larger files (0–100)."
+                                labelWidth: 150
+                                AppSpinBox {
+                                    from: 0
+                                    to: 100
+                                    value: root.screenshotValue("jpegQuality")
+                                    Layout.preferredWidth: 120
+                                    onValueChanged: {
+                                        if (value !== root.screenshotValue("jpegQuality"))
+                                            root.setScreenshotSetting("jpegQuality", value);
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                visible: root.screenshotValue("format") === "png"
+                                text: "PNG compression"
+                                tip: "Higher levels reduce file size but can take longer; image quality stays lossless (0–9)."
+                                labelWidth: 150
+                                AppSpinBox {
+                                    from: 0
+                                    to: 9
+                                    value: root.screenshotValue("pngCompression")
+                                    Layout.preferredWidth: 120
+                                    onValueChanged: {
+                                        if (value !== root.screenshotValue("pngCompression"))
+                                            root.setScreenshotSetting("pngCompression", value);
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                text: "Optimize PNG"
+                                visible: root.screenshotValue("format") === "png"
+                                tip: "Run ImageMagick to strip metadata and recompress the PNG. This can take longer."
+                                labelWidth: 150
+                                AppToggle {
+                                    checked: root.screenshotValue("optimizePng")
+                                    onToggled: root.setScreenshotSetting("optimizePng", checked)
+                                }
+                            }
+                            SettingRow {
+                                text: "Include cursor"
+                                tip: "Capture the mouse cursor in the screenshot."
+                                labelWidth: 150
+                                AppToggle {
+                                    checked: root.screenshotValue("includeCursor")
+                                    onToggled: root.setScreenshotSetting("includeCursor", checked)
+                                }
+                            }
+                            SettingRow {
+                                text: "Copy to clipboard"
+                                tip: "Copy the image, or a list of image files when capturing all monitors."
+                                labelWidth: 150
+                                AppToggle {
+                                    checked: root.screenshotValue("copyToClipboard")
+                                    onToggled: root.setScreenshotSetting("copyToClipboard", checked)
+                                }
+                            }
+                            SettingRow {
+                                text: "Show notification"
+                                tip: "Show a desktop notification after a screenshot is saved."
+                                labelWidth: 150
+                                AppToggle {
+                                    checked: root.screenshotValue("notifyOnSave")
+                                    onToggled: root.setScreenshotSetting("notifyOnSave", checked)
+                                }
+                            }
+                            SettingRow {
+                                text: "Freeze during area selection"
+                                tip: "Use hyprpicker to freeze the screen while choosing a region."
+                                labelWidth: 150
+                                AppToggle {
+                                    checked: root.screenshotValue("freezeOnArea")
+                                    onToggled: root.setScreenshotSetting("freezeOnArea", checked)
+                                }
+                            }
+                            Label {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "PNG is lossless; JPEG trades image detail for smaller files. Settings apply to the next capture."
+                                color: Theme.fgDim
+                                font.pixelSize: Theme.fontSize - 1
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
     // ------- helpers -------
 
+    readonly property var videoQualityOptions: [
+        { value: "medium", name: "Medium" },
+        { value: "high", name: "High" },
+        { value: "very_high", name: "Very high (Recommended)" },
+        { value: "ultra", name: "Ultra" }
+    ]
+    readonly property var colorRangeOptions: [
+        { value: "limited", name: "Limited (Recommended)" },
+        { value: "full", name: "Full" }
+    ]
+    readonly property var audioCodecDefinitions: [
+        { value: "opus", name: "Opus (Recommended)" },
+        { value: "aac", name: "AAC" },
+        { value: "mp3", name: "MP3" }
+    ]
+    property var audioCodecOptions: root.audioCodecDefinitions
+    readonly property var frameRateModeOptions: [
+        { value: "auto", name: "Auto (Recommended)" },
+        { value: "cfr", name: "Constant" },
+        { value: "vfr", name: "Variable" },
+        { value: "content", name: "Sync to content (X11/portal only)" }
+    ]
+    readonly property var videoCodecDefinitions: [
+        { value: "auto", name: "Auto (Recommended)" },
+        { value: "h264", name: "H.264" },
+        { value: "hevc", name: "HEVC" },
+        { value: "av1", name: "AV1" },
+        { value: "vp8", name: "VP8" },
+        { value: "vp9", name: "VP9" },
+        { value: "hevc_hdr", name: "HEVC (HDR)" },
+        { value: "av1_hdr", name: "AV1 (HDR)" },
+        { value: "hevc_10bit", name: "HEVC (10-bit)" },
+        { value: "av1_10bit", name: "AV1 (10-bit)" },
+        { value: "h264_vulkan", name: "H.264 (Vulkan)" },
+        { value: "hevc_vulkan", name: "HEVC (Vulkan)" },
+        { value: "hevc_hdr_vulkan", name: "HEVC HDR (Vulkan)" },
+        { value: "hevc_10bit_vulkan", name: "HEVC 10-bit (Vulkan)" },
+        { value: "av1_vulkan", name: "AV1 (Vulkan)" },
+        { value: "av1_hdr_vulkan", name: "AV1 HDR (Vulkan)" },
+        { value: "av1_10bit_vulkan", name: "AV1 10-bit (Vulkan)" }
+    ]
+    readonly property var defaultContainerOptions: [
+        { value: "mp4", name: "MP4" },
+        { value: "mkv", name: "MKV" },
+        { value: "mov", name: "MOV" },
+        { value: "webm", name: "WebM" },
+        { value: "flv", name: "FLV" }
+    ]
+    property var videoCodecOptions: [
+        { value: "auto", name: "Auto (Recommended)" },
+        { value: "h264", name: "H.264" }
+    ]
+    property var containerOptions: root.defaultContainerOptions.slice()
+    property var outputAudioOptions: [{ value: "none", name: "None" }, { value: "default_output", name: "Default output" }]
+    property var inputAudioOptions: [{ value: "none", name: "None" }, { value: "default_input", name: "Default input" }]
+    readonly property var screenshotFormatOptions: [
+        { value: "png", name: "PNG (lossless)" },
+        { value: "jpeg", name: "JPEG" }
+    ]
+
+    function recordingValue(key) {
+        const settings = Settings.recording || Settings.defaultRecordingSettings();
+        const value = settings[key];
+        return value === undefined || value === null ? Settings.defaultRecordingSettings()[key] : value;
+    }
+
+    function setRecordingSetting(key, value) {
+        const next = Object.assign({}, Settings.recording || Settings.defaultRecordingSettings());
+        if (key === "directory")
+            value = String(value || "").trim() || Settings.defaultRecordingSettings().directory;
+        next[key] = value;
+        Settings.recording = next;
+        Settings.schedulePersist();
+    }
+
+    function screenshotValue(key) {
+        const settings = Settings.screenshot || Settings.defaultScreenshotSettings();
+        const value = settings[key];
+        return value === undefined || value === null ? Settings.defaultScreenshotSettings()[key] : value;
+    }
+
+    function setScreenshotSetting(key, value) {
+        const next = Object.assign({}, Settings.screenshot || Settings.defaultScreenshotSettings());
+        if (key === "directory")
+            value = String(value || "").trim() || Settings.defaultScreenshotSettings().directory;
+        next[key] = value;
+        Settings.screenshot = next;
+        Settings.schedulePersist();
+    }
+
+    function codecSupportsContainer(codec, container) {
+        if (!root.isSupportedRecordingContainer(container))
+            return false;
+        if (container === "webm")
+            return codec === "vp8" || codec === "vp9" || String(codec).startsWith("av1");
+        if (container === "flv")
+            return codec === "auto" || codec === "h264" || codec === "h264_vulkan";
+        return true;
+    }
+
+    function isSupportedRecordingContainer(container) {
+        return root.defaultContainerOptions.some(option => option.value === container);
+    }
+
+    function recordingContainerWarning(codec, container) {
+        if (!root.isSupportedRecordingContainer(container))
+            return String(container).toUpperCase() + " is not a supported video container in this GPU Screen Recorder version. Choose MP4, MKV, MOV, WebM, or FLV.";
+        if (!root.codecSupportsContainer(codec, container))
+            return "Incompatible codec/container. WEBM requires VP8, VP9, or AV1; FLV requires H.264. Choose a compatible codec or container.";
+        return "";
+    }
+
+    function setRecordingVideoCodec(codec) {
+        const container = root.recordingValue("container");
+        if (!root.codecSupportsContainer(codec, container)) {
+            Notifications.send("Recording settings", String(codec).toUpperCase() + " cannot be used in " + container.toUpperCase() + ". Choose MP4/MKV or a compatible codec.");
+            return;
+        }
+        root.setRecordingSetting("videoCodec", codec);
+    }
+
+    function setRecordingContainer(container) {
+        if (!root.isSupportedRecordingContainer(container)) {
+            Notifications.send("Recording settings", container.toUpperCase() + " is not a supported video container in this GPU Screen Recorder version. Choose MP4, MKV, MOV, WebM, or FLV.");
+            return;
+        }
+        const codec = root.recordingValue("videoCodec");
+        if (!root.codecSupportsContainer(codec, container)) {
+            const compatible = root.videoCodecOptions.find(option => root.codecSupportsContainer(option.value, container));
+            if (!compatible) {
+                Notifications.send("Recording settings", container.toUpperCase() + " has no compatible codec available on this GPU. Choose MP4/MKV, or use a GPU with VP8, VP9, or AV1 support.");
+                return;
+            }
+            root.setRecordingSetting("videoCodec", compatible.value);
+        }
+        root.setRecordingSetting("container", container);
+    }
+
+    function optionIndex(options, value) {
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].value === value)
+                return i;
+        }
+        return 0;
+    }
+
+    function preserveOption(options, value, prefix) {
+        if (value === undefined || value === null || value === "")
+            return options;
+        const result = options.slice();
+        if (!result.some(option => option.value === value))
+            result.push({ value: value, name: prefix + String(value) });
+        return result;
+    }
+
+    function parseRecorderInfo(output) {
+        let section = "";
+        const supportedCodecs = new Set();
+        const supportedContainers = new Set();
+        for (const rawLine of String(output || "").split(/\r?\n/)) {
+            const line = rawLine.trim();
+            if (line.startsWith("section=")) {
+                section = line.slice(8);
+            } else if (line !== "") {
+                if (section === "video_codecs")
+                    supportedCodecs.add(line);
+                else if (section === "containers")
+                    supportedContainers.add(line);
+            }
+        }
+
+        let codecs = root.videoCodecDefinitions.filter(option => option.value === "auto" || supportedCodecs.has(option.value));
+        codecs = root.preserveOption(codecs, root.recordingValue("videoCodec"), "Unavailable: ");
+        if (codecs.length > 1)
+            root.videoCodecOptions = codecs;
+
+        const containers = root.defaultContainerOptions.filter(option => supportedContainers.has(option.value));
+        root.containerOptions = root.preserveOption(containers.length > 0 ? containers : root.defaultContainerOptions, root.recordingValue("container"), "Unavailable: ");
+    }
+
+    function parseRecorderHelp(output) {
+        const match = String(output || "").match(/-ac\s+([a-z0-9_|]+)/i);
+        if (!match)
+            return;
+        const supported = new Set(match[1].split("|"));
+        let codecs = root.audioCodecDefinitions.filter(option => supported.has(option.value));
+        codecs = root.preserveOption(codecs, root.recordingValue("audioCodec"), "Unavailable: ");
+        if (codecs.length > 0)
+            root.audioCodecOptions = codecs;
+    }
+
+    function parseAudioDevices(output) {
+        const outputs = [{ value: "none", name: "None" }];
+        const inputs = [{ value: "none", name: "None" }];
+        for (const rawLine of String(output || "").split(/\r?\n/)) {
+            const line = rawLine.trim();
+            const divider = line.indexOf("|");
+            if (divider <= 0)
+                continue;
+            const value = line.slice(0, divider).trim();
+            const name = line.slice(divider + 1).trim() || value;
+            if (value === "default_output" || /\.monitor$/i.test(value) || /(^|_)output/i.test(value))
+                outputs.push({ value: value, name: name });
+            if (value === "default_input" || /(^|_)input/i.test(value))
+                inputs.push({ value: value, name: name });
+        }
+        root.outputAudioOptions = root.preserveOption(outputs, root.recordingValue("outputDevice"), "Unavailable: ");
+        root.inputAudioOptions = root.preserveOption(inputs, root.recordingValue("inputDevice"), "Unavailable: ");
+    }
+
+    property Process recorderInfoProcess: Process {
+        command: ["gpu-screen-recorder", "--info"]
+        stdout: StdioCollector {
+            onStreamFinished: root.parseRecorderInfo(text)
+        }
+    }
+    property Process audioDevicesProcess: Process {
+        command: ["gpu-screen-recorder", "--list-audio-devices"]
+        stdout: StdioCollector {
+            onStreamFinished: root.parseAudioDevices(text)
+        }
+    }
+    property Process recorderHelpProcess: Process {
+        command: ["gpu-screen-recorder", "--help"]
+        stdout: StdioCollector {
+            onStreamFinished: root.parseRecorderHelp(text)
+        }
+    }
+
     Component.onCompleted: {
+        root.recorderInfoProcess.running = true;
+        root.audioDevicesProcess.running = true;
+        root.recorderHelpProcess.running = true;
         if (visible)
             root.playReveal();
     }
@@ -1571,6 +2139,8 @@ Item {
         Settings.animationsEnabled = true;
         Settings.animScale = 1.0;
         Settings.islandAnimStyle = "Emphasized";
+        Settings.screenshot = Settings.defaultScreenshotSettings();
+        Settings.recording = Settings.defaultRecordingSettings();
         // Hyprland defaults
         root.hyprSet("general.border_size", 0);
         root.hyprSet("general.gaps_in", 7);

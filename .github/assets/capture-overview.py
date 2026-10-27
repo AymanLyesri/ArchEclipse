@@ -176,7 +176,9 @@ def process_running(name):
     try:
         return (
             subprocess.run(
-                ["pgrep", "-x", name], capture_output=True, timeout=10
+                ["pgrep", "-f", rf"(^|/){name}([[:space:]]|$)"],
+                capture_output=True,
+                timeout=10,
             ).returncode
             == 0
         )
@@ -588,10 +590,10 @@ def start_recording(snap):
         raise RuntimeError("Recording did not start: " + result)
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
-        if process_running("wf-recorder"):
+        if process_running("gpu-screen-recorder"):
             return result
         time.sleep(0.3)
-    raise RuntimeError("wf-recorder not running after screenrecord call")
+    raise RuntimeError("gpu-screen-recorder not running after screenrecord call")
 
 
 def stop_recording(snap):
@@ -600,10 +602,10 @@ def stop_recording(snap):
         raise RuntimeError("Recording did not stop cleanly: " + result)
     deadline = time.monotonic() + 15
     while time.monotonic() < deadline:
-        if not process_running("wf-recorder"):
+        if not process_running("gpu-screen-recorder"):
             return
         time.sleep(0.5)
-    raise RuntimeError("wf-recorder did not exit")
+    raise RuntimeError("gpu-screen-recorder did not exit")
 
 
 def collect_recording(before, out_path):

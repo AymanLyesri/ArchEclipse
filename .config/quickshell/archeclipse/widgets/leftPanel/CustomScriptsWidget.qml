@@ -82,7 +82,7 @@ Item {
             icon: "",
             description: "Record entire screen",
             keybind: ["SUPER", "SHIFT", "R"],
-            app: "wf-recorder",
+            app: "gpu-screen-recorder",
             kind: "record-now"
         },
         {
@@ -90,7 +90,7 @@ Item {
             icon: "",
             description: "Record selected area",
             keybind: ["SUPER", "CTRL", "SHIFT", "R"],
-            app: "wf-recorder",
+            app: "gpu-screen-recorder",
             kind: "record-area"
         },
         {

@@ -472,6 +472,80 @@ Singleton {
     property bool dynamicThemeColors: true
     property bool dynamicThemeVariants: false
 
+    // Screenshot capture settings used by ~/.config/hypr/scripts/screenshot.sh.
+    property var screenshot: root.defaultScreenshotSettings()
+    function defaultScreenshotSettings() {
+        return {
+            directory: `${Quickshell.env("HOME")}/Pictures/Screenshots`,
+            format: "png",
+            jpegQuality: 85,
+            pngCompression: 6,
+            optimizePng: false,
+            copyToClipboard: true,
+            notifyOnSave: true,
+            freezeOnArea: true,
+            includeCursor: false
+        };
+    }
+    function normalizeScreenshotSettings(saved) {
+        const defaults = root.defaultScreenshotSettings();
+        if (!saved || typeof saved !== "object" || Array.isArray(saved))
+            return defaults;
+        return {
+            directory: typeof saved.directory === "string" && saved.directory.trim() !== "" ? saved.directory.trim() : defaults.directory,
+            format: saved.format === "jpeg" ? "jpeg" : "png",
+            jpegQuality: Number.isInteger(saved.jpegQuality) && saved.jpegQuality >= 0 && saved.jpegQuality <= 100 ? saved.jpegQuality : defaults.jpegQuality,
+            pngCompression: Number.isInteger(saved.pngCompression) && saved.pngCompression >= 0 && saved.pngCompression <= 9 ? saved.pngCompression : defaults.pngCompression,
+            optimizePng: typeof saved.optimizePng === "boolean" ? saved.optimizePng : defaults.optimizePng,
+            copyToClipboard: typeof saved.copyToClipboard === "boolean" ? saved.copyToClipboard : defaults.copyToClipboard,
+            notifyOnSave: typeof saved.notifyOnSave === "boolean" ? saved.notifyOnSave : defaults.notifyOnSave,
+            freezeOnArea: typeof saved.freezeOnArea === "boolean" ? saved.freezeOnArea : defaults.freezeOnArea,
+            includeCursor: typeof saved.includeCursor === "boolean" ? saved.includeCursor : defaults.includeCursor
+        };
+    }
+
+    // GPU Screen Recorder options (persisted under `recording` in settings.json).
+    property var recording: root.defaultRecordingSettings()
+    function defaultRecordingSettings() {
+        return {
+            videoCodec: "auto",
+            quality: "very_high",
+            colorRange: "limited",
+            audioCodec: "opus",
+            frameRate: 60,
+            frameRateMode: "auto",
+            recordCursor: true,
+            outputDevice: "default_output",
+            inputDevice: "none",
+            directory: `${Quickshell.env("HOME")}/Videos/ScreenRecords`,
+            container: "mp4"
+        };
+    }
+    function normalizeRecordingSettings(saved) {
+        const defaults = root.defaultRecordingSettings();
+        if (!saved || typeof saved !== "object" || Array.isArray(saved))
+            return defaults;
+        const codecs = ["auto", "h264", "hevc", "av1", "vp8", "vp9", "hevc_hdr", "av1_hdr", "hevc_10bit", "av1_10bit", "h264_vulkan", "hevc_vulkan", "hevc_hdr_vulkan", "hevc_10bit_vulkan", "av1_vulkan", "av1_hdr_vulkan", "av1_10bit_vulkan"];
+        const quality = ["medium", "high", "very_high", "ultra"];
+        const frameModes = ["auto", "cfr", "vfr", "content"];
+        const audioCodecs = ["aac", "opus", "mp3"];
+        const containers = ["mp4", "mkv", "webm", "flv", "mov", "ts"];
+        const fps = Number(saved.frameRate);
+        return {
+            videoCodec: codecs.includes(saved.videoCodec) ? saved.videoCodec : defaults.videoCodec,
+            quality: quality.includes(saved.quality) ? saved.quality : defaults.quality,
+            colorRange: ["limited", "full"].includes(saved.colorRange) ? saved.colorRange : defaults.colorRange,
+            audioCodec: audioCodecs.includes(saved.audioCodec) ? saved.audioCodec : defaults.audioCodec,
+            frameRate: Number.isInteger(fps) && fps >= 1 && fps <= 360 ? fps : defaults.frameRate,
+            frameRateMode: frameModes.includes(saved.frameRateMode) ? saved.frameRateMode : defaults.frameRateMode,
+            recordCursor: typeof saved.recordCursor === "boolean" ? saved.recordCursor : defaults.recordCursor,
+            outputDevice: typeof saved.outputDevice === "string" && saved.outputDevice !== "" ? saved.outputDevice : defaults.outputDevice,
+            inputDevice: typeof saved.inputDevice === "string" && saved.inputDevice !== "" ? saved.inputDevice : defaults.inputDevice,
+            directory: typeof saved.directory === "string" && saved.directory.trim() !== "" ? saved.directory.trim() : defaults.directory,
+            container: containers.includes(saved.container) ? saved.container : defaults.container
+        };
+    }
+
     // Hyprland settings (plain values internally; persist() writes the
     // {name,value,min,max,type} leaf shape the settings panel renders).
     property var hyprland: ({
@@ -907,6 +981,8 @@ Singleton {
                 dynamicThemeVariants: {
                     value: root.dynamicThemeVariants
                 },
+                screenshot: root.screenshot,
+                recording: root.recording,
                 "waifuWidget": {
                     current: root.waifu
                 },
@@ -1189,6 +1265,9 @@ Singleton {
                 root.dynamicThemeColors = (typeof _dtc === "object" && _dtc !== null ? _dtc.value : _dtc) ?? false;
                 const _dtv = s.dynamicThemeVariants;
                 root.dynamicThemeVariants = (typeof _dtv === "object" && _dtv !== null ? _dtv.value : _dtv) ?? false;
+
+                root.screenshot = root.normalizeScreenshotSettings(s.screenshot);
+                root.recording = root.normalizeRecordingSettings(s.recording);
 
                 // Hyprland settings (full schema incl. blur passes 4, xray,
                 // xray, gaps, opacities — previously partial, which reset
