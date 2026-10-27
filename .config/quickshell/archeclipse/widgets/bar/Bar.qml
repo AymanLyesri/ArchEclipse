@@ -62,7 +62,7 @@ PanelWindow {
     // behind (debounceResolve), which kept Exclusive held while a freshly
     // launched app mapped, stealing its focus back to the bar.
     WlrLayershell.keyboardFocus: BarState.isOpenFor("search", root.monitorName) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
-    WlrLayershell.exclusiveZone: Settings.barLock ? root.barHeight : -1
+    WlrLayershell.exclusiveZone: root.barHeight
     // Toast breakthrough: while toasts are up the whole window jumps to
     // the Overlay layer (above fullscreen windows), then drops back to
     // Top when they clear. notifPill is declared below — QML resolves
@@ -150,20 +150,14 @@ PanelWindow {
     implicitHeight: root.screenHeight
     implicitWidth: pill.width
 
-    // visibility: search pins; override wins;
-    // otherwise lock/smart-hide geometric room-check.
-    // Re-evaluate when Hyprland geometry events arrive (clients move/resize).
-    readonly property bool roomCheckLive: BarState.hyprlandTick >= 0
-
+    // visibility: open islands pin the bar; otherwise an explicit hide
+    // override (SUPER+ALT+BACKSPACE toggle, capture) wins, else visible.
     readonly property bool barVisible: {
         const localState = BarState.stateFor(root.monitorName);
         if (localState === "search" || localState === "control" || localState === "overview" || localState === "wallpaper" || BarState.isOpenFor("left", root.monitorName) || BarState.isOpenFor("right", root.monitorName))
             return true;
         const override = (BarState.barShown || {})[monitorName];
-        if (override !== undefined)
-            return override;
-        BarState.hyprlandTick; // reap the reactive dependency
-        return BarState.barVisibleFor(monitorName);
+        return override !== undefined ? override : true;
     }
 
     // Workspace wave hang (px) — reaches into the current DefaultBar page
@@ -234,120 +228,8 @@ PanelWindow {
     Component.onDestruction: Registry.unregister("capture-bar-" + root.monitorName)
     Component.onCompleted: {
         Registry.register("capture-bar-" + root.monitorName, root);
-        if (Settings.barDefault)
-            BarState.activate("default");
-    }
-    onHoveredChanged: {
-        if (hovered) {
-            BarState.activate("default");
-            hideTimer.stop();
-        } else {
-            hideTimer.restart();
-        }
-    }
-    Timer {
-        id: hideTimer
-        interval: 250
-        onTriggered: {
-            // Leave handler: collapse default (guarded by hover+popup),
-            // then conceal the bar when unlocked and search isn't pinning it.
-            if (!root.hovered && BarState.popupCountFor(root.monitorName) <= 0 && !Settings.barDefault)
-                BarState.deactivate("default");
-            const localState = BarState.stateFor(root.monitorName);
-            if (localState !== "search" && localState !== "control" && localState !== "overview" && localState !== "wallpaper" && !BarState.isOpenFor("left", root.monitorName) && !BarState.isOpenFor("right", root.monitorName) && !Settings.barLock && !root.hovered && BarState.popupCountFor(root.monitorName) <= 0)
-                BarState.concealBar(root.monitorName);
-        }
     }
 
-    // idle watchdog for hover-reveal overrides
-    Connections {
-        target: BarState
-        function onBarShownChanged() {
-            if (BarState.barShown[root.monitorName] === true)
-                idleTimer.restart();
-            else
-                idleTimer.stop();
-        }
-    }
-    Timer {
-        id: idleTimer
-        interval: 1500
-        running: (BarState.barShown || {})[root.monitorName] === true
-        onTriggered: {
-            if (Settings.barLock)
-                return;
-            const localState = BarState.stateFor(root.monitorName);
-            if (localState === "search" || localState === "control" || localState === "overview" || localState === "wallpaper" || BarState.isOpenFor("left", root.monitorName) || BarState.isOpenFor("right", root.monitorName)) {
-                idleTimer.restart();
-                return;
-            }
-            // Watchdog: don't trust the hover read alone (reveals
-            // can fire without an enter/leave cycle). Ask Hyprland where the
-            // cursor actually is; if it is over the bar band or a popup is
-            // open, keep waiting. If position is unknown, DON'T conceal
-            // blindly — restart the check.
-            if (BarState.popupCountFor(root.monitorName) > 0) {
-                idleTimer.restart();
-                return;
-            }
-            root.verifyCursorOffBar();
-        }
-    }
-
-    // pointerOnBar(): cursorpos vs monitor band geometry.
-    property var _cursorProc: null
-    function verifyCursorOffBar() {
-        if (root._cursorProc)
-            return;
-        var p = Qt.createQmlObject('import Quickshell.Io; Process { command: ["hyprctl", "cursorpos"] }', root);
-        root._cursorProc = p;
-        var out = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
-        p.stdout = out;
-        out.onStreamFinished.connect(() => {
-            var proc = root._cursorProc;
-            root._cursorProc = null;
-            var stillOff = root.cursorOffBar(out.text);
-            if (stillOff === true) {
-                if (!root.hovered && BarState.popupCountFor(root.monitorName) <= 0)
-                    BarState.concealBar(root.monitorName);
-            } else if (stillOff === false) {
-                idleTimer.restart();
-            } else {
-                // unknown — don't conceal blindly
-                idleTimer.restart();
-            }
-            out.destroy();
-            proc.destroy();
-        });
-        p.running = true;
-    }
-    // Returns true = cursor verifiably off bar, false = on bar,
-    // undefined = can't tell.
-    function cursorOffBar(cursorText) {
-        try {
-            var parts = (cursorText || "").trim().split(",");
-            if (parts.length < 2)
-                return undefined;
-            var x = parseInt(parts[0], 10);
-            var y = parseInt(parts[1], 10);
-            if (isNaN(x) || isNaN(y))
-                return undefined;
-            var mon = Hyprland.monitorFor(screen);
-            if (!mon)
-                return undefined;
-            var h = root.barHeight;
-            var monW = (screen && screen.width > 0) ? screen.width : ((mon.width > 0 && mon.scale > 0) ? Math.round(mon.width / mon.scale) : mon.width);
-            var monH = root.screenHeight;
-            var monX = (mon.scale && mon.scale > 0) ? Math.round(mon.x / mon.scale) : mon.x;
-            var monY = (mon.scale && mon.scale > 0) ? Math.round(mon.y / mon.scale) : mon.y;
-            if (x < monX || x > monX + monW)
-                return true;
-            var onBar = Settings.barOrientation ? y <= monY + h : y >= monY + monH - h;
-            return !onBar;
-        } catch (e) {
-            return undefined;
-        }
-    }
 
     Item {
         id: stripRoot

@@ -16,7 +16,6 @@
 | Window | Source | Notes |
 |---|---|---|
 | `Bar` | `widgets/bar/Bar.qml` | Main pill; one instance per monitor |
-| `BarHoverWindow` | `widgets/bar/BarHoverWindow.qml` | Edge strip that dwell-reveals an auto-hidden bar |
 | `MediaWindow` | `widgets/media/MediaWindow.qml` | Standalone media controls; one instance per monitor, toggled by `SUPER+M` |
 | `NotificationPopups` | `widgets/notifications/NotificationPopups.qml` | Toast popups, per monitor |
 | `LockScreen` | `widgets/lock/LockScreen.qml` | Single scope; compositor creates one `WlSessionLockSurface` per screen (no `Variants`) |
@@ -151,7 +150,7 @@ All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb
 | `ScreenRecorder` | `wf-recorder` via `~/.config/hypr/scripts/screenrecord.sh`; `isRecording` is **polled** (`pgrep`, 1s) + 1.2s settle — lags reality ~2s, never use it for rapid toggle decisions |
 | `Screenshot` | Owns `~/.config/hypr/scripts/screenshot.sh` spawns (`--now`/`--area`). Lives in a singleton on purpose: the bar's screenshot island is created/destroyed by the hover reveal, and destroying a Quickshell `Process` kills its child — an area selection outlives the island, so `grim` would never run |
 | `Notifications` | Daemon mirror: ephemeral `popupToasts` vs retained `history`; `Recorder` toasts get red-dot treatment |
-| `Settings` | Persisted config (`theme/Settings.qml`): bar/panel geometry, hotzones, `revealPressure`, widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
+| `Settings` | Persisted config (`theme/Settings.qml`): bar/panel geometry, hotzones, `revealIn/OutPressure`, theme tokens (`uiRadius/uiPad/uiSpacing`), widgets, booru, apiKeys, waifu, hyprland mirror; `updateSetting/persist/schedulePersist/reload` |
 | `Brightness` | Focused-monitor brightness for keybinds; `screenFor/setScreen` also target a named monitor for quick settings. Internal backlight via `brightnessctl` (inotify), external monitors via DDC/CI `ddcutil` (detected at boot + on screen hotplug). Optimistic `screen`, **coalesced** ddcutil writes (one process at a time, latest value wins) so held keys never pile up; `adjusted(monitorName)` signal (not `screenChanged`) drives that monitor's OSD pulse |
 | `Weather, KeyboardLayout, SysInfo, VolumeWatcher` | Device/API polling singletons (`Weather` owns `fmt/fmtRaw/formatTime/formatDate` for `WeatherCard`; `SysInfo.bandwidth` is the single `bandwidth-loop` owner bound by `Bandwidth`) |
 | `FastfetchPins, AutoWorkspaceSwitching, GlobalTheme, UserProfileState` | Boot/prefs singletons: pins self-heal + watcher, workspace auto-switch, global theme bridge, profile cache |
