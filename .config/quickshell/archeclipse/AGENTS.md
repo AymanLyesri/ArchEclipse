@@ -136,6 +136,18 @@ auto-hide via `popupHovered`. Island height is explicit (`bodyHeight`, full moni
 height); each widget scrolls internally. Tab bodies live in `widgets/leftPanel/`
 (`BooruViewer/` is a subdir; `GeneralTab.qml` is a Settings sub-tab, not an island tab).
 
+Settings and Key Binds are two-column: the shared `CategoryRail` (fixed,
+data-driven) beside the right `SmoothFlickable`, with `CategoryNav` owning the
+active/focus state + centered scroll and `CategorySection` the cards. Titles
+live in the host model, so rail labels and headers cannot drift. Selecting an
+entry centres that section (`targetFor` clamps at the boundaries; an oversized
+section pins its top instead), then `focusActive` fades the others by distance.
+The fade survives the programmatic scroll (`navInProgress` guards the
+`contentY` writes) and is cleared by manual scrolling (wheel/drag/scrollbar) or
+the island closing — the latter via `BarState` state, because `visible` is
+*effective* visibility and hiding a parent does not reliably fire
+`visibleChanged`.
+
 ### 1.5 Services — `services/` (module `qs.services`, see `services/qmldir`)
 
 All stateful logic is a QML singleton (`pragma Singleton`), UI files stay dumb
@@ -178,7 +190,8 @@ Shared controls in `widgets/shared/` (module `qs.widgets.shared`, see its `qmldi
 `AppButton`, `AppSlider`, `AppTextField`, `AppTextArea`, `AppCheckBox`, `AppComboBox`,
 `AppSpinBox`, `AppKeybind`, `AppSegmentedControl`, `AppImage`, `AppVideo`, `AppBadge`,
 `AppTooltip`, `AppProgress`, `AppMasonry`, `AppMasonryRow`, `SystemResourcesContent`,
-`SmoothFlickable`, `SmoothListView`, `SmoothWheelHandler`.
+`SmoothFlickable`, `SmoothListView`, `SmoothWheelHandler`, `CategoryNav`,
+`CategoryRail`, `CategorySection`.
 
 Motion system (Caelestia-expressive port, pure QML — no C++ plugin):
 

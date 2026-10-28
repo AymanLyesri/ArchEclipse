@@ -17,6 +17,29 @@ Item {
     property string className: ""
     property string monitorName: ""
 
+    // Settings categories — the one source of truth for the left rail and
+    // the section headers (CategorySection looks its title up here by
+    // index). Order MUST match the CategorySection order below.
+    readonly property var categories: [
+        { key: "bar", title: "Bar" },
+        { key: "panels", title: "Panels" },
+        { key: "theme", title: "Theme" },
+        { key: "interface", title: "Interface" },
+        { key: "animations", title: "Animations" },
+        { key: "user-agents", title: "User Agents" },
+        { key: "api-keys", title: "API Keys" },
+        { key: "hyprland", title: "Hyprland" },
+        { key: "lockscreen", title: "Lockscreen" },
+        { key: "recording", title: "Recording" },
+        { key: "screenshots", title: "Screenshots" }
+    ]
+
+    // Island motion-style choices. These used to hang off the Animations
+    // section's Column; the shared CategorySection card has no per-section
+    // property bag, so they live with the other option arrays at root.
+    readonly property var islandAnimStyleValues: ["Standard", "Emphasized", "ExpressiveFast", "ExpressiveDefault", "ExpressiveSlow"]
+    readonly property var islandAnimStyleLabels: ["Standard (smooth)", "Emphasized (smooth)", "Bouncy Fast", "Bouncy Default", "Bouncy Slow"]
+
     // Replayable staggered section reveal (CustomScripts/KeyBinds parity):
     // StackLayout builds all tabs once at startup (hidden), so
     // creation-time fades would fire unseen and the tab switch would only
@@ -24,7 +47,7 @@ Item {
     // each time this tab becomes visible and sections key their opacity
     // off their index.
     property int revealCount: 0
-    property int sectionCount: 11
+    property int sectionCount: root.categories.length
     Timer {
         id: revealTimer
         interval: 60
@@ -40,10 +63,39 @@ Item {
         root.revealCount = 0;
         revealTimer.restart();
     }
+
+    // Shared category navigation (rail highlight, centered scroll, distance
+    // focus). The sections below bind to this controller.
+    CategoryNav {
+        id: nav
+        flickable: settingsScroll
+        content: settingsCol
+        categories: root.categories
+    }
+
+    // 104 keeps the longest label ("Screenshots") unelided at the
+    // default type scale while costing the content column only 30%.
+    readonly property int sidebarWidth: 104
+
     onVisibleChanged: {
         if (visible) {
             root.playReveal();
             root.handlePendingTarget();
+        } else {
+            // Closed: drop the focus pattern so a reopen is normal. The
+            // sidebar keeps the last category selected.
+            nav.clearFocus();
+        }
+    }
+
+    // `visible` is *effective* visibility here: hiding the island (or a
+    // parent tab) does not emit visibleChanged, so the close cleanup above
+    // can't rely on it. The island's own state is the authoritative signal.
+    Connections {
+        target: BarState
+        function onPanelStatesByMonitorChanged() {
+            if (!BarState.isOpenFor("left", root.monitorName))
+                nav.clearFocus();
         }
     }
 
@@ -74,20 +126,15 @@ Item {
             if (!item || item.objectName !== key)
                 continue;
             const y = item.mapToItem(settingsCol, 0, 0).y;
-            const maxY = Math.max(0, settingsCol.height - settingsScroll.height);
-            scrollAnim.to = Math.min(Math.max(y - 24, 0), maxY);
-            scrollAnim.restart();
+            // Keep the rail honest about where the deep link landed, but
+            // don't apply the focus fade — the flash is the highlight.
+            nav.activeIndex = nav.indexForY(y);
+            nav.focusActive = false;
+            nav.scrollToY(y - 24, -1);
             if (item.flash)
                 item.flash();
             return;
         }
-    }
-    NumberAnimation {
-        id: scrollAnim
-        target: settingsScroll
-        property: "contentY"
-        duration: Theme.anim.fastSpatial
-        easing.type: Easing.OutCubic
     }
 
     ColumnLayout {
@@ -106,1572 +153,1307 @@ Item {
             }
         }
 
-        SmoothFlickable {
-            id: settingsScroll
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            contentWidth: width
-            contentHeight: settingsCol.height
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AsNeeded
+            spacing: Theme.spacing
+
+            // Persistent category rail: fixed while the content scrolls.
+            CategoryRail {
+                Layout.preferredWidth: root.sidebarWidth
+                Layout.alignment: Qt.AlignTop
+                model: root.categories
+                currentIndex: nav.activeIndex
+                onSelected: index => nav.select(index)
             }
 
-            Column {
-                id: settingsCol
-                spacing: Theme.spacing
-                width: settingsScroll.width
-                // No edge padding: the panel owns the content inset (the
-                // island's Theme.pad), right-panel parity.
-
-                // ============ BAR SETTINGS ============
-                // NOTE: smart-hide, full-width and visibility are
-                // intentionally not exposed here: the bar always shows all
-                // sections in a centered pill and never auto-hides. The
-                // SUPER+ALT+BACKSPACE IPC toggle is the only visibility
-                // switch.
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: barSec.implicitHeight + 20
-                    opacity: root.revealCount > 0 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: barSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "Bar"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-                            SettingRow {
-                                text: "Orientation"
-                                tip: "Top or bottom edge for the bar."
-                                AppComboBox {
-                                    model: ["Top", "Bottom"]
-                                    currentIndex: Settings.barOrientation ? 0 : 1
-                                    onActivated: Settings.barOrientation = (index === 0)
-                                    Layout.preferredWidth: 160
-                                }
-                            }
-                        }
+            SmoothFlickable {
+                id: settingsScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: width
+                contentHeight: settingsCol.height
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                    // Dragging the bar is a manual scroll: stop an in-flight
+                    // category animation so the two never fight over contentY.
+                    onPressedChanged: {
+                        if (pressed)
+                            nav.cancel();
                     }
                 }
 
-                // ============ PANEL SETTINGS ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: panelSec.implicitHeight + 20
-                    opacity: root.revealCount > 1 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
+                Column {
+                    id: settingsCol
+                    spacing: Theme.spacing
+                    width: settingsScroll.width
+                    // No edge padding: the panel owns the content inset (the
+                    // island's Theme.pad), right-panel parity.
+
+                    // ============ BAR SETTINGS ============
+                    // NOTE: smart-hide, full-width and visibility are
+                    // intentionally not exposed here: the bar always shows all
+                    // sections in a centered pill and never auto-hides. The
+                    // SUPER+ALT+BACKSPACE IPC toggle is the only visibility
+                    // switch.
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 0
+                        revealed: root.revealCount > 0
+
+                        SettingRow {
+                            text: "Orientation"
+                            tip: "Top or bottom edge for the bar."
+                            AppComboBox {
+                                model: ["Top", "Bottom"]
+                                currentIndex: Settings.barOrientation ? 0 : 1
+                                onActivated: Settings.barOrientation = (index === 0)
+                                Layout.preferredWidth: 160
+                            }
                         }
                     }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
 
-                    Column {
-                        id: panelSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
+                    // ============ PANEL SETTINGS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 1
+                        revealed: root.revealCount > 1
+
+                        SettingRow {
+                            text: "Left Panel Width"
+                            tip: "Width of the left side panel on this monitor in px."
+                            AppSpinBox {
+                                from: 200
+                                to: 1500
+                                value: Settings.panelWidthFor("left", root.monitorName)
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.panelWidthFor("left", root.monitorName))
+                                        return;
+                                    Settings.setPanelWidthFor("left", root.monitorName, value);
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Right Panel Width"
+                            tip: "Width of the right side panel on this monitor in px."
+                            AppSpinBox {
+                                from: 200
+                                to: 1500
+                                value: Settings.panelWidthFor("right", root.monitorName)
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.panelWidthFor("right", root.monitorName))
+                                        return;
+                                    Settings.setPanelWidthFor("right", root.monitorName, value);
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Left Panel Hot Zone"
+                            tip: "Hover the left edge to open the left panel."
+                            AppToggle {
+                                checked: Settings.leftPanelHotZone
+                                onToggled: Settings.leftPanelHotZone = checked
+                            }
+                        }
+                        SettingRow {
+                            text: "Right Panel Hot Zone"
+                            tip: "Hover the right edge to open the right panel."
+                            AppToggle {
+                                checked: Settings.rightPanelHotZone
+                                onToggled: Settings.rightPanelHotZone = checked
+                            }
+                        }
+                        SettingRow {
+                            text: "Left Hot Zone Size"
+                            tip: "Hover strip width on the left edge in px."
+                            AppSpinBox {
+                                from: 1
+                                to: 50
+                                value: Settings.leftPanelHotZoneSize
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.leftPanelHotZoneSize)
+                                        return;
+                                    Settings.leftPanelHotZoneSize = value;
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Right Hot Zone Size"
+                            tip: "Hover strip width on the right edge in px."
+                            AppSpinBox {
+                                from: 1
+                                to: 50
+                                value: Settings.rightPanelHotZoneSize
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.rightPanelHotZoneSize)
+                                        return;
+                                    Settings.rightPanelHotZoneSize = value;
+                                }
+                            }
+                        }
+                        AppButton {
+                            text: "Preview Hot Zones"
+                            tooltipText: "Flash the edge hover areas on screen."
+                            onClicked: root.previewHotZones()
+                        }
+                    }
+
+                    // ============ THEME SETTINGS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 2
+                        revealed: root.revealCount > 2
+
+                        SettingRow {
+                            text: "Dynamic Theme Colors"
+                            tip: "Recolor the theme from the wallpaper."
+                            AppToggle {
+                                checked: Settings.dynamicThemeColors
+                                onToggled: {
+                                    Settings.dynamicThemeColors = checked;
+                                    root.setThemeFlagInConf("autocolor", checked);
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Dynamic Theme Variants"
+                            tip: "Switch light/dark variant from wallpaper."
+                            AppToggle {
+                                checked: Settings.dynamicThemeVariants
+                                onToggled: {
+                                    Settings.dynamicThemeVariants = checked;
+                                    root.setThemeFlagInConf("autovariant", checked);
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Radius"
+                            tip: "Corner radius for pills, cards and panels."
+                            AppSpinBox {
+                                from: 0
+                                to: 24
+                                value: Settings.uiRadius
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.uiRadius)
+                                        return;
+                                    Settings.uiRadius = value;
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Pad (Inset)"
+                            tip: "Content inset inside cards, panels and islands."
+                            AppSpinBox {
+                                from: 0
+                                to: 16
+                                value: Settings.uiPad
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.uiPad)
+                                        return;
+                                    Settings.uiPad = value;
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Spacing"
+                            tip: "Gap between bar elements and stacked sections."
+                            AppSpinBox {
+                                from: 2
+                                to: 16
+                                value: Settings.uiSpacing
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.uiSpacing)
+                                        return;
+                                    Settings.uiSpacing = value;
+                                }
+                            }
+                        }
+                    }
+
+                    // ============ INTERFACE ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 3
+                        revealed: root.revealCount > 3
+
+                        SettingRow {
+                            text: "Opacity"
+                            tip: "Shell opacity; 1 is fully opaque."
+                            AppSlider {
+                                from: 0
+                                to: 1
+                                value: Settings.uiOpacity
+                                stepSize: 0.01
+                                // Fill: the value label already fixes the
+                                // right edge; a fixed 150 starved the row
+                                // label in the narrower two-column layout.
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    if (value === Settings.uiOpacity)
+                                        return;
+                                    Settings.uiOpacity = value;
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: Settings.uiOpacity.toFixed(2)
+                                color: Theme.fgDim
+                                Layout.preferredWidth: 34
+                                horizontalAlignment: Text.AlignRight
+                            }
+                        }
+                        SettingRow {
+                            text: "Font Size"
+                            tip: "Base font size for shell text."
+                            AppSpinBox {
+                                from: 10
+                                to: 30
+                                value: Settings.uiFontSize
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.uiFontSize)
+                                        return;
+                                    Settings.uiFontSize = value;
+                                }
+                            }
+                        }
+                    }
+
+                    // ============ ANIMATIONS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 4
+                        revealed: root.revealCount > 4
+
+                        SettingRow {
+                            text: "Enabled"
+                            tip: "Turn all shell animations on or off."
+                            AppToggle {
+                                checked: Settings.animationsEnabled
+                                onToggled: Settings.animationsEnabled = checked
+                            }
+                        }
+                        SettingRow {
+                            text: "Speed"
+                            tip: "Duration multiplier; lower is faster."
+                            AppSlider {
+                                from: 0.2
+                                to: 2.0
+                                stepSize: 0.05
+                                value: Settings.animScale
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value * 100) / 100;
+                                    if (Math.abs(v - Settings.animScale) < 0.001)
+                                        return;
+                                    Settings.animScale = v;
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: Settings.animScale.toFixed(2) + "×"
+                                color: Theme.fgDim
+                                Layout.preferredWidth: 44
+                                horizontalAlignment: Text.AlignRight
+                            }
+                        }
                         Label {
-                            text: "Panels"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
+                            width: parent.width
+                            wrapMode: Text.WordWrap
+                            text: "Lower is faster (duration multiplier)."
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.fontSize - 1
+                        }
+                        SettingRow {
+                            text: "Island Style"
+                            tip: "Motion style used by bar islands."
+                            AppComboBox {
+                                model: root.islandAnimStyleLabels
+                                currentIndex: Math.max(0, root.islandAnimStyleValues.indexOf(Settings.islandAnimStyle))
+                                onActivated: Settings.islandAnimStyle = root.islandAnimStyleValues[index]
+                                Layout.preferredWidth: 160
+                            }
+                        }
+                        SettingRow {
+                            text: "Reveal-In Pressure"
+                            tip: "Hover dwell before a bar pill or island reveals."
+                            AppSpinBox {
+                                from: 0
+                                to: 5000
+                                value: Settings.revealInPressure
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.revealInPressure)
+                                        return;
+                                    Settings.revealInPressure = value;
+                                }
+                            }
+                        }
+                        SettingRow {
+                            text: "Reveal-Out Pressure"
+                            tip: "Delay before a hovered island closes."
+                            AppSpinBox {
+                                from: 0
+                                to: 5000
+                                value: Settings.revealOutPressure
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.revealOutPressure)
+                                        return;
+                                    Settings.revealOutPressure = value;
+                                }
+                            }
+                        }
+                    }
+
+                    // ============ USER AGENTS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 5
+                        revealed: root.revealCount > 5
+
+                        Repeater {
+                            model: [
+                                { key: "booru", label: "Booru" },
+                                { key: "mangaDex", label: "MangaDex" },
+                                { key: "mangaLib", label: "MangaLib" },
+                                { key: "waifu", label: "Waifu" },
+                                { key: "fastfetch", label: "Fastfetch" }
+                            ]
+                            delegate: Rectangle {
+                                width: parent.width
+                                height: uaRow.implicitHeight
+                                color: "transparent"
+
+                                property bool reveal: false
+
+                                RowLayout {
+                                    id: uaRow
+                                    width: parent.width
+                                    spacing: Theme.spacing
+                                    SettingLabel {
+                                        text: modelData.label
+                                        tip: "Custom User-Agent sent with " + modelData.label + " requests."
+                                        // Share the row with the field: a
+                                        // fixed 90 left the field ~30px once
+                                        // the category rail took its width.
+                                        Layout.fillWidth: true
+                                    }
+                                    AppTextField {
+                                        id: uaField
+                                        text: Settings.userAgent(modelData.key)
+                                        placeholderText: "User-Agent"
+                                        echoMode: parent.parent.reveal ? TextField.Normal : TextField.Password
+                                        fillColor: "transparent"
+                                        Layout.fillWidth: true
+                                        onAccepted: {
+                                            const u = JSON.parse(JSON.stringify(Settings.userAgents || {}));
+                                            u[modelData.key] = uaField.text;
+                                            Settings.userAgents = u;
+                                            Settings.schedulePersist();
+                                        }
+                                    }
+                                    AppButton {
+                                        text: parent.parent.reveal ? "hide" : "show"
+                                        Layout.preferredWidth: 44
+                                        Layout.preferredHeight: 24
+                                        visible: uaField.text !== ""
+                                        tooltipText: "Show or hide the value"
+                                        onClicked: parent.parent.reveal = !parent.parent.reveal
+                                    }
+                                    AppButton {
+                                        text: "copy"
+                                        Layout.preferredWidth: 44
+                                        Layout.preferredHeight: 24
+                                        visible: uaField.text !== ""
+                                        tooltipText: "Copy the value to the clipboard"
+                                        onClicked: root.copyText(uaField.text)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ============ API KEYS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 6
+                        revealed: root.revealCount > 6
+
+                        Repeater {
+                            id: apiKeyRepeater
+                            model: [
+                                {
+                                    path: "openrouter.user",
+                                    label: "OpenRouter User"
+                                },
+                                {
+                                    path: "openrouter.key",
+                                    label: "OpenRouter API Key"
+                                },
+                                {
+                                    path: "danbooru.user",
+                                    label: "Danbooru User"
+                                },
+                                {
+                                    path: "danbooru.key",
+                                    label: "Danbooru Key"
+                                },
+                                {
+                                    path: "gelbooru.user",
+                                    label: "Gelbooru User"
+                                },
+                                {
+                                    path: "gelbooru.key",
+                                    label: "Gelbooru Key"
+                                },
+                                {
+                                    path: "safebooru.user",
+                                    label: "Safebooru User"
+                                },
+                                {
+                                    path: "safebooru.key",
+                                    label: "Safebooru Key"
+                                },
+                                {
+                                    path: "wallhaven.key",
+                                    label: "Wallhaven Key (optional, unlocks NSFW)"
+                                }
+                            ]
+                            delegate: Rectangle {
+                                id: keyRow
+                                // NOTE: Repeater has no width — size off the
+                                // section Column instead.
+                                width: parent.width
+                                height: keyRowLayout.implicitHeight
+                                color: "transparent"
+                                radius: Theme.radius
+                                objectName: modelData.path
+
+                                property bool reveal: false
+
+                                border.color: Theme.accent
+                                border.width: 0
+                                function flash() {
+                                    flashAnim.restart();
+                                }
+                                SequentialAnimation {
+                                    id: flashAnim
+                                    loops: 2
+                                    NumberAnimation {
+                                        target: keyRow
+                                        property: "border.width"
+                                        from: 0
+                                        to: 2
+                                        duration: Theme.anim.small
+                                        easing.type: Easing.OutCubic
+                                    }
+                                    NumberAnimation {
+                                        target: keyRow
+                                        property: "border.width"
+                                        from: 2
+                                        to: 0
+                                        duration: Theme.anim.defaultSpatial
+                                        easing.type: Easing.InCubic
+                                    }
+                                }
+
+                                RowLayout {
+                                    id: keyRowLayout
+                                    width: parent.width
+                                    spacing: Theme.spacing
+                                    SettingLabel {
+                                        text: modelData.label
+                                        tip: root.apiKeyTip(modelData.path, modelData.label)
+                                        Layout.fillWidth: true
+                                    }
+
+                                    AppTextField {
+                                        id: keyField
+                                        text: root.getNested(Settings.apiKeys, modelData.path)
+                                        placeholderText: "Enter " + modelData.label
+                                        echoMode: parent.parent.reveal ? TextField.Normal : TextField.Password
+                                        fillColor: "transparent"
+                                        // Fill + minimum: this dense row also
+                                        // carries show/copy buttons, so a
+                                        // fixed 160 overflowed once the
+                                        // category rail took its width.
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 48
+                                        onAccepted: {
+                                            root.setNestedValue("apiKeys", modelData.path, keyField.text, true);
+                                            // Notify masked value on save (secret)
+                                            Notifications.notify({
+                                                summary: modelData.label,
+                                                body: "Changed to ••••••••"
+                                            });
+                                        }
+                                    }
+                                    AppButton {
+                                        text: parent.parent.reveal ? "hide" : "show"
+                                        Layout.preferredWidth: 44
+                                        Layout.preferredHeight: 24
+                                        visible: keyField.text !== ""
+                                        tooltipText: "Show or hide the key"
+                                        onClicked: parent.parent.reveal = !parent.parent.reveal
+                                    }
+                                    AppButton {
+                                        text: "copy"
+                                        Layout.preferredWidth: 44
+                                        Layout.preferredHeight: 24
+                                        tooltipText: "Copy the key to the clipboard"
+                                        onClicked: root.copyText(keyField.text)
+                                    }
+                                }
+                            }
+                        }
+                        // ChatBot reply notifications (replies stay in the
+                        // tab unless this is on; errors always notify).
+                        SettingRow {
+                            text: "Notify on chatbot reply"
+                            tip: "Pop a notification when the chatbot replies."
+                            AppToggle {
+                                checked: Settings.chatBotNotify
+                                onToggled: Settings.chatBotNotify = checked
+                            }
+                        }
+                    }
+
+                    // ============ HYPRLAND ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 7
+                        revealed: root.revealCount > 7
+
+                        // Game Mode
+                        SettingRow {
+                            text: "Game Mode"
+                            tip: "Disable blur and animations for performance."
+                            AppToggle {
+                                checked: Settings.gameModeEnabled
+                                onToggled: Settings.applyGameMode(checked)
+                            }
                         }
 
+                        // Blue light filter (hyprsunset)
+                        SettingRow {
+                            text: "Blue Light Filter"
+                            tip: "Warm tint for eyes via hyprsunset."
+                            AppToggle {
+                                checked: Settings.blueLightEnabled
+                                onToggled: Settings.applyBlueLight(checked)
+                            }
+                        }
+
+                        // Blue light: temperature (Kelvin, lower = warmer)
+                        SettingRow {
+                            text: "Blue Light: Temperature (K)"
+                            tip: "Tint warmth in Kelvin; lower is warmer."
+                            AppSpinBox {
+                                from: 1000
+                                to: 6500
+                                stepSize: 100
+                                value: Settings.blueLightTemperature
+                                Layout.preferredWidth: 160
+                                onValueModified: Settings.blueLightTemperature = value
+                            }
+                        }
+
+                        // Blue light: auto mode — toggle + "from – to" time in ONE row
+                        // (the toggle drives the schedule; the times stay editable
+                        // when it is off so they can be preset)
+                        SettingRow {
+                            text: "Blue Light: Auto Mode"
+                            tip: "Run the blue-light filter on a schedule."
+                            AppToggle {
+                                checked: Settings.blueLightAuto
+                                onToggled: Settings.blueLightAuto = checked
+                            }
+                            AppTextField {
+                                id: blStartField
+                                Layout.preferredWidth: 64
+                                Layout.preferredHeight: 30
+                                horizontalAlignment: Text.AlignHCenter
+                                leftPadding: 4
+                                rightPadding: 4
+                                maximumLength: 5
+                                inputMethodHints: Qt.ImhPreferNumbers
+                                validator: RegularExpressionValidator {
+                                    regularExpression: /^\d{0,2}:?\d{0,2}$/
+                                }
+                                placeholderText: "21:00"
+                                text: Settings.blueLightStart
+                                opacity: Settings.blueLightAuto ? 1 : 0.5
+                                // "7:30" -> "07:30"; invalid input reverts to the saved value
+                                onEditingFinished: {
+                                    Settings.blueLightStart = Settings.normalizeTime(text, Settings.blueLightStart);
+                                    text = Qt.binding(() => Settings.blueLightStart);
+                                }
+                            }
+                            Label {
+                                text: "–"
+                                color: Theme.fg
+                                font.pixelSize: Theme.fontSize
+                            }
+                            AppTextField {
+                                id: blEndField
+                                Layout.preferredWidth: 64
+                                Layout.preferredHeight: 30
+                                horizontalAlignment: Text.AlignHCenter
+                                leftPadding: 4
+                                rightPadding: 4
+                                maximumLength: 5
+                                inputMethodHints: Qt.ImhPreferNumbers
+                                validator: RegularExpressionValidator {
+                                    regularExpression: /^\d{0,2}:?\d{0,2}$/
+                                }
+                                placeholderText: "07:00"
+                                text: Settings.blueLightEnd
+                                opacity: Settings.blueLightAuto ? 1 : 0.5
+                                // "7:30" -> "07:30"; invalid input reverts to the saved value
+                                onEditingFinished: {
+                                    Settings.blueLightEnd = Settings.normalizeTime(text, Settings.blueLightEnd);
+                                    text = Qt.binding(() => Settings.blueLightEnd);
+                                }
+                            }
+                        }
+
+                        // Blue light: schedule summary (shows wrap-around / typos)
+                        Label {
+                            width: parent.width
+                            visible: Settings.blueLightAuto
+                            text: Settings.blueLightHint()
+                            wrapMode: Text.WordWrap
+                            color: Theme.muted
+                            font.pixelSize: Theme.fontSize - 2
+                        }
+
+                        // Decoration: Rounding
+                        SettingRow {
+                            text: "Decoration: Rounding"
+                            tip: "Window corner radius in px."
+                            labelWidth: 170
+                            AppSlider {
+                                id: hypRounding
+                                from: 0
+                                to: 50
+                                value: root.hyprGet("decoration.rounding")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("decoration.rounding"))
+                                        return;
+                                    root.hyprSet("decoration.rounding", v);
+                                    root.applyHyprlandSettingLive("decoration.rounding", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("decoration.rounding")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // Decoration: Blur Enabled
+                        SettingRow {
+                            text: "Decoration: Blur Enabled"
+                            tip: "Hyprland blur behind windows."
+                            AppToggle {
+                                checked: root.hyprGet("decoration.blur.enabled")
+                                onToggled: {
+                                    root.hyprSet("decoration.blur.enabled", checked);
+                                    root.applyHyprlandSettingLive("decoration.blur.enabled", checked);
+                                }
+                            }
+                        }
+                        // Decoration: Blur Size
+                        SettingRow {
+                            text: "Decoration: Blur Size"
+                            tip: "Hyprland blur radius."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 10
+                                value: root.hyprGet("decoration.blur.size")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("decoration.blur.size"))
+                                        return;
+                                    root.hyprSet("decoration.blur.size", v);
+                                    root.applyHyprlandSettingLive("decoration.blur.size", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("decoration.blur.size")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // Decoration: Blur Passes
+                        SettingRow {
+                            text: "Decoration: Blur Passes"
+                            tip: "Hyprland blur quality passes."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 10
+                                value: root.hyprGet("decoration.blur.passes")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("decoration.blur.passes"))
+                                        return;
+                                    root.hyprSet("decoration.blur.passes", v);
+                                    root.applyHyprlandSettingLive("decoration.blur.passes", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("decoration.blur.passes")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // Decoration: Blur Xray
+                        SettingRow {
+                            text: "Decoration: Blur Xray"
+                            tip: "Blur behind windows even when fullscreen."
+                            AppToggle {
+                                checked: root.hyprGet("decoration.blur.xray")
+                                onToggled: {
+                                    root.hyprSet("decoration.blur.xray", checked);
+                                    root.applyHyprlandSettingLive("decoration.blur.xray", checked);
+                                }
+                            }
+                        }
+                        // Decoration: Shadow Enabled
+                        SettingRow {
+                            text: "Decoration: Shadow Enabled"
+                            tip: "Draw Hyprland window shadows."
+                            AppToggle {
+                                checked: root.hyprGet("decoration.shadow.enabled")
+                                onToggled: {
+                                    root.hyprSet("decoration.shadow.enabled", checked);
+                                    root.applyHyprlandSettingLive("decoration.shadow.enabled", checked);
+                                }
+                            }
+                        }
+                        // Decoration: Shadow Range
+                        SettingRow {
+                            text: "Decoration: Shadow Range"
+                            tip: "Shadow spread distance in px."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 20
+                                value: root.hyprGet("decoration.shadow.range")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("decoration.shadow.range"))
+                                        return;
+                                    root.hyprSet("decoration.shadow.range", v);
+                                    root.applyHyprlandSettingLive("decoration.shadow.range", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("decoration.shadow.range")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // Decoration: Shadow Render Power
+                        SettingRow {
+                            text: "Shadow Render Power"
+                            tip: "Shadow softness and strength."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 20
+                                value: root.hyprGet("decoration.shadow.render_power")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("decoration.shadow.render_power"))
+                                        return;
+                                    root.hyprSet("decoration.shadow.render_power", v);
+                                    root.applyHyprlandSettingLive("decoration.shadow.render_power", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("decoration.shadow.render_power")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // General: Border Size
+                        SettingRow {
+                            text: "General: Border Size"
+                            tip: "Window border thickness in px."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 10
+                                value: root.hyprGet("general.border_size")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("general.border_size"))
+                                        return;
+                                    root.hyprSet("general.border_size", v);
+                                    root.applyHyprlandSettingLive("general.border_size", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("general.border_size")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // General: Gaps In
+                        SettingRow {
+                            text: "General: Gaps In"
+                            tip: "Gap between windows in px."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 20
+                                value: root.hyprGet("general.gaps_in")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("general.gaps_in"))
+                                        return;
+                                    root.hyprSet("general.gaps_in", v);
+                                    root.applyHyprlandSettingLive("general.gaps_in", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("general.gaps_in")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // General: Gaps Out
+                        SettingRow {
+                            text: "General: Gaps Out"
+                            tip: "Gap between windows and screen edge."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 40
+                                value: root.hyprGet("general.gaps_out")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = Math.round(value);
+                                    if (v === root.hyprGet("general.gaps_out"))
+                                        return;
+                                    root.hyprSet("general.gaps_out", v);
+                                    root.applyHyprlandSettingLive("general.gaps_out", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: root.hyprGet("general.gaps_out")
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // Decoration: Active Opacity (float)
+                        SettingRow {
+                            text: "Decoration: Active Opacity"
+                            tip: "Opacity of the focused window."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 1
+                                stepSize: 0.01
+                                value: root.hyprGet("decoration.active_opacity")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = parseFloat(value.toFixed(2));
+                                    if (v === root.hyprGet("decoration.active_opacity"))
+                                        return;
+                                    root.hyprSet("decoration.active_opacity", v);
+                                    root.applyHyprlandSettingLive("decoration.active_opacity", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: Number(root.hyprGet("decoration.active_opacity")).toFixed(2)
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+                        // Decoration: Inactive Opacity (float)
+                        SettingRow {
+                            text: "Decoration: Inactive Opacity"
+                            tip: "Opacity of unfocused windows."
+                            labelWidth: 170
+                            AppSlider {
+                                from: 0
+                                to: 1
+                                stepSize: 0.01
+                                value: root.hyprGet("decoration.inactive_opacity")
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    const v = parseFloat(value.toFixed(2));
+                                    if (v === root.hyprGet("decoration.inactive_opacity"))
+                                        return;
+                                    root.hyprSet("decoration.inactive_opacity", v);
+                                    root.applyHyprlandSettingLive("decoration.inactive_opacity", v);
+                                }
+                            }
+                            Label {
+                                font.pixelSize: Theme.fontSize
+                                text: Number(root.hyprGet("decoration.inactive_opacity")).toFixed(2)
+                                Layout.preferredWidth: 30
+                                color: Theme.fgDim
+                            }
+                        }
+
+                        // Apply / Reset — stacked: the two labels no longer
+                        // fit side by side once the category rail takes its
+                        // width (their button text would overlap).
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
-                            SettingRow {
-                                text: "Left Panel Width"
-                                tip: "Width of the left side panel on this monitor in px."
-                                AppSpinBox {
-                                    from: 200
-                                    to: 1500
-                                    value: Settings.panelWidthFor("left", root.monitorName)
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.panelWidthFor("left", root.monitorName))
-                                            return;
-                                        Settings.setPanelWidthFor("left", root.monitorName, value);
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Right Panel Width"
-                                tip: "Width of the right side panel on this monitor in px."
-                                AppSpinBox {
-                                    from: 200
-                                    to: 1500
-                                    value: Settings.panelWidthFor("right", root.monitorName)
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.panelWidthFor("right", root.monitorName))
-                                            return;
-                                        Settings.setPanelWidthFor("right", root.monitorName, value);
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Left Panel Hot Zone"
-                                tip: "Hover the left edge to open the left panel."
-                                AppToggle {
-                                    checked: Settings.leftPanelHotZone
-                                    onToggled: Settings.leftPanelHotZone = checked
-                                }
-                            }
-                            SettingRow {
-                                text: "Right Panel Hot Zone"
-                                tip: "Hover the right edge to open the right panel."
-                                AppToggle {
-                                    checked: Settings.rightPanelHotZone
-                                    onToggled: Settings.rightPanelHotZone = checked
-                                }
-                            }
-                            SettingRow {
-                                text: "Left Hot Zone Size"
-                                tip: "Hover strip width on the left edge in px."
-                                AppSpinBox {
-                                    from: 1
-                                    to: 50
-                                    value: Settings.leftPanelHotZoneSize
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.leftPanelHotZoneSize)
-                                            return;
-                                        Settings.leftPanelHotZoneSize = value;
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Right Hot Zone Size"
-                                tip: "Hover strip width on the right edge in px."
-                                AppSpinBox {
-                                    from: 1
-                                    to: 50
-                                    value: Settings.rightPanelHotZoneSize
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.rightPanelHotZoneSize)
-                                            return;
-                                        Settings.rightPanelHotZoneSize = value;
-                                    }
-                                }
+                            AppButton {
+                                width: parent.width
+                                text: "Apply Hyprland Settings"
+                                tooltipText: "Write settings to Hyprland and reload."
+                                onClicked: root.applyHyprlandSettings()
                             }
                             AppButton {
-                                text: "Preview Hot Zones"
-                                tooltipText: "Flash the edge hover areas on screen."
-                                onClicked: root.previewHotZones()
-                            }
-                        }
-                    }
-                }
-
-                // ============ THEME SETTINGS ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: themeSec.implicitHeight + 20
-                    opacity: root.revealCount > 2 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: themeSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "Theme"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-                            SettingRow {
-                                text: "Dynamic Theme Colors"
-                                tip: "Recolor the theme from the wallpaper."
-                                AppToggle {
-                                    checked: Settings.dynamicThemeColors
-                                    onToggled: {
-                                        Settings.dynamicThemeColors = checked;
-                                        root.setThemeFlagInConf("autocolor", checked);
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Dynamic Theme Variants"
-                                tip: "Switch light/dark variant from wallpaper."
-                                AppToggle {
-                                    checked: Settings.dynamicThemeVariants
-                                    onToggled: {
-                                        Settings.dynamicThemeVariants = checked;
-                                        root.setThemeFlagInConf("autovariant", checked);
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Radius"
-                                tip: "Corner radius for pills, cards and panels."
-                                AppSpinBox {
-                                    from: 0
-                                    to: 24
-                                    value: Settings.uiRadius
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.uiRadius)
-                                            return;
-                                        Settings.uiRadius = value;
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Pad (Inset)"
-                                tip: "Content inset inside cards, panels and islands."
-                                AppSpinBox {
-                                    from: 0
-                                    to: 16
-                                    value: Settings.uiPad
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.uiPad)
-                                            return;
-                                        Settings.uiPad = value;
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Spacing"
-                                tip: "Gap between bar elements and stacked sections."
-                                AppSpinBox {
-                                    from: 2
-                                    to: 16
-                                    value: Settings.uiSpacing
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.uiSpacing)
-                                            return;
-                                        Settings.uiSpacing = value;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ============ INTERFACE ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: ifaceSec.implicitHeight + 20
-                    opacity: root.revealCount > 3 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: ifaceSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "Interface"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-                            SettingRow {
-                                text: "Opacity"
-                                tip: "Shell opacity; 1 is fully opaque."
-                                AppSlider {
-                                    from: 0
-                                    to: 1
-                                    value: Settings.uiOpacity
-                                    stepSize: 0.01
-                                    Layout.preferredWidth: 150
-                                    onValueChanged: {
-                                        if (value === Settings.uiOpacity)
-                                            return;
-                                        Settings.uiOpacity = value;
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: Settings.uiOpacity.toFixed(2)
-                                    color: Theme.fgDim
-                                    Layout.preferredWidth: 34
-                                    horizontalAlignment: Text.AlignRight
-                                }
-                            }
-                            SettingRow {
-                                text: "Font Size"
-                                tip: "Base font size for shell text."
-                                AppSpinBox {
-                                    from: 10
-                                    to: 30
-                                    value: Settings.uiFontSize
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.uiFontSize)
-                                            return;
-                                        Settings.uiFontSize = value;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ============ ANIMATIONS ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: animSec.implicitHeight + 20
-                    opacity: root.revealCount > 4 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: animSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "Animations"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-
-                        property var styleValues: ["Standard", "Emphasized", "ExpressiveFast", "ExpressiveDefault", "ExpressiveSlow"]
-                        property var styleLabels: ["Standard (smooth)", "Emphasized (smooth)", "Bouncy Fast", "Bouncy Default", "Bouncy Slow"]
-
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-                            SettingRow {
-                                text: "Enabled"
-                                tip: "Turn all shell animations on or off."
-                                AppToggle {
-                                    checked: Settings.animationsEnabled
-                                    onToggled: Settings.animationsEnabled = checked
-                                }
-                            }
-                            SettingRow {
-                                text: "Speed"
-                                tip: "Duration multiplier; lower is faster."
-                                AppSlider {
-                                    from: 0.2
-                                    to: 2.0
-                                    stepSize: 0.05
-                                    value: Settings.animScale
-                                    Layout.preferredWidth: 150
-                                    onValueChanged: {
-                                        const v = Math.round(value * 100) / 100;
-                                        if (Math.abs(v - Settings.animScale) < 0.001)
-                                            return;
-                                        Settings.animScale = v;
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: Settings.animScale.toFixed(2) + "×"
-                                    color: Theme.fgDim
-                                    Layout.preferredWidth: 44
-                                    horizontalAlignment: Text.AlignRight
-                                }
-                            }
-                            Label {
                                 width: parent.width
-                                wrapMode: Text.WordWrap
-                                text: "Lower is faster (duration multiplier)."
-                                color: Theme.fgDim
-                                font.pixelSize: Theme.fontSize - 1
-                            }
-                            SettingRow {
-                                text: "Island Style"
-                                tip: "Motion style used by bar islands."
-                                AppComboBox {
-                                    model: animSec.styleLabels
-                                    currentIndex: Math.max(0, animSec.styleValues.indexOf(Settings.islandAnimStyle))
-                                    onActivated: Settings.islandAnimStyle = animSec.styleValues[index]
-                                    Layout.preferredWidth: 160
-                                }
-                            }
-                            SettingRow {
-                                text: "Reveal-In Pressure"
-                                tip: "Hover dwell before a bar pill or island reveals."
-                                AppSpinBox {
-                                    from: 0
-                                    to: 5000
-                                    value: Settings.revealInPressure
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.revealInPressure)
-                                            return;
-                                        Settings.revealInPressure = value;
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Reveal-Out Pressure"
-                                tip: "Delay before a hovered island closes."
-                                AppSpinBox {
-                                    from: 0
-                                    to: 5000
-                                    value: Settings.revealOutPressure
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.revealOutPressure)
-                                            return;
-                                        Settings.revealOutPressure = value;
-                                    }
-                                }
+                                text: "Reset to Default"
+                                tooltipText: "Restore all settings to defaults."
+                                onClicked: root.resetToDefaults()
                             }
                         }
                     }
-                }
 
-                // ============ USER AGENTS ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: uaSec.implicitHeight + 20
-                    opacity: root.revealCount > 5 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
+                    // ============ LOCKSCREEN ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 8
+                        revealed: root.revealCount > 8
+
+                        SettingRow {
+                            text: "Grace Period (seconds)"
+                            tip: "Time Esc unlocks without a password."
+                            AppSpinBox {
+                                from: 0
+                                to: 120
+                                value: Settings.lockGraceSeconds
+                                Layout.preferredWidth: 160
+                                onValueChanged: {
+                                    if (value === Settings.lockGraceSeconds)
+                                        return;
+                                    Settings.lockGraceSeconds = value;
+                                }
+                            }
                         }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: uaSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
                         Label {
-                            text: "User Agents"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-                        Column {
                             width: parent.width
-                            spacing: Theme.spacing
-                            Repeater {
-                                model: [
-                                    { key: "booru", label: "Booru" },
-                                    { key: "mangaDex", label: "MangaDex" },
-                                    { key: "mangaLib", label: "MangaLib" },
-                                    { key: "waifu", label: "Waifu" },
-                                    { key: "fastfetch", label: "Fastfetch" }
-                                ]
-                                delegate: Rectangle {
-                                    width: parent.width
-                                    height: uaRow.implicitHeight
-                                    color: "transparent"
-
-                                    property bool reveal: false
-
-                                    RowLayout {
-                                        id: uaRow
-                                        width: parent.width
-                                        spacing: Theme.spacing
-                                        SettingLabel {
-                                            text: modelData.label
-                                            tip: "Custom User-Agent sent with " + modelData.label + " requests."
-                                            Layout.preferredWidth: 90
-                                        }
-                                        AppTextField {
-                                            id: uaField
-                                            text: Settings.userAgent(modelData.key)
-                                            placeholderText: "User-Agent"
-                                            echoMode: parent.parent.reveal ? TextField.Normal : TextField.Password
-                                            fillColor: "transparent"
-                                            Layout.fillWidth: true
-                                            onAccepted: {
-                                                const u = JSON.parse(JSON.stringify(Settings.userAgents || {}));
-                                                u[modelData.key] = uaField.text;
-                                                Settings.userAgents = u;
-                                                Settings.schedulePersist();
-                                            }
-                                        }
-                                        AppButton {
-                                            text: parent.parent.reveal ? "hide" : "show"
-                                            Layout.preferredWidth: 44
-                                            Layout.preferredHeight: 24
-                                            visible: uaField.text !== ""
-                                            tooltipText: "Show or hide the value"
-                                            onClicked: parent.parent.reveal = !parent.parent.reveal
-                                        }
-                                        AppButton {
-                                            text: "copy"
-                                            Layout.preferredWidth: 44
-                                            Layout.preferredHeight: 24
-                                            visible: uaField.text !== ""
-                                            tooltipText: "Copy the value to the clipboard"
-                                            onClicked: root.copyText(uaField.text)
-                                        }
-                                    }
-                                }
-                            }
+                            wrapMode: Text.WordWrap
+                            text: "Esc dismisses the lock without a password within this window after locking."
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.fontSize - 1
                         }
                     }
-                }
 
-                // ============ API KEYS ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: apiSec.implicitHeight + 20
-                    opacity: root.revealCount > 6 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
+                    // ============ RECORDING SETTINGS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 9
+                        revealed: root.revealCount > 9
 
-                    Column {
-                        id: apiSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "API Keys"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-                            Repeater {
-                                id: apiKeyRepeater
-                                model: [
-                                    {
-                                        path: "openrouter.user",
-                                        label: "OpenRouter User"
-                                    },
-                                    {
-                                        path: "openrouter.key",
-                                        label: "OpenRouter API Key"
-                                    },
-                                    {
-                                        path: "danbooru.user",
-                                        label: "Danbooru User"
-                                    },
-                                    {
-                                        path: "danbooru.key",
-                                        label: "Danbooru Key"
-                                    },
-                                    {
-                                        path: "gelbooru.user",
-                                        label: "Gelbooru User"
-                                    },
-                                    {
-                                        path: "gelbooru.key",
-                                        label: "Gelbooru Key"
-                                    },
-                                    {
-                                        path: "safebooru.user",
-                                        label: "Safebooru User"
-                                    },
-                                    {
-                                        path: "safebooru.key",
-                                        label: "Safebooru Key"
-                                    },
-                                    {
-                                        path: "wallhaven.key",
-                                        label: "Wallhaven Key (optional, unlocks NSFW)"
-                                    }
-                                ]
-                                delegate: Rectangle {
-                                    id: keyRow
-                                    // NOTE: Repeater has no width — size off the
-                                    // section Column instead.
-                                    width: parent.width
-                                    height: keyRowLayout.implicitHeight
-                                    color: "transparent"
-                                    radius: Theme.radius
-                                    objectName: modelData.path
-
-                                    property bool reveal: false
-
-                                    border.color: Theme.accent
-                                    border.width: 0
-                                    function flash() {
-                                        flashAnim.restart();
-                                    }
-                                    SequentialAnimation {
-                                        id: flashAnim
-                                        loops: 2
-                                        NumberAnimation {
-                                            target: keyRow
-                                            property: "border.width"
-                                            from: 0
-                                            to: 2
-                                            duration: Theme.anim.small
-                                            easing.type: Easing.OutCubic
-                                        }
-                                        NumberAnimation {
-                                            target: keyRow
-                                            property: "border.width"
-                                            from: 2
-                                            to: 0
-                                            duration: Theme.anim.defaultSpatial
-                                            easing.type: Easing.InCubic
-                                        }
-                                    }
-
-                                    RowLayout {
-                                        id: keyRowLayout
-                                        width: parent.width
-                                        spacing: Theme.spacing
-                                        SettingLabel {
-                                            text: modelData.label
-                                            tip: root.apiKeyTip(modelData.path, modelData.label)
-                                            Layout.fillWidth: true
-                                        }
-
-                                        AppTextField {
-                                            id: keyField
-                                            text: root.getNested(Settings.apiKeys, modelData.path)
-                                            placeholderText: "Enter " + modelData.label
-                                            echoMode: parent.parent.reveal ? TextField.Normal : TextField.Password
-                                            fillColor: "transparent"
-                                            Layout.preferredWidth: 160
-                                            onAccepted: {
-                                                root.setNestedValue("apiKeys", modelData.path, keyField.text, true);
-                                                // Notify masked value on save (secret)
-                                                Notifications.notify({
-                                                    summary: modelData.label,
-                                                    body: "Changed to ••••••••"
-                                                });
-                                            }
-                                        }
-                                        AppButton {
-                                            text: parent.parent.reveal ? "hide" : "show"
-                                            Layout.preferredWidth: 44
-                                            Layout.preferredHeight: 24
-                                            visible: keyField.text !== ""
-                                            tooltipText: "Show or hide the key"
-                                            onClicked: parent.parent.reveal = !parent.parent.reveal
-                                        }
-                                        AppButton {
-                                            text: "copy"
-                                            Layout.preferredWidth: 44
-                                            Layout.preferredHeight: 24
-                                            tooltipText: "Copy the key to the clipboard"
-                                            onClicked: root.copyText(keyField.text)
-                                        }
-                                    }
-                                }
+                        SettingRow {
+                            text: "Video Codec"
+                            tip: "GPU encoder used for the video stream. Available codecs depend on your GPU."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.videoCodecOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.videoCodecOptions, root.recordingValue("videoCodec"))
+                                onActivated: index => root.setRecordingVideoCodec(root.videoCodecOptions[index].value)
                             }
-                            // ChatBot reply notifications (replies stay in the
-                            // tab unless this is on; errors always notify).
-                            SettingRow {
-                                text: "Notify on chatbot reply"
-                                tip: "Pop a notification when the chatbot replies."
-                                AppToggle {
-                                    checked: Settings.chatBotNotify
-                                    onToggled: Settings.chatBotNotify = checked
+                        }
+                        SettingRow {
+                            text: "Video Quality"
+                            tip: "Higher quality creates larger files."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.videoQualityOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.videoQualityOptions, root.recordingValue("quality"))
+                                onActivated: index => root.setRecordingSetting("quality", root.videoQualityOptions[index].value)
+                            }
+                        }
+                        SettingRow {
+                            text: "Color range"
+                            tip: "Limited is more widely compatible; Full preserves the full RGB range."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.colorRangeOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.colorRangeOptions, root.recordingValue("colorRange"))
+                                onActivated: index => root.setRecordingSetting("colorRange", root.colorRangeOptions[index].value)
+                            }
+                        }
+                        SettingRow {
+                            text: "Audio Codec"
+                            tip: "Codec used for recorded audio."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.audioCodecOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.audioCodecOptions, root.recordingValue("audioCodec"))
+                                onActivated: index => root.setRecordingSetting("audioCodec", root.audioCodecOptions[index].value)
+                            }
+                        }
+                        SettingRow {
+                            text: "Frame rate"
+                            tip: "Enter any value from 1 to 360 FPS. In Variable mode, this is the maximum FPS."
+                            labelWidth: 150
+                            AppSpinBox {
+                                from: 1
+                                to: 360
+                                stepSize: 1
+                                value: root.recordingValue("frameRate")
+                                // Fill: 130 + the clamped label overflowed
+                                // the narrower settings column by a few px.
+                                Layout.fillWidth: true
+                                onValueChanged: {
+                                    if (value !== root.recordingValue("frameRate"))
+                                        root.setRecordingSetting("frameRate", value);
                                 }
                             }
                         }
-                    }
-                }
-
-                // ============ HYPRLAND ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: hyprSec.implicitHeight + 20
-                    opacity: root.revealCount > 7 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
+                        SettingRow {
+                            text: "Frame rate mode"
+                            tip: "Auto uses GPU Screen Recorder's default. Sync to content is supported only on X11 or portal capture; this script uses direct monitor capture on Wayland."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.frameRateModeOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.frameRateModeOptions, root.recordingValue("frameRateMode"))
+                                onActivated: index => root.setRecordingSetting("frameRateMode", root.frameRateModeOptions[index].value)
+                            }
                         }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: hyprSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "Hyprland"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
+                        SettingRow {
+                            text: "Record Cursor"
+                            tip: "Include the mouse pointer in the recording."
+                            labelWidth: 150
+                            AppToggle {
+                                checked: root.recordingValue("recordCursor")
+                                onToggled: root.setRecordingSetting("recordCursor", checked)
+                            }
                         }
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-
-                            // Game Mode
-                            SettingRow {
-                                text: "Game Mode"
-                                tip: "Disable blur and animations for performance."
-                                AppToggle {
-                                    checked: Settings.gameModeEnabled
-                                    onToggled: Settings.applyGameMode(checked)
-                                }
+                        SettingRow {
+                            text: "Output Device"
+                            tip: "Desktop audio source. Choose None to record without system audio."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.outputAudioOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.outputAudioOptions, root.recordingValue("outputDevice"))
+                                onActivated: index => root.setRecordingSetting("outputDevice", root.outputAudioOptions[index].value)
                             }
-
-                            // Blue light filter (hyprsunset)
-                            SettingRow {
-                                text: "Blue Light Filter"
-                                tip: "Warm tint for eyes via hyprsunset."
-                                AppToggle {
-                                    checked: Settings.blueLightEnabled
-                                    onToggled: Settings.applyBlueLight(checked)
-                                }
+                        }
+                        SettingRow {
+                            text: "Input Device"
+                            tip: "Microphone or other input source. Choose None to disable it."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.inputAudioOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.inputAudioOptions, root.recordingValue("inputDevice"))
+                                onActivated: index => root.setRecordingSetting("inputDevice", root.inputAudioOptions[index].value)
                             }
-
-                            // Blue light: temperature (Kelvin, lower = warmer)
-                            SettingRow {
-                                text: "Blue Light: Temperature (K)"
-                                tip: "Tint warmth in Kelvin; lower is warmer."
-                                AppSpinBox {
-                                    from: 1000
-                                    to: 6500
-                                    stepSize: 100
-                                    value: Settings.blueLightTemperature
-                                    Layout.preferredWidth: 160
-                                    onValueModified: Settings.blueLightTemperature = value
-                                }
-                            }
-
-                            // Blue light: auto mode — toggle + "from – to" time in ONE row
-                            // (the toggle drives the schedule; the times stay editable
-                            // when it is off so they can be preset)
-                            SettingRow {
-                                text: "Blue Light: Auto Mode"
-                                tip: "Run the blue-light filter on a schedule."
-                                AppToggle {
-                                    checked: Settings.blueLightAuto
-                                    onToggled: Settings.blueLightAuto = checked
-                                }
-                                AppTextField {
-                                    id: blStartField
-                                    Layout.preferredWidth: 64
-                                    Layout.preferredHeight: 30
-                                    horizontalAlignment: Text.AlignHCenter
-                                    leftPadding: 4
-                                    rightPadding: 4
-                                    maximumLength: 5
-                                    inputMethodHints: Qt.ImhPreferNumbers
-                                    validator: RegularExpressionValidator {
-                                        regularExpression: /^\d{0,2}:?\d{0,2}$/
-                                    }
-                                    placeholderText: "21:00"
-                                    text: Settings.blueLightStart
-                                    opacity: Settings.blueLightAuto ? 1 : 0.5
-                                    // "7:30" -> "07:30"; invalid input reverts to the saved value
-                                    onEditingFinished: {
-                                        Settings.blueLightStart = Settings.normalizeTime(text, Settings.blueLightStart);
-                                        text = Qt.binding(() => Settings.blueLightStart);
-                                    }
-                                }
-                                Label {
-                                    text: "–"
-                                    color: Theme.fg
-                                    font.pixelSize: Theme.fontSize
-                                }
-                                AppTextField {
-                                    id: blEndField
-                                    Layout.preferredWidth: 64
-                                    Layout.preferredHeight: 30
-                                    horizontalAlignment: Text.AlignHCenter
-                                    leftPadding: 4
-                                    rightPadding: 4
-                                    maximumLength: 5
-                                    inputMethodHints: Qt.ImhPreferNumbers
-                                    validator: RegularExpressionValidator {
-                                        regularExpression: /^\d{0,2}:?\d{0,2}$/
-                                    }
-                                    placeholderText: "07:00"
-                                    text: Settings.blueLightEnd
-                                    opacity: Settings.blueLightAuto ? 1 : 0.5
-                                    // "7:30" -> "07:30"; invalid input reverts to the saved value
-                                    onEditingFinished: {
-                                        Settings.blueLightEnd = Settings.normalizeTime(text, Settings.blueLightEnd);
-                                        text = Qt.binding(() => Settings.blueLightEnd);
-                                    }
-                                }
-                            }
-
-                            // Blue light: schedule summary (shows wrap-around / typos)
-                            Label {
-                                width: parent.width
-                                visible: Settings.blueLightAuto
-                                text: Settings.blueLightHint()
-                                wrapMode: Text.WordWrap
-                                color: Theme.muted
-                                font.pixelSize: Theme.fontSize - 2
-                            }
-
-                            // Decoration: Rounding
-                            SettingRow {
-                                text: "Decoration: Rounding"
-                                tip: "Window corner radius in px."
-                                labelWidth: 170
-                                AppSlider {
-                                    id: hypRounding
-                                    from: 0
-                                    to: 50
-                                    value: root.hyprGet("decoration.rounding")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("decoration.rounding"))
-                                            return;
-                                        root.hyprSet("decoration.rounding", v);
-                                        root.applyHyprlandSettingLive("decoration.rounding", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("decoration.rounding")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // Decoration: Blur Enabled
-                            SettingRow {
-                                text: "Decoration: Blur Enabled"
-                                tip: "Hyprland blur behind windows."
-                                AppToggle {
-                                    checked: root.hyprGet("decoration.blur.enabled")
-                                    onToggled: {
-                                        root.hyprSet("decoration.blur.enabled", checked);
-                                        root.applyHyprlandSettingLive("decoration.blur.enabled", checked);
-                                    }
-                                }
-                            }
-                            // Decoration: Blur Size
-                            SettingRow {
-                                text: "Decoration: Blur Size"
-                                tip: "Hyprland blur radius."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 10
-                                    value: root.hyprGet("decoration.blur.size")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("decoration.blur.size"))
-                                            return;
-                                        root.hyprSet("decoration.blur.size", v);
-                                        root.applyHyprlandSettingLive("decoration.blur.size", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("decoration.blur.size")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // Decoration: Blur Passes
-                            SettingRow {
-                                text: "Decoration: Blur Passes"
-                                tip: "Hyprland blur quality passes."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 10
-                                    value: root.hyprGet("decoration.blur.passes")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("decoration.blur.passes"))
-                                            return;
-                                        root.hyprSet("decoration.blur.passes", v);
-                                        root.applyHyprlandSettingLive("decoration.blur.passes", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("decoration.blur.passes")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // Decoration: Blur Xray
-                            SettingRow {
-                                text: "Decoration: Blur Xray"
-                                tip: "Blur behind windows even when fullscreen."
-                                AppToggle {
-                                    checked: root.hyprGet("decoration.blur.xray")
-                                    onToggled: {
-                                        root.hyprSet("decoration.blur.xray", checked);
-                                        root.applyHyprlandSettingLive("decoration.blur.xray", checked);
-                                    }
-                                }
-                            }
-                            // Decoration: Shadow Enabled
-                            SettingRow {
-                                text: "Decoration: Shadow Enabled"
-                                tip: "Draw Hyprland window shadows."
-                                AppToggle {
-                                    checked: root.hyprGet("decoration.shadow.enabled")
-                                    onToggled: {
-                                        root.hyprSet("decoration.shadow.enabled", checked);
-                                        root.applyHyprlandSettingLive("decoration.shadow.enabled", checked);
-                                    }
-                                }
-                            }
-                            // Decoration: Shadow Range
-                            SettingRow {
-                                text: "Decoration: Shadow Range"
-                                tip: "Shadow spread distance in px."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 20
-                                    value: root.hyprGet("decoration.shadow.range")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("decoration.shadow.range"))
-                                            return;
-                                        root.hyprSet("decoration.shadow.range", v);
-                                        root.applyHyprlandSettingLive("decoration.shadow.range", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("decoration.shadow.range")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // Decoration: Shadow Render Power
-                            SettingRow {
-                                text: "Shadow Render Power"
-                                tip: "Shadow softness and strength."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 20
-                                    value: root.hyprGet("decoration.shadow.render_power")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("decoration.shadow.render_power"))
-                                            return;
-                                        root.hyprSet("decoration.shadow.render_power", v);
-                                        root.applyHyprlandSettingLive("decoration.shadow.render_power", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("decoration.shadow.render_power")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // General: Border Size
-                            SettingRow {
-                                text: "General: Border Size"
-                                tip: "Window border thickness in px."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 10
-                                    value: root.hyprGet("general.border_size")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("general.border_size"))
-                                            return;
-                                        root.hyprSet("general.border_size", v);
-                                        root.applyHyprlandSettingLive("general.border_size", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("general.border_size")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // General: Gaps In
-                            SettingRow {
-                                text: "General: Gaps In"
-                                tip: "Gap between windows in px."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 20
-                                    value: root.hyprGet("general.gaps_in")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("general.gaps_in"))
-                                            return;
-                                        root.hyprSet("general.gaps_in", v);
-                                        root.applyHyprlandSettingLive("general.gaps_in", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("general.gaps_in")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // General: Gaps Out
-                            SettingRow {
-                                text: "General: Gaps Out"
-                                tip: "Gap between windows and screen edge."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 40
-                                    value: root.hyprGet("general.gaps_out")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = Math.round(value);
-                                        if (v === root.hyprGet("general.gaps_out"))
-                                            return;
-                                        root.hyprSet("general.gaps_out", v);
-                                        root.applyHyprlandSettingLive("general.gaps_out", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: root.hyprGet("general.gaps_out")
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // Decoration: Active Opacity (float)
-                            SettingRow {
-                                text: "Decoration: Active Opacity"
-                                tip: "Opacity of the focused window."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 1
-                                    stepSize: 0.01
-                                    value: root.hyprGet("decoration.active_opacity")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = parseFloat(value.toFixed(2));
-                                        if (v === root.hyprGet("decoration.active_opacity"))
-                                            return;
-                                        root.hyprSet("decoration.active_opacity", v);
-                                        root.applyHyprlandSettingLive("decoration.active_opacity", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: Number(root.hyprGet("decoration.active_opacity")).toFixed(2)
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-                            // Decoration: Inactive Opacity (float)
-                            SettingRow {
-                                text: "Decoration: Inactive Opacity"
-                                tip: "Opacity of unfocused windows."
-                                labelWidth: 170
-                                AppSlider {
-                                    from: 0
-                                    to: 1
-                                    stepSize: 0.01
-                                    value: root.hyprGet("decoration.inactive_opacity")
-                                    Layout.fillWidth: true
-                                    onValueChanged: {
-                                        const v = parseFloat(value.toFixed(2));
-                                        if (v === root.hyprGet("decoration.inactive_opacity"))
-                                            return;
-                                        root.hyprSet("decoration.inactive_opacity", v);
-                                        root.applyHyprlandSettingLive("decoration.inactive_opacity", v);
-                                    }
-                                }
-                                Label {
-                                    font.pixelSize: Theme.fontSize
-                                    text: Number(root.hyprGet("decoration.inactive_opacity")).toFixed(2)
-                                    Layout.preferredWidth: 30
-                                    color: Theme.fgDim
-                                }
-                            }
-
-                            // Apply / Reset
-                            RowLayout {
-                                width: parent.width
-                                spacing: Theme.spacing
-                                AppButton {
-                                    text: "Apply Hyprland Settings"
-                                    tooltipText: "Write settings to Hyprland and reload."
-                                    Layout.fillWidth: true
-                                    onClicked: root.applyHyprlandSettings()
-                                }
-                                AppButton {
-                                    text: "Reset to Default"
-                                    tooltipText: "Restore all settings to defaults."
-                                    Layout.fillWidth: true
-                                    onClicked: root.resetToDefaults()
+                        }
+                        SettingRow {
+                            text: "Directory to save videos"
+                            tip: "Recordings are placed in fullscreen/ and area/ subfolders. You can use an absolute path or ~/…"
+                            labelWidth: 150
+                            AppTextField {
+                                Layout.fillWidth: true
+                                placeholderText: Quickshell.env("HOME") + "/Videos/ScreenRecords"
+                                text: root.recordingValue("directory")
+                                onEditingFinished: {
+                                    root.setRecordingSetting("directory", text.trim());
+                                    text = Qt.binding(() => root.recordingValue("directory"));
                                 }
                             }
                         }
-                    }
-                }
-
-                // ============ LOCKSCREEN ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: lockSec.implicitHeight + 20
-                    opacity: root.revealCount > 8 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: lockSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-                        Label {
-                            text: "Lockscreen"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-                        Column {
-                            width: parent.width
-                            spacing: Theme.spacing
-                            SettingRow {
-                                text: "Grace Period (seconds)"
-                                tip: "Time Esc unlocks without a password."
-                                AppSpinBox {
-                                    from: 0
-                                    to: 120
-                                    value: Settings.lockGraceSeconds
-                                    Layout.preferredWidth: 160
-                                    onValueChanged: {
-                                        if (value === Settings.lockGraceSeconds)
-                                            return;
-                                        Settings.lockGraceSeconds = value;
-                                    }
-                                }
-                            }
-                            Label {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                text: "Esc dismisses the lock without a password within this window after locking."
-                                color: Theme.fgDim
-                                font.pixelSize: Theme.fontSize - 1
+                        SettingRow {
+                            text: "Container"
+                            tip: "Video file format. The available formats depend on GPU Screen Recorder."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.containerOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.containerOptions, root.recordingValue("container"))
+                                onActivated: index => root.setRecordingContainer(root.containerOptions[index].value)
                             }
                         }
-                    }
-                }
-
-                // ============ RECORDING SETTINGS ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: recordingSec.implicitHeight + 20
-                    opacity: root.revealCount > 9 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: recordingSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
 
                         Label {
-                            text: "Recording"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-
-                        Column {
                             width: parent.width
-                            spacing: Theme.spacing
-
-                            SettingRow {
-                                text: "Video Codec"
-                                tip: "GPU encoder used for the video stream. Available codecs depend on your GPU."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.videoCodecOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.videoCodecOptions, root.recordingValue("videoCodec"))
-                                    onActivated: index => root.setRecordingVideoCodec(root.videoCodecOptions[index].value)
-                                }
-                            }
-                            SettingRow {
-                                text: "Video Quality"
-                                tip: "Higher quality creates larger files."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.videoQualityOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.videoQualityOptions, root.recordingValue("quality"))
-                                    onActivated: index => root.setRecordingSetting("quality", root.videoQualityOptions[index].value)
-                                }
-                            }
-                            SettingRow {
-                                text: "Color range"
-                                tip: "Limited is more widely compatible; Full preserves the full RGB range."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.colorRangeOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.colorRangeOptions, root.recordingValue("colorRange"))
-                                    onActivated: index => root.setRecordingSetting("colorRange", root.colorRangeOptions[index].value)
-                                }
-                            }
-                            SettingRow {
-                                text: "Audio Codec"
-                                tip: "Codec used for recorded audio."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.audioCodecOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.audioCodecOptions, root.recordingValue("audioCodec"))
-                                    onActivated: index => root.setRecordingSetting("audioCodec", root.audioCodecOptions[index].value)
-                                }
-                            }
-                            SettingRow {
-                                text: "Frame rate"
-                                tip: "Enter any value from 1 to 360 FPS. In Variable mode, this is the maximum FPS."
-                                labelWidth: 150
-                                AppSpinBox {
-                                    from: 1
-                                    to: 360
-                                    stepSize: 1
-                                    value: root.recordingValue("frameRate")
-                                    Layout.preferredWidth: 130
-                                    onValueChanged: {
-                                        if (value !== root.recordingValue("frameRate"))
-                                            root.setRecordingSetting("frameRate", value);
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Frame rate mode"
-                                tip: "Auto uses GPU Screen Recorder's default. Sync to content is supported only on X11 or portal capture; this script uses direct monitor capture on Wayland."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.frameRateModeOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.frameRateModeOptions, root.recordingValue("frameRateMode"))
-                                    onActivated: index => root.setRecordingSetting("frameRateMode", root.frameRateModeOptions[index].value)
-                                }
-                            }
-                            SettingRow {
-                                text: "Record Cursor"
-                                tip: "Include the mouse pointer in the recording."
-                                labelWidth: 150
-                                AppToggle {
-                                    checked: root.recordingValue("recordCursor")
-                                    onToggled: root.setRecordingSetting("recordCursor", checked)
-                                }
-                            }
-                            SettingRow {
-                                text: "Output Device"
-                                tip: "Desktop audio source. Choose None to record without system audio."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.outputAudioOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.outputAudioOptions, root.recordingValue("outputDevice"))
-                                    onActivated: index => root.setRecordingSetting("outputDevice", root.outputAudioOptions[index].value)
-                                }
-                            }
-                            SettingRow {
-                                text: "Input Device"
-                                tip: "Microphone or other input source. Choose None to disable it."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.inputAudioOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.inputAudioOptions, root.recordingValue("inputDevice"))
-                                    onActivated: index => root.setRecordingSetting("inputDevice", root.inputAudioOptions[index].value)
-                                }
-                            }
-                            SettingRow {
-                                text: "Directory to save videos"
-                                tip: "Recordings are placed in fullscreen/ and area/ subfolders. You can use an absolute path or ~/…"
-                                labelWidth: 150
-                                AppTextField {
-                                    Layout.fillWidth: true
-                                    placeholderText: Quickshell.env("HOME") + "/Videos/ScreenRecords"
-                                    text: root.recordingValue("directory")
-                                    onEditingFinished: {
-                                        root.setRecordingSetting("directory", text.trim());
-                                        text = Qt.binding(() => root.recordingValue("directory"));
-                                    }
-                                }
-                            }
-                            SettingRow {
-                                text: "Container"
-                                tip: "Video file format. The available formats depend on GPU Screen Recorder."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.containerOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.containerOptions, root.recordingValue("container"))
-                                    onActivated: index => root.setRecordingContainer(root.containerOptions[index].value)
-                                }
-                            }
-
-                            Label {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                visible: root.recordingContainerWarning(root.recordingValue("videoCodec"), root.recordingValue("container")) !== ""
-                                text: root.recordingContainerWarning(root.recordingValue("videoCodec"), root.recordingValue("container"))
-                                color: Theme.accent
-                                font.pixelSize: Theme.fontSize - 1
-                            }
-                            Label {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                text: "Audio devices and supported video codecs are loaded from gpu-screen-recorder. Settings apply the next time you start a recording."
-                                color: Theme.fgDim
-                                font.pixelSize: Theme.fontSize - 1
-                            }
+                            wrapMode: Text.WordWrap
+                            visible: root.recordingContainerWarning(root.recordingValue("videoCodec"), root.recordingValue("container")) !== ""
+                            text: root.recordingContainerWarning(root.recordingValue("videoCodec"), root.recordingValue("container"))
+                            color: Theme.accent
+                            font.pixelSize: Theme.fontSize - 1
                         }
-                    }
-                }
-
-                // ============ SCREENSHOT SETTINGS ============
-                Rectangle {
-                    width: parent.width
-                    implicitHeight: screenshotSec.implicitHeight + 20
-                    opacity: root.revealCount > 10 ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 250
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                    radius: Theme.radius
-                    color: Theme.surface
-                    border.color: Theme.border
-                    border.width: 1
-
-                    Column {
-                        id: screenshotSec
-                        anchors.fill: parent
-                        anchors.margins: Theme.pad
-                        spacing: Theme.spacing
-
                         Label {
-                            text: "Screenshots"
-                            font.pixelSize: Theme.fontSize + 2
-                            font.bold: true
-                            color: Theme.accent
-                        }
-
-                        Column {
                             width: parent.width
-                            spacing: Theme.spacing
+                            wrapMode: Text.WordWrap
+                            text: "Audio devices and supported video codecs are loaded from gpu-screen-recorder. Settings apply the next time you start a recording."
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.fontSize - 1
+                        }
+                    }
 
-                            SettingRow {
-                                text: "Directory to save screenshots"
-                                tip: "Screenshots are stored in fullscreen/ and area/ subfolders. You can use an absolute path or ~/…"
-                                labelWidth: 150
-                                AppTextField {
-                                    Layout.fillWidth: true
-                                    placeholderText: Quickshell.env("HOME") + "/Pictures/Screenshots"
-                                    text: root.screenshotValue("directory")
-                                    onEditingFinished: {
-                                        root.setScreenshotSetting("directory", text.trim());
-                                        text = Qt.binding(() => root.screenshotValue("directory"));
-                                    }
+                    // ============ SCREENSHOT SETTINGS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 10
+                        revealed: root.revealCount > 10
+
+                        SettingRow {
+                            text: "Directory to save screenshots"
+                            tip: "Screenshots are stored in fullscreen/ and area/ subfolders. You can use an absolute path or ~/…"
+                            labelWidth: 150
+                            AppTextField {
+                                Layout.fillWidth: true
+                                placeholderText: Quickshell.env("HOME") + "/Pictures/Screenshots"
+                                text: root.screenshotValue("directory")
+                                onEditingFinished: {
+                                    root.setScreenshotSetting("directory", text.trim());
+                                    text = Qt.binding(() => root.screenshotValue("directory"));
                                 }
                             }
-                            SettingRow {
-                                text: "Image format"
-                                tip: "PNG is lossless. JPEG makes smaller files using lossy compression."
-                                labelWidth: 150
-                                AppComboBox {
-                                    model: root.screenshotFormatOptions
-                                    textRole: "name"
-                                    Layout.fillWidth: true
-                                    currentIndex: root.optionIndex(root.screenshotFormatOptions, root.screenshotValue("format"))
-                                    onActivated: index => root.setScreenshotSetting("format", root.screenshotFormatOptions[index].value)
+                        }
+                        SettingRow {
+                            text: "Image format"
+                            tip: "PNG is lossless. JPEG makes smaller files using lossy compression."
+                            labelWidth: 150
+                            AppComboBox {
+                                model: root.screenshotFormatOptions
+                                textRole: "name"
+                                Layout.fillWidth: true
+                                currentIndex: root.optionIndex(root.screenshotFormatOptions, root.screenshotValue("format"))
+                                onActivated: index => root.setScreenshotSetting("format", root.screenshotFormatOptions[index].value)
+                            }
+                        }
+                        SettingRow {
+                            visible: root.screenshotValue("format") === "jpeg"
+                            text: "JPEG quality"
+                            tip: "Higher values preserve more detail and create larger files (0–100)."
+                            labelWidth: 150
+                            AppSpinBox {
+                                from: 0
+                                to: 100
+                                value: root.screenshotValue("jpegQuality")
+                                Layout.preferredWidth: 120
+                                onValueChanged: {
+                                    if (value !== root.screenshotValue("jpegQuality"))
+                                        root.setScreenshotSetting("jpegQuality", value);
                                 }
                             }
-                            SettingRow {
-                                visible: root.screenshotValue("format") === "jpeg"
-                                text: "JPEG quality"
-                                tip: "Higher values preserve more detail and create larger files (0–100)."
-                                labelWidth: 150
-                                AppSpinBox {
-                                    from: 0
-                                    to: 100
-                                    value: root.screenshotValue("jpegQuality")
-                                    Layout.preferredWidth: 120
-                                    onValueChanged: {
-                                        if (value !== root.screenshotValue("jpegQuality"))
-                                            root.setScreenshotSetting("jpegQuality", value);
-                                    }
+                        }
+                        SettingRow {
+                            visible: root.screenshotValue("format") === "png"
+                            text: "PNG compression"
+                            tip: "Higher levels reduce file size but can take longer; image quality stays lossless (0–9)."
+                            labelWidth: 150
+                            AppSpinBox {
+                                from: 0
+                                to: 9
+                                value: root.screenshotValue("pngCompression")
+                                Layout.preferredWidth: 120
+                                onValueChanged: {
+                                    if (value !== root.screenshotValue("pngCompression"))
+                                        root.setScreenshotSetting("pngCompression", value);
                                 }
                             }
-                            SettingRow {
-                                visible: root.screenshotValue("format") === "png"
-                                text: "PNG compression"
-                                tip: "Higher levels reduce file size but can take longer; image quality stays lossless (0–9)."
-                                labelWidth: 150
-                                AppSpinBox {
-                                    from: 0
-                                    to: 9
-                                    value: root.screenshotValue("pngCompression")
-                                    Layout.preferredWidth: 120
-                                    onValueChanged: {
-                                        if (value !== root.screenshotValue("pngCompression"))
-                                            root.setScreenshotSetting("pngCompression", value);
-                                    }
-                                }
+                        }
+                        SettingRow {
+                            text: "Optimize PNG"
+                            visible: root.screenshotValue("format") === "png"
+                            tip: "Run ImageMagick to strip metadata and recompress the PNG. This can take longer."
+                            labelWidth: 150
+                            AppToggle {
+                                checked: root.screenshotValue("optimizePng")
+                                onToggled: root.setScreenshotSetting("optimizePng", checked)
                             }
-                            SettingRow {
-                                text: "Optimize PNG"
-                                visible: root.screenshotValue("format") === "png"
-                                tip: "Run ImageMagick to strip metadata and recompress the PNG. This can take longer."
-                                labelWidth: 150
-                                AppToggle {
-                                    checked: root.screenshotValue("optimizePng")
-                                    onToggled: root.setScreenshotSetting("optimizePng", checked)
-                                }
+                        }
+                        SettingRow {
+                            text: "Include cursor"
+                            tip: "Capture the mouse cursor in the screenshot."
+                            labelWidth: 150
+                            AppToggle {
+                                checked: root.screenshotValue("includeCursor")
+                                onToggled: root.setScreenshotSetting("includeCursor", checked)
                             }
-                            SettingRow {
-                                text: "Include cursor"
-                                tip: "Capture the mouse cursor in the screenshot."
-                                labelWidth: 150
-                                AppToggle {
-                                    checked: root.screenshotValue("includeCursor")
-                                    onToggled: root.setScreenshotSetting("includeCursor", checked)
-                                }
+                        }
+                        SettingRow {
+                            text: "Copy to clipboard"
+                            tip: "Copy the image, or a list of image files when capturing all monitors."
+                            labelWidth: 150
+                            AppToggle {
+                                checked: root.screenshotValue("copyToClipboard")
+                                onToggled: root.setScreenshotSetting("copyToClipboard", checked)
                             }
-                            SettingRow {
-                                text: "Copy to clipboard"
-                                tip: "Copy the image, or a list of image files when capturing all monitors."
-                                labelWidth: 150
-                                AppToggle {
-                                    checked: root.screenshotValue("copyToClipboard")
-                                    onToggled: root.setScreenshotSetting("copyToClipboard", checked)
-                                }
+                        }
+                        SettingRow {
+                            text: "Show notification"
+                            tip: "Show a desktop notification after a screenshot is saved."
+                            labelWidth: 150
+                            AppToggle {
+                                checked: root.screenshotValue("notifyOnSave")
+                                onToggled: root.setScreenshotSetting("notifyOnSave", checked)
                             }
-                            SettingRow {
-                                text: "Show notification"
-                                tip: "Show a desktop notification after a screenshot is saved."
-                                labelWidth: 150
-                                AppToggle {
-                                    checked: root.screenshotValue("notifyOnSave")
-                                    onToggled: root.setScreenshotSetting("notifyOnSave", checked)
-                                }
+                        }
+                        SettingRow {
+                            text: "Freeze during area selection"
+                            tip: "Use hyprpicker to freeze the screen while choosing a region."
+                            labelWidth: 150
+                            AppToggle {
+                                checked: root.screenshotValue("freezeOnArea")
+                                onToggled: root.setScreenshotSetting("freezeOnArea", checked)
                             }
-                            SettingRow {
-                                text: "Freeze during area selection"
-                                tip: "Use hyprpicker to freeze the screen while choosing a region."
-                                labelWidth: 150
-                                AppToggle {
-                                    checked: root.screenshotValue("freezeOnArea")
-                                    onToggled: root.setScreenshotSetting("freezeOnArea", checked)
-                                }
-                            }
-                            Label {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                text: "PNG is lossless; JPEG trades image detail for smaller files. Settings apply to the next capture."
-                                color: Theme.fgDim
-                                font.pixelSize: Theme.fontSize - 1
-                            }
+                        }
+                        Label {
+                            width: parent.width
+                            wrapMode: Text.WordWrap
+                            text: "PNG is lossless; JPEG trades image detail for smaller files. Settings apply to the next capture."
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.fontSize - 1
                         }
                     }
                 }
@@ -2116,6 +1898,9 @@ Item {
     }
 
     function resetToDefaults() {
+        // Leaving the focused-navigation state with the old values would
+        // strand the fade over freshly reset sections.
+        nav.clearFocus();
         Settings.barSmartHide = false;
         Settings.barFullWidth = false;
         Settings.revealInPressure = 250;

@@ -313,10 +313,21 @@ Item {
         onTriggered: root._finish()
     }
 
-    // sorted category names
-    property var categories: Object.keys(root.keybinds).sort()
+    // Sorted category names. Empty groups are dropped: comment-only custom
+    // files (e.g. monitor.lua) produce parser categories with no binds, and
+    // a category rail must not offer entries that lead nowhere.
+    property var categories: Object.keys(root.keybinds).filter(c => (root.keybinds[c] || []).length > 0).sort()
 
-    // ---- UI: one Settings-style card per category, divider lines between ----
+    // Shared category navigation: the rail selects a category, scrolls it
+    // to the middle of the viewport and applies the distance focus fade.
+    CategoryNav {
+        id: nav
+        flickable: keyScroll
+        content: keyCol
+        categories: root.categories
+    }
+
+    // ---- UI: persistent category rail + one card per category ----
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
@@ -337,91 +348,96 @@ Item {
             variant: "spinner"
         }
 
-        SmoothFlickable {
-            id: keyScroll
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            visible: !root.loading
-            contentWidth: width
-            contentHeight: keyCol.height
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AsNeeded
+            spacing: Theme.spacing
+
+            // Categories are user-defined strings (bind.lua comments), so
+            // long names elide with a full-name tooltip.
+            CategoryRail {
+                Layout.preferredWidth: 104
+                Layout.alignment: Qt.AlignTop
+                visible: !root.loading && root.categories.length > 0
+                model: root.categories
+                currentIndex: nav.activeIndex
+                onSelected: index => nav.select(index)
             }
 
-            Column {
-                id: keyCol
-                width: keyScroll.width
-                spacing: Theme.spacing
-                // No edge padding: the panel owns the content inset (the
-                // island's Theme.pad), right-panel parity.
+            SmoothFlickable {
+                id: keyScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                visible: !root.loading
+                contentWidth: width
+                contentHeight: keyCol.height
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                    onPressedChanged: {
+                        if (pressed)
+                            nav.cancel();
+                    }
+                }
 
-                Repeater {
-                    model: root.categories
-                    delegate: Column {
-                        id: catSec
-                        required property string modelData
-                        required property int index
-                        property string category: modelData
-                        // Flat base of this category's rows in the reveal
-                        // order (inner rows add their own index to it).
-                        property int rowBase: root.catBase(index)
-                        width: parent.width
-                        spacing: Theme.spacing
-                        // The whole group (divider + card) fades in just
-                        // before its first row.
-                        opacity: root.revealCount > rowBase ? 1 : 0
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: 250
-                                easing.type: Easing.OutCubic
-                            }
-                        }
+                Column {
+                    id: keyCol
+                    width: keyScroll.width
+                    spacing: Theme.spacing
 
-                        // Divider line between categories (first one has none)
-                        Rectangle {
-                            visible: catSec.index > 0
+                    Repeater {
+                        model: root.categories
+                        delegate: Column {
+                            id: catSec
+                            required property string modelData
+                            required property int index
+                            property string category: modelData
+                            // Flat base of this category's rows in the reveal
+                            // order (inner rows add their own index to it).
+                            property int rowBase: root.catBase(index)
+                            // Direct child of keyCol: CategoryNav finds the
+                            // section for centering by this key.
+                            property int categoryIndex: index
                             width: parent.width
-                            height: 1
-                            color: Theme.border
-                        }
-
-                        // Category card (Settings-section style)
-                        Rectangle {
-                            width: parent.width
-                            implicitHeight: cardBody.implicitHeight + 20
-                            radius: Theme.radius
-                            color: Theme.surface
-                            border.color: Theme.border
-                            border.width: 1
-
-                            Column {
-                                id: cardBody
-                                anchors.fill: parent
-                                anchors.margins: Theme.pad
-                                spacing: Theme.spacing
-
-                                Label {
-                                    text: catSec.category
-                                    font.pixelSize: Theme.fontSize + 2
-                                    font.bold: true
-                                    color: Theme.accent
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                    width: parent.width
+                            spacing: Theme.spacing
+                            // The divider fades with its card, and the whole
+                            // group gets one focus opacity (the card below
+                            // keeps its default full opacity) — no per-card
+                            // stacking of fades.
+                            opacity: (root.revealCount > rowBase ? 1 : 0) * nav.opacityFor(index)
+                            Behavior on opacity {
+                                Anim {
+                                    type: Anim.DefaultEffects
                                 }
+                            }
 
-                                // binds within this category
+                            // Divider line between categories (first one has none)
+                            Rectangle {
+                                visible: catSec.index > 0
+                                width: parent.width
+                                height: 1
+                                color: Theme.border
+                            }
+
+                            CategorySection {
+                                width: parent.width
+                                title: catSec.category
+
                                 Repeater {
                                     model: root.keybinds[catSec.category] || []
+                                    // Two lines: category names are long and
+                                    // the content column is shared with the
+                                    // rail, so description + chips side by
+                                    // side would leave the description 0px.
                                     delegate: Rectangle {
                                         required property var modelData
                                         required property int index
                                         width: parent.width
-                                        height: 28
+                                        height: bindBody.implicitHeight + 8
                                         color: "transparent"
-                                        // Flat position (category base + row) vs the
-                                        // reveal counter; +1 so rows trail the header.
+                                        // Flat position (category base + row)
+                                        // vs the reveal counter; +1 so rows
+                                        // trail their header.
                                         opacity: (catSec.rowBase + index + 1) <= root.revealCount ? 1 : 0
                                         Behavior on opacity {
                                             NumberAnimation {
@@ -429,25 +445,27 @@ Item {
                                                 easing.type: Easing.OutCubic
                                             }
                                         }
-                                        // NOTE: RowLayout — the description stretches,
-                                        // chips keep implicit size (verticalCenter
-                                        // anchors are ignored inside positioners).
-                                        RowLayout {
+
+                                        Column {
+                                            id: bindBody
+
                                             anchors.fill: parent
-                                            spacing: Theme.spacing
+                                            anchors.topMargin: 4
+                                            anchors.bottomMargin: 4
+                                            spacing: 4
+
                                             Label {
+                                                width: parent.width
                                                 text: modelData.description
                                                 font.pixelSize: Theme.fontSize
                                                 color: Theme.fg
                                                 elide: Text.ElideRight
                                                 maximumLineCount: 1
-                                                Layout.fillWidth: true
                                             }
 
                                             // key chips joined by "+" (shared AppKeybind widget)
                                             AppKeybind {
                                                 keys: modelData.keys || []
-                                                Layout.alignment: Qt.AlignVCenter
                                             }
                                         }
                                     }

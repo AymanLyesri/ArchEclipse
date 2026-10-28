@@ -29,7 +29,10 @@ Item {
             id: label
             Layout.alignment: Qt.AlignVCenter
             Layout.fillWidth: root.labelWidth < 0
-            Layout.preferredWidth: Math.max(0, root.labelWidth)
+            // Fixed labels shrink in narrow hosts (the settings column now
+            // shares its width with the category rail) instead of starving
+            // the control; the label still elides with a full-text tooltip.
+            Layout.preferredWidth: root.labelWidth < 0 ? 0 : Math.min(root.labelWidth, Math.max(64, root.width * 0.4))
         }
     }
 }

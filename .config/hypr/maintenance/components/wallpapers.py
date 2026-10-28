@@ -67,6 +67,9 @@ urls_images_sfw = [
     "https://cdn.donmai.us/original/a7/1a/__artoria_pendragon_and_saber_alter_fate_drawn_by_void_0__a71a1a801a7fb08dd7697018e484c58a.jpg",
     "https://cdn.donmai.us/original/64/f5/__shorekeeper_wuthering_waves_drawn_by_void_0__64f5d0531e563ffa6397a023d1e59415.jpg",
     "https://cdn.donmai.us/original/8b/6a/__chiori_genshin_impact_drawn_by_void_0__8b6aee8b720517f41c675fb49a0f02c1.jpg",
+    "https://cdn.donmai.us/original/e6/59/__ciel_kamitsubaki_studio_drawn_by_shirone_coxo_ii__e659fcfcb737cccce99c1f7ebdc34f2e.jpg",
+    "https://cdn.donmai.us/original/26/00/__lachesis_misty_original_drawn_by_swd3e2__2600cb6244c96cb8b021586e4fb11125.jpg",
+    "https://cdn.donmai.us/original/8b/43/__original_drawn_by_void_0__8b433da3ef498514c37f51c75617566c.jpg",
 ]
 
 urls_images_nsfw = [
@@ -94,7 +97,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/c5/df/__dusk_shu_nian_ling_nian_and_3_more_arknights_drawn_by_yamauchi_conan_comy__c5df4f9e6f6c3ad7044481e4016a8ff2.jpg",
     "https://cdn.donmai.us/original/6e/d8/__entelechia_arknights_drawn_by_fanfanfanlove__6ed8cba86b4c9f371a270a771b26291e.png",
     "https://cdn.donmai.us/original/c9/79/__hoshimi_miyabi_zenless_zone_zero_drawn_by_icecake__c9795356fb51ebac9fb543afd7380959.jpg",
-    "https://cdn.donmai.us/original/5a/be/__napoli_and_napoli_azur_lane_drawn_by_shiran1024__5abe045d8800883566ec060b2f319395.jpg",
     "https://cdn.donmai.us/original/e2/83/__original_drawn_by_creamyghost__e28396e7cd44869472f742d25fb37d86.jpg",
     "https://cdn.donmai.us/original/c1/7b/__jinhsi_wuthering_waves_drawn_by_ceey__c17b00a9c413d75556e1ff8fdc82109e.jpg",
     "https://cdn.donmai.us/original/d7/36/__amiya_kal_tsit_theresa_and_amiya_arknights_and_1_more_drawn_by_lonki__d73672de44e20e5877592116ccccb73c.jpg",
@@ -103,7 +105,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/8b/16/__iuno_wuthering_waves_drawn_by_kryp132__8b16f466b4f3a18d119dd792121388e4.jpg",
     "https://cdn.donmai.us/original/7b/57/__warship_girls_r_drawn_by_tuweibu__7b5700be93c2158e2e3c35e7846d4a43.jpg",
     "https://cdn.donmai.us/original/59/55/__iuno_wuthering_waves_drawn_by_mian_tu_qiu__5955302450c9fe542416571af954c2a8.png",
-    "https://cdn.donmai.us/original/e6/59/__ciel_kamitsubaki_studio_drawn_by_shirone_coxo_ii__e659fcfcb737cccce99c1f7ebdc34f2e.jpg",
     "https://cdn.donmai.us/original/5f/0f/__nimi_nightmare_and_naplings_indie_virtual_youtuber_drawn_by_greatodoggo__5f0fc1b6faec77b2f79efba5da92c737.png",
     "https://cdn.donmai.us/original/e5/39/__original_drawn_by_johnblack__e5391290da53bff7203cb4f21cbc4387.jpg",
     "https://cdn.donmai.us/original/0c/b9/__oshino_shinobu_monogatari_drawn_by_mika_pikazo__0cb93c971cdc7962d2aa8e313d76e649.jpg",
@@ -129,7 +130,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/58/57/__makima_chainsaw_man_drawn_by_izei1337__58577761e142e76c0da9263556e52283.jpg",
     "https://cdn.donmai.us/original/3c/77/__prinz_moritz_azur_lane__3c7795af9ae9b14715a33c33eb584651.png",
     "https://cdn.donmai.us/original/7f/82/__kuchiki_rukia_bleach_and_1_more_drawn_by_esmile__7f8202975e7ff266c5d3853adb48a31c.jpg",
-    "https://cdn.donmai.us/original/df/1a/__original_drawn_by_esmile__df1a25e0c1112eedc8db70c1a9998b97.jpg",
     "https://cdn.donmai.us/original/41/34/__hakuhou_azur_lane_drawn_by_yunsang__41349e7a65cb2c05b04c22df5580a316.png",
     "https://cdn.donmai.us/original/c1/4c/__power_chainsaw_man_drawn_by_esmile__c14cf324d6644a3cc16910f84e005eae.jpg",
     "https://cdn.donmai.us/original/56/20/__gwen_irelia_galio_and_mythmaker_gwen_league_of_legends_drawn_by_shen_fan__5620a8c6ea0f208f5b89d65a6c39b418.jpg",
@@ -158,6 +158,10 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/85/4b/__brest_azur_lane_drawn_by_yolanda__854bb1c71e05317287583199ec536201.jpg",
     "https://cdn.donmai.us/original/95/e4/__dusk_arknights_drawn_by_omone_hokoma_agm__95e438265a597f57c5e7878aea35017d.jpg",
     "https://cdn.donmai.us/original/3c/ed/__xilonen_genshin_impact_drawn_by_void_0__3ced6e28ec3bc14b4c69911032593b1c.jpg",
+    "https://cdn.donmai.us/original/18/65/__tanacita_tansy_hermis_chion_and_eleanor_stella_limnos_drawn_by_naguanan__186580294296d21d60fceba4ba59358c.jpg",
+    "https://cdn.donmai.us/original/5a/be/__napoli_azur_lane_drawn_by_shiran1024__5abe045d8800883566ec060b2f319395.jpg",
+    "https://cdn.donmai.us/original/e8/a4/__hsin_wuthering_waves_drawn_by_hemeruss__e8a489b002cc38bdb28d386e09333569.jpg",
+    "https://cdn.donmai.us/original/b1/06/__original_drawn_by_h_an_516635864__b1066c6158a9a66346ff63a67e5c971f.png",
 ]
 
 urls_animated_sfw = [
