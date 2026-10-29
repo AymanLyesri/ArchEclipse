@@ -53,16 +53,6 @@ Singleton {
     // Bar shown overrides (per monitor)
     property var barShown: {}
 
-    // Hyprland tick for reactive deps
-    property int hyprlandTick: 0
-    property var _tickTimer: null
-
-    // Geometric room-check results per monitor name.
-    // Populated by _roomProc from `hyprctl j/clients` + `hyprctl j/monitors`.
-    property var blockedMonitors: {}
-    // Current bar height used for the band check
-    property int barHeight: 34
-
     // Current resolved state (default is the permanent base, no compact)
     property string state: "default"
 
@@ -75,10 +65,6 @@ Singleton {
     // owning monitor so a menu on one output cannot pin every bar open.
     property var popupCountByMonitor: ({})
     readonly property int popupCount: Object.values(root.popupCountByMonitor || {}).reduce((sum, count) => sum + Number(count || 0), 0)
-    function popupCountFor(monitorName): int {
-        const monitor = monitorName || Registry.monitorName || "";
-        return Number((root.popupCountByMonitor || {})[monitor] || 0);
-    }
     function holdPopup(monitorName) {
         const monitor = monitorName || Registry.monitorName || "";
         if (!monitor)
@@ -124,10 +110,7 @@ Singleton {
 
     // Settings reference
     property var settings: qs.theme.Settings
-
     property bool orientation: true
-    property bool smartHide: false
-    property bool fullWidth: false
 
     // Volume pulse tracking
     property real _lastVolume: 0
@@ -191,8 +174,6 @@ Singleton {
     Component.onCompleted: {
         root.settings = Settings;
         root.orientation = Settings.barOrientation ?? true;
-        root.smartHide = Settings.barSmartHide ?? false;
-        root.fullWidth = Settings.barFullWidth ?? false;
 
         root.activeStates = {
             "default": {
@@ -216,107 +197,10 @@ Singleton {
         });
         grace.start();
 
-        // Hyprland event tick — re-evaluates the geometric smart-hide room
-        // check when clients move/resize (client moves don't re-emit a
-        // change to the static toplevel list, so we tick on the raw event
-        // stream, debounced).
-        Hyprland.rawEvent.connect(event => {
-            if (!root._tickTimer) {
-                root._tickTimer = Qt.createQmlObject('import QtQuick; Timer { repeat: false; interval: 100 }', root);
-                root._tickTimer.triggered.connect(() => {
-                    root._tickTimer = null;
-                    root.hyprlandTick++;
-                    root.updateRoomCheck();
-                });
-                root._tickTimer.start();
-            }
-        });
-
-        // Initial room check
-        root.updateRoomCheck();
-
         // Sync persistent recording state at startup (subscribe
         // isRecording from mount; a recording already in progress must show)
         if (ScreenRecorder.isRecording)
             root.activate("recording", 0, ScreenRecorder.targetMonitor || Registry.monitorName);
-    }
-
-    // -----------------------------------------------------------------
-    // Geometric smart-hide room check.
-    // A client "blocks" the bar band if it overlaps the top/bottom barHeight
-    // pixels of a monitor on the monitor's active workspace. Queried from
-    // hyprctl so geometry is always current (client .at/.size in the cached
-    // toplevel list lags behind moves/resizes).
-    // -----------------------------------------------------------------
-    property var _roomClientText: ""
-    property var _roomMonitorText: ""
-
-    function updateRoomCheck() {
-        const pc = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-        pc.command = ["hyprctl", "clients", "-j"];
-        pc.running = true;
-        pc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
-        pc.stdout.onStreamFinished.connect(() => {
-            root._roomClientText = pc.stdout.text;
-            pc.stdout.destroy();
-            pc.destroy();
-            root.finishRoomCheck();
-        });
-    }
-
-    function finishRoomCheck() {
-        // Query monitors only after clients arrive; then compute blockage.
-        const pm = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-        pm.command = ["hyprctl", "monitors", "-j"];
-        pm.running = true;
-        pm.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
-        pm.stdout.onStreamFinished.connect(() => {
-            root.computeRoomCheck(root._roomClientText, pm.stdout.text);
-            pm.stdout.destroy();
-            pm.destroy();
-        });
-    }
-
-    function computeRoomCheck(clientsText, monitorsText) {
-        let clients = [];
-        let monitors = [];
-        try {
-            clients = JSON.parse(clientsText);
-        } catch (e) {
-            return;
-        }
-        try {
-            monitors = JSON.parse(monitorsText);
-        } catch (e) {
-            return;
-        }
-
-        const blocked = {};
-        const onTop = root.orientation;
-        const h = root.barHeight;
-
-        for (const m of monitors) {
-            if (!m || m.name === undefined)
-                continue;
-            const wsId = m.activeWorkspace?.id;
-            if (wsId === undefined) {
-                blocked[m.name] = false;
-                continue;
-            }
-            const bandStart = onTop ? m.y : m.y + m.height - h;
-            const bandEnd = bandStart + h;
-            const hit = clients.some(c => {
-                if (!c || !c.mapped)
-                    return false;
-                if (c.workspace?.id !== wsId)
-                    return false;
-                const top = c.at?.[1] ?? 0;
-                const bottom = top + (c.size?.[1] ?? 0);
-                return bottom > bandStart && top < bandEnd;
-            });
-            blocked[m.name] = hit;
-        }
-        root.blockedMonitors = blocked;
     }
 
     // ===== Volume watcher =====
@@ -791,23 +675,6 @@ Singleton {
         root.barShown = next;
     }
 
-    // Conceal bar for a monitor
-    function concealBar(monitorName) {
-        var next = Object.assign({}, root.barShown || {});
-        delete next[monitorName];
-        root.barShown = next;
-    }
-
-    // Public API for IPC
-    function activateState(name, holdMs, monitorName) {
-        root.activate(name, holdMs, monitorName);
-    }
-    function deactivateState(name, monitorName) {
-        root.deactivate(name, monitorName);
-    }
-    function setBarState(name) {
-        root.activate(name);
-    }
     // current = override ?? barAutoVisible, then set !current
     function toggleBarShown(monitorName) {
         var shown = root.barShown || {};

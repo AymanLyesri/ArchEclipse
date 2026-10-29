@@ -21,4 +21,16 @@ Singleton {
 
     readonly property string homeDir: Quickshell.env("HOME")
     readonly property string authSessionPath: homeDir + "/.cache/quickshell/auth/session.json"
+
+    // True when an API error body means the cached session is dead
+    // (GoTrue/PostgREST JWT failures). Single copy: the profile and
+    // donations tabs both branch on it to bounce the user to sign-in.
+    function isAuthError(text) {
+        const t = String(text || "");
+        return t.indexOf("JWT expired") >= 0
+            || t.indexOf("bad_jwt") >= 0
+            || t.indexOf("invalid JWT") >= 0
+            || t.indexOf("PGRST303") >= 0
+            || (t.indexOf("expired") >= 0 && t.indexOf("token") >= 0);
+    }
 }

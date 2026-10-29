@@ -161,12 +161,4 @@ QtObject {
         root._switchLayoutProc.running = true;
     }
 
-    function flagEmoji(code) {
-        const upper = code.toUpperCase();
-        if (upper.length !== 2) return "";
-        const REGIONAL_INDICATOR_A = 0x1f1e6;
-        const points = [...upper].map(c => REGIONAL_INDICATOR_A + (c.charCodeAt(0) - 65));
-        if (!points.every(p => p >= REGIONAL_INDICATOR_A && p <= REGIONAL_INDICATOR_A + 25)) return "";
-        return String.fromCodePoint(...points);
-    }
 }

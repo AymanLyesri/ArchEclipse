@@ -24,10 +24,6 @@ QtObject {
         return (img && img.api && img.api.value) || "";
     }
 
-    function apiByValue(value) {
-        return root.booruApis.find(a => a.value === value) || root.booruApis[0];
-    }
-
     function isVideo(img) {
         if (!img)
             return false;
@@ -260,53 +256,4 @@ QtObject {
         p.running = true;
     }
 
-    // Fetch a single post by ID. onDone(img|null, errorString).
-    function fetchPostById(apiValue, id, onDone) {
-        const api = root.apiByValue(apiValue);
-        let cmd = ["python", root.booruScript, "--api", api.value, "--id", String(id)];
-        const apiUser = Settings.apiKey(api.value, "user");
-        const apiPass = Settings.apiKey(api.value, "key");
-        if (apiUser !== "" && apiPass !== "")
-            cmd.push("--api-user", apiUser, "--api-key", apiPass);
-        const p = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-        p.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', p);
-        p.stderr = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', p);
-        p.command = cmd;
-        p.exited.connect(function (code) {
-            const text = p.stdout ? p.stdout.text : "";
-            const errText = p.stderr ? p.stderr.text : "";
-            p.destroy();
-            let parsed = null;
-            try {
-                parsed = text && text.trim() ? JSON.parse(text) : null;
-            } catch (e) {
-                parsed = null;
-            }
-            if (parsed && parsed.error === true) {
-                if (onDone)
-                    onDone(null, String(parsed.message || "Unknown booru error"));
-                return;
-            }
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                const raw = parsed[0];
-                if (onDone)
-                    onDone({
-                        id: raw.id || 0,
-                        width: raw.width || 0,
-                        height: raw.height || 0,
-                        api: api,
-                        tags: raw.tags || [],
-                        extension: raw.extension,
-                        url: raw.url,
-                        preview: raw.preview,
-                        sample: raw.sample || null
-                    }, "");
-                return;
-            }
-            const detail = (errText && errText.trim()) || "Post not found";
-            if (onDone)
-                onDone(null, detail.slice(0, 300));
-        });
-        p.running = true;
-    }
 }

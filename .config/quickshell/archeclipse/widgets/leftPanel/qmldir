@@ -4,8 +4,11 @@ BooruViewer 1.0 BooruViewer/BooruViewer.qml
 ChatBotWidget 1.0 ChatBotWidget.qml
 CommitGrid 1.0 CommitGrid.qml
 CustomScriptsWidget 1.0 CustomScriptsWidget.qml
+DonationCard 1.0 DonationCard.qml
 DonationsWidget 1.0 DonationsWidget.qml
 GeneralTab 1.0 GeneralTab.qml
+HyprSliderRow 1.0 HyprSliderRow.qml
+HyprToggleRow 1.0 HyprToggleRow.qml
 KeyBindsWidget 1.0 KeyBindsWidget.qml
 MangaViewerWidget 1.0 MangaViewerWidget.qml
 SettingsWidget 1.0 SettingsWidget.qml

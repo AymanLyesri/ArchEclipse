@@ -335,7 +335,7 @@ QtObject {
         };
     }
     function copyToClipboard(text) {
-        Quickshell.execDetached(["sh", "-c", "printf %s \"$1\" | wl-copy", "--", String(text)]);
+        ClipboardService.copy(text);
     }
     // header row factory (app_type === "header")
     function mkHeader(name) {

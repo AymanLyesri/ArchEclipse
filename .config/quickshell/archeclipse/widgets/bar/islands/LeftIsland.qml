@@ -146,11 +146,6 @@ Item {
         }
     }
 
-    // Map a tab name (matching the launcher's quick-app selectors) to a widget.
-    function selectTab(name) {
-        root.selectedWidget = name;
-    }
-
     // Direct access to the booru viewer instance (null until primed).
     readonly property var booruView: booruLoader.item
     // Post waiting for the booru Loader: openDialog lands here when a

@@ -396,13 +396,6 @@ Singleton {
         return /\.(mp4|mkv|webm|mov)$/i.test(path) ? path : "";
     }
 
-    // Open a toast's file with the default handler (no-op when none).
-    function openToastFile(id) {
-        const w = root.findToast(id);
-        const f = w ? w.openFile : "";
-        if (f) Quickshell.execDetached(["xdg-open", f]);
-    }
-
     function openPath(path) {
         if (path) Quickshell.execDetached(["xdg-open", path]);
     }

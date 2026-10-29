@@ -91,7 +91,6 @@ Singleton {
     // CODE IS SOURCE OF TRUTH FOR ICONS: persist()/reload() only save/restore
     // {name, enabled} + order. Edit icons here (defaultRightPanelWidgets) and
     // they will not be clobbered by settings.json.
-    // Crypto implementation files remain available but the widget is disabled.
     property var rightPanelWidgets: root.defaultRightPanelWidgets()
     // Canonical widget definitions (names + code-owned icons + default enabled).
     function defaultRightPanelWidgets() {
@@ -166,12 +165,6 @@ Singleton {
     property bool blueLightAuto: false
     property string blueLightStart: "21:00"
     property string blueLightEnd: "07:00"
-
-    // Bar-pinned crypto favorite (Information center)
-    property var cryptoFavorite: ({
-            symbol: "",
-            timeframe: ""
-        })
 
     property var booru: ({
             api: ({
@@ -750,7 +743,6 @@ Singleton {
             "weather.city": "weatherCity",
             "rightPanel.width": "rightPanelWidth",
             "rightPanel.widgets": "rightPanelWidgets",
-            "crypto.favorite": "cryptoFavorite",
             "notifications.dnd": "notifDnd",
             "lockscreen.graceSeconds": "lockGraceSeconds",
             "autoWorkspaceSwitching": "autoWorkspaceSwitching",
@@ -867,9 +859,6 @@ Singleton {
                     }
                 },
                 dateFormat: root.dateFormat,
-                crypto: {
-                    favorite: root.cryptoFavorite
-                },
                 ui: {
                     opacity: {
                         value: root.uiOpacity
@@ -1109,10 +1098,6 @@ Singleton {
                 root.barOrientation = s.bar?.orientation?.value ?? true;
 
                 root.dateFormat = s.dateFormat ?? "%H:%M";
-                root.cryptoFavorite = s.crypto?.favorite ?? {
-                    symbol: "",
-                    timeframe: ""
-                };
                 root.uiOpacity = s.ui?.opacity?.value ?? 0.618;
                 root.uiRadius = s.ui?.radius?.value ?? 12;
                 root.uiPad = s.ui?.pad?.value ?? 8;
@@ -1364,6 +1349,70 @@ Singleton {
     function normalizeTime(str, fallback) {
         return root._normTime(str, fallback);
     }
+
+    // --- Hyprland subtree ---------------------------------------------------
+    // The settings page edits leaves by dotted path ("decoration.rounding").
+    // Reads return 0 for a missing leaf; writes clone the subtree so every
+    // bound row re-evaluates, then schedule a persist.
+    function hyprGet(path) {
+        let o = root.hyprland;
+        for (const k of path.split(".")) {
+            if (o == null)
+                return 0;
+            o = o[k];
+        }
+        return (o == null) ? 0 : o;
+    }
+    function hyprSet(path, value) {
+        const keys = path.split(".");
+        const h = JSON.parse(JSON.stringify(root.hyprland || {}));
+        let o = h;
+        for (let i = 0; i < keys.length - 1; i++) {
+            if (o[keys[i]] == null || typeof o[keys[i]] !== "object")
+                o[keys[i]] = {};
+            o = o[keys[i]];
+        }
+        o[keys[keys.length - 1]] = value;
+        root.hyprland = h;
+        root.schedulePersist();
+    }
+
+    // Lua builders: nested tables (hl.config({ decoration = { rounding = 16 } })).
+    // The flat "decoration:rounding = 16" form is invalid Lua on Hyprland's
+    // lua-parser builds.
+    function luaValue(v) {
+        if (typeof v === "boolean")
+            return v ? "true" : "false";
+        if (typeof v === "number")
+            return String(v);
+        if (Array.isArray(v))
+            return "{ " + v.map(x => root.luaValue(x)).join(", ") + " }";
+        return "\"" + String(v).replace(/\\/g, "\\\\").replace(/\"/g, "\\\"") + "\"";
+    }
+    function luaKey(k) {
+        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k) ? k : "[\"" + k + "\"]";
+    }
+    function buildLuaConfig(fullKey, value) {
+        const parts = fullKey.split(":");
+        let expr = root.luaValue(value);
+        for (let i = parts.length - 1; i >= 0; i--)
+            expr = "{ " + root.luaKey(parts[i]) + " = " + expr + " }";
+        return "hl.config(" + expr + ")";
+    }
+
+    // Apply one leaf live: one nested-table lua file per key plus an instant
+    // `hyprctl eval` (`hyprctl keyword` is rejected on lua-parser builds).
+    function applyHyprlandSettingLive(fullKey, value) {
+        const keyword = fullKey.replace(/\./g, ":");
+        const fileName = fullKey.replace(/\./g, "_");
+        const luaConfig = root.buildLuaConfig(keyword, value);
+        try {
+            Quickshell.execDetached(["bash", "-c", `mkdir -p $HOME/.config/hypr/config/custom && ` + `cat > $HOME/.config/hypr/config/custom/${fileName}.lua <<'EOF'\n${luaConfig}\nEOF\n` + `hyprctl eval '${luaConfig}'`]);
+        } catch (e) {
+            console.warn("[Settings] apply live:", e);
+        }
+    }
+
     // True when "now" is inside [start, end). Start > end spans midnight;
     // start == end means "never".
     function blueLightScheduleActive() {
@@ -1520,9 +1569,6 @@ Singleton {
             root.schedulePersist();
         }
         function onRightPanelWidgetsChanged() {
-            root.schedulePersist();
-        }
-        function onCryptoFavoriteChanged() {
             root.schedulePersist();
         }
         function onApiKeysChanged() {

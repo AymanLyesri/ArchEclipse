@@ -436,10 +436,6 @@ Item {
         return BooruActions.isCurrentWaifu(img);
     }
 
-    function isInfoTagged(img) {
-        return root.isPinned(img) || root.isBookmarked(img) || root.isCurrentWaifu(img);
-    }
-
     function isVideo(img) {
         return BooruActions.isVideo(img);
     }
@@ -592,11 +588,6 @@ Item {
         return res;
     }
 
-    // Legacy entry point kept for IPC callers: the dialog auto-downloads now.
-    function downloadImage(img) {
-        root.fetchOriginal(img);
-    }
-
     function setAsWaifu(img) {
         return BooruActions.setAsWaifu(img);
     }
@@ -631,10 +622,6 @@ Item {
 
     function copyTag(tag) {
         return BooruActions.copyTag(tag);
-    }
-
-    function formatTagForDisplay(tag) {
-        return tag;
     }
 
     // Manual property copy (QML JS has no object-spread `{...obj}`):
@@ -828,10 +815,6 @@ Item {
             }
             proc.destroy();
         });
-    }
-
-    function isPreviewCached(img) {
-        return !!img && !!root.previewIds[BooruUtils.cacheKey(img)];
     }
 
     function isRevealed(img) {

@@ -42,7 +42,7 @@ Rectangle {
         id: body
 
         anchors.fill: parent
-        anchors.margins: Theme.pad
+        anchors.margins: Theme.pad *2
         spacing: Theme.spacing
 
         Label {

@@ -260,8 +260,7 @@ Item {
     }
 
     function isAuthErrorText(text) {
-        const t = String(text || "");
-        return t.indexOf("JWT expired") >= 0 || t.indexOf("bad_jwt") >= 0 || t.indexOf("invalid JWT") >= 0 || t.indexOf("PGRST303") >= 0 || t.indexOf("JWT expired") >= 0 || t.indexOf("expired") >= 0 && t.indexOf("token") >= 0;
+        return Supabase.isAuthError(text);
     }
 
     function doRefresh(reason) {

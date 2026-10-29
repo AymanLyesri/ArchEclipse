@@ -323,7 +323,6 @@ QtObject {
     // photo-frame background they sit on. Deliberate constants: their
     // background is never a palette surface.
     readonly property color onMediaInk: "#ffffff"
-    readonly property color onMediaDim: rgba("#ffffff", 0.75)
     readonly property color onMediaBg: Qt.rgba(0, 0, 0, 1)
     // Inks over the weather plate (services/Weather.codeInfo backgrounds —
     // fixed dark blues year-round, never derived from the wallpaper).
@@ -343,7 +342,6 @@ QtObject {
     readonly property int radius: Settings.uiRadius
     readonly property string accentFg: "white"
     readonly property int spacing: Settings.uiSpacing   // bar element spacing
-    readonly property int sectionSpacing: 20  // between compact sections / expanded groups
     // The ONE padding token: content inset for cards, panels and island
     // bodies. Margins/paddings ≥ 8 must bind this (smaller values are
     // optical micro-adjustments and stay literal).
@@ -400,11 +398,7 @@ QtObject {
         readonly property int slowEffects: Math.round(300 * scale)
         // easing curves (BezierSpline point lists)
         readonly property var standard: [0.2, 0, 0, 1, 1, 1]
-        readonly property var standardAccel: [0.3, 0, 1, 1, 1, 1]
-        readonly property var standardDecel: [0, 0, 0, 1, 1, 1]
         readonly property var emphasized: [0.05, 0, 0.1333, 0.06, 0.1667, 0.4, 0.2083, 0.82, 0.25, 1, 1, 1]
-        readonly property var emphasizedAccel: [0.3, 0, 0.8, 0.15, 1, 1]
-        readonly property var emphasizedDecel: [0.05, 0.7, 0.1, 1, 1, 1]
         readonly property var expressiveFastSpatial: [0.42, 1.67, 0.21, 0.9, 1, 1]
         readonly property var expressiveDefaultSpatial: [0.38, 1.21, 0.22, 1, 1, 1]
         readonly property var expressiveSlowSpatial: [0.39, 1.29, 0.35, 0.98, 1, 1]

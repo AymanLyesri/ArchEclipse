@@ -7,7 +7,6 @@ Brightness 1.0 Brightness.qml
 Clock 1.0 Clock.qml
 DefaultBar 1.0 DefaultBar.qml
 HotZone 1.0 HotZone.qml
-KeyboardLayoutWidget 1.0 KeyboardLayoutWidget.qml
 MediaPill 1.0 MediaPill.qml
 NetworkWidget 1.0 NetworkWidget.qml
 ResourceMonitor 1.0 ResourceMonitor.qml

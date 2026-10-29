@@ -1663,43 +1663,10 @@ Item {
                         inputMethodHints: Qt.ImhPreferLowercase
                     onTextChanged: root.slashIndex = 0
                     Keys.onReturnPressed: {
-                        if (root.trySlashCommand()) {
-                            event.accepted = true;
-                            return;
-                        }
-                        if (event.modifiers & Qt.ShiftModifier) {
-                            // Let TextArea insert the newline (default).
-                            event.accepted = false;
-                            return;
-                        }
-                        if (root.progressStatus === "loading") {
-                            event.accepted = true;
-                            return;
-                        }
-                        if (inputField.text.trim()) {
-                            root.sendMessage(inputField.text);
-                            inputField.text = "";
-                        }
-                        event.accepted = true;
+                        root.submitInput(event);
                     }
                     Keys.onEnterPressed: {
-                        if (root.trySlashCommand()) {
-                            event.accepted = true;
-                            return;
-                        }
-                        if (event.modifiers & Qt.ShiftModifier) {
-                            event.accepted = false;
-                            return;
-                        }
-                        if (root.progressStatus === "loading") {
-                            event.accepted = true;
-                            return;
-                        }
-                        if (inputField.text.trim()) {
-                            root.sendMessage(inputField.text);
-                            inputField.text = "";
-                        }
-                        event.accepted = true;
+                        root.submitInput(event);
                     }
                     Keys.onUpPressed: {
                         if (root.slashPopupCount() > 1) {
@@ -1841,9 +1808,32 @@ Item {
         return false;
     }
 
+    // Enter submits; Shift+Enter inserts a newline (default TextArea
+    // behaviour). Return and keypad Enter share this one path.
+    function submitInput(event) {
+        if (root.trySlashCommand()) {
+            event.accepted = true;
+            return;
+        }
+        if (event.modifiers & Qt.ShiftModifier) {
+            event.accepted = false;
+            return;
+        }
+        if (root.progressStatus === "loading") {
+            event.accepted = true;
+            return;
+        }
+        if (inputField.text.trim()) {
+            root.sendMessage(inputField.text);
+            inputField.text = "";
+        }
+        event.accepted = true;
+    }
+
     function copyToClipboard(t) {
+        // Model text carries literal \n escapes; unescape before copying.
         const norm = String(t).replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n");
-        Quickshell.execDetached(["wl-copy", "--", norm]);
+        ClipboardService.copy(norm);
     }
     function copyMessage(t) {
         copyToClipboard(t);

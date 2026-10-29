@@ -66,8 +66,4 @@ QtObject {
         return forClientClass(classForToplevel(t));
     }
 
-    // small number badge markup — mirrors workspaceNumberBadge()
-    function numberBadge(id: int): string {
-        return `<span size="x-small" alpha="65%"> ${id}</span>`;
-    }
 }

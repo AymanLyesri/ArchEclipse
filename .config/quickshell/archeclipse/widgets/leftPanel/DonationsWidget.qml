@@ -99,8 +99,7 @@ Item {
     // widget owns no refresh flow — on auth errors, say so plainly and route
     // to the Account tab instead of showing a generic "retry".
     function isAuthErrorText(text) {
-        const t = String(text || "");
-        return t.indexOf("JWT expired") >= 0 || t.indexOf("bad_jwt") >= 0 || t.indexOf("PGRST303") >= 0 || (t.indexOf("expired") >= 0 && t.indexOf("token") >= 0);
+        return Supabase.isAuthError(text);
     }
     function sessionExpired() {
         root.setStatus("error", "Session expired — open Account to sign in again");
@@ -498,65 +497,52 @@ Item {
             }
 
             // Status card
-            Rectangle {
-                width: parent.width
-                implicitHeight: statusCol.implicitHeight + 20
-                radius: Theme.radius
-                color: Theme.surface
-                border.color: root.isSupporter ? Theme.accent : Theme.border
-                border.width: 1
-                Column {
-                    id: statusCol
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.pad
+            DonationCard {
+                borderColor: root.isSupporter ? Theme.accent : Theme.border
+                RowLayout {
+                    width: parent.width
                     spacing: Theme.spacing
-                    RowLayout {
-                        width: parent.width
-                        spacing: Theme.spacing
-                        Label {
-                            text: root.isSupporter ? "♥ Supporter" : "Supporter status"
-                            font.pixelSize: Theme.fontSize + 1
-                            font.bold: true
-                            color: root.isSupporter ? Theme.accent : Theme.fg
-                        }
-                        Item { Layout.fillWidth: true; Layout.fillHeight: true }
-                        Label {
-                            text: !root.signedIn ? "optional" : !root.supporterKnown ? "…" : root.isSupporter ? "active" : "not yet"
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.fgDim
-                        }
-                    }
                     Label {
-                        width: parent.width
-                        text: root.statusText
-                        font.pixelSize: Theme.fontSize - 1
-                        color: root.statusKind === "error" ? Theme.danger : root.statusKind === "warn" ? Theme.accent : Theme.fgDim
-                        wrapMode: Text.WordWrap
+                        text: root.isSupporter ? "♥ Supporter" : "Supporter status"
+                        font.pixelSize: Theme.fontSize + 1
+                        font.bold: true
+                        color: root.isSupporter ? Theme.accent : Theme.fg
                     }
-                    Row {
-                        width: parent.width
-                        spacing: Theme.spacing
-                        AppButton {
-                            width: (parent.width - 8) / 2
-                            height: 32
-                            text: "Refresh"
-                            pixelSize: Theme.fontSize - 1
-                            outlined: true
-                            enabled: root.signedIn
-                            tooltipText: "Re-check supporter status"
-                            onClicked: root.signedIn ? (root.pendingPaymentId ? root.refreshPayment() : root.refreshSupporter()) : root.goSignIn()
-                        }
-                        AppButton {
-                            width: (parent.width - 8) / 2
-                            height: 32
-                            text: root.signedIn ? "Account" : "Sign in"
-                            pixelSize: Theme.fontSize - 1
-                            outlined: true
-                            tooltipText: "Open profile / sign in"
-                            onClicked: Registry.selectLeftTab("UserProfile", undefined, root.monitorName)
-                        }
+                    Item { Layout.fillWidth: true; Layout.fillHeight: true }
+                    Label {
+                        text: !root.signedIn ? "optional" : !root.supporterKnown ? "…" : root.isSupporter ? "active" : "not yet"
+                        font.pixelSize: Theme.fontSize - 1
+                        color: Theme.fgDim
+                    }
+                }
+                Label {
+                    width: parent.width
+                    text: root.statusText
+                    font.pixelSize: Theme.fontSize - 1
+                    color: root.statusKind === "error" ? Theme.danger : root.statusKind === "warn" ? Theme.accent : Theme.fgDim
+                    wrapMode: Text.WordWrap
+                }
+                Row {
+                    width: parent.width
+                    spacing: Theme.spacing
+                    AppButton {
+                        width: (parent.width - 8) / 2
+                        height: 32
+                        text: "Refresh"
+                        pixelSize: Theme.fontSize - 1
+                        outlined: true
+                        enabled: root.signedIn
+                        tooltipText: "Re-check supporter status"
+                        onClicked: root.signedIn ? (root.pendingPaymentId ? root.refreshPayment() : root.refreshSupporter()) : root.goSignIn()
+                    }
+                    AppButton {
+                        width: (parent.width - 8) / 2
+                        height: 32
+                        text: root.signedIn ? "Account" : "Sign in"
+                        pixelSize: Theme.fontSize - 1
+                        outlined: true
+                        tooltipText: "Open profile / sign in"
+                        onClicked: Registry.selectLeftTab("UserProfile", undefined, root.monitorName)
                     }
                 }
             }
@@ -594,225 +580,183 @@ Item {
             }
 
             // Ko-fi card
-            Rectangle {
-                width: parent.width
-                implicitHeight: kofiCol.implicitHeight + 20
-                radius: Theme.radius
-                color: Theme.surface
-                border.color: Theme.border
-                border.width: 1
-                Column {
-                    id: kofiCol
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.pad
+            DonationCard {
+                Label {
+                    text: "Ko-fi — card / PayPal"
+                    font.pixelSize: Theme.fontSize + 1
+                    font.bold: true
+                    color: "#29ABE0"
+                }
+                Label {
+                    width: parent.width
+                    text: root.signedIn ? "Checkout happens on Ko-fi. Paste your link code into the Ko-fi message so the donation is linked to your account and your supporter badge activates." : "Checkout happens on Ko-fi — no account needed. Sign in beforehand if you want a supporter badge; without it you can still claim the donation later with the same email."
+                    font.pixelSize: Theme.fontSize - 1
+                    color: Theme.fgDim
+                    wrapMode: Text.WordWrap
+                }
+                Row {
+                    width: parent.width
                     spacing: Theme.spacing
-                    Label {
-                        text: "Ko-fi — card / PayPal"
-                        font.pixelSize: Theme.fontSize + 1
-                        font.bold: true
-                        color: "#29ABE0"
-                    }
-                    Label {
-                        width: parent.width
-                        text: root.signedIn ? "Checkout happens on Ko-fi. Paste your link code into the Ko-fi message so the donation is linked to your account and your supporter badge activates." : "Checkout happens on Ko-fi — no account needed. Sign in beforehand if you want a supporter badge; without it you can still claim the donation later with the same email."
-                        font.pixelSize: Theme.fontSize - 1
-                        color: Theme.fgDim
-                        wrapMode: Text.WordWrap
-                    }
-                    Row {
-                        width: parent.width
-                        spacing: Theme.spacing
-                        AppTextField {
-                            id: codeField
-                            width: parent.width - 108
-                            height: 34
-                            // Never fake a value: an empty field shows the
-                            // placeholder, so "signed out" reads as words
-                            // instead of a bare dash.
-                            text: root.linkCode
-                            readOnly: true
-                            placeholderText: !root.signedIn ? "Sign in to get a code" : root.linkCodeState === "loading" ? "Fetching your code…" : root.linkCodeState === "error" ? "Could not get a code — try Refresh" : "Getting your code…"
-                        }
-                        AppButton {
-                            width: 100
-                            height: 34
-                            text: "Copy"
-                            pixelSize: Theme.fontSize - 1
-                            outlined: true
-                            enabled: root.linkCodeState === "ready"
-                            tooltipText: "Copy link code"
-                            onClicked: root.copyToClipboard(root.linkCode, "Link code")
-                        }
+                    AppTextField {
+                        id: codeField
+                        width: parent.width - 108
+                        height: 34
+                        // Never fake a value: an empty field shows the
+                        // placeholder, so "signed out" reads as words
+                        // instead of a bare dash.
+                        text: root.linkCode
+                        readOnly: true
+                        placeholderText: !root.signedIn ? "Sign in to get a code" : root.linkCodeState === "loading" ? "Fetching your code…" : root.linkCodeState === "error" ? "Could not get a code — try Refresh" : "Getting your code…"
                     }
                     AppButton {
-                        width: parent.width
-                        height: 46
-                        icon: "\uf0f4"
-                        text: "Support with Ko-fi — $" + root.selectedAmount
-                        pixelSize: Theme.fontSize
+                        width: 100
+                        height: 34
+                        text: "Copy"
+                        pixelSize: Theme.fontSize - 1
                         outlined: true
-                        outlineColor: "#29ABE0"
-                        idleBg: Theme.surface
-                        hoverBg: "#29ABE0"
-                        idleFg: Theme.fg
-                        hoverFg: "white"
-                        tooltipText: root.signedIn ? "Open Ko-fi in your browser\nPut " + root.linkCode + " in the message" : "Open Ko-fi in your browser\nNo account needed — sign in later to claim the badge"
-                        onClicked: {
-                            // No account required: the checkout is external
-                            // (xdg-open ko-fi.com). The link code only exists
-                            // when signed in, and only links the donation to
-                            // an account so the badge can be granted.
-                            if (root.linkCodeState === "ready" && root.linkCode !== "")
-                                root.copyToClipboard(root.linkCode, "Link code");
-                            root.openUrl(root.kofiUrl);
-                        }
+                        enabled: root.linkCodeState === "ready"
+                        tooltipText: "Copy link code"
+                        onClicked: root.copyToClipboard(root.linkCode, "Link code")
+                    }
+                }
+                AppButton {
+                    width: parent.width
+                    height: 46
+                    icon: "\uf0f4"
+                    text: "Support with Ko-fi — $" + root.selectedAmount
+                    pixelSize: Theme.fontSize
+                    outlined: true
+                    outlineColor: "#29ABE0"
+                    idleBg: Theme.surface
+                    hoverBg: "#29ABE0"
+                    idleFg: Theme.fg
+                    hoverFg: "white"
+                    tooltipText: root.signedIn ? "Open Ko-fi in your browser\nPut " + root.linkCode + " in the message" : "Open Ko-fi in your browser\nNo account needed — sign in later to claim the badge"
+                    onClicked: {
+                        // No account required: the checkout is external
+                        // (xdg-open ko-fi.com). The link code only exists
+                        // when signed in, and only links the donation to
+                        // an account so the badge can be granted.
+                        if (root.linkCodeState === "ready" && root.linkCode !== "")
+                            root.copyToClipboard(root.linkCode, "Link code");
+                        root.openUrl(root.kofiUrl);
                     }
                 }
             }
 
             // Crypto card
-            Rectangle {
-                width: parent.width
-                implicitHeight: cryptoCol.implicitHeight + 20
-                radius: Theme.radius
-                color: Theme.surface
-                border.color: Theme.border
-                border.width: 1
-                Column {
-                    id: cryptoCol
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.pad
-                    spacing: Theme.spacing
-                    Label {
-                        text: "Crypto — NOWPayments"
-                        font.pixelSize: Theme.fontSize + 1
-                        font.bold: true
-                        color: "#F7931A"
-                    }
-                    Label {
-                        width: parent.width
-                        text: "Pay with Bitcoin, Ethereum and more. Status activates only after the payment is confirmed on-chain. Tip: small amounts under ~$20 need a low-minimum coin (e.g. ETH, TRX) — BTC enforces a higher minimum."
-                        font.pixelSize: Theme.fontSize - 1
-                        color: Theme.fgDim
-                        wrapMode: Text.WordWrap
-                    }
-                    AppButton {
-                        width: parent.width
-                        height: 46
-                        icon: ""
-                        text: root.busy ? "Creating checkout…" : "Pay with Crypto — $" + root.selectedAmount
-                        pixelSize: Theme.fontSize
-                        outlined: true
-                        outlineColor: "#F7931A"
-                        idleBg: Theme.surface
-                        hoverBg: "#F7931A"
-                        idleFg: Theme.fg
-                        hoverFg: "white"
-                        enabled: !root.busy
-                        tooltipText: "Create a crypto checkout"
-                        onClicked: root.payWithCrypto()
-                    }
-                    Label {
-                        visible: root.pendingState !== ""
-                        width: parent.width
-                        text: root.pendingState === "finished" ? "Payment confirmed." : root.pendingState === "failed" ? "Payment failed or expired." : "Payment pending — complete it in your browser, then press Refresh."
-                        font.pixelSize: Theme.fontSize - 1
-                        color: root.pendingState === "failed" ? Theme.danger : Theme.accent
-                        wrapMode: Text.WordWrap
-                        horizontalAlignment: Text.AlignHCenter
-                    }
+            DonationCard {
+                Label {
+                    text: "Crypto — NOWPayments"
+                    font.pixelSize: Theme.fontSize + 1
+                    font.bold: true
+                    color: "#F7931A"
+                }
+                Label {
+                    width: parent.width
+                    text: "Pay with Bitcoin, Ethereum and more. Status activates only after the payment is confirmed on-chain. Tip: small amounts under ~$20 need a low-minimum coin (e.g. ETH, TRX) — BTC enforces a higher minimum."
+                    font.pixelSize: Theme.fontSize - 1
+                    color: Theme.fgDim
+                    wrapMode: Text.WordWrap
+                }
+                AppButton {
+                    width: parent.width
+                    height: 46
+                    icon: ""
+                    text: root.busy ? "Creating checkout…" : "Pay with Crypto — $" + root.selectedAmount
+                    pixelSize: Theme.fontSize
+                    outlined: true
+                    outlineColor: "#F7931A"
+                    idleBg: Theme.surface
+                    hoverBg: "#F7931A"
+                    idleFg: Theme.fg
+                    hoverFg: "white"
+                    enabled: !root.busy
+                    tooltipText: "Create a crypto checkout"
+                    onClicked: root.payWithCrypto()
+                }
+                Label {
+                    visible: root.pendingState !== ""
+                    width: parent.width
+                    text: root.pendingState === "finished" ? "Payment confirmed." : root.pendingState === "failed" ? "Payment failed or expired." : "Payment pending — complete it in your browser, then press Refresh."
+                    font.pixelSize: Theme.fontSize - 1
+                    color: root.pendingState === "failed" ? Theme.danger : Theme.accent
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
                 }
             }
 
             // Standalone direct transfers (unverified — no supporter status).
             // Plain wallet transfers with no provider callback, so the shell
             // cannot verify them. Kept for donors who prefer it.
-            Rectangle {
-                width: parent.width
-                implicitHeight: standCol.implicitHeight + 20
-                radius: Theme.radius
-                color: Theme.surface
-                border.color: Theme.border
-                border.width: 1
-                Column {
-                    id: standCol
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.pad
+            DonationCard {
+                Label {
+                    text: "Direct wallet transfer — standalone"
+                    font.pixelSize: Theme.fontSize + 1
+                    font.bold: true
+                    color: Theme.fg
+                }
+                Label {
+                    width: parent.width
+                    text: "Sends coins straight to a wallet. There is no verification for these, so they do not activate supporter status — use Ko-fi or the crypto checkout above for that."
+                    font.pixelSize: Theme.fontSize - 1
+                    color: Theme.fgDim
+                    wrapMode: Text.WordWrap
+                }
+                AppMasonry {
+                    width: parent.width
+                    columns: 2
                     spacing: Theme.spacing
-                    Label {
-                        text: "Direct wallet transfer — standalone"
-                        font.pixelSize: Theme.fontSize + 1
-                        font.bold: true
-                        color: Theme.fg
-                    }
-                    Label {
+                    model: root.standaloneCryptos
+                    delegate: Item {
+                        property var modelData
+                        property var opt: modelData ?? ({})
+                        property string addr: opt.address ?? ""
+                        property string qrData: opt.address ?? ""
+                        property color brandColor: opt.color ?? Theme.accent
                         width: parent.width
-                        text: "Sends coins straight to a wallet. There is no verification for these, so they do not activate supporter status — use Ko-fi or the crypto checkout above for that."
-                        font.pixelSize: Theme.fontSize - 1
-                        color: Theme.fgDim
-                        wrapMode: Text.WordWrap
-                    }
-                    AppMasonry {
-                        width: parent.width
-                        columns: 2
-                        spacing: Theme.spacing
-                        model: root.standaloneCryptos
-                        delegate: Item {
-                            property var modelData
-                            property var opt: modelData ?? ({})
-                            property string addr: opt.address ?? ""
-                            property string qrData: opt.address ?? ""
-                            property color brandColor: opt.color ?? Theme.accent
+                        height: standCardCol.implicitHeight
+                        Column {
+                            id: standCardCol
                             width: parent.width
-                            height: standCardCol.implicitHeight
-                            Column {
-                                id: standCardCol
+                            spacing: Theme.spacing
+                            AppButton {
                                 width: parent.width
-                                spacing: Theme.spacing
-                                AppButton {
-                                    width: parent.width
-                                    height: 46
-                                    icon: opt.icon ?? ""
-                                    text: opt.name ?? ""
-                                    pixelSize: Theme.fontSize
-                                    outlined: true
-                                    outlineColor: brandColor
-                                    idleBg: Theme.surface
-                                    hoverBg: brandColor
-                                    idleFg: Theme.fg
-                                    hoverFg: "white"
-                                    tooltipText: "Copy " + opt.name + " address\n" + addr
-                                    onClicked: root.copyToClipboard(addr, opt.name)
-                                }
-                                Label {
-                                    visible: (opt.description ?? "") !== ""
-                                    width: parent.width
-                                    text: opt.description ?? ""
-                                    font.pixelSize: Theme.fontSize - 3
-                                    color: Theme.fgDim
-                                    horizontalAlignment: Text.AlignHCenter
-                                    wrapMode: Text.WordWrap
-                                }
-                                AppButton {
-                                    width: parent.width
-                                    height: 32
-                                    icon: ""
-                                    text: "QR"
-                                    pixelSize: Theme.fontSize - 2
-                                    outlined: true
-                                    outlineColor: Theme.border
-                                    idleBg: "transparent"
-                                    hoverBg: Theme.surfaceActive
-                                    tooltipText: "Show QR Code"
-                                    onClicked: {
-                                        if (qrData) root.showQRCode(qrData, opt.name)
-                                    }
+                                height: 46
+                                icon: opt.icon ?? ""
+                                text: opt.name ?? ""
+                                pixelSize: Theme.fontSize
+                                outlined: true
+                                outlineColor: brandColor
+                                idleBg: Theme.surface
+                                hoverBg: brandColor
+                                idleFg: Theme.fg
+                                hoverFg: "white"
+                                tooltipText: "Copy " + opt.name + " address\n" + addr
+                                onClicked: root.copyToClipboard(addr, opt.name)
+                            }
+                            Label {
+                                visible: (opt.description ?? "") !== ""
+                                width: parent.width
+                                text: opt.description ?? ""
+                                font.pixelSize: Theme.fontSize - 3
+                                color: Theme.fgDim
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.WordWrap
+                            }
+                            AppButton {
+                                width: parent.width
+                                height: 32
+                                icon: ""
+                                text: "QR"
+                                pixelSize: Theme.fontSize - 2
+                                outlined: true
+                                outlineColor: Theme.border
+                                idleBg: "transparent"
+                                hoverBg: Theme.surfaceActive
+                                tooltipText: "Show QR Code"
+                                onClicked: {
+                                    if (qrData) root.showQRCode(qrData, opt.name)
                                 }
                             }
                         }
@@ -821,77 +765,63 @@ Item {
             }
 
             // Claim card (Ko-fi without code)
-            Rectangle {
-                width: parent.width
-                implicitHeight: claimCol.implicitHeight + 20
-                radius: Theme.radius
-                color: Theme.surface
-                border.color: Theme.border
-                border.width: 1
+            DonationCard {
+                Label {
+                    text: "Donated on Ko-fi without a code?"
+                    font.pixelSize: Theme.fontSize
+                    font.bold: true
+                    color: Theme.fg
+                }
+                Label {
+                    width: parent.width
+                    text: "If the Ko-fi email matches your sign-in email, you can link it here."
+                    font.pixelSize: Theme.fontSize - 1
+                    color: Theme.fgDim
+                    wrapMode: Text.WordWrap
+                }
+                AppButton {
+                    width: parent.width
+                    height: 34
+                    text: "Check for my donation"
+                    tooltipText: "Look up payments waiting to be claimed"
+                    pixelSize: Theme.fontSize - 1
+                    outlined: true
+                    onClicked: root.checkClaim()
+                }
                 Column {
-                    id: claimCol
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.pad
+                    visible: root.claimChecked
+                    width: parent.width
                     spacing: Theme.spacing
                     Label {
-                        text: "Donated on Ko-fi without a code?"
-                        font.pixelSize: Theme.fontSize
-                        font.bold: true
-                        color: Theme.fg
-                    }
-                    Label {
+                        visible: root.claimRows.length === 0
                         width: parent.width
-                        text: "If the Ko-fi email matches your sign-in email, you can link it here."
+                        text: "No unclaimed donation found."
                         font.pixelSize: Theme.fontSize - 1
                         color: Theme.fgDim
-                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Text.AlignHCenter
                     }
-                    AppButton {
-                        width: parent.width
-                        height: 34
-                        text: "Check for my donation"
-                        tooltipText: "Look up payments waiting to be claimed"
-                        pixelSize: Theme.fontSize - 1
-                        outlined: true
-                        onClicked: root.checkClaim()
-                    }
-                    Column {
-                        visible: root.claimChecked
-                        width: parent.width
-                        spacing: Theme.spacing
-                        Label {
-                            visible: root.claimRows.length === 0
+                    Repeater {
+                        model: root.claimRows
+                        delegate: Row {
+                            required property var modelData
                             width: parent.width
-                            text: "No unclaimed donation found."
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.fgDim
-                            horizontalAlignment: Text.AlignHCenter
-                        }
-                        Repeater {
-                            model: root.claimRows
-                            delegate: Row {
-                                required property var modelData
-                                width: parent.width
-                                spacing: Theme.spacing
-                                Label {
-                                    width: parent.width - 108
-                                    text: (modelData.amount ?? "?") + " " + (modelData.currency ?? "") + " • " + String(modelData.created_at ?? "").slice(0, 10)
-                                    font.pixelSize: Theme.fontSize - 1
-                                    color: Theme.fg
-                                    elide: Text.ElideRight
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                AppButton {
-                                    width: 100
-                                    height: 30
-                                    text: "Claim"
-                                    tooltipText: "Claim this donation"
-                                    pixelSize: Theme.fontSize - 1
-                                    outlined: true
-                                    onClicked: root.claimRow(modelData.id)
-                                }
+                            spacing: Theme.spacing
+                            Label {
+                                width: parent.width - 108
+                                text: (modelData.amount ?? "?") + " " + (modelData.currency ?? "") + " • " + String(modelData.created_at ?? "").slice(0, 10)
+                                font.pixelSize: Theme.fontSize - 1
+                                color: Theme.fg
+                                elide: Text.ElideRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            AppButton {
+                                width: 100
+                                height: 30
+                                text: "Claim"
+                                tooltipText: "Claim this donation"
+                                pixelSize: Theme.fontSize - 1
+                                outlined: true
+                                onClicked: root.claimRow(modelData.id)
                             }
                         }
                     }
@@ -1070,25 +1000,12 @@ Item {
 
     // --- Helpers (reused patterns: clipboard, external browser, QR) ---
     function copyToClipboard(text, label) {
-        const proc = copyProcComp.createObject(root);
-        proc.label = label;
-        proc.command = ["bash", "-c", "echo -n " + JSON.stringify(text) + " | wl-copy"];
-        proc.running = true;
-    }
-
-    property Component copyProcComp: Component {
-        Process {
-            id: proc
-            property string label: ""
-            onExited: (code) => {
-                if (code === 0) {
-                    Notifications.notify({ summary: "Copied to Clipboard", body: label + " copied successfully!" });
-                } else {
-                    Notifications.notify({ summary: "Error", body: "Failed to copy to clipboard" });
-                }
-                proc.destroy();
-            }
-        }
+        ClipboardService.copy(text, code => {
+            if (code === 0)
+                Notifications.notify({ summary: "Copied to Clipboard", body: label + " copied successfully!" });
+            else
+                Notifications.notify({ summary: "Error", body: "Failed to copy to clipboard" });
+        });
     }
 
     function openUrl(url) {

@@ -836,296 +836,113 @@ Item {
                             font.pixelSize: Theme.fontSize - 2
                         }
 
-                        // Decoration: Rounding
-                        SettingRow {
+
+                        // Hyprland leaves: one row component per leaf
+                        // type. `value` carries the read-back; the row
+                        // writes through Settings.hyprSet + the live
+                        // hyprctl push.
+                        HyprSliderRow {
                             text: "Decoration: Rounding"
                             tip: "Window corner radius in px."
-                            labelWidth: 170
-                            AppSlider {
-                                id: hypRounding
-                                from: 0
-                                to: 50
-                                value: root.hyprGet("decoration.rounding")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("decoration.rounding"))
-                                        return;
-                                    root.hyprSet("decoration.rounding", v);
-                                    root.applyHyprlandSettingLive("decoration.rounding", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("decoration.rounding")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "decoration.rounding"
+                            from: 0
+                            to: 50
+                            value: Settings.hyprGet("decoration.rounding")
                         }
-                        // Decoration: Blur Enabled
-                        SettingRow {
+                        HyprToggleRow {
                             text: "Decoration: Blur Enabled"
                             tip: "Hyprland blur behind windows."
-                            AppToggle {
-                                checked: root.hyprGet("decoration.blur.enabled")
-                                onToggled: {
-                                    root.hyprSet("decoration.blur.enabled", checked);
-                                    root.applyHyprlandSettingLive("decoration.blur.enabled", checked);
-                                }
-                            }
+                            settingKey: "decoration.blur.enabled"
+                            value: Settings.hyprGet("decoration.blur.enabled")
                         }
-                        // Decoration: Blur Size
-                        SettingRow {
+                        HyprSliderRow {
                             text: "Decoration: Blur Size"
                             tip: "Hyprland blur radius."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 10
-                                value: root.hyprGet("decoration.blur.size")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("decoration.blur.size"))
-                                        return;
-                                    root.hyprSet("decoration.blur.size", v);
-                                    root.applyHyprlandSettingLive("decoration.blur.size", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("decoration.blur.size")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "decoration.blur.size"
+                            from: 0
+                            to: 10
+                            value: Settings.hyprGet("decoration.blur.size")
                         }
-                        // Decoration: Blur Passes
-                        SettingRow {
+                        HyprSliderRow {
                             text: "Decoration: Blur Passes"
                             tip: "Hyprland blur quality passes."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 10
-                                value: root.hyprGet("decoration.blur.passes")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("decoration.blur.passes"))
-                                        return;
-                                    root.hyprSet("decoration.blur.passes", v);
-                                    root.applyHyprlandSettingLive("decoration.blur.passes", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("decoration.blur.passes")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "decoration.blur.passes"
+                            from: 0
+                            to: 10
+                            value: Settings.hyprGet("decoration.blur.passes")
                         }
-                        // Decoration: Blur Xray
-                        SettingRow {
+                        HyprToggleRow {
                             text: "Decoration: Blur Xray"
                             tip: "Blur behind windows even when fullscreen."
-                            AppToggle {
-                                checked: root.hyprGet("decoration.blur.xray")
-                                onToggled: {
-                                    root.hyprSet("decoration.blur.xray", checked);
-                                    root.applyHyprlandSettingLive("decoration.blur.xray", checked);
-                                }
-                            }
+                            settingKey: "decoration.blur.xray"
+                            value: Settings.hyprGet("decoration.blur.xray")
                         }
-                        // Decoration: Shadow Enabled
-                        SettingRow {
+                        HyprToggleRow {
                             text: "Decoration: Shadow Enabled"
                             tip: "Draw Hyprland window shadows."
-                            AppToggle {
-                                checked: root.hyprGet("decoration.shadow.enabled")
-                                onToggled: {
-                                    root.hyprSet("decoration.shadow.enabled", checked);
-                                    root.applyHyprlandSettingLive("decoration.shadow.enabled", checked);
-                                }
-                            }
+                            settingKey: "decoration.shadow.enabled"
+                            value: Settings.hyprGet("decoration.shadow.enabled")
                         }
-                        // Decoration: Shadow Range
-                        SettingRow {
+                        HyprSliderRow {
                             text: "Decoration: Shadow Range"
                             tip: "Shadow spread distance in px."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 20
-                                value: root.hyprGet("decoration.shadow.range")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("decoration.shadow.range"))
-                                        return;
-                                    root.hyprSet("decoration.shadow.range", v);
-                                    root.applyHyprlandSettingLive("decoration.shadow.range", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("decoration.shadow.range")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "decoration.shadow.range"
+                            from: 0
+                            to: 20
+                            value: Settings.hyprGet("decoration.shadow.range")
                         }
-                        // Decoration: Shadow Render Power
-                        SettingRow {
+                        HyprSliderRow {
                             text: "Shadow Render Power"
                             tip: "Shadow softness and strength."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 20
-                                value: root.hyprGet("decoration.shadow.render_power")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("decoration.shadow.render_power"))
-                                        return;
-                                    root.hyprSet("decoration.shadow.render_power", v);
-                                    root.applyHyprlandSettingLive("decoration.shadow.render_power", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("decoration.shadow.render_power")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "decoration.shadow.render_power"
+                            from: 0
+                            to: 20
+                            value: Settings.hyprGet("decoration.shadow.render_power")
                         }
-                        // General: Border Size
-                        SettingRow {
+                        HyprSliderRow {
                             text: "General: Border Size"
                             tip: "Window border thickness in px."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 10
-                                value: root.hyprGet("general.border_size")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("general.border_size"))
-                                        return;
-                                    root.hyprSet("general.border_size", v);
-                                    root.applyHyprlandSettingLive("general.border_size", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("general.border_size")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "general.border_size"
+                            from: 0
+                            to: 10
+                            value: Settings.hyprGet("general.border_size")
                         }
-                        // General: Gaps In
-                        SettingRow {
+                        HyprSliderRow {
                             text: "General: Gaps In"
                             tip: "Gap between windows in px."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 20
-                                value: root.hyprGet("general.gaps_in")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("general.gaps_in"))
-                                        return;
-                                    root.hyprSet("general.gaps_in", v);
-                                    root.applyHyprlandSettingLive("general.gaps_in", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("general.gaps_in")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "general.gaps_in"
+                            from: 0
+                            to: 20
+                            value: Settings.hyprGet("general.gaps_in")
                         }
-                        // General: Gaps Out
-                        SettingRow {
+                        HyprSliderRow {
                             text: "General: Gaps Out"
                             tip: "Gap between windows and screen edge."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 40
-                                value: root.hyprGet("general.gaps_out")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value);
-                                    if (v === root.hyprGet("general.gaps_out"))
-                                        return;
-                                    root.hyprSet("general.gaps_out", v);
-                                    root.applyHyprlandSettingLive("general.gaps_out", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: root.hyprGet("general.gaps_out")
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "general.gaps_out"
+                            from: 0
+                            to: 40
+                            value: Settings.hyprGet("general.gaps_out")
                         }
-                        // Decoration: Active Opacity (float)
-                        SettingRow {
+                        HyprSliderRow {
                             text: "Decoration: Active Opacity"
                             tip: "Opacity of the focused window."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 1
-                                stepSize: 0.01
-                                value: root.hyprGet("decoration.active_opacity")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = parseFloat(value.toFixed(2));
-                                    if (v === root.hyprGet("decoration.active_opacity"))
-                                        return;
-                                    root.hyprSet("decoration.active_opacity", v);
-                                    root.applyHyprlandSettingLive("decoration.active_opacity", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: Number(root.hyprGet("decoration.active_opacity")).toFixed(2)
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "decoration.active_opacity"
+                            stepSize: 0.01
+                            decimals: 2
+                            from: 0
+                            to: 1
+                            value: Settings.hyprGet("decoration.active_opacity")
                         }
-                        // Decoration: Inactive Opacity (float)
-                        SettingRow {
+                        HyprSliderRow {
                             text: "Decoration: Inactive Opacity"
                             tip: "Opacity of unfocused windows."
-                            labelWidth: 170
-                            AppSlider {
-                                from: 0
-                                to: 1
-                                stepSize: 0.01
-                                value: root.hyprGet("decoration.inactive_opacity")
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = parseFloat(value.toFixed(2));
-                                    if (v === root.hyprGet("decoration.inactive_opacity"))
-                                        return;
-                                    root.hyprSet("decoration.inactive_opacity", v);
-                                    root.applyHyprlandSettingLive("decoration.inactive_opacity", v);
-                                }
-                            }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: Number(root.hyprGet("decoration.inactive_opacity")).toFixed(2)
-                                Layout.preferredWidth: 30
-                                color: Theme.fgDim
-                            }
+                            settingKey: "decoration.inactive_opacity"
+                            stepSize: 0.01
+                            decimals: 2
+                            from: 0
+                            to: 1
+                            value: Settings.hyprGet("decoration.inactive_opacity")
                         }
-
                         // Apply / Reset — stacked: the two labels no longer
                         // fit side by side once the category rail takes its
                         // width (their button text would overlap).
@@ -1700,60 +1517,6 @@ Item {
             root.playReveal();
     }
 
-    // Get a nested value from Settings.hyprland by dotted path (e.g. "decoration.rounding")
-    function hyprGet(path) {
-        const keys = path.split(".");
-        let o = Settings.hyprland;
-        for (const k of keys) {
-            if (o == null)
-                return 0;
-            o = o[k];
-        }
-        return (o == null) ? 0 : o;
-    }
-
-    // Set a nested value in Settings.hyprland by dotted path. Reassigns a
-    // fresh object so bindings (hyprGet call sites) re-evaluate — plain
-    // in-place mutation would leave sliders stale after Reset.
-    function hyprSet(path, value) {
-        const keys = path.split(".");
-        const h = JSON.parse(JSON.stringify(Settings.hyprland || {}));
-        let o = h;
-        for (let i = 0; i < keys.length - 1; i++) {
-            if (o[keys[i]] == null || typeof o[keys[i]] !== "object")
-                o[keys[i]] = {};
-            o = o[keys[i]];
-        }
-        o[keys[keys.length - 1]] = value;
-        Settings.hyprland = h;
-        // notify Settings so it can re-read; schedule persist to save the nested object
-        Settings.schedulePersist();
-    }
-
-    // Lua value/key builders:
-    // nested tables — hl.config({ decoration = { rounding = 16 } }).
-    // The old QS flat form hl.config({ decoration:rounding = 16 }) is
-    // invalid Lua and hyprland silently ignores those files.
-    function luaValue(v) {
-        if (typeof v === "boolean")
-            return v ? "true" : "false";
-        if (typeof v === "number")
-            return String(v);
-        if (Array.isArray(v))
-            return "{ " + v.map(x => root.luaValue(x)).join(", ") + " }";
-        return "\"" + String(v).replace(/\\/g, "\\\\").replace(/\"/g, "\\\"") + "\"";
-    }
-    function luaKey(k) {
-        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k) ? k : "[\"" + k + "\"]";
-    }
-    function buildLuaConfig(fullKey, value) {
-        const parts = fullKey.split(":");
-        let expr = root.luaValue(value);
-        for (let i = parts.length - 1; i >= 0; i--)
-            expr = "{ " + root.luaKey(parts[i]) + " = " + expr + " }";
-        return "hl.config(" + expr + ")";
-    }
-
     // Get nested value from an object by dotted path. Unwraps
     // credential objects ({value: ...}) to plain strings for display.
     function getNested(obj, path) {
@@ -1852,21 +1615,6 @@ Item {
         });
     }
 
-    // Apply single Hyprland setting immediately (live): nested-table lua
-    // file per key (`${fullKey}.lua`) + instant
-    // `hyprctl eval` (hyprctl keyword is rejected on Lua-parser builds
-    // 0.56+: "keyword can't work with non-legacy parsers").
-    function applyHyprlandSettingLive(fullKey, value) {
-        const keyword = fullKey.replace(/\./g, ":");
-        const fileName = fullKey.replace(/\./g, "_");
-        const luaConfig = root.buildLuaConfig(keyword, value);
-        try {
-            Quickshell.execDetached(["bash", "-c", `mkdir -p $HOME/.config/hypr/config/custom && ` + `cat > $HOME/.config/hypr/config/custom/${fileName}.lua <<'EOF'\n${luaConfig}\nEOF\n` + `hyprctl eval '${luaConfig}'`]);
-        } catch (e) {
-            console.warn("[Settings] apply live:", e);
-        }
-    }
-
     function applyHyprlandSettings() {
         // Write one nested-table lua file per leaf (recursive
         // recursion) + reload. JSON.stringify of the whole object is NOT
@@ -1887,7 +1635,7 @@ Item {
             let script = "mkdir -p $HOME/.config/hypr/config/custom";
             for (const [full, v] of leaves) {
                 const keyword = full.replace(/\./g, ":");
-                const lua = root.buildLuaConfig(keyword, v);
+                const lua = Settings.buildLuaConfig(keyword, v);
                 script += ` && cat > $HOME/.config/hypr/config/custom/${full.replace(/\./g, "_")}.lua <<'EOF'\n${lua}\nEOF\n`;
             }
             script += " && hyprctl reload";
@@ -1927,19 +1675,19 @@ Item {
         Settings.screenshot = Settings.defaultScreenshotSettings();
         Settings.recording = Settings.defaultRecordingSettings();
         // Hyprland defaults
-        root.hyprSet("general.border_size", 0);
-        root.hyprSet("general.gaps_in", 7);
-        root.hyprSet("general.gaps_out", 10);
-        root.hyprSet("decoration.rounding", 16);
-        root.hyprSet("decoration.active_opacity", 0.9);
-        root.hyprSet("decoration.inactive_opacity", 0.8);
-        root.hyprSet("decoration.blur.enabled", true);
-        root.hyprSet("decoration.blur.size", 4);
-        root.hyprSet("decoration.blur.passes", 4);
-        root.hyprSet("decoration.blur.xray", false);
-        root.hyprSet("decoration.shadow.enabled", true);
-        root.hyprSet("decoration.shadow.range", 15);
-        root.hyprSet("decoration.shadow.render_power", 3);
+        Settings.hyprSet("general.border_size", 0);
+        Settings.hyprSet("general.gaps_in", 7);
+        Settings.hyprSet("general.gaps_out", 10);
+        Settings.hyprSet("decoration.rounding", 16);
+        Settings.hyprSet("decoration.active_opacity", 0.9);
+        Settings.hyprSet("decoration.inactive_opacity", 0.8);
+        Settings.hyprSet("decoration.blur.enabled", true);
+        Settings.hyprSet("decoration.blur.size", 4);
+        Settings.hyprSet("decoration.blur.passes", 4);
+        Settings.hyprSet("decoration.blur.xray", false);
+        Settings.hyprSet("decoration.shadow.enabled", true);
+        Settings.hyprSet("decoration.shadow.range", 15);
+        Settings.hyprSet("decoration.shadow.render_power", 3);
         Settings.schedulePersist();
     }
 }

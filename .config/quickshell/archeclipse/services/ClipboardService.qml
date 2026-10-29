@@ -35,6 +35,20 @@ QtObject {
     property bool _busy: false
     property bool _started: false
 
+    // Copy text to the Wayland clipboard. Single owner of the wl-copy
+    // invocation/quoting so callers never rebuild it; onDone(exitCode) is
+    // optional (Donations toasts on it, Launcher/ChatBot do not).
+    function copy(text, onDone) {
+        const p = Qt.createQmlObject("import Quickshell.Io; Process {}", root);
+        p.command = ["sh", "-c", "printf %s \"$1\" | wl-copy", "--", String(text)];
+        p.exited.connect(code => {
+            p.destroy();
+            if (onDone)
+                onDone(code);
+        });
+        p.running = true;
+    }
+
     function start() {
         if (root._started)
             return;
@@ -190,8 +204,8 @@ QtObject {
         cb(v, changed);
     }
 
-    // Direct in-place write (JsonListStore.save pattern verbatim): the
-    // tmp+rename variant was tried and reverted 2026-10-13 — replacing
+    // Direct in-place write: the tmp+rename variant was tried and reverted
+    // 2026-10-13 — replacing
     // the inode freezes Quickshell's file watching/caching (Launcher's
     // `cb` index stuck at a boot snapshot; service-side loads served
     // stale snapshots), while direct writes always grew the file

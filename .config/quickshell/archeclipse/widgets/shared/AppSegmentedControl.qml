@@ -24,6 +24,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.theme
+import "ModelEntry.js" as ModelEntry
 
 Item {
     id: root
@@ -31,7 +32,7 @@ Item {
     property var model: []
     property int currentIndex: 0
     readonly property int count: root.model?.length ?? 0
-    readonly property var currentValue: valueAt(root.currentIndex)
+    readonly property var currentValue: ModelEntry.valueAt(root.model, root.currentIndex)
 
     property int pixelSize: Theme.fontSize
     property string fontFamily: Theme.fontFamily
@@ -54,46 +55,6 @@ Item {
     property Item highlightCell: null
     property int _syncRetries: 0
 
-    function valueAt(i) {
-        if (!root.model || i < 0 || i >= root.model.length)
-            return undefined;
-        const e = root.model[i];
-        if (typeof e === "string")
-            return e;
-        return e?.value ?? e?.display ?? e?.name ?? e;
-    }
-    function labelAt(i) {
-        if (!root.model || i < 0 || i >= root.model.length)
-            return "";
-        const e = root.model[i];
-        if (typeof e === "string")
-            return e;
-        return e?.label ?? e?.display ?? e?.name ?? String(e?.value ?? "");
-    }
-    function iconAt(i) {
-        if (!root.model || i < 0 || i >= root.model.length)
-            return "";
-        const e = root.model[i];
-        if (typeof e === "string")
-            return "";
-        return e?.icon ?? "";
-    }
-    function tooltipAt(i) {
-        if (!root.model || i < 0 || i >= root.model.length)
-            return "";
-        const e = root.model[i];
-        if (typeof e === "string")
-            return "";
-        return e?.tooltip ?? e?.tooltipText ?? "";
-    }
-    function enabledAt(i) {
-        if (!root.model || i < 0 || i >= root.model.length)
-            return false;
-        const e = root.model[i];
-        if (typeof e === "string")
-            return true;
-        return e?.enabled ?? true;
-    }
 
     // Arrow-key navigation between segments.
     Keys.onLeftPressed: e => moveSelection(-1, e)
@@ -103,11 +64,11 @@ Item {
             return;
         // Skip disabled cells; stop at the ends.
         let next = root.currentIndex + delta;
-        while (next >= 0 && next < root.count && !root.enabledAt(next))
+        while (next >= 0 && next < root.count && !ModelEntry.enabledAt(root.model, next))
             next += delta;
         if (next < 0 || next >= root.count || next === root.currentIndex)
             return;
-        root.activated(next, root.valueAt(next));
+        root.activated(next, ModelEntry.valueAt(root.model, next));
         if (e)
             e.accepted = true;
     }
@@ -169,10 +130,10 @@ Item {
                     required property var modelData
                     required property int index
                     readonly property bool selected: root.currentIndex === index
-                    readonly property string label: root.labelAt(index)
-                    readonly property string icon: root.iconAt(index)
+                    readonly property string label: ModelEntry.labelAt(root.model, index)
+                    readonly property string icon: ModelEntry.iconAt(root.model, index)
                     // NOTE: named cellEnabled — Item.enabled already exists.
-                    readonly property bool cellEnabled: root.enabledAt(index)
+                    readonly property bool cellEnabled: ModelEntry.enabledAt(root.model, index)
                     readonly property bool dimmed: !cell.cellEnabled || !root.enabled
 
                     implicitWidth: cellRow.implicitWidth + root.cellHPadding * 2
@@ -188,8 +149,8 @@ Item {
                     height: implicitHeight
 
                     AppTooltip {
-                        visible: cellMa.containsMouse && root.tooltipAt(index) !== ""
-                        text: root.tooltipAt(index)
+                        visible: cellMa.containsMouse && ModelEntry.tooltipAt(root.model, index) !== ""
+                        text: ModelEntry.tooltipAt(root.model, index)
                     }
 
                     Row {
@@ -229,7 +190,7 @@ Item {
                         cursorShape: cell.cellEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: {
                             root.forceActiveFocus();
-                            root.activated(cell.index, root.valueAt(cell.index));
+                            root.activated(cell.index, ModelEntry.valueAt(root.model, cell.index));
                         }
                     }
                 }

@@ -7,7 +7,8 @@ capture workspace at the same rects capture-readme.py uses, right-panel
 layout shuffle, left-panel tab walk, and wallpaper-switcher demonstrates.
 
 State mutated during the run (wallpaper mappings, rightPanel.widgets,
-waifuWidget.current, the temp chatbot session) is restored afterwards.
+waifuWidget.current, booru.pins, booru.tags, the temp chatbot session) is
+restored afterwards.
 Owns nothing but what it spawned: spawned windows are closed by the exact
 pid observed at mapping — never kill by class or workspace (a user SCP or
 terminal must survive a capture run).
@@ -46,6 +47,7 @@ CHATBOT_SESSIONS = (
     / "quickshell/chatbot/sessions"
 )
 RECORDINGS = Path.home() / "Videos/ScreenRecords/fullscreen"
+SCREENRECORD_SCRIPT = Path.home() / ".config/hypr/scripts/screenrecord.sh"
 CAPTURE_WS = 10
 WS9 = 9
 # Wallpaper daemon reapplies + opacity transitions; the dwells double as
@@ -54,7 +56,9 @@ WORKSPACE_SETTLE = 1.0
 WALLPAPER_SETTLE = 1.0
 STEP_SETTLE = 1.0
 IPC_SETTLE = 0.5
-RECORD_SETTLE = 1.0
+# The bar adopts a recording it did not start on its 1s pgrep poll; this
+# dwell lets the sidepill show the running timer before the take begins.
+RECORD_SETTLE = 1.5
 # Settings.qml watches the file and reloads after a short delay — the
 # reactive bindings (right-island widget order, waifu, booru) follow once
 # reload lands.
@@ -171,21 +175,6 @@ def run(cmd, timeout=10):
         ) from e
 
 
-def process_running(name):
-    """pgrep exits 1 on 'no match' — that is a query answer, not an error."""
-    try:
-        return (
-            subprocess.run(
-                ["pgrep", "-f", rf"(^|/){name}([[:space:]]|$)"],
-                capture_output=True,
-                timeout=10,
-            ).returncode
-            == 0
-        )
-    except (OSError, subprocess.SubprocessError) as e:
-        raise RuntimeError(f"pgrep failed: {name}: {e}") from e
-
-
 def ipc_call(action, *args, timeout=10):
     text = run(["qs", "-p", QS_CONFIG, "ipc", "call", "bar", action, *args], timeout)
     if text.startswith("EX: "):
@@ -270,6 +259,8 @@ class Snapshot:
         self.settings = json.loads(SETTINGS.read_text())
         self.right_widgets = self.settings.get("rightPanel", {}).get("widgets")
         self.waifu = self.settings.get("waifuWidget", {}).get("current")
+        self.pins = self.settings.get("booru", {}).get("pins")
+        self.tags = self.settings.get("booru", {}).get("tags")
         # showWidget/chatSession persist the left island's selected tab
         # override (leftPanel.monitors.<mon>.widget) — restore it wholesale.
         self.left_monitors = self.settings.get("leftPanel", {}).get("monitors")
@@ -281,10 +272,9 @@ class Snapshot:
 def dry_check(snap):
     for name in ("cartethyia", "chiori", "yoru", "columbina"):
         resolve_wallpaper(WALLPAPERS[name])
+    if not SCREENRECORD_SCRIPT.is_file():
+        raise RuntimeError("Recording script not found: " + str(SCREENRECORD_SCRIPT))
     data = snap.settings
-    tags = data.get("booru", {}).get("tags", [])
-    if BOORU_TAG not in tags:
-        raise RuntimeError(f"{BOORU_TAG} missing from booru.tags")
     if data.get("booru", {}).get("selectedTab") != "Danbooru":
         raise RuntimeError("booru.selectedTab is not Danbooru")
     if data.get("wallpaperSwitcher", {}).get("category") != WALLPAPER_CATEGORY:
@@ -296,7 +286,7 @@ def dry_check(snap):
     print(
         f"Dry check OK: monitor={snap.monitor}, ws={snap.workspace}"
         + f", post {WAIFU_POST_ID} {'pinned' if pinned else 'via booru.py'}"
-        + ", wallpaper files exist",
+        + ", wallpaper files exist, screenrecord.sh present",
         flush=True,
     )
 
@@ -304,6 +294,12 @@ def dry_check(snap):
 def setup_phase(snap):
     setup_wallpapers(snap)
     waifu = fetch_waifu_post(snap)
+    # BooruViewer's Pins tab and the profile pin count read this list; the
+    # demo shows exactly one pinned post.
+    settings_set("booru.pins", [waifu])
+    print(f"Booru pins: post {WAIFU_POST_ID} only", flush=True)
+    settings_set("booru.tags", [BOORU_TAG])
+    print("Booru tags: " + BOORU_TAG, flush=True)
     current = snap.settings.get("waifuWidget", {}).get("current") or {}
     if int(current.get("id", 0)) != WAIFU_POST_ID:
         settings_set("waifuWidget.current", waifu)
@@ -585,27 +581,18 @@ def process_wallpaper_switcher(snap, wallpaper, workspace):
 
 
 def start_recording(snap):
-    result = ipc_call("screenrecord", "now", snap.monitor)
-    if "started" not in result:
-        raise RuntimeError("Recording did not start: " + result)
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        if process_running("gpu-screen-recorder"):
-            return result
-        time.sleep(0.3)
-    raise RuntimeError("gpu-screen-recorder not running after screenrecord call")
+    # Drive screenrecord.sh directly: the shell's screenrecord IPC returns
+    # "started" while ScreenRecorder.starting is still set (its pgrep poll +
+    # 1.2s settle lag), so the sidepill would spend the take's first seconds
+    # on its spinner. The script exits 0 only after gpu-screen-recorder is
+    # verified up, and the bar's own poll adopts the external recording.
+    run([SCREENRECORD_SCRIPT, "start", "--monitor", snap.monitor], timeout=30)
+    print("Recording started: " + snap.monitor, flush=True)
 
 
 def stop_recording(snap):
-    result = ipc_call("screenrecord", "now", snap.monitor)
-    if "stopped" not in result:
-        raise RuntimeError("Recording did not stop cleanly: " + result)
-    deadline = time.monotonic() + 15
-    while time.monotonic() < deadline:
-        if not process_running("gpu-screen-recorder"):
-            return
-        time.sleep(0.5)
-    raise RuntimeError("gpu-screen-recorder did not exit")
+    # The script owns the pid file and blocks until the recorder is gone.
+    run([SCREENRECORD_SCRIPT, "stop"], timeout=30)
 
 
 def collect_recording(before, out_path):
@@ -639,6 +626,10 @@ def restore_settings(snap):
         settings_set("rightPanel.widgets", snap.right_widgets)
     if snap.waifu is not None:
         settings_set("waifuWidget.current", snap.waifu)
+    if snap.pins is not None:
+        settings_set("booru.pins", snap.pins)
+    if snap.tags is not None:
+        settings_set("booru.tags", snap.tags)
     if snap.left_monitors is not None:
         settings_set("leftPanelByMonitor", snap.left_monitors)
 
@@ -651,6 +642,15 @@ def settings_drifted(snap, current):
         return True
     waifu = current.get("waifuWidget", {}).get("current") or {}
     if snap.waifu is not None and waifu.get("id") != (snap.waifu or {}).get("id"):
+        return True
+    pins = current.get("booru", {}).get("pins") or []
+    if snap.pins is not None and [p.get("id") for p in pins] != [
+        p.get("id") for p in snap.pins
+    ]:
+        return True
+    if snap.tags is not None and (
+        current.get("booru", {}).get("tags") or []
+    ) != snap.tags:
         return True
     if (
         snap.left_monitors is not None
@@ -668,7 +668,7 @@ def restore_state(snap, keep):
     if keep:
         print(
             "MUTATED (kept): wallpaper rows, right-panel order, waifu, "
-            "temp chatbot session, left-panel tab",
+            "booru pins/tags, temp chatbot session, left-panel tab",
             flush=True,
         )
         return
@@ -707,7 +707,7 @@ def restore_state(snap, keep):
 
     print(
         "State restored: workspace, wallpapers, right-panel order, waifu, "
-        "temp session removed",
+        "booru pins/tags, temp session removed",
         flush=True,
     )
 

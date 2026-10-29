@@ -6,3 +6,6 @@ tests/
 
 docs
 profiler/traces/*.qtd
+.claude
+.agents
+skills-lock.json

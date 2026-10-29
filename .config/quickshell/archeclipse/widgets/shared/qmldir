@@ -1,9 +1,7 @@
 module qs.widgets.shared
 
 Anim 1.0 Anim.qml
-AnchorAnim 1.0 AnchorAnim.qml
 CAnim 1.0 CAnim.qml
-AnimLoader 1.0 AnimLoader.qml
 AppButton 1.0 AppButton.qml
 AppFilterChips 1.0 AppFilterChips.qml
 AppKeybind 1.0 AppKeybind.qml
