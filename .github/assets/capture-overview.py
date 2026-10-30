@@ -100,6 +100,7 @@ WALLPAPERS = {
     "chiori": "~/.config/wallpapers/defaults/images_sfw/__chiori_genshin_impact_drawn_by_void_0__8b6aee8b720517f41c675fb49a0f02c1.jpg",
     "yoru": "~/.config/wallpapers/defaults/images_sfw/__yoru_mitaka_asa_pochita_war_devil_and_bucky_chainsaw_man_drawn_by_eaechas__40574201912be4a9dec5589b3374350c.jpg",
     "columbina": "~/.config/wallpapers/defaults/images_sfw/__columbina_genshin_impact_drawn_by_void_0__86cc14bd3da8a9578bff20e148c1e74a.jpg",
+    "angel": "/home/ayman/.config/wallpapers/defaults/images_sfw/__original_drawn_by_void_0__8b433da3ef498514c37f51c75617566c.jpg",
 }
 # Overview hero floats, from capture-readme.py's OVERVIEW_FLOATS (1920x1080).
 # cava has no desktop entry: the launcher's `term` prefix mode runs it in
@@ -353,7 +354,7 @@ class Snapshot:
 
 
 def dry_check(snap):
-    for name in ("cartethyia", "chiori", "yoru", "columbina"):
+    for name in ("chiori", "yoru", "columbina", "angel"):
         resolve_wallpaper(WALLPAPERS[name])
     if not SCREENRECORD_SCRIPT.is_file():
         raise RuntimeError("Recording script not found: " + str(SCREENRECORD_SCRIPT))
@@ -392,10 +393,10 @@ def setup_phase(snap):
 
 
 def setup_wallpapers(snap):
-    cartethyia = resolve_wallpaper(WALLPAPERS["cartethyia"])
+    angel = resolve_wallpaper(WALLPAPERS["angel"])
     yoru = resolve_wallpaper(WALLPAPERS["yoru"])
-    run(["walleclipse", "set", snap.monitor, str(WS9), cartethyia])
-    print(f"ws{WS9} wallpaper: " + Path(cartethyia).name, flush=True)
+    run(["walleclipse", "set", snap.monitor, str(WS9), angel])
+    print(f"ws{WS9} wallpaper: " + Path(angel).name, flush=True)
     run(["walleclipse", "set", snap.monitor, str(CAPTURE_WS), yoru])
     print(f"ws{CAPTURE_WS} wallpaper: " + Path(yoru).name, flush=True)
     time.sleep(WALLPAPER_SETTLE)
@@ -800,9 +801,10 @@ def settings_drifted(snap, current):
         p.get("id") for p in snap.pins
     ]:
         return True
-    if snap.tags is not None and (
-        current.get("booru", {}).get("tags") or []
-    ) != snap.tags:
+    if (
+        snap.tags is not None
+        and (current.get("booru", {}).get("tags") or []) != snap.tags
+    ):
         return True
     if (
         snap.left_monitors is not None
