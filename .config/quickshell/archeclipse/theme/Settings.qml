@@ -407,8 +407,8 @@ Singleton {
         {
             path: ["decoration", "shadow", "render_power"],
             name: "Shadow Render Power",
-            min: 0,
-            max: 20,
+            min: 1,
+            max: 4,
             type: "int",
             def: 3,
             typeFirst: true

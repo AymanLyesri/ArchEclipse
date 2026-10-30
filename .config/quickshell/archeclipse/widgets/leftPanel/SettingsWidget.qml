@@ -873,8 +873,8 @@ Item {
                             text: "Shadow Render Power"
                             tip: "Shadow softness and strength."
                             settingKey: "decoration.shadow.render_power"
-                            from: 0
-                            to: 20
+                            from: 1
+                            to: 4
                             value: Settings.hyprGet("decoration.shadow.render_power")
                         }
                         HyprSliderRow {
@@ -1262,7 +1262,7 @@ Item {
                             tip: "Choose the glyph used for the Super / Windows modifier."
 
                             AppComboBox {
-                                model: [Icons.keySuperArch, Icons.keySuperManjaro, Icons.keySuperEndeavour, Icons.keySuperCachyOS, Icons.keySuperLinuxTerminal, Icons.keySuperLinux, Icons.keySuperGentoo, Icons.keySuperDebian, Icons.keySuperUbuntu, Icons.keySuperRedHat, Icons.keySuperFedora, Icons.keySuperSteam, Icons.keySuperApple, Icons.keySuperCommand, Icons.keySuperAndroid, Icons.keySuperAssistant, Icons.keySuperChrome, Icons.keySuperWalk, Icons.keySuperWindows11, Icons.keySuperWindowsClassic]
+                                model: [Icons.keySuperArch, Icons.keySuperManjaro, Icons.keySuperEndeavour, Icons.keySuperCachyOS, Icons.keySuperGaruda, Icons.keySuperArchcraft, Icons.keySuperArcoLinux, Icons.keySuperArtix, Icons.keySuperLinuxTerminal, Icons.keySuperLinux, Icons.keySuperGentoo, Icons.keySuperDebian, Icons.keySuperUbuntu, Icons.keySuperRedHat, Icons.keySuperFedora, Icons.keySuperSteam, Icons.keySuperApple, Icons.keySuperCommand, Icons.keySuperAndroid, Icons.keySuperAssistant, Icons.keySuperChrome, Icons.keySuperWindows11, Icons.keySuperWindowsClassic]
                                 currentIndex: Math.max(0, model.indexOf(Settings.keybindsSuperKey))
                                 onActivated: Settings.keybindsSuperKey = model[index]
                                 Layout.preferredWidth: 120
@@ -1322,7 +1322,7 @@ Item {
                                 from: 8
                                 to: 30
                                 value: Settings.keybindsFontSize
-                                Layout.preferredWidth: 160
+                                Layout.preferredWidth: 50
                                 onValueChanged: {
                                     if (value === Settings.keybindsFontSize)
                                         return ;
@@ -1341,7 +1341,7 @@ Item {
                                 from: 8
                                 to: 30
                                 value: Settings.keybindsDescriptionFontSize
-                                Layout.preferredWidth: 160
+                                Layout.preferredWidth: 50
                                 onValueChanged: {
                                     if (value === Settings.keybindsDescriptionFontSize)
                                         return ;

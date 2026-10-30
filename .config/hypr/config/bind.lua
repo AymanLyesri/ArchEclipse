@@ -68,7 +68,9 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("lua " .. barScript))
 --- toggle status bar visibility
 hl.bind(mainMod .. " + ALT + BACKSPACE", hl.dsp.exec_cmd(qsIpc .. "toggleBar " .. monitor))
 --- toggle app launcher
-hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd(qsIpc .. "toggleSearch " .. monitor), { release = true })
+hl.bind(mainMod .. " + SUPER_L",
+    hl.dsp.exec_cmd(qsIpc .. "toggleSearch " .. monitor),
+    { release = true })
 --- toggle media panel
 hl.bind(mainMod .. " + M", hl.dsp.exec_cmd(qsIpc .. "togglePanel media-panel " .. monitor))
 --- toggle right panel
@@ -221,8 +223,9 @@ hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 
 --- spawn a floating terminal under a selected rectangle
-hl.bind(mainMod .. " + SHIFT + " .. keycode.LMB, scripts.dragStart, { mouse = true })
-hl.bind(mainMod .. " + SHIFT + " .. keycode.LMB, scripts.dragEnd, { release = true })
+hl.bind(mainMod .. " + SHIFT + " .. keycode.LMB, scripts.dragStart, {
+    mouse = true,
+})
 
 --- move window with the primary mouse button
 hl.bind(mainMod .. " + " .. keycode.LMB, hl.dsp.window.drag(), { mouse = true })

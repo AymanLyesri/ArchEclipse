@@ -74,6 +74,10 @@ QtObject {
     readonly property string keySuperManjaro: "\u{F312}"
     readonly property string keySuperEndeavour: "\u{F322}"
     readonly property string keySuperCachyOS: "\u{F385}"
+    readonly property string keySuperGaruda: "\u{F337}"
+    readonly property string keySuperArchcraft: "\u{F345}"
+    readonly property string keySuperArcoLinux: "\u{F346}"
+    readonly property string keySuperArtix: "\u{F31F}"
     readonly property string keySuperLinuxTerminal: "\u{EBC6}"
     readonly property string keySuperLinux: "\u{F033D}"
     readonly property string keySuperGentoo: "\u{E7E6}"
@@ -87,7 +91,6 @@ QtObject {
     readonly property string keySuperAndroid: "\u{F0032}"
     readonly property string keySuperAssistant: "\u{F07CD}"
     readonly property string keySuperChrome: "\u{F268}"
-    readonly property string keySuperWalk: "\u{F0583}"
     readonly property string keySuperWindows11: "\u{E8E5}"
     readonly property string keySuperWindowsClassic: "\u{F0A21}"
 
