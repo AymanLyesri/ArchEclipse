@@ -1262,7 +1262,7 @@ Item {
                             tip: "Choose the glyph used for the Super / Windows modifier."
 
                             AppComboBox {
-                                model: ["󰣇", "", "", "", "󰌽", "", "", "", "󱄛", "", "", "", "⌘", "󰀲", "󰟍", "", "󰖳", "", "󰨡"]
+                                model: [Icons.keySuperArch, Icons.keySuperManjaro, Icons.keySuperEndeavour, Icons.keySuperCachyOS, Icons.keySuperLinuxTerminal, Icons.keySuperLinux, Icons.keySuperGentoo, Icons.keySuperDebian, Icons.keySuperUbuntu, Icons.keySuperRedHat, Icons.keySuperFedora, Icons.keySuperSteam, Icons.keySuperApple, Icons.keySuperCommand, Icons.keySuperAndroid, Icons.keySuperAssistant, Icons.keySuperChrome, Icons.keySuperWalk, Icons.keySuperWindows11, Icons.keySuperWindowsClassic]
                                 currentIndex: Math.max(0, model.indexOf(Settings.keybindsSuperKey))
                                 onActivated: Settings.keybindsSuperKey = model[index]
                                 Layout.preferredWidth: 120

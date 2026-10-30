@@ -24,7 +24,7 @@ Singleton {
     property int uiFontSize: 12
 
     // Keybind glyph settings
-    property string keybindsSuperKey: "󰣇"
+    property string keybindsSuperKey: Icons.keySuperArch
     property bool keybindsUseMacSymbol: false
     property bool keybindsUseFunctionSymbol: false
     property bool keybindsUseMouseSymbol: false
@@ -1064,7 +1064,7 @@ Singleton {
                 root.uiFontSize = s.ui?.fontSize?.value ?? 12;
 
                 const keybinds = s.keybinds ?? {};
-                root.keybindsSuperKey = typeof keybinds.superKey === "string" && keybinds.superKey !== "" ? keybinds.superKey : "󰣇";
+                root.keybindsSuperKey = typeof keybinds.superKey === "string" && keybinds.superKey !== "" ? keybinds.superKey : Icons.keySuperArch;
                 root.keybindsUseMacSymbol = keybinds.useMacSymbol ?? false;
                 root.keybindsUseFunctionSymbol = keybinds.useFunctionSymbol ?? false;
                 root.keybindsUseMouseSymbol = keybinds.useMouseSymbol ?? false;
