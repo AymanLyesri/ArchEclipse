@@ -54,7 +54,7 @@ Item {
         anchors.margins: Theme.pad
         width: 32
         height: 32
-        text: "\uf093"
+        text: Icons.upload
         tooltipText: "Upload custom image"
         visible: root.hasWaifu
         onClicked: root.uploadCustomImage()

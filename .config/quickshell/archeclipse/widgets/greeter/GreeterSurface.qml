@@ -112,7 +112,7 @@ MouseArea {
                 id: authCard
                 width: parent.width
                 title: "Welcome"
-                iconText: "\uf007"
+                iconText: Icons.user
                 userNames: root.context.users
                 pickedUser: root.context.userName
                 onUserPicked: name => {

@@ -125,7 +125,7 @@ QtObject {
                     touchHistory(e.name);
                 }));
             } else {
-                entries.push(mkResult(name, "\uf120", "Run as shell command", () => {
+                entries.push(mkResult(name, Icons.terminal, "Run as shell command", () => {
                     Quickshell.execDetached(["foot", "bash", "-c", name]);
                     touchHistory(name);
                 }));
@@ -143,7 +143,7 @@ QtObject {
     }
 
     function quickAppsList() {
-        return [mkResult("Keybinds", "\uf11c", "View or edit your Hyprland keybinds", () => openLeftIslandTab("KeyBinds")), mkResult("Browser", "\ueaae", "Open your default web browser", () => Quickshell.execDetached(["xdg-open", "http://www.google.com"])), mkResult("Terminal", "\uf120", "Open a new terminal window", () => Quickshell.execDetached(["foot"])), mkResult("Files", "\uf15b", "Open your file manager", () => Quickshell.execDetached(["bash", "-c", `${Quickshell.env("HOME")}/.config/hypr/scripts/filemanager.sh || xdg-open .`])), mkResult("Calculator", "\uf1ec", "Open the calculator", () => Quickshell.execDetached(["foot", "bc"])), mkResult("Text Editor", "\uf01f", "Open your default text editor", () => Quickshell.execDetached(["code"])),];
+        return [mkResult("Keybinds", Icons.keyboard, "View or edit your Hyprland keybinds", () => openLeftIslandTab("KeyBinds")), mkResult("Browser", Icons.browser, "Open your default web browser", () => Quickshell.execDetached(["xdg-open", "http://www.google.com"])), mkResult("Terminal", Icons.terminal, "Open a new terminal window", () => Quickshell.execDetached(["foot"])), mkResult("Files", Icons.file, "Open your file manager", () => Quickshell.execDetached(["bash", "-c", `${Quickshell.env("HOME")}/.config/hypr/scripts/filemanager.sh || xdg-open .`])), mkResult("Calculator", Icons.calculator, "Open the calculator", () => Quickshell.execDetached(["foot", "bc"])), mkResult("Text Editor", Icons.textEditor, "Open your default text editor", () => Quickshell.execDetached(["code"])),];
     }
 
     // QuickApps ordered by quick-app-history (mirrors QuickApps.tsx sortQuickAppsByHistory)
@@ -405,8 +405,8 @@ QtObject {
     function termResults(cmd) {
         const c = (cmd || "").trim();
         if (!c)
-            return [mkResult("Usage: term <command>", "\u{F15BB}", "e.g. term cava", null)];
-        return [mkResult(`Run ${c} in terminal`, "\u{F15BB}", "Run as shell command", () => {
+            return [mkResult("Usage: term <command>", Icons.terminalAlt, "e.g. term cava", null)];
+        return [mkResult(`Run ${c} in terminal`, Icons.terminalAlt, "Run as shell command", () => {
             Quickshell.execDetached(["foot", "bash", "-c", c]);
             touchHistory(c);
         })];
@@ -414,7 +414,7 @@ QtObject {
 
     // ---- custom commands ----
     function customCommandsList() {
-        return [mkResult("Light Theme", "\u{F1042}", "Switch to light theme", () => Quickshell.execDetached(["coloreclipse", "switch", "light"])), mkResult("Dark Theme", "\u{F1046}", "Switch to dark theme", () => Quickshell.execDetached(["coloreclipse", "switch", "dark"])), mkResult("System Sleep", "\u{F1046}", "Suspend system", () => Quickshell.execDetached(["bash", "-c", `qs -p ${Quickshell.env("HOME")}/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend`])), mkResult("System Restart", "\u{F1781}", "Reboot system", () => Quickshell.execDetached(["reboot"])), mkResult("System Shutdown", "\u{F1741}", "Power off system", () => Quickshell.execDetached(["shutdown", "now"]))];
+        return [mkResult("Light Theme", Icons.themeLight, "Switch to light theme", () => Quickshell.execDetached(["coloreclipse", "switch", "light"])), mkResult("Dark Theme", Icons.themeDark, "Switch to dark theme", () => Quickshell.execDetached(["coloreclipse", "switch", "dark"])), mkResult("System Sleep", Icons.themeDark, "Suspend system", () => Quickshell.execDetached(["bash", "-c", `qs -p ${Quickshell.env("HOME")}/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend`])), mkResult("System Restart", Icons.restart, "Reboot system", () => Quickshell.execDetached(["reboot"])), mkResult("System Shutdown", Icons.shutdown, "Power off system", () => Quickshell.execDetached(["shutdown", "now"]))];
     }
 
     // ">" command palette (quickapps / recent / commands as results); bare ">" and
@@ -632,7 +632,7 @@ QtObject {
             const out = conv[f][t](v);
             const suffix = deg ? "°" : " ";
             const label = `${parseFloat(out.toFixed(4))}${suffix}${toRaw.trim()}`;
-            return [mkResult(label, "\u{F1433}", `Converted from ${v} ${m[2].trim()}`, () => copyToClipboard(label))];
+            return [mkResult(label, Icons.convert, `Converted from ${v} ${m[2].trim()}`, () => copyToClipboard(label))];
         }
         return null;
     }
@@ -645,7 +645,7 @@ QtObject {
             const val = Function(`"use strict"; return (${text})`)();
             if (typeof val !== "number" || isNaN(val))
                 return null;
-            return [mkResult(`${val}`, "\u{F118D}", "= " + text.trim(), () => copyToClipboard(`${val}`))];
+            return [mkResult(`${val}`, Icons.calculatorAlt, "= " + text.trim(), () => copyToClipboard(`${val}`))];
         } catch (e) {
             return null;
         }
@@ -656,7 +656,7 @@ QtObject {
         const t = text.trim();
         if (/^(https?:\/\/|www\.)\S+$/.test(t) || /^\S+\.com\b/.test(t)) {
             const url = t.startsWith("http") ? t : `https://${t}`;
-            return [mkResult(`Open ${url}`, "\u{F153A}", "Open in browser", () => Quickshell.execDetached(["xdg-open", url]))];
+            return [mkResult(`Open ${url}`, Icons.link, "Open in browser", () => Quickshell.execDetached(["xdg-open", url]))];
         }
         return null;
     }
@@ -710,39 +710,39 @@ QtObject {
         if (norm === "" || /^list$/i.test(norm)) {
             const visible = list.slice(0, maxItems);
             if (visible.length === 0)
-                return [mkResult("No notes yet", "\u{F19DB}", "Type: note buy milk", null)];
+                return [mkResult("No notes yet", Icons.note, "Type: note buy milk", null)];
             return visible.map(note => {
                 const content = String(note.content || "");
                 const preview = content.length > 80 ? content.slice(0, 79) + "…" : content;
                 const when = note.updatedAt ? new Date(note.updatedAt).toLocaleString() : "recent";
-                return mkResult(`${note.id}. ${preview}`, "\u{F19DB}", `Updated ${when} · click to copy`, () => copyToClipboard(content));
+                return mkResult(`${note.id}. ${preview}`, Icons.note, `Updated ${when} · click to copy`, () => copyToClipboard(content));
             });
         }
         const updateMatch = norm.match(/^(?:edit|set|update|modify)\s+(\d+)(?:\s+([\s\S]+))?$/i);
         if (updateMatch) {
             const idx = Number(updateMatch[1]) - 1;
             if (idx < 0 || idx >= list.length)
-                return [mkResult("Note not found", "\u{F19DB}", "", null)];
+                return [mkResult("Note not found", Icons.note, "", null)];
             const next = JSON.parse(JSON.stringify(list));
             next[idx].content = (updateMatch[2] || "").trim();
             next[idx].updatedAt = Date.now();
             persistNotes(next);
-            return [mkResult("Note updated", "\u{F19DB}", next[idx].content, null)];
+            return [mkResult("Note updated", Icons.note, next[idx].content, null)];
         }
         const removeMatch = norm.match(/^(?:del|rm|remove|delete)\s+(\d+)$/i);
         if (removeMatch) {
             const idx = Number(removeMatch[1]) - 1;
             if (idx < 0 || idx >= list.length)
-                return [mkResult("Note not found", "\u{F19DB}", "", null)];
+                return [mkResult("Note not found", Icons.note, "", null)];
             const next = JSON.parse(JSON.stringify(list));
             next.splice(idx, 1);
             persistNotes(next);
-            return [mkResult("Note removed", "\u{F19DB}", "", null)];
+            return [mkResult("Note removed", Icons.note, "", null)];
         }
         const addMatch = norm.match(/^(?:add|new)\s+([\s\S]+)$/i);
         const content = addMatch ? addMatch[1].trim() : norm;
         if (!content)
-            return [mkResult("No notes yet", "\u{F19DB}", "Type: note buy milk", null)];
+            return [mkResult("No notes yet", Icons.note, "Type: note buy milk", null)];
         const next = JSON.parse(JSON.stringify(list));
         next.push({
             id: next.length + 1,
@@ -751,7 +751,7 @@ QtObject {
             updatedAt: Date.now()
         });
         persistNotes(next);
-        return [mkResult("Note saved", "\u{F19DB}", content, null)];
+        return [mkResult("Note saved", Icons.note, content, null)];
     }
 
     // Clipboard history is owned live by ClipboardService; the JSON is persistence
@@ -765,13 +765,13 @@ QtObject {
             if (content.toLowerCase().includes(q)) {
                 const stroke = content.replace(/\s+/g, " ").slice(0, 128) + (content.length > 128 ? "…" : "");
                 const type = entry.type || (entry.mimeType || "text");
-                out.push(mkResult(stroke, "\u{F156C}", `${type} · click to copy`, () => copyToClipboard(content)));
+                out.push(mkResult(stroke, Icons.clipboard, `${type} · click to copy`, () => copyToClipboard(content)));
                 if (out.length >= maxItems)
                     break;
             }
         }
         if (out.length === 0)
-            out = [mkResult("No clipboard match", "\u{F156C}", `Nothing matching "${query}" in history`, null)];
+            out = [mkResult("No clipboard match", Icons.clipboard, `Nothing matching "${query}" in history`, null)];
         return out;
     }
 
@@ -790,9 +790,9 @@ QtObject {
                 if (trProc.mode === "translate") {
                     const out = text.trim();
                     if (out === "")
-                        root.results = [root.mkResult("Translation failed", "\u{F10CC}", "trans returned no output · check network", null)];
+                        root.results = [root.mkResult("Translation failed", Icons.translate, "trans returned no output · check network", null)];
                     else
-                        root.results = [root.mkResult(out, "\u{F10CC}", "Translation · click to copy", () => root.copyToClipboard(out))];
+                        root.results = [root.mkResult(out, Icons.translate, "Translation · click to copy", () => root.copyToClipboard(out))];
                 }
             }
         }
@@ -865,7 +865,7 @@ QtObject {
             if (trProc.running)
                 trProc.running = false;
             trProc.running = true;
-            results = [mkResult("Translating…", "\u{F10CC}", "", null)];
+            results = [mkResult("Translating…", Icons.translate, "", null)];
             return;
         }
 
@@ -892,7 +892,7 @@ QtObject {
         const rest = parts.slice(1);
         let r = appResults(head, rest);
         if (r.length === 0 && rest.length === 0) {
-            r = [mkResult(`Try ${t} in terminal`, "\u{F15BB}", "Run as shell command", () => {
+            r = [mkResult(`Try ${t} in terminal`, Icons.terminalAlt, "Run as shell command", () => {
                 Quickshell.execDetached(["foot", "bash", "-c", t]);
                 touchHistory(t);
             })];

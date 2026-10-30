@@ -61,7 +61,7 @@ Rectangle {
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: root.level > 0.75 ? "\udb80\udce0" : root.level > 0.5 ? "\udb80\udcdf" : "\udb80\udcde"
+            text: root.level > 0.75 ? Icons.brightnessHigh : root.level > 0.5 ? Icons.brightnessMedium : Icons.brightnessLow
             color: Theme.fg
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize + 1

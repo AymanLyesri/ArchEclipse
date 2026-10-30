@@ -108,12 +108,12 @@ Column {
                     })).concat([
                 {
                     value: "Bookmarks",
-                    label: "\u{F02E}",
+                    label: Icons.bookmark,
                     tooltip: "Bookmarks"
                 },
                 {
                     value: "Pins",
-                    label: "\u{F435}",
+                    label: Icons.pinAlt,
                     tooltip: "Pins"
                 }
             ]) : []
@@ -132,7 +132,7 @@ Column {
         height: 28
 
         AppButton {
-            text: "\u{F053}" // chevron left (prev)
+            text: Icons.chevronLeft // chevron left (prev)
             tooltipText: "Previous page"
             width: 32
             height: 28
@@ -145,7 +145,7 @@ Column {
         }
 
         AppButton {
-            text: viewer.bottomRevealed ? "\uf107" : "\uf106" // down/up chevron
+            text: viewer.bottomRevealed ? Icons.chevronDown : Icons.chevronUp // down/up chevron
             width: Math.max(0, parent.width - 32 - 32 - parent.spacing * 2)
             height: 28
             tooltipText: viewer.bottomRevealed ? "Hide settings" : "Show settings"
@@ -153,7 +153,7 @@ Column {
         }
 
         AppButton {
-            text: "\u{F054}" // chevron right (next)
+            text: Icons.chevronRight // chevron right (next)
             tooltipText: "Next page"
             width: 32
             height: 28

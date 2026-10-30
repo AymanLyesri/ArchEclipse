@@ -87,7 +87,7 @@ Item {
             }
 
             AppButton {
-                icon: ""
+                icon: Icons.trashOutline
                 pixelSize: Theme.fontSize - 2
                 cornerRadius: 4
                 tooltipText: "Clear all"

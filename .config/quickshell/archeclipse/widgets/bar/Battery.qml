@@ -145,8 +145,8 @@ Rectangle {
                 const p = root.pct;
                 const charging = UPower.displayDevice?.state === UPowerDeviceState.Charging;
                 if (charging)
-                    return "\uf0e7";
-                return p > 0.9 ? "\uf240" : p > 0.7 ? "\uf241" : p > 0.5 ? "\uf242" : p > 0.25 ? "\uf243" : "\uf244";
+                    return Icons.batteryCharging;
+                return p > 0.9 ? Icons.batteryFull : p > 0.7 ? Icons.batteryHigh : p > 0.5 ? Icons.batteryMedium : p > 0.25 ? Icons.batteryLow : Icons.batteryEmpty;
             }
             color: root.pct < 0.15 ? Theme.danger : Theme.fg
             font.family: Theme.fontFamily

@@ -155,7 +155,7 @@ Item {
                     }
 
                     ModeButton {
-                        glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+                        glyph: Icons.expand   // nf-fa-expand — fullscreen record
                         // park while the expansion re-represents the modes as rows; return at the
                         // flip, not the end of the unwind — late reads as clipping then popping
                         visible: !root.expanded
@@ -163,7 +163,7 @@ Item {
                         onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
                     }
                     ModeButton {
-                        glyph: "\u{F125}"   // nf-fa-crop — area record
+                        glyph: Icons.crop   // nf-fa-crop — area record
                         visible: !root.expanded
                         tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
                         onClicked: ScreenRecorder.toggleRecording("area", root.monitorName)
@@ -199,21 +199,21 @@ Item {
 
                 IslandActionRow {
                     visible: !root.recording && !root.starting
-                    glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
+                    glyph: Icons.expand   // nf-fa-expand — fullscreen record
                     label: "Fullscreen"
                     tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
                     onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)
                 }
                 IslandActionRow {
                     visible: !root.recording && !root.starting
-                    glyph: "\u{F125}"   // nf-fa-crop — area record
+                    glyph: Icons.crop   // nf-fa-crop — area record
                     label: "Area"
                     tooltipText: "Record area · <b>SUPER+CTRL+SHIFT+R</b>"
                     onActivated: ScreenRecorder.toggleRecording("area", root.monitorName)
                 }
                 IslandActionRow {
                     visible: root.recording
-                    glyph: "\u{F04D}"   // nf-fa-stop — stop record
+                    glyph: Icons.stop   // nf-fa-stop — stop record
                     label: "Stop"
                     tooltipText: "Stop recording"
                     onActivated: ScreenRecorder.toggleRecording("now", root.monitorName)

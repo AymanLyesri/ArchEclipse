@@ -136,7 +136,7 @@ function clonify(img, currentApiObj) {
     }
 }
 
-function buildPageButtons(widgetWidth, page) {
+function buildPageButtons(widgetWidth, page, currentIcon) {
     var buttons = []
     var totalPagesToShow = Math.floor(widgetWidth / 100) + 2
     var current = page
@@ -148,7 +148,7 @@ function buildPageButtons(widgetWidth, page) {
     var endPage = startPage + totalPagesToShow - 1
     if (endPage - startPage + 1 < totalPagesToShow) endPage = startPage + totalPagesToShow - 1
     for (var p = startPage; p <= endPage; p++) {
-        buttons.push({ label: p === current ? "\u{F021}" : String(p), page: p, active: p === current })
+        buttons.push({ label: p === current ? currentIcon : String(p), page: p, active: p === current })
     }
     return buttons
 }

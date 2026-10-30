@@ -155,7 +155,7 @@ MouseArea {
                 id: authCard
                 width: parent.width
                 title: "Locked"
-                iconText: "\uf023"
+                iconText: Icons.lock
                 promptText: "Enter password"
                 errorText: "Incorrect password \u2014 try again"
                 currentText: root.context.currentText

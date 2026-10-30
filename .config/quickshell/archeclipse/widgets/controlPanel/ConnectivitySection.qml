@@ -171,7 +171,7 @@ Item {
                 spacing: Theme.spacing
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "󰖩"
+                    text: Icons.wifiOn
                     color: Theme.fg
                     font.family: "JetBrainsMono NFP"
                     font.pixelSize: Theme.fs(1.5)
@@ -196,7 +196,7 @@ Item {
             Text {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.sectionOpen ? "\uf106" : "\uf107"
+                text: root.sectionOpen ? Icons.chevronUp : Icons.chevronDown
                 color: Theme.muted
                 font.family: "JetBrainsMono NFP"
                 font.pixelSize: Theme.fontSizeLarge
@@ -276,7 +276,7 @@ Item {
                                 anchors.rightMargin: 6
                                 spacing: Theme.spacing
                                 Text {
-                                    text: apRow.linked ? "󰖩" : "󰖨"
+                                    text: apRow.linked ? Icons.wifiOn : Icons.wifiOff
                                     color: apRow.linked ? Theme.accent : Theme.muted
                                     font.family: "JetBrainsMono NFP"
                                     font.pixelSize: Theme.fs(1.08)
@@ -377,7 +377,7 @@ Item {
                                 anchors.rightMargin: 6
                                 spacing: Theme.spacing
                                 Text {
-                                    text: "󰂯"
+                                    text: Icons.bluetooth
                                     color: Theme.muted
                                     font.family: "JetBrainsMono NFP"
                                     font.pixelSize: Theme.fs(1.08)

@@ -33,7 +33,7 @@ Item {
                 visible: minAvatarImg.status !== Image.Ready
                 Text {
                     anchors.centerIn: parent
-                    text: "\u{F007}"
+                    text: Icons.user
                     font.pixelSize: Theme.fs(4.67)
                     color: Theme.accent
                 }

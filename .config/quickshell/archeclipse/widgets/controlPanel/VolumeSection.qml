@@ -205,7 +205,7 @@ Item {
             Text {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.sectionOpen ? "\uf106" : "\uf107"
+                text: root.sectionOpen ? Icons.chevronUp : Icons.chevronDown
                 color: Theme.muted
                 font.family: "JetBrainsMono NFP"
                 font.pixelSize: Theme.fontSizeLarge
@@ -333,7 +333,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: modelData.audio?.muted ? "\uf026" : "\uf028"
+                                icon: modelData.audio?.muted ? Icons.volumeMuted : Icons.volumeHigh
                                 pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
@@ -348,7 +348,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: "\uf00d"
+                                icon: Icons.close
                                 pixelSize: Theme.fontSizeSmall
                                 tooltipText: "Terminate stream"
                                 onClicked: root.terminateStream(modelData)
@@ -473,7 +473,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: modelData.audio?.muted ? "\uf131" : "\uf130"
+                                icon: modelData.audio?.muted ? Icons.micOff : Icons.micOn
                                 pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
@@ -488,7 +488,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: "\uf00d"
+                                icon: Icons.close
                                 pixelSize: Theme.fontSizeSmall
                                 tooltipText: "Terminate stream"
                                 onClicked: root.terminateStream(modelData)
@@ -574,7 +574,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: "\uf005"
+                                icon: Icons.star
                                 pixelSize: Theme.fontSizeSmall
                                 toggle: true
                                 checked: isDefault
@@ -605,7 +605,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: modelData.audio?.muted ? "\uf026" : "\uf028"
+                                icon: modelData.audio?.muted ? Icons.volumeMuted : Icons.volumeHigh
                                 pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
@@ -673,7 +673,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: "\uf005"
+                                icon: Icons.star
                                 pixelSize: Theme.fontSizeSmall
                                 toggle: true
                                 checked: isDefault
@@ -704,7 +704,7 @@ Item {
                                 height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
-                                icon: modelData.audio?.muted ? "\uf131" : "\uf130"
+                                icon: modelData.audio?.muted ? Icons.micOff : Icons.micOn
                                 pixelSize: Theme.fontSize
                                 toggle: true
                                 checked: modelData.audio?.muted ?? false
@@ -746,7 +746,7 @@ Item {
                 height: 28
                 cornerRadius: Theme.radius
                 idleBg: Theme.surface
-                icon: "\ueb14"
+                icon: Icons.pavucontrol
                 text: "pavucontrol"
                 pixelSize: Theme.fontSize - 2
                 tooltipText: "Open pavucontrol"

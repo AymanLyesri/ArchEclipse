@@ -207,17 +207,17 @@ QtObject {
 
     // icon mapping — mirrors weatherIcon() in Weather.tsx
     function icon(code) {
-        if (code == null) return "\u{F0599}";
-        if (code === 0) return "\u{F0599}";
-        if (code <= 2) return "\u{F0595}";
-        if (code === 3) return "\u{F0594}";
-        if (code >= 45 && code <= 48) return "\u{F05B1}";
-        if (code >= 56 && code <= 57) return "\u{F0595}"; // hail
-        if (code >= 65 && code <= 67) return "\u{F0596}"; // pouring
-        if ((code >= 51 && code <= 64) || (code >= 80 && code <= 82)) return "\u{F0597}";
-        if (code >= 71 && code <= 86) return "\u{F059A}";
-        if (code >= 95) return "\u{F05EB}";
-        return "\u{F0599}";
+        if (code == null) return Icons.weatherClear;
+        if (code === 0) return Icons.weatherClear;
+        if (code <= 2) return Icons.weatherPartly;
+        if (code === 3) return Icons.weatherCloudy;
+        if (code >= 45 && code <= 48) return Icons.weatherFog;
+        if (code >= 56 && code <= 57) return Icons.weatherPartly; // hail
+        if (code >= 65 && code <= 67) return Icons.weatherPouring; // pouring
+        if ((code >= 51 && code <= 64) || (code >= 80 && code <= 82)) return Icons.weatherRain;
+        if (code >= 71 && code <= 86) return Icons.weatherSnow;
+        if (code >= 95) return Icons.weatherStorm;
+        return Icons.weatherClear;
     }
 
     // Wind direction (16-point compass)

@@ -16,13 +16,13 @@ Column {
     property bool busy: false
     // False in the greeter (no Hyprland session under cage to log out of).
     property bool logoutVisible: true
-    property string logoutIcon: "\uf08b"
+    property string logoutIcon: Icons.logout
     property string logoutTooltip: "Logout from Hyprland"
-    property string poweroffIcon: "\uf011"
+    property string poweroffIcon: Icons.power
     property string poweroffTooltip: "Shutdown now · <b>SUPER+CTRL+SHIFT+ESCAPE</b>"
-    property string suspendIcon: "\uf186"
+    property string suspendIcon: Icons.moon
     property string suspendTooltip: "Put system to sleep · <b>SUPER+CTRL+ESCAPE</b>"
-    property string rebootIcon: "\uf021"
+    property string rebootIcon: Icons.reboot
     property string rebootTooltip: "Reboot immediately"
     // Optional user picker (greeter only; empty list = hidden, lock unaffected).
     property var userNames: []

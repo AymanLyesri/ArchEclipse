@@ -34,7 +34,7 @@ ClippingRectangle {
     property bool _ratioWarned: false
     readonly property real videoRatio: (videoSize.width > 0 && videoSize.height > 0) ? videoSize.width / videoSize.height : 0
     // Unified badge overlay (top-right). Same contract as AppImage.badges:
-    // callers feed icon strings, e.g. badges: [bookmarked ? "\uf02e" : ""]
+    // callers feed Icons.* glyphs, e.g. badges: [bookmarked ? Icons.bookmark : ""]
     property var badges: []
 
     signal errorOccurred(string message)

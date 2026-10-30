@@ -532,7 +532,7 @@ Item {
             spacing: Theme.spacing
             AppButton {
                 Layout.fillWidth: true
-                text: root.bottomRevealed ? "\uf107" : "\uf106" // down/up chevron
+                text: root.bottomRevealed ? Icons.chevronDown : Icons.chevronUp // down/up chevron
                 tooltipText: root.bottomRevealed ? "Hide settings" : "Show settings"
                 onClicked: root.bottomRevealed = !root.bottomRevealed
             }
@@ -562,13 +562,13 @@ Item {
                 spacing: Theme.spacing
                 AppButton {
                     Layout.fillWidth: true
-                    text: "\u{f002} Search"
+                    text: Icons.search + " Search"
                     tooltipText: "Search manga"
                     onClicked: root.searchManga(root.searchQuery)
                 }
                 AppButton {
                     Layout.fillWidth: true
-                    text: "\u{f06d} Popular"
+                    text: Icons.popular + " Popular"
                     tooltipText: "Browse popular manga"
                     onClicked: root.fetchPopular()
                 }
@@ -636,7 +636,7 @@ Item {
                 }
             }
             AppButton {
-                text: "\u{f0c5} Copy"
+                text: Icons.copy + " Copy"
                 tooltipText: "Copy the image URL"
                 onClicked: {
                     const url = root.getUrl();

@@ -36,9 +36,9 @@ Item {
     // Standalone direct-transfer addresses (legacy): plain wallet transfers with no provider
     // callback, so they can NEVER be verified and do not activate supporter status.
     property var standaloneCryptos: [
-        { name: "Bitcoin", icon: "\uf15a", address: "1JisW9xeatCFadtgsenjbpCcFePZGPyXow", color: "#F7931A" },
-        { name: "Ethereum", icon: "\ued58", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#627EEA" },
-        { name: "BSC (BEP20)", icon: "\ued58", description: "BNB Smart Chain", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#F3BA2F" }
+        { name: "Bitcoin", icon: Icons.bitcoin, address: "1JisW9xeatCFadtgsenjbpCcFePZGPyXow", color: "#F7931A" },
+        { name: "Ethereum", icon: Icons.ethereum, address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#627EEA" },
+        { name: "BSC (BEP20)", icon: Icons.ethereum, description: "BNB Smart Chain", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#F3BA2F" }
     ]
 
     property string linkCode: ""
@@ -608,7 +608,7 @@ Item {
                 AppButton {
                     width: parent.width
                     height: 46
-                    icon: "\uf0f4"
+                    icon: Icons.coffee
                     text: "Support with Ko-fi — $" + root.selectedAmount
                     pixelSize: Theme.fontSize
                     outlined: true
@@ -646,7 +646,7 @@ Item {
                 AppButton {
                     width: parent.width
                     height: 46
-                    icon: ""
+                    icon: Icons.bitcoin
                     text: root.busy ? "Creating checkout…" : "Pay with Crypto — $" + root.selectedAmount
                     pixelSize: Theme.fontSize
                     outlined: true
@@ -730,7 +730,7 @@ Item {
                             AppButton {
                                 width: parent.width
                                 height: 32
-                                icon: ""
+                                icon: Icons.donate
                                 text: "QR"
                                 pixelSize: Theme.fontSize - 2
                                 outlined: true

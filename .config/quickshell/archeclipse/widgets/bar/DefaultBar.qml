@@ -189,7 +189,7 @@ Column {
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: ""
+                            text: Icons.arrowUp
                             color: Theme.muted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 2
@@ -203,7 +203,7 @@ Column {
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: ""
+                            text: Icons.arrowDown
                             color: Theme.muted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSize - 2
@@ -219,7 +219,7 @@ Column {
                     implicitWidth: 32
                     width: implicitWidth
                     height: Theme.barContentHeight
-                    icon: "\uf303"
+                    icon: Icons.arch
                     pixelSize: Theme.fontSize + 1
                     // The row is hidden while the panel is open, so this highlight only shows
                     // for a frame at close; kept so the toggle reflects the state.
@@ -304,7 +304,7 @@ Column {
                     implicitWidth: 32
                     width: implicitWidth
                     height: Theme.barContentHeight
-                    icon: "\uf002"
+                    icon: Icons.search
                     pixelSize: Theme.fontSize + 3
                     idleFg: Theme.accent
                     hoverFg: Theme.accent

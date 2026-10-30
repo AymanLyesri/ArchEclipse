@@ -80,7 +80,7 @@ Item {
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: root.hasData ? "\u{F034E} " + (root.wx.city || "Auto (IP)") : ""
+                                text: root.hasData ? Icons.location + " " + (root.wx.city || "Auto (IP)") : ""
                                 font.pixelSize: Theme.fontSize
                                 font.bold: true
                                 color: Theme.accentFg
@@ -124,7 +124,7 @@ Item {
                                 Column {
                                     spacing: 2
                                     Text {
-                                        text: "\u{E34C}"
+                                        text: Icons.sunrise
                                         font.family: Theme.fontFamily
                                         color: Theme.accentFg
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -137,7 +137,7 @@ Item {
                                     }
                                 }
                                 Text {
-                                    text: "\u{F522}"
+                                    text: Icons.daytime
                                     color: Theme.onPlateInk
                                     font.pixelSize: Theme.fontSize
                                     font.family: Theme.fontFamily
@@ -145,7 +145,7 @@ Item {
                                 Column {
                                     spacing: 2
                                     Text {
-                                        text: "\u{E34D}"
+                                        text: Icons.sunset
                                         font.family: Theme.fontFamily
                                         color: Theme.accentFg
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -171,7 +171,7 @@ Item {
                                         anchors.centerIn: parent
                                         spacing: 1
                                         Text {
-                                            text: "\u{E373}"
+                                            text: Icons.humidity
                                             font.family: Theme.fontFamily
                                             color: Theme.accentFg
                                             font.pixelSize: Theme.fontSize - 3
@@ -194,7 +194,7 @@ Item {
                                         anchors.centerIn: parent
                                         spacing: 1
                                         Text {
-                                            text: "\u{E371}"
+                                            text: Icons.precipitation
                                             font.family: Theme.fontFamily
                                             color: Theme.accentFg
                                             font.pixelSize: Theme.fontSize - 3
@@ -220,7 +220,7 @@ Item {
                                     anchors.centerIn: parent
                                     spacing: 1
                                     Text {
-                                        text: "\u{EF16}"
+                                        text: Icons.wind
                                         font.family: Theme.fontFamily
                                         color: Theme.accentFg
                                         font.pixelSize: Theme.fontSize - 3
@@ -257,7 +257,7 @@ Item {
                         AppButton {
                             width: 32
                             height: 30
-                            icon: "\u{F00C}"
+                            icon: Icons.check
                             pixelSize: Theme.fontSizeLarge
                             cornerRadius: Theme.radius
                             idleBg: Theme.scrimSoft
@@ -271,7 +271,7 @@ Item {
                         AppButton {
                             width: 32
                             height: 30
-                            icon: "\u{F0453}"
+                            icon: Icons.thermometer
                             pixelSize: Theme.fontSizeLarge
                             cornerRadius: Theme.radius
                             idleBg: Theme.scrimSoft

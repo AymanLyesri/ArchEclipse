@@ -21,8 +21,8 @@ ClippingRectangle {
     property bool animated: false
     readonly property bool __isGif: /\.gif(\?.*)?$/i.test(String(root.source))
     readonly property bool __useAnimated: root.animated && root.__isGif
-    // Unified badge overlay (top-right). Callers feed icon strings, e.g.
-    // badges: [video ? "\uf03d" : "", bookmarked ? "\uf02e" : ""].filter(x => x !== "")
+    // Unified badge overlay (top-right). Callers feed Icons.* glyphs, e.g.
+    // badges: [video ? Icons.video : "", bookmarked ? Icons.bookmark : ""].filter(x => x !== "")
     property var badges: []
 
     radius: Theme.radius

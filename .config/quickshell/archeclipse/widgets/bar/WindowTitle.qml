@@ -45,7 +45,7 @@ Rectangle {
         const cls = root.winClass.trim();
         return cls !== "" ? cls : "Desktop";
     }
-    readonly property string winIcon: root.winClass !== "" ? WorkspaceIcons.forClientClass(root.winClass) : ""
+    readonly property string winIcon: root.winClass !== "" ? WorkspaceIcons.forClientClass(root.winClass) : Icons.windowIcon
     // Elide bound from the bar (layout cap minus pill chrome). Upstream-only on purpose —
     // deriving it from the Row width collapses to a 0-width fixed point.
     property real textMaxWidth: 190

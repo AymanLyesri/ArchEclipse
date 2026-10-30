@@ -17,7 +17,7 @@ CheckBox {
 
         Text {
             anchors.centerIn: parent
-            text: "\u{F012C}" // or checkmark Nerd Font
+            text: Icons.checkMarked // or checkmark Nerd Font
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
             color: Theme.pickOn(Theme.accent, Theme.accentFg, Theme.bg)

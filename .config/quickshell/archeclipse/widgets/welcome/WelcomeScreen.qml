@@ -642,7 +642,7 @@ Scope {
                             color: Theme.fgDim
                         }
                         AppButton {
-                            icon: ""
+                            icon: Icons.close
                             implicitWidth: 34
                             cornerRadius: Theme.chipRadius
                             tooltipText: "Close · <b>SUPER+F1</b>"
@@ -934,22 +934,22 @@ Scope {
                                 text: "Good to know"
                             }
                             TipRow {
-                                glyph: ""
+                                glyph: Icons.mousePointer
                                 title: "Hover and click the bar"
                                 text: "Weather, network, volume, brightness and system resources unfold as small islands. Move to the screen edge to reveal an auto-hidden bar."
                             }
                             TipRow {
-                                glyph: ""
+                                glyph: Icons.settings
                                 title: "Quick settings"
                                 text: "The control panel has theme, Do Not Disturb, Game Mode, Blue Light Filter, brightness and the power profile."
                             }
                             TipRow {
-                                glyph: ""
+                                glyph: Icons.bars
                                 title: "System tray"
                                 text: "Drag tray icons to reorder them, or onto the “...” button to move them into the overflow menu."
                             }
                             TipRow {
-                                glyph: ""
+                                glyph: Icons.cogs
                                 title: "All options in one place"
                                 text: "Open the left panel (SUPER + L) and pick the Settings tab to tune the bar, panels and widgets."
                             }

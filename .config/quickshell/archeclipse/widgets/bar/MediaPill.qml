@@ -148,7 +148,7 @@ Rectangle {
             Text {
                 visible: !playerIcon.visible
                 anchors.centerIn: parent
-                text: "󰎈"
+                text: Icons.musicNote
                 color: Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSize
@@ -158,7 +158,7 @@ Rectangle {
         // play/pause state glyph
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: root.isPlaying ? "" : ""
+            text: root.isPlaying ? Icons.pause : Icons.play
             color: root.isPlaying ? Theme.accent : Theme.muted
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize - 2

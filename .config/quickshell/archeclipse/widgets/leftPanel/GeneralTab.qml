@@ -208,17 +208,17 @@ Item {
                     Repeater {
                         model: [
                             {
-                                icon: "\uf09b",
+                                icon: Icons.github,
                                 url: "https://github.com/" + root.repoSlug,
                                 tip: "GitHub Repository"
                             },
                             {
-                                icon: "\uf188",
+                                icon: Icons.bug,
                                 url: "https://github.com/" + root.repoSlug + "/issues",
                                 tip: "Issues Tracker"
                             },
                             {
-                                icon: "\uf1ff",
+                                icon: Icons.discord,
                                 url: "https://discord.gg/fMGt4vH6s5",
                                 tip: "Discord Community"
                             }
@@ -247,9 +247,9 @@ Item {
                     width: parent.width
                     Repeater {
                         model: [
-                            { icon: "\uf005", label: "Stars", count: root.starsCount },
-                            { icon: "\uf126", label: "Forks", count: root.forksCount },
-                            { icon: "\uf06a", label: "Issues", count: root.issuesCount }
+                            { icon: Icons.star, label: "Stars", count: root.starsCount },
+                            { icon: Icons.codeFork, label: "Forks", count: root.forksCount },
+                            { icon: Icons.issue, label: "Issues", count: root.issuesCount }
                         ]
                         delegate: Column {
                             width: statsRow.width / 3
@@ -297,7 +297,7 @@ Item {
                     Row {
                         spacing: 6
                         Text {
-                            text: "\uf0c0"
+                            text: Icons.users
                             font.pixelSize: Theme.fontSize
                             color: Theme.accent
                         }
@@ -375,7 +375,7 @@ Item {
                     Row {
                         spacing: 6
                         Text {
-                            text: "\uf201"
+                            text: Icons.chart
                             font.pixelSize: Theme.fontSize
                             color: Theme.accent
                         }
@@ -406,7 +406,7 @@ Item {
                         visible: root.isCheckingVersion
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
-                        text: "\u{F2F0} Checking for updates..."
+                        text: Icons.spinner + " Checking for updates..."
                         font.pixelSize: Theme.fontSize
                         color: Theme.fgDim
                     }
@@ -432,7 +432,7 @@ Item {
                                     color: Theme.fgDim
                                 }
                                 Text {
-                                    text: "\u{F061}"
+                                    text: Icons.arrowRight
                                     font.pixelSize: Theme.fontSize
                                     color: Theme.accent
                                 }
@@ -455,7 +455,7 @@ Item {
                                 pressedBg: Theme.surfaceActive
                                 idleFg: Theme.bg
                                 hoverFg: Theme.bg
-                                icon: root.isUpdating ? "\u{F2F0}" : "\u{F019}"
+                                icon: root.isUpdating ? Icons.spinner : Icons.download
                                 text: root.isUpdating ? "Updating..." : "Update"
                                 pixelSize: Theme.fontSize
                                 enabled: !root.isUpdating
@@ -472,7 +472,7 @@ Item {
                             Text {
                                 width: parent.width
                                 horizontalAlignment: Text.AlignHCenter
-                                text: "\u{F00C} Up to date" + (root.updateStatus ? " - " + root.updateStatus : "")
+                                text: Icons.check + " Up to date" + (root.updateStatus ? " - " + root.updateStatus : "")
                                 font.pixelSize: Theme.fontSize
                                 color: Theme.success
                             }
@@ -483,7 +483,7 @@ Item {
                                 tooltipText: "Check for new versions"
                                 height: 28
                                 cornerRadius: 6
-                                icon: "\u{F2F1}"
+                                icon: Icons.sync
                                 text: "Check Update"
                                 pixelSize: Theme.fontSize - 1
                                 visible: !root.isUpdating

@@ -162,7 +162,7 @@ Item {
                     font.preferShaping: false
                 }
                 Text {
-                    text: "\u{F062}"
+                    text: Icons.arrowUp
                     color: Theme.accent
                     font.pixelSize: Theme.fontSizeCaption
                 }
@@ -178,7 +178,7 @@ Item {
                     font.preferShaping: false
                 }
                 Text {
-                    text: "\u{F063}"
+                    text: Icons.arrowDown
                     color: Theme.accent
                     font.pixelSize: Theme.fontSizeCaption
                 }

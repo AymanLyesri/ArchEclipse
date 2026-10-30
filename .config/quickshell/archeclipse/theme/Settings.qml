@@ -87,27 +87,27 @@ Singleton {
         return [
             {
                 name: "Waifu",
-                icon: "\uf004",
+                icon: Icons.heart,
                 enabled: true
             },
             {
                 name: "Media",
-                icon: "\uf04b",
+                icon: Icons.play,
                 enabled: true
             },
             {
                 name: "NotificationHistory",
-                icon: "\uf0f3",
+                icon: Icons.bell,
                 enabled: true
             },
             {
                 name: "Calendar",
-                icon: "\uf073",
+                icon: Icons.calendar,
                 enabled: true
             },
             {
                 name: "SystemResources",
-                icon: "\uf4bc",
+                icon: Icons.cpu,
                 enabled: true
             },
         ];

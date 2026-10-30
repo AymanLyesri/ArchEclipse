@@ -85,7 +85,7 @@ Column {
                 anchors.margins: Theme.pad
                 spacing: Theme.spacing
                 Text {
-                    text: " " + (root.stats?.cpuLabel || "CPU")
+                    text: Icons.cpu + " " + (root.stats?.cpuLabel || "CPU")
                     font.pixelSize: Theme.fontSize
                     font.bold: true
                     font.family: Theme.fontFamily
@@ -131,7 +131,7 @@ Column {
                 anchors.margins: Theme.pad
                 spacing: Theme.spacing
                 Text {
-                    text: " RAM"
+                    text: Icons.ram + " RAM"
                     font.pixelSize: Theme.fontSize
                     font.bold: true
                     font.family: Theme.fontFamily
@@ -181,7 +181,7 @@ Column {
                     anchors.margins: Theme.pad
                     spacing: Theme.spacing
                     Text {
-                        text: "󱤟 " + (gpuCard.modelData.label || "GPU")
+                        text: Icons.gpu + " " + (gpuCard.modelData.label || "GPU")
                         font.pixelSize: Theme.fontSize
                         font.bold: true
                         font.family: Theme.fontFamily

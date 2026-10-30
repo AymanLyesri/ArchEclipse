@@ -928,7 +928,7 @@ Item {
     // Page buttons: "1 ..." past page 3, then a ~(width/100+2) window; the current page
     // shows a refresh glyph, the rest their number.
     function buildPageButtons() {
-        return BooruUtils.buildPageButtons(root.widgetWidth, root.page);
+        return BooruUtils.buildPageButtons(root.widgetWidth, root.page, Icons.refresh);
     }
 
     // Local tabs (paginate local list with (page-1)*limit offset)

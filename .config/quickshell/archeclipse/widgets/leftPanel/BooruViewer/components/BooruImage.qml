@@ -55,15 +55,15 @@ Rectangle {
                 return [];
             const b = [];
             if (card.isVideo)
-                b.push("\uf03d");
+                b.push(Icons.video);
             if (viewer.isDownloaded && viewer.isDownloaded(image))
-                b.push("\uf019");
+                b.push(Icons.download);
             if (viewer.isBookmarked && viewer.isBookmarked(image))
-                b.push("\uf02e");
+                b.push(Icons.bookmark);
             if (viewer.isPinned && viewer.isPinned(image))
-                b.push("\uf08d");
+                b.push(Icons.pin);
             if (viewer.isCurrentWaifu && viewer.isCurrentWaifu(image))
-                b.push("\uf004");
+                b.push(Icons.heart);
             return b;
         }
     }

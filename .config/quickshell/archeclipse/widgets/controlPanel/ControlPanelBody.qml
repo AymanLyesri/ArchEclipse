@@ -21,10 +21,10 @@ Item {
     readonly property string brightnessIcon: {
         const bri = body.monitorBrightness;
         if (bri > 0.75)
-            return "\u{F00E0}";       // full (󰃠)
+            return Icons.brightnessHigh;       // full (󰃠)
         if (bri > 0.5)
-            return "\u{F00DF}";        // medium (󰃟)
-        return "\u{F00DE}";                        // low (󰃞)
+            return Icons.brightnessMedium;        // medium (󰃟)
+        return Icons.brightnessLow;                        // low (󰃞)
     }
 
     // DND ping: highlight the DND button ~600ms when a notification arrives while DND is active
@@ -148,7 +148,7 @@ Item {
                     width: parent.width
                     spacing: Theme.spacing
                     Text {
-                        text: "󰓅"
+                        text: Icons.speed
                         color: Theme.fg
                         font.family: "JetBrainsMono NFP"
                         font.pixelSize: Theme.fs(1.5)
@@ -216,7 +216,7 @@ Item {
                     height: 46
                     cornerRadius: Theme.radius
                     idleBg: Theme.surface
-                    icon: GlobalTheme.currentTheme ? "\uf185" : "\uf186"
+                    icon: GlobalTheme.currentTheme ? Icons.sun : Icons.moon
                     pixelSize: Theme.fontSize + 2
                     tooltipText: GlobalTheme.currentTheme ? "Switch to Light Theme" : "Switch to Dark Theme"
                     onClicked: GlobalTheme.setTheme(!GlobalTheme.currentTheme)
@@ -227,7 +227,7 @@ Item {
                     height: 46
                     cornerRadius: Theme.radius
                     idleBg: Theme.surface
-                    icon: Settings.notifDnd ? "\uf1f6" : "\uf0f3"
+                    icon: Settings.notifDnd ? Icons.bellOff : Icons.bell
                     pixelSize: Theme.fontSize + 2
                     toggle: true
                     checked: Settings.notifDnd || body.dndPing
@@ -241,7 +241,7 @@ Item {
                     height: 46
                     cornerRadius: Theme.radius
                     idleBg: Theme.surface
-                    icon: "\u{F11B}"
+                    icon: Icons.game
                     pixelSize: Theme.fontSize + 2
                     toggle: true
                     checked: Settings.gameModeEnabled
@@ -255,7 +255,7 @@ Item {
                     height: 46
                     cornerRadius: Theme.radius
                     idleBg: Theme.surface
-                    icon: "\uf0eb"
+                    icon: Icons.lightbulb
                     pixelSize: Theme.fontSize + 2
                     toggle: true
                     checked: Settings.blueLightEnabled

@@ -75,16 +75,16 @@ Rectangle {
         if (connected) {
             if (isWifi) {
                 if (signal > 75)
-                    return "\uF0E2";  // 󰗉
+                    return Icons.wifiStrong;
                 if (signal > 50)
-                    return "\uF067";  // 󰚧
+                    return Icons.wifiGood;
                 if (signal > 25)
-                    return "\uF068";  // 󰚨
-                return "\uF069";                    // 󰚩
+                    return Icons.wifiWeak;
+                return Icons.wifiPoor;
             }
-            return "\uF020";  // 󰈀 (ethernet)
+            return Icons.ethernet;
         }
-        return "\uF074";  // 󰑴 (disconnected)
+        return Icons.networkOff;
     }
 
     Row {

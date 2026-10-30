@@ -143,7 +143,7 @@ Item {
                 cornerRadius: 6
                 idleBg: Theme.surface
                 hoverFg: Theme.accent
-                icon: ""
+                icon: Icons.chevronLeft
                 pixelSize: Theme.fontSize
                 tooltipText: "Previous month"
                 onClicked: root.moveMonth(-1)
@@ -183,7 +183,7 @@ Item {
                 cornerRadius: 6
                 idleBg: Theme.surface
                 hoverFg: Theme.accent
-                icon: ""
+                icon: Icons.chevronRight
                 pixelSize: Theme.fontSize
                 tooltipText: "Next month"
                 onClicked: root.moveMonth(1)

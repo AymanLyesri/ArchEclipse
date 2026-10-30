@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell.Services.Pipewire
+import qs.theme
 
 // Shared default-sink tracking: used by the volume widget and by BarState's
 // volume-pulse watcher so only one PwObjectTracker exists.
@@ -23,11 +24,11 @@ QtObject {
     readonly property string volumeIcon: {
         const vol = controlSink?.audio?.volume ?? 0;
         if (vol <= 0)
-            return "\uf026"; // muted (󰑖)
+            return Icons.volumeMuted; // muted (󰑖)
         if (vol < 0.33)
-            return "\uf027"; // low (󰑘)
+            return Icons.volumeLow; // low (󰑘)
         if (vol < 0.66)
-            return "\uefcf"; // medium (󰑗)
-        return "\uf028"; // high (󰑙)
+            return Icons.volumeMedium; // medium (󰑗)
+        return Icons.volumeHigh; // high (󰑙)
     }
 }

@@ -1008,7 +1008,7 @@ Item {
                         opacity: Theme.opacity.soft
                         Text {
                             anchors.centerIn: parent
-                            text: "\uf023"
+                            text: Icons.lock
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSizeLarge
                             color: Theme.onMediaInk
@@ -1088,7 +1088,7 @@ Item {
                                     // permanently when no thumb exists).
                                     visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && wsTile.wsSource === ""
                                     anchors.centerIn: parent
-                                    text: ""
+                                    text: Icons.video
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fs(1.67)
                                     color: Theme.fgDim
@@ -1523,7 +1523,7 @@ Item {
                             spacing: Theme.spacing
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: ""
+                                text: Icons.video
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fs(2)
                                 color: Theme.fgDim
@@ -1596,7 +1596,7 @@ Item {
                                 opacity: Theme.opacity.soft
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "\uf0c5"
+                                    text: Icons.copy
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSizeBadge
                                     color: Theme.onMediaInk
@@ -1622,7 +1622,7 @@ Item {
                                 opacity: tile.deleteArmed ? 1.0 : 0.9
                                 Text {
                                     anchors.centerIn: parent
-                                    text: tile.deleteArmed ? "\uf00c" : "\uf1f8"
+                                    text: tile.deleteArmed ? Icons.check : Icons.trash
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSizeBadge
                                     color: Theme.onMediaInk

@@ -70,7 +70,7 @@ Item {
     readonly property bool dlgDownloading: dlg ? (!dialogRoot.dlgUnplayableZip && !dlgIsLocal && !dlgDownloaded) : false
     readonly property bool dlgVideoPlayable: dlg ? ((dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample) && dlgDownloaded && !dialogRoot.dlgUnplayableZip && !dlgIsGif) : false
     readonly property bool dlgVideoPlaceholder: dlg ? (!dlgDownloaded && (dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample)) : false
-    readonly property string dlgTypeIcon: dlgIsZip ? "" : (dlgIsVideo ? "" : "")
+    readonly property string dlgTypeIcon: dlgIsZip ? Icons.archive : (dlgIsVideo ? Icons.video : Icons.image)
     readonly property int dlgVisibleTagCount: showAllTags ? dlgTags.length : (isWaifuMode ? 0 : Math.min(dlgTags.length, 12))
     // Badges shared by the still preview and the video overlay (AppImage hides once a video
     // plays). Pinned waifu hosts show none — its chips sit on the image itself.
@@ -79,13 +79,13 @@ Item {
             return [];
         const b = [];
         if (dialogRoot.dlgDownloaded)
-            b.push("\uf019");
+            b.push(Icons.download);
         if (dialogRoot.dlgBookmarked)
-            b.push("\uf02e");
+            b.push(Icons.bookmark);
         if (dialogRoot.dlgPinned)
-            b.push("\uf08d");
+            b.push(Icons.pin);
         if (dialogRoot.dlgIsWaifu)
-            b.push("\uf004");
+            b.push(Icons.heart);
         return b;
     }
     // Presentation gate: dialogs live in often-hidden windows whose `visible` stays true, so
@@ -178,7 +178,7 @@ Item {
                 visible: dialogRoot.dlgVideoPlaceholder || dialogRoot.dlgIsZip
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: dialogRoot.dlgIsZip ? "" : ""
+                    text: dialogRoot.dlgIsZip ? Icons.archive : Icons.video
                     font.pixelSize: Theme.fs(2.67)
                     font.family: Theme.fontFamily
                     color: Theme.fgDim
@@ -227,7 +227,7 @@ Item {
                     spacing: Theme.spacing
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: ""
+                        text: Icons.download
                         color: Theme.onMediaInk
                         font.pixelSize: Theme.fontSizeSmall
                         font.family: Theme.fontFamily
@@ -406,7 +406,7 @@ Item {
                         }
 
                         AppButton {
-                            icon: ""
+                            icon: Icons.close
                             width: 26
                             height: 26
                             pixelSize: Theme.fontSizeSmall
@@ -484,7 +484,7 @@ Item {
                                 elide: Text.ElideRight
                             }
                             AppButton {
-                                icon: dialogRoot.showAllTags ? "\uf102" : "\uf103"
+                                icon: dialogRoot.showAllTags ? Icons.angleDoubleUp : Icons.angleDoubleDown
                                 width: 24
                                 height: 22
                                 pixelSize: Theme.fontSizeCaption
@@ -576,7 +576,7 @@ Item {
                         AppButton {
                             Layout.fillWidth: true
                             height: 30
-                            icon: dialogRoot.dlgBookmarked ? "" : ""
+                            icon: dialogRoot.dlgBookmarked ? Icons.bookmark : Icons.bookmarkOutline
                             text: dialogRoot.dlgBookmarked ? "Saved" : "Save"
                             toggle: true
                             checked: dialogRoot.dlgBookmarked
@@ -591,7 +591,7 @@ Item {
                         AppButton {
                             Layout.fillWidth: true
                             height: 30
-                            icon: "\uf08d"
+                            icon: Icons.pin
                             text: dialogRoot.dlgPinned ? "Pinned" : "Pin"
                             toggle: true
                             checked: dialogRoot.dlgPinned
@@ -613,7 +613,7 @@ Item {
                         width: parent.width
                         height: 30
                         visible: !(viewer && viewer.dialogPinned)
-                        icon: ""
+                        icon: Icons.heart
                         text: dialogRoot.dlgIsWaifu ? "Waifu ✓" : "Waifu"
                         toggle: true
                         checked: dialogRoot.dlgIsWaifu
@@ -630,7 +630,7 @@ Item {
                     AppButton {
                         width: parent.width
                         height: 30
-                        icon: ""
+                        icon: Icons.image
                         text: "Wallpaper"
                         outlined: true
                         pixelSize: Theme.fontSize - 2
@@ -647,7 +647,7 @@ Item {
                         AppButton {
                             Layout.fillWidth: true
                             height: 28
-                            icon: ""
+                            icon: Icons.externalLink
                             text: "Open"
                             outlined: true
                             pixelSize: Theme.fontSize - 2
@@ -660,7 +660,7 @@ Item {
                         AppButton {
                             Layout.fillWidth: true
                             height: 28
-                            icon: ""
+                            icon: Icons.copy
                             text: "Copy ID"
                             outlined: true
                             pixelSize: Theme.fontSize - 2

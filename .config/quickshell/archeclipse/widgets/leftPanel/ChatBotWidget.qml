@@ -1138,14 +1138,14 @@ Item {
                     anchors.margins: 6
                     spacing: Theme.spacing
                     AppButton {
-                        text: "1. Visit openrouter and Sign-up for FREE  \u{f08e}"
+                        text: "1. Visit openrouter and Sign-up for FREE  " + Icons.externalLink
                         tooltipText: "Open openrouter.ai in the browser"
                         width: parent.width
                         implicitHeight: 28
                         onClicked: Quickshell.execDetached(["xdg-open", "https://openrouter.ai/"])
                     }
                     AppButton {
-                        text: "2. Generate a FREE API key  \u{f08e}"
+                        text: "2. Generate a FREE API key  " + Icons.externalLink
                         tooltipText: "Open the OpenRouter API key page"
                         width: parent.width
                         implicitHeight: 28
@@ -1208,7 +1208,7 @@ Item {
                                 Label {
                                     id: roleLabel
                                     anchors.verticalCenter: messageHeader.verticalCenter
-                                    text: modelData.role === "user" ? "\u{F007} You" : "\u{E73B} Assistant"
+                                    text: modelData.role === "user" ? Icons.user + " You" : Icons.assistant + " Assistant"
                                     font.pixelSize: Theme.fontSize - 1
                                     font.bold: true
                                     color: Theme.accent
@@ -1229,7 +1229,7 @@ Item {
                                     AppButton {
                                         anchors.verticalCenter: actionsRow.verticalCenter
                                         visible: modelData.role === "user"
-                                        text: "\uf0e2"
+                                        text: Icons.undo
                                         pixelSize: Theme.fontSizeBadge
                                         tooltipText: "Revert to this message"
                                         onClicked: root.revertMessage(index)
@@ -1237,7 +1237,7 @@ Item {
                                     // Whole-message copy (raw markdown).
                                     AppButton {
                                         anchors.verticalCenter: actionsRow.verticalCenter
-                                        text: "\uf0c5"
+                                        text: Icons.copy
                                         pixelSize: Theme.fontSizeBadge
                                         tooltipText: "Copy whole message"
                                         onClicked: root.copyToClipboard(modelData.content)
@@ -1277,7 +1277,7 @@ Item {
                                         idleBg: Theme.bg
                                         idleFg: Theme.accent
                                         hoverFg: Theme.accent
-                                        text: "\uf0c5"
+                                        text: Icons.copy
                                         pixelSize: Theme.fontSizeBadge
                                         tooltipText: "Copy code"
                                         onClicked: root.copyToClipboard(modelData.content)
@@ -1335,7 +1335,7 @@ Item {
                         spacing: 3
 
                         Label {
-                            text: "\u{E73B} Assistant  \u25CF streaming..."
+                            text: Icons.assistant + " Assistant  ● streaming..."
                             font.pixelSize: Theme.fontSize - 1
                             font.bold: true
                             color: Theme.accent
@@ -1440,7 +1440,7 @@ Item {
                         }
 
                         Label {
-                            text: "\u{E73B} Assistant  Thinking" + ".".repeat(thinkingBubble.dots)
+                            text: Icons.assistant + " Assistant  Thinking" + ".".repeat(thinkingBubble.dots)
                             font.pixelSize: Theme.fontSize - 1
                             font.bold: true
                             color: Theme.fgDim
@@ -1644,7 +1644,7 @@ Item {
                     visible: root.progressStatus === "loading"
                     implicitWidth: 36
                     implicitHeight: 40
-                    text: "\uf04d"
+                    text: Icons.stop
                     tooltipText: "Stop generation"
                     onClicked: root.stopGeneration()
                 }

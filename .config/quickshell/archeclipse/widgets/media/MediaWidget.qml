@@ -348,7 +348,7 @@ Item {
                         visible: !appIconImg.visible
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        text: ""  // music-note icon
+                        text: Icons.music  // music-note icon
                         color: Theme.fgDim
                         font.pixelSize: Theme.fs(1.5)
                     }
@@ -435,7 +435,7 @@ Item {
                 AppButton {
                     tooltipText: "Previous track"
                     enabled: root.player?.canGoPrevious ?? false
-                    icon: "\uf060"
+                    icon: Icons.arrowLeft
                     pixelSize: Theme.fontSizeLarge
                     Layout.preferredWidth: 30
                     Layout.minimumWidth: 22
@@ -444,7 +444,7 @@ Item {
                 // play/pause
                 AppButton {
                     enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
-                    icon: root.playing ? "\uf04c" : "\uf04b"
+                    icon: root.playing ? Icons.pause : Icons.play
                     tooltipText: root.playing ? "Pause" : "Play"
                     pixelSize: Theme.fontSizeLarge
                     cornerRadius: Theme.radius
@@ -464,7 +464,7 @@ Item {
                 AppButton {
                     enabled: root.player?.canGoNext ?? false
                     tooltipText: "Next track"
-                    icon: "\uf061"
+                    icon: Icons.arrowRight
                     pixelSize: Theme.fontSizeLarge
                     Layout.preferredWidth: 30
                     Layout.minimumWidth: 22

@@ -22,7 +22,7 @@ Column {
     // Expand (+50 to max 1500)
     AppButton {
         width: parent.width
-        icon: "";
+        icon: Icons.plus;
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
         hoverBg: Theme.surface
@@ -36,7 +36,7 @@ Column {
     // Shrink (−50 to side min width)
     AppButton {
         width: parent.width
-        icon: "";
+        icon: Icons.minus;
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
         hoverBg: Theme.surface
@@ -50,7 +50,7 @@ Column {
     // Lock — pins the island open across hover-leave.
     AppButton {
         width: parent.width
-        icon: root.locked ? "" : "";
+        icon: root.locked ? Icons.lock : Icons.unlock;
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
         toggle: true
@@ -64,7 +64,7 @@ Column {
     // Close
     AppButton {
         width: parent.width
-        icon: "";
+        icon: Icons.close;
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
         hoverBg: Theme.surface

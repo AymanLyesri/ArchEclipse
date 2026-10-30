@@ -75,7 +75,7 @@ Column {
                 visible: !iconImg.visible && !parent.showMedia
                 width: parent.width
                 height: parent.height
-                text: root.isRecorder ? "\uf111" : (root.critical ? "\u{F0266}" : "\u{F059A}")
+                text: root.isRecorder ? Icons.record : (root.critical ? Icons.alert : Icons.notification)
                 color: root.isRecorder ? Theme.danger : (root.critical ? Theme.criticalFg : Theme.fg)
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fs(1.83)
@@ -227,7 +227,7 @@ Column {
         }
         spacing: Theme.spacing
         AppButton {
-            icon: ""
+            icon: Icons.eye
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface
@@ -237,7 +237,7 @@ Column {
             onClicked: root.openRequested(root.openFile)
         }
         AppButton {
-            icon: "󰃅"
+            icon: Icons.copy
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface
@@ -246,7 +246,7 @@ Column {
             onClicked: root.copyRequested()
         }
         AppButton {
-            icon: root.bodyExpanded ? "󰁾" : "󰁼"
+            icon: root.bodyExpanded ? Icons.chevronUp : Icons.chevronDown 
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface
@@ -256,7 +256,7 @@ Column {
             onClicked: root.bodyExpanded = !root.bodyExpanded
         }
         AppButton {
-            icon: "󰀍"
+            icon: Icons.close
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface

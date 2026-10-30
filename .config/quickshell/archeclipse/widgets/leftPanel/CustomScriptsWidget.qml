@@ -19,21 +19,21 @@ Item {
     property var scriptDefs: [
         {
             name: "Restart Bar",
-            icon: "󰜉",
+            icon: Icons.restartBar,
             description: "Restart the shell bar",
             keybind: ["SUPER", "B"],
             command: "lua $HOME/.config/hypr/config/scripts/bar.lua"
         },
         {
             name: "HyprPicker",
-            icon: "",
+            icon: Icons.colorPicker,
             description: "Color Picker for Hyprland",
             app: "hyprpicker",
             command: "hyprpicker"
         },
         {
             name: "Change Resolution",
-            icon: "󰍹",
+            icon: Icons.display,
             description: "Change Resolution",
             app: "nwg-displays",
             package: "nwg-displays",
@@ -41,13 +41,13 @@ Item {
         },
         {
             name: "Update Packages",
-            icon: "󰏗",
+            icon: Icons.packages,
             description: "Update Packages (pacman)",
             command: "foot sudo pacman -Syu"
         },
         {
             name: "Clear Clipboard",
-            icon: "󰃢",
+            icon: Icons.clearClipboard,
             description: "Clear clipboard history",
             app: "wl-copy",
             package: "wl-clipboard",
@@ -55,7 +55,7 @@ Item {
         },
         {
             name: "Screenshot Screen",
-            icon: "",
+            icon: Icons.screenshotScreen,
             description: "Screenshot entire screen",
             keybind: ["SUPER", "SHIFT", "S"],
             app: "grimblast",
@@ -64,7 +64,7 @@ Item {
         },
         {
             name: "Screenshot Area",
-            icon: "",
+            icon: Icons.screenshotScreen,
             description: "Select area to screenshot",
             keybind: ["SUPER", "CTRL", "SHIFT", "S"],
             app: "grimblast",
@@ -73,7 +73,7 @@ Item {
         },
         {
             name: "Record Screen",
-            icon: "",
+            icon: Icons.screenshotWindow,
             description: "Record entire screen",
             keybind: ["SUPER", "SHIFT", "R"],
             app: "gpu-screen-recorder",
@@ -81,7 +81,7 @@ Item {
         },
         {
             name: "Record Area",
-            icon: "",
+            icon: Icons.screenshotWindow,
             description: "Record selected area",
             keybind: ["SUPER", "CTRL", "SHIFT", "R"],
             app: "gpu-screen-recorder",
@@ -89,46 +89,46 @@ Item {
         },
         {
             name: "Refresh Hyprland",
-            icon: "󰑓",
+            icon: Icons.thermometer,
             description: "Refresh Hyprland (reload config)",
             command: "hyprctl reload"
         },
         {
             name: "System Monitor",
-            icon: "󰍛",
+            icon: Icons.btop,
             description: "Open system monitor",
             app: "btop",
             command: "foot btop"
         },
         {
             name: "Quickspeed",
-            icon: "󰓅",
+            icon: Icons.speed,
             description: "Bandwidth speed test via Cloudflare",
             command: "foot bash -c \"python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/quickspeed/refs/heads/master/quickspeed.py); echo; read -n 1 -s -r -p 'Press any key to close...'\""
         },
         {
             name: "Volume Control",
-            icon: "󰕾",
+            icon: Icons.cava,
             description: "Adjust volume",
             app: "pavucontrol",
             command: "pavucontrol"
         },
         {
             name: "File Manager",
-            icon: "󰉋",
+            icon: Icons.folder,
             description: "Open the configured file manager",
             kind: "file-manager"
         },
         {
             name: "Lazygit",
-            icon: "󰊢",
+            icon: Icons.lazygit,
             description: "Git Manager",
             app: "lazygit",
             command: "bash -c \"lazygit\""
         },
         {
             name: "Visual Studio Code",
-            icon: "󰨞",
+            icon: Icons.vscode,
             description: "Code Editor",
             app: "code",
             package: "visual-studio-code-bin",
@@ -136,7 +136,7 @@ Item {
         },
         {
             name: "Spotube",
-            icon: "",
+            icon: Icons.spotify,
             description: "Spotify Client (lightweight - downloaded music)",
             app: "spotube",
             package: "spotube-bin",
@@ -144,49 +144,49 @@ Item {
         },
         {
             name: "Steam",
-            icon: "",
+            icon: Icons.steam,
             description: "Game Launcher",
             app: "steam",
             command: "steam"
         },
         {
             name: "Pipes.sh",
-            icon: "󰟥",
+            icon: Icons.pipes,
             description: "Pipes Animation",
             app: "pipes.sh",
             command: "foot pipes.sh"
         },
         {
             name: "Cava",
-            icon: "󰕾",
+            icon: Icons.cava,
             description: "Audio Visualizer",
             app: "cava",
             command: "foot cava"
         },
         {
             name: "CMatrix",
-            icon: "󱔼",
+            icon: Icons.cmatrix,
             description: "Matrix Digital Rain",
             app: "cmatrix",
             command: "foot cmatrix"
         },
         {
             name: "Asciiquarium",
-            icon: "",
+            icon: Icons.asciiquarium,
             description: "Aquarium Animation",
             app: "asciiquarium",
             command: "foot asciiquarium"
         },
         {
             name: "Pacgraph",
-            icon: "󰏗",
+            icon: Icons.packages,
             description: "Visualize package sizes (pacgraph -c)",
             app: "pacgraph",
             command: "foot bash -c \"pacgraph -c; read -n 1 -s -r -p 'Press any key to continue...'\""
         },
         {
             name: "Reset Settings",
-            icon: "󰜉",
+            icon: Icons.restartBar,
             description: "Reset all shell settings to default",
             kind: "reset-settings"
         }
@@ -471,7 +471,7 @@ Item {
                                     visible: modelData.app !== undefined && !root.appInstalled(modelData)
                                     Layout.preferredWidth: 32
                                     Layout.alignment: Qt.AlignVCenter
-                                    text: "\u{F019}" // download glyph (raw U+F019, kept as escape)
+                                    text: Icons.download // download glyph (raw U+F019, kept as escape)
                                     tooltipText: "Install " + (modelData.package || modelData.app)
                                     onClicked: root.installApp(modelData)
                                 }

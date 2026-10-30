@@ -37,7 +37,7 @@ Column {
             visible: avatarImg.status !== Image.Ready
             Text {
                 anchors.centerIn: parent
-                text: "\u{F007}"
+                text: Icons.user
                 font.pixelSize: Theme.fs(4)
                 color: Theme.accent
             }

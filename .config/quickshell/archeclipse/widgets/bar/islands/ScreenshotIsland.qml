@@ -110,14 +110,14 @@ Item {
                         height: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        text: "\u{F030}"   // nf-fa-camera — screenshot indicator
+                        text: Icons.camera   // nf-fa-camera — screenshot indicator
                         color: Theme.fg
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSizeSmall
                     }
 
                     ModeButton {
-                        glyph: "\u{F03E}"  // nf-fa-image — fullscreen shot
+                        glyph: Icons.image  // nf-fa-image — fullscreen shot
                         // park while the expansion re-represents the modes as rows; return at the
                         // flip, not the end of the unwind — late reads as clipping then popping
                         visible: !root.expanded
@@ -125,7 +125,7 @@ Item {
                         onClicked: root.shoot("now")
                     }
                     ModeButton {
-                        glyph: "\u{F125}"  // nf-fa-crop — area shot
+                        glyph: Icons.crop  // nf-fa-crop — area shot
                         visible: !root.expanded
                         tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
                         onClicked: root.shoot("area")
@@ -151,13 +151,13 @@ Item {
                 spacing: root.extraGap
 
                 IslandActionRow {
-                    glyph: "\u{F03E}"   // nf-fa-image — fullscreen shot
+                    glyph: Icons.image   // nf-fa-image — fullscreen shot
                     label: "Fullscreen"
                     tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
                     onActivated: root.shoot("now")
                 }
                 IslandActionRow {
-                    glyph: "\u{F125}"   // nf-fa-crop — area shot
+                    glyph: Icons.crop   // nf-fa-crop — area shot
                     label: "Area"
                     tooltipText: "Screenshot area · <b>SUPER+CTRL+SHIFT+S</b>"
                     onActivated: root.shoot("area")

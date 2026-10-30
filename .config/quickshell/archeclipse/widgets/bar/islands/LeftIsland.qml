@@ -240,35 +240,35 @@ Item {
                     model: [
                         {
                             name: "UserProfile",
-                            icon: ""
+                            icon: Icons.user
                         },
                         {
                             name: "BooruViewer",
-                            icon: ""
+                            icon: Icons.image
                         },
                         {
                             name: "ChatBot",
-                            icon: ""
+                            icon: Icons.chatbot
                         },
                         {
                             name: "MangaViewer",
-                            icon: ""
+                            icon: Icons.manga
                         },
                         {
                             name: "SettingsWidget",
-                            icon: ""
+                            icon: Icons.settings
                         },
                         {
                             name: "CustomScripts",
-                            icon: ""
+                            icon: Icons.terminal
                         },
                         {
                             name: "KeyBinds",
-                            icon: ""
+                            icon: Icons.keyboard
                         },
                         {
                             name: "Donations",
-                            icon: ""
+                            icon: Icons.coffee
                         }
                     ]
                     currentIndex: root.tabIndex(root.selectedWidget)

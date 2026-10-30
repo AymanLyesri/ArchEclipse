@@ -24,10 +24,10 @@ Item {
     readonly property string brightnessIcon: {
         const bri = Brightness.screenFor(root.monitorName);
         if (bri > 0.75)
-            return "\u{F00E0}";
+            return Icons.brightnessHigh;
         if (bri > 0.5)
-            return "\u{F00DF}";
-        return "\u{F00DE}";
+            return Icons.brightnessMedium;
+        return Icons.brightnessLow;
     }
 
     // Fixed width breaks the width loop (root <- clip <- bodyCol <- root): VolumeSection has
