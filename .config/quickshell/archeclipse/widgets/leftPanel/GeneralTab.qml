@@ -8,10 +8,8 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// GeneralTab — ArchEclipse identity: hero (avatar + version chip), repo
-// stats, contributors face-pile, activity grid, update footer.
-// Embedded in DonationsWidget (scroll content) and UserProfile About tab
-// (StackLayout) — implicitWidth/implicitHeight are the embed contract.
+// GeneralTab — ArchEclipse identity: hero (avatar + version chip), repo stats, contributors,
+// activity grid, update footer. Embedded in two hosts, so implicit sizes are the contract.
 Item {
     id: root
     property real widgetWidth: parent ? parent.width : 350
@@ -58,10 +56,8 @@ Item {
         }
     }
 
-    // --- Process: fetch + check remote (upstream else origin,
-    // fetch <remote> master, rev-parse <remote>/master — NOT @{u}, which
-    // resolves the current branch's upstream and is wrong on detached HEAD
-    // or branches without tracking)
+    // --- Process: fetch + check remote (upstream else origin). rev-parse <remote>/master,
+    // NOT @{u} — that resolves the current branch and is wrong on detached HEAD ---
     Process {
         id: fetchRemoteProc
         command: ["bash", "-c", "cd \"" + root.repoDir + "\" && R=$(git remote | grep -qx 'upstream' && echo upstream || echo origin); git fetch \"$R\" master 2>/dev/null; git rev-parse --short \"$R\"/master"]

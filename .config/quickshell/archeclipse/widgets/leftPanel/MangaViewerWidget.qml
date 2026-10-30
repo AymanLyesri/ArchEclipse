@@ -7,9 +7,8 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Manga Viewer widget.
-// Backend: scripts/manga.py (mangadex CLI provider, JSON output)
-// Tabs: Manga (list/search) -> Chapters -> Pages (reader with prev/next)
+// Manga Viewer widget: scripts/manga.py (mangadex CLI provider, JSON); Manga list/search ->
+// Chapters -> Pages reader.
 Item {
     id: root
     property string monitorName: ""
@@ -691,9 +690,8 @@ Item {
             }
         }
 
-        // Keyboard navigation (Left/Right page, Up/Down reveal)
-        // NOTE: Item lives OUTSIDE the ColumnLayout above (positioners ignore
-        // anchors, which would collapse it to 0x0) — anchored to root instead.
+        // Keyboard nav (Left/Right page, Up/Down reveal). NOTE: the Item lives OUTSIDE the
+        // ColumnLayout (positioners ignore anchors and collapse it) — anchored to root instead.
     }
     Item {
         anchors.fill: parent

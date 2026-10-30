@@ -4,14 +4,8 @@ import qs.theme
 import qs.widgets.lock
 import qs.widgets.shared
 
-// Per-screen greeter UI: twin of LockSurface (same 340px card, radius 24,
-// top-center) with a user-picker dropdown under the Welcome title, the
-// shared AuthCard password box, a session picker below, and lock-twin
-// power actions (no logout: no session exists yet).
-// CONSUMER CONTRACT (GreeterContext): userName is set before start()/
-// tryAuth(), and currentText is cleared between the username and password
-// phases so a pending password prompt never answers with the stale username
-// (AuthCard emits textChanged; it does not write back to currentText).
+// Per-screen greeter UI: twin of LockSurface (340px card, radius 24, top-center) with a
+// user-picker, the shared AuthCard password box, a session picker and lock-twin power actions.
 MouseArea {
     id: root
     required property var context
@@ -67,9 +61,8 @@ MouseArea {
         }
     }
 
-    // Login wallpaper behind a subtle palette-tinted overlay. Missing files
-    // leave Theme.background visible as the fallback. cache:false — the
-    // fixed path is reused on every change.
+    // Login wallpaper behind a palette-tinted overlay; missing files leave Theme.background as the
+    // fallback. cache:false — the fixed path is reused on every change.
     Image {
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
@@ -83,10 +76,8 @@ MouseArea {
         color: Theme.rgba(Theme.background, 0.2)
     }
 
-    // Top-center island: username + password + session picker + actions.
-    // Frosted island fill (translucent Theme.surface, like the bar pill):
-    // the compositor blurs whatever is behind it; without compositor blur
-    // it degrades to clean translucency over the dim.
+    // Top-center island: username + password + session picker + actions. Frosted fill (translucent
+    // surface, like the bar pill): the compositor blurs behind it, else clean translucency.
     Rectangle {
         id: card
         anchors.top: parent.top

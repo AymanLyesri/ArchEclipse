@@ -5,10 +5,8 @@ import Quickshell.Io
 import Quickshell.Services.UPower
 import qs.theme
 
-// Port of sub-components/Battery.tsx + the embedded power-profiles popover.
-// Icon + % (hidden when no battery); clicking opens a popover listing the
-// available power profiles (from `powerprofilesctl list`) and sets the active
-// one (powerprofilesctl set). Tooltip shows "Battery: % \nProfile: X".
+// Battery icon + % (hidden with no battery); click opens the power-profiles popover
+// (`powerprofilesctl list` + set). Tooltip shows "Battery: % \nProfile: X".
 Rectangle {
     id: root
     width: visible ? content.width + 8 : 0

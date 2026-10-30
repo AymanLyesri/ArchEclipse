@@ -6,31 +6,13 @@ import qs.widgets.shared
 import qs.services
 import qs.widgets.media
 
-// Detail card: the image is the parent — it fills the card and every
-// info + action lives in a single hover-reveal bottom sheet (WaifuWidget
-// parity). The sheet header carries the drag grip, type badge, title,
-// and close; below sit meta, tags, all actions, and resize cell. The
-// entrance is slide/fade on the inner wrapper only — never layout geometry.
-// viewer: entry root (dialogImage, download/bookmark/pin actions,
-// detach + free-geometry for the float window).
-//
-// The viewer hosts us twice: docked in the island-edge PopupWindow, and
-// detached in a normal FloatingWindow (own window, draggable /
-// aspect-locked resizable; float behavior via a Hyprland rule). No
-// dock-back: close is sufficient.
-//
-// Design refs:
-// - NotificationItem: surface card + radius, top RowLayout (icon, bold
-//   title fillWidth, dim meta, 24px outlined icon buttons).
-// - MangaViewer cards: Theme fonts, radii, borders.
-// - WaifuWidget: media-fill container, hover bottom sheet (slide + fade),
-//   peek handle, pill sections on Theme.bg.
+// Detail card: the image fills it, all info + actions sit in a hover-reveal bottom sheet.
+// Hosted docked in the island popup and detached in a FloatingWindow (no dock-back).
 Item {
     id: dialogRoot
     property var viewer
-    // "Tags" expand state (NotificationItem expand/collapse parity).
-    // Reset per-image: dlg tracks viewer.dialogImage, so its change
-    // signal fires exactly when a new post is opened.
+    // "Tags" expand state, reset per image: dlg tracks viewer.dialogImage, so its change
+    // signal fires exactly when a new post opens.
     property bool showAllTags: false
     onDlgChanged: showAllTags = false
     clip: true
@@ -44,10 +26,8 @@ Item {
                 viewer.popupHovered = hovered;
         }
     }
-    // Card height in the docked popup follows the image ratio, clamped so
-    // panoramas/portraits stay sane. Reported back so the viewer can
-    // center/clamp on the anchor card. (In the float window the viewer
-    // sets an explicit aspect-locked size instead.)
+    // Docked card height follows the image ratio, clamped, and is reported back for anchor
+    // centering (the float window gets an explicit aspect-locked size instead).
     readonly property real cardH: {
         if (!dlg || !dlg.width || !dlg.height)
             return 260;
@@ -82,25 +62,18 @@ Item {
     // with zero shown; the expand button reveals them.
     readonly property bool isWaifuMode: viewer ? !!viewer.dialogPinned : false
     readonly property bool dlgIsLocal: dlg ? (dlg.url && !/^https?:\/\//.test(dlg.url)) : false
-    // Full file still in flight: the dialog shows the preview still
-    // meanwhile (see dialogSource fallback) with the spinner over it.
-    // Videos keep their placeholder text, local files need no download,
-    // and only sampless zips skip the download (no eternal spinner).
+    // Full file in flight: show the preview still with the spinner over it. Videos keep their
+    // placeholder, local files need no download, sampless zips skip it (no eternal spinner).
     readonly property bool dlgLoading: viewer ? (viewer.progressStatus === "loading" || (dlg && !dlgIsVideo && !dialogRoot.dlgUnplayableZip && !dlgIsLocal && !dlgDownloaded)) : false
-    // Full file pending (images AND videos/gifs AND zip samples): drives
-    // the top "Downloading…" pill over the preview still. Sampless zips
-    // never download and local files need none, so both are excluded.
+    // Full file pending for images, videos and zip samples: drives the top "Downloading…" pill.
+    // Sampless zips and local files are excluded.
     readonly property bool dlgDownloading: dlg ? (!dialogRoot.dlgUnplayableZip && !dlgIsLocal && !dlgDownloaded) : false
     readonly property bool dlgVideoPlayable: dlg ? ((dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample) && dlgDownloaded && !dialogRoot.dlgUnplayableZip && !dlgIsGif) : false
     readonly property bool dlgVideoPlaceholder: dlg ? (!dlgDownloaded && (dialogRoot.dlgIsVideo || dialogRoot.dlgHasSample)) : false
     readonly property string dlgTypeIcon: dlgIsZip ? "" : (dlgIsVideo ? "" : "")
     readonly property int dlgVisibleTagCount: showAllTags ? dlgTags.length : (isWaifuMode ? 0 : Math.min(dlgTags.length, 12))
-    // Badge icons shared by the still preview (AppImage below) and the
-    // video overlay: AppImage hides once a video plays, taking its own
-    // badges with it, so both feed off this one list.
-    // Waifu mode (pinned host) shows none: the chips permanently sit in
-    // the image's top-right corner there (bookmark/download/pin states
-    // are still reachable via the hover sheet actions).
+    // Badges shared by the still preview and the video overlay (AppImage hides once a video
+    // plays). Pinned waifu hosts show none — its chips sit on the image itself.
     readonly property var dlgBadges: {
         if (dialogRoot.isWaifuMode)
             return [];
@@ -115,17 +88,11 @@ Item {
             b.push("\uf004");
         return b;
     }
-    // Presentation gate for the video player: dialogs live inside
-    // windows that are often hidden (docked popup, undetached float)
-    // while their own `visible` stays true. Hosts bind this to their
-    // actual window/panel visibility so only the presented instance
-    // decodes (else every instance plays the same file concurrently).
+    // Presentation gate: dialogs live in often-hidden windows whose `visible` stays true, so
+    // hosts bind this to real visibility — otherwise every instance decodes the same file.
     property bool videoActive: true
-    // Bottom sheet reveal (WaifuWidget parity): hovering anywhere on the
-    // card (media or the sheet itself — all children of slider) slides
-    // the sheet up. The handler must live on the container, not on
-    // the media: a handler inside dialogMedia goes false the moment the
-    // cursor moves onto the sibling sheet, hiding it under the cursor.
+    // Bottom sheet reveal: hovering anywhere on the card slides it up. The handler must live on
+    // the container — one inside dialogMedia goes false as the cursor moves onto the sheet.
     readonly property bool sheetRevealed: sliderHover.hovered
 
     Item {
@@ -135,10 +102,8 @@ Item {
         x: (1 - (viewer ? viewer.detailSlide : 1)) * -24
         opacity: viewer ? viewer.detailSlide : 1
 
-        // Card surface: floats over grid content (or the desktop, once
-        // floated), so it carries its own backdrop with a subtle outline
-        // (NotificationItem parity: Theme.surface + Theme.radius +
-        // Theme.border).
+        // Card surface: floats over grid content (or the desktop once detached), so it carries
+        // its own backdrop and outline.
         Rectangle {
             anchors.fill: parent
             color: Theme.surface
@@ -161,37 +126,26 @@ Item {
             border.width: 1
             clip: true
 
-            // video downloaded → playable via QtMultimedia.
-            // The AppImage still below stays visible as the poster: the
-            // video covers it once the first frame arrives (hasVideo).
-            // Without this the card is blank during load — and permanently
-            // blank when the decode fails.
+            // The AppImage still stays as the poster and the video covers it on the first frame
+            // (hasVideo) — without it the card is blank during load and forever on decode failure.
             MediaVideo {
                 id: dialogVideo
                 z: 1
                 anchors.fill: parent
-                // Edge-to-edge like the AppImage still below (no inset):
-                // the old 4px margin only worked while the plain-Item
-                // video ignored clipping and painted over it; with the
-                // rounded clip it survives as a background ring. The -2
-                // overscan inside MediaVideo keeps fringe under the clip.
+                // Edge-to-edge like the still below: the old 4px margin survived as a background
+                // ring once the clip got rounded; MediaVideo's -2 overscan hides the fringe.
                 anchors.margins: 0
                 active: dialogRoot.videoActive
-                // Gate on playable: imageFileUrl() returns the remote https
-                // URL until the download lands, and prepending file:// to
-                // that feeds the player garbage (logged as
-                // file://https//...). The player only ever gets a local
-                // path or "" now.
+                // Gate on playable: imageFileUrl() returns the remote https URL until the
+                // download lands, and file://https:// feeds the player garbage.
                 source: dlg && dialogRoot.dlgVideoPlayable ? viewer.imageFileUrl(dlg).replace(/^file:\/\//, "") : ""
                 autoplay: true
                 loop: true
                 fill: true
                 visible: dialogRoot.dlgVideoPlayable
             }
-            // Badges over a playing video: without these the card looks
-            // like a bare player (bottom sheet is hover-reveal) instead
-            // of the dialog. Same chips as AppImage below; visibility is
-            // mutually exclusive with it, so they never double up.
+            // Badges over a playing video: without them the card looks like a bare player.
+            // Same chips as the still; visibility is mutually exclusive, so no doubling.
             Row {
                 anchors.top: parent.top
                 anchors.right: parent.right
@@ -241,11 +195,8 @@ Item {
                 id: dialogStill
                 z: 0
                 anchors.fill: parent
-                // Video posts keep their cached preview still as the poster
-                // (gridSource prefers the JPEG preview for mp4/webm/mkv —
-                // feeding the full video file to Image blanks it with
-                // "Unsupported image format"). Still images use the full
-                // file via dialogSource (gif animates through AnimatedImage).
+                // Video posts keep the cached preview JPEG as the poster (feeding the full video
+                // to Image blanks it); stills use dialogSource so gifs animate.
                 source: dlg ? (dialogRoot.dlgVideoPlayable ? viewer.gridSource(dlg) : viewer.dialogSource(dlg)) : ""
                 sourceWidth: parent.width
                 animated: true
@@ -259,11 +210,8 @@ Item {
                 status: dialogRoot.dlgLoading ? "loading" : "idle"
                 variant: "spinner"
             }
-            // Downloading pill: top-left overlay while the full file is
-            // in flight, floating above the preview still. The meta
-            // strip's "Downloading…" lives in the hover sheet; this is
-            // its always-visible counterpart (top-left keeps clear of
-            // the AppImage badges at top-right).
+            // Downloading pill: top-left overlay while the full file is in flight, always visible
+            // counterpart of the sheet's "Downloading…" (top-right stays clear for badges).
             Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
@@ -358,18 +306,14 @@ Item {
                     width: parent.width
                     spacing: Theme.spacing
 
-                    // Header (merged top bar — NotificationItem parity:
-                    // icon, bold title fillWidth, dim meta, 24px outlined
-                    // icon button). Single Close lives here; dims live
-                    // only in the meta pill below.
+                    // Header (icon, bold title fillWidth, dim meta, 24px outlined icon button):
+                    // single Close lives here, dims only in the meta pill below.
                     RowLayout {
                         width: parent.width
                         spacing: Theme.spacing
 
-                        // Drag grip: floats the card into its own window
-                        // on first move, then moves it anywhere on screen
-                        // (local deltas — no compositor handshake, no
-                        // gesture race). Pure-QML dots (no font dep).
+                        // Drag grip: floats the card into its own window on first move, then moves
+                        // it locally (no compositor handshake, no gesture race). Pure-QML dots.
                         Item {
                             id: dragGrip
                             width: 14
@@ -404,10 +348,8 @@ Item {
                                     visible: parent.containsMouse
                                     text: "Drag to float as window"
                                 }
-                                // Detach on press so the window exists,
-                                // then start the system move on first
-                                // motion: a press-time request can predate
-                                // the new window's mapping and be ignored.
+                                // Detach on press so the window exists, then start the move on first
+                                // motion — a press-time request can predate the new window's mapping.
                                 onPressed: {
                                     if (viewer)
                                         viewer.detachDialog();
@@ -665,9 +607,8 @@ Item {
                             }
                         }
                     }
-                    // Full file auto-downloads on open; Waifu takes the full row.
-                    // Hidden on pinned hosts (embedded waifu): it already is
-                    // the waifu, so the row would only re-set the same post.
+                    // Full file auto-downloads on open; Waifu takes the full row. Hidden on pinned
+                    // hosts — it already is the waifu, so the row would only re-set the same post.
                     AppButton {
                         width: parent.width
                         height: 30
@@ -684,10 +625,8 @@ Item {
                                 viewer.setAsWaifu(dlg);
                         }
                     }
-                    // Save the full file into ~/.config/wallpapers/custom
-                    // (thumbnail included) for the Wallpaper switcher.
-                    // Needs the auto-downloaded full file, like Pin —
-                    // videos play as animated wallpapers, only zips excluded.
+                    // Save the full file (plus thumbnail) into ~/.config/wallpapers/custom for the
+                    // Wallpaper switcher; needs the auto-downloaded file, zips excluded.
                     AppButton {
                         width: parent.width
                         height: 30
@@ -735,9 +674,8 @@ Item {
                 } // sheetContent
             } // sheet flickable
 
-            // Resize cell overlay at the sheet's bottom-right corner
-            // (aspect-locked via the viewer). Absolute — not a layout
-            // row — so no space is reserved and no Close is duplicated.
+            // Resize cell at the sheet's bottom-right corner (aspect-locked by the viewer),
+            // absolute so it reserves no space.
             Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom

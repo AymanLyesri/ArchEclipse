@@ -4,14 +4,8 @@ import Quickshell.Widgets
 import qs.theme
 import qs.widgets.shared
 
-// OverviewPreview — one live window tile in the overview grid.
-// ScreencopyView captures the Wayland toplevel live (end-4 OverviewWindow
-// pattern); hover/press dim it, the app icon badges the corner, and the
-// MouseArea drives dragging (the card DropArea moves the window off
-// drop.source on drop), click to focus, middle-click to close.
-//
-// Geometry (x/y/width/height) is owned by the parent wrapper — this item
-// only fills it. Window actions go through `host` (the OverviewBody).
+// OverviewPreview — one live window tile (ScreencopyView), with an app-icon badge and drag /
+// click-focus / middle-click-close. Geometry is owned by the parent wrapper.
 Item {
     id: root
 
@@ -26,9 +20,8 @@ Item {
 
     anchors.fill: parent
 
-    // Clipped container: ScreencopyView paints square video frames, so the
-    // rounding must come from a clipping parent (plain `clip: true` only
-    // clips rectangularly).
+    // Clipped container: ScreencopyView paints square frames, so rounding must come from a
+    // clipping parent (plain `clip: true` only clips rectangularly).
     ClippingRectangle {
         anchors.fill: parent
         radius: Theme.radius
@@ -99,9 +92,8 @@ Item {
                 return;
             root.pressed = false;
             root.Drag.active = false;
-            // Target is resolved geometrically in finishDrag (it snaps back
-            // itself on a miss); on a move this tile vanishes with its
-            // workspace.
+            // Target is resolved geometrically in finishDrag (it snaps back on a miss); on a move
+            // this tile vanishes with its workspace.
             if (root.host)
                 root.host.finishDrag(root.wsId, root.winAddr, root.parent);
         }

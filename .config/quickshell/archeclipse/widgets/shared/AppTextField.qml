@@ -1,9 +1,5 @@
-// THE shared single-line text input for the whole shell: themed background
-// with an accent focus ring and sane defaults — replaces the copy-pasted
-// TextField + background Rectangle blocks (identical visuals everywhere).
-// All Controls TextField properties (text, placeholderText, echoMode,
-// validator, inputMethodHints, accepted/textChanged signals, ...) work as
-// usual; only the styling defaults are set here and stay overridable.
+// THE shared single-line text input: themed background + accent focus ring, replacing the
+// copy-pasted TextField blocks. All Controls TextField properties work and stay overridable.
 import QtQuick
 import QtQuick.Controls
 import qs.theme

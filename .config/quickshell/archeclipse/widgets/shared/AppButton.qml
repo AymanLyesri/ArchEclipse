@@ -1,21 +1,12 @@
-// THE shared button for the whole shell: selector rails, WindowActions,
-// tab bars, dialog actions, media controls. Centered Theme.fontFamily
-// glyph + optional text label in a rounded cell — identical visuals
-// everywhere (a Controls Button's built-in padding/insets shift content
-// off-center, so this is a plain Rectangle + Row + MouseArea by design).
+// THE shared button for the whole shell: centered glyph + optional label in a rounded cell.
+// A Controls Button's padding pushes content off-center, so this is Rectangle + Row + MouseArea.
 
 import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-//   toggle: false -> momentary action (expand / close / save / play)
-//   toggle: true  -> highlighted while `checked`. `checked` is ALWAYS
-//                    caller-driven (a Settings binding or a selected-tab
-//                    expression) — the button never flips it, except when
-//                    autoToggle is set for unbound local-state uses.
-//   text          -> optional label after the icon (icon may be empty).
-//   outlined      -> border always visible (tabs); color follows highlight.
-//   enabled       -> Item.enabled dims the cell and blocks clicks.
+    // toggle: false = momentary, true = highlighted while caller-driven `checked` (autoToggle
+    // opts into local state). text is an optional label, outlined always draws the border.
 Item {
     id: root
 
@@ -23,23 +14,14 @@ Item {
     property string text: ""
     // Optional maximum width for the text label; -1 keeps natural sizing.
     property real labelMaxWidth: -1
-    // Required: every button must explain itself — a description, plus the
-    // matching keybind when one exists in ~/.config/hypr/config/bind.lua
-    // (see AGENTS.md). Not a `required property`: a delegate root with ANY
-    // required property makes Qt withhold context modelData/index from that
-    // delegate (repeater arrays read it — hard-required buttons caused
-    // silent empty icons/text shell-wide, GeneralTab being the visible one).
-    // Instead renders fail-soft and logs an error at instantiation below.
+    // Every button must explain itself, but NOT via `required property`: a delegate root with any
+    // required property makes Qt withhold modelData, giving silent empty icons shell-wide.
     property string tooltipText: ""
-    // False opts a button out of the hover tooltip popup entirely (the
-    // button still must carry tooltipText). For stadiums where a popup
-    // grab stealing the pointer reads as hover-out and closes the pill.
+    // False opts out of the hover tooltip popup (the button still needs tooltipText): a popup
+    // grab stealing the pointer reads as hover-out and closes stadium pills.
     property bool showTooltip: true
-    // Quiet mode: no hover reading at all (hoverEnabled off, no hover
-    // scale). For cells inside auto-revealing stadium islands where ANY
-    // hover reaction churned the reveal and closed the pill (probe-proven
-    // in RecordingIsland/ScreenshotIsland). Press feedback stays: clicks
-    // are allowed to land, readings happen outside the cell.
+    // Quiet mode: no hover reading at all (hoverEnabled off, no hover scale) for cells inside
+    // auto-revealing stadiums, where any hover reaction churned the reveal (probe-proven).
     property bool quiet: false
     property string fontFamily: Theme.fontFamily
     property string labelFontFamily: ""
@@ -83,10 +65,8 @@ Item {
     signal pressed
     signal released
 
-    // Loud stand-in for the (removed) required-property hard gate — see the
-    // comment above. Warn (not error): some cells legitimately ship an empty
-    // tooltip (e.g. purity chips hint only while disabled). Greppable on
-    // boot/reload in /tmp/qs-bar-$USER.log.
+    // Loud stand-in for the removed required-property gate: warn (not error), since some cells
+    // legitimately ship an empty tooltip. Greppable on reload in /tmp/qs-bar-$USER.log.
     Component.onCompleted: if (tooltipText === "" && showTooltip)
         console.warn("MISSING TOOLTIPTEXT AppButton:", this, "icon:", JSON.stringify(icon), "text:", JSON.stringify(text))
 

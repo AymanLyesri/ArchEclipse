@@ -4,14 +4,8 @@ import Quickshell.Io
 import qs.theme
 import qs.widgets.shared
 
-// CommitGrid — GitHub-style 52×7 activity tracker for the ArchEclipse repo.
-// Unauthenticated endpoint (no key): GET /repos/AymanLyesri/ArchEclipse/stats/commit_activity
-// → 52 oldest→newest entries {week: unix-s of the Sunday, days: [7 ints Sun..Sat], total}.
-// Committed days take the user accent at an opacity scaled by count, so the
-// grid follows every user's palette.
-// Data is disk-cached ({ts, raw} JSON); on load the cache paints instantly
-// and a refetch only runs when the snapshot is older than 3h. curl carries
-// --max-time so a hung connection can't wedge the loading state silently.
+// CommitGrid — 52×7 activity grid from the unauthenticated commit_activity endpoint; committed
+// days take the accent at a count-scaled opacity. Disk-cached, refetched past 3h (no wedge).
 Item {
     id: root
 
@@ -41,9 +35,7 @@ Item {
     implicitHeight: root.monthH + 4 + root.gridHeight + (root.weekStarts.length === 0 ? 8 + 18 : 0)
 
     // --- data ---
-    // Parse + validate. The self-check drops weeks whose days[] disagrees
-    // with total (log is silent when the data is healthy). fromNetwork also
-    // refreshes the disk cache.
+    // Parse + validate (self-check drops weeks whose days[] disagrees with total).
     function apply(text, fromNetwork) {
         let arr;
         try {
@@ -91,10 +83,8 @@ Item {
         return true;
     }
 
-    // Blank days: faint neutral tint (opaque color). Committed days: solid
-    // accent + ITEM opacity scaled by count (sqrt-curved, floor 0.3) — item
-    // opacity is the rendering path every fade in this shell uses; alpha
-    // color strings misbehaved, so nothing here relies on them.
+    // Blank days: faint neutral tint. Committed days: solid accent + ITEM opacity scaled by
+    // count (sqrt-curved, floor 0.3) — alpha color strings misbehaved, so nothing relies on them.
     function cellOpacity(count) {
         if (count <= 0)
             return 0.15;
@@ -115,9 +105,8 @@ Item {
         let lastX = -1e9, prevSatM = -1;
         for (let i = 0; i < root.weekStarts.length; i++) {
             const satM = new Date((root.weekStarts[i] + 6 * 86400) * 1000).getMonth();
-            // (prevSat, sat] is exactly week i: any Saturday-month jump means
-            // the 1st of the new month falls inside this week. No extra
-            // Sunday condition — it wrongly skipped 1st-on-a-Sunday months.
+            // (prevSat, sat] is exactly week i, so a Saturday-month jump means the 1st falls in
+            // this week; no extra Sunday condition (it skipped 1st-on-a-Sunday months).
             if (i === 0) {
                 prevSatM = satM;
                 continue;

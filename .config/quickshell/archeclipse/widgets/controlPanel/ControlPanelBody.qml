@@ -5,12 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Quick-settings body: two columns — left holds the volume + connectivity
-// sections (own files in this dir), right holds the action grid,
-// brightness slider and power profile selector. Lives in the bar's
-// ControlCard, inside DefaultBar's center pill (the bump grows around it
-// instead of swapping the stack page).
-// Close behavior = BarState.deactivate("control", monitorName).
+// Quick-settings body: volume + connectivity left, actions/brightness/power right. Lives in
+// ControlCard inside the center pill (the bump grows around it); closes via BarState.deactivate.
 Item {
     id: body
 
@@ -31,9 +27,8 @@ Item {
         return "\u{F00DE}";                        // low (󰃞)
     }
 
-    // DND ping state: highlight the DND button ~600ms when a
-    // notification arrives while DND is active (AppButton `checked` drives
-    // the highlight, so the flag lives here instead of on a Rectangle).
+    // DND ping: highlight the DND button ~600ms when a notification arrives while DND is active
+    // (AppButton `checked` drives it, so the flag lives here instead of on a Rectangle).
     property bool dndPing: false
     Connections {
         target: Notifications
@@ -62,10 +57,7 @@ Item {
     }
 
     // ---- power profiles (native UPower service; PpdState gates visibility) ----
-    // PowerProfiles.profile is reactive + settable, so no polling needed for
-    // the value itself. PpdState probes `powerprofilesctl get` once at
-    // quickshell start — without PPD the section hides instead of showing
-    // a dead control (e.g. PPD-less desktops).
+    // PowerProfiles.profile is reactive + settable; without PPD the section hides (probed at start).
     readonly property int powerIndex: {
         if (PowerProfiles.profile === PowerProfile.Performance)
             return 2;
@@ -80,20 +72,15 @@ Item {
             return "Power Saver";
         return "Balanced";
     }
-    // True while the user is dragging a slider. ControlCard binds the
-    // hover-pin's holdOpen to this: HoverHandler.hovered drops while a button
-    // is pressed, so a drag would otherwise read as "left" and arm the leave
-    // timer mid-adjustment.
+    // True while a slider drag is in progress. ControlCard binds the hover pin's holdOpen: hovered
+    // drops while a button is pressed, so a drag would otherwise arm the leave timer.
     readonly property bool adjusting: volSection.adjusting || brightSlider.pressed
-    // True while a device ComboBox popup is open. The popup renders in the
-    // Overlay (outside the island's HoverHandler bounds), so hovering its
-    // options reads as "left" — without this the leave timer fires and the
-    // whole island folds while the user is picking a device.
+    // True while a device ComboBox popup is open: the popup renders in the Overlay, outside the
+    // island's HoverHandler, so hovering it reads as "left" and folds the island mid-pick.
     readonly property bool popupOpen: volSection.popupCount > 0
 
     // ---- content: two columns ----
-    // Left: volume + connectivity sections (own files) + brightness + power.
-    // Right: action grid.
+    // Left: volume + connectivity sections (own files) + brightness + power. Right: action grid.
     Row {
         id: contentRow
         anchors.top: parent.top

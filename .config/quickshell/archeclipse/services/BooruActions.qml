@@ -5,9 +5,8 @@ import Quickshell.Io
 import qs.theme
 import qs.services
 
-// Shared booru post actions used by both the BooruViewer dialog and the
-// WaifuWidget overlay. Single source of truth so bookmark/pin/waifu/
-// browser/copy behave identically everywhere.
+// Shared booru post actions for the BooruViewer dialog and WaifuWidget overlay, so
+// bookmark/pin/waifu/browser/copy cannot diverge between them.
 QtObject {
     id: root
 
@@ -34,10 +33,8 @@ QtObject {
         return ((img && img.extension) || "").toLowerCase() === "zip";
     }
 
-    // Keyed `api:id` Sets so per-delegate isBookmarked/isPinned checks are
-    // O(1) instead of an O(n) scan over the whole list (n² over a booru page).
-    // `Settings.booru` reassigns a fresh clone on mutation, so these rebuild
-    // exactly when the lists change.
+    // Keyed `api:id` Sets keep per-delegate checks O(1) (a scan was n² over a page);
+    // `Settings.booru` clones on mutation, so these rebuild exactly when lists change.
     function _keys(list) {
         const s = new Set();
         for (const x of list || []) s.add(root.apiOf(x) + ":" + x.id);
@@ -195,12 +192,8 @@ QtObject {
             Quickshell.execDetached(["swayimg", "-w", "690,690", "--class", "preview-image", path]);
     }
 
-    // Copy the downloaded full image into ~/.config/wallpapers/custom so
-    // the Wallpaper switcher can apply it (previews render the original
-    // file natively). after(saved: bool) optional.
-    // Requires the full file on disk — the BooruViewer dialog
-    // auto-downloads it on open, so by button-press time it is there;
-    // exit 3 (test -s failed) tells the user to wait for the download.
+    // Copies the downloaded full image into ~/.config/wallpapers/custom so the switcher
+    // can apply it; exit 3 (test -s) means the download has not landed yet.
     function saveAsWallpaper(img, after) {
         if (!img || img.id === undefined || img.id === null)
             return;

@@ -4,18 +4,8 @@ import Quickshell
 import Quickshell.Services.Notifications
 import qs.theme
 
-// Port of NotificationPopups.tsx + NotificationHistory.tsx + Notification.tsx,
-// reworked along end4/illogical-impulse lines: the daemon keeps snapshot
-// wrapper objects (plain props, snapshotted once at receipt) instead of
-// handing live NotificationObjects to delegates. That makes every binding
-// cheap, kills the whole null-during-exit bug class (wrappers outlive the
-// row removal that plays the exit transition), and needs zero polling:
-//   - toasts:       newest-first wrappers (display strings + live ref)
-//   - popupToasts:  derived filter bound by the popup ListView's ScriptModel
-//   - one-shot self-destroying ToastTimer per toast; timeout only hides the
-//     toast (history keeps it, DND toasts never show)
-//   - hover holds the countdown (timer destroyed); unhover hides the toast.
-//     No remaining-time bookkeeping, no per-frame timers anywhere.
+// Snapshot wrappers instead of live NotificationObjects: cheap bindings, no
+// null-during-exit, no polling; one self-destroying ToastTimer per toast (hover holds).
 Singleton {
     id: root
 
@@ -25,9 +15,8 @@ Singleton {
     property var history: []            // [{id, time, notif}] newest-first
     readonly property bool dnd: Settings.notifDnd
 
-    // Snapshot of one toast. All display state is plain data resolved once
-    // in addPopup; delegates only read these (plus notificationId). `live`
-    // is used solely for dismiss/action-invoke and never in bindings.
+    // All display state is plain data resolved once in addPopup, so delegates read
+    // these only; `live` is for dismiss/action-invoke, never in a binding.
     component Toast: QtObject {
         required property int notificationId
         property var live: null
@@ -73,10 +62,8 @@ Singleton {
     property var toasts: []             // newest-first Toast wrappers (reassigned on every mutation)
     property var popupToasts: root.toasts.filter(t => t.popup)
 
-    // In-process progress toasts (compile jobs etc.): snapshot wrappers are
-    // plain properties, so the caller mutates .progress/.body live and the
-    // popup card's bar re-binds. daemon-independent: no history, no countdown,
-    // ids stay negative so they never collide with daemon notification ids.
+    // In-process progress toasts (compile jobs): callers mutate .progress/.body live,
+    // ids stay negative, and there is no history or countdown.
     property int _nextProgressId: -1
 
     // Returns the wrapper; caller drives .progress (0..1) and .body, then
@@ -130,9 +117,8 @@ Singleton {
     // mirrors the notifd "notified" handler used by the DND ping.
     signal notified(var notification, string monitorName)
 
-    // Prune toast + history when the notification closes from anywhere
-    // (dismiss button, history clear, external retraction). Mirrors
-    // notifd "resolved" handling.
+    // Prune toast + history whenever the notification closes from anywhere (dismiss,
+    // history clear, external retraction), mirroring notifd "resolved".
     property var _watched: ({})
     function watchClosed(n) {
         if (!n || root._watched[n.id]) return;
@@ -152,9 +138,8 @@ Singleton {
         root._watched = ids;
     }
 
-    // A wrapper removed from `toasts` must be destroyed — it is parented to
-    // the singleton, so filtering alone leaks it for the session. Its `live`
-    // NotificationObject is daemon-owned; only the reference is dropped.
+    // A wrapper dropped from `toasts` must be destroyed — it is parented to the
+    // singleton, so filtering alone leaks it for the session.
     function destroyToast(w) {
         if (!w) return;
         w.live = null;
@@ -329,11 +314,8 @@ Singleton {
         try { return Array.from(n.actions.values()); } catch (e) { return []; }
     }
 
-    // Normalizes a notification icon/image value to a local file path.
-    // The daemon may hand us a plain absolute path ("/..."), a file://
-    // URL (image-path hint), or an image://icon/ URL (Quickshell routes
-    // notify-send -i <path> through its icon provider) — accept all,
-    // decode %20-style escapes.
+    // Accepts a plain path, file:// URL or image://icon/ URL (notify-send -i routes
+    // through the icon provider) and decodes %20-style escapes to a local path.
     function iconToFile(v) {
         if (!v) return "";
         let s = String(v);
@@ -373,9 +355,8 @@ Singleton {
         return iconFile;
     }
 
-    // First /absolute/path.ext match inside free text (Recorder stop
-    // toasts carry the full recording path in the body). Trailing
-    // punctuation from markup-wrapped bodies is stripped.
+    // First /absolute/path.ext match in free text (Recorder stop toasts carry the full
+    // path in the body), stripping punctuation from markup-wrapped bodies.
     function filePathInText(s) {
         if (!s) return "";
         const m = String(s).match(/\/\S+\.(mp4|mkv|webm|mov|png|jpe?g|webp|gif|bmp|svg|ico)/i);
@@ -400,10 +381,8 @@ Singleton {
         if (path) Quickshell.execDetached(["xdg-open", path]);
     }
 
-    // Shared copy: image file payload via wl-copy with its real MIME type
-    // (screenshot icons arrive as appIcon paths) + result toast, else plain
-    // text. `host` parents the worker Process. Used by both the popup
-    // delegate and the history card through NotificationCardBody.
+    // Image payloads go to wl-copy with their real MIME type (screenshot icons arrive
+    // as appIcon paths) + a result toast, else plain text; `host` parents the worker.
     function copyToClipboard(host, iconFile, fallbackText) {
         if (iconFile !== "") {
             const imgPath = iconFile;
@@ -455,10 +434,8 @@ Singleton {
         }
     }
 
-    // Convenience API used by widgets (WallpaperSwitcher, CustomScripts, etc.)
-    // to raise a toast notification. Uses notify-send so it flows through the
-    // system notification daemon (which this NotificationServer backs), so the
-    // popup appears identically to any external notification.
+    // Widget-facing toast API: goes through notify-send so it flows through the daemon
+    // this server backs and looks identical to any external notification.
     function notify(opts) {
         const args = ["notify-send"];
         if (opts.appName) { args.push("-a"); args.push(opts.appName); }

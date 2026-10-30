@@ -10,15 +10,9 @@ import qs.widgets.leftPanel.BooruViewer.components as Booru
 import qs.widgets.media
 import qs.widgets.shared
 
-// Booru Viewer widget — port of widgets/leftPanel/components/BooruViewer.tsx
-// Features: multiple API tabs (Danbooru/Gelbooru/Safebooru), bookmarks, pins,
-// tag search, masonry grid, pagination (keyboard nav), revealable settings
-// (limit/columns/tags/cache-clear), preview download via booru.py.
+// Booru viewer: API tabs (Danbooru/Gelbooru/Safebooru), bookmarks, pins, tag search, masonry
+// grid, keyboard pagination and preview downloads through booru.py.
 Item {
-    // set to an image object to open the dialog
-    // --- helpers ---
-    // --- UI ---
-    // File already written by the script — no persist needed.
 
     id: root
 
@@ -30,17 +24,14 @@ Item {
     property var images: []
     // fetched image objects
     property bool _firstImages: true
-    // Monotonic fetch sequence: rapid tag add/removes fire overlapping
-    // fetches and a stale (older tag set) response must not overwrite the
-    // grid after a newer one landed.
+    // Monotonic fetch sequence: rapid tag changes fire overlapping fetches and a stale
+    // response must not overwrite a newer one.
     property int _fetchSeq: 0
-    // Download generation: a new downloadPreviews() call supersedes the
-    // previous queue (page turn / new search) — leftover tasks are
-    // dropped instead of spending bandwidth on a stale grid.
+    // Download generation: a new downloadPreviews() supersedes the previous queue, so
+    // leftover tasks are dropped instead of spending bandwidth on a stale grid.
     property int _dlSeq: 0
-    // Masonry: distribute to the shortest column by
-    // aspect ratio (NOT row-by-row Flow). NOTE: must live on root — a
-    // property declared among ColumnLayout children belongs to the layout.
+    // Masonry: shortest-column-by-aspect-ratio distribution. Must live on root — a property
+    // among ColumnLayout children belongs to the layout.
     readonly property var masonryColumns: {
         const imgs = root.images || [];
         const n = Math.max(1, root.columns);
@@ -76,43 +67,31 @@ Item {
     // Diagnostic: last fetch command with secrets redacted (IPC-readable)
     property string lastFetchCmd: ""
     property string lastFetchError: ""
-    // Image-dialog state — the currently open image dialog.
-    // The detail is a root-level overlay (bottom of this file): opening it
-    // resizes nothing, so no frozen grid widths or revealer flags exist.
+    // Image-dialog state. The detail is a root-level overlay, so opening it resizes nothing
+    // and no frozen grid widths or revealer flags exist.
     property var dialogImage: null
-    // Floating-dialog anchor: viewport Y of the clicked card's center at
-    // open time (+ contentY then + card height). Scroll deltas shift the
-    // card's live position; dialogTop re-clamps to follow it until the
-    // card leaves the viewport → auto-close. dialogH is the last measured
-    // dialog content height used for centering/clamping.
+    // Floating-dialog anchor: viewport Y of the clicked card at open time; dialogTop follows
+    // the live scroll until it leaves the viewport (auto-close).
     property real dialogAnchorCenterVy: 0
     property real dialogAnchorContentY: 0
     property real dialogAnchorH: 100
     property real dialogTop: 0
     property real dialogH: 560
-    // Detached dialog: dragging the header grip (or the resize cell)
-    // moves the card into a normal FloatingWindow — a top-level OS
-    // window. Float behavior itself is the compositor's job (Hyprland
-    // float rule, e.g. on this window's title). It stays open across
-    // island close / tab switch / new results until explicitly closed;
-    // clicking another post swaps the content in place. Closing fully
-    // resets to docked.
+    // Detached dialog: the grip moves the card into a FloatingWindow (floating is the
+    // compositor's job). It outlives island close and tab switch until explicitly closed.
     property bool dialogDetached: false
     // Whether the float window was aspect-fit for the current dialog
     // session (keeps the user's resize across post swaps; reset on close).
     property bool floatSized: false
-    // Hover handoff with the floating popup (separate window surface):
-    // the island keeps itself open while this is true (see LeftIsland
-    // requestAutoHide) and re-arms its hide when it clears.
+    // Hover handoff with the floating popup (a separate surface): the island stays open while
+    // this is true and re-arms its hide when it clears.
     property bool popupHovered: false
     // Back-reference injected by LeftIsland (booruView.hostPanel = island).
     property var hostPanel: null
     readonly property string panelMonitorName: root.hostPanel && root.hostPanel.monitorName
         ? root.hostPanel.monitorName : Registry.monitorName
-    // Monitor screen for float-window size clamps. Reactive binding (not
-    // a one-shot onLoaded assign): the nested booru Loader can finish
-    // before the island's own screen prop arrives from the bar, which
-    // left this permanently null and the float surface never visible.
+    // Reactive binding, not a one-shot onLoaded assign: the nested booru Loader can finish
+    // before the island's screen arrives, which left this null and the float never visible.
     property var hostScreen: root.hostPanel && root.hostPanel.screen ? root.hostPanel.screen : null
 
     // Screen size for the float panel (ShellScreen logical pixels, with
@@ -140,13 +119,11 @@ Item {
             return d.width / d.height;
         return 3 / 4;
     }
-    // Overlay entrance driver (0 = parked, 1 = in). Slide/opacity only —
-    // the grid, toolbar, navigation and settings never relayout, so this
-    // cannot feed back into the layout the way a width animation did.
+    // Overlay entrance driver (0 parked, 1 in): slide/opacity only, so it cannot feed back
+    // into the layout the way a width animation did.
     property real detailSlide: 0
-    // Downloaded set: populated automatically by fetchOriginal() when the
-    // full file lands in <api>/images/ (no manual download step).
-    // Keys are api:id (BooruUtils.cacheKey) — sites share numeric ids.
+    // Downloaded set, filled by fetchOriginal() when the full file lands; keys are api:id
+    // because sites share numeric ids.
     property var downloadedIds: ({})
     // forces dialog overlay to recompute toggle states after downloads
     property int dialogVersion: 0
@@ -180,14 +157,11 @@ Item {
             return a.value === v;
         }) || root.booruApis[0];
     }
-    // Local preview-file ids verified present on disk. Grid prefers these
-    // (the downloaded local preview via getPreviewPath()).
-    // Keys are api:id — same numeric id on two sites is not the same file.
+    // Local preview files verified on disk (the grid prefers them); keys are api:id — the
+    // same numeric id on two sites is not the same file.
     property var previewIds: ({})
-    // Cards allowed to fade in. previewIds flips the moment a file lands
-    // on disk (Image starts decoding ASAP); revealedIds is drained one
-    // api:id per _revealTimer tick so cards pop in sequentially instead of
-    // bursting all at once.
+    // Cards allowed to fade in: previewIds flips as soon as a file lands, and revealedIds is
+    // drained one key per tick so cards pop in sequentially instead of bursting.
     property var revealedIds: ({})
 
     // Bumped on every reveal mutation: isRevealed() reads it so delegate
@@ -195,22 +169,17 @@ Item {
     property int revealVersion: 0
     property int _revealIdx: 0
     property var _revealQueue: []
-    // Local full-image ids verified present on disk (dialog cache).
-    // Keys are api:id. Remote danbooru URLs 403 inside Qt, so the dialog
-    // can only show full files downloaded with Referer by fetchOriginal().
+    // Local full-image ids verified on disk (dialog cache), keys api:id. Remote danbooru URLs
+    // 403 inside Qt, so the dialog only shows files downloaded with a Referer.
     property var fullIds: ({})
-    // Initial fetch on load (branches to bookmarks/pins/API
-    // from the restored tab — saved Bookmarks/Pins must not fetch the API).
-    // Deferred until Settings.ready: booting on defaults would fetch with
-    // limit 100 / the wrong tab and persist the defaults over the file.
+    // Initial fetch, branched to bookmarks/pins/API from the restored tab. Deferred until
+    // Settings.ready — booting on defaults fetched with the wrong limit and persisted them.
     property bool _booted: false
-    // Dialog-host mode (e.g. waifu's private host): the instance only ever
-    // serves floating dialogs, so the grid boot fetch (network + preview
-    // downloads + tag persistence) is skipped entirely.
+    // Dialog-host mode (waifu's private host): only floating dialogs, so the grid boot fetch
+    // (network + previews + tag persistence) is skipped entirely.
     property bool dialogOnly: false
-    // Pinned-dialog mode (embedded waifu): dialogImage is owned externally
-    // (bound to Settings.waifu) — every path that clears it would snap the
-    // binding, so all close paths become no-ops while pinned.
+    // Pinned-dialog mode: dialogImage is bound externally (Settings.waifu), so every path that
+    // would clear it becomes a no-op instead of snapping the binding.
     property bool dialogPinned: false
 
     // Slide-out, then unmount: the overlay glides/fades away first and
@@ -223,11 +192,8 @@ Item {
         _closeTimer.restart();
     }
 
-    // Immediate teardown: the detail PopupWindow is a separate surface
-    // whose visibility is driven only by dialogImage, so it outlives the
-    // viewer (island close / tab switch keeps this instance alive in the
-    // cached Loader). Drop the content at once — no slide-out, the host
-    // is already gone.
+    // Immediate teardown: the detail PopupWindow is a separate surface driven only by
+    // dialogImage and outlives the viewer in the cached Loader, so drop the content at once.
     function closeDialogNow() {
         if (root.dialogPinned || root.dialogImage === null)
             return;
@@ -240,18 +206,16 @@ Item {
         root.dialogImage = null;
     }
 
-    // Detach into the FloatingWindow below and aspect-fit it for the
-    // post (bounded by the screen). Runs once per dialog session — the
-    // user's own resize after that is left alone across post swaps.
+    // Detach into the FloatingWindow and aspect-fit the post within the screen, once per
+    // dialog session — a later user resize is left alone across post swaps.
     function detachDialog() {
         if (root.dialogDetached || root.dialogImage === null)
             return;
         // A pending slide-out close (anchor scrolled out, _closeTimer
         // armed) must not nuke the freshly detached float 190ms later.
         _closeTimer.stop();
-        // Size BEFORE flipping detached (which maps the window): the
-        // surface commits its size at map time, so post-map writes can
-        // lose to the declared implicitWidth/implicitHeight defaults.
+        // Size BEFORE flipping detached (which maps the window): the surface commits its size
+        // at map time, so post-map writes lose to the declared implicit defaults.
         if (!root.floatSized) {
             const sw = root.screenW(), sh = root.screenH(), a = root.dialogAspect();
             let w = Math.min(380, sw - 40);
@@ -276,11 +240,8 @@ Item {
         } catch (e) {}
     }
 
-    // Corner resize on the float window, aspect-locked to the post:
-    // SE drag drives width, height follows the ratio inside the
-    // requested rect, clamped to minimums and the screen. Client-set
-    // size (honored once floated via the Hyprland rule); detaches first
-    // when starting from the docked card.
+    // Corner resize on the float window, aspect-locked: SE drag drives width, height follows
+    // the ratio, clamped to minimums and the screen. Detaches first from the docked card.
     function resizeFloat(dx, dy) {
         if (root.dialogImage === null)
             return;
@@ -309,9 +270,8 @@ Item {
         _closeTimer.stop();
     }
 
-    // Host island closed on its monitor → a docked card's popup
-    // surface would stay on screen orphaned, so drop it. A detached
-    // card is its own window and stays open until explicitly closed.
+    // The host island closed → a docked card's popup would stay orphaned, so drop it. A
+    // detached card is its own window and survives.
     Connections {
         target: BarState
         function onPanelStatesByMonitorChanged() {
@@ -330,9 +290,8 @@ Item {
         }
     }
 
-    // Open the overlay at the clicked card: capture the card's viewport
-    // center (+ scroll offset + height), then set the image. Re-clicking
-    // the same image just re-anchors (no unmount churn).
+    // Open the overlay at the clicked card: capture its viewport center (+ scroll offset +
+    // height), then set the image. Re-clicking re-anchors without unmount churn.
     function openDialog(img, card) {
         if (!img)
             return;
@@ -368,11 +327,8 @@ Item {
             root.dialogH = dh;
     }
 
-    // Per-tick follow: recompute the card's target Y from the live scroll
-    // offset and dismiss once the anchor leaves the viewport. This writes
-    // only dialogTop — a local binding that moves content inside the
-    // static popup surface (vsync repaint). It never touches the anchor,
-    // so zero compositor round-trips happen here (that was the stutter).
+    // Per-tick follow: recompute the target Y from the scroll, dismiss when the card leaves the
+    // viewport. Only dialogTop is written — a local repaint, no compositor round-trip.
     function refreshDialogTop(dh) {
         root.adoptDialogHeight(dh);
         if (root.dialogImage === null || root.dialogDetached)
@@ -400,9 +356,8 @@ Item {
             root.hidePanel();
     }
 
-    // Island +/- resize with the popup open moves the edge the static
-    // anchor was computed from: re-push once the configure lands (a
-    // single round-trip on a rare user action — never per-frame).
+    // Island resize with the popup open moves the edge the static anchor came from: re-push
+    // once the configure lands (one round-trip on a rare action, never per frame).
     onWidthChanged: {
         try {
             if (root.dialogImage !== null && detailPopup.visible && typeof detailPopup.anchor.updateAnchor === "function")
@@ -454,20 +409,14 @@ Item {
         return BooruUtils.imageFileUrl(root.booruPath, root.downloadedIds, img);
     }
 
-    // Dialog source: downloaded full file, else cached original, else the
-    // cached preview still while fetchOriginal() downloads the full file,
-    // else "" (dialog shows a spinner).
+    // Dialog source: downloaded full file, else the cached original, else the cached preview
+    // while fetchOriginal() runs, else "" (spinner).
     function dialogSource(img) {
         return BooruUtils.dialogSource(root.booruPath, root.downloadedIds, root.fullIds, root.previewIds, img);
     }
 
-    // Dialog auto-downloads the full file into <api>/images/ with the same
-    // Referer+UA headers as downloadPreviews (Qt gets 403 without them).
-    // When it lands, downloadedIds flips and the Pin button auto-enables.
-    // Ugoira (zip) posts download their transcoded sample video instead
-    // (same name pattern, sample extension); zips without one keep the
-    // placeholder and are skipped. Legacy <api>/originals/ files are
-    // promoted into <api>/images/.
+    // Downloads the full file into <api>/images/ with Referer+UA (Qt gets 403 without them),
+    // then downloadedIds flips and Pin auto-enables. Ugoira takes its transcoded sample.
     function fetchOriginal(img) {
         if (!img || !img.url || !img.api || !img.api.value)
             return;
@@ -561,10 +510,8 @@ Item {
         });
     }
 
-    // Shared pin service. Pinning still requires the auto-downloaded full
-    // file (the fastfetch sync converts <booruPath>/<api>/images/<id>.<ext>),
-    // but fetchOriginal() now fetches it on dialog open, so the button
-    // auto-enables when downloadedIds flips instead of needing a manual step.
+    // Pin needs the auto-downloaded full file (fastfetch converts it), which the dialog
+    // fetches on open — so the button auto-enables rather than needing a manual step.
     function togglePinned(img) {
         if (!img)
             return false;
@@ -598,9 +545,8 @@ Item {
         return BooruActions.saveAsWallpaper(img);
     }
 
-    // Dialog tag hold ("Hold: search"): ADD the tag to the current search
-    // instead of replacing it (current + new, deduped).
-    // No-op when the tag is already in the search.
+    // Dialog tag hold ("Hold: search"): ADD the tag to the current search instead of
+    // replacing it (deduped, no-op when already present).
     function openTags(tag) {
         if (!tag)
             return;
@@ -613,9 +559,8 @@ Item {
         root.page = 1;
         Settings.booru.page = 1;
         Settings.updateSetting("booru.page", 1);
-        // A dialog host has no grid of its own: persist the tags for the
-        // main viewer, but never fire a fetch here (Review: tag-hold from
-        // the waifu dialog must stay network-silent).
+        // A dialog host has no grid: persist the tags for the main viewer, but never fetch
+        // here (tag-hold from the waifu dialog must stay network-silent).
         if (!root.dialogOnly && !root.dialogPinned && root.selectedTab !== "Bookmarks" && root.selectedTab !== "Pins")
             root.fetchImages();
     }
@@ -624,10 +569,8 @@ Item {
         return BooruActions.copyTag(tag);
     }
 
-    // Manual property copy (QML JS has no object-spread `{...obj}`):
-    // preserve the
-    // item's own stored api so cross-API bookmarks/pins resolve to the right
-    // preview dir and idSearchUrl — never overwrite with the current tab.
+    // Manual copy (QML JS has no object spread): preserve the item's own stored api so
+    // cross-API bookmarks and pins resolve to the right preview dir — never the current tab.
     function clonify(img) {
         return BooruUtils.clonify(img, root.currentApiObj);
     }
@@ -672,9 +615,8 @@ Item {
     function cleanCache() {
         const apiValue = Settings.booru.api ? Settings.booru.api.value : "danbooru";
         const base = root.booruPath + "/" + apiValue;
-        // IMPORTANT: never quote the trailing /* — single quotes made rm
-        // look for a literal "*" file and delete nothing. Drop whole dirs
-        // then recreate; run du only after rm finishes so the label updates.
+        // Never quote the trailing /* — rm looked for a literal "*" and deleted nothing. Drop
+        // whole dirs then recreate; run du only after rm finishes so the label updates.
         const proc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
         proc.command = ["bash", "-c", "rm -rf " + JSON.stringify(base + "/previews") + " " + JSON.stringify(base + "/images") + " " + JSON.stringify(base + "/originals") + " && mkdir -p " + JSON.stringify(base + "/previews") + " " + JSON.stringify(base + "/images") + " " + JSON.stringify(base + "/originals") + " && du -sb " + JSON.stringify(base + "/previews") + " " + JSON.stringify(base + "/images") + " " + JSON.stringify(base + "/originals") + " 2>/dev/null | awk '{s+=$1} END {print s+0}'"];
         proc.stdout.onStreamFinished.connect(function () {
@@ -704,9 +646,8 @@ Item {
         const startIndex = root.limit > 0 ? (currentPage - 1) * root.limit : 0;
         // Build command
         let cmd = ["python", root.booruScript, "--api", apiValue, "--tags", tagsStr, "--limit", String(root.limit), "--page", String(currentPage)];
-        // Add API credentials if available (credentials.user.value /
-        // credentials.key.value; Settings.apiKey unwraps either shape and
-        // falls back to the shipped public defaults)
+        // Add API credentials when available: Settings.apiKey unwraps either shape and falls
+        // back to the shipped public defaults.
         const apiUser = Settings.apiKey(apiValue, "user");
         const apiPass = Settings.apiKey(apiValue, "key");
         if (apiUser !== "" && apiPass !== "")
@@ -724,9 +665,8 @@ Item {
         proc.stderr = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
         proc.running = true;
         const mySeq = root._fetchSeq;
-        // NOTE: read streams on process exit, NOT on stdout.onStreamFinished:
-        // stderr may not have flushed when stdout closes, which hid the
-        // script's real error envelope (empty stderr reads).
+        // Read streams on process exit, NOT on stdout.onStreamFinished: stderr may not have
+        // flushed yet, which hid the script's real error envelope.
         proc.exited.connect(function (exitCode, exitStatus) {
             // Drop stale responses: a newer fetch (newer tag set) supersedes
             // this one, so its results must not touch the grid.
@@ -831,9 +771,8 @@ Item {
         root._revealIdx = 0;
     }
 
-    // Scan images in order; anything cached/downloaded but neither
-    // revealed nor queued joins the FIFO. The timer drains one per tick
-    // so cards fade in one at a time in grid order.
+    // Anything cached but neither revealed nor queued joins the FIFO; the timer drains one
+    // per tick so cards fade in one at a time in grid order.
     function queueAvailableForReveal() {
         const imgs = root.images || [];
         let q = root._revealQueue.slice();
@@ -856,21 +795,14 @@ Item {
         }
     }
 
-    // Grid source: full image file if downloaded, else cached preview file,
-    // else blank until downloadPreviews() caches it (no remote fallback —
-    // Qt TLS segfaults on cdn.donmai.us and gets 403 anyway).
+    // Grid source: the full file if downloaded, else the cached preview, else blank until
+    // downloadPreviews() caches it — no remote fallback (Qt TLS segfaults on cdn.donmai.us).
     function gridSource(img) {
         return BooruUtils.gridSource(root.booruPath, root.downloadedIds, root.previewIds, img);
     }
 
-    // Bounded-concurrency preview downloads (max 4 parallel curls).
-    // Was: one check-Process per image + one detached curl per missing
-    // file (up to `limit` parallel curls) + a 700ms polling timer.
-    // Now: a single batch existence check, then a worker pump that keeps
-    // at most MAX_DL downloads in flight. Each worker is a managed
-    // Process (not execDetached), so completion directly flips that one
-    // card to file:// — no polling, and a page turn drops the stale
-    // queue via _dlSeq instead of downloading images nobody sees.
+    // Bounded preview downloads (max 4 curls): one batch disk check then a worker pump of
+    // managed Processes, so a page turn drops the stale queue via _dlSeq.
     function downloadPreviews(imgList) {
         root._dlSeq++;
         const mySeq = root._dlSeq;
@@ -894,10 +826,8 @@ Item {
         if (tasks.length === 0)
             return;
 
-        // One batch check for everything already on disk (warm cache /
-        // revisits flip instantly with zero network). NOTE: the stdout
-        // collector must be attached in the constructor — setting
-        // running=true before assigning stdout races and drops output.
+        // One batch check of what is already on disk. Attach stdout in the constructor —
+        // setting running=true first races and drops output.
         const checkProc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
         checkProc.command = ["bash", "-c", tasks.map(t => {
             return "test -s " + JSON.stringify(t.path) + " && echo " + JSON.stringify(t.key);
@@ -934,17 +864,15 @@ Item {
                 while (active < MAX_DL && next < missing.length) {
                     const t = missing[next++];
                     active++;
-                    // Write to .part then mv atomically so a concurrent
-                    // checkProc never marks a truncated curl -o target,
-                    // and Image never opens a half-written preview.
+                    // Write to .part then mv atomically so checkProc never marks a truncated
+                    // target and Image never opens a half-written preview.
                     const part = t.path + ".part";
                     const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
                     dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(t.dir)} && curl -sSf --max-time 30 -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("booru"))} -H ${Settings.shQuote("Referer: " + t.referer)} -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(t.path)} ${JSON.stringify(t.url)} && test -s ${JSON.stringify(t.path)}`];
                     dl.exited.connect(function (code) {
                         active--;
-                        // Mark even when superseded: the file is warm on
-                        // disk now, and the reveal queue only admits keys
-                        // in the current result set, so this is harmless.
+                        // Mark even when superseded: the file is warm on disk and the reveal
+                        // queue only admits keys in the current result set.
                         if (code === 0) {
                             const ids = Object.assign({}, root.previewIds);
                             if (!ids[t.key]) {
@@ -997,9 +925,8 @@ Item {
         });
     }
 
-    // Build page-number buttons:
-    // show "1 ..." if page > 3, then a window of ~(width/100+2) pages;
-    // current page labelled with refresh glyph, others with the number.
+    // Page buttons: "1 ..." past page 3, then a ~(width/100+2) window; the current page
+    // shows a refresh glyph, the rest their number.
     function buildPageButtons() {
         return BooruUtils.buildPageButtons(root.widgetWidth, root.page);
     }
@@ -1089,10 +1016,8 @@ Item {
             Qt.callLater(() => root.refreshDialogTop(-1));
         }
     }
-    // On new images: slide new page in from the travel direction,
-    // scroll to top; first render appears without transition.
-    // New results invalidate the anchor card → drop the dialog at once
-    // (the scroll reset below would auto-close it a frame later anyway).
+    // On new images slide the page in from the travel direction and scroll to top; the
+    // anchor card is invalidated, so the dialog drops at once.
     onImagesChanged: {
         // A detached card is its own window: new grid results must not
         // pull it away. Docked cards drop at once (anchor invalidated).
@@ -1120,10 +1045,8 @@ Item {
             _bootTimer.start();
     }
 
-    // Follow external Settings.booru changes (file reload, bookmark script
-    // response): keep viewer state in sync without refetching here — tab
-    // switches already load/fetch at their call sites. Guards prevent
-    // feedback loops with our own writes.
+    // Follow external Settings.booru changes (file reload, bookmark script) without refetching
+    // here — tab switches fetch at their call sites; guards stop feedback with our own writes.
     Connections {
         target: Settings
         function onBooruChanged() {
@@ -1161,9 +1084,8 @@ Item {
         interval: 45
         repeat: true
         onTriggered: {
-            // Drain one card per tick: the sequential pop-in. An index
-            // pointer instead of slice()-per-tick — the queue only ever
-            // grows here, so nothing needs un-draining.
+            // Drain one card per tick (sequential pop-in). An index pointer instead of
+            // slice()-per-tick: the queue only grows here, so nothing is un-drained.
             const q = root._revealQueue || [];
             if (root._revealIdx >= q.length) {
                 _revealTimer.stop();
@@ -1190,13 +1112,11 @@ Item {
         onTriggered: root.boot()
     }
 
-    // ColumnLayout (NOT Column): the ScrollView needs Layout.fillHeight to
-    // claim remaining space — in a plain Column fillHeight is ignored and
-    // the grid collapses to zero height (images "not displayed").
+    // ColumnLayout (NOT Column): the ScrollView needs Layout.fillHeight to claim space — in a
+    // plain Column it is ignored and the grid collapses to zero height.
     ColumnLayout {
-        // Grid claims the full widget width at all times: the detail is a
-        // floating popup (below), so opening it never resizes or relayouts
-        // the grid, navigation or settings panels.
+        // The grid always claims the full widget width: the detail is a floating popup, so
+        // opening it never resizes or relayouts grid, navigation or settings.
         anchors.fill: parent
         spacing: Theme.spacing
 
@@ -1210,10 +1130,8 @@ Item {
             Layout.fillHeight: true
         }
 
-        // Tabs + page buttons + prev/reveal/next live in BooruNavigation
-        // (BooruToolbar was merged into it).
-        // NOTE: bookmark toggling lives in the shared BooruActions service
-        // (booru.py toggle-bookmark); no local Process component needed.
+        // Tabs, page buttons and prev/reveal/next live in BooruNavigation (BooruToolbar was
+        // merged into it). Bookmark toggling lives in BooruActions (booru.py toggle-bookmark).
 
         // Bottom bar: navigation + revealable settings
         Column {
@@ -1232,14 +1150,8 @@ Item {
 
     }
 
-    // Floating detail popup: separate window surface docked to the island's
-    // right edge, spanning the full viewer height. The surface itself is
-    // STATIC — positioned once at show time, never repositioned — and the
-    // card glides inside it (y binding + Behavior below). That is the
-    // whole smoothness audit: moving the window costs an xdg-popup
-    // configure round-trip per tick (the old stutter); moving content
-    // inside a static surface is a local vsync repaint. Overlaps the
-    // overlaps the island edge by 4px for an attached look (popups render above).
+    // Floating detail popup: a STATIC surface docked to the island's right edge with the card
+    // gliding inside it — moving the window cost a configure round-trip per tick (stutter).
     PopupWindow {
         id: detailPopup
         anchor.item: root
@@ -1247,27 +1159,16 @@ Item {
         anchor.rect.y: 0
         anchor.rect.width: 1
         anchor.rect.height: 1
-        // Defaults (edges Top|Left, gravity Bottom|Right) already mean:
-        // top-left corner at the rect, expanding down-right. No overrides.
-        // Wider than the old 232px: the overhauled dialog uses 2-col
-        // action grids + meta/tag pills that need the breathing room.
+        // Defaults (edges Top|Left, gravity Bottom|Right) already put the top-left corner at
+        // the rect, expanding down-right. 232px was too narrow for the 2-col action grids.
         implicitWidth: 288
         implicitHeight: Math.max(48, Math.round(root.height))
-        // Gated on the host being actually shown: dialogImage alone
-        // outlives island close / tab switch (cached Loader), which left
-        // an orphan popup on screen. closeDialogNow() clears the image
-        // right after; this guard covers the debounce gap. Hidden while
-        // detached — the card lives in the FloatingWindow below instead.
-        // Pinned hosts (embedded waifu) never use the docked popup — the
-        // card is embedded directly, and showing it here would pop an
-        // orphan card whenever the left island opens.
+        // Gated on the host being shown — dialogImage outlives island close and left an orphan
+        // popup. Hidden while detached and for pinned hosts (the card is embedded).
         visible: root.dialogImage !== null && !root.dialogDetached && !root.dialogPinned && BarState.isOpenFor("left", root.panelMonitorName) && (!root.hostPanel || root.hostPanel.selectedWidget === "BooruViewer")
         color: "transparent"
-        // Clickthrough everywhere except the card: the surface is
-        // viewer-tall, so without this the transparent strip would eat
-        // clicks meant for windows behind it. Region tracks the gliding
-        // card via plain bindings (piggybacked surface commits, no
-        // reposition handshake).
+        // Clickthrough everywhere except the card: the surface is viewer-tall, so otherwise it
+        // would eat clicks meant for windows behind. The Region tracks the card by binding.
         mask: Region {
             x: popupDialog.x
             y: popupDialog.y
@@ -1280,11 +1181,8 @@ Item {
             viewer: root
             videoActive: detailPopup.visible
             width: parent.width
-            // Glide track: viewer coords == popup coords vertically (the
-            // anchor pins popup-top to viewer-top), kept real-valued for
-            // subpixel motion. The Behavior trails fast flicks into a
-            // glide; close decisions use the unanimated math, so timing
-            // never drifts.
+            // Glide track: viewer and popup coords line up vertically, kept real-valued for
+            // subpixel motion; close decisions use the unanimated math so timing never drifts.
             y: grid.y + root.dialogTop
             height: Math.min(implicitHeight, detailPopup.height)
             Behavior on y {
@@ -1296,12 +1194,8 @@ Item {
         }
     }
 
-    // Detached card window: a normal top-level OS window. Float behavior
-    // is the compositor's job — add a Hyprland rule on this title, e.g.
-    // `windowrule = float, match:title ^(Booru)`. Same card component as
-    // the docked popup, bound to the same viewer state; content fills the
-    // window. Independent lifetime: island close / tab switch / new
-    // results never touch it — only explicit close does.
+    // Detached card window: a real top-level OS window (floating is the compositor's job via a
+    // windowrule on this title), same card and state, ending only on an explicit close.
     FloatingWindow {
         id: detailFloat
         title: root.dialogImage ? `Booru #${root.dialogImage.id}` : "Booru"
@@ -1311,21 +1205,15 @@ Item {
         minimumSize: Qt.size(240, 200)
         color: "transparent"
 
-        // If the window dies behind our back (WM close button / keybind
-        // kill), quickshell flips visible without touching our state, and
-        // the true-valued binding above never re-pushes — every later
-        // open would no-op onto a dead surface. Resync to closed so the
-        // next open starts clean. Programmatic closes set detached=false
-        // first, so they never trip this guard.
+        // A WM-side close flips visible without touching our state, and the true-valued binding
+        // never re-pushes, so later opens no-op on a dead surface — resync to closed.
         onVisibleChanged: {
             if (!visible && root.dialogDetached && root.dialogImage !== null) {
                 _closeTimer.stop();
                 root.dialogDetached = false;
                 root.floatSized = false;
-                // Pinned hosts (embedded waifu): dialogImage is an external
-                // binding (Settings.waifu) — nulling it would snap the
-                // binding and blank the widget, and dropping detailSlide
-                // would fade the embedded card with nothing restoring it.
+                // Pinned hosts: dialogImage is an external binding (Settings.waifu), so nulling
+                // it would snap the binding and blank the widget; detailSlide must stay too.
                 if (!root.dialogPinned) {
                     root.detailSlide = 0;
                     root.dialogImage = null;

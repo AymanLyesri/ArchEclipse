@@ -3,24 +3,16 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Greetd
 
-// Greetd auth backend. LockContext-compatible subset for the greeter surface:
-// shared props (currentText/promptText/authInProgress/showFailure),
-// start()/tryAuth()/cancel() verbs, launched()/failed() signals.
-// NOTE: GreetdState has no Idle value (Inactive/Authenticating/ReadyToLaunch/
-// Launching/Launched) — Inactive is the pre-session state.
-// Race guard: the password prompt can arrive before the user submits, or the
-// user can submit before the prompt arrives. Submissions stash into
-// pendingResponse and flush when the non-echo prompt arrives; prompts wait
-// (promptWaiting) instead of answering with a stale/empty currentText.
+// Greetd auth backend, a LockContext-compatible subset (currentText/promptText/authInProgress,
+// start/tryAuth/cancel). GreetdState has no Idle value; Inactive is the pre-session state.
 Scope {
     id: root
     signal launched()
     signal failed()
     property string currentText: ""
     property string userName: ""
-    // All human users for the picker. NSS-aware (getent covers
-    // LDAP/SSSD, not just /etc/passwd); shells that cannot log in
-    // (nologin/false) are not login candidates.
+    // All human users for the picker: NSS-aware (getent covers LDAP/SSSD), excluding shells that
+    // cannot log in (nologin/false).
     property var users: []
     function selectUser(name) {
         if (root.userName === name)
@@ -53,16 +45,14 @@ Scope {
             }
         }
     }
-    // Initial prompt is the password box's placeholder (the username
-    // field has its own): starting as "Username" renders two
-    // username-looking inputs. Real prompts arrive via authMessage.
+    // Initial prompt is the password box's placeholder (the username field has its own): starting
+    // as "Username" renders two username-looking inputs.
     property string promptText: "Password"
     property string sessionKey: "hyprland"
     property var sessions: ([])
     property bool authInProgress: false
-    // Session-open flag, separate from authInProgress: the box must stay
-    // typable while the session opens (the password submits on prompt
-    // arrival). authInProgress means "verdict pending" only.
+    // Session-open flag, separate from authInProgress: the box stays typable while the session
+    // opens. authInProgress means "verdict pending" only.
     property bool sessionActive: false
     property bool showFailure: false
     property bool ready: Greetd.state === GreetdState.ReadyToLaunch
@@ -141,9 +131,8 @@ Scope {
             root.promptText = message;
             if (echoResponse)
                 return;
-            // Only answer with an explicitly submitted password (tryAuth
-            // stashed it). Auto-answering with currentText here would send
-            // a half-typed password — or the still-uncleared username.
+            // Only answer with an explicitly submitted password (tryAuth stashed it); auto-answering
+            // with currentText would send a half-typed password or the uncleared username.
             if (root.hasPending) {
                 Greetd.respond(root.pendingResponse);
                 root.authInProgress = true;

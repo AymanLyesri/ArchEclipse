@@ -11,10 +11,8 @@ ClippingRectangle {
     readonly property real implicitImageWidth: root.__useAnimated ? agif.implicitWidth : img.implicitWidth
     readonly property real implicitImageHeight: root.__useAnimated ? agif.implicitHeight : img.implicitHeight
     property int sourceWidth: 0
-    // Disk-backed fixed paths (e.g. the greeter wallpaper, overwritten in
-    // place on every set) need cache:false — otherwise the URL-keyed cache
-    // keeps serving the stale/empty load forever. Default true preserves
-    // the shared thumbnail behavior everywhere else.
+    // Disk-backed fixed paths (greeter wallpaper, overwritten in place) need cache:false — the
+    // URL-keyed cache would serve the stale load forever. Default true elsewhere.
     property bool cache: true
     // Optional fallback (e.g. original file when thumbnail is missing).
     // If the main source fails to load, automatically retry once with this.

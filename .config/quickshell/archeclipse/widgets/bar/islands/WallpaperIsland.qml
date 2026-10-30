@@ -3,24 +3,12 @@ import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.wallpaperPanel
 
-// Wallpaper island: the full switcher body inline in the bar pill.
-// Same unfold pattern as SearchIsland — the pill grows (width via
-// the pill transition, height snapped on the window) while this body unfolds.
-//
-// Persistent like SearchIsland (no leave auto-close — picking a wallpaper
-// is a task, not a hover peek). Closes via Esc, SUPER+W toggle, or the
-// control-panel wallpaper button.
+// Wallpaper island: the full switcher body inline in the bar pill, same unfold pattern as
+// SearchIsland. Persistent (no leave auto-close): Esc, SUPER+W or the control button closes it.
 Column {
     id: root
-    // The bar sizes the pill from this item's implicitWidth (Bar.qml
-    // stack.activeWidth). Set it HERE, not on the body: nothing
-    // propagates a child's implicit width up to the island root, so a
-    // value on WallpaperPanelBody is inert. This `width` is the single
-    // source of truth — the body just stretches to the clip.
-    // Do NOT declare `implicitWidth` on this Column: it is read-only
-    // ("Invalid property assignment: implicitWidth is a read-only
-    // property") and the whole island fails to load with that error.
-    // Verify with: ipc call bar wallpaperDiag width <mon>
+    // The bar sizes the pill from THIS item's width (Bar.qml stack.activeWidth) — a value on the
+    // body is inert. Never declare implicitWidth here: it is read-only and the island fails to load.
     width: root.screen ? Math.min(1280, root.screen.width - 64) : 1280
 
     // Island owner passes the bar's monitor; body falls back to focused.
@@ -31,11 +19,8 @@ Column {
     property real expand: 0
     Component.onCompleted: {
         expand = 1;
-        // NOTE: the registered handle is the *body* (not the island
-        // root) — Ipc.wallpaperDiag reads body probes (categories,
-        // wallStrip, ...) off it. Both the bare alias and the keyed
-        // entry are unregistered in onDestruction below (`destroyed`
-        // is not connectable in this engine, so no helper does it).
+        // NOTE: the registered handle is the *body*, not the island root — Ipc.wallpaperDiag
+        // reads body probes off it; both entries die in onDestruction (`destroyed` not connectable).
         Registry.register(root.registryKey(), body);
         Registry.register("wallpaper-island", body);
     }

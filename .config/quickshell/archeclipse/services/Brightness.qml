@@ -4,9 +4,8 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Brightness of the FOCUSED monitor.
-//   * internal panel (eDP/LVDS/DSI) -> brightnessctl over /sys/class/backlight/*
-//   * external monitor              -> DDC/CI via ddcutil (needs i2c-dev + `i2c` group)
+// Brightness of the FOCUSED monitor: internal panels go through brightnessctl on
+// /sys/class/backlight, external ones through DDC/CI (ddcutil needs i2c-dev).
 QtObject {
     id: root
 
@@ -19,9 +18,8 @@ QtObject {
     property string targetName: ""
     // Default step (percent) for increment()/decrement().
     property int step: 10
-    // Emitted when the controlled monitor's brightness really changed (key, slider,
-    // external write) — NOT when focus merely moves to a monitor with another value.
-    // BarState / bar widget use it to pulse the OSD.
+    // Fires on real changes only (key, slider, external write) — never when focus
+    // merely moves to a monitor with another value.
     signal adjusted(string monitorName)
 
     // ---- internal backlight state ----
@@ -35,9 +33,8 @@ QtObject {
     // ---- DDC/CI state ----
     // [{ name: "DP-1", bus: "5", max: 100, value: 0..1, ready: bool }]
     property var _ddc: []
-    // Reactive monitor -> brightness snapshot. DDC entries are plain JS
-    // objects, so copy ready values here whenever _refreshScreen runs; QML
-    // bindings for a non-focused monitor then receive change notifications.
+    // DDC entries are plain JS objects, so copy ready values here on every
+    // _refreshScreen — that is what notifies bindings for a non-focused monitor.
     property var _monitorBrightnessValues: ({})
     // bus -> raw value still to be written (latest wins)
     property var _ddcPending: ({})
@@ -45,9 +42,7 @@ QtObject {
     // Low sleep multiplier + no verify read-back: ~5x faster, fine for relative UI use.
     readonly property var _ddcFlags: ["--noverify", "--sleep-multiplier", ".1"]
 
-    // =====================================================================
-    // Target resolution
-    // =====================================================================
+    // ===== Target resolution =====
     function _focusedName() {
         const m = Hyprland.focusedMonitor;
         return m ? m.name : "";
@@ -115,9 +110,7 @@ QtObject {
         }
     }
 
-    // =====================================================================
-    // Public control functions (IPC + sliders)
-    // =====================================================================
+    // ===== Public control functions (IPC + sliders) =====
 
     // Absolute set, 0..1. Used by sliders. Returns a human-readable result.
     function setScreen(percent, monitorName) {
@@ -193,13 +186,10 @@ QtObject {
         return "no controllable display for '" + name + "'";
     }
 
-    // =====================================================================
-    // Internal backlight (brightnessctl)
-    // =====================================================================
+    // ===== Internal backlight (brightnessctl) =====
 
-    // The kernel emits inotify MODIFY events on /sys/class/backlight/*/brightness
-    // for every change, so FileView gives instant zero-poll updates for our own
-    // writes and external ones alike.
+    // The kernel emits inotify MODIFY on .../brightness for every change, so FileView
+    // gives instant zero-poll updates for our writes and external ones alike.
     property FileView _brightnessView: FileView {
         watchChanges: true
         onFileChanged: reload()
@@ -270,9 +260,7 @@ QtObject {
         root._setBrightnessProc.running = true;
     }
 
-    // =====================================================================
-    // External monitors (ddcutil / DDC-CI)
-    // =====================================================================
+    // ===== External monitors (ddcutil / DDC-CI) =====
 
     // `ddcutil detect` is slow (seconds) — run once at startup and on hotplug.
     // Missing ddcutil is not an error: the shell wrapper just prints nothing.
@@ -316,10 +304,8 @@ QtObject {
         root._refreshScreen();
     }
 
-    // Initial read of the current value, one monitor at a time (I2C is slow and
-    // doesn't like parallel access). The bus number is echoed in front of the
-    // ddcutil output so the result can't be attributed to the wrong monitor
-    // regardless of stream-finished / exited ordering.
+    // Read one monitor at a time (I2C hates parallel access), with the bus echoed in
+    // front of the output so a result can't be misattributed on out-of-order exit.
     function _readNextDdc() {
         if (root._ddcReadProc.running || root._ddcReadQueue.length === 0)
             return;

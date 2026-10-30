@@ -3,15 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// System resources for the bar's resource monitor.
-// One compiled Rust helper (no extra polling) streams tagged JSON on stdout:
-//   SYS {...} -> {cpuLabel, cpuLoad, clockGHz, threads, cpuTempC,
-//                 ramTotalGB, ramUsedGB, ramFreeGB, ramUsage,
-//                 gpus:[{label, driver, load, memoryUsedGB, memoryTotalGB, tempC}],
-//                 updatedAt}          (every 5s, first sample after 300ms)
-//   BW  [...] -> [upBytes/s, downBytes/s, upBytesToday, downBytesToday]
-//                                        (every 3s, first sample after one interval)
-// The binary is built by the AutoCompiling singleton from scripts/sysmonitor.rs.
+// System resources for the bar: one compiled Rust helper streams tagged JSON
+// (SYS every 5s, BW every 3s), built by AutoCompiling from scripts/sysmonitor.rs.
 QtObject {
     id: root
 
@@ -23,10 +16,8 @@ QtObject {
     property var loopProcObj: null
     property int resourceConsumers: 0
 
-    // Backoff restart for the loop: an immediate `running = true` on exit
-    // spin-loops at 100% CPU when the binary is missing/crashing (e.g.
-    // sysmonitor exits(1) with no default route). 2s delay + running
-    // guard keeps one instance alive without hammering.
+    // 2s backoff before restarting the loop: an immediate `running = true` on exit
+    // spin-loops at 100% CPU when the binary is missing (exits 1 with no default route).
     property Timer loopRestartTimer: Timer {
         interval: 2000
         repeat: false
@@ -76,10 +67,8 @@ QtObject {
             }`, root);
     }
 
-    // The loop serves bandwidth (always visible in the bar) as well as
-    // on-demand resource views, so it runs whenever the binary is ready —
-    // the consumer count below is bookkeeping for callers, not a
-    // lifecycle gate (the loop idles at ~0% CPU between samples anyway).
+    // The loop also serves bandwidth, so it runs whenever the binary is ready; the
+    // consumer count is bookkeeping for callers, not a lifecycle gate (idles at ~0%).
     function acquireResources() {
         root.resourceConsumers++;
         if (root.binPath && !root.loopProcObj)

@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-// Shared iOS-style switch — replaces raw checkboxes in settings rows.
-// Same contract as AppCheckBox (checked + onToggled), so call sites only
-// swap the type.
+// Shared iOS-style switch replacing raw checkboxes in settings rows: same contract as
+// AppCheckBox (checked + onToggled), so call sites only swap the type.
 Switch {
     id: root
 

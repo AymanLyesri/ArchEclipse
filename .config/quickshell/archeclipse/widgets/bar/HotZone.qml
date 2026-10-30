@@ -3,11 +3,8 @@ import Quickshell
 import qs.theme
 import qs.services
 
-// Hot-zone strips at the bar's left/right ends — reveal the left/right
-// islands immediately on hover (no dwell). Per-side lock + hotZone toggle;
-// click also reveals (harmless extra, helps touch users).
-// The islands live in side pills beside the bar; monitor-scoped state keeps
-// the hovered bar's panels local to that screen.
+// Hot-zone strips at the bar's ends reveal the left/right islands on hover (per-side lock +
+// hotZone toggle); click also reveals, for touch. State is monitor-scoped.
 Rectangle {
     id: root
 
@@ -28,12 +25,8 @@ Rectangle {
 
     property bool preview: false
 
-    // Dwell before hover opens the island: the strips sit at both bar
-    // ends, so dragging the cursor out of an open island across the bar
-    // used to brush the rival strip and instantly swap islands (left ->
-    // right with no intent). Intentional hovers dwell; crossings don't.
-    // Bound to Settings.revealInPressure (0 = instant). Click still opens
-    // immediately (touch users).
+    // Dwell before hover opens: both strips sit at the bar ends, so a cursor crossing used to
+    // swap islands instantly. Clicks stay immediate; Settings.revealInPressure 0 = instant.
     property int dwellMs: Settings.revealInPressure
     Timer {
         id: dwellTimer

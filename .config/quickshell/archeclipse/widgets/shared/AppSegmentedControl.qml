@@ -1,26 +1,5 @@
-// Shared animated segmented control: single-select pill group with a
-// sliding highlight (e.g. wallpaper switcher's workspace/sddm/lockscreen
-// target type). Single highlight Rectangle animates x/width — one moving
-// part, not per-button fades, so selection visibly slides.
-//
-//   model        -> [string] or [{value,label[,icon,tooltip,enabled]}].
-//                 Strings use the string as both value and label and are
-//                 always enabled; object entries may set enabled: false
-//                 (e.g. a tab whose content isn't available yet).
-//   currentIndex -> selected index (caller-driven, ComboBox-style).
-//   activated(i, value) -> emitted on user pick (including re-clicks on
-//                 the current cell, mirroring the old toggle buttons whose
-//                 onClicked re-ran e.g. refetch — caller writes its state;
-//                 re-assigning the same value is a harmless no-op).
-//   enabled      -> Item.enabled dims the whole control and blocks input;
-//                 per-item disabled cells dim individually.
-//
-// Example:
-//   AppSegmentedControl {
-//       model: root.targetTypes
-//       currentIndex: root.targetTypes.indexOf(root.targetType)
-//       onActivated: (i, v) => root.targetType = v
-//   }
+// Shared animated segmented control: single-select pills with one sliding highlight Rectangle
+// (model [string] or [{value,label,icon,tooltip,enabled}], currentIndex caller-driven).
 import QtQuick
 import QtQuick.Controls
 import qs.theme
@@ -41,17 +20,14 @@ Item {
     property int cellVPadding: 8
     property int highlightMargin: 2
     property int animationDuration: Theme.anim.defaultEffects
-    // Opt-in equal-fill: cells stretch to share root.width (e.g. a
-    // power-profile selector hexpanding in a narrow column). Off by
-    // default so existing implicit-sized usages are untouched.
+    // Opt-in equal-fill: cells stretch to share root.width, off by default so implicit-sized
+    // usages stay untouched.
     property bool stretchCells: false
 
     signal activated(int index, var value)
 
-    // The cell the highlight tracks. Set imperatively (Repeater children
-    // only exist after delegate creation), but the highlight geometry
-    // binds to it below — so Row repositioning after a model swap is
-    // followed automatically instead of freezing at stale coordinates.
+    // The cell the highlight tracks: set imperatively (Repeater children exist after creation)
+    // but bound by the highlight, so Row repositioning after a model swap is followed.
     property Item highlightCell: null
     property int _syncRetries: 0
 
@@ -88,9 +64,8 @@ Item {
         border.color: Theme.border
         opacity: root.enabled ? 1 : Theme.opacity.disabled
 
-        // Sliding selection pill — the only animated chrome. Geometry
-        // follows highlightCell (reactive to Row layout), so it never
-        // sticks at a stale position after a model/currentIndex swap.
+        // Sliding selection pill — the only animated chrome; geometry follows highlightCell so
+        // it never sticks after a model/currentIndex swap.
         Rectangle {
             id: highlight
             visible: root.highlightCell !== null
@@ -138,14 +113,11 @@ Item {
 
                     implicitWidth: cellRow.implicitWidth + root.cellHPadding * 2
                     implicitHeight: cellRow.implicitHeight + root.cellVPadding * 2
-                    // Stretched mode: share root.width equally (floor at
-                    // implicit size). Reads root.width — not row.width —
-                    // so the Row's own implicit sizing can't loop back.
+                    // Stretched mode shares root.width equally (floor at implicit size). Reads
+                    // root.width, not row.width, so the Row's implicit sizing cannot loop back.
                     width: root.stretchCells && root.count > 0 ? Math.max(implicitWidth, (root.width - root.highlightMargin * 2 - (root.count - 1) * row.spacing) / root.count) : implicitWidth
-                    // Full-row click area. NOTE: must NOT bind to
-                    // row.height — a child's geometry feeding back into
-                    // the positioner's own geometry makes the Row report
-                    // 0 implicit size (control collapses to just margins).
+                    // Full-row click area. Must NOT bind to row.height — a child feeding the
+                    // positioner's geometry makes the Row report 0 implicit size.
                     height: implicitHeight
 
                     AppTooltip {
@@ -201,9 +173,8 @@ Item {
     function syncHighlight() {
         const cell = repeater.itemAt(root.currentIndex);
         if (!cell) {
-            // Delegates (re)build a frame after a model swap — retry
-            // briefly instead of parking the highlight at stale coords.
-            // Keep the old highlightCell meanwhile (no clearing flash).
+            // Delegates rebuild a frame after a model swap — retry briefly instead of parking
+            // the highlight at stale coords; keep the old cell meanwhile (no clearing flash).
             if (root.currentIndex >= 0 && root.currentIndex < repeater.count && root._syncRetries < 20) {
                 root._syncRetries++;
                 Qt.callLater(syncHighlight);

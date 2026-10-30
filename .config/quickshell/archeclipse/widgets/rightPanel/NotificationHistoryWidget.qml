@@ -5,26 +5,21 @@ import qs.services
 import qs.theme
 import qs.widgets.shared
 
-// Notification History widget ported from widgets/rightPanel/components/NotificationHistory.tsx
-// Flat newest-first list where every row is the same card as the
-// NotificationPopups popups (see ../notifications/NotificationPopups.qml
-// and NotificationItem.qml): left-click a card copies its content,
-// right-click dismisses (removes) it.
+// Notification history: a flat newest-first list of the same cards the toasts use
+// (NotificationCardBody) — left-click copies, right-click dismisses.
 Item {
     id: root
 
-    // Retained history (NOT the ephemeral toasts): entries survive popup
-    // expiry exactly like binding the daemon's notification list.
-    // Entry shape: {id, time (epoch s), notif (live NotificationObject)}.
+    // Retained history (NOT the ephemeral toasts): entries survive popup expiry, shaped
+    // {id, time (epoch s), notif (live NotificationObject)}.
     property var notifications: Notifications.history
     property string filterText: ""
 
     Connections {
         target: Notifications
         function onHistoryChanged() {
-            // New arrival while pinned at the top: re-pin after polish so
-            // the newest (first) notification is fully visible instead of
-            // sitting half-clipped above the viewport.
+            // New arrival while pinned at the top: re-pin after polish so the newest card is fully
+            // visible instead of half-clipped above the viewport.
             const wasTop = nScroll.contentY <= 1;
             root.notifications = Notifications.history;
             if (wasTop) {
@@ -36,9 +31,8 @@ Item {
         }
     }
 
-    // Newest-first, capped, filtered across app name + summary + body
-    // (description), case-insensitive. The daemon already caps history at
-    // maxHistory (dismissing overflow), so this only slices for display.
+    // Newest-first, capped, filtered across app name + summary + body, case-insensitive. The
+    // daemon already caps history, so this only slices for display.
     function filteredList(notifications, filter) {
         const MAX_NOTIFICATIONS = 50;
         const sorted = [...notifications].sort((a, b) => b.time - a.time);
@@ -55,10 +49,8 @@ Item {
 
     property var visibleNotifications: filteredList(notifications, filterText)
 
-    // Natural height for embedders (right island card): header + filter +
-    // list (capped — internal scroll takes over past the cap) + empty hint
-    // + spacing/margins. The list measures real delegate heights instead
-    // of guessing per-notification pixels.
+    // Natural height for embedders: header + filter + list (capped, internal scroll) + hint; the
+    // list measures real delegate heights instead of guessing per-notification pixels.
     readonly property real maxListH: 380
     readonly property real listH: visibleNotifications.length === 0 ? 0 : Math.min(listColumn.height, maxListH)
     // Never bind Text.height to implicitHeight (WordWrap loops). Column
@@ -114,10 +106,7 @@ Item {
             onTextChanged: root.filterText = text
         }
 
-        // Notification List — fills the leftover card space (same pattern
-        // as Crypto/ScriptTimer: height from parent remainder, NOT from the
-        // measured content). Sizing the viewport from content height while
-        // the outer card sizes itself from our implicitHeight clipped the
+        // The list fills the leftover card space, never sizing from content: that clipped the
         // first delegate and could push content out of the card.
         SmoothFlickable {
             id: nScroll

@@ -2,12 +2,8 @@ import QtQuick
 import qs.theme
 import qs.widgets.bar.islands
 
-// Labeled action row for the expanded side-pill layouts (record /
-// screenshot launcher expansion): a background-less ModeButton cell plus
-// a text label, re-representing a compact-stadium mode button as its own
-// row (no new actions — same handlers). Rows draw nothing themselves:
-// they sit inside a shared surface card owned by the islands, so the
-// expanded stack reads as one background instead of stacked pills.
+// Labeled action row for the expanded side-pill layouts: a background-less ModeButton cell
+// plus a label, running the same handlers. Rows paint nothing — the island card is the surface.
 Item {
     id: root
 

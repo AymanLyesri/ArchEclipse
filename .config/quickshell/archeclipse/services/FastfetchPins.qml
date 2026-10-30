@@ -4,9 +4,8 @@ import Quickshell
 import Quickshell.Io
 import qs.theme
 
-// Booru pin sync — syncs booru pins to the fastfetch cache directory
-// as rounded WebP images for fastfetch display.
-// Uses ImageMagick magick CLI for the roundrectangle composite + WebP conversion.
+// Booru pin sync: renders pins as rounded WebP images in the fastfetch cache via
+// ImageMagick magick, so fastfetch has no composite work of its own.
 QtObject {
     id: root
 
@@ -64,8 +63,7 @@ QtObject {
                     const radius = "%[fx:min(w,h)*" + (root.cornerRadiusPercent / 100) + "]"
                     command = [
                         "magick", currentSource,
-                        // Shrink-only (">" keeps small images untouched):
-                        // fastfetch renders at ~18 rows, so anything above
+                        // Shrink-only: fastfetch renders at ~18 rows, so above
                         // 1000px only costs decode/scale time on every open.
                         "-thumbnail", "1000x1000>",
                         "-alpha", "set",
@@ -89,9 +87,8 @@ QtObject {
             // Check if source exists and cache already exists
             root._checkFileExists(currentSource, (srcExists) => {
                 if (!srcExists) {
-                    // Self-heal: the pin was stored before the full file was
-                    // ever downloaded (legacy pins, hand-edited settings.json).
-                    // Fetch it, then continue the pipeline instead of skipping.
+                    // Self-heal: the pin predates the full file (legacy pins,
+                    // hand-edited settings.json) — fetch it, then continue.
                     root._ensureSource(item, (ok) => {
                         if (!ok) { processNext(); return }
                         convertIfStale()
@@ -103,10 +100,8 @@ QtObject {
         }
     }
 
-    // Self-heal a missing pin source: fetch the full image the pin points
-    // at (same UA + Referer headers as the viewer's downloads — Qt/curl get
-    // 403 without them), then report whether the file landed. Local-path
-    // urls (custom uploads) are copied instead of curled.
+    // Missing pin source: fetch it with the viewer's UA + Referer (Qt/curl get 403
+    // without them); local-path urls (custom uploads) are copied instead.
     function _ensureSource(item, cb) {
         const done = (ok) => { if (cb) cb(ok) }
         if (!item || !item.src) { done(false); return }
@@ -278,9 +273,8 @@ QtObject {
 
         root._currentExpectedPaths = expected
 
-        // Ensure cache dir exists (batch handoff via _pendingExpected:
-        // signal handlers can't be reassigned per-run — `exited` is
-        // read-only here, and re-connect()ing would stack duplicates)
+        // Ensure the cache dir exists; the per-run handoff goes through
+        // _pendingExpected because `exited` is read-only and re-connect() stacks.
         root._pendingExpected = expected
         _mkdirProc.command = ["mkdir", "-p", cacheDir]
         _mkdirProc.running = true

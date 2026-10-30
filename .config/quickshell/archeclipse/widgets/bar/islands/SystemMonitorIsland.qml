@@ -2,10 +2,8 @@ import QtQuick
 import qs.widgets.bar.islands
 import qs.widgets.shared
 
-// System-monitor island — in-bar expansion of the ResourceMonitor rings.
-// Content is shared with the right panel (SystemResourcesContent); this
-// wrapper only adds island sizing + hover pinning so the pulse can't
-// close it mid-read.
+// System-monitor island — in-bar expansion of the ResourceMonitor rings. Content is shared
+// with the right panel; this wrapper only adds sizing + hover pinning so it can't close mid-read.
 Item {
     id: root
     property int islandWidth: 440

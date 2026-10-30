@@ -3,19 +3,16 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// ArchEclipse theme — the greeter prefers its system palette; the desktop
-// reads the cwal (pywal) colors.scss generated from the active wallpaper.
-// Built-in fallbacks apply until a palette loads.
+// ArchEclipse theme: the greeter prefers its system palette, the desktop reads the
+// cwal (pywal) colors.scss of the active wallpaper; built-in fallbacks until it loads.
 QtObject {
     id: root
 
     // --- raw palette (parsed from cwal colors.scss) ---
     property string background: "#08080c"
     property string foreground: "#aaabb2"
-    // Vivid, legible UI accent, chosen by the coloreclipse binary. cwal has no
-    // such concept: its color5 is a prominence rank and is often too dim to
-    // read against the background. Falls back to the old color5-derived value
-    // if the palette predates `$accent`.
+    // Vivid, legible UI accent from the coloreclipse binary: cwal's color5 is only a
+    // prominence rank and often too dim to read, so it is a fallback for old palettes.
     property string rawAccent: "#b7b5ae"
     property string color0: "#08080c"
     property string color1: "#493028"
@@ -51,9 +48,8 @@ QtObject {
         const c = Qt.rgba(pa[0] / 255 + (pb[0] / 255 - pa[0] / 255) * t, pa[1] / 255 + (pb[1] / 255 - pa[1] / 255) * t, pa[2] / 255 + (pb[2] / 255 - pa[2] / 255) * t, 1);
         return "#" + Math.round(c.r * 255).toString(16).padStart(2, "0") + Math.round(c.g * 255).toString(16).padStart(2, "0") + Math.round(c.b * 255).toString(16).padStart(2, "0");
     }
-    // Alpha compose. Tolerant of "#rrggbb", "#rgb" and Qt's internal
-    // "#aarrggbb" form (a `color` argument coerces to the 8-digit form, so
-    // callers may pass e.g. `danger` directly).
+    // Alpha compose, tolerant of "#rrggbb", "#rgb" and Qt's internal "#aarrggbb" form
+    // (a `color` argument coerces to 8 digits, so callers may pass e.g. `danger`).
     function rgba(hex: string, alpha: real): string {
         const p = toRgb(hex);
         if (!p)
@@ -62,8 +58,7 @@ QtObject {
     }
 
     // --- colour maths (palette-load-time only, same rule as mix/rgba) ---
-    // Accepts "#rrggbb", "#fff" and Qt's internal "#aarrggbb" strings; the
-    // alpha half of 8-digit forms is ignored (inks are opaque here).
+    // Accepts "#rrggbb", "#fff" and Qt's "#aarrggbb"; the alpha half is ignored.
     function toRgb(c) {
         const h = ("" + c).replace("#", "");
         const g = h.length === 8 ? h.slice(2) : h;
@@ -95,12 +90,8 @@ QtObject {
         const h = v => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0");
         return "#" + h(p[0]) + h(p[1]) + h(p[2]);
     }
-    // Brightness-correct `ink` until it clears `floor` against `bg`, keeping
-    // hue AND saturation (scale RGB toward the V=1/V=0 version of the same
-    // colour). Only when V saturates do we desaturate toward white (dark bg)
-    // or black (light bg). Mixing toward the theme foreground was the old
-    // behaviour and it turned a palette red into gray (measured: fallback
-    // #493028 -> #807676, saturation 0.45 -> 0.07).
+    // Brighten `ink` until it clears `floor` on `bg` keeping hue/saturation (desaturate
+    // only when V saturates): mixing toward the fg turned red into gray (#493028 -> #807676).
     function contrastFix(ink, bg, floor): string {
         if (contrastRatio(ink, bg) >= floor)
             return "" + ink;
@@ -183,11 +174,8 @@ QtObject {
         }
         return "";
     }
-    // Highest-contrast slot whose hue lands in one of `band`'s [lo,hi] pairs.
-    // Empty slots, near-grays and near-blacks are skipped: a saturated-but-
-    // dark slot carries no usable hue identity, and a 15deg band filled with
-    // a warm gray would ship a taupe "danger" (measured: #917f7a, sat 0.16).
-    // `minSat` tightens the gate for narrow bands (danger: 0.30).
+    // Highest-contrast slot whose hue lands in `band`: empty, near-gray and near-black
+    // slots are skipped, since a warm gray would ship a taupe "danger" (measured #917f7a).
     function _bestHue(band, minSat) {
         const floor = minSat === undefined ? 0.15 : minSat;
         let best = null;
@@ -213,9 +201,8 @@ QtObject {
         }
         return best ? best[1] : "";
     }
-    // Danger: genuinely-red saturated slot first (slot numbers are NOT
-    // hue-loyal in cwal palettes), then color14 only if it is itself red,
-    // then #ff4444 — all contrast-fixed to the 4.5:1 text floor.
+    // Danger: a genuinely-red saturated slot first (slot numbers are NOT hue-loyal in
+    // cwal), then color14 if it is itself red, then #ff4444 — all contrast-fixed to 4.5:1.
     function _deriveDanger(): string {
         let ink = _bestHue([[345.0, 360.0], [0.0, 15.0]], 0.30);
         if (!ink && color14 && typeof color14 === "string" && color14.length === 7) {
@@ -235,12 +222,8 @@ QtObject {
             return contrastFix("#22c55e", background, 4.5);
         return contrastFix(ink, background, 4.5);
     }
-    // Chart ramp: three mutually hue-separated (>=30deg) slots, each
-    // contrast-fixed to 3:1 (non-text grade). Selection order mirrors
-    // tools/style_audit.py --palette exactly: rank by contrast descending,
-    // measure hue of the FIXED colour, greedy separation, then lightness-
-    // ramp padding from accent. Near-blacks (v < 0.25) are excluded — a
-    // fixed near-black reads as ink, not as a data series.
+    // Chart ramp: three hue-separated (>=30deg) slots contrast-fixed to 3:1, mirroring
+    // tools/style_audit.py --palette order; near-blacks are excluded (they read as ink).
     function _charts() {
         const cands = [];
         for (let i = 1; i <= 15; i++) {
@@ -279,15 +262,12 @@ QtObject {
     }
 
     // --- semantic colors, derived from the raw palette ---
-    // `background` is used as-is: the binary already forces light-mode
-    // backgrounds to be genuinely light (luminance >= 0.92) with only a hint
-    // of the wallpaper's hue, so there is nothing to correct here.
+    // `background` is used as-is: the binary already keeps light mode at luminance >= 0.92.
     readonly property string bg: background
     readonly property string fg: foreground
     readonly property string fgDim: rgba(foreground, 0.7)
-    // Accent comes from the binary, which ranks the six palette accents by
-    // contrast x saturation and enforces a WCAG floor. cwal's color5 is a
-    // prominence rank and is frequently too dim to use.
+    // The binary ranks the six palette accents by contrast x saturation and enforces a
+    // WCAG floor; cwal's color5 is only a prominence rank and is often too dim.
     readonly property string accent: rawAccent
     // Muted secondary text/icons.
     readonly property string muted: mix(foreground, color2, phiMin)
@@ -301,13 +281,11 @@ QtObject {
     // non-text 3:1, both validated by tools/style_audit.py --palette) ---
     readonly property color danger: _deriveDanger()
     readonly property color dangerBg: rgba(danger, 0.12)
-    // Solid critical card fill: danger is TEXT-grade (brightened toward fg in
-    // dark mode), so using it as a surface inverts the theme (pale salmon
-    // cards). This blends it back toward the background to stay a surface.
+    // Solid critical card fill: danger is TEXT-grade, so using it as a surface inverts
+    // the theme (pale salmon cards) — blend it back toward the background.
     readonly property color dangerSurface: mix(danger, background, 0.45)
-    // Ink for text on the SOLID critical card. Bounded: whichever of
-    // accentFg/foreground wins over dangerSurface, then contrast-fixed to
-    // 4.5:1 against that surface (best-of-two alone measured 3.8:1).
+    // Ink for text on the SOLID critical card: the best of accentFg/foreground over
+    // dangerSurface, contrast-fixed to 4.5:1 (best-of-two alone measured 3.8:1).
     readonly property color criticalFg: contrastFix(pickOn(dangerSurface, "#ffffff", foreground), dangerSurface, 4.5)
     readonly property color success: _deriveSuccess()
     readonly property color chart1: _charts()[0]
@@ -319,9 +297,8 @@ QtObject {
     readonly property color scrim: Qt.rgba(0, 0, 0, 0.45)
     readonly property color scrimHeavy: Qt.rgba(0, 0, 0, 0.6)
     readonly property color scrimSoft: Qt.rgba(0, 0, 0, 0.2)
-    // Fixed inks over unpredictable imagery (thumbnails/photos) and the
-    // photo-frame background they sit on. Deliberate constants: their
-    // background is never a palette surface.
+    // Fixed inks over unpredictable imagery (thumbnails/photos) and their photo-frame
+    // background. Deliberate constants: their background is never a palette surface.
     readonly property color onMediaInk: "#ffffff"
     readonly property color onMediaBg: Qt.rgba(0, 0, 0, 1)
     // Inks over the weather plate (services/Weather.codeInfo backgrounds —
@@ -332,9 +309,8 @@ QtObject {
     // --- typography / scale (settings-driven, like $FONT-SIZE / $SCALE) ---
     readonly property string fontFamily: "JetBrainsMono NFP"
     readonly property int fontSize: Settings.uiFontSize
-    // Derived type scale — shared widgets must use these (or plain
-    // fontSize) instead of hardcoded pixel numbers so a single
-    // Settings.uiFontSize change re-themes every font at once.
+    // Derived type scale — use these (or plain fontSize) instead of hardcoded pixels so
+    // one Settings.uiFontSize change re-themes every font at once.
     readonly property int fontSizeSmall: Math.max(8, fontSize - 1)
     readonly property int fontSizeCaption: Math.max(7, fontSize - 2)
     readonly property int fontSizeBadge: Math.max(7, fontSize - 3)
@@ -342,31 +318,20 @@ QtObject {
     readonly property int radius: Settings.uiRadius
     readonly property string accentFg: "white"
     readonly property int spacing: Settings.uiSpacing   // bar element spacing
-    // The ONE padding token: content inset for cards, panels and island
-    // bodies. Margins/paddings ≥ 8 must bind this (smaller values are
-    // optical micro-adjustments and stay literal).
+    // The ONE padding token: content inset for cards, panels and island bodies. Padings
+    // of 8+ bind this; smaller values are optical micro-adjustments and stay literal.
     readonly property int pad: Settings.uiPad
-    // Single source of truth for bar content height — every bar widget
-    // (Clock, Battery, Volume, ...) binds to this instead of hardcoding
-    // its own height, so all bar content stays the same height.
+    // Single source for bar content height — every bar widget binds this instead of
+    // hardcoding its own, so all bar content stays the same height.
     readonly property int barContentHeight: 18
-    // Height of the chained status side pills (weather / media / the
-    // recording fill) that hang off the main pill. Deliberately taller
-    // than barContentHeight so the three read as one family; they all
-    // sit centered in the barHeight band, so this also fixes their shared
-    // top/bottom margin. In-bar widgets keep barContentHeight.
+    // Height of the chained status pills (weather/media/recording): deliberately taller
+    // than barContentHeight so the three read as one family, centered in the bar band.
     readonly property int sidePillHeight: 24
-    // Gap between the main pill and the chained side pills. Also the
-    // matching push offset (leftPush/rightPush) that keeps the main pill
-    // clear of them — one token so the x-chain and its mirror can never
-    // drift apart.
+    // Gap between the main pill and the chained side pills; also the matching
+    // leftPush/rightPush offset, so the x-chain and its mirror cannot drift apart.
     readonly property int sidePillMargin: 8
-    // The ONE inset between a bar pill's edge and its island content.
-    // Every island body is flush inside this: island wrappers must not
-    // add their own outer margin, and bodies must not pad their root
-    // layout (padding INSIDE a visible card is still fine). Was three
-    // hardcoded `+ 10`s in Bar.qml plus five per-island `islandMargins`
-    // (4/5/8), which stacked into 8–17px of inconsistent inset.
+    // The ONE inset between a bar pill's edge and its island content: wrappers add no
+    // outer margin and bodies pad no root layout (they once stacked to 8–17px).
     readonly property int islandPad: 8
 
     // Three nameable emphasis levels for opacity literals.
@@ -377,9 +342,7 @@ QtObject {
     }
 
     // --- animation tokens (Material-3 expressive port, pure QML) ---
-    // Durations in ms, multiplied by anim.scale. Curves are cubic-bezier
-    // point lists for Easing.BezierSpline (6 values per segment).
-    // Spatial = movement (slide/resize), Effects = fade/color.
+    // ms durations x anim.scale; spatial = movement, effects = fade/color.
     readonly property QtObject anim: QtObject {
         // Global motion gate: disabling animations snaps every Theme.anim
         // duration to 0; otherwise durations scale by Settings.animScale.

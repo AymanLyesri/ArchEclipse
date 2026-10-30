@@ -5,9 +5,8 @@ import Quickshell.Hyprland
 import qs.theme
 import qs.widgets.shared
 
-// Per-screen lock UI, hosted inside a transparent WlSessionLockSurface.
-// Fullscreen MouseArea keeps the password focused (click/hover refocus,
-// Esc clears); fullscreen dim lets the Hyprland compositor blur show through.
+// Per-screen lock UI inside a transparent WlSessionLockSurface: a fullscreen MouseArea keeps the
+// password focused (click/hover refocus, Esc clears) and a dim lets the compositor blur show.
 MouseArea {
     id: root
     required property var context
@@ -73,9 +72,8 @@ MouseArea {
         root.forceFieldFocus();
     }
 
-    // Session background: a grim screenshot captured just before locking,
-    // shown blurred (screenshot-style). The plain dim underneath is the
-    // fallback when no screenshot exists for this monitor.
+    // Session background: a grim screenshot captured just before locking, shown blurred; the
+    // plain dim underneath is the fallback when no screenshot exists for this monitor.
     Rectangle {
         anchors.fill: parent
         color: Theme.scrim
@@ -88,10 +86,8 @@ MouseArea {
             id: bgImage
             anchors.fill: parent
             fillMode: Image.PreserveAspectCrop
-            // cache:false (same path is reused every lock) but synchronous:
-            // the file is local and grim already exited, so decode costs one
-            // short hitch while the first painted frame is already blurred
-            // instead of flashing the dark base dim for several frames.
+            // cache:false (the same path is reused every lock) but synchronous: grim already exited
+            // and the file is local, so one short hitch paints blurred instead of flashing the dim.
             cache: false
             asynchronous: false
             source: {
@@ -122,10 +118,8 @@ MouseArea {
         opacity: bgBlur.opacity
     }
 
-    // Top-center island: lock icon + password + 4 direct actions.
-    // Frosted island fill (translucent Theme.surface, like the bar pill):
-    // Hyprland blurs whatever is behind it; without compositor blur it
-    // degrades to clean translucency over the dim.
+    // Top-center island: lock icon + password + 4 actions. Frosted fill (translucent surface, like
+    // the bar pill): the compositor blurs what is behind it, else it reads as clean translucency.
     Rectangle {
         id: card
         anchors.top: parent.top
@@ -204,9 +198,8 @@ MouseArea {
             }
         }
 
-        // Grace timeout bar (notification toast pattern): transform-only
-        // shrink, GPU-composited, no layout pass per frame. Gone with the
-        // countdown once the password is required.
+        // Grace timeout bar (toast pattern): transform-only shrink, GPU-composited, no layout pass
+        // per frame. Gone with the countdown once a password is required.
         Rectangle {
             id: graceTrack
             anchors.left: parent.left

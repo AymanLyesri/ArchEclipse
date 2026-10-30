@@ -5,10 +5,8 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Port of sub-components/Volume.tsx — icon + %, right-click opens pavucontrol,
-// hover reveals slider. Also used as the transient "volume" pulse page.
-// icon, %, interaction-triggered reveal w/ auto-hide,
-// "Volume: N%" tooltip, right-click → pavucontrol.
+// Icon + %, right-click opens pavucontrol, hover reveals the slider; also the transient
+// "volume" pulse page. Tooltip "Volume: N%".
 Rectangle {
     id: root
 
@@ -34,21 +32,16 @@ Rectangle {
         return isNaN(v) || v < 0 ? 0 : (v > 1 ? 1 : v);
     }
 
-    // Slider opens on direct interaction only (hover dwell, click, wheel);
-    // auto-hides after the reveal-out delay (hover keeps open).
-    // Skip the mount notification — first vol evaluation must
-    // not pop the slider open at launch.
+    // Slider opens on direct interaction only (hover dwell, click, wheel) and auto-hides after
+    // the reveal-out delay; the mount notification is skipped so launch never pops it open.
     property bool sliderRevealed: false
     property bool keepOpen: false
     property bool _firstVol: true
-    // True exactly while the reveal glide is in flight (width parked between
-    // the two stops). DefaultBar mirrors this into the pill's rigidWidth so
-    // the bar edge tracks the slider per-frame instead of easing toward a
-    // target that moves every frame.
+    // True while the reveal glide is in flight (width between stops): DefaultBar mirrors it
+    // into rigidWidth so the bar edge tracks the slider instead of easing toward it.
     readonly property bool revealing: slider.width > 0.5 && slider.width < 99.5
-    // Mount guard only: value changes never reveal the slider on their own
-    // (keys/IPC/external go OSD-only). Direct wheel contact below reveals
-    // explicitly; hover/click reveal paths are untouched.
+    // Mount guard only: value changes never reveal the slider (keys/IPC/external are OSD-only);
+    // direct wheel contact below reveals explicitly.
     onVolChanged: {
         if (root._firstVol)
             root._firstVol = false;
@@ -114,9 +107,8 @@ Rectangle {
                     const step = wheel.angleDelta.y > 0 ? 0.05 : -0.05;
                     BarState.noteVolumeTarget(root.monitorName);
                     root.sink.audio.volume = Math.max(0, Math.min(1, root.vol + step));
-                    // Direct contact with the widget: reveal like hover/click.
-                    // (Value-change reveal moved here from onVolChanged so
-                    // keys/IPC/external changes stay OSD-only.)
+                    // Direct contact with the widget reveals like hover/click; value changes moved
+                    // to OSD-only, so keys and IPC never open it.
                     if (!root.pulse) {
                         root.sliderRevealed = true;
                         hideTimer.restart();
@@ -127,16 +119,8 @@ Rectangle {
         
         AppSlider {
             id: slider
-            // Animated reveal, on the pill's own DefaultSpatial curve so the
-            // bar edge and the slider track move as one unit.
-            //   width   — glides 0 <-> 100 (was a one-frame snap)
-            //   opacity — rides FastEffects so the track fades in/out with it
-            //   clip    — the 14px handle would otherwise spill left out of the
-            //              Row while the track is mid-grow
-            // visible stays on through the fade-out (flag || width > 0.5) so
-            // the shrink is continuous and the Row keeps its spacing until the
-            // glide finishes. No binding cycle: width depends only on the
-            // reveal flags, visible only reads width.
+            // Reveal on DefaultSpatial so edge and track move as one: width glides 0 <-> 100,
+            // opacity fades with it, clip keeps the handle in; visible holds through the fade.
             visible: (root.pulse || root.sliderRevealed) || slider.width > 0.5
             opacity: (root.pulse || root.sliderRevealed) ? 1 : 0
             width: (root.pulse || root.sliderRevealed) ? 100 : 0

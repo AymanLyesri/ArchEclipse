@@ -2,9 +2,8 @@ import QtQuick
 import qs.services
 import qs.widgets.shared
 
-// One Hyprland boolean leaf as a settings row (Settings page → Hyprland).
-// Same edit path as HyprSliderRow: host binds `value`, the toggle writes
-// through Settings.hyprSet + the live `hyprctl eval` push.
+// One Hyprland boolean leaf as a settings row: host binds `value`, the toggle writes through
+// Settings.hyprSet + the live `hyprctl eval` push (same path as HyprSliderRow).
 SettingRow {
     id: root
 

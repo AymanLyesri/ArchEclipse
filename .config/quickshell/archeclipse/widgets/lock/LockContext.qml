@@ -3,10 +3,8 @@ import Quickshell
 import Quickshell.Services.Pam
 import qs.theme
 
-// Shared auth state for all per-screen lock surfaces (end-4 LockContext pattern).
-// Security notes: default `login` PAM stack (no custom configDirectory), respond
-// only when responseRequired, clear the password on success/failure/lock/idle,
-// never start PAM with an empty password.
+// Shared auth state for all lock surfaces: default `login` PAM stack, respond only when
+// responseRequired, clear the password on success/failure/lock/idle, never start PAM empty.
 Scope {
     id: root
 
@@ -15,8 +13,7 @@ Scope {
     signal failed()
 
     property bool screenLocked: false
-    // Grace period: Esc dismisses without a password within this window
-    // after locking (set at engage time); afterwards PAM is required.
+    // Grace period: Esc dismisses without a password within this window after locking.
     // Settings-driven (seconds) so it follows the lockscreen category live.
     readonly property int gracePeriodMs: Settings.lockGraceSeconds * 1000
     property double lockedAt: 0
@@ -36,9 +33,8 @@ Scope {
     // Close handshake: set on successful auth so surfaces collapse via the
     // expand spring before screenLocked drops and destroys them.
     property bool closing: false
-    // Screenshot backgrounds per monitor (monitorName -> file path),
-    // captured just before locking: Hyprland blanks behind session-lock
-    // surfaces, so the blurred screenshot is the visible background.
+    // Screenshot backgrounds per monitor, captured just before locking: Hyprland blanks behind
+    // session-lock surfaces, so the blurred screenshot is the visible background.
     property var bgPaths: ({})
     property string currentText: ""
     property bool unlockInProgress: false

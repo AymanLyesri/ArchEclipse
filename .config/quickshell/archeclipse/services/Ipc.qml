@@ -6,19 +6,8 @@ import Quickshell.Services.Pipewire
 import qs.services
 import qs.theme
 
-// Hyprland keybinds talk to the bar through
-// `qs ipc`.
-//
-//   super+super_l -> qs -p <cfg> ipc call bar toggleSearch <monitor>
-//   super+alt_l   -> qs -p <cfg> ipc call bar toggleBar <monitor>
-//   super+m       -> qs -p <cfg> ipc call bar togglePanel media-panel <monitor>
-//   super+l       -> qs -p <cfg> ipc call bar toggleLeftPanel <monitor>
-//   super+r       -> qs -p <cfg> ipc call bar toggleRightPanel <monitor>
-//   super+w       -> qs -p <cfg> ipc call bar togglePanel wallpaper-switcher <monitor>
-//   super+escape  -> qs -p <cfg> ipc call bar togglePanel user-panel <monitor>
-//
-// This object must be instantiated (it's a child of ShellRoot in shell.qml,
-// not a singleton — Quickshell requires non-singleton IpcHandler roots).
+// Hyprland keybinds reach the bar via `qs ipc`; this object must be instantiated
+// (child of ShellRoot) — Quickshell requires non-singleton IpcHandler roots.
 Item {
     id: root
     property int _timerFired: 0
@@ -105,15 +94,13 @@ Item {
             }
         }
 
-        // Bar-state probe for dynamic-island QA: query is "state", or
-        // "pulse:<name>:<holdMs>" (e.g. "pulse:volume:2000"), or
-        // "on:<name>" / "off:<name>" for persistent states.
+        // Bar-state QA probe: "state", "pulse:<name>:<holdMs>" (e.g. pulse:volume:2000),
+        // or "on:<name>"/"off:<name>" for persistent states.
         function barDiag(query: string): string {
             try {
                 if (query === "state") return BarState.state;
-                // Live membership snapshot: proves a pulse (volume/brightness)
-                // stays active while a higher-priority island wins the
-                // resolved state (OSD independence QA).
+                // Live membership: proves a pulse stays active while a higher-priority
+                // island wins the resolved state (OSD independence QA).
                 if (query === "active") return Object.keys(BarState.activeStatesFor(Registry.monitorName)).join(",");
                 if (query.startsWith("pulse:")) {
                     const rest = query.substring(6).split(":");
@@ -154,10 +141,8 @@ Item {
             }
         }
 
-        // Player-icon probe: dumps the raw MPRIS fields and each
-        // MediaWidget.appIconSource resolution step, so a stuck
-        // fallback glyph can be traced to its failing layer. Mirrors
-        // MediaWidget's player pick (first isPlaying, else first).
+        // Dumps raw MPRIS fields plus every MediaWidget.appIconSource resolution step,
+        // so a stuck fallback glyph traces back to its failing layer.
         function playerIconDiag(): string {
             try {
                 let target = null;
@@ -205,9 +190,8 @@ Item {
             }
         }
 
-        // Timer-pattern probe: replicates BarState's watcher-timer wiring to
-        // verify Qt.createQmlObject Timer + onTriggered.connect fires.
-        // Call "timerfire" (arms 300ms timer), then "timerread".
+        // Replicates BarState's watcher-timer wiring: "timerfire" arms a 300ms timer,
+        // "timerread" reports it (Qt.createQmlObject Timer + onTriggered.connect QA).
         function timerDiag(query: string): string {
             try {
                 if (query === "timerfire") {
@@ -279,14 +263,8 @@ Item {
             return ScreenRecorder.toggleRecording(mode, monitor);
         }
 
-        // Keybind presets (clipboard/apps/notes/emojis): the search panel
-        // resets to default ("") on creation + state change, so a runQuery
-        // before activate gets clobbered. When search is already open the
-        // panel exists and no reset fires — apply directly. Otherwise stash
-        // the query in Launcher.pendingQuery and let LauncherPanel consume
-        // it after its reset (covers both sync and deferred Loader paths).
-        // The per-monitor panel map updates synchronously (the resolved
-        // state follows after 100ms), so this membership check is race-free.
+        // Presets reset on panel creation/state change, so the query is stashed in
+        // Launcher.pendingQuery and consumed after the reset — direct when already open.
         function presetSearch(query: string, monitor: string): string {
             if (BarState.isOpenFor("search", monitor)) {
                 Launcher.fillInputRequested(query);
@@ -318,10 +296,8 @@ Item {
             return "apps list opened";
         }
 
-        // Scripted capture helpers: fire the same path the search island's
-        // Enter key run (Launcher.activateSelected). Selection state is left
-        // to whatever runQuery last set — the launcher panel shows the
-        // highlight, this only completes the gesture.
+        // Scripted capture helper: fires the same path the search island's Enter key
+        // runs (Launcher.activateSelected); the launcher owns the selection highlight.
         function launcherActivate(monitor: string): string {
             try {
                 return "activated=" + Launcher.activateSelected();
@@ -339,12 +315,8 @@ Item {
             }
         }
 
-        // Scripted capture helper: push a live settings leaf exactly the way
-        // QML writers do (the widget drag-reorder and wallpaper picker push
-        // through updateSetting directly). Writing settings.json from
-        // outside races the shell's own persist and gets clobbered before
-        // adoption — this is the supported path. The value travels
-        // base64-encoded: qs ipc splits raw args on commas/spaces.
+        // Scripted capture helper: pushes a settings leaf the way QML writers do, since
+        // writing settings.json from outside loses the race with the shell's persist.
         function settingsSet(key: string, valueB64: string): string {
             try {
                 const value = JSON.parse(Qt.atob(valueB64));
@@ -355,9 +327,8 @@ Item {
             }
         }
 
-        // Scripted capture helper: prime the ChatBot tab and switch the live
-        // widget to a session id. The tab Loader may not have an item yet on
-        // the tick the tab primes — callers retry with a short delay.
+        // Scripted capture helper: primes the ChatBot tab and switches to a session id;
+        // the tab Loader may have no item yet, so callers retry after a short delay.
         function chatSession(id: string, monitor: string): string {
             try {
                 const mon = (monitor && monitor !== "") ? monitor : Registry.monitorName;
@@ -375,10 +346,8 @@ Item {
         }
 
         function togglePanel(name: string, monitor: string): string {
-            // MediaWindow registers one standalone player handle per monitor;
-            // the generic lookup below uses the matching media-panel-<monitor> key.
-            // Canonical UI moved into the bar island — keep the hypr
-            // SUPER+W binding (`togglePanel wallpaper-switcher <mon>`) working.
+            // MediaWindow keeps one player handle per monitor (media-panel-<mon>); the
+            // hypr `togglePanel wallpaper-switcher <mon>` alias must keep working.
             if (name === "wallpaper-switcher")
                 return root.toggleWallpaperFor(monitor);
             // Side panels are bar islands now — keep the SUPER+L/R
@@ -404,14 +373,8 @@ Item {
             return "window not found: " + key;
         }
 
-        // Targeted widget-state probe for parity/QA. `query` is one of:
-        //   "selected", "page", "limit", "imagesCount", "imagesIds",
-        //   "bookmarkCount", "pinCount", "fetchStatus", "fetchedTags".
-        // "setPage" / "setLimit" / "gotoPage" mutate the live widget.
-        // "seedBookmarks" / "seedPins" inject test data.
-        // "loadBookmarks" / "loadPins" / "fetchApi" trigger the
-        // corresponding pagination or API fetch.
-        // Returns a stringified value or a result code.
+        // Widget-state QA probe: selected/page/limit/imagesCount/fetchStatus/bookmarkCount,
+        // plus setPage/setLimit/gotoPage/seed*/load*/fetchApi mutations.
         function widgetState(query: string, monitor: string): string {
             try {
                 const w = Registry.get(`left-island-${monitor}`)
@@ -522,11 +485,8 @@ Item {
                         return "tags=" + newTags.join(",") + " (no fetchImages)";
                     }
                     if (query.startsWith("setLimit:")) {
-                        // "setLimit:2" -> substring(9) = "2"
-                        // Widget-local `limit` is the source of truth (the
-                        // settings slider assigns it directly, so the
-                        // Settings binding is one-way). Write the widget
-                        // first, then persist — same as the slider handler.
+                        // "setLimit:2" -> substring(9) = "2". The widget-local `limit`
+                        // is authoritative (the slider assigns it), so write, then persist.
                         const n = Math.max(0, Number(query.substring(9)) || 0);
                         item.limit = n;
                         Settings.booru.limit = n;
@@ -540,15 +500,8 @@ Item {
             }
         }
 
-        // Wallpaper-switcher probe for parity QA. query is one of:
-        //   "visible", "categories", "selected", "count", "current",
-        //   "target", "workspace", "progress", "provider", "view", "strip",
-        //   "stripdeep", "scrollTo:<x>", or "setCategory:<name>".
-        // "stripdeep" + "scrollTo" are the automated regression hooks for
-        // the strip blank-on-scroll bug: they dump masonry geometry and
-        // drive contentX without a mouse (see strip-test.sh).
-        // monitor selects the per-monitor island body.
-        // Reads the bar island body (widgets/wallpaperPanel via WallpaperIsland).
+        // Wallpaper QA probe: visible/categories/selected/count/current/progress/view,
+        // strip/stripdeep/scrollTo:<x>/setCategory:<name> — the scroll regression hooks.
         function wallpaperDiag(query: string, monitor: string): string {
             try {
                 const mon = (monitor && monitor !== "") ? monitor : Registry.monitorName;
@@ -566,10 +519,8 @@ Item {
                 if (query === "provider") return "provider=" + w.provider;
                 if (query === "view") return "rows=" + Settings.wallpaperMasonryRows + " size=" + Settings.wallpaperTileSize;
                 if (query === "width") {
-                    // Size-chain probe: the bar sizes the pill from the
-                    // ISLAND's implicitWidth, so dump every link
-                    // (island -> clip -> body -> strip) — the width the
-                    // pill follows vs. the width the body actually got.
+        // Size chain (island -> clip -> body -> strip): the pill follows the island's
+        // implicitWidth, so dump every link to see which width the body actually got.
                     const isl = w.parent ? w.parent.parent : null;
                     return "islW=" + (isl ? Math.round(isl.width) : -1) + " islImplicit=" + (isl ? Math.round(isl.implicitWidth) : -1)
                         + " clipW=" + (w.parent ? Math.round(w.parent.width) : -1)
@@ -697,14 +648,8 @@ Item {
 
     }
 
-    // Brightness of the FOCUSED monitor (internal backlight or DDC/CI external).
-    //   qs -p <cfg> ipc call brightness increment|decrement
-    //   qs -p <cfg> ipc call brightness incrementFor|decrementFor <monitor>
-    //   qs -p <cfg> ipc call brightness adjust <±percent>
-    //   qs -p <cfg> ipc call brightness set <0-100>
-    //   qs -p <cfg> ipc call brightness get
-    // Calls are cheap and safe to fire at key-repeat rate: Brightness updates its
-    // value in-memory and coalesces the slow ddcutil writes (see Brightness.qml).
+    // Brightness IPC (focused monitor unless "<verb>For <monitor>"): safe at key-repeat
+    // rate — Brightness coalesces the slow ddcutil writes, see Brightness.qml.
     IpcHandler {
         target: "brightness"
 

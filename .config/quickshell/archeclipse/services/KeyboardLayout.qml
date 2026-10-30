@@ -4,9 +4,8 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Port of services/keyboard-layout.ts — watches Hyprland keyboard layout changes
-// and exposes the current layout code (e.g. "US", "DV") and full name.
-// Simplified version - uses property Process declarations like SysInfo
+// Watches Hyprland keyboard layout changes and exposes the current code ("US") and
+// full name; port of services/keyboard-layout.ts, driven by property Process.
 QtObject {
     id: root
 
@@ -140,9 +139,8 @@ QtObject {
         root._initialLayoutProc.running = true;
     }
 
-    // Switch process — cycles to the next keymap on the current keyboard.
-    // (hyprctl needs -i $HYPRLAND_INSTANCE_SIGNATURE injected — plain
-    // hyprctl breaks with multiple Hyprland instances.)
+    // Cycles the current keyboard to its next keymap; hyprctl needs
+    // -i $HYPRLAND_INSTANCE_SIGNATURE injected or it breaks with two instances.
     property Process _switchLayoutProc: Process {
         stderr: StdioCollector {
             onStreamFinished: {

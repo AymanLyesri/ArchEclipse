@@ -8,24 +8,20 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Media Widget — port of widgets/MediaWidget.tsx + widgets/Player.tsx.
-// Shows the active (playing-else-first) player with the rich Player layout:
-// cover art + spinning indicator + track slide transition, drag-scrubbable
-// position, can_* gated controls. (Cava visualizer omitted: requires cava.)
+// Media Widget (port of MediaWidget.tsx + Player.tsx): the active (playing-else-first) player
+// with cover art, spinning indicator, drag-scrubbable position and can_* gated controls.
 Item {
     id: root
     property int widgetWidth: parent.width
     property string className: ""
 
-    // Natural size (single source of truth): consumers without a sized
-    // parent (e.g. PlayerIsland) derive their size from these instead
-    // of hardcoding width/height.
+    // Natural size (single source of truth): consumers without a sized parent (PlayerIsland)
+    // derive from these instead of hardcoding width/height.
     implicitWidth: 400
     implicitHeight: (root.player !== null && root.hasLyrics) ? 242 : 170
 
-    // Pick active player: the PLAYING one, else the first.
-    // Mpris.players is an
-    // UntypedObjectModel — access via .values for iteration.
+    // Pick the active player: the PLAYING one, else the first. Mpris.players is an
+    // UntypedObjectModel, so iterate via .values.
     readonly property var playersList: Mpris.players.values ?? (Array.from ? Array.from(Mpris.players.values() ?? []) : [])
     readonly property var player: {
         for (const p of root.playersList) {
@@ -113,12 +109,8 @@ Item {
         ];
     }
 
-    // Resolve the player's app icon via its MPRIS DesktopEntry (DefaultBar
-    // playerIconSource parity) with identity fallbacks, then through
-    // Quickshell.iconPath() into an image:// URL — IconImage.source is a
-    // plain Image URL alias, so bare theme names never load (AppEntry
-    // _iconSrc parity). Missing icons yield "" and the music-note glyph
-    // fallback shows instead of the provider's missing-texture.
+    // Icon via the MPRIS DesktopEntry with identity fallbacks, then Quickshell.iconPath() into
+    // an image:// URL (bare theme names never load); missing falls back to the music note.
     readonly property string appIconSource: {
         const p = root.player;
         if (!p)
@@ -175,10 +167,8 @@ Item {
     onArtistChanged: root.fetchLyrics()
     onAlbumChanged: root.fetchLyrics()
 
-    // Keep MPRIS position fresh: quickshell only pushes position on
-    // nonlinear jumps, so poll while a player exists (docs-sanctioned
-    // positionChanged() emission). Refreshes the time label, progress
-    // ring and the lyrics highlighter below.
+    // Quickshell only pushes position on nonlinear jumps, so poll while a player exists
+    // (docs-sanctioned positionChanged()) to keep the time label, ring and lyrics in sync.
     Timer {
         interval: 500
         running: root.player !== null
@@ -298,9 +288,8 @@ Item {
                     }
                 }
 
-                // Title / artist with slide transition.
-                // Explicit width (cover + icon + spacing): the dead
-                // Layout.fillWidth left this at 0 and no text showed.
+                // Title / artist with slide transition. Explicit width (cover + icon + spacing):
+                // a dead Layout.fillWidth left this at 0 and no text showed.
                 Item {
                     id: trackBlock
                     width: parent.width - 64 - 22 - 20
@@ -373,11 +362,8 @@ Item {
                 }
             }
 
-            // LRCLIB lyrics — always-visible Spotify-style 3-line window
-            // (previous dim / current accent / next plain). Synced lines
-            // click-to-seek via absolute position write; plain fallback
-            // shows a proportional window. Fixed 64px so the widget
-            // implicitHeight stays exact (170 + 8 + 64 = 242).
+            // LRCLIB lyrics — always-visible 3-line window (previous dim / current accent / next).
+            // Synced lines click-to-seek; fixed 64px keeps implicitHeight exact (170 + 8 + 64).
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.hasLyrics ? 64 : 0
@@ -426,11 +412,8 @@ Item {
             }
 
 
-            // Position/length + controls
-            // RowLayout with compressible buttons + spacers: the 5-piece
-            // controls row (pos, prev, play, next, len) cannot fit the
-            // narrow panel at natural widths, so buttons/spacers shrink
-            // to their minimums instead of painting past the parent.
+            // Position/length + controls: a RowLayout with compressible buttons and spacers, since
+            // the 5-piece row cannot fit the narrow panel at natural widths.
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 3

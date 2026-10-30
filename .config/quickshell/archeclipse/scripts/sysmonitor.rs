@@ -1,18 +1,5 @@
-// sysmonitor.rs — merged system-resources + bandwidth monitor (replaces
-// scripts/system-resources-loop.c + scripts/bandwidth-loop.c).
-//
-// Single std-only binary, one stdout stream, two interleaved schedules:
-//   SYS {...}  every 5s (first sample after 300ms, like the C loop)
-//   BW  [...]  every 3s (first sample after one interval, like the C loop)
-// QML routes lines by tag prefix. Field names, units, number formatting
-// and the ~/.cache/quickshell/logs/bandwidth.log daily-totals format are
-// byte-compatible with the C originals; behavior quirks are preserved
-// (missing default route / vanished iface => exit(1) so the supervisor
-// restarts and re-detects, e.g. USB-tether swaps).
-//
-// Build: rustc --edition=2021 -O -o sysmonitor sysmonitor.rs  (no cargo:
-// single file, zero deps — a manifest + target/ dir would only add weight.
-// See SysInfo.qml: the gate rebuilds only when this source is newer.)
+// sysmonitor.rs — merged system-resources + bandwidth monitor (replaces the two C loops): one
+// std-only binary streaming `SYS {...}` every 5s and `BW [...]` every 3s, byte-compatible.
 
 use std::fs;
 use std::io::Write;

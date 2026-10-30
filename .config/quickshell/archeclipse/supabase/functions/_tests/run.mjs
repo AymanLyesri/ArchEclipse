@@ -1,11 +1,5 @@
-// Local logic tests for the supporter/payment Edge Functions.
-// Runs with plain node (no network, no Supabase access). Mirrors the exact
-// algorithms used in the Deno functions:
-//  - NOWPayments IPN signature: JSON.stringify(params, sortedKeys) + HMAC-SHA512
-//  - Ko-fi link-code extraction regex
-//  - payment_status -> ledger status mapping (only `finished` grants)
-//  - entitlement trigger condition (finished + user_id + known provider)
-//  - unauthenticated activation is impossible (no user_id -> no grant)
+// Plain-node logic tests: mirrors the Deno functions' signature, link-code and entitlement rules.
+// The file-sync test fails when these copies drift from the deployed functions.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";

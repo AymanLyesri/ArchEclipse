@@ -12,9 +12,8 @@ Rectangle {
 
     height: Theme.barContentHeight
     implicitWidth: content.implicitWidth + 16
-    // Width is assigned by the parent layout (capped via
-    // Layout.maximumWidth at the use site); implicitWidth carries the
-    // natural size so no width binding fights the layout.
+    // Width is assigned by the parent layout (capped at the use site); implicitWidth carries
+    // the natural size so no width binding fights the layout.
     radius: Theme.radius
     color: titleHover.hovered ? Theme.surfaceHover : "transparent"
 
@@ -47,10 +46,8 @@ Rectangle {
         return cls !== "" ? cls : "Desktop";
     }
     readonly property string winIcon: root.winClass !== "" ? WorkspaceIcons.forClientClass(root.winClass) : ""
-    // Elide bound passed down from the bar (layout cap minus pill chrome:
-    // margins + icon + spacing). Upstream-only on purpose — deriving the
-    // text width from the Row/layout width collapses to a 0-width fixed
-    // point (the width feeds the Row implicitWidth it is measured from).
+    // Elide bound from the bar (layout cap minus pill chrome). Upstream-only on purpose —
+    // deriving it from the Row width collapses to a 0-width fixed point.
     property real textMaxWidth: 190
 
     Row {

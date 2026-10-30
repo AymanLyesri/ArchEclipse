@@ -1,9 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Shared number-animation dispatcher (Caelestia Anim.qml port, pure QML).
-// Usage: `Behavior on x { Anim {} }` (defaults to DefaultSpatial),
-// or targeted: `Anim { target: foo; property: "opacity"; to: 0; type: Anim.FastEffects }`.
+// Shared number-animation dispatcher (Caelestia Anim.qml port): `Behavior on x { Anim {} }`
+// defaults to DefaultSpatial; `Anim { target: foo; property: "opacity"; to: 0 }` is targeted.
 NumberAnimation {
     enum Type {
         StandardSmall = 0,

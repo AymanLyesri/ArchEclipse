@@ -246,9 +246,7 @@ def run_bookmark_action(action: str, payload: Dict[str, Any]) -> Any:
     return handler(payload)
 
 
-# ============================================================
-# Provider interface
-# ============================================================
+# ===== Provider interface =====
 
 
 class BooruProvider(ABC):
@@ -267,9 +265,7 @@ class BooruProvider(ABC):
         pass
 
 
-# ============================================================
-# Danbooru provider
-# ============================================================
+# ===== Danbooru provider =====
 
 
 class DanbooruProvider(BooruProvider):
@@ -387,9 +383,7 @@ class DanbooruProvider(BooruProvider):
             raise Exception(f"Failed to parse tag response: {str(e)}")
 
 
-# ============================================================
-# Gelbooru provider
-# ============================================================
+# ===== Gelbooru provider =====
 
 
 class GelbooruProvider(BooruProvider):
@@ -498,9 +492,7 @@ class GelbooruProvider(BooruProvider):
             raise Exception(f"Failed to parse tag response: {str(e)}")
 
 
-# ============================================================
-# Safebooru provider
-# ============================================================
+# ===== Safebooru provider =====
 
 
 class SafebooruProvider(BooruProvider):
@@ -612,9 +604,7 @@ class SafebooruProvider(BooruProvider):
             raise Exception(f"Failed to parse tag response: {str(e)}")
 
 
-# ============================================================
-# Provider registry
-# ============================================================
+# ===== Provider registry =====
 
 
 def get_provider(
@@ -630,9 +620,7 @@ def get_provider(
     return factory() if factory else None
 
 
-# ============================================================
-# CLI
-# ============================================================
+# ===== CLI =====
 
 
 def main():

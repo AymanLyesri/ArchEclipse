@@ -3,11 +3,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Compact bar button with icon + temp on a weather-code-colored background.
-// Hover/click pulses the full weather island (BarState "weather").
-// While the launcher island is open (Bar.qml binds `expanded` to the
-// monitor's search state) the pill grows vertically beside it, unfolding
-// stats rows off the bar band; the compact row keeps its band position.
+// Compact bar button with icon + temp on a weather-code-colored background; hover/click pulses
+// the weather island. While the launcher is open the pill unfolds stats rows vertically.
 Rectangle {
     id: root
     property string monitorName: ""

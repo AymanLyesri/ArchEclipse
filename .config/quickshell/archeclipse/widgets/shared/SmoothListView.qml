@@ -1,15 +1,7 @@
 import QtQuick
 
-// Shared ListView with wheel momentum via the native flick engine.
-// Drop-in replacement for ListView: same API (model, delegate, spacing,
-// currentIndex, orientation, ...), plus wheelScale tuning.
-// Physics lives in SmoothWheelHandler — same engine as SmoothFlickable,
-// single tuning point. ListView IS a Flickable, so flick() drives its own
-// deceleration, bounds and overshoot.
-//
-// NOTE: do NOT wrap a ListView in a SmoothFlickable (nested flickables
-// fight over gestures/contentY), and do NOT swap a ListView for a
-// Flickable+Repeater (loses virtualization, currentIndex/keyboard nav).
+// Shared ListView with wheel momentum via the native flick engine (same API plus wheelScale).
+// Never wrap a ListView in a SmoothFlickable, and never swap it for a Flickable+Repeater.
 ListView {
     id: root
 

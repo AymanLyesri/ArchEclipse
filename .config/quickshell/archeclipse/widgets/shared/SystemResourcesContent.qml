@@ -4,10 +4,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Shared system-resources content — single source of truth used by both
-// the bar's SystemMonitorIsland and the right panel's SystemResourcesWidget.
-// Width-driven: wide (>=380px) lays cards out horizontally, narrow stacks
-// them full-width (Flow wraps automatically).
+// Shared system-resources content used by both SystemMonitorIsland and the right panel's
+// SystemResourcesWidget: wide lays cards out horizontally, narrow stacks them.
 Column {
     id: root
     spacing: Theme.spacing

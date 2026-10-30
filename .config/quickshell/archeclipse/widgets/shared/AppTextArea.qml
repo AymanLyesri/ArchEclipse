@@ -1,9 +1,5 @@
-// THE shared multi-line text input for the whole shell: themed background
-// with an accent focus ring and sane defaults — mirrors AppTextField for
-// single-line inputs and AppComboBox popups (same bg/border/radius language).
-// All Controls TextArea properties (text, placeholderText, wrapMode,
-// textChanged signals, ...) work as usual; only the styling defaults are
-// set here and stay overridable.
+// THE shared multi-line text input: themed background, accent focus ring, sane defaults
+// (mirrors AppTextField). All Controls TextArea properties work and stay overridable.
 import QtQuick
 import QtQuick.Controls
 import qs.theme

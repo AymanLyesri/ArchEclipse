@@ -1,14 +1,5 @@
-// payment-webhook-nowpayments — NOWPayments IPN receiver (unauthenticated).
-//
-// Security (per current NOWPayments docs, "IPN and how to setup"):
-//  1. Read x-nowpayments-sig header.
-//  2. Sort the JSON body keys alphabetically (top level) and stringify with
-//     JSON.stringify(params, Object.keys(params).sort()).
-//  3. HMAC-SHA512 with the IPN secret; constant-time compare to the header.
-// Only payment_status == "finished" (case-insensitive) grants value, via the
-// DB trigger on supporter_payments. Created/pending/confirming/confirmed and
-// failed/expired NEVER activate supporter status.
-// Idempotent: unique (provider, provider_payment_id) + forward-only updates.
+// Unauthenticated NOWPayments IPN: HMAC-SHA512 over the key-sorted body must equal x-nowpayments-sig.
+// Only payment_status "finished" grants value; unique (provider, provider_payment_id) keeps it idempotent.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.4";

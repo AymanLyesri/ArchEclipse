@@ -2,12 +2,8 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// Supabase — single source of truth for backend endpoints + public config.
-// ONLY the publishable (anon) key lives here — the same key the web app
-// would ship. Service-role / provider API keys stay in Edge Function secrets
-// and NEVER appear in QML. Supporter entitlement is read from the
-// `supporters` table (row presence); the `supporter_payments` ledger and
-// `kofi_link_codes` tables back the verified one-time payment flows.
+// Backend endpoints + public config. Only the publishable (anon) key lives here;
+// service-role and provider keys stay in Edge Function secrets, never in QML.
 Singleton {
     id: root
 
@@ -22,9 +18,8 @@ Singleton {
     readonly property string homeDir: Quickshell.env("HOME")
     readonly property string authSessionPath: homeDir + "/.cache/quickshell/auth/session.json"
 
-    // True when an API error body means the cached session is dead
-    // (GoTrue/PostgREST JWT failures). Single copy: the profile and
-    // donations tabs both branch on it to bounce the user to sign-in.
+    // True when an API error body means the cached session is dead (GoTrue/PostgREST
+    // JWT failures); profile and donations both branch on it to bounce to sign-in.
     function isAuthError(text) {
         const t = String(text || "");
         return t.indexOf("JWT expired") >= 0

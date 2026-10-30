@@ -4,19 +4,8 @@ import qs.theme
 import qs.services
 import qs.widgets.notifications
 
-// Single history card — body shared with the popup toasts via
-// widgets/notifications/NotificationCardBody.qml (icon / preview slot,
-// title + time row, expandable body, action + control buttons).
-// Data comes from a history entry
-// {id, time (epoch s, snapshot at receipt), notif (live object)}.
-//
-// Interactions:
-//   - left-click anywhere on the card background copies the content
-//     (image payload via wl-copy with its real MIME type, else text),
-//   - right-click dismisses (removes it from history everywhere).
-// The background MouseArea sits FIRST so the buttons above it stay
-// clickable, and it lets presses through so the parent Flickable can
-// still drag-scroll starting on the card.
+// Single history card (body shared with toasts via NotificationCardBody): left-click copies the
+// content, right-click dismisses. Its background MouseArea sits first so buttons stay clickable.
 Item {
     id: root
     property var entry: null
@@ -27,9 +16,8 @@ Item {
     // toast.stamp the same way). Shown 24h %H:%M.
     readonly property double stamp: entry && entry.time ? entry.time : 0
 
-    // ---- icon chain (Notifications service): appIcon path → appIcon theme
-    // name → image path → image theme name → desktopEntry.
-    // Recorder toasts show only the red dot, never a preview.
+    // ---- icon chain: appIcon path -> appIcon theme name -> image path -> image theme name ->
+    // desktopEntry. Recorder toasts show only the red dot, never a preview.
     readonly property bool isRecorder: Notifications.isRecorder(root.notification)
     readonly property bool critical: root.notification ? root.notification.urgency === 2 : false
     readonly property string iconFile: {
@@ -101,10 +89,8 @@ Item {
         }
         clip: true
 
-        // Background interaction layer FIRST so buttons above stay
-        // clickable. Left-click copies, right-click dismisses.
-        // Presses pass through so the parent Flickable keeps
-        // press-drag scrolling when the gesture starts on the card.
+        // Background interaction layer FIRST so buttons above stay clickable: left-click copies,
+        // right-click dismisses, and presses pass through so the Flickable still drags.
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton

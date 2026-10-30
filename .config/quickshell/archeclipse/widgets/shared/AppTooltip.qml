@@ -1,16 +1,5 @@
-// THE shared tooltip for the whole shell: bar pills, panel buttons, grid
-// tiles, form fields — every hover hint looks identical. Extends the
-// Controls ToolTip (no behavior reimplemented); only the look is themed to
-// the ArchEclipse popup convention (AppComboBox popup / meta strips:
-// opaque Theme.bg, 1px Theme.border, 6px radius) plus a short fade.
-//
-//   AppTooltip {
-//       visible: hoverHandler.hovered
-//       text: "Do the thing"
-//   }
-//
-// delay defaults to 600ms (the shell-wide convention); override per
-// instance only when a different timing is needed (e.g. delay: 400).
+// THE shared tooltip for the whole shell: extends Controls ToolTip, themed to the ArchEclipse
+// popup convention with a short fade. delay defaults to the 600ms shell-wide convention.
 import QtQuick
 import QtQuick.Controls
 import qs.theme

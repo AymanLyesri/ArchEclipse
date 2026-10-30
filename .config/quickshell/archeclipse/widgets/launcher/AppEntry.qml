@@ -4,14 +4,8 @@ import Quickshell
 import Quickshell.Widgets
 import qs.theme
 
-// Unified launcher entry: icon/glyph slot + name/description/arg lines.
-//
-// `entry` is a Launcher.mkResult() row: { name, icon, glyph, description,
-// launch, argText }. `icon` holds a theme icon name or file path and is
-// resolved here through Quickshell.iconPath() into an image://icon/ URL —
-// the only form Quickshell's image provider understands (IconImage.source
-// is a plain Image URL alias, so bare names never load). Missing icons
-// fall back to the app-name letter instead of a blank slot.
+// Unified launcher entry: icon/glyph slot + name/description/arg lines from a
+// Launcher.mkResult() row. Icons resolve via Quickshell.iconPath(); missing fall back to a letter.
 Item {
     id: root
 
@@ -24,9 +18,8 @@ Item {
 
     readonly property string _rawIcon: entry && entry.icon != null ? String(entry.icon) : ""
     readonly property string _rawGlyph: entry && entry.glyph != null ? String(entry.glyph) : ""
-    // Route the raw value the same way Launcher.mkResult() does: an
-    // explicit glyph field, a lone glyph char, or nothing means Text;
-    // theme names / paths mean image.
+    // Route the raw value like Launcher.mkResult(): an explicit glyph field, a lone glyph char,
+    // or nothing means Text; theme names and paths mean image.
     readonly property bool _wantsImage: {
         if (_rawGlyph !== "")
             return false;
@@ -39,9 +32,8 @@ Item {
             return true;
         return false;
     }
-    // Resolve to a loadable URL. Bare theme names go through
-    // Quickshell.iconPath(name, true) so missing icons yield "" (letter
-    // fallback) instead of the provider's purple missing-texture.
+    // Resolve to a loadable URL: bare theme names go through Quickshell.iconPath(name, true) so
+    // missing icons yield "" (letter fallback) instead of the purple missing-texture.
     readonly property string _iconSrc: {
         if (!_wantsImage)
             return "";
@@ -83,9 +75,8 @@ Item {
             Layout.preferredHeight: root._slot
             Layout.alignment: Qt.AlignVCenter
 
-            // Desktop / theme icon via the image://icon/ provider (this is
-            // what was missing: the old delegates rendered every icon as
-            // Text, which cannot display an image URL).
+            // Desktop / theme icon via the image://icon/ provider — the old delegates rendered
+            // every icon as Text, which cannot display an image URL.
             IconImage {
                 id: appIcon
                 visible: root._showImage

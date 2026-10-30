@@ -3,10 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Global light/dark theme state:
-//   - reads current theme from `coloreclipse get` on startup
-//   - setGlobalTheme(light|dark) runs `coloreclipse switch` then updates state
-// This drives the ControlPanel Theme toggle and any themed widgets.
+// Global light/dark state: read `coloreclipse get` at startup, switch via
+// `coloreclipse switch`, so the ControlPanel toggle and themed widgets agree.
 QtObject {
     id: root
 

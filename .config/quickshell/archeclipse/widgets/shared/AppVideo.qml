@@ -3,21 +3,8 @@ import QtMultimedia
 import Quickshell.Widgets
 import qs.theme
 
-// AppVideo — shared looping video player (qs.widgets.shared parity with
-// AppImage, including its top-right badge overlay). Used directly by the
-// wallpaper switcher tiles and the waifu widget, around one lifecycle:
-//
-// - `active` gates the decoder: the source is bound only while active, so
-//   hidden/off-viewport instances hold no decoder. A hidden player fed an
-//   undecodable source loops ffmpeg errors thousands of times per second,
-//   filling /run/user/<uid> and killing IPC/panels — never bind blindly.
-//   Defaults to `visible`; viewport-virtualized callers (wallpaper tiles)
-//   override it with their own in-view state.
-// - Teardown stops (not pauses) + unloads, so re-activation rebinds a
-//   fresh source instead of resuming a stale decode (GStreamer GL crash).
-// - `ready` (first frame or terminal decode failure) lets hosts fade in
-//   or fall back; failures report once via errorOccurred (no per-frame
-//   logging here — hosts log with their own context if they care).
+// AppVideo — shared looping video player: `active` gates the decoder (a hidden player on an
+// undecodable source loops ffmpeg errors and fills /run), teardown stops and unloads.
 ClippingRectangle {
     id: root
 
@@ -29,9 +16,8 @@ ClippingRectangle {
     property int fillMode: VideoOutput.PreserveAspectCrop
     readonly property bool ready: player.hasVideo || root._failed
     property bool _failed: false
-    // Native video dimensions for aspect parity with image tiles.
-    // Unknown until metadata arrives — (0,0) means "not known yet",
-    // same as an undecoded Image's implicit size.
+    // Native video dimensions for aspect parity with image tiles; (0,0) means "not known yet",
+    // like an undecoded Image's implicit size.
     readonly property size videoSize: {
         try {
             const r = player.metaData.value(MediaMetaData.Resolution);
@@ -111,13 +97,8 @@ ClippingRectangle {
             root._kickPlayback();
         }
     }
-    // Same silent-stall class as MediaVideo's direct file→file switch:
-    // after source churn the backend can sit on a held source with no
-    // video and no error (probed on the waifu widget: valid local mp4,
-    // hasVideo false, _failed false). Bounce through stop() + retried
-    // play(): a single deferred play() races the source binding (lands
-    // while player.source is still "" → silent no-op → loaded but never
-    // playing), so retry until Playing (condition-based, bounded).
+    // Same silent-stall class as MediaVideo: after source churn the backend holds a source with
+    // no video and no error, so bounce stop() + retried play() (one deferred play() races it).
     onSourceChanged: {
         if (!root.active || root.source === "")
             return;

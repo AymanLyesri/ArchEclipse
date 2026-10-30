@@ -5,30 +5,13 @@ import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.leftPanel
 
-// LeftIsland: the former LeftPanel body (sidebar + widget stack) living
-// in the left side pill beside the bar, scoped to its owning monitor.
-//
-// Same expand-driver unfold as SearchIsland — the pill grows
-// (width via the pill transition, height snapped on the window) while this
-// body unfolds via the expand driver (clip + opacity + scale only, so no
-// expensive layout animates per-frame). Each tab is a Loader that builds
-// on first select and stays alive, so switches preserve state exactly
-// like the old panel while opening builds only one widget.
-//
-// Open: SUPER+L bind, left HotZone hover, launcher quick-app, IPC.
-// Close: bind toggle, Esc, close button, or 1s after the cursor leaves
-// (the monitor's left-panel lock pins it open). The booru detail popup is a
-// separate surface: while it is hovered/open the island stays alive via
-// the same popupHovered/hostPanel handoff the panel used.
+// LeftIsland: the former LeftPanel body in the left side pill, scoped to its monitor; same
+// expand-driver unfold as SearchIsland, tabs built on first select and kept alive after.
 Item {
     id: root
     width: Settings.panelWidthFor("left", root.monitorName)
-    // Explicit full height (NOT implicit): positioner implicit sizes freeze
-    // at completion-time values in this engine, so a height driven only by
-    // the expand animation would never reach the pill — the Loader measures
-    // this explicit height and the pill snaps to it, exactly like the
-    // static DefaultBar/PlayerIsland pages. The expand driver below still
-    // unfolds the content inside the snapped pill (clip + opacity + scale).
+    // Explicit full height, NOT implicit: positioner implicit sizes freeze at completion time,
+    // so an animated-only height never reached the pill; the Loader measures this one.
     height: bodyHeight
 
     // Island owner passes the bar's monitor; body falls back to focused.
@@ -37,21 +20,18 @@ Item {
     // to the booru viewer for its full-screen float panel.
     property var screen: null
 
-    // Full monitor height, passed by the bar owner. Side islands stretch
-    // the whole vertical screen like the old edge panels did (the pill
-    // adds its 10px padding, leaving a 5px bottom margin).
+    // Full monitor height from the bar owner: side islands stretch the whole vertical screen
+    // like the old edge panels (the pill adds 10px padding, leaving a 5px bottom margin).
     property int screenHeight: (screen && screen.height > 0) ? screen.height : 1080
 
-    // Fixed dropdown height (the old panel stretched full monitor height;
-    // the island is a floating card — each widget fills this viewport and
-    // scrolls internally, same as the search island's fixed body height).
+    // Fixed dropdown height: the island is a floating card, each widget fills this viewport
+    // and scrolls internally (like the search island's fixed body height).
     property int bodyHeight: Math.max(400, screenHeight - 15)
 
     // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
-    // Tab-name order for the selector-rail index mapping (the rail's
-    // own model below carries the verbatim name+icon items; names keep
-    // the QS "Widget" suffix for IPC showWidget/widgetState compat).
+    // Tab-name order for the rail index mapping; names keep the QS "Widget" suffix for IPC
+    // showWidget/widgetState compat.
     readonly property var tabOrder: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"]
     function tabIndex(name) {
         return Math.max(0, root.tabOrder.indexOf(name));
@@ -118,11 +98,8 @@ Item {
             root.syncSelectedWidget();
         }
     }
-    // Expose the active tab's widget so IPC can poke into the live
-    // widget (loadBookmarks/pagedSlice/etc) without traversing the tree.
-    // Each branch reads that tab Loader's item, so the binding tracks
-    // loads and switches. Unvisited tabs have no item (lazy) — callers
-    // already null-check (requestAutoHide/leaveTimer/widgetState).
+    // Expose the active tab's widget so IPC can poke the live widget without traversing the
+    // tree; unvisited tabs have no item, and callers null-check.
     readonly property var activeWidget: {
         switch (widgetStack.currentIndex) {
         case 0:
@@ -152,11 +129,8 @@ Item {
     // caller (e.g. waifu) floats a dialog before first instantiation.
     property var _pendingDialogImage: null
 
-    // Open a post in the floating detail window without opening the
-    // island. Primes the Booru tab; if the viewer isn't instantiated
-    // yet this tick (Loader activates on the next binding pass), the
-    // post parks in _pendingDialogImage and booruLoader.onLoaded below
-    // opens it. Returns false only when there is nothing to open.
+    // Opens a post in the floating detail window without opening the island. Primes the Booru
+    // tab; if the viewer isn't instantiated this tick the post parks in _pendingDialogImage.
     function openBooruDialog(img) {
         if (!img)
             return false;
@@ -181,9 +155,8 @@ Item {
         }
     }
 
-    // Hover tracking lives here (stable container — content never swaps
-    // under the cursor while open). Leaving arms the close timer; the
-    // timer re-checks so a fast flick across still closes.
+    // Hover tracking lives here (stable container — content never swaps under the cursor).
+    // Leaving arms the close timer, which re-checks so a fast flick still closes.
     HoverHandler {
         id: islandHover
         onHoveredChanged: {
@@ -208,10 +181,8 @@ Item {
             return;
         leaveTimer.restart();
     }
-    // Called by the bar owner on every (re)open: the island now survives
-    // closes, so a leaveTimer armed before the last close must not fire
-    // into the fresh session and shut it after the reveal-out delay
-    // with no hover-leave.
+    // Called by the bar owner on every (re)open: the island survives closes, so a leaveTimer
+    // armed before the last close must not shut the fresh session after the reveal-out delay.
     function cancelPendingHide() {
         leaveTimer.stop();
     }
@@ -264,10 +235,8 @@ Item {
                     anchors.right: parent.right
                     anchors.margins: Theme.pad
                     highlightedName: BarState.tourHighlightMonitor === root.monitorName ? BarState.tourHighlightTab : ""
-                    // Tab order + icons: UserProfile, BooruViewer,
-                    // ChatBot, MangaViewer, Settings, CustomScripts,
-                    // KeyBinds, Donations. Names keep the QS "Widget"
-                    // suffix (IPC showWidget/widgetState compat).
+                    // Tab order + icons: UserProfile, BooruViewer, ChatBot, MangaViewer,
+                    // Settings, CustomScripts, KeyBinds, Donations ("Widget" suffix for IPC).
                     model: [
                         {
                             name: "UserProfile",
@@ -324,14 +293,8 @@ Item {
                 width: parent.width - sidebar.width
                 height: parent.height
 
-                // Widget stack — each tab is a Loader that activates on first
-                // select and stays alive, so tab
-                // switches preserve scroll/page/chat/booru state. Only the
-                // selected tab instantiates: opening the island builds one
-                // widget instead of all eight. Only the current one is
-                // visible; loaded hidden tabs exist in memory but don't
-                // paint. Order matches the tab rail above.
-                // Fade-in on switch (opacity-in 0.6s).
+                // Each tab activates on first select and stays alive, so switches preserve
+                // scroll/page state; only the selected one instantiates. Order matches the rail.
                 OpacityAnimator on opacity {
                     id: switchAnim
                     from: 0
@@ -342,8 +305,7 @@ Item {
                 StackLayout {
                     id: widgetStack
                     anchors.fill: parent
-                    // Content inset owned by the panel (right-panel parity:
-                    // its scroll column pads Theme.pad too) — tab bodies stay
+                    // Content inset owned by the panel (right-panel parity) — tab bodies stay
                     // flush and never add their own outer margin.
                     anchors.margins: Theme.pad
                     currentIndex: {
@@ -384,13 +346,8 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         onLoaded: {
-                            // Back-reference so the booru viewer can route
-                            // its popup-unhover hide requests here (the
-                            // popup is a separate window surface). The
-                            // viewer binds hostScreen reactively off
-                            // hostPanel.screen — no one-shot assign here
-                            // (nested onLoaded can run before the bar sets
-                            // the island's screen).
+                            // Back-reference for popup-unhover hides; bind hostScreen reactively off
+                            // hostPanel.screen — a one-shot assign runs before the bar sets it.
                             if (item) {
                                 item.hostPanel = root;
                                 // Flush a dialog parked by openBooruDialog

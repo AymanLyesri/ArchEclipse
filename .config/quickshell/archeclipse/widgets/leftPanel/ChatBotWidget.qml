@@ -8,11 +8,8 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// ChatBot widget — port of ChatBot.tsx
-// Features: multiple AI providers (OpenRouter), session create/delete,
-// markdown rendering (headers/lists/quotes/code w/ copy), message timestamps
-// + response time + click-to-copy, image-gen toggle, info/setup guide,
-// thinking indicator, auto-scroll, auto-focus, multi-line input
+// ChatBot widget (port of ChatBot.tsx): OpenRouter providers, session create/delete, markdown
+// with copy, timestamps + response time, image gen, streaming.
 Item {
     id: root
     property string monitorName: ""
@@ -34,16 +31,13 @@ Item {
     property var activeProc: null
     property int _requestSerial: 0
     property bool _stopRequested: false
-    // Incremental line model for the streaming bubble. Rows are only ever
-    // APPENDED (new delegates fade in once) or updated IN PLACE via set() /
-    // setProperty() (growing tail line, code-flag restyles — never refade).
-    // Reset on every send; cleared when the stream ends.
+    // Incremental line model for the streaming bubble: rows are only APPENDED (new delegates
+    // fade once) or updated in place via set() — never refaded; reset per send.
     ListModel {
         id: streamLines
     }
-    // chatbot.py owns its files under ~/.cache/quickshell/chatbot
-    // (CACHE_DIR hardcoded in the script) — read the same dir it writes,
-    // or sessions/history silently fork.
+    // chatbot.py hardcodes ~/.cache/quickshell/chatbot, so read the same dir it writes or
+    // sessions/history silently fork.
     property string cacheDir: Quickshell.env("HOME") + "/.cache/quickshell/chatbot"
     property string pythonScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/main.py"
     property string sessionsScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/sessions.py"
@@ -51,9 +45,8 @@ Item {
     property string activeFileScript: Quickshell.env("HOME") + "/.config/quickshell/archeclipse/scripts/chatbot/activefile.py"
     // Live OpenRouter model ids (empty = unknown/offline → show all hardcoded).
     property var modelCache: []
-    // File detected in the focused editor ({path, name}); refreshed from
-    // Hyprland focus/title events for the preview label. The backend
-    // re-detects at send time, so this preview may briefly lag events.
+    // File detected in the focused editor, refreshed from Hyprland focus/title events for the
+    // preview label; the backend re-detects at send time, so this can briefly lag.
     property var autoFile: ({
         path: "",
         name: ""
@@ -200,9 +193,8 @@ Item {
     }
 
     function loadSessions() {
-        // Single sessions.py call: ensures dir, lists ids + meta names.
-        // The reply carries its model (envelope) so a listing that
-        // arrives after a provider switch is ignored (stale-guard).
+        // One sessions.py call: ensure dir, list ids + meta names. The reply carries its model,
+        // so a listing arriving after a provider switch is ignored (stale-guard).
         const p = _listDir.createObject(root);
         p.command = ["python3", root.sessionsScript, root.currentApiModel, "list"];
         p.running = true;
@@ -250,11 +242,8 @@ Item {
         p.running = true;
     }
 
-    // NOTE: chatbot.py loads/appends/saves history.json itself (both user
-    // and assistant messages, canonical ids/timestamps). Never rewrite the
-    // file from QML — a prior saveHistory() via bash printf clobbered the
-    // canonical entries and broke on quotes. In-memory state is display-only;
-    // after a reply, reload the canonical file (see onExited below).
+    // chatbot.py owns history.json (canonical ids/timestamps): never rewrite it from QML — a
+    // bash printf save clobbered entries. In-memory state is display-only; reload after a reply.
 
     // Create new session (optional display name; persisted via rename).
     function createSession(name) {
@@ -343,9 +332,8 @@ Item {
         root._stopRequested = false;
         const p = _chatAPI.createObject(root);
         p._requestId = root._requestSerial;
-        // Key via environment (never argv — argv is visible in ps).
-        // Context JSON via stdin: write() on started (no close-stdin in
-        // Quickshell; main.py drains with a quiet-gap timeout instead).
+        // Key via environment (never argv — visible in ps). Context JSON via stdin, written on
+        // started (no close-stdin in Quickshell; main.py drains on a quiet-gap timeout).
         p.command = ["python3", "-u", root.pythonScript, root.currentApiModel, text, root.activeSessionId];
         p.environment = ({
             "OPENROUTER_API_KEY": key
@@ -360,18 +348,16 @@ Item {
         const p = root.activeProc;
         if (!p || !p.running)
             return;
-        // Unlock the editor immediately. The child may take a moment to
-        // handle SIGTERM and emit onExited; its callback reconciles the
-        // partial history without putting this request back into loading.
+        // Unlock the editor immediately: the child may take a moment to handle SIGTERM, and
+        // its onExited reconciles the partial history without re-entering loading.
         root._stopRequested = true;
         root.progressStatus = "idle";
         root.activeProc = null;
         p.running = false; // SIGTERM -> chatbot.py saves partial, exits 0
     }
 
-    // Revert to a user message (OpenCode-style): drop it and everything
-    // after it from history + file, load its text back into the input
-    // for editing. Never while streaming (backend appends mid-flight).
+    // Revert to a user message (OpenCode-style): drop it and everything after from history and
+    // file, and load its text back for editing. Never while streaming (backend appends).
     function revertMessage(idx) {
         if (root.progressStatus === "loading")
             return;
@@ -391,8 +377,7 @@ Item {
     }
 
     // --- Slash commands (/new /list /switch /rename /delete /clear /revert) ---
-    // Mirrors scripts/chatbot/commands.py (parse_slash/match_session) —
-    // that module is the tested spec, keep both in sync.
+    // Mirrors scripts/chatbot/commands.py — that module is the tested spec, keep both in sync.
     property var slashCommands: [
         {
             name: "new",
@@ -571,10 +556,8 @@ Item {
                         body: "No session matches \"" + arg + "\""
                     });
             } else {
-                // Bare /list stays a menu: keep the command in the input
-                // so the popup keeps showing the session rows and Down/Enter
-                // picks one. Rewriting the text to "/switch " made /list look
-                // like /switch had been chosen; a toast hid the rows.
+                // Bare /list stays a menu: keep the command in the input so the popup keeps
+                // showing session rows; rewriting it to "/switch " made /list look chosen.
                 inputField.text = "/" + name + " ";
                 inputField.forceActiveFocus();
             }
@@ -624,20 +607,17 @@ Item {
         }
     }
 
-    // Enter-key entry: run the slash command when the input is one.
-    // Unknown "/..." stays plain chat text (returns false → sent).
-    // Returns true when a command ran (key event is consumed).
+    // Enter-key entry: run the slash command when the input is one; unknown "/..." stays plain
+    // chat text. Returns true when a command ran (the key event is consumed).
     function trySlashCommand() {
         const p = root.parseSlash(inputField.text);
         const cmds = root.slashFilter();
-        // The popup is the source of truth for what Enter runs: bare "/"
-        // and bare prefixes ("/li") have no parseSlash def, yet the list
-        // is showing rows to pick from — honour the highlighted row.
+        // The popup is the source of truth: bare "/" and prefixes have no parseSlash def yet
+        // the list shows rows, so honour the highlighted one.
         if (cmds.length > 0 && (!p || p.arg === "")) {
             const def = p ? root.findSlashCommand(p.cmd) : null;
-            // Bare list/switch/delete with the popup highlighting a
-            // session: Enter activates the highlighted session row
-            // instead of the command row (highlight past the rows).
+            // With a session row highlighted, Enter activates that session instead of the
+            // command row.
             if (def && root.isSessionListCmd(def.name)) {
                 const sess = root.sessionMatches();
                 if (sess.length > 0 && root.slashIndex >= cmds.length) {
@@ -664,9 +644,8 @@ Item {
         return true;
     }
 
-    // Live stdout chunk -> streaming bubble only (bound to streamLines
-    // below the Repeater). Never touches root.messages: reassigning that
-    // array per token rebuilds EVERY Repeater delegate (fade loop + stutter).
+    // Live stdout chunk goes to the streaming bubble only: reassigning root.messages per token
+    // rebuilds every Repeater delegate (fade loop + stutter).
     function onStreamText(text) {
         if (root.progressStatus !== "loading")
             return;
@@ -677,10 +656,8 @@ Item {
         root.updateStreamLines(text);
     }
 
-    // Diff full streamed text against the streamLines model: append new
-    // lines, update the growing tail in place, restyle code flags in place.
-    // Streaming text is append-only, so kept rows never move (algorithm
-    // mirror verified in /tmp/opencode/stream_lines_test.py).
+    // Diff full streamed text against streamLines: append new lines, update the growing tail
+    // and code flags in place. Streaming text is append-only, so kept rows never move.
     function updateStreamLines(text) {
         const lines = text.split("\n");
         // ``` fence parity: lines inside code blocks render as plain mono.
@@ -862,9 +839,8 @@ Item {
                 onStreamFinished: {
                     try {
                         const obj = JSON.parse(text);
-                        // Envelope {model, sessions} lets us drop a listing
-                        // that arrives after a provider switch (stale-guard).
-                        // A bare array is the legacy shape: accept it.
+                        // The envelope {model, sessions} lets a listing that arrives after a
+                        // provider switch be dropped; a bare array is the legacy shape.
                         const arr = Array.isArray(obj) ? obj : obj.sessions;
                         const m = Array.isArray(obj) ? null : obj.model;
                         if (m && m !== root.currentApiModel)
@@ -1043,9 +1019,8 @@ Item {
                     const reply = _apiStdout.fullText.trim();
                     if (reply) {
                         const elapsed = Date.now() - root._sendTime;
-                        // Streaming already shows the full text in a placeholder —
-                        // skip the transient append to avoid a duplicate bubble,
-                        // just notify + reload canonical history.
+                        // Streaming already shows the text in a placeholder — skip the transient
+                        // append to avoid a duplicate bubble, just reload canonical history.
                         if (!hadStream) {
                             root.messages = root.messages.concat([
                                 {
@@ -1063,9 +1038,8 @@ Item {
                                 summary: root.currentProviderName(),
                                 body: reply
                             });
-                        // chatbot.py already saved the canonical history —
-                        // reload it instead of appending locally (avoids
-                        // id/timestamp drift between display and file).
+                        // chatbot.py already saved the canonical history: reload it rather than
+                        // appending locally (avoids id/timestamp drift between display and file).
                         root.loadMessages();
                     } else if (hadStream) {
                         // Stop with empty buffer: drop placeholder, reload partial.
@@ -1098,9 +1072,8 @@ Item {
                         summary: "ChatBot Error",
                         body: msg
                     });
-                    // Mid-stream error after partial chunks: canonical file holds
-                    // the partial reply (saved by chatbot.py) — reload it so the
-                    // streamed text isn't lost behind the error.
+                    // Mid-stream error after partial chunks: the canonical file holds the partial
+                    // reply, so reload it instead of losing the streamed text behind the error.
                     if (hadStream)
                         root.loadMessages();
                 }
@@ -1109,12 +1082,10 @@ Item {
     }
 
     // --- UI ---
-    // NOTE: no hover auto-focus on the input — stealing focus on hover
-    // clears mouse selection in the message TextEdits above.
+    // No hover auto-focus on the input: stealing focus on hover clears mouse selection above.
 
-    // NOTE: ColumnLayout (not Column) — children size via Layout.*
-    // attached props; plain width/height bindings on managed children
-    // would fight the layout, so they are derived, not hardcoded.
+    // ColumnLayout (not Column): children size via Layout.* props, so width/height bindings
+    // are derived, not hardcoded.
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
@@ -1212,18 +1183,14 @@ Item {
                     model: root.messages
                     delegate: Rectangle {
                         width: msgColumn.width
-                        // NOTE: msgColumn is a Column positioner, not a
-                        // ColumnLayout — it positions children by their
-                        // explicit height, ignoring implicitHeight.
-                        // An implicitHeight-only binding leaves height == 0
-                        // (content overflows) so the bubble never hugs text.
+                        // msgColumn is a Column positioner: it sizes children by explicit height,
+                        // ignoring implicitHeight — an implicit-only binding leaves height 0.
                         height: msgContent.implicitHeight + 16
                         color: modelData.role === "user" ? Theme.surfaceActive : Theme.surface
                         radius: Theme.radius
 
-                        // Message text is mouse/keyboard selectable
-                        // (bubble-wide click-to-copy removed — it swallowed
-                        // drag gestures and blocked selection).
+                        // Message text is selectable; the bubble-wide click-to-copy was removed
+                        // because it swallowed drags and blocked selection.
 
                         Column {
                             id: msgContent
@@ -1257,9 +1224,8 @@ Item {
                                     spacing: Theme.spacing
                                     anchors.verticalCenter: messageHeader.verticalCenter
 
-             // Per-message revert (user only, OpenCode-style):
-                                    // drop this message and everything after it,
-                                    // restore its text into the input for editing.
+            // Per-message revert (user only): drop this message and everything after it and
+            // restore its text into the input for editing.
                                     AppButton {
                                         anchors.verticalCenter: actionsRow.verticalCenter
                                         visible: modelData.role === "user"
@@ -1334,15 +1300,8 @@ Item {
                                 }
                             }
 
-                            // Assistant-generated image (scaled down)
-                            // NOTE: Column positioners do NOT collapse
-                            // visible:false children — a fixed height:200
-                            // reserves ~200px in every text-only bubble.
-                            // Collapse to 0 when there is no image.
-                            // IMPORTANT: derive hasImage from the string in
-                            // modelData, NOT from `source` (a url alias):
-                            // `source !== ""` is always true for urls, so the
-                            // image slot never collapsed.
+                            // Assistant image: Column does NOT collapse hidden children, so collapse
+                            // to 0. Derive hasImage from modelData — `source !== ""` is always true.
                             AppImage {
                                 property bool hasImage: modelData.image !== undefined && modelData.image !== null && String(modelData.image).length > 0
                                 width: msgContent.width
@@ -1356,14 +1315,8 @@ Item {
                     }
                 }
 
-                // Live streaming bubble — OUTSIDE the Repeater, driven by the
-                // incremental streamLines model (see updateStreamLines).
-                // Only brand-new lines are appended (their delegates fade in
-                // once); the growing tail updates in place. The settled
-                // history Repeater is never touched mid-stream.
-                // NOTE: explicit height (Column ignores implicitHeight, see
-                // above) + height 0 when empty: Column positioners do NOT
-                // collapse visible:false children (see AppImage note above).
+                // Live streaming bubble, outside the Repeater, driven by streamLines: new lines
+                // fade in once, the tail updates in place. Explicit height, 0 when empty.
                 Rectangle {
                     property bool hasStream: root.streamingText !== ""
                     width: msgColumn.width
@@ -1388,10 +1341,8 @@ Item {
                             color: Theme.accent
                         }
 
-                        // Incremental line view: one delegate per streamed line.
-                        // Appends fade in; in-place tail/code updates don't.
-                        // No per-line copy buttons — this is a transient view,
-                        // the settled bubble carries block copy on reload.
+                        // One delegate per streamed line: appends fade in, in-place tail/code
+                        // updates don't. Transient view — no per-line copy buttons.
                         Repeater {
                             model: streamLines
                             delegate: TextEdit {
@@ -1418,9 +1369,8 @@ Item {
                                 // indices stable; collapse them to 0 height.
                                 height: model.line === "" ? 0 : implicitHeight
                                 visible: model.line !== ""
-                                // Fade-in per generated line. ListModel set() /
-                                // setProperty() never refire onCompleted, so
-                                // only genuinely new lines animate.
+                                // Fade-in per generated line: ListModel set()/setProperty() never
+                                // refire onCompleted, so only genuinely new lines animate.
                                 opacity: 0
                                 Component.onCompleted: opacity = 1
                                 Behavior on opacity {
@@ -1455,12 +1405,8 @@ Item {
                     }
                 }
 
-                // Thinking bubble — visible while waiting for the first
-                // token (loading but nothing streamed yet). The loading
-                // indicator lives in the messages flow, styled as an
-                // assistant bubble.
-                // NOTE: explicit height + 0 when idle (Column positioners
-                // do NOT collapse visible:false children).
+                // Thinking bubble while waiting for the first token, styled as an assistant
+                // bubble; explicit height, 0 when idle (Column ignores hidden children).
                 Rectangle {
                     id: thinkingBubble
                     property bool isThinking: root.progressStatus === "loading" && root.streamingText === ""
@@ -1643,10 +1589,8 @@ Item {
             RowLayout {
                 width: parent.width
                 spacing: Theme.spacing
-                // Multiline input (word wrap): Enter sends, Shift+Enter inserts
-                // a newline. TextArea is NOT scrollable by itself (Qt docs),
-                // so it lives inside a ScrollView: grows with content up to
-                // 120px, then the view clips + scrolls (wheel/drag/cursor).
+                // Multiline input: Enter sends, Shift+Enter newlines. TextArea cannot scroll, so
+                // it lives in a ScrollView and grows to 120px before clipping.
                 ScrollView {
                     id: inputScroll
                     Layout.fillWidth: true
@@ -1706,9 +1650,8 @@ Item {
                 }
             }
 
-            // Context bar (Minimal+explicit): chips toggle what is injected,
-            // path field attaches a file head. Chips persist via Settings.
-            // Centered like the provider segmented control below.
+            // Context bar: chips toggle what is injected, the path field attaches a file head;
+            // chips persist via Settings.
             RowLayout {
                 width: parent.width
                 spacing: Theme.spacing

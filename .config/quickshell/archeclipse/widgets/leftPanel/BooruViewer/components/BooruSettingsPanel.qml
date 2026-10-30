@@ -5,11 +5,8 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Revealable settings: limit/columns/tags/cache (extracted verbatim).
-// viewer: entry root (limit, columns, tags, fetchTags...).
-// NOTE: original `width: tagText2.implicitWidth` referenced a missing id
-// (runtime error when suggestions show); binding dropped, AppButton
-// sizes to content.
+// Revealable settings: limit/columns/tags/cache. The old `width: tagText2.implicitWidth`
+// referenced a missing id (runtime error), so AppButton sizes to content instead.
 Rectangle {
     id: settingsReveal
     property var viewer
@@ -49,10 +46,8 @@ Rectangle {
                 value: viewer.limit
                 Layout.fillWidth: true
                 onValueChanged: {
-                    // Guard: creating the slider (or a settings reload)
-                    // sets value from viewer.limit — writing it back
-                    // unconditionally would break the Settings binding
-                    // (seen: limit stuck at 100 after restart).
+                    // Guard: creating the slider (or a settings reload) sets value from
+                    // viewer.limit, so writing it back breaks the binding (limit stuck at 100).
                     const v = Math.round(limitSlider.value);
                     if (v === viewer.limit)
                         return;
@@ -119,11 +114,8 @@ Rectangle {
                         text: modelData
                         tooltipText: isRating ? "Toggle explicit filter" : "Remove tag"
                         onClicked: {
-                            // Hoist: assigning currentTags rebuilds this
-                            // Repeater and destroys the delegate
-                            // mid-click, after which bare `viewer`
-                            // lookups throw (ReferenceError) and the
-                            // refetch below never runs.
+                            // Hoist: assigning currentTags destroys this delegate mid-click, after
+                            // which `viewer` lookups throw and the refetch below never runs.
                             const v = viewer;
                             if (isRating) {
                                 // Toggle -rating:explicit <-> rating:explicit, move to front, refetch

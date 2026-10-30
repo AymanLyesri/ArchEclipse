@@ -29,9 +29,8 @@ QtObject {
         }
     }
 
-    // Boot once Settings are ready so a saved city wins over IP geo.
-    // The refresh timer below no longer triggers on start — boot() owns
-    // the first fetch.
+    // Boot once Settings are ready so a saved city wins over IP geo; boot() owns the
+    // first fetch, so the refresh timer no longer triggers on start.
     function boot() {
         if (root._booted)
             return;

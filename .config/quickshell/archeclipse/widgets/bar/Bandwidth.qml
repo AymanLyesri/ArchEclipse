@@ -4,18 +4,14 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Network speed pill + popover.
-// Binds SysInfo.bandwidth — the single bandwidth-loop owner (see
-// services/SysInfo.qml) — instead of spawning a second daemon.
-// Compact form shows up/down speeds; click reveals the Network Statistics
-// popover (Upload/Download, Packets + today's Data).
+// Network speed pill: binds SysInfo.bandwidth (the single bandwidth-loop owner) rather
+// than spawning a second daemon; compact shows up/down, click the stats popover.
 Item {
     id: root
     height: Theme.barContentHeight
 
-    // Single source: [upKB, downKB, todayUpKB, todayDownKB] (SysInfo applies
-    // Math.round(B/1024) to all four). Speeds display directly; today's
-    // counters are scaled back to bytes for formatData().
+    // [upKB, downKB, todayUpKB, todayDownKB] (SysInfo rounds B/1024): speeds display as
+    // is, today's counters are scaled back to bytes for formatData().
     readonly property var _bw: SysInfo.bandwidth
     property string uploadSpeed: String(_bw[0])      // b[0] KB/s
     property string downloadSpeed: String(_bw[1])    // b[1] KB/s

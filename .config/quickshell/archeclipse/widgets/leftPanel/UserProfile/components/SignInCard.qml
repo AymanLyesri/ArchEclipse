@@ -3,9 +3,8 @@ import QtQuick.Controls
 import qs.theme
 import qs.widgets.shared
 
-// Sign-in card (magic link + listener status + manual callback import).
-// Exposes `callbackText` (alias of the paste field) so the host can clear
-// it after a successful import.
+// Sign-in card (magic link + listener status + manual callback import). Exposes
+// `callbackText` so the host can clear the paste field after a successful import.
 Rectangle {
     id: root
     required property var store

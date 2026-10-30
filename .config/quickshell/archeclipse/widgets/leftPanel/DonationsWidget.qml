@@ -7,18 +7,8 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Supporter widget — one-time contributions that unlock supporter status.
-//
-// Two verified providers (no subscriptions):
-//  [Ko-fi]        fiat/card/PayPal. Checkout stays on ko-fi.com. The donor
-//                 pastes their link code (AE-XXXX-XXXX) into the Ko-fi
-//                 message; the server-side webhook links the payment.
-//  [Crypto]       NOWPayments hosted invoice, created via our Edge Function
-//                 (API key stays server-side). QML only sees the invoice URL.
-//
-// Supporter status is NEVER granted here. Only the server-side verified
-// webhook -> DB trigger path writes `supporters`. This widget only reads
-// that table and opens external checkouts.
+// Supporter widget: one-time contributions via Ko-fi (checkout on ko-fi.com, webhook links the
+// pasted code) or a NOWPayments invoice. Status is NEVER granted here — only the webhook does.
 Item {
     id: root
     property string monitorName: ""
@@ -43,9 +33,8 @@ Item {
     property var amounts: [3, 5, 10, 25]
     property int selectedAmount: 5
 
-    // Standalone direct-transfer addresses (legacy options). These leave the
-    // shell entirely (plain wallet transfer, no provider callback), so they
-    // can NEVER be verified and do not activate supporter status.
+    // Standalone direct-transfer addresses (legacy): plain wallet transfers with no provider
+    // callback, so they can NEVER be verified and do not activate supporter status.
     property var standaloneCryptos: [
         { name: "Bitcoin", icon: "\uf15a", address: "1JisW9xeatCFadtgsenjbpCcFePZGPyXow", color: "#F7931A" },
         { name: "Ethereum", icon: "\ued58", address: "0x52d06d47bb9dc75eaf027f18cb197d5817989a96", color: "#627EEA" },
@@ -55,9 +44,8 @@ Item {
     property string linkCode: ""
     property string linkCodeState: "idle" // idle | loading | ready | error
 
-    // mtime of the last session.json we acted on (0 = never seen). The tab
-    // Loader stays alive, so signing in on the Account tab later would never
-    // reach us without this watch.
+    // mtime of the last session.json we acted on (0 = never seen). The tab Loader stays alive,
+    // so a later sign-in on the Account tab would otherwise never reach us.
     property int sessionMtime: 0
 
     Timer {
@@ -95,9 +83,8 @@ Item {
         return ["-H", "apikey: " + root.supabaseKey, "-H", "Authorization: Bearer " + token];
     }
 
-    // Supabase access_tokens expire after ~1h. Unlike UserProfileWidget this
-    // widget owns no refresh flow — on auth errors, say so plainly and route
-    // to the Account tab instead of showing a generic "retry".
+    // Tokens expire after ~1h and this widget owns no refresh flow — on auth errors say so
+    // plainly and route to the Account tab instead of a generic "retry".
     function isAuthErrorText(text) {
         return Supabase.isAuthError(text);
     }
@@ -601,9 +588,8 @@ Item {
                         id: codeField
                         width: parent.width - 108
                         height: 34
-                        // Never fake a value: an empty field shows the
-                        // placeholder, so "signed out" reads as words
-                        // instead of a bare dash.
+                        // Never fake a value: an empty field shows the placeholder, so
+                        // "signed out" reads as words instead of a bare dash.
                         text: root.linkCode
                         readOnly: true
                         placeholderText: !root.signedIn ? "Sign in to get a code" : root.linkCodeState === "loading" ? "Fetching your code…" : root.linkCodeState === "error" ? "Could not get a code — try Refresh" : "Getting your code…"
@@ -633,10 +619,8 @@ Item {
                     hoverFg: "white"
                     tooltipText: root.signedIn ? "Open Ko-fi in your browser\nPut " + root.linkCode + " in the message" : "Open Ko-fi in your browser\nNo account needed — sign in later to claim the badge"
                     onClicked: {
-                        // No account required: the checkout is external
-                        // (xdg-open ko-fi.com). The link code only exists
-                        // when signed in, and only links the donation to
-                        // an account so the badge can be granted.
+                        // No account required: the checkout is external. The link code only exists
+                        // when signed in, and only links the donation so the badge can be granted.
                         if (root.linkCodeState === "ready" && root.linkCode !== "")
                             root.copyToClipboard(root.linkCode, "Link code");
                         root.openUrl(root.kofiUrl);
@@ -686,9 +670,8 @@ Item {
                 }
             }
 
-            // Standalone direct transfers (unverified — no supporter status).
-            // Plain wallet transfers with no provider callback, so the shell
-            // cannot verify them. Kept for donors who prefer it.
+            // Standalone direct transfers (unverified — no supporter status): plain wallet
+            // transfers with no provider callback, kept for donors who prefer it.
             DonationCard {
                 Label {
                     text: "Direct wallet transfer — standalone"

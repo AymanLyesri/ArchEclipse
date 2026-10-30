@@ -8,17 +8,14 @@ Rectangle {
 
     property string monitorName: ""
 
-    // Initialize from the service (not a hardcoded 1.0): DefaultBar is
-    // recreated on every return to the default state, and a hardcoded
-    // default would show a stale 100% until the next brightness change.
+    // Initialize from the service, never a hardcoded 1.0: DefaultBar is recreated on every
+    // return to default, so a literal would show a stale 100%.
     property real level: Brightness.screenFor(root.monitorName)
     property bool pulse: false
     readonly property int fixedWidth: 220
 
-    // Visible only when a backlight exists (no /sys/class/backlight/* on
-    // desktops → hidden). Single source of truth is the Brightness service; the old local `backlightCheck.outputLines` read a
-    // non-existent StdioCollector property, threw, and the catch{}
-    // returned true — so the icon showed on desktops.
+    // Visible only when a backlight exists (desktops have no /sys/class/backlight/*); the old
+    // local check read a non-existent property and threw, so the icon showed anyway.
     readonly property bool hasBacklight: Brightness.hasBacklightFor(root.monitorName)
 
     width: pulse ? fixedWidth : content.width
@@ -27,12 +24,8 @@ Rectangle {
     color: pulse ? Theme.surface : "transparent"
     visible: root.hasBacklight
 
-    // Live sync from the Brightness service (inotify file events, zero
-    // polling): external changes update the level silently and pulse the
-    // OSD via BarState — the bar slider opens on hover dwell only.
-    // (No onAdjusted hookup: value changes must not pop the slider.)
-    // Follow the brightness value for this widget's monitor while staying
-    // silent when focus moves or a different monitor changes brightness.
+    // Live sync from the Brightness service (inotify, zero polling): external changes update
+    // the level silently and BarState pulses the OSD — hover dwell opens the slider.
     Connections {
         target: Brightness
         function onScreenChanged() { root.syncLevel(); }
@@ -48,10 +41,8 @@ Rectangle {
     // Hover/click reveal + reveal-out hide timeout
     property bool sliderRevealed: false
     property bool keepOpen: false
-    // True exactly while the reveal glide is in flight (width parked between
-    // the two stops). DefaultBar mirrors this into the pill's rigidWidth so
-    // the bar edge tracks the slider per-frame instead of easing toward a
-    // target that moves every frame.
+    // True while the reveal glide is in flight (width between the two stops): DefaultBar
+    // mirrors it into rigidWidth so the bar edge tracks the slider instead of chasing it.
     readonly property bool revealing: briSlider.width > 0.5 && briSlider.width < 99.5
     function hideSlider() {
         if (!root.keepOpen)
@@ -85,16 +76,8 @@ Rectangle {
         }
         AppSlider {
             id: briSlider
-            // Animated reveal, on the pill's own DefaultSpatial curve so the
-            // bar edge and the slider track move as one unit.
-            //   width   — glides 0 <-> 100 (was a one-frame snap)
-            //   opacity — rides FastEffects so the track fades in/out with it
-            //   clip    — the 14px handle would otherwise spill left out of the
-            //              Row while the track is mid-grow
-            // visible stays on through the fade-out (flag || width > 0.5) so
-            // the shrink is continuous and the Row keeps its spacing until the
-            // glide finishes. No binding cycle: width depends only on the
-            // reveal flags, visible only reads width.
+            // Reveal on DefaultSpatial so edge and track move as one: width glides 0 <-> 100,
+            // opacity fades with it, clip keeps the handle in; visible holds through the fade.
             visible: (root.pulse || root.sliderRevealed) || briSlider.width > 0.5
             opacity: (root.pulse || root.sliderRevealed) ? 1 : 0
             width: (root.pulse || root.sliderRevealed) ? 100 : 0

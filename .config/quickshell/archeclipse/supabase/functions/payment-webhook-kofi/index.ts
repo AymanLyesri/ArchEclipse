@@ -1,22 +1,5 @@
-// payment-webhook-kofi — Ko-fi webhook receiver (unauthenticated).
-//
-// Per Ko-fi docs (help.ko-fi.com "Does Ko-fi have an API or webhook?",
-// ko-fi.com/manage/webhooks): Ko-fi POSTs application/x-www-form-urlencoded
-// with a single `data` field holding a JSON string. The JSON carries
-// verification_token (compared to our KOFI_VERIFICATION_TOKEN secret),
-// `type` (Donation / Subscription / Shop Order / Commission), message_id,
-// kofi_transaction_id, email, amount, currency, message, timestamp, ...
-// Return 200 on handled/skipped deliveries (Ko-fi retries otherwise with the
-// same message_id, so processing is idempotent via a unique constraint).
-//
-// Only type == "Donation" with is_subscription_payment falsy grants value
-// (one-time payments only). Shop orders / commissions / subscriptions are
-// acknowledged but skipped.
-// User association: Ko-fi offers no secure user reference, so the donor puts
-// their ArchEclipse link code (AE-XXXX-XXXX) in the donation message. Without
-// a valid unused code the payment is stored UNCLAIMED (verified email kept)
-// and the donor can claim it from the shell via the email-claim RLS policy.
-// Email alone NEVER auto-grants supporter status.
+// Unauthenticated Ko-fi webhook: form-encoded `data` JSON, verification_token compared to the secret.
+// Only one-time "Donation" with a valid AE-XXXX-XXXX code grants value; email alone never does.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.4";

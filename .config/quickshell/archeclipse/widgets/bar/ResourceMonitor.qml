@@ -6,10 +6,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Port of Utilities.tsx ResourceMonitor — CPU / RAM / GPU horizontal bars,
-// stacked vertically (one on top of the other).
-// Hover pulses the system-monitor island (BarState "system").
-// Middle-click dispatches to workspace 5 (monitor workspace).
+// Port of Utilities.tsx ResourceMonitor: CPU / RAM / GPU bars stacked vertically.
+// Hover pulses the system-monitor island; middle-click jumps to workspace 5.
 Item {
     id: root
 
@@ -46,10 +44,8 @@ Item {
     // (18px bar height - 2 * 3px spacing) / 3 = 4px per bar
     readonly property int barHeight: 2
 
-    // Middle-click layer underneath — bar Items are mouse-transparent so
-    // clicks fall through to here from anywhere on the stack. Left-click
-    // is intentionally a no-op: opening is hover-only (Weather/Network
-    // parity), the island pins itself while hovered via IslandHoverPin.
+    // Middle-click layer underneath — bar items are mouse-transparent, so clicks fall
+    // through. Opening is hover-only (Weather/Network parity), pinned by IslandHoverPin.
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
@@ -62,10 +58,8 @@ Item {
         }
     }
 
-    // Hover dwell (Settings.revealInPressure, 0 = instant) so brushing the
-    // cursor across the bar doesn't pulse the island by accident.
-    // Root-level (full widget) so the 3px inter-bar gaps can't reset the
-    // dwell — the per-bar handlers below are tooltip-only.
+    // Hover dwell so brushing the bar does not pulse the island. Root-level (full widget)
+    // so the 3px inter-bar gaps cannot reset it; per-bar handlers are tooltip-only.
     Timer {
         id: dwellTimer
         interval: Settings.revealInPressure
@@ -99,10 +93,8 @@ Item {
 
             model: 3
 
-            // Per-index lookup instead of a rebuilt JS-array model: every
-            // sysmonitor tick (2s) used to re-create the whole bar tree,
-            // which dominated idle CPU (bar visible = 15% core). Restore the
-            // array-as-model form only for per-tick structural changes.
+            // Per-index lookup, not a rebuilt JS-array model: every 2s tick used to recreate
+            // the whole bar tree, which dominated idle CPU (15% of a core).
             readonly property var bars: [
                 {
                     frac: root.cpuFrac,

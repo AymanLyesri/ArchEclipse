@@ -7,10 +7,8 @@ import qs.services
 import qs.widgets.leftPanel
 import qs.widgets.leftPanel.BooruViewer.components as Booru
 
-// Waifu widget: the current waifu rendered as an embedded BooruDialog —
-// the full detail card (media, meta, tags, actions, drag-to-float),
-// bound to a private pinned viewer. Placeholder + custom upload when
-// nothing is set.
+// Waifu widget: the current waifu as an embedded BooruDialog (media, meta, tags, actions,
+// drag-to-float) bound to a private pinned viewer; placeholder + custom upload when unset.
 Item {
     id: root
     property string monitorName: ""
@@ -26,11 +24,8 @@ Item {
     readonly property bool hasWaifu: !!(root.wd && root.wd.id)
     implicitHeight: root.hasWaifu ? waifuDialog.implicitHeight : 190
 
-    // Embedded dialog host: dialogOnly (no grid boot fetch) + dialogPinned
-    // (every close path is a no-op — dialogImage is bound to
-    // Settings.waifu below and must never be cleared). Full/preview
-    // downloads run through the viewer's fetchOriginal/downloadPreviews,
-    // exactly like any other dialog.
+    // Embedded dialog host: dialogOnly (no grid fetch) + dialogPinned (every close path is a no-op
+    // — dialogImage binds to Settings.waifu). Downloads run through the viewer as usual.
     BooruViewer {
         id: waifuViewer
         dialogOnly: true
@@ -71,11 +66,8 @@ Item {
     property int _uploadW: 0
     property int _uploadH: 0
 
-    // Declarative zenity picker (WallpaperPanelBody pickProc parity):
-    // collectors are attached in the constructor, never assigned after
-    // running=true, and paths travel as argv — never interpolated into a
-    // QML string or shell quote (the old Qt.createQmlObject flow raced
-    // stdout attachment and broke on paths with quotes/spaces).
+    // Declarative zenity picker: collectors attach in the constructor (never after running=true),
+    // and paths travel as argv — the old QML-string flow raced stdout and broke on quotes.
     Process {
         id: pickProc
         command: ["zenity", "--file-selection", "--title=Select Image", "--file-filter=Images (png, jpg, webp, gif) | *.png *.jpg *.jpeg *.webp *.gif"]
@@ -99,9 +91,8 @@ Item {
         }
     }
 
-    // Image dimensions via ImageMagick (argv path — no shell quoting).
-    // Parsed once on exit (single path: stdout may be empty on failure,
-    // and handling both onStreamFinished + onExited would copy twice).
+    // Image dimensions via ImageMagick (argv path, no shell quoting), parsed once on exit — stdout
+    // may be empty on failure, and handling both signals would copy twice.
     Process {
         id: identifyProc
         stdout: StdioCollector {}
@@ -118,9 +109,8 @@ Item {
             }
             const dir = `${root.booruPath}/custom/images`;
             const dest = `${dir}/-1.${root._uploadExt}`;
-            // $1=dest dir, $2=source, $3=dest: argv, so paths with
-            // quotes/spaces survive; drop stale -1.* siblings from a
-            // previous upload with a different extension.
+            // $1=dest dir, $2=source, $3=dest: argv, so quotes/spaces survive; stale -1.* siblings
+            // from a previous upload with another extension are dropped.
             copyProc.command = ["bash", "-c", 'mkdir -p "$1" && rm -f "$1"/-1.* && cp -- "$2" "$3"', "--", dir, root._uploadSrc, dest];
             copyProc.running = true;
         }
@@ -169,10 +159,8 @@ Item {
         visible: !root.hasWaifu
 
         Column {
-            // Padded: the card is bare (no surface behind it), so the text
-            // needs its own inset from the panel edges. Height stays implicit
-            // (content) and anchors on the vertical mid-point, so the block
-            // centers in the card.
+            // Padded: the card is bare (no surface behind it), so the text needs its own inset.
+            // Height stays implicit and anchors on the vertical mid-point so the block centers.
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
@@ -205,9 +193,8 @@ Item {
                     text: "Open Booru Viewer"
                     tooltipText: "Open Booru Viewer in the left panel"
                     onClicked: {
-                        // Show the left island + set its widget
-                        // to BooruViewer. Registry.selectLeftTab does both
-                        // (never toggles it off when already visible).
+                        // Show the left island + set its widget to BooruViewer:
+                        // Registry.selectLeftTab does both (never toggles it off when visible).
                         Registry.selectLeftTab("BooruViewer", undefined, root.monitorName);
                     }
                 }

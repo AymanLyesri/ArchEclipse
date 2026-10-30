@@ -3,20 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Gated rustc builder for single-file Rust helpers (scripts/*.rs, zero deps —
-// no cargo manifest/target weight). Compiles into ~/.cache/quickshell/binaries/
-// ONLY when the binary is missing or older than its source; a fresh build
-// skips on every reload. Callers register with build(srcPath, binName, done);
-// done(binPath) fires once the binary is ready (immediately if already built,
-// after a 10s delay per failed attempt — handles rustc/source missing etc).
-// One compile runs at a time; queued jobs are drained in order.
-//
-// A progress toast pops only for real compiles — the arm timer is canceled
-// by a skip verdict, so a no-op rebuild never flashes a card.
-// shortcut: progress converges toward 95% over an estimated duration — rustc
-// emits no phase data for a single-file compile, so the bar is time-based,
-// snapped to 100% on exit. Upgrade to real rustc -Z/--json progress if ever
-// available stable.
+// Gated rustc builder for single-file helpers: recompiles only when the binary is
+// missing or older than its source, so a reload never pays a rustc/cargo cost.
 QtObject {
     id: root
 
@@ -60,10 +48,8 @@ QtObject {
             + ' && if [ "' + root.binDir + '/' + job.bin + '" -nt "' + job.src + '" ]; then echo "' + job.bin + ' up to date, skipping compile";'
             + ' else rustc --edition=2021 -O -o "' + root.binDir + '/' + job.bin + '" "' + job.src + '"; fi'
         ];
-        // Progress estimate: converge on 95% over the LAST measured compile
-        // duration for this binary (3s fallback on first build). rustc emits
-        // no phase data for a single file, so the bar is calibrated elapsed
-        // time — after the first run it lands ~95% exactly when done.
+        // Progress is calibrated elapsed time (rustc emits no phase data): converge
+        // on 95% over the last measured compile, snapping to 100% on exit.
         job.startC = Date.now();
         job.est = root.durations[job.bin] || 3000;
         toastArm.start();

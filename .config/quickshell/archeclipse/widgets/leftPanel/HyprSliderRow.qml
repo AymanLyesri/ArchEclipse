@@ -5,11 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// One Hyprland numeric leaf as a settings row (Settings page → Hyprland).
-// Owns the whole slider edit path in one place: read via the host-bound
-// `value`, write through Settings.hyprSet (fresh subtree so every row bound
-// to Settings.hyprland re-reads) + the live `hyprctl eval` push. decimals > 0
-// marks a float leaf (value + readout formatted at that precision).
+// One Hyprland numeric leaf as a settings row: read via the host-bound `value`, write through
+// Settings.hyprSet (fresh subtree) + the live `hyprctl eval` push; decimals > 0 marks a float.
 SettingRow {
     id: root
 

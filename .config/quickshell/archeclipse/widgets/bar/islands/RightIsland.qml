@@ -8,40 +8,24 @@ import qs.widgets.shared
 import qs.widgets.media
 import qs.widgets.rightPanel
 
-// RightIsland: the former RightPanel body (widget stack + toggle sidebar)
-// living in the right side pill beside the bar, scoped to its owning monitor.
-//
-// Same expand-driver unfold as SearchIsland — the pill grows
-// (width via the pill transition, height snapped on the window) while this
-// body unfolds via the expand driver (clip + opacity + scale only, so no
-// expensive layout animates per-frame).
-//
-// Open: SUPER+R bind, right HotZone hover, IPC.
-// Close: bind toggle, Esc, close button, or 1s after the cursor leaves
-// (the monitor's right-panel lock pins it open; an active widget-selector drag
-// also holds it open, matching the old panel).
+// RightIsland: the former RightPanel body in the right side pill, scoped to its monitor; same
+// expand-driver unfold as SearchIsland. The panel lock and a widget drag pin it open.
 Item {
     id: root
     width: Settings.panelWidthFor("right", root.monitorName)
-    // Explicit full height (NOT implicit): positioner implicit sizes freeze
-    // at completion-time values in this engine, so a height driven only by
-    // the expand animation would never reach the pill — the Loader measures
-    // this explicit height and the pill snaps to it, exactly like the
-    // static DefaultBar/PlayerIsland pages. The expand driver below still
-    // unfolds the content inside the snapped pill (clip + opacity + scale).
+    // Explicit full height, NOT implicit: positioner implicit sizes freeze at completion time,
+    // so an animated-only height never reached the pill; the Loader measures this one.
     height: bodyHeight
 
     // Island owner passes the bar's monitor; body falls back to focused.
     property string monitorName: ""
 
-    // Full monitor height, passed by the bar owner. Side islands stretch
-    // the whole vertical screen like the old edge panels did (the pill
-    // adds its 10px padding, leaving a 5px bottom margin).
+    // Full monitor height from the bar owner: side islands stretch the whole vertical screen
+    // like the old edge panels (the pill adds 10px padding, leaving a 5px bottom margin).
     property int screenHeight: 1080
 
-    // Fixed dropdown height (the old panel stretched full monitor height;
-    // the island is a floating card — the widget stack scrolls internally,
-    // same as the search island's fixed body height).
+    // Fixed dropdown height: the island is a floating card and the widget stack scrolls
+    // internally (like the search island's fixed body height).
     property int bodyHeight: Math.max(400, screenHeight - 15)
 
     // True while a widget selector is being drag-reordered.
@@ -67,9 +51,8 @@ Item {
         return `right-island-${root.monitorName || Registry.monitorName}`;
     }
 
-    // Hover tracking lives here (stable container — content never swaps
-    // under the cursor while open). Leaving arms the close timer; the
-    // timer re-checks so a fast flick across still closes.
+    // Hover tracking lives here (stable container — content never swaps under the cursor).
+    // Leaving arms the close timer, which re-checks so a fast flick still closes.
     HoverHandler {
         id: islandHover
         onHoveredChanged: {
@@ -94,10 +77,8 @@ Item {
             return;
         leaveTimer.restart();
     }
-    // Called by the bar owner on every (re)open: the island now survives
-    // closes, so a leaveTimer armed before the last close must not fire
-    // into the fresh session. Also clears a mid-drag close leftover that
-    // would otherwise pin the island open (autohide skips while dragging).
+    // Called on every (re)open: the island survives closes, so a leaveTimer armed before the
+    // last close must not fire into the fresh session. Also clears a mid-drag leftover.
     function cancelPendingHide() {
         leaveTimer.stop();
         root.isDragging = false;
@@ -133,9 +114,7 @@ Item {
             layoutDirection: Qt.RightToLeft
 
             // ----- Sidebar with widget toggles (drag-reorderable) -----
-            // NOTE: this rail stays custom (not IslandSideRail) — the
-            // release-time geometric reorder + isDragging auto-hide hold
-            // cannot be preserved by the shared Repeater rail.
+            // Stays custom (not IslandSideRail): live reorder + the isDragging hold need it.
             Rectangle {
                 id: sidebar
                 width: 48
@@ -171,16 +150,12 @@ Item {
                             // Set on release after a real drag so the
                             // trailing click doesn't toggle the widget.
                             property bool suppressClick: false
-                            // Y at press time: the Column positioner owns the
-                            // absolute y (index*48), so the target slot must
-                            // derive from the drag DELTA, not absolute y.
+                            // Y at press time: the Column owns the absolute y (index*48), so the
+                            // target slot derives from the drag DELTA, not absolute y.
                             property real dragStartY: 0
 
-                            // --- Drag to reorder (resolved geometrically on
-                            // release: reordering live in onEntered reassigns
-                            // the model mid-drag, which rebuilds this
-                            // delegate under the cursor, kills the gesture,
-                            // and can strand isDragging true) ---
+                            // --- Drag to reorder, resolved on release: live reordering rebuilds
+                            // the delegate under the cursor, kills the gesture, strands isDragging ---
                             Drag.active: cellBtn.dragActive
                             Drag.hotSpot: Qt.point(width / 2, height / 2)
                             Drag.source: selectorItem
@@ -208,9 +183,8 @@ Item {
                                 onReleased: {
                                     cellBtn.dragging = false;
                                     root.isDragging = false;
-                                    // Release-time reorder: target slot from
-                                    // the dragged offset (cell 40 + spacing
-                                    // 8 = 48px pitch), clamped to the list.
+                                    // Release-time reorder: target slot from the dragged offset
+                                    // (cell 40 + spacing 8 = 48px pitch), clamped to the list.
                                     const to = Math.max(0, Math.min(Settings.rightPanelWidgets.length - 1, selectorItem.index + Math.round((selectorItem.y - selectorItem.dragStartY) / 48)));
                                     selectorItem.x = 0;
                                     selectorItem.y = 0;
@@ -270,10 +244,8 @@ Item {
 
                 Column {
                     id: contentColumn
-                    // Width MUST come from the Flickable's explicit width, never
-                    // the viewport (parent.width): the viewport width negotiates
-                    // with content size, which feeds back through delegates and
-                    // wedges the scene in a silent polish loop (0-width freeze).
+                    // Width MUST come from the Flickable's explicit width, never parent.width:
+                    // the viewport negotiates with content and wedges a silent polish loop.
                     width: contentScroll.width
                     spacing: Theme.spacing
                     padding: Theme.pad
@@ -303,10 +275,8 @@ Item {
                         delegate: Item {
                             required property var modelData
                             readonly property bool isBare: modelData.name === "Media" || modelData.name === "Waifu"
-                            // Fill the padded area, not the full Column width:
-                            // width: parent.width here overshoots the viewport
-                            // by leftPadding+rightPadding and clip cuts the
-                            // right edge off every card.
+                            // Fill the padded area, not the full Column width: parent.width here
+                            // overshoots the viewport by the padding and clip cuts the right edge.
                             width: contentColumn.width - contentColumn.leftPadding - contentColumn.rightPadding
                             // Fade-in on show.
                             opacity: 0
@@ -317,19 +287,14 @@ Item {
                                 }
                             }
                             Component.onCompleted: opacity = 1
-                            // Panel-card heights per widget (fixed heights
-                            // with internal scroll).
-                            // Heights must stay in sync with each widget's content.
-                            // Each widget owns its inner padding (8px per side);
-                            // Media/Waifu have no outer card and size to content.
+                            // Fixed per-widget card heights (internal scroll), kept in sync with each
+                            // widget's content; each owns its 8px padding, Media/Waifu size to content.
                             height: {
                                 switch (modelData.name) {
                                 case "Waifu":
                                     {
-                                        // The widget is an embedded BooruDialog
-                                        // now: follow its measured content
-                                        // height (Media-case pattern), with a
-                                        // placeholder fallback when unset.
+                                        // Embedded BooruDialog: follow its measured content
+                                        // height (Media-case pattern), with a placeholder fallback.
                                         const measured = widgetLoader.item ? widgetLoader.item.implicitHeight : 0;
                                         if (measured > 0)
                                             return measured;
@@ -337,12 +302,8 @@ Item {
                                     }
                                 case "Media":
                                     {
-                                        // Dynamic like NotificationHistory /
-                                        // SystemResources below: follow the
-                                        // widget's implicitHeight (250 with
-                                        // lyrics, 170 with no player) instead
-                                        // of a fixed guess, which clipped the
-                                        // lyrics rows.
+                                        // Dynamic like NotificationHistory: follow implicitHeight
+                                        // (250 with lyrics, 170 without) — a fixed guess clipped rows.
                                         const measured = widgetLoader.item ? widgetLoader.item.implicitHeight : 0;
                                         if (measured > 0)
                                             return measured;
@@ -350,11 +311,8 @@ Item {
                                     }
                                 case "NotificationHistory":
                                     {
-                                        // Dynamic: follow the widget's measured
-                                        // content height (header + real list
-                                        // height capped internally + filter)
-                                        // instead of guessing per-notification
-                                        // pixels, which clipped tall cards.
+                                        // Dynamic: follow the measured content height (header + list,
+                                        // capped internally); per-notification guesses clipped tall cards.
                                         const measured = widgetLoader.item ? widgetLoader.item.implicitHeight : 0;
                                         if (measured > 0)
                                             return Math.min(520, Math.max(150, measured + 16));
@@ -367,9 +325,8 @@ Item {
                                     return 330;
                                 case "SystemResources":
                                     {
-                                        // Shared SystemResourcesContent stacks
-                                        // vertically on narrow panels, so measure
-                                        // instead of using a fixed height.
+                                        // Shared SystemResourcesContent stacks vertically on narrow
+                                        // panels, so measure instead of fixing a height.
                                         const measured = widgetLoader.item ? widgetLoader.item.implicitHeight : 0;
                                         if (measured > 0)
                                             return Math.min(700, Math.max(200, measured + 16));
@@ -392,9 +349,8 @@ Item {
 
                             Loader {
                                 id: widgetLoader
-                                // No inset here: each widget sets its own inner
-                                // padding so content never paints over the card
-                                // border. Media/Waifu fill the delegate with no card.
+                                // No inset here: each widget pads itself so content never paints over
+                                // the card border; Media/Waifu fill the delegate with no card.
                                 anchors.fill: parent
                                 sourceComponent: {
                                     switch (modelData.name) {

@@ -16,9 +16,8 @@ QtObject {
     property bool _startRequested: false
     property bool _startProcessFinished: true
 
-    // UI-facing mirror of `_startRequested`: start intent in flight but the
-    // recorder not yet up — the process poll lags the spawn briefly.
-    // Clears on recorder-up or failed start, exactly like `_startRequested`.
+    // UI mirror of `_startRequested`: start intent in flight but the recorder is not
+    // up yet (the poll lags the spawn); clears on recorder-up or failed start.
     readonly property bool starting: root._startRequested && !root.isRecording
 
     // Epoch ms when the current recording started (0 when not recording).
@@ -79,9 +78,8 @@ QtObject {
         }
     }
 
-    // Stop recording process: the script now verifies the target PIDs,
-    // falls back to pgrep, and exits non-zero with a message when there
-    // is nothing to stop — surface that instead of failing silently.
+    // The script verifies target PIDs, falls back to pgrep and exits non-zero when
+    // there is nothing to stop — surface that rather than failing silently.
     property Process _stopRecProc: Process {
         command: [root.scriptPath, "stop"]
         stdout: StdioCollector {}
@@ -100,9 +98,8 @@ QtObject {
         }
     }
 
-    // Start recording process: the script exits non-zero when the user
-    // cancels area selection or GPU Screen Recorder exits on startup — report it
-    // (slurp-cancel stays silent, that is a deliberate no-op).
+    // Exits non-zero when area selection is cancelled or gpu-screen-recorder dies on
+    // startup; a slurp cancel stays silent (deliberate no-op).
     property Process _startRecProc: Process {
         stdout: StdioCollector {}
         stderr: StdioCollector {}

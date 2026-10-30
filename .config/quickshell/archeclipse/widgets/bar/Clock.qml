@@ -11,17 +11,15 @@ Rectangle {
     width: row.implicitWidth
     height: Theme.barContentHeight
     radius: Theme.radius
-    // Hover fill — set to "transparent" when embedded on an already-filled
-    // surface (e.g. the DefaultBar center pill) so the revealed date never
-    // paints a mismatched block behind it.
+    // Hover fill — "transparent" when embedded on an already-filled surface (the DefaultBar
+    // center pill), so the revealed date never paints a mismatched block.
     property string hoverColor: Theme.surfaceHover
     color: hover.hovered ? hoverColor : "transparent"
 
     property string timeText: Settings.fmt(new Date(), Settings.dateFormat)
     property string dateStr: Qt.formatDate(new Date(), "dddd · d MMM")
-    // Single owner: the binding above dies on the first tick, so every
-    // refresh path (minute, format change, manual cycle) must go through
-    // refreshClock() or both labels go stale.
+    // Single owner: the binding above dies on the first tick, so every refresh path
+    // (minute, format change, manual cycle) must go through refreshClock().
     function refreshClock() {
         root.timeText = Settings.fmt(new Date(), Settings.dateFormat);
         root.dateStr = Qt.formatDate(new Date(), "dddd · d MMM");

@@ -1,12 +1,5 @@
-// create-nowpayments-payment — authenticated checkout creation (one-time only).
-//
-// QML -> this function -> NOWPayments POST /v1/invoice -> { invoice_url }.
-// The NOWPayments API key never leaves the server. The frontend receives only
-// the hosted invoice URL plus safe identifiers.
-//
-// User association: user_id is taken from the verified JWT (auth.getUser),
-// NEVER from request-body fields. The local payment row id is sent to
-// NOWPayments as order_id so the IPN webhook can attribute the payment.
+// Authenticated one-time checkout: QML → function → NOWPayments POST /v1/invoice → { invoice_url }.
+// user_id comes from the verified JWT only (never the body), so the API key never reaches QML.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.44.4";

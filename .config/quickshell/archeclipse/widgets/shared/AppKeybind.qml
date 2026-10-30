@@ -1,6 +1,5 @@
-// Shared keybind chips — renders each entry of `keys` as a rounded chip
-// rounded chip with a "+" separator between them. Used by CustomScripts and
-// the app-launcher help/commands list so both stay visually identical.
+// Shared keybind chips: each entry of `keys` as a rounded chip, "+" between them, so
+// CustomScripts and the launcher help list stay visually identical.
 import QtQuick
 import QtQuick.Controls
 import qs.theme

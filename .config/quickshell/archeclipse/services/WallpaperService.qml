@@ -5,25 +5,14 @@ import Quickshell.Io
 
 import Qt.labs.folderlistmodel
 
-// WallpaperService — shared wallpaper data fetched once at quickshell
-// boot so opening the switcher never pays the first-open cost.
-//
-// Owns the heavy/shared state that used to live per-body in
-// WallpaperPanelBody: the category -> [paths] map (one QML-native
-// FolderListModel scan, not one per monitor per open), the video
-// first-frame thumb manifest, and the decoded-aspect cache. Bodies
-// (one per monitor Bar) bind read-only and delegate helpers here.
-//
-// Per-body UI state stays in the body: targetType, selectedWorkspace,
-// wallhaven search/results, progress, currentWallpapers (cheap
-// --current config read, monitor-specific).
+// Wallpaper data fetched once at boot (categories, video thumbs, decoded aspects) so
+// an open never pays the first-open cost; per-monitor UI state stays in the body.
 QtObject {
     id: root
 
     readonly property string home: Quickshell.env("HOME")
-    // First-frame JPEG thumbnails for video wallpapers live here (QML-native
-    // since 2026-10-13, replacing scripts/gen-video-thumbs.sh): deterministic
-    // thumbPathFor() + mtime probe + sequential ffmpeg queue below.
+    // First-frame JPEG thumbs for video wallpapers: deterministic thumbPathFor() +
+    // mtime probe + sequential ffmpeg queue (QML-native, replaced gen-video-thumbs.sh).
     readonly property string thumbCacheDir: home + "/.cache/quickshell/wallpaper-thumbs"
 
     // category -> [paths]; reassigned, never mutated (masonry bindings).
@@ -74,10 +63,8 @@ QtObject {
     }
 
     function fetchWallpapers() {
-        // QML-native directory scan (replaces get-wallpapers.sh default
-        // mode): depth-first walk of wallpaperFolder through a single
-        // FolderListModel, one directory per Ready step. Restartable: a
-        // refresh mid-scan resets the stack/result and rebuilds from root.
+        // QML-native directory scan (one FolderListModel, one dir per Ready step),
+        // replacing get-wallpapers.sh default mode; a refresh resets mid-scan.
         root._scanResult = {};
         root._scanStack = [""];
         root._scanSeen = true;
@@ -107,11 +94,8 @@ QtObject {
         return m !== null && root._scanExts.indexOf(m[1].toLowerCase()) !== -1;
     }
 
-    // Sort key mirroring the old `find ... | sort -z` (en_US.UTF-8):
-    // glibc collation ignores punctuation/case on its first pass, so
-    // `_foo` sorts with the f's, not before alphanumerics (JS code-unit
-    // order would). Raw name breaks ties. Verified byte-identical
-    // against live script output for all shipped categories.
+    // Mirrors `find | sort -z` en_US.UTF-8 collation: `_foo` sorts with the f's, not
+    // before alphanumerics (JS code-unit order would); verified byte-identical.
     function _scanSortKey(name) {
         return name.replace(/[^A-Za-z0-9]/g, "").toLowerCase();
     }
@@ -136,9 +120,8 @@ QtObject {
         }
     }
 
-    // Fallback when Ready never arrives (e.g. a dir vanishing mid-scan):
-    // skip silently like the old script's empty find. While Loading, wait;
-    // give up after ~10s so a wedged model can't stall boot adoption.
+    // If Ready never arrives (a dir vanishing mid-scan), skip silently like the old
+    // empty find: wait while Loading, give up after ~10s so boot adoption can't stall.
     property Timer _scanKick: Timer {
         interval: 500
         onTriggered: {
@@ -190,18 +173,16 @@ QtObject {
             else if (root._isWallpaperFile(name))
                 files.push(name);
         }
-        // Explicit locale-collation sort matching the old
-        // `find ... | sort -z` within a directory (see _scanLess), never
-        // depending on the model's own sorting.
+        // Explicit locale-collation sort within a directory, matching the old
+        // `find | sort -z`, never trusting the model's own ordering.
         files.sort(root._scanLess);
         dirs.sort(root._scanLess);
         if (files.length > 0) {
             const base = root.wallpaperFolder + (root._scanCurrent !== "" ? "/" + root._scanCurrent : "");
             root._scanResult[root._scanCurrent] = files.map(f => base + "/" + f);
         }
-        // Push reversed so the smallest subdir pops first: pre-order DFS
-        // equals the old global `find | sort` directory order, which the
-        // category combo + capture tooling observe via Object.keys.
+        // Push reversed so the smallest subdir pops first: pre-order DFS equals the
+        // old `find | sort` order the combo and capture tooling observe via Object.keys.
         for (let i = dirs.length - 1; i >= 0; i--)
             root._scanStack.push(root._scanCurrent !== "" ? root._scanCurrent + "/" + dirs[i] : dirs[i]);
         root._scanNext();
@@ -211,10 +192,8 @@ QtObject {
         root._scanActive = false;
         root._scanKick.stop();
         root.fetchProc.running = false;
-        // Skip no-change adoptions: every reassign rebuilds the
-        // masonry + re-decodes all tiles (visible flicker). Canonical
-        // JSON.stringify (insertion-ordered DFS keys, sorted paths) is
-        // the comparator.
+        // Skip no-change adoptions (each reassign rebuilds the masonry and re-decodes
+        // every tile): compare canonical JSON.stringify, not array identity.
         const text = JSON.stringify(root._scanResult);
         if (text === root._lastWallpapersJson)
             return;
@@ -233,20 +212,16 @@ QtObject {
         }
     }
 
-    // Background thumb run over every known local video (fresh ones skip
-    // on mtime via the probe in _pumpThumbs, so re-runs are cheap).
-    // Single-flight: a fetch storm while a run is active re-runs once on
-    // drain. thumbProc is a compat flag object (not a Process): bodies bind
-    // `thumbProc.running` for captureReady.
+    // Background thumb run over every local video (the mtime probe makes re-runs cheap);
+    // a fetch storm re-runs once on drain; thumbProc is a flag object, not a Process.
     property QtObject thumbProc: QtObject {
         property bool running: false
     }
     property var _thumbQueue: []
     property var _thumbResults: ({})
 
-    // Stuck-step watchdog: ffmpeg wedged on a corrupt container never
-    // fires `exited`, so the queue would stall thumbProc.running forever.
-    // A step outliving 120s counts as failed: drop it and advance.
+    // Watchdog: ffmpeg wedged on a corrupt container never fires `exited`, so a step
+    // outliving 120s counts as failed — drop it and advance instead of stalling.
     property var _thumbStep: null
     property Timer _thumbWatchdog: Timer {
         interval: 120000
@@ -267,18 +242,14 @@ QtObject {
         return p;
     }
 
-    // Deterministic thumb name from the source path so QML derives it
-    // without hashing: sanitized path + ".jpg". Mirrors the old script's
-    // sed 's/[^A-Za-z0-9._-]/_/g' byte-wise for ASCII paths (all shipped
-    // folders are ASCII; QML UTF-16 vs sed bytes would disagree on
-    // unicode — same caveat the script carried).
+    // Deterministic thumb name from the source path (sanitized + ".jpg") so QML never
+    // hashes; byte-wise identical to the old sed for ASCII paths — unicode disagrees.
     function thumbPathFor(src) {
         return root.thumbCacheDir + "/" + String(src).replace(/[^A-Za-z0-9._-]/g, "_") + ".jpg";
     }
 
-    // One-shot Process factory: stderr is discarded (the old script ran
-    // ffmpeg with 2>/dev/null; without a collector the child inherits the
-    // shell's stderr and spams the bar log per video).
+    // stderr is discarded: without a collector the child inherits the shell's stderr
+    // and spams the bar log once per video.
     function _spawn(args) {
         const p = Qt.createQmlObject("import Quickshell.Io; Process {}", root);
         p.stderr = Qt.createQmlObject("import Quickshell.Io; StdioCollector {}", p);
@@ -313,10 +284,8 @@ QtObject {
         mk.running = true;
     }
 
-    // Sequential queue: mtime probe first (FileView can't stat, so one
-    // `test out -nt src` per file), then ffmpeg + atomic mv on stale.
-    // Failures (missing source, decode error) adopt nothing, keeping the
-    // icon fallback — same as the old script's manifest omissions.
+    // Sequential queue: mtime probe first (FileView can't stat, so one `test out -nt
+    // src`), then ffmpeg + atomic mv; failures adopt nothing, keeping the icon fallback.
     function _pumpThumbs() {
         if (root._thumbQueue.length === 0) {
             if (Object.keys(root._thumbResults).length > 0)

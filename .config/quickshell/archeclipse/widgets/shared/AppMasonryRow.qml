@@ -1,50 +1,5 @@
-// Shared horizontal masonry layout: transpose of AppMasonry — distributes a
-// flat model into N rows (shortest-row by cumulative width, aspect-aware
-// when available, round-robin otherwise) for horizontal-scroll strips.
-// Used by the wallpaper panel: the local and wallhaven strips share this
-// one layout (and one rows/tile-size settings pair).
-//
-// Usage:
-//   AppMasonryRow {
-//     width: stripViewport.width  // explicit Flickable width (see contract)
-//     rows: 2
-//     spacing: 6
-//     rowHeight: 120              // exact tile height (not viewport-derived)
-//     model: myArray
-//     aspectRatio: item => (item.w && item.h) ? item.w / item.h : 16/9
-//     // View-windowed lazy loading: only cells intersecting the viewport
-//     // (+ buffer) instantiate their delegate; the rest hold a lightweight
-//     // placeholder at the correct size, so open/scroll stay cheap on
-//     // 100+ item models. viewRight < 0 disables windowing (load all).
-//     viewLeft: flick.contentX - 700
-//     viewRight: flick.contentX + flick.width + 700
-//     buffer: 700
-//     placeholder: Rectangle { color: Theme.surface; radius: 6 }
-//     delegate: Item {
-//       property var modelData  // plain, NOT required (see contract)
-//       width: masonry.widthFor(modelData)
-//       height: masonry.rowHeight
-//       ...
-//     }
-//   }
-//
-// Contract (mirrors AppMasonry):
-// - `model` is a flat JS array. `aspectRatio(item)` is optional (w/h ratio;
-//   null = round-robin dealing). `balanceRows: false` keeps round-robin
-//   dealing (stable list order) while still sizing tiles from aspectRatio.
-//   Aspect inputs must be REPLACED, not mutated
-//   (reassign the array/cache object) so the layout recomputes.
-// - `delegate` must declare `property var modelData` (plain, NOT required —
-//   Loader cannot supply required props at creation) and an explicit `width`
-//   (Item.width defaults to the wrapper's 0 — the wrapper sizes off
-//   item.width, same as AppMasonry sizes off item.height).
-// - This item is layout-only (no Flickable). Wrap it in a horizontal
-//   SmoothFlickable, bind contentWidth here, and give the Flickable an
-//   explicit height (rows*rowHeight + spacing + scrollbar room). Heights and
-//   widths both come from settings inputs — never from the viewport — so no
-//   content<->viewport negotiation loop.
-// - `width` must be the Flickable's explicit width, never `parent.width` of
-//   the viewport (same 0-width wedge rule as AppMasonry).
+// Shared horizontal masonry (transpose of AppMasonry): N rows, aspect-aware, view-windowed lazy
+// cells. Layout-only: `width` is the Flickable's explicit width, never the viewport's.
 
 import QtQuick
 import qs.theme
@@ -58,12 +13,8 @@ Item {
     property real rowHeight: 120
     // function(item) -> width/height ratio, or null for round-robin
     property var aspectRatio: null
-    // true (default): deal each item to the shortest row (compact masonry,
-    // but items leave list order). false: round-robin dealing that preserves
-    // list order left-to-right, top-to-bottom while tile widths still come
-    // from aspectRatio. Use false when the model is a sorted list the user
-    // reads in order (e.g. local wallpaper files) — shortest-row packing
-    // plus aspects refining after decode otherwise visibly shuffles tiles.
+    // true (default): shortest-row dealing. false: round-robin preserving list order while
+    // widths still come from aspectRatio — for sorted lists that must not shuffle.
     property bool balanceRows: true
     property Component delegate
     // Lazy window in content coordinates (bind to the host Flickable).
@@ -71,18 +22,12 @@ Item {
     property real viewLeft: 0
     property real viewRight: -1
     property real buffer: 600
-    // Optional placeholder for not-yet-loaded cells (sized by the wrapper;
-    // keep it theme-free here — callers pass themed visuals). Null renders
-    // an empty gap of the correct size.
+    // Optional placeholder for not-yet-loaded cells (sized by the wrapper, keep it theme-free);
+    // null renders an empty gap of the correct size.
     property Component placeholder: null
 
-    // Widths are DERIVED from the aspectRatio function (never looked up by
-    // item identity): tiles call aspectFor/widthFor with the same function
-    // and inputs the distribution uses, so laid-out widths always agree with
-    // contentWidth by construction. (A JS Map stored in a QML var loses
-    // object-key identity across the boundary and misses on every lookup,
-    // which left all tiles at the fallback width while contentWidth was
-    // computed from real aspects — the strip end clipped.)
+    // Widths derive from the aspectRatio function, never by item identity — a JS Map in a QML
+    // var loses object-key identity, leaving tiles at the fallback width and clipping the strip.
     function aspectFor(item) {
         const fallback = 16 / 9;
         const ratioFn = root.aspectRatio;
@@ -96,14 +41,8 @@ Item {
         return fallback;
     }
 
-    // Row ASSIGNMENT (which item lands in which row) is stable by design:
-    // round-robin dealing reads only model/rows below — never aspects — so
-    // live aspect refines (local decode storm) resize tiles in place through
-    // widthFor instead of rebuilding every delegate (rebuilds replayed the
-    // fade + reloaded images = flicker, and stalled scrolling = pauses).
-    // Balanced mode keeps the single-pass layout further below; its aspects
-    // are data-driven and immutable (wallhaven resolutions), so it settles
-    // after one computation.
+    // Row assignment is stable by design: round-robin never reads aspects, so live refines
+    // resize in place via widthFor instead of rebuilding delegates (which replayed fades).
     readonly property var _rrRows: {
         const list = root.model || [];
         const n = Math.max(1, root.rows);
@@ -142,12 +81,8 @@ Item {
         return x;
     }
 
-    // Single-pass balanced layout: row assignment + strip width. Rows hold
-    // CELLS ({item, x, w}) with precomputed content-x offsets, so wrappers
-    // know their view-window membership immediately — no laid-out positions
-    // needed (all x would read 0 pre-layout and defeat lazy loading).
-    // Early-out first: in round-robin mode this must not read any aspect,
-    // or it would subscribe to live caches and recompute pointlessly.
+    // Single-pass balanced layout: rows hold CELLS ({item, x, w}) with precomputed offsets, so
+    // wrappers know their window membership pre-layout. Early-out before reading any aspect.
     readonly property var _balLayout: {
         if (!root.balanceRows)
             return {
@@ -200,9 +135,8 @@ Item {
     readonly property var masonryRows: root.balanceRows ? root._balLayout.rows : root._rrRows
     readonly property real contentWidth: root.balanceRows ? root._balLayout.contentWidth : root._rrContentWidth
 
-    // Tile width for an item: rowHeight * aspectFor(item). Same function and
-    // inputs the distribution uses, so tiles always match contentWidth
-    // (including the 16:9 fallback before modelData arrives or aspects decode).
+    // Tile width = rowHeight * aspectFor(item), the same function and inputs the distribution
+    // uses, so tiles always match contentWidth (16:9 until aspects decode).
     function widthFor(item) {
         return Math.max(1, root.rowHeight) * root.aspectFor(item);
     }
@@ -224,17 +158,11 @@ Item {
                     model: parent.rowItems
                     delegate: Item {
                         required property var modelData
-                        // Qt6 withholds the implicit Repeater `index` in this
-                        // scope (ReferenceError storm, blank strip on scroll)
-                        // — declare it explicitly like IslandSideRail does.
+                        // Qt6 withholds the implicit Repeater `index` in this scope (ReferenceError
+                        // storm, blank strip on scroll) — declare it explicitly.
                         required property int index
-                        // Balanced: modelData is a CELL ({item, x, w}).
-                        // Round-robin: modelData is the ITEM itself; x/w are
-                        // the live bindings below (stable assignment +
-                        // in-place resize, no rebuild on aspect refines).
-                        // Ternaries only subscribe to the taken branch, so
-                        // round-robin wrappers never depend on live aspects
-                        // for their structure — only for geometry.
+                        // Balanced: modelData is a CELL ({item, x, w}); round-robin: the ITEM with
+                        // live x/w bindings — ternaries subscribe only to the taken branch.
                         property var cellData: modelData
                         readonly property var _cellItem: root.balanceRows ? cellData.item : cellData
                         readonly property real cellX: root.balanceRows ? cellData.x : root._rrX(parent.rowItems, index)

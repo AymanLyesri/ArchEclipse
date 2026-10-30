@@ -1,12 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Single-fill pill background: body rect + both concave screen-edge
-// flares traced as ONE path with ONE fill, so no internal seam can
-// appear. (Two abutting AA'd shapes leave a wallpaper hairline at
-// fractional positions; two overlapping ones double-blend because
-// Theme.surface is translucent.) Replaces Rectangle-bg + InvertedCorner
-// pairs for the main bar pill and the left/right side pills.
+// Single-fill pill background: body + both concave edge flares as one path, so no seam appears —
+// abutting shapes leave a hairline, overlapping ones double-blend on a translucent surface.
 Canvas {
     id: root
     property int bodyWidth: 100
@@ -17,10 +13,8 @@ Canvas {
     // bottom + top flares); false = mirrored for a bottom bar.
     property bool topBar: true
     property color color: Theme.surface
-    // Recolor one outer flare to match adjacent content (e.g. the
-    // island sidebar rail): the sliver is overpainted with its own
-    // color after the body fill. Defaults off — overpainting the SAME
-    // translucent color would double-blend and darken the sliver.
+    // Recolor one outer flare to match adjacent content (the island sidebar rail), overpainted
+    // after the body fill. Off by default — overpainting the same translucent colour double-blends.
     property bool leftFlare: false
     property color leftFlareColor: Theme.bg
     property bool rightFlare: false
@@ -68,10 +62,8 @@ Canvas {
         }
         ctx.closePath();
         ctx.fill();
-        // Outer-flare recolor slivers: same geometry as the body's flare
-        // region, painted over it. The shared straight edge becomes a
-        // deliberate two-color boundary (like any card edge), never a
-        // wallpaper hairline or a double-blend overlap.
+        // Outer-flare recolor slivers: same geometry painted over the flare region, making the
+        // shared edge a deliberate two-colour boundary instead of a hairline.
         if (root.leftFlare) {
             ctx.fillStyle = root.leftFlareColor;
             ctx.beginPath();

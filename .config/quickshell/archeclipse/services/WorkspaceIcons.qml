@@ -1,10 +1,8 @@
 pragma Singleton
 import QtQuick
 
-// Workspace icon mapping — port of constants/workspace.constants.ts.
-// Maps the main client class on a workspace to a nerd-font icon.
-// Glyphs are written as \u{} escapes because some NFP codepoints are
-// unassigned in Unicode and get mangled as raw literals.
+// Workspace icon mapping (port of constants/workspace.constants.ts) from the main
+// client class; glyphs are \u{} escapes because some NFP codepoints break as literals.
 QtObject {
     id: root
 
@@ -41,11 +39,8 @@ QtObject {
         return extraIcon;
     }
 
-    // Fresh client class for a HyprlandToplevel. `lastIpcObject.class` is
-    // stale unless `Hyprland.refreshToplevels()` runs (see HyprlandToplevel
-    // docs) so it resolves to ""/extraIcon here — prefer the reactive
-    // `wayland.appId` (== class for native Wayland clients), falling back
-    // to the IPC snapshot for XWayland (wayland == null).
+    // `lastIpcObject.class` is stale without Hyprland.refreshToplevels(), so prefer
+    // wayland.appId (== class for Wayland) and fall back to IPC only for XWayland.
     function classForToplevel(t: var): string {
         if (!t)
             return "";

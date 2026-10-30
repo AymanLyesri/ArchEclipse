@@ -1,37 +1,5 @@
-// Shared masonry layout: distributes a flat model into N shortest columns
-// (aspect-ratio aware when available, round-robin otherwise) and stacks
-// each column vertically. Used by the Booru image grid and the donation
-// cards — one algorithm, one tuning point.
-//
-// Usage:
-//   AppMasonry {
-//     width: parent.width
-//     columns: 2
-//     spacing: 10
-//     model: myArray
-//     aspectRatio: item => (item.width && item.height) ? item.height / item.width : 1
-//     delegate: Item {
-//       property var modelData  // plain, NOT required (see contract)
-//       width: parent.width
-//       height: 120  // explicit height (aspect, fixed, or implicitHeight-based)
-//       ...
-//     }
-//   }
-//
-// Contract:
-// - `model` is a flat JS array.
-// - `aspectRatio(item)` is optional. When provided, items go to the
-//   currently-shortest column by cumulative ratio (true masonry, keeps
-//   columns even with varying image heights). When null, items are dealt
-//   round-robin (even order, best for fixed-height cards).
-// - `delegate` must declare `property var modelData` (plain, NOT
-//   required — Loader cannot supply required props at creation) and an
-//   explicit `height` (Item.height defaults to 0 — implicitHeight alone
-//   renders nothing, since the wrapper sizes off item.height).
-// - This item is layout-only (no Flickable). Wrap it in SmoothFlickable
-//   and bind contentHeight to its height/implicitHeight.
-// - `columnWidth` is exposed so delegates can derive heights before
-//   layout if needed.
+// Shared masonry layout: distributes a flat model into N shortest columns, aspect-aware when
+// available. Delegates declare plain `modelData` + explicit height; layout-only, no Flickable.
 
 import QtQuick
 import qs.theme

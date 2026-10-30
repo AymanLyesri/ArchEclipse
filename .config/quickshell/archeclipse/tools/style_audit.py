@@ -184,10 +184,8 @@ def palette_mode(path: Path) -> int:
     else:
         rows.append(f"ok base fg/bg {contrast(fg, bg):.2f}")
 
-    # danger: red-band scan across the consumer slots (slot values are NOT
-    # hue-loyal in cwal palettes — one live palette renders color14 violet).
-    # Narrow bands need a real red: sat floor 0.30 and v >= 0.12, otherwise a
-    # warm gray wins on contrast alone (measured #917f7a, sat 0.159).
+    # danger: red-band scan across the consumer slots (values are NOT hue-loyal in cwal). Narrow
+    # bands need sat >= 0.30 and v >= 0.12, else a warm gray wins (measured #917f7a, sat 0.159).
     def band_pick(band, floor=0.15):
         best = None
         for i in range(1, 16):
@@ -254,9 +252,8 @@ def palette_mode(path: Path) -> int:
         bad += 1
         rows.append("FAIL success floor")
 
-    # chart ramp: rank by contrast descending, hue of the FIXED colour, greedy
-    # >=30deg separation, ramp padding. Mirrors Theme._charts exactly; v >=
-    # 0.25 keeps fixed near-blacks (reads as ink) out of the series.
+    # chart ramp: rank by contrast descending, hue of the FIXED colour, greedy >=30deg separation,
+    # ramp padding. Mirrors Theme._charts; v >= 0.25 keeps near-blacks (which read as ink) out.
     ramp_base = [accent or fg, mix(accent or fg, fg, 0.35), mix(accent or fg, fg, 0.65)]
     picks, used = [], []
     per = []

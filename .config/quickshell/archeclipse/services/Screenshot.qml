@@ -4,18 +4,8 @@ import Quickshell
 import Quickshell.Io
 import qs.services
 
-// Owner of every screenshot.sh spawn. It lives here — not in
-// ScreenshotIsland — because that island is created and destroyed by the
-// hover reveal (`shotLoader.active: screenshotPiece.shown`), and
-// destroying a Quickshell Process kills its child (measured: a loader
-// deactivated 0.5s into `sleep 4; touch marker` never produced the
-// marker). Fullscreen grim finishes inside the 1s leave grace, but an
-// area shot needs a slurp drag with the pointer off the bar, so the
-// island always folded first and the script died mid-selection
-// (measured 2026-10-24: screenshot.sh opened /tmp/screenshot-area.lock
-// at 23:00:07, no PNG was written, and the orphaned slurp then made
-// screenrecord.sh report "duplicate trigger ignored (slurp already
-// running)"). Same reason ScreenRecorder owns its start/stop Processes.
+// Owns every screenshot.sh spawn because destroying a Process kills its child
+// (measured: an area slurp outlived the folding island), as ScreenRecorder does.
 QtObject {
     id: root
 
@@ -35,10 +25,8 @@ QtObject {
         }
     }
 
-    // mode: "area" -> free-form region, anything else -> focused monitor.
-    // One shot at a time: reassigning `command` while running would swap
-    // the in-flight invocation; the scripts' own locks already serialise
-    // duplicate area triggers.
+    // "area" selects a region, anything else the focused monitor. One shot at a time:
+    // reassigning `command` mid-run swaps the invocation; the script locks guard dups.
     function capture(mode, monitorName) {
         if (root._shotProc.running)
             return false;

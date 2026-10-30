@@ -5,10 +5,8 @@ import qs.widgets.bar.islands
 import qs.widgets.controlPanel
 import qs.widgets.shared
 
-// Volume/brightness OSD pill: shows the full VolumeSection or the
-// brightness section collapsed until hovered, floating centered below
-// the main pill like the media pill — never hijacks the main pill.
-// Full quick-settings stay on explicit toggleControl (ControlCard).
+// Volume/brightness OSD pill: the full VolumeSection or the collapsed brightness section,
+// floating centered below the main pill — never hijacks it. Quick settings stay on ControlCard.
 Item {
     id: root
 
@@ -18,10 +16,8 @@ Item {
     property real expand: 0
     Component.onCompleted: expand = 1
 
-    // Which OSD to show (volume pulses and brightness pulses are mutually
-    // exclusive in BarState, so only one shows at a time). Membership, not
-    // resolved state: a main-pill island switch must not flip the content
-    // under a visible OSD.
+    // Which OSD to show (volume and brightness pulses are mutually exclusive). Membership,
+    // not resolved state, so a main-pill switch never flips the content under a visible OSD.
     readonly property string mode: BarState.isOpenFor("brightness", root.monitorName) ? "brightness" : "volume"
 
     // Dynamic brightness icon (3-level thresholds, mirrors ControlPanelBody).
@@ -34,11 +30,8 @@ Item {
         return "\u{F00DE}";
     }
 
-    // Fixed width breaks the width loop (root <- clip <- bodyCol <- root):
-    // Player/Weather use child implicitWidth, Overview/System a fixed
-    // islandWidth — the OSD follows the latter (VolumeSection is an Item
-    // with no implicit size, so bodyCol.width can never size the island).
-    // 400 matches the pill's Loader fallback so the open frame is exact.
+    // Fixed width breaks the width loop (root <- clip <- bodyCol <- root): VolumeSection has
+    // no implicit size. 400 matches the Loader fallback so the open frame is exact.
     property int islandWidth: 400
 
     // True while the user is dragging a slider: IslandHoverPin.monitor
@@ -74,9 +67,8 @@ Item {
                 visible: root.mode === "volume"
             }
 
-            // Brightness section (mirrors ControlPanelBody): icon + slider.
-            // Explicit height: Card is a plain Rectangle (no implicit
-            // size), so without this the brightness OSD measures 0.
+            // Brightness section (mirrors ControlPanelBody): icon + slider. Explicit height —
+            // Card is a plain Rectangle with no implicit size, so it would measure 0.
             Card {
                 id: brightCard
                 width: parent.width
@@ -133,10 +125,8 @@ Item {
         }
     }
 
-    // Pin while hovered so the pulse hold timer doesn't close it
-    // mid-interaction. Covers both pulses so a rival switch keeps the pin.
-    // 2.5s linger (like the player pill): the OSD stays readable a beat
-    // after the last keypress, not just the 1s open-grace.
+    // Pin while hovered so the hold timer doesn't close it mid-interaction (covers both
+    // pulses, so a rival switch keeps it); 2.5s linger keeps the OSD readable on key repeat.
     IslandHoverPin {
         id: hoverPin
         stateName: BarState.isOpenFor("brightness", root.monitorName) ? "brightness" : "volume"
@@ -147,8 +137,7 @@ Item {
         holdOpen: root.adjusting
     }
 
-    // Volume/brightness changes reset the close timer (same as the control
-    // card's poke): without this a leave armed before the key
+    // Volume/brightness changes reset the close timer, else a leave armed before the key
     // repeat would shut the pill mid-adjustment. Skipped while hovered.
     function pokeHideTimer() {
         if (hoverPin.hovered || !hoverPin.running)

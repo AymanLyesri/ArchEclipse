@@ -20,17 +20,14 @@ ShellRoot {
     }
     Component.onCompleted: {
         _cacheDirsProc.running = true
-        // Instantiate the lazy singleton at boot so it runs its initial sync
-        // (self-healing pins whose files are missing) and attaches its pins
-        // watcher — otherwise it only wakes on the first manual pin toggle.
+        // Prime at boot: the singleton only syncs and attaches its pins watcher
+        // here — otherwise it sleeps until the first manual pin toggle.
         FastfetchPins.start()
-        // Probe power-profiles-daemon once at startup so ControlPanelBody
-        // can bind PpdState.available instead of spawning `powerprofilesctl`
-        // on every island open.
+        // One boot probe lets ControlPanelBody bind PpdState.available instead of
+        // spawning `powerprofilesctl` on every island open.
         PpdState.start()
-        // Prime the wallpaper store once at boot (category map + video
-        // thumbs + aspect cache) so the first SUPER+W open binds warm
-        // data instead of spawning get-wallpapers.sh on open.
+        // Prime the wallpaper store at boot (categories + video thumbs + aspects) so
+        // the first SUPER+W open binds warm data instead of refetching.
         WallpaperService.start()
         // Own the clipboard watcher (wl-paste --watch -> qs ipc) so the
         // first copy after boot is recorded, not just post-island ones.
@@ -82,21 +79,15 @@ ShellRoot {
         }
     }
 
-    // Wallpaper switcher lives in the main bar pill as WallpaperIsland
-    // (BarState "wallpaper", body in widgets/wallpaperPanel).
-    // SUPER+W routes to the island via Ipc.togglePanel.
+    // Wallpaper switcher is WallpaperIsland in the main pill (BarState
+    // "wallpaper"); SUPER+W routes there via Ipc.togglePanel, not a window.
 
     // Secure lockscreen: single scope; the compositor instantiates one
     // WlSessionLockSurface per screen. The UserProfile panel is a left-island tab.
     LockScreen {
     }
 
-    // Left/right content lives in side pills flanking the main bar pill
-    // (leftPanelPill/rightPanelPill in Bar.qml, bodies in widgets/bar/islands;
-    // leftSidePill/rightSidePill are the chained weather + media/recording
-    // status pills).
-    // Notification toasts live in a centered pill below the main pill
-    // (NotificationPopups in Bar.qml). SUPER+L/R and the bar HotZones
-    // route to the pills — no separate side-panel windows, no exclusive zones.
+    // Left/right content + toasts are pills around the main pill (Bar.qml, islands/),
+    // routed by SUPER+L/R and HotZones — no side-panel windows, no exclusive zones.
 
 }

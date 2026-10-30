@@ -7,21 +7,15 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Custom Scripts widget — scrollable list of utility scripts. Record
-// entries route through the ScreenRecorder service, the file manager entry
-// opens the system default via xdg-open, reset shows a Yes/No confirmation,
-// everything else spawns via Quickshell.execDetached. Scripts requiring an
-// installed
-// binary show an install button when the app is missing (yay/paru/pacman
-// via foot).
+// Custom Scripts widget — scrollable list of utility scripts: record entries route through
+// ScreenRecorder, everything else spawns via execDetached; a missing binary offers install.
 Item {
     id: root
 
     property string monitorName: ""
 
-    // Utility script definitions — icons are Nerd Font codepoints. kind
-    // marks entries whose callback does more than a plain exec (record
-    // toggle, dynamic file manager, reset confirmation).
+    // Utility script definitions — icons are Nerd Font codepoints. kind marks entries whose
+    // callback does more than a plain exec (record toggle, file manager, reset confirmation).
     property var scriptDefs: [
         {
             name: "Restart Bar",
@@ -202,11 +196,8 @@ Item {
     // bindings re-evaluate when each check finishes.
     property var appStatus: ({})
 
-    // Replayable staggered reveal: StackLayout builds all tabs once at
-    // startup (hidden), so creation-time timers would fire unseen and the
-    // tab switch would only play the container-wide fade. Instead a
-    // counter steps 0→N each time this tab becomes visible and rows key
-    // their opacity off their index.
+    // Replayable staggered reveal: tabs are built hidden at startup, so creation-time timers
+    // fire unseen — a counter steps 0→N on visibility and rows key opacity off their index.
     property int revealCount: 0
     Timer {
         id: revealTimer
@@ -265,11 +256,8 @@ Item {
     }
 
     property Component installProcComp: Component {
-        // Spawn the install through `foot` so that sudo pacman can
-        // prompt for the password interactively in a terminal. Headless
-        // pacman will hang on the password prompt and lock up forever.
-        // We exec foot with the bash branch inline so the user sees the
-        // progress and can enter their sudo password when prompted.
+        // Spawn through `foot` so sudo pacman can prompt in a terminal — headless pacman hangs
+        // on the prompt forever. foot runs the bash branch inline so progress shows.
         Process {
             id: _instProc
             property string pkgName: ""
@@ -294,9 +282,8 @@ Item {
             command: ["bash", "-c", "rm -rf $HOME/.cache/quickshell/settings/settings.json"]
             stdout: StdioCollector {
                 onStreamFinished: {
-                    // NOTE: must not go through Hyprland.dispatch("exec ...") —
-                    // Hyprland >= 0.55 uses a Lua config and rejects the legacy
-                    // string-dispatch exec syntax. execDetached spawns directly.
+                    // NOTE: never Hyprland.dispatch("exec ...") — Hyprland >= 0.55 (Lua config)
+                    // rejects the legacy string-dispatch syntax. execDetached spawns directly.
                     Quickshell.execDetached(["lua", Quickshell.env("HOME") + "/.config/hypr/config/scripts/bar.lua"]);
                     _resetProc.destroy();
                 }
@@ -328,10 +315,8 @@ Item {
             ScreenRecorder.toggleRecording("area", root.monitorName);
             return;
         }
-        // NOTE: spawn via Quickshell.execDetached, NOT Hyprland.dispatch("exec ...").
-        // Hyprland >= 0.55 (Lua config) rejects the legacy string-dispatch exec
-        // syntax ("... ')' expected ..."), so every click silently did nothing.
-        // Running through bash -c preserves the complex quoted commands below.
+        // Spawn via Quickshell.execDetached, NOT Hyprland.dispatch("exec ..."): Hyprland >= 0.55
+        // (Lua config) rejects that syntax, so every click silently did nothing.
         if (def.kind === "file-manager") {
             // xdg-open honours the system default file manager.
             Quickshell.execDetached(["bash", "-c", "xdg-open \"$HOME\""]);
@@ -436,9 +421,8 @@ Item {
                             anchors.margins: Theme.pad
                             spacing: Theme.spacing
 
-                            // NOTE: RowLayout (not Row) — verticalCenter anchors
-                            // are ignored inside positioners, so alignment
-                            // goes through Layout.alignment instead.
+                            // NOTE: RowLayout (not Row) — verticalCenter anchors are ignored
+                            // inside positioners, so alignment goes through Layout.alignment.
                             RowLayout {
                                 id: rowContent
                                 spacing: Theme.spacing

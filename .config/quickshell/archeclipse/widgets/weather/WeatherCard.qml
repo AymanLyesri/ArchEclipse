@@ -4,10 +4,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Unified weather card — single UI for WeatherWidget (compact) and
-// WeatherIsland (forecast). Current-conditions card with sunrise/sunset,
-// humidity/precip/wind, and a city search (apply/clear). When
-// showForecast=true, also renders Today's Forecast and Hourly Forecast.
+// Unified weather card for WeatherWidget (compact) and WeatherIsland: current conditions with sun
+// times and humidity/precip/wind plus a city search; forecasts render when showForecast is set.
 Item {
     id: root
     property bool showForecast: true
@@ -444,9 +442,8 @@ Item {
         return items;
     }
 
-    // City entry mirrors the persisted override: typing never writes
-    // through until apply/clear, external changes fill the field unless
-    // the user is actively editing it.
+    // City entry mirrors the persisted override: typing writes nothing until apply/clear, and
+    // external changes fill the field unless the user is editing it.
     Connections {
         target: Weather
         function on_CityOverrideChanged() {

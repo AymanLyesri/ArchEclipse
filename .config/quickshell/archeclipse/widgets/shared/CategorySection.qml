@@ -2,13 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-// One category card for panel widgets (Settings, Key Binds, …).
-//
-// Category titles live in the host's CategoryNav model, so a header can
-// never drift from its rail entry. Opacity composes the host's reveal state
-// (staggered tab-open fade) with the nav's focus falloff into one property,
-// keeping a single Behavior — no stacked opacity wrappers, no layout
-// changes.
+// One category card for panel widgets; titles come from the host's CategoryNav model so a
+// header cannot drift from its rail entry. Opacity composes reveal + focus falloff in one Behavior.
 Rectangle {
     id: root
 
@@ -46,9 +41,8 @@ Rectangle {
         spacing: Theme.spacing
 
         Label {
-            // Category names can be arbitrary strings (Key Binds reads
-            // them from bind.lua comments): elide instead of overflowing
-            // the card.
+            // Names can be arbitrary strings (Key Binds reads bind.lua comments): elide instead
+            // of overflowing the card.
             width: parent.width
             text: root.title
             font.pixelSize: Theme.fontSize + 2

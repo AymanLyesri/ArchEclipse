@@ -2,11 +2,8 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// UserProfileState — shell-lifetime cache for UserProfileWidget.
-// LeftIsland is destroyed/recreated on every open/close (Bar Loader swap),
-// which used to re-run the full profile load (net gate + REST) on each open.
-// The widget restores from here instantly on creation and only refetches when
-// the local session file actually changed (cheap `cat` compare, no network).
+// Shell-lifetime profile cache: LeftIsland is destroyed and recreated on every open,
+// so the widget restores instantly and only refetches when the session file changed.
 Singleton {
     id: root
 

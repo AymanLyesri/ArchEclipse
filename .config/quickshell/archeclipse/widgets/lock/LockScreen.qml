@@ -5,10 +5,8 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.services
 
-// Single owner scope for the secure lock (replaces the per-monitor UserPanel
-// Variants). The compositor creates one WlSessionLockSurface per screen, so
-// no Variants wrapper is needed. Input blocking is compositor-enforced via
-// ext-session-lock-v1; `secure` is true once all screens are covered.
+// Single owner scope for the secure lock (no per-monitor Variants — the compositor makes one
+// WlSessionLockSurface per screen). Input blocking is compositor-enforced; `secure` once covered.
 Scope {
     id: root
 
@@ -18,10 +16,8 @@ Scope {
         lockContext.reset();
         root.captureBackgrounds();
     }
-    // Screenshots must be taken BEFORE engaging the lock: once locked the
-    // compositor blanks behind session-lock surfaces. grim runs in parallel
-    // per monitor; the lock engages when all finish, on any failure, or
-    // after the 2s safety timeout — the dim is always a valid fallback.
+    // Screenshots must be taken BEFORE engaging the lock: once locked the compositor blanks behind
+    // session-lock surfaces. The lock engages when all finish, any failure, or the 2s timeout.
     property int _pendingShots: 0
     function engageLock() {
         shotTimeout.stop();
@@ -81,11 +77,8 @@ Scope {
 
     LockContext {
         id: lockContext
-        // Unlock in two beats so the island collapse plays: on success the
-        // surfaces fold away (closing -> expand 0), then the timer drops
-        // screenLocked (destroying them) instead of vanishing instantly.
-        // Quitting/destroying while still locked leaves the compositor
-        // fallback lock, which cannot be interacted with.
+        // Unlock in two beats so the collapse plays: surfaces fold (closing -> expand 0), then the
+        // timer drops screenLocked; destroying while locked leaves the unusable fallback lock.
         onUnlocked: {
             lockContext.closing = true;
             closeTimer.restart();

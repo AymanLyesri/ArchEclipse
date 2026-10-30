@@ -3,10 +3,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Results panel for the search island: input lives in SearchIsland,
-// this body is results only. Empty query shows recent apps (quick-apps
-// fallback) via Launcher.defaultResults; helper tips live under bare
-// ">" (Launcher.paletteHelp) — no side panes.
+// Results panel for the search island (the input lives in SearchIsland): an empty query shows
+// recent apps, and helper tips live under bare ">" (Launcher.paletteHelp) — no side panes.
 Rectangle {
     id: root
 
@@ -23,14 +21,12 @@ Rectangle {
         // between the pill edge and content (the list used to add 8).
         clip: true
         model: Launcher.results
-        // `resultsList.model` in the expression re-evaluates this binding on
-        // every results swap (the view overwrites currentIndex itself then).
-        // See Launcher.setResults for the matching assignment order.
+        // `resultsList.model` in the expression re-evaluates this binding on every results swap
+        // (the view overwrites currentIndex itself). See Launcher.setResults for the order.
         currentIndex: resultsList.model, Launcher.selectedIndex
         spacing: 2
-        // Sliding selection pill (Caelestia AppList pattern): geometry
-        // tracks the current item with expressive easing instead of
-        // repainting each delegate's background instantly.
+        // Sliding selection pill (Caelestia AppList pattern): geometry tracks the current item
+        // with expressive easing instead of repainting each delegate's background.
         highlightFollowsCurrentItem: false
         highlight: Rectangle {
             y: resultsList.currentItem ? resultsList.currentItem.y : 0
@@ -55,11 +51,8 @@ Rectangle {
             radius: Theme.radius - 2
             color: "transparent"
 
-            // Header row (app_type === "header").
-            // NOTE: strict `=== true` — a bare `modelData.isHeader`
-            // is undefined for normal rows, and assigning undefined
-            // to bool keeps the default (true), painting the header
-            // name over every row's icon.
+            // Header row. NOTE: strict `=== true` — a bare isHeader is undefined for normal rows,
+            // and undefined->bool keeps the default (true), painting the header over every icon.
             Row {
                 visible: modelData.isHeader === true
                 anchors.verticalCenter: parent.verticalCenter
@@ -119,12 +112,8 @@ Rectangle {
                 }
             }
 
-            // Hover selection + click launch.
-            // NOTE: no attached ToolTip here — name/description/args
-            // are already fully visible inline via AppEntry, and a
-            // second rendering of the name is exactly the
-            // "duplicated name" artifact (tooltips can stick on
-            // layer-shell surfaces).
+            // Hover selection + click launch. No ToolTip: the name is already inline, and tooltips
+            // can stick on layer-shell surfaces ("duplicated name" artifact).
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
@@ -136,9 +125,8 @@ Rectangle {
                 onClicked: {
                     if (!modelData.isHeader && modelData.launch) {
                         const keep = modelData.keepOpen === true;
-                        // Drop the search island BEFORE spawning so the
-                        // bar's Exclusive grab releases first and the new
-                        // app receives focus (see Launcher.activateSelected).
+                        // Drop the search island BEFORE spawning so the bar's Exclusive grab
+                        // releases first and the new app receives focus.
                         if (!keep) {
                             BarState.deactivate("search", root.monitorName);
                             Launcher.expectLaunchedWindow();
@@ -150,14 +138,8 @@ Rectangle {
         }
     }
 
-    // Prime the default state (recent apps) on creation. The island is
-    // instantiated by the bar Loader AFTER the monitor-local search state is already
-    // "search", so onStateChanged below never fires for a fresh instance —
-    // without this the first open shows an empty list.
-    // Keybind presets (SUPER+SHIFT+V clipboard, SUPER+A apps, ...) stash
-    // their query in Launcher.pendingQuery before activating: consume it
-    // here (and on state change) instead of blanking it, or every preset
-    // open lands on generic recents.
+    // Prime recents on creation: the island is built after the state is already "search", so
+    // onStateChanged never fires. Consume Launcher.pendingQuery here, or presets land on recents.
     function applyPendingOrDefault() {
         if (Launcher.pendingQuery !== "") {
             const q = Launcher.pendingQuery;
@@ -168,12 +150,8 @@ Rectangle {
             Launcher.runQuery("");
         }
     }
-    // Search-open transition tracker: applyPendingOrDefault with an empty
-    // pendingQuery pushes the default recents list — correct only when the
-    // island actually OPENS. Any other panelStatesByMonitor mutation must
-    // not widen it: ScreenRecorder's polled isRecording flips `recording`
-    // ~2s after the IPC, and (left/right/pulse changes) while a search is
-    // live would clobber the applied preset back to defaults.
+    // Search-open tracker: the default push is correct only when the island OPENS. Other
+    // panelStatesByMonitor mutations must not widen it — the 2s isRecording lag clobbered presets.
     property bool _searchOpen: false
     Component.onCompleted: {
         root._searchOpen = BarState.isOpenFor("search", root.monitorName);

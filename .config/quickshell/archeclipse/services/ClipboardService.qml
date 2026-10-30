@@ -3,20 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// ClipboardService — clipboard history, QML-native (replaces
-// ~/.config/hypr/scripts/clipboard-monitor.sh + its `wl-paste --watch`
-// hook in hypr config/exec.lua).
-//
-// A persistent `wl-paste --watch qs … ipc call clipboard event` Process
-// (spawned here at boot; stale watchers culled first) pings onEvent()
-// per copy. Events drain through a FIFO queue — never coalesced, every
-// copy is recorded. Each capture probes types in the old priority
-// (image/png → image/jpeg → image/webp → text/uri-list → text/plain)
-// and prepends {id, timestamp, type, content, mimeType} newest-first to
-// ~/.cache/quickshell/launcher/clipboard-history.json, which Launcher's
-// `cb` search watches live. Images land in
-// ~/.cache/quickshell/launcher/clipboard-images/ (the old /tmp paths
-// went stale on every reboot). No jq dependency.
+// Clipboard history, QML-native: a persistent `wl-paste --watch` pings onEvent and
+// every copy drains through a FIFO queue (never coalesced) into the launcher cache.
 QtObject {
     id: root
 
@@ -25,9 +13,8 @@ QtObject {
     readonly property string historyPath: home + "/.cache/quickshell/launcher/clipboard-history.json"
     readonly property string imageDir: home + "/.cache/quickshell/launcher/clipboard-images"
 
-    // Live history for Launcher's `cb` search (reactive binding — see
-    // note there). Adopted from every confirmed load/rename, never
-    // written from elsewhere.
+    // Live history for Launcher's `cb` search; adopted only from a confirmed
+    // load/rename, never written from anywhere else.
     property var history: []
 
     // FIFO of pending captures; _busy guards the single capture pipeline.
@@ -35,9 +22,8 @@ QtObject {
     property bool _busy: false
     property bool _started: false
 
-    // Copy text to the Wayland clipboard. Single owner of the wl-copy
-    // invocation/quoting so callers never rebuild it; onDone(exitCode) is
-    // optional (Donations toasts on it, Launcher/ChatBot do not).
+    // Single owner of the wl-copy invocation/quoting so callers never rebuild it;
+    // onDone(exitCode) is optional (Donations toasts on it, Launcher does not).
     function copy(text, onDone) {
         const p = Qt.createQmlObject("import Quickshell.Io; Process {}", root);
         p.command = ["sh", "-c", "printf %s \"$1\" | wl-copy", "--", String(text)];
@@ -53,10 +39,8 @@ QtObject {
         if (root._started)
             return;
         root._started = true;
-        // Self-heal history file only from a confirmed load — writing
-        // here unconditionally would clobber valid data (FileView text()
-        // is async; see _finish). changed covers legacy/invalid shapes.
-        // Adopt into history either way so `cb` binds warm data at boot.
+        // Heal only from a confirmed load: writing here unconditionally clobbers
+        // valid data (text() is async); adopt anyway so `cb` binds warm at boot.
         root._loadHistory((list, changed) => {
             root.history = list;
             if (changed)
@@ -87,10 +71,8 @@ QtObject {
         root._busy = true;
         root._capTs = Math.floor(Date.now() / 1000);
         root._capDate = Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss");
-        // Settle delay: `wl-paste --watch` fires on the ownership
-        // announcement, but the new MIME data often isn't offered yet —
-        // probing immediately reads empty/stale content (one copy behind,
-        // verified live 2026-10-13). 400ms lets the offer land.
+        // `wl-paste --watch` fires on the ownership announcement before the MIME data
+        // is offered; probing instantly read one copy behind, so wait 400ms.
         root._settle.restart();
     }
     // Per-job settle before probing (each queued event still probes in
@@ -129,11 +111,8 @@ QtObject {
             root._pump();
             return;
         }
-        // Async load: FileView delivers text() via onLoaded, NOT
-        // synchronously after creation — a sync text() here returns ""
-        // and the write below would wipe a valid history (seen live:
-        // 49 entries lost on boot, 2026-10-13). Never write from a
-        // read that didn't confirm delivery.
+        // FileView delivers text() via onLoaded, never synchronously — a sync read
+        // returned "" and wiped 49 valid entries on boot (2026-10-13).
         root._loadHistory((list) => {
             list.unshift({
                 id: root._capTs,
@@ -149,11 +128,8 @@ QtObject {
         });
     }
 
-    // Async history load (one FileView per read — a reused FileView fires
-    // loaded only on its first load; declarative onLoaded/onLoadFailed in
-    // the creation string since the loaded *signal* is shadowed by the
-    // loaded *bool property* for imperative connect()). Callback gets
-    // (list, changed); missing file -> ([], true) so callers initialize.
+    // One FileView per read: a reused one fires loaded only once, and imperative
+    // connect("loaded") hits the bool property — declare onLoaded in the string.
     property int _histSeq: 0
     property var _histCbs: ({})
     property var _histReaders: ({})
@@ -204,13 +180,8 @@ QtObject {
         cb(v, changed);
     }
 
-    // Direct in-place write: the tmp+rename variant was tried and reverted
-    // 2026-10-13 — replacing
-    // the inode freezes Quickshell's file watching/caching (Launcher's
-    // `cb` index stuck at a boot snapshot; service-side loads served
-    // stale snapshots), while direct writes always grew the file
-    // correctly. Sole-writer serialization via _busy makes torn reads
-    // impossible; any divergence self-heals on the next capture load.
+    // Write in place: tmp+rename swaps the inode and freezes Quickshell's file
+    // watching (`cb` stuck on a boot snapshot), so only direct writes are safe.
     function _writeHistory(list) {
         let o = null;
         try {
@@ -270,10 +241,8 @@ QtObject {
         }
     }
 
-    // Boot: cull stale watchers first (a reloaded shell orphans the old
-    // `wl-paste --watch`), then start our own. Kill and start stay
-    // separate Processes: a combined `pkill …; wl-paste …` cmdline
-    // contains its own match and SIGTERMs itself (hypr exec.lua lesson).
+    // Cull stale watchers first (a reload orphans the old one); kill and start stay
+    // separate Processes — a combined cmdline matches itself and SIGTERMs itself.
     property Process _killProc: Process {
         command: ["sh", "-c", "pkill -f '[w]l-paste --watch' 2>/dev/null; true"]
         onExited: {

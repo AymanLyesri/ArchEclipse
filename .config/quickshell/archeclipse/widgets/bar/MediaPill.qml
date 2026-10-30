@@ -6,12 +6,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Mini media pill — app icon + play state + track title for the most
-// relevant player (playing-else-first, MediaWidget parity). Hidden when
-// no player has anything to show. Hover (dwell) / click pulses the full
-// player island; middle-click toggles playback. Hosted as a standalone
-// pill outside the default bar (Bar.qml, right-chained like the
-// recording pill).
+// Mini media pill (icon, play state, track title) for the best player, right-chained like the
+// recording pill; hover/click pulses the player island, middle-click toggles playback.
 Rectangle {
     id: root
 
@@ -25,8 +21,7 @@ Rectangle {
     readonly property string expandedArtist: (root.firstPlayable?.trackArtist ?? "").trim()
 
     // ---- media player state (playing-else-first) ----
-    // Pass 1: active playing player. Pass 2: first with a title (so the
-    // pill hides instead of showing an empty entry when nothing plays).
+    // Pass 1: active playing player. Pass 2: first with a title, so the pill hides when idle.
     readonly property var firstPlayable: {
         Mpris.players.values;   // reactive dep
         const vals = Mpris.players.values;
@@ -63,11 +58,8 @@ Rectangle {
         return p.trackTitle ?? "";
     }
 
-    // Resolve the player's app icon via its MPRIS DesktopEntry, with identity
-    // fallbacks, then through Quickshell.iconPath() into an image:// URL —
-    // IconImage.source is a plain Image URL alias, so bare theme names
-    // never load. Missing icons yield "" and the pill falls back to its
-    // music-note glyph.
+    // Icon via the MPRIS DesktopEntry with identity fallbacks, then Quickshell.iconPath() into
+    // an image:// URL (bare theme names never load); missing falls back to the music note.
     readonly property string playerIconSource: {
         const p = root.firstPlayable;
         if (!p)
@@ -207,12 +199,8 @@ Rectangle {
         delay: 500
     }
 
-    // Hover dwell (Settings.revealInPressure, 0 = instant) so
-    // brushing the cursor across the bar doesn't pulse the
-    // island by accident. While hovering, the pulse is pinned
-    // persistent (holdMs 0) so it never closes under the cursor;
-    // hover-out hands back to the standard 2.5s pulse (the island's
-    // own pin cancels it if the cursor reaches the island).
+    // Hover dwell so brushing the bar does not pulse; while hovered the pulse is pinned
+    // (holdMs 0), and hover-out hands back to the standard 2.5s pulse.
     Timer {
         id: playerDwellTimer
         interval: Settings.revealInPressure

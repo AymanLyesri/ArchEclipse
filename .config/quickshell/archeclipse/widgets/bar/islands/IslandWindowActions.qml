@@ -3,14 +3,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Shared bottom window-action cluster for the Left/Right side islands
-// (valign END — the caller anchors this to the sidebar bottom).
-//
-// NOTE: the icon buttons + tooltips below are the existing user-visible
-// strings, kept verbatim per side; only the layout and the left/right
-// Settings keys are unified via `side`. (Settings.*Lock is a bool — the
-// toggle writes the caller-driven `checked` value back exactly like the
-// inline clusters this replaces.)
+// Shared bottom window-action cluster for the Left/Right side islands (caller anchors it at
+// the sidebar bottom); only the layout and Settings keys are unified via `side`.
 Column {
     id: root
     property string side: "left"  // "left" | "right"

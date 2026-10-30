@@ -3,10 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Mirrors the subset of the quickshell settings.json
-// (~/.cache/quickshell/settings/settings.json) that the bar and panels
-// consume. Values are read once at startup; the settings UI remains the
-// editor and this shell follows the same file throughout.
+// Mirrors the subset of ~/.cache/quickshell/settings/settings.json the bar and panels
+// consume; read once at startup, with the settings UI as the editor.
 Singleton {
     id: root
 
@@ -25,9 +23,8 @@ Singleton {
     property int uiSpacing: 6
     property int uiFontSize: 12
 
-    // Island / shell motion (persisted, surfaced in Settings > Animations).
-    // animScale multiplies every Theme.anim duration (1.0 = normal,
-    // lower = faster); islandAnimStyle picks the IslandExpandClip easing.
+    // animScale multiplies every Theme.anim duration (1.0 = normal, lower = faster);
+    // islandAnimStyle picks the IslandExpandClip easing.
     property bool animationsEnabled: true
     property real animScale: 1.0
     property string islandAnimStyle: "Emphasized"
@@ -53,24 +50,19 @@ Singleton {
     readonly property var leftPanelWidgetNames: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"]
     // Wallpaper switcher category (persisted)
     property string wallpaperCategory: "defaults/sfw"
-    // Wallpaper provider (persisted): "local" (default/* + custom folders)
-    // or "wallhaven" (wallhaven.cc API). Filter state for the Wallhaven
-    // provider (persisted under wallpaperSwitcher.wallhaven).
+    // Wallpaper provider: "local" (default/* + custom folders) or "wallhaven"; the
+    // Wallhaven filter state persists alongside it.
     property string wallpaperProvider: "local"
     property var wallpaperWallhaven: root.defaultWallpaperWallhaven()
-    // Shared wallpaper masonry view (persisted): row count + exact tile
-    // height in px. Both providers (local + wallhaven) render through one
-    // AppMasonryRow driven by these; the island grows to fit (true height).
+    // Shared masonry view (row count + exact tile height in px): both providers render
+    // through one AppMasonryRow and the island grows to the true height.
     property int wallpaperMasonryRows: 2
     property int wallpaperTileSize: 120
-    // Workspace-switch transition (persisted): "slide" (default) or "fade".
-    // The daemon owns its own copy in its config dir (survives reload +
-    // reboot); this mirrors it for the switcher control. Only these two
-    // values are adopted — anything else falls back to slide.
+    // Workspace-switch transition: "slide" (default) or "fade" — anything else falls back
+    // to slide. The daemon keeps its own copy in its config dir; this mirrors it.
     property string wallpaperTransition: "slide"
-    // Default Wallhaven filter state (single source; reload() merges the
-    // saved file over a fresh copy). categories/purity are wallhaven.cc
-    // bit-strings: categories = general/anime/people, purity = sfw/sketchy/nsfw.
+    // Default Wallhaven filter state (reload() merges the file over a fresh copy);
+    // categories/purity are bit-strings: general/anime/people and sfw/sketchy/nsfw.
     function defaultWallpaperWallhaven() {
         return {
             q: "",
@@ -87,10 +79,8 @@ Singleton {
     // Weather city override (empty = Auto/IP), persisted
     property string weatherCity: ""
 
-    // Right panel widgets — datalist with enabled flag.
-    // CODE IS SOURCE OF TRUTH FOR ICONS: persist()/reload() only save/restore
-    // {name, enabled} + order. Edit icons here (defaultRightPanelWidgets) and
-    // they will not be clobbered by settings.json.
+    // CODE IS THE SOURCE OF TRUTH FOR ICONS: persist()/reload() save only {name, enabled}
+    // + order, so editing defaultRightPanelWidgets cannot be clobbered.
     property var rightPanelWidgets: root.defaultRightPanelWidgets()
     // Canonical widget definitions (names + code-owned icons + default enabled).
     function defaultRightPanelWidgets() {
@@ -122,9 +112,8 @@ Singleton {
             },
         ];
     }
-    // Merge a saved widgets list onto the code defaults: keep file order +
-    // enabled flags, drop unknown names, always take icons from code, append
-    // any code-defined widgets missing from the file (new widgets).
+    // Merge a saved list onto the code defaults: keep file order + enabled flags, drop
+    // unknown names, take icons from code, append code-defined widgets the file lacks.
     function mergeRightPanelWidgets(saved) {
         const defs = root.defaultRightPanelWidgets();
         const byName = {};
@@ -159,9 +148,8 @@ Singleton {
     // Blue light filter (hyprsunset). Temperature in Kelvin: lower = warmer.
     property bool blueLightEnabled: false
     property int blueLightTemperature: 4000
-    // Auto mode: filter is ON between start and end (local time, "HH:MM", may
-    // span midnight, e.g. 21:00 -> 07:00). Driven by a QML timer — no
-    // hyprsunset.conf needed. A manual toggle overrides until the next boundary.
+    // Auto mode: filter ON between start and end (local "HH:MM", may span midnight, e.g.
+    // 21:00 -> 07:00). A manual toggle overrides until the next boundary.
     property bool blueLightAuto: false
     property string blueLightStart: "21:00"
     property string blueLightEnd: "07:00"
@@ -181,13 +169,8 @@ Singleton {
             pins: [],
             selectedTab: "Danbooru"
         })
-    // Initialized with shipped defaults (not {}) so early fetchers (Booru
-    // onCompleted) have credentials even before the settings file load
-    // merges saved values over them. Single source: defaultApiKeys() below
-    // (this used to paste the same literal twice).
-    // Per-service User-Agent strings. Kept centralized so every widget/backend
-    // uses the same editable values while still allowing services to have
-    // different requirements.
+    // Shipped defaults (not {}) so early fetchers like Booru onCompleted have credentials
+    // before the file merges; the per-service User-Agent strings live here too.
     property var apiKeys: root.defaultApiKeys()
     property var userAgents: root.defaultUserAgents()
 
@@ -217,20 +200,14 @@ Singleton {
         return String((root.userAgents || {})[name] || root.defaultUserAgents()[name] || "");
     }
 
-    // POSIX single-quote shell-escaping. Needed anywhere a user-editable
-    // string (userAgent() output, in particular) gets spliced into a
-    // `bash -c "..."` command for curl/etc: double-quoting (e.g. via
-    // JSON.stringify) still lets $(...) / `...` expand inside bash double
-    // quotes, so only single-quote wrapping actually neutralizes shell
-    // metacharacters. Embedded single quotes are escaped as '\'' (close,
-    // escaped literal quote, reopen).
+    // POSIX single-quote escaping: double quotes still expand $(...) and backticks inside
+    // `bash -c`, so only single-quote wrapping neutralizes shell metacharacters.
     function shQuote(s) {
         return "'" + String(s).replace(/'/g, "'\\''") + "'";
     }
 
-    // Default API credentials (shipped fallback). Used when the settings
-    // file has none saved — the defaults stay in memory; QS must do the
-    // same or booru.py hard-rejects danbooru/gelbooru with MISSING_CREDENTIALS.
+    // Shipped API fallback used when the file has none saved; QS must match or booru.py
+    // hard-rejects danbooru/gelbooru with MISSING_CREDENTIALS.
     function defaultApiKeys() {
         return {
             openrouter: {
@@ -307,24 +284,14 @@ Singleton {
         return String((typeof v === "object" ? (v.value ?? "") : v)).replace(/\n/g, "").trim();
     }
 
-    // Single place listing the code-owned default sets: a new defaulted key
-    // adds its row here (plus a default*/merge* pair only if the file shape
-    // needs normalization on load). Startup snapshot; merge*() above keep
-    // calling default*() so every load gets a fresh mutable copy.
-    // (Stepping stone toward table-driven persist()/reload(): those bodies
-    // stay authoritative until a live SUPER+B round-trip rewire verifies
-    // byte-identical settings.json — not possible in a headless pass.)
+    // Single list of the code-owned default sets: a new defaulted key adds a row here;
+    // startup snapshot, and merge*() keep calling default*() for a fresh mutable copy.
     readonly property var _defaults: ({
             "apiKeys": defaultApiKeys(),
             "rightPanelWidgets": defaultRightPanelWidgets()
         })
-    // Static hyprland leaf metadata, transcribed verbatim from persist()
-    // below ({name, min, max, type} per leaf + reload() default in def).
-    // Table order matches persist()'s insertion order. NOTE the two
-    // on-disk key orders persist() uses: general/decoration leaves are
-    // {name, value, min, max, type} but blur/shadow leaves are
-    // {name, value, type, min, max} (flagged typeFirst) — the loop below
-    // reproduces both so on-disk bytes never change.
+    // Static hyprland leaf metadata ({name, min, max, type}) mirroring persist()'s order:
+    // general/decoration are {name,value,min,max,type}, blur/shadow typeFirst.
     readonly property var _hyprlandLeafSchema: [
         {
             path: ["general", "border_size"],
@@ -780,25 +747,16 @@ Singleton {
         }
         const key = parts[parts.length - 1];
         obj[key] = value;
-        // Reassign a FRESH clone so the top-level var change signal fires.
-        // (Assigning the same object reference back is a no-op: nested
-        // bindings like `Settings.booru.limit` never re-evaluate.)
+        // Reassign a FRESH clone or the top-level change signal never fires (assigning the
+        // same reference back leaves bindings like Settings.booru.limit stale).
         if (parts.length > 1) {
             root[parts[0]] = Object.assign({}, obj);
         }
         persist();
     }
 
-    // Persist current settings back to the JSON file.
-    // Shape is nested (bar.lock, leftPanel.width, ...); per-monitor panel
-    // overrides live under each panel's `monitors` object.
-    // Leaf settings are written as {value}; plain-value settings (locks,
-    // plain-value settings (locks, widths, dnd) stay plain.
-    // Hyprland subtree for persist(): derived from _hyprlandLeafSchema above
-    // (single source for labels/limits) but bound to root.hyprland only, so a
-    // persist() triggered by any other setting no longer re-walks the leaf
-    // tree. Blur/shadow leaves keep their {name,value,type,min,max} order via
-    // typeFirst so on-disk bytes never change.
+    // Persist to JSON (nested shape; per-monitor overrides under each panel's `monitors`);
+    // hyprland comes from _hyprlandLeafSchema with typeFirst so on-disk bytes never change.
     readonly property var _hyprlandOut: (() => {
             const out = {};
             for (const leaf of root._hyprlandLeafSchema) {
@@ -831,10 +789,8 @@ Singleton {
     function persist() {
         if (!root.ready)
             return;
-        // Never write until a settings file has actually been read. FileView
-        // loads asynchronously, and a persist() in that window writes the
-        // in-memory code defaults straight over the user's file (lost booru
-        // pins/bookmarks, waifu and API keys on 2026-10-27).
+        // Never write until a settings file has actually been read: FileView is async, and
+        // a persist() in that window wrote code defaults over the user's pins/keys (2026-10-27).
         if (!root._adopted) {
             console.warn("[Settings] persist skipped: settings not adopted yet");
             return;
@@ -958,11 +914,8 @@ Singleton {
                         value: root.blueLightEnd
                     }
                 },
-                // Hyprland leaf shape {name,value,min,max,type} — the settings
-                // panel renders from it (plain numbers would be mistaken for
-                // nested groups and render nothing). Prebuilt in _hyprlandOut;
-                // it must be written here too or the whole section resets to
-                // schema defaults on every restart.
+                // Leaf shape {name,value,min,max,type} — the settings panel renders from
+                // it (plain numbers look like nested groups); it must be written or the section resets.
                 hyprland: root._hyprlandOut,
                 dynamicThemeColors: {
                     value: root.dynamicThemeColors
@@ -1005,17 +958,13 @@ Singleton {
         }
     }
 
-    // FileView for settings. NOTE: bare reload() here would resolve to
-    // FileView.reload() (re-read method), NOT the settings parser below —
-    // always qualify with root. (This shadowing was why settings silently
-    // stopped applying after a restart.)
+    // Bare reload() here resolves to FileView.reload(), not the settings parser below —
+    // always qualify with root (this shadowing silently stopped settings applying).
     property FileView _file: FileView {
         path: `${Quickshell.env("HOME")}/.cache/quickshell/settings/settings.json`
         watchChanges: true
-        // Delayed: FileView saves are async, so an immediate re-read can
-        // catch pre-write bytes and persist the stale state back over the
-        // fresh one (seen: limit 30 reverted to 40 in-file). 300ms lets our
-        // own write land; _lastText then makes it a no-op.
+        // Delayed: FileView saves are async, so an immediate re-read can catch pre-write
+        // bytes and persist the stale state back (limit 30 reverted to 40 in-file).
         onFileChanged: _reloadTimer.restart()
         onLoaded: {
             root.reload();
@@ -1029,10 +978,8 @@ Singleton {
         interval: 300
         onTriggered: root.reload()
     }
-    // Fallback: FileView never emits loaded for a missing file, which left
-    // ready=false forever and gated every persist() (no settings.json was
-    // ever created). If onLoaded hasn't fired in 2s, adopt disk state and
-    // open the gate — persist() then creates the file with current values.
+    // FileView never emits loaded for a missing file, which left ready=false forever and
+    // gated every persist() (no file was created); adopt disk state after 2s.
     property Timer _readyTimer: Timer {
         interval: 2000
         repeat: false
@@ -1042,10 +989,8 @@ Singleton {
             root.reload();
             root.ready = true;
             const disk = (_file.text() || "").trim();
-            // A missing/empty file has nothing to lose: create it from the
-            // code defaults. A file that exists but did not parse is left
-            // untouched — overwriting bytes we could not read is how the
-            // 2026-10-27 settings wipe happened.
+            // Missing/empty file: create it from code defaults. A file that exists but did
+            // not parse stays untouched — overwriting unreadable bytes caused the 2026-10-27 wipe.
             if (disk !== "" && !root._adopted) {
                 console.warn("[Settings] settings file unreadable — refusing to overwrite");
                 return;
@@ -1054,19 +999,15 @@ Singleton {
             root.persist();
         }
     }
-    // Gate: FileView loads async, so any persist() before the first load
-    // would write in-memory defaults over the user's saved file (seen:
-    // booru.limit 20 clobbered back to 100 on restart). Nothing persists
-    // until the on-disk values have been adopted.
+    // Gate: FileView loads async, so a persist() before the first load would write
+    // in-memory defaults over the saved file (booru.limit 20 clobbered back to 100).
     property bool ready: false
-    // Set by reload() once a settings file has actually been parsed. persist()
-    // refuses to write while false, so a slow/failed FileView load can never
-    // replace the user's file with code defaults.
+    // Set by reload() once a file has really been parsed; persist() refuses to write
+    // while false, so a slow/failed load can never replace the file with code defaults.
     property bool _adopted: false
 
-    // One-generation safety net: before each overwrite, keep the bytes that
-    // were on disk (when they differ from what we last wrote), so any future
-    // clobber is recoverable without the Supabase copy.
+    // One-generation safety net: before each overwrite keep the on-disk bytes (when they
+    // differ from what we last wrote) so a future clobber is recoverable without Supabase.
     property FileView _backupFile: FileView {
         path: `${Quickshell.env("HOME")}/.cache/quickshell/settings/settings.prev.json`
     }
@@ -1125,18 +1066,14 @@ Singleton {
                 root.rightPanelLock = !!s.rightPanel?.lock;
                 root.leftPanelWidth = (typeof s.leftPanel?.width === "object" && s.leftPanel?.width !== null ? s.leftPanel.width.value : s.leftPanel?.width) ?? 400;
                 root.leftPanelByMonitor = root.normalizePanelOverrides(s.leftPanel?.monitors, "left");
-                // The file may store the selector object {name, icon}; QS persists
-                // only {name} and restores only the name — left icons live in
-                // (LeftIsland) and are never clobbered by the file.
-                // legacy QS files used the flat "leftPanel.widget" key.
+                // The file may store {name, icon}; only {name} is persisted and restored —
+                // left icons live in LeftIsland (legacy files used "leftPanel.widget").
                 const _lpw = s["leftPanel.widget"] ?? s.leftPanel?.widget;
                 root.leftPanelWidget = (typeof _lpw === "string" ? _lpw : _lpw?.name) ?? "UserProfile";
                 const _wc = s.wallpaperSwitcher?.category;
                 root.wallpaperCategory = ((typeof _wc === "object" && _wc !== null ? _wc.value : _wc) ?? "defaults/sfw");
-                // Wallhaven provider state: merge the saved filter object over
-                // fresh defaults so new params never come back undefined.
-                // Bit-strings are re-validated (3 chars of 0/1); sorting falls
-                // back to date_added on unknown values; page clamps to >= 1.
+                // Merge the saved wallhaven filter over fresh defaults so new params never
+                // come back undefined; bits re-validated, unknown sort -> date_added.
                 const _wp = s.wallpaperSwitcher?.provider;
                 root.wallpaperProvider = ((_wp && typeof _wp === "object" ? _wp.value : _wp) ?? "local");
                 if (root.wallpaperProvider !== "local" && root.wallpaperProvider !== "wallhaven")
@@ -1174,9 +1111,8 @@ Singleton {
                 root.weatherCity = ((typeof _wth === "object" && _wth !== null ? _wth.value : _wth) ?? "");
                 root.rightPanelWidth = (typeof s.rightPanel?.width === "object" && s.rightPanel?.width !== null ? s.rightPanel.width.value : s.rightPanel?.width) ?? 250;
                 root.rightPanelByMonitor = root.normalizePanelOverrides(s.rightPanel?.monitors, "right");
-                // Drop stale/removed widgets (e.g. retired Crypto/ScriptTimer)
-                // so deleted options never reappear from an old settings file.
-                // Icons are code-owned: file contributes only order + enabled.
+                // Drop stale/removed widgets (retired Crypto/ScriptTimer) so deleted
+                // options never reappear; icons are code-owned, the file gives order + enabled.
                 if (Array.isArray(s.rightPanel?.widgets)) {
                     root.rightPanelWidgets = root.mergeRightPanelWidgets(s.rightPanel.widgets);
                 }
@@ -1195,10 +1131,8 @@ Singleton {
                 const _ble = s.blueLight?.end;
                 root.blueLightEnd = root._normTime((typeof _ble === "object" && _ble !== null) ? _ble.value : _ble, "07:00");
 
-                // Rating tag leads, defaulting to -rating:explicit. Done here
-                // (not viewer boot) so the file's tags are normalized the
-                // moment they are adopted — viewer boot may run before or
-                // after this either way.
+                // Rating tag leads, defaulting to -rating:explicit, done here (not viewer
+                // boot) so the file's tags are normalized the moment they are adopted.
                 let _tags = (s.booru?.tags ?? ["-rating:explicit"]).slice();
                 const _rt = _tags.find(t => t.match(/[-]rating:explicit|rating:explicit/));
                 _tags = _tags.filter(t => !t.match(/[-]rating:explicit|rating:explicit/));
@@ -1221,10 +1155,8 @@ Singleton {
                 root.apiKeys = root.mergeApiKeys(s.apiKeys);
                 root.userAgents = root.mergeUserAgents(s.userAgents);
 
-                // Waifu widget: skip the assign when the post is unchanged
-                // (same id+api+extension) — every settings write would
-                // otherwise hand down a fresh object identity, replaying
-                // bound entrances and re-kicking downloads downstream.
+                // Skip the assign when the waifu post is unchanged (same id+api+extension):
+                // every settings write hands down a fresh identity and re-kicks downloads.
                 const _w = s.waifuWidget?.current ?? null;
                 if (root.waifuKey(_w) !== root.waifuKey(root.waifu))
                     root.waifu = _w;
@@ -1254,10 +1186,8 @@ Singleton {
                 root.screenshot = root.normalizeScreenshotSettings(s.screenshot);
                 root.recording = root.normalizeRecordingSettings(s.recording);
 
-                // Hyprland settings (full schema incl. blur passes 4, xray,
-                // xray, gaps, opacities — previously partial, which reset
-                // missing keys to 0/false on every reload). Defaults come
-                // from _hyprlandLeafSchema so persist()/reload() agree.
+                // Full schema (blur passes, xray, gaps, opacities) — a partial one reset
+                // missing keys to 0/false on every reload; defaults from _hyprlandLeafSchema.
                 root.hyprland = (() => {
                         const out = {};
                         for (const leaf of root._hyprlandLeafSchema) {
@@ -1286,23 +1216,15 @@ Singleton {
         Qt.callLater(function () {
             if (root.gameModeEnabled)
                 root.applyGameMode(true);
-            // Re-apply the filter after a shell restart (idempotent: an
-            // already-running hyprsunset just receives the same temperature).
-            // (auto mode applies its own state on the first timer tick)
+            // Re-apply after a shell restart (idempotent: a running hyprsunset just gets
+            // the same temperature); auto mode applies its own state on the first tick.
             if (root.blueLightEnabled && !root.blueLightAuto)
                 root.applyBlueLight(true);
         });
     }
 
-    // Blue light filter via hyprsunset (https://wiki.hypr.land/Hypr-Ecosystem/hyprsunset/).
-    // ON : daemon already running -> `hyprctl hyprsunset temperature <K>` (IPC,
-    //      idempotent, no restart/flicker); otherwise start
-    //      `hyprsunset --temperature <K>` detached.
-    // OFF: `hyprctl hyprsunset identity` — filter off, daemon stays idle, so a
-    //      user-managed daemon (exec-once / systemd / profiles in
-    //      ~/.config/hypr/hyprsunset.conf) is never killed. A profile that
-    //      activates later (user config) overrides this, as documented upstream.
-    // hyprsunset.conf is optional: this feature works without one.
+    // Blue light filter via hyprsunset: ON sets the temperature over IPC (or starts the
+    // daemon), OFF uses `identity` so a user-managed daemon is never killed; no conf needed.
     function applyBlueLight(enabled) {
         root.blueLightEnabled = enabled;
         const temp = Math.max(1000, Math.min(20000, Math.round(root.blueLightTemperature) || 4000));
@@ -1350,10 +1272,8 @@ Singleton {
         return root._normTime(str, fallback);
     }
 
-    // --- Hyprland subtree ---------------------------------------------------
-    // The settings page edits leaves by dotted path ("decoration.rounding").
-    // Reads return 0 for a missing leaf; writes clone the subtree so every
-    // bound row re-evaluates, then schedule a persist.
+    // Leaves edit by dotted path ("decoration.rounding"): reads return 0 when missing,
+    // writes clone the subtree so every bound row re-evaluates, then schedule a persist.
     function hyprGet(path) {
         let o = root.hyprland;
         for (const k of path.split(".")) {
@@ -1377,9 +1297,8 @@ Singleton {
         root.schedulePersist();
     }
 
-    // Lua builders: nested tables (hl.config({ decoration = { rounding = 16 } })).
-    // The flat "decoration:rounding = 16" form is invalid Lua on Hyprland's
-    // lua-parser builds.
+    // Lua builders emit nested tables (hl.config({ decoration = { rounding = 16 } }));
+    // the flat "decoration:rounding = 16" form is invalid on lua-parser Hyprland builds.
     function luaValue(v) {
         if (typeof v === "boolean")
             return v ? "true" : "false";
@@ -1418,9 +1337,8 @@ Singleton {
     function blueLightScheduleActive() {
         const s = root._timeToMinutes(root.blueLightStart, 21 * 60);
         const e = root._timeToMinutes(root.blueLightEnd, 7 * 60);
-        // The minute event can arrive slightly before the wall-clock minute
-        // rolls over; the clock's own date already carries the new minute, so
-        // use the later of the two (otherwise the transition slips a minute).
+        // The minute event can arrive before the wall-clock minute rolls over, so use the
+        // later of the two (otherwise the transition slips a minute).
         const d = new Date(Math.max(Date.now(), root._blueLightClock.date.getTime()));
         const now = d.getHours() * 60 + d.getMinutes();
         if (s === e)
@@ -1429,9 +1347,8 @@ Singleton {
     }
     // -1 = unknown (forces an apply), 0 = outside window, 1 = inside window
     property int _blSched: -1
-    // Human-readable summary of the configured window for SettingsWidget, so an
-    // unintended wrap-around (e.g. 03:15 -> 03:13 = 23 h 58 min) is obvious.
-    // Reads start/end/_blSched, so bindings that call it refresh on change.
+    // Human-readable window summary for SettingsWidget, so an unintended wrap-around
+    // (03:15 -> 03:13 = 23h58) is obvious; reads start/end/_blSched so it refreshes.
     function blueLightHint() {
         const s = root._timeToMinutes(root.blueLightStart, 21 * 60);
         const e = root._timeToMinutes(root.blueLightEnd, 7 * 60);
@@ -1461,11 +1378,8 @@ Singleton {
         root._blSched = -1;
         root._blueLightTick();
     }
-    // Same minute-aligned clock the bar Clock uses: fires exactly when the
-    // wall-clock minute changes (and re-fires after suspend / time jumps), so
-    // the schedule switches on the minute — no 30 s polling lag. Off (no
-    // wakeups) while auto mode is disabled. The initial evaluation comes from
-    // _blueLightRescan() (auto toggled / settings loaded).
+    // Minute-aligned clock like the bar Clock: fires when the wall-clock minute changes
+    // (after suspend too) — no polling lag, and no wakeups while auto mode is off.
     property SystemClock _blueLightClock: SystemClock {
         precision: SystemClock.Minutes
         enabled: root.ready && root.blueLightAuto
@@ -1543,14 +1457,8 @@ Singleton {
             _persistTimer.start();
     }
 
-    // Watch directly-written settings properties and auto-persist.
-    // Rule: a handler exists ONLY for keys with a direct `Settings.x = ...`
-    // writer outside updateSetting() (verified via
-    // `rg "Settings\.[a-zA-Z]+ =" widgets/ services/ theme/ shell.qml` plus
-    // bracket writes). updateSetting() persists directly, so its exclusive
-    // keys need no handler. onApiKeysChanged stays: SettingsWidget
-    // setNestedValue() writes Settings["apiKeys"] directly (and the merge
-    // in reload() normalizes credentials on external edits).
+    // Handlers exist only for keys written as `Settings.x = ...` outside updateSetting()
+    // (that one persists itself); onApiKeysChanged covers SettingsWidget's direct write.
     Connections {
         target: root
         function onBarSmartHideChanged() {

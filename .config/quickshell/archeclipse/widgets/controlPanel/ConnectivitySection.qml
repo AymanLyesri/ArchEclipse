@@ -5,9 +5,8 @@ import Quickshell.Networking
 import qs.theme
 import qs.widgets.shared
 
-// Connectivity section (Network + Bluetooth share one dropdown).
-// Moved verbatim out of ControlPanelBody so the body only composes
-// sections; behavior (hover-expand, 8s poll, nmcli/bluetoothctl) unchanged.
+// Connectivity section (Network + Bluetooth share one dropdown), moved out of ControlPanelBody
+// so the body only composes sections; hover-expand, 8s poll and nmcli/bluetoothctl unchanged.
 Item {
     id: root
     height: connCard.height

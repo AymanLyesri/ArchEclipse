@@ -1,10 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Shared badge pill: single overlay badge with content-sized width.
-// Used by the AppImage and AppVideo badge overlays (top-right).
-// Short texts keep the legacy 24px look; longer ones (e.g. wallhaven
-// "2560x1440" dimensions) expand to fit instead of clipping.
+// Shared badge pill: single overlay badge with content-sized width, so short texts keep the
+// legacy 24px look and long ones (wallhaven dimensions) expand instead of clipping.
 Rectangle {
     id: root
 

@@ -1,36 +1,5 @@
-// Shared multi-toggle filter chips: on/off pill group where any subset
-// stays on (e.g. wallpaper switcher's wallhaven Categories
-// General/Anime/People). Single-select stays on AppSegmentedControl —
-// this covers only the multi-toggle case AppButton Repeaters used to
-// inline per call site.
-//
-//   model         -> [string] or [{value,label[,tooltip,enabled]}].
-//                  Strings use the string as both value and label and are
-//                  always enabled; object entries may set enabled: false
-//                  plus an optional tooltip.
-//   checkedValues -> [value] currently on (caller-driven — the chips never
-//                  flip it themselves; caller writes its state in onToggled,
-//                  e.g. wallhaven's categories "101" bit string).
-//   allowEmpty    -> false blocks unchecking the last on-chip and emits
-//                  emptyRejected instead (wallhaven's "at least one
-//                  category must stay on" guard). True lets all chips go off.
-//   label         -> optional leading dim label ("Categories:") in the
-//                  wallhaven filter style; empty hides it.
-//   chipHeight    -> chip height (24 matches the wallhaven filter row).
-//   toggled(i, value, checked) -> emitted on user pick with the chip's
-//                  NEW state; caller commits it to checkedValues.
-//   emptyRejected -> emitted when allowEmpty is false and the user tries
-//                  to uncheck the final on-chip.
-//
-// Example:
-//   AppFilterChips {
-//       label: "Categories:"
-//       model: ["General", "Anime", "People"]
-//       checkedValues: root.checkedCategories
-//       allowEmpty: false
-//       onToggled: (i, v, c) => root.setCategory(i, c)
-//       onEmptyRejected: Notifications.notify({ summary: "Wallhaven", body: "At least one category must stay on." })
-//   }
+// Shared multi-toggle filter chips where any subset stays on (wallhaven Categories): model is
+// [string] or [{value,label,tooltip,enabled}], checkedValues caller-driven, allowEmpty guard.
 import QtQuick
 import qs.theme
 import "ModelEntry.js" as ModelEntry

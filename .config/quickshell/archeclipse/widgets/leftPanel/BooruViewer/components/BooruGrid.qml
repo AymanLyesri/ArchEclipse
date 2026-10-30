@@ -32,9 +32,8 @@ SmoothFlickable {
     // Booru pins the fling speed lower than the shared default.
     maximumFlickVelocity: 1000
 
-    // Follow tick: the card glides inside the static popup surface, so
-    // scrolling here only retargets a local y binding (plus the cheap
-    // dismiss check) — no window reposition, no layout, no stutter.
+    // Follow tick: the card glides inside the static popup, so scrolling only retargets a local
+    // y binding plus the cheap dismiss check — no window reposition, no stutter.
     onContentYChanged: {
         if (viewer && viewer.dialogImage !== null)
             viewer.refreshDialogTop(-1);
@@ -57,10 +56,8 @@ SmoothFlickable {
             return (img && img.width && img.height) ? img.height / img.width : 1;
         }
 
-        // NOTE: plain (not required) modelData — Loader cannot supply
-        // required props at creation; AppMasonry pushes it onLoaded.
-        // BooruImage has required image/viewer, so guard undefined on
-        // first creation and only bind once modelData arrives.
+        // NOTE: plain (not required) modelData — a Loader cannot supply required props at
+        // creation; BooruImage has required props, so guard undefined until it arrives.
         delegate: Item {
             property var modelData
             width: parent.width

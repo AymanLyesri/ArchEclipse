@@ -50,9 +50,7 @@ def load_user_agents() -> Dict[str, str]:
 
 USER_AGENTS = load_user_agents()
 
-# ==========================================================
-# MODELS
-# ==========================================================
+# ===== MODELS =====
 
 
 @dataclass
@@ -109,9 +107,7 @@ class Page:
         return asdict(self)
 
 
-# ==========================================================
-# PROVIDER INTERFACE
-# ==========================================================
+# ===== PROVIDER INTERFACE =====
 
 
 class MangaProvider(ABC):
@@ -144,9 +140,7 @@ class MangaProvider(ABC):
         """Fetch/download a single page by its direct URL."""
 
 
-# ==========================================================
-# REGISTRY
-# ==========================================================
+# ===== REGISTRY =====
 
 
 class ProviderRegistry:
@@ -165,9 +159,7 @@ class ProviderRegistry:
         return cls._providers[name]
 
 
-# ==========================================================
-# MANGADEX PROVIDER
-# ==========================================================
+# ===== MANGADEX PROVIDER =====
 
 
 class MangaDexProvider(MangaProvider):
@@ -452,9 +444,7 @@ class MangaDexProvider(MangaProvider):
             return 0
 
 
-# ==========================================================
-# MANGALIB PROVIDER
-# ==========================================================
+# ===== MANGALIB PROVIDER =====
 
 
 class MangalibProvider(MangaProvider):
@@ -759,9 +749,7 @@ class MangalibProvider(MangaProvider):
         return Page(url=page_url, path=local_path, width=width, height=height)
 
 
-# ==========================================================
-# CLI
-# ==========================================================
+# ===== CLI =====
 
 
 def parse_args() -> argparse.Namespace:

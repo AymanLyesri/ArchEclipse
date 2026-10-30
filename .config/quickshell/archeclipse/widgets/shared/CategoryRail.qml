@@ -1,18 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Shared persistent category rail (Settings, Key Binds, …).
-//
-// Data-driven on purpose: `model` is the same array the section cards
-// index into, so a label can never drift from the section title. Entries
-// may be strings or { title } objects. `currentIndex` is caller-driven — the
-// rail only reports taps through `selected(index)`, exactly like
-// IslandSideRail.
-//
-// Active state = one sliding pill (accent-tinted surface) + a 2px accent
-// indicator, the same recipe AppSegmentedControl uses for its selection
-// highlight. The pill glides between rows instead of every cell animating
-// its own background.
+// Shared category rail: model is the same array the section cards index, so labels cannot
+// drift; currentIndex is caller-driven and taps report via selected(). One sliding pill animates.
 Rectangle {
     id: root
 
@@ -101,9 +91,8 @@ Rectangle {
                 Rectangle {
                     anchors.fill: parent
                     radius: Math.max(4, Theme.radius - 4)
-                    // Hover wash, not surfaceHover: surfaceHover resolves to
-                    // the panel background and would be invisible over the
-                    // translucent card surface.
+                    // Hover wash, not surfaceHover: surfaceHover resolves to the panel background
+                    // and would be invisible over the translucent card.
                     color: cell.active ? "transparent" : (hover.hovered ? Theme.rgba(Theme.fg, 0.06) : "transparent")
                     Behavior on color {
                         CAnim {}
@@ -129,9 +118,8 @@ Rectangle {
                     }
                 }
 
-                // Only when the column is too narrow for the label (long
-                // category names or large uiFontSize), so the full name
-                // stays discoverable.
+                // Only when the column is too narrow for the label (long names or large
+                // uiFontSize), so the full name stays discoverable.
                 AppTooltip {
                     visible: hover.containsMouse && label.truncated
                     text: label.text

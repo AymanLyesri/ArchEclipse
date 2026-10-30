@@ -19,10 +19,8 @@ Rectangle {
     color: Theme.surface
     radius: Theme.radius
     clip: true
-    // Staggered pop-in: the viewer reveals one id per tick (see
-    // _revealTimer); the card fades/scales in only once its file is
-    // decoded (Image.Ready) AND its turn arrived. Videos skip the
-    // image gate since they show a badge, not a bitmap.
+    // Staggered pop-in: the viewer reveals one id per tick and the card fades in once decoded
+    // and its turn arrives. Videos skip the image gate (badge, not bitmap).
     readonly property bool imgReady: previewImg.status === Image.Ready
     readonly property bool turnArrived: viewer && typeof viewer.isRevealed === "function" ? viewer.isRevealed(image) : true
     readonly property bool popped: card.isVideo ? turnArrived : (turnArrived && imgReady)
@@ -41,9 +39,8 @@ Rectangle {
         }
     }
 
-    // Preview image (or placeholder). Render the downloaded local preview;
-    // prefer the local file once cached instead of re-downloading the
-    // remote URL.
+    // Preview image (or placeholder): render the downloaded local preview and prefer the local
+    // file once cached instead of re-downloading the remote URL.
     AppImage {
         id: previewImg
         anchors.fill: parent

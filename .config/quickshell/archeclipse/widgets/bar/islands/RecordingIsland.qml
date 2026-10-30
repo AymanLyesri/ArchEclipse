@@ -4,26 +4,8 @@ import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.shared
 
-// Recording island — idle: 24px stadium with two start-mode buttons
-// (fullscreen / area), revealed by hovering the empty right pill zone —
-// widths only ever change on state transitions (hover-coupled resizes
-// churn hover re-evaluation: probe-proven flap). Starting shows a
-// spinner (pinned open via ScreenRecorder.starting) until gpu-screen-recorder is
-// actually up, then the pulsing-dot pill + "Recording" + TRUE elapsed
-// timer (mm:ss since the recording actually started, via
-// ScreenRecorder.startTimestamp). Clicking while recording stops it and
-// morphs back. When not recording, elapsed resets to 00:00.
-//
-// Launcher expansion (Bar.qml binds `expanded` to the monitor's search
-// state, weather-pill recipe): the pill grows vertically off the band
-// (away from the screen edge) and the modes re-represent as labeled
-// IslandActionRow rows — compact = idle modes as stadium buttons;
-// expanded = each mode as its own row, and an active recording becomes a
-// Stop row (same toggle handler, clearer representation; the band keeps
-// the dot/timer pill). ONE card owns the whole grown body: the band and
-// the rows share a single surface, so the expanded pill reads as one card
-// rather than a chip plus a sheet. No hover machinery: rows are
-// click-only ModeButton/label cells.
+// Recording island: stadium starts, a spinner while starting, then dot + true elapsed timer;
+// launcher expansion re-represents the modes as rows. No hover machinery (resizes flapped).
 Item {
     id: root
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
@@ -65,13 +47,8 @@ Item {
         }
     }
 
-    // Idle hugs its content (8px dot + two 20px buttons + 16px gutters) so
-    // the gutters can never go asymmetric; recording/loading is a fixed
-    // 96px pill so the elapsed text doesn't resize it. Deliberately NO
-    // hover-driven width animation: a resize tied to hover churns hover
-    // re-evaluation every animated frame and the reveal flaps on/off
-    // forever (probe-proven limit cycle). Widths change only on state
-    // transitions.
+    // Idle hugs its content so gutters stay symmetric; recording is a fixed 96px pill so the
+    // elapsed text doesn't resize it. No hover-driven width — that flapped (probe-proven).
     readonly property real idleW: idleRow.implicitWidth + 16
     property real pillW: root.recording || root.starting ? 96 : idleW
     Behavior on pillW {
@@ -83,13 +60,8 @@ Item {
     MouseArea {
         id: idleMouse
         anchors.fill: parent
-        // isRecording lags reality ~2s (pgrep poll): one honest click per
-        // intent; rapid re-clicks inside the settle window re-issue toggles.
-        // `starting` = start already in flight (would double-start; no
-        // cancel path) — ignored. Recording click stops it; idle click on
-        // the padding (outside the mode buttons) starts fullscreen.
-        // NO hoverEnabled here: hover-coupled MouseAreas churned the hover
-        // state and made the reveal flap on/off (probe-proven).
+        // isRecording lags ~2s, so one honest click per intent: `starting` is ignored (would
+        // double-start), idle clicks outside the mode buttons start fullscreen. No hoverEnabled.
         onClicked: if (!root.starting)
             ScreenRecorder.toggleRecording("now", root.monitorName)
     }
@@ -114,9 +86,8 @@ Item {
             // the expanded stack reads as one card, not a chip plus a sheet
             Rectangle {
                 anchors.fill: parent
-                // stadium only while it is a bare band; the grown card is a
-                // rounded card (never radius == height/2, which a tall card
-                // would bow into a lozenge)
+                // stadium only while a bare band; the grown card is rounded (radius never
+                // height/2, which a tall card bows into a lozenge)
                 radius: root.recording || root.starting || root.extraT > 0 ? Theme.radius : Theme.sidePillHeight / 2
                 Behavior on radius {
                     Anim {
@@ -185,11 +156,8 @@ Item {
 
                     ModeButton {
                         glyph: "\u{F065}"   // nf-fa-expand — fullscreen record
-                        // park while the launcher expansion re-represents
-                        // the modes as rows; return at the flip, not at the
-                        // end of the geometry unwind — a late return reads as
-                        // the band clipping to a dot width and then popping
-                        // back
+                        // park while the expansion re-represents the modes as rows; return at the
+                        // flip, not the end of the unwind — late reads as clipping then popping
                         visible: !root.expanded
                         tooltipText: "Record workspace · <b>SUPER+SHIFT+R</b>"
                         onClicked: ScreenRecorder.toggleRecording("now", root.monitorName)
@@ -202,9 +170,8 @@ Item {
                     }
                 }
 
-                // loading circle: a start click keeps the piece visible (Bar
-                // pins it open via ScreenRecorder.starting) and shows a
-                // spinner until the recorder is actually up
+                // loading circle: a start click keeps the piece visible (pinned by
+                // ScreenRecorder.starting) and shows a spinner until the recorder is up
                 AppProgress {
                     anchors.centerIn: parent
                     visible: root.starting
@@ -215,25 +182,15 @@ Item {
                 }
             }
 
-            // ---- launcher-expanded rows: modes re-represented as rows on
-            // the SAME card as the band ----
-            // Away from the screen edge: above the band on bottom-oriented
-            // bars, below it on top bars — 4px card padding at the outer end.
-            // The reveal rides extraT (FastEffects fade, like the weather
-            // stats rows); rows stay laid out while extraT > 0 so the
-            // width/height stems glide through fade-out instead of yanking.
-            // Handlers are the SAME actions the band buttons run —
-            // representation only, no new actions. Background-less rows
-            // (IslandActionRow) keep the card's single surface intact.
+            // ---- launcher-expanded rows: same card, modes as rows, off the screen edge ----
+            // Reveal rides extraT and rows stay laid out while extraT > 0; same handlers.
             Column {
                 id: recRows
                 x: (parent.width - width) / 2
                 y: root.growUp ? 4 : Theme.sidePillHeight + root.extraGap
                 visible: root.extraT > 0
-                // fade rides its OWN fast stem (like the weather stats rows),
-                // never the spatial extraT curve — opacity tracking the
-                // geometry animation gates the rows on the pill's full growth
-                // and reads as a delay
+                // fade rides its OWN fast stem (like the weather stats rows), never extraT —
+                // opacity tracking the geometry gates the rows and reads as a delay
                 opacity: root.expandedRowCount > 0 ? 1 : 0
                 Behavior on opacity {
                     Anim { type: Anim.FastEffects }
@@ -272,9 +229,8 @@ Item {
         return m + ":" + s;
     }
 
-    // icon cells are the shared ModeButton (qs.widgets.bar.islands): glyph
-    // only, no hover machinery — hover-toggled feedback inside the island
-    // churned the bar hot-zone hover re-eval (probe-proven)
+    // cells are the shared ModeButton: glyph only, no hover machinery — hover feedback here
+    // churned the bar hot-zone re-eval (probe-proven)
 
     Timer {
         interval: 1000

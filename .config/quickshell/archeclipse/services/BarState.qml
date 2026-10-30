@@ -11,11 +11,8 @@ import qs.services
 Singleton {
     id: root
 
-    // Priority map (default base 0 < recording 40 < pulses 80 < search 100)
-    // "compact"/"expanded" kept only for backward-compat with old persist files.
-    // wallpaper (95) beats control (90) so SUPER+W opens over the control island.
-    // Side pills keep priority entries but resolveState() skips them. All
-    // interactive islands and transient pulses are stored per monitor.
+    // wallpaper (95) must beat control (90) or SUPER+W opens under the control island;
+    // "compact"/"expanded" survive only as legacy aliases for default.
     property var priority: {
         "default": 0,
         "recording": 40,
@@ -36,9 +33,8 @@ Singleton {
     // Active states with hold timers
     property var activeStates: {}
 
-    // Search is a single session because Launcher is a singleton; opening it
-    // on another monitor moves that session. Other islands and pulses may be
-    // active independently on multiple monitors.
+    // Search is one session (Launcher is a singleton), so opening it on another monitor
+    // moves it; every other island and pulse is per monitor.
     property var panelStatesByMonitor: ({})
     property string searchMonitor: ""
     readonly property var monitorScopedStates: ({
@@ -138,12 +134,8 @@ Singleton {
     property string _playerKey: ""
     property bool _playerFirstRender: true
     property int playerEvents: 0
-    // Startup grace: MPRIS players/metadata populate asynchronously over
-    // the first seconds after bar init (list bind, then title/artist/url
-    // trickling in). The first-render guard only covers the single
-    // synchronous setup call, so those staged arrivals look like new
-    // items and pop the island on every (re)start. While true, updates
-    // only refresh the baseline key, never pulse.
+    // Startup grace: MPRIS metadata trickles in after init and looks like new items;
+    // while true, updates only refresh the baseline key, never pulse.
     property bool _playerStarting: true
 
     // Network pulse tracking
@@ -203,10 +195,8 @@ Singleton {
             root.activate("recording", 0, ScreenRecorder.targetMonitor || Registry.monitorName);
     }
 
-    // ===== Volume watcher =====
-    // NOTE: the signal must be CONNECTED first; the first-render guard lives
-    // inside the callback. Returning early before connect (as before) meant
-    // the pulse never fired at all.
+    // Volume watcher: connect first, guard inside the callback — an early return
+    // before connect meant the pulse never fired at all.
     property bool _volumeWired: false
     function setupVolumeWatcher() {
         const sink = Pipewire.defaultAudioSink;
@@ -248,10 +238,8 @@ Singleton {
             root.volumeTargetMonitor = "";
             root.volumeEvents++;
 
-            // Respect an existing hover-pin: re-pulsing with a hold timer
-            // while pinned would arm an auto-deactivate that closes the
-            // island under an attending cursor. 2500ms linger (like the
-            // player pill) so the OSD stays readable after key repeats.
+            // Re-pulsing while hover-pinned would arm a timer that closes the island
+            // under the cursor; the 2500ms linger keeps the OSD readable on key repeat.
             if (!root.isPersistent("volume", monitor))
                 root.activate("volume", 2500, monitor);
         });
@@ -262,16 +250,12 @@ Singleton {
         root._volumeTargetTimer.restart();
     }
 
-    // ===== Brightness watcher (event-driven, like volume) =====
-    // The Brightness service watches the kernel backlight file with inotify,
-    // so any change — our own sliders or external brightness keys — updates
-    // Brightness.screen instantly with zero polling. Pulse on change, exactly
-    // like the Pipewire volumesChanged hookup below.
+    // Brightness arrives via inotify on the backlight file, so keys and sliders both
+    // pulse here — zero polling, no separate watcher.
     property Connections _brightnessConn: Connections {
         target: Brightness
-        // `adjusted` (not `screenChanged`): fires only on real changes — keys,
-        // sliders, external writes — never on the initial load or when focus
-        // merely moves to a monitor that has a different brightness.
+        // `adjusted`, not `screenChanged`: real changes only — never the initial load or
+        // a focus move to a monitor with a different brightness.
         function onAdjusted(monitorName) {
             const monitor = monitorName || Brightness.targetName || Registry.monitorName;
             const val = Brightness.screenFor(monitor);
@@ -302,21 +286,11 @@ Singleton {
         }
     }
 
-    // ===== MPRIS player watcher (event-driven) =====
-    // The island opens only when the actual media item meaningfully
-    // changes (composite identity below). YouTube thumbnail hover
-    // previews publish the hovered video's title as transient metadata
-    // while the page URL stays on a browse page (no /watch, /shorts,
-    // ... video path) — that is preview noise, not a new item, so it
-    // never pulses. Redundant pushes (late cover art, position/length,
-    // play/pause) keep the same key and are ignored the same way.
+    // The island opens only on a real item change: YouTube hover previews publish a
+    // transient title on a browse URL, and redundant pushes keep the same key.
     function pickPlayer() {
-        // Playing-else-first (matches DefaultBar.firstPlayable's intent,
-        // MediaWidget.player and playerDiag): a paused player with a stale
-        // title must never shadow the actually-playing one just because it
-        // sorts earlier in Mpris.players.values. Order-dependence here
-        // stuck the watcher on paused Firefox while Spotify played, so
-        // track changes never pulsed.
+        // Playing-else-first (matches DefaultBar.firstPlayable and playerDiag): a paused
+        // player must never shadow Spotify just because it sorts earlier in the list.
         let first = null;
         for (const p of Mpris.players.values) {
             const titled = ((p.trackTitle ?? "").trim() !== "");
@@ -353,9 +327,8 @@ Singleton {
         }
     }
 
-    // True when the player exposes preview noise rather than an actual
-    // media item: a YouTube browse page (no video path). Not a site
-    // blacklist — real video pages (/watch, /shorts, ...) return false.
+    // Preview noise, not a site blacklist: a YouTube browse URL (no video path) —
+    // real /watch and /shorts pages return false.
     function isPreviewUpdate(p) {
         const m = previewUrl(p).match(/^https?:\/\/(?:www\.|m\.)?youtube\.com(\/[^?#]*)?/i);
         if (!m)
@@ -400,10 +373,8 @@ Singleton {
         Mpris.players.valuesChanged.connect(root.notePlayerUpdate);
     }
 
-    // ===== Network watcher =====
-    // Pulses the bar-wide "network" state for
-    // ~3s whenever the active network connection changes (wifi connect,
-    // disconnect, ssid change, signal re-association).
+    // Network watcher: pulses the bar-wide "network" state for ~3s on any connection
+    // change (connect, disconnect, ssid change, reassociation).
     function setupNetworkWatcher() {
         root.trackNetworkDevice(root.primaryNetworkDevice());
     }
@@ -489,14 +460,8 @@ Singleton {
         return best;
     }
 
-    // Activate a state (with optional holdMs for auto-deactivate).
-    // Omit holdMs (or pass 0) for persistent states that stay active until
-    // explicitly deactivated (search toggle, recording). Only holdMs > 0
-    // arms an auto-deactivate timer. "default" is the permanent base.
-    // "expanded"/"compact" are accepted as legacy aliases for "default".
-    // True when a state is active with no auto-deactivate timer — i.e.
-    // persistently pinned (pulses always arm a timer otherwise, so a
-    // timer-less pulse means something pinned it, e.g. IslandHoverPin).
+    // activate(name, holdMs, monitor); only holdMs > 0 arms an auto-deactivate, so a
+    // timer-less pulse means something pinned it (e.g. IslandHoverPin).
     function isPersistent(name, monitorName) {
         if (root.isMonitorScopedState(name)) {
             const monitor = monitorName || Registry.monitorName || "";
@@ -717,13 +682,8 @@ Singleton {
         }
     }
 
-    // Media-item trigger: re-evaluates the island the moment the active
-    // player's item identity may have changed (track switch,
-    // title/artist/url update, player-list switch). notePlayerUpdate
-    // dedupes redundant pushes and drops thumbnail-preview noise.
-    // trackChanged fires before the new properties land (postTrackChanged
-    // fires after), so both are watched — the stale first pass is a
-    // same-key no-op and the follow-up carries the new identity.
+    // Both trackChanged (fires before the new properties land) and postTrackChanged
+    // are watched: the stale first pass is a same-key no-op, the second carries it.
     Connections {
         target: root._activePlayer
         function onTrackChanged() {

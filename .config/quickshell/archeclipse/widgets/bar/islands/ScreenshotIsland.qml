@@ -4,22 +4,8 @@ import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.shared
 
-// Screenshot island — idle-only stadium mirroring the record pill (width
-// hugs its content): screenshot indicator on the left, fullscreen / area
-// buttons after it.
-// Every click spawns ~/.config/hypr/scripts/screenshot.sh detached
-// (CustomScriptsWidget precedent). Deliberately: no hover-driven width
-// animation, no hover machinery, no hover-toggled visuals — hover-coupled
-// resizes churn hover re-evaluation and flap the reveal (probe-proven on
-// the record pill; see RecordingIsland).
-//
-// Launcher expansion (Bar.qml binds `expanded` to the monitor's search
-// state, weather-pill recipe): the pill grows vertically off the band and
-// the two modes re-represent as labeled IslandActionRow rows. ONE card
-// owns the whole grown body — the band indicator and the rows sit on the
-// same surface (no separate chip + sheet pair), so the expanded pill reads
-// as a single card with the camera cell parked at the band edge. Same
-// actions, new representation.
+// Screenshot island: idle-only stadium mirroring the record pill, each click spawning
+// screenshot.sh detached. No hover machinery — hover-driven resizes flap the reveal.
 Item {
     id: root
     // Expand driver: 0 -> 1 on creation unfolds the body; the Bar
@@ -64,10 +50,8 @@ Item {
         }
     }
 
-    // spawn via the Screenshot service, never a Process owned here: this
-    // island is destroyed when the hover reveal folds (~1s after the pointer
-    // leaves the bar), which kills any child Process mid-slurp — the area
-    // selection then never reaches grim. See services/Screenshot.qml.
+    // Spawn via the Screenshot service, never a Process here: this island is destroyed when the
+    // reveal folds, which kills a child Process mid-slurp and grim never gets the region.
     function shoot(mode) {
         Screenshot.capture(mode, root.monitorName);
     }
@@ -98,9 +82,8 @@ Item {
             // the expanded stack reads as one card, not a chip plus a sheet
             Rectangle {
                 anchors.fill: parent
-                // stadium only while it is a bare band; the grown card is a
-                // rounded card (never radius == height/2, which a tall card
-                // would bow into a lozenge)
+                // stadium only while a bare band; the grown card is rounded (radius never
+                // height/2, which a tall card bows into a lozenge)
                 radius: root.extraT > 0 ? Theme.radius : Theme.sidePillHeight / 2
                 Behavior on radius {
                     Anim {
@@ -135,11 +118,8 @@ Item {
 
                     ModeButton {
                         glyph: "\u{F03E}"  // nf-fa-image — fullscreen shot
-                        // park while the launcher expansion re-represents
-                        // the modes as rows; return at the flip, not at the
-                        // end of the geometry unwind — a late return reads
-                        // as the band clipping to the camera-cell width and
-                        // then popping back
+                        // park while the expansion re-represents the modes as rows; return at the
+                        // flip, not the end of the unwind — late reads as clipping then popping
                         visible: !root.expanded
                         tooltipText: "Screenshot workspace · <b>SUPER+SHIFT+S</b>"
                         onClicked: root.shoot("now")
@@ -153,26 +133,17 @@ Item {
                 }
             }
 
-            // ---- launcher-expanded rows: modes re-represented as rows on
-            // the SAME card as the band ----
-            // Reveal rides extraT (FastEffects fade, like the weather stats
-            // rows); rows stay laid out while extraT > 0 so the width/height
-            // stems glide through fade-out. Handlers are the SAME actions
-            // the band buttons run — representation only, no new actions.
-            // Background-less rows (IslandActionRow) keep the card's single
-            // surface intact.
+            // ---- launcher-expanded rows: modes re-represented on the SAME card as the band ----
+            // Reveal rides extraT, rows stay laid out while extraT > 0; handlers unchanged.
             Column {
                 id: shotRows
                 x: (parent.width - width) / 2
-                // away from the screen edge: above the band on bottom bars,
-                // below it on top ones — 4px card padding at the outer end,
-                // extraGap between the rows and the band
+                // away from the screen edge: above the band on bottom bars, below on top ones —
+                // 4px card padding at the outer end, extraGap between rows and band
                 y: root.growUp ? 4 : Theme.sidePillHeight + root.extraGap
                 visible: root.extraT > 0
-                // fade rides its OWN fast stem (like the weather stats rows),
-                // never the spatial extraT curve — opacity tracking the
-                // geometry animation gates the rows on the pill's full growth
-                // and reads as a delay
+                // fade rides its OWN fast stem (like the weather stats rows), never extraT —
+                // opacity tracking the geometry gates the rows and reads as a delay
                 opacity: root.expanded ? 1 : 0
                 Behavior on opacity {
                     Anim { type: Anim.FastEffects }

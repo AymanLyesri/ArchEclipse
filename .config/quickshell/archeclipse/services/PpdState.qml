@@ -3,10 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// power-profiles-daemon availability — probed once at quickshell start.
-// ControlPanelBody binds to this instead of spawning `powerprofilesctl get`
-// each time the control island opens (its body is transient, so
-// Component.onCompleted there re-ran the probe on every open).
+// power-profiles-daemon availability, probed once at quickshell start so
+// ControlPanelBody binds it instead of spawning `powerprofilesctl get` per open.
 QtObject {
     id: root
 

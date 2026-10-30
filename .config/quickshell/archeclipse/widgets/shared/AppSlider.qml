@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-// Shared themed slider (sibling of AppButton) — all bar sliders use this
-// instead of raw Controls.Slider. Extends Slider so from/to/stepSize/value
-// and the onMoved contract pass straight through; only the look is themed.
+// Shared themed slider (sibling of AppButton): extends Slider so from/to/stepSize/value and
+// the onMoved contract pass through; only the look is themed.
 Slider {
     id: root
 

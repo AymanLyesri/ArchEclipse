@@ -2,14 +2,8 @@ import QtQuick
 import qs.services
 import qs.theme
 
-// Shared island hover-pin: hover stops the 1s leave timer and pins the
-// BarState state persistent; leaving restarts the timer.
-//
-// NOTE: the root IS the HoverHandler (not an Item wrapper). A handler
-// monitors hover for its *parent* item, so wrapping it in a 0x0 Item
-// would deaden hover entirely: the pin would never fire and the island
-// would close 1s after opening even while hovered. As a non-visual
-// child this adds no layout row to Column roots.
+// Shared island hover-pin: hover stops the 1s leave timer and pins the state, leaving restarts it.
+// NOTE: the root IS the HoverHandler — wrapping it in an Item deadens hover (AGENTS pitfall 6).
 HoverHandler {
     id: root
     property string stateName: ""
@@ -18,15 +12,12 @@ HoverHandler {
     // Leave delay before the state deactivates (defaults to
     // Settings.revealOutPressure; callers may override).
     property int leaveDelay: Settings.revealOutPressure
-    // Arm the timer at creation (default true: an island the cursor never
-    // reaches still closes). Set false for islands that must stay open
-    // until first hovered-out, toggled, or Escaped.
+    // Arm at creation (default true: an island the cursor never reaches still closes). Set
+    // false for islands that stay open until first hovered-out, toggled or Escaped.
     property bool armOnCreation: true
     property alias running: leaveTimer.running
-    // External hold (e.g. a slider drag inside the island): while true the
-    // island never closes. Needed because HoverHandler.hovered is only true
-    // with no button pressed — pressing to drag flips hovered to false and
-    // would otherwise arm the leave timer mid-drag.
+    // External hold (a slider drag inside the island): while true it never closes. HoverHandler
+    // is only hovered with no button pressed, so a drag would otherwise arm the leave timer.
     property bool holdOpen: false
     onHoldOpenChanged: {
         if (root.holdOpen) {
@@ -47,10 +38,8 @@ HoverHandler {
             leaveTimer.restart();
         }
     }
-    // NOTE: Timer is a *property value*, not a child: HoverHandler
-    // (like any QObject) has no default property, so a nested child
-    // object fails at load ("Cannot assign to non-existent default
-    // property"). Cf. SysInfo.qml `property Process compileProc: ...`.
+    // Timer is a *property value*, not a child: HoverHandler has no default property, so a
+    // nested object fails at load ("Cannot assign to non-existent default property").
     property Timer leaveTimer: Timer {
         id: leaveTimer
         interval: root.leaveDelay
@@ -64,19 +53,14 @@ HoverHandler {
     }
     function stop() { leaveTimer.stop(); }
     function restart() { leaveTimer.restart(); }
-    // Arm with the open-grace. Creation arms through this (Component.onCompleted
-    // below); long-lived pins that are re-opened later (e.g. ControlCard, which
-    // exists for the bar's whole lifetime) call it on every open so the grace
-    // is fresh instead of having expired while the pin sat idle.
+    // Arm with the open-grace. Creation arms through this, and long-lived pins (ControlCard)
+    // call it on every open so a grace that expired while idle is fresh again.
     function arm() {
         leaveTimer.interval = root.openGrace;
         leaveTimer.restart();
     }
-    // Arm the timer at creation too (unless opted out): if the cursor never enters,
-    // no hover transition fires and the island would stay open forever.
-    // (The first arm grants an open-grace — time to travel to a
-    // keybind-opened island or to read a pulse OSD — regardless of
-    // leaveDelay — see above.)
+    // Arm at creation too (unless opted out): without a hover transition the island would stay
+    // open forever. The first arm grants the open-grace regardless of leaveDelay.
     property int openGrace: 1000
     Component.onCompleted: {
         if (!root.armOnCreation)

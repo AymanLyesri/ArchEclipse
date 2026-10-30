@@ -20,9 +20,8 @@ Row {
         text: "Refresh"
         tooltipText: "Refresh profile"
         enabled: !store.isRefreshing
-        // loadProfile is awaited in try/finally — the flag
-        // clears when the fetch completes (see fetchProfileComp
-        // + handleSessionJson), not synchronously here.
+        // loadProfile is awaited in try/finally — the flag clears when the fetch completes
+        // (see fetchProfileComp + handleSessionJson), not synchronously here.
         onClicked: {
             if (store.isRefreshing)
                 return;

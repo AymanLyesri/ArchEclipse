@@ -41,9 +41,8 @@ Rectangle {
     readonly property string devName: device?.name ?? "disconnected"
     readonly property bool isWifi: device?.type === DeviceType.Wifi
 
-    // Extract SSID from connected wifi network's connectedNetwork (a WifiNetwork which has `id` field)
-    // If no primaryDevice, show "Disconnected". If wired, show the interface name (e.g. "enp0s3").
-    // WifiNetwork has id (ssid). Check activeWifiDevice.
+    // SSID from the connected wifi network's id; no primaryDevice -> "Disconnected", wired ->
+    // the interface name (e.g. "enp0s3").
     readonly property string label: {
         if (!device || !connected)
             return "Disconnected";

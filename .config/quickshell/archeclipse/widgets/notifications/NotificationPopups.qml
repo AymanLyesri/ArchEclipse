@@ -6,27 +6,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Centered notification pill, owned by Bar.qml (one per monitor).
-// Previously a separate top-right PanelWindow (shell.qml Variants); now a
-// plain Item positioned below the main pill at center. Geometry is pushed
-// in from the bar (pillX/pillY/pillW/pillH + topBar) so this file stays
-// independent of Bar internals.
-//
-// Model rows are Toast snapshot wrappers (plain props resolved once at
-// receipt); delegates never touch live NotificationObjects, so bindings
-// stay cheap and the exit transition can never null-deref.
-//
-// Animation model (end4/illogical-impulse reference):
-//   - ListView over ScriptModel(Notifications.popupToasts): row-level
-//     add/displaced/remove transitions, no full rebuilds, no dual-model
-//     syncing, no polling timers anywhere.
-//   - Entrance: staggered Emphasized drop-in from the top (y + fade +
-//     0.96-scale, island motion language via shared Anim).
-//   - Exit: fast rise + shrink + fade (FastEffects); swipe-to-dismiss
-//     plays first, then discards.
-//   - Timeout bar: ONE PropertyAnimation per card, paused declaratively on
-//     hover (hover destroys the service countdown; unhover hides the toast,
-//     so bar and expiry can never drift).
+// Centered notification pill owned by Bar.qml (one per monitor), geometry pushed in from the bar.
+// Rows are Toast snapshot wrappers, so bindings stay cheap and exit never null-derefs.
 Item {
     id: root
 
@@ -42,24 +23,20 @@ Item {
     property bool mediaVisible: false
     property real mediaY: 0
     property real mediaH: 0
-    // OSD pill stacking: same treatment one level down — toasts dock
-    // below the volume/brightness OSD when it shows (below media+OSD
-    // when both show, which is rare: equal-priority states resolve one).
+    // OSD stacking one level down: toasts dock below the volume/brightness OSD when it shows
+    // (below media+OSD when both, which is rare: equal-priority states resolve one).
     property bool osdVisible: false
     property real osdY: 0
     property real osdH: 0
-    // Workspace-wave push: extra y offset while the hang is up so toasts
-    // dock beneath the folding buttons instead of under them. (mediaY/
-    // osdY arrive already pushed — this is only the bare pill base.)
+    // Workspace-wave push: an extra y offset while the hang is up so toasts dock beneath the
+    // folding buttons (mediaY/osdY arrive already pushed).
     property real waveHang: 0
 
     width: 400
     height: popList.contentHeight
 
-    // Centered under the main pill, clamped 8px inside the screen edges.
-    // x tracks the pill rigidly (no Behavior — coupled to width animations).
-    // y for a bottom bar depends on our own height (no loop: content never
-    // reads y back).
+    // Centered under the main pill, clamped 8px inside the screen. x tracks the pill rigidly;
+    // y for a bottom bar reads our own height (no loop, nothing reads y back).
     x: {
         if (!parent)
             return 0;
@@ -217,9 +194,8 @@ Item {
                 }
                 clip: true
 
-                // Background interaction layer FIRST so buttons above stay
-                // clickable. Drag sideways past the threshold to fling-dismiss
-                // (end4 destroyWithAnimation); right-click dismisses instantly.
+                // Background interaction layer FIRST so buttons stay clickable: drag sideways past
+                // the threshold to fling-dismiss, right-click dismisses instantly.
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -248,9 +224,8 @@ Item {
                             if (card.toastId >= 0)
                                 Notifications.holdToast(card.toastId);
                         } else if (!card.toast || card.toast.progress < 0) {
-                            // Progress toasts persist through unhover — the
-                            // countdown they replace doesn't exist; they only
-                            // leave via completion, swipe or right-click.
+                            // Progress toasts persist through unhover (no countdown to replace);
+                            // they only leave via completion, swipe or right-click.
                             if (card.toastId >= 0)
                                 Notifications.releaseToast(card.toastId);
                         }
@@ -340,11 +315,8 @@ Item {
                     }
                 }
 
-                // Timeout bar: one animation (end4 ReloadPopup pattern),
-                // paused declaratively on hover — bar and expiry can't drift.
-                // A progress toast (progress >= 0, life = 0) instead GROWS
-                // with the job: the service mutates toast.progress, and the
-                // xScale binding re-evaluates per tick (Behavior smooths it).
+                // Timeout bar: one animation, paused declaratively on hover, so bar and expiry
+                // cannot drift. A progress toast instead GROWS with the job (xScale per tick).
                 Rectangle {
                     id: barTrack
                     anchors.left: parent.left

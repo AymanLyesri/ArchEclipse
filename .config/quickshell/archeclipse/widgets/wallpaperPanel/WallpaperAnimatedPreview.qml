@@ -4,9 +4,8 @@ import Quickshell
 import Quickshell.Wayland
 import qs.widgets.shared
 
-// Fullscreen animated hover preview, scoped to the owning monitor. The empty
-// input mask keeps the overlay transparent to pointer events so the tile still
-// receives leave events and can dismiss the preview.
+// Fullscreen animated hover preview, scoped to the owning monitor. The empty input mask keeps
+// the overlay transparent to pointer events, so the tile still gets leave and can dismiss it.
 PanelWindow {
     id: root
 

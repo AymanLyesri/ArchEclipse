@@ -1,24 +1,5 @@
 #!/usr/bin/env bash
-# Mirror greeter config to the world-readable XDG path. Redacts secrets.
-#
-# Source (~/.config/quickshell/archeclipse-greeter/) contains SYMLINKS
-# (theme, services, widgets/{greeter,lock,shared} -> ../archeclipse/...).
-# rsync MUST dereference them (-L/--copy-links): $HOME is mode-700 so a
-# preserved symlink would dangle for the greeter user. The old flat
-# `cp AuthCard.qml` step is superseded by the dereferenced widgets/lock/
-# tree (which also carries its qmldir, needed for `qs.widgets.lock`).
-#
-# Secret redaction: the only secret-shaped keys in the archeclipse
-# Settings/config are under the top-level `apiKeys` object
-# (theme/Settings.qml defaultApiKeys()/mergeApiKeys(): per-API user/key
-# credential values for openrouter/danbooru/gelbooru/safebooru/wallhaven,
-# merged with the user's saved values from settings.json). No
-# *apiKey*/*secret* files exist in the source tree today (verified
-# 2026-10-10); the --exclude patterns below are preventive (written with
-# per-letter case classes because rsync matches case-sensitively) so a
-# secret file can never leak into the world-readable mirror. settings.json /
-# settings-*.json are excluded for the same reason. Supabase keys are NOT
-# in Settings (read from env at runtime) — nothing to redact there.
+# Mirrors greeter config to the world-readable XDG path; rsync needs copy-links (-L) since $HOME is mode-700.
 set -u
 
 SRC="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/archeclipse-greeter"
@@ -26,13 +7,8 @@ DST="${GREETER_DST:-/etc/xdg/quickshell/archeclipse-greeter}"
 SESSION_DIR="/usr/share/wayland-sessions"
 SUDO="${SYNC_GREETER_SUDO-sudo}"
 
-# NOTE: plain `#` comments cannot go inside the backslash-continued rsync
-# below (they would comment out the continuation), so the --exclude lines
-# carry their rationale here: *apiKey*/*secret*/*token*/*credential* and
-# settings*.json are secret-shaped names that must never leak into the
-# world-readable mirror; /greeter-wallpaper is panel-installed user data
-# (pkexec cp, see commandFor "greeter") and /colors.scss is the generated
-# wallpaper palette; --delete must never remove either.
+# NOTE: `#` comments cannot sit inside the backslash-continued rsync (they break the
+# continuation), so: secret-shaped names must never leak, and --delete must keep the user data.
 $SUDO mkdir -p "$DST"
 $SUDO rsync -aL --delete --chmod=Du+rX,go+rX,Fu+r,go+r \
     --exclude='*[Aa][Pp][Ii][Kk]ey*' --exclude='*[Ss][Ee][Cc][Rr][Ee][Tt]*' \
@@ -42,11 +18,8 @@ $SUDO rsync -aL --delete --chmod=Du+rX,go+rX,Fu+r,go+r \
     "$SRC/" "$DST/"
 $SUDO chmod -R a+rX "$DST"
 
-# sessions.json from live wayland-sessions .desktop files (real Exec=
-# parsing per the desktop-entry spec: shell-like quoting, escapes, and %
-# field codes dropped). Overwrites the stub rsync just copied ONLY when
-# parsing yields at least one session; otherwise the checked-in stub
-# (offline fallback) stays in place.
+# sessions.json from live wayland-sessions .desktop files (spec-correct Exec parsing; % codes
+# dropped), overwriting the stub only when at least one session parses (offline fallback stays).
 if [ -d "$SESSION_DIR" ]; then
     SESSIONS="$(python3 - "$SESSION_DIR" <<'EOF'
 import configparser, json, os, shlex, sys
@@ -81,22 +54,14 @@ EOF
     fi
 fi
 
-# keyboard-input.lua: keymap for the greeter Hyprland, from SYSTEM-WIDE
-# config only — first live source wins: systemd's 00-keyboard.conf, then
-# /etc/vconsole.conf XKB* vars, then legacy /etc/default/keyboard, then a
-# KEYMAP→xkb best-effort map, then plain us. The greeter runs pre-login as
-# another user: it must never depend on any one user's private config (same
-# contract as noctalia, SDDM, GDM — one system layout at login, per-user
-# layouts apply after). To change the login layout:
-# localectl set-x11-keymap — then reload the bar to re-sync.
-# Emitted as Lua (hyprland.lua dofiles it); only non-empty values included.
+# keyboard-input.lua: keymap from SYSTEM-WIDE config only (00-keyboard.conf, vconsole.conf,
+# /etc/default/keyboard, then us) — the greeter runs as another user, so no private config.
 KBD_LUA="$(python3 <<'EOF'
 import re
 
 vals = {}
-# Console KEYMAP names are not xkb names: map the known ones, strip
-# -latin suffixes, pass through bare two-letter codes, ignore the rest
-# (a wrong layout silently mistypes passwords — worse than no map).
+# Console KEYMAP names are not xkb names: map the known ones, strip -latin suffixes, pass bare
+# two-letter codes, ignore the rest (a wrong layout mistypes passwords silently).
 KEYMAP_FALLBACK = {
     'dvorak': ('us', 'dvorak'),
     'dvorak-r': ('us', 'dvorak'),

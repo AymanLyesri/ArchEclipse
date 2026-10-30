@@ -4,10 +4,8 @@ import qs.services
 import qs.widgets.bar.islands
 import qs.widgets.launcher
 
-// Search island: input + launcher results inline in the bar pill.
-// Replaces the old PopupWindow launcher — the pill grows (width via the
-// existing pill transition, height snapped on the window) while the results
-// body unfolds.
+// Search island: input + launcher results inline in the bar pill — the pill grows (width via
+// the pill transition, height snapped) while the results body unfolds.
 Column {
     id: root
     width: 516
@@ -87,9 +85,8 @@ Column {
             }
         }
 
-        // Navigation rows (">" tips like "cb ...") adopt their query into the
-        // box so typing continues from that format. Programmatic set doesn't
-        // emit textEdited, so the runQuery from the row's launch isn't doubled.
+        // Navigation rows adopt their query into the box so typing continues from that format;
+        // setting it programmatically avoids textEdited, so the row's runQuery isn't doubled.
         Connections {
             target: Launcher
             function onFillInputRequested(query) {

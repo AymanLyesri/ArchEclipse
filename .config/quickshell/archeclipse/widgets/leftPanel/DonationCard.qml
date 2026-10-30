@@ -1,9 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Card shell for the Donations tab: surface, border and a padded content
-// column that sizes to its children. Every card in the tab used to spell this
-// five times inline.
+// Card shell for the Donations tab: surface, border and a padded content column that sizes
+// to its children (previously spelled inline five times).
 Rectangle {
     id: root
 

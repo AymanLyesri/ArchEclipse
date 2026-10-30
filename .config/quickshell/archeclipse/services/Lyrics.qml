@@ -3,12 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Lyrics service — LRCLIB lookup for the active MPRIS track.
-// Contract (verified 2026-09-25 via curl):
-//   GET https://lrclib.net/api/get?artist_name=&track_name=&album_name=&duration=
-//   200 -> {syncedLyrics, plainLyrics, instrumental}; 404 -> no match.
-// MediaWidget feeds track identity via fetchFor() and position via
-// positionSec; consumers read status/lines/plainText/currentIndex.
+// LRCLIB lookup for the active MPRIS track (verified 2026-09-25): 200 -> synced/plain
+// lyrics or instrumental, 404 -> no match. MediaWidget feeds track and position.
 QtObject {
     id: root
 
@@ -48,9 +44,8 @@ QtObject {
         return u;
     }
 
-    // Parse LRC: [mm:ss.xx] stamps (multi-stamp per line allowed),
-    // metadata tags ([ar:], [al:], ...) and stamp-less lines skipped,
-    // blank bodies skipped (they'd steal the highlight), sorted by time.
+    // LRC parse: [mm:ss.xx] stamps (several per line allowed), metadata tags and
+    // stamp-less lines skipped, blank bodies dropped (they'd steal the highlight).
     function parseLrc(text) {
         const out = [];
         const src = String(text || "").replace(/\r/g, "").split("\n");

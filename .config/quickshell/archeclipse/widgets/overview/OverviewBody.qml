@@ -6,27 +6,8 @@ import Quickshell.Hyprland
 import qs.theme
 import qs.services
 
-// OverviewBody — end-4-style live workspace overview hosted by
-// OverviewIsland in the main bar pill (BarState "overview").
-//
-// All 10 workspaces in a 5×2 grid of monitor-proportioned cards showing
-// LIVE window thumbnails (ScreencopyView per toplevel, cf. end-4
-// OverviewWindow.qml). Windows drag between cards (DropArea per card →
-// `movetoworkspace`); click a window to focus it, middle-click to close
-// it, click empty card space to focus that workspace.
-//
-// Geometry (`at`/`size`) does NOT come from `lastIpcObject` (stale unless
-// `Hyprland.refreshToplevels()` is called — see HyprlandToplevel docs) but
-// from a `hyprctl clients -j` poll keyed by address, like end-4's
-// HyprlandData service. Toplevel add/remove stays reactive via
-// `Hyprland.toplevels.values`; capture handles via `HyprlandToplevel.wayland`.
-//
-// Dispatches go through the Lua `hl.dsp.*` dispatchers (cf. Workspaces.qml)
-// — this Hyprland is Luaified and plain `hyprctl dispatch` verbs are
-// evaluated as Lua and fail to parse.
-//
-// Sticky island: nothing here deactivates "overview" — it closes only via
-// the toggle or Esc (IslandEscClose in the island wrapper).
+// OverviewBody — live workspace overview: 5×2 monitor-proportioned cards with ScreencopyView
+// thumbnails; windows drag between cards (hl.dsp.* only), click focuses, middle-click closes.
 Item {
     id: body
 
@@ -57,10 +38,8 @@ Item {
     readonly property real cardW: (body.width - body.gap * (body.cols - 1)) / body.cols
     readonly property real cardH: body.cardW * body.monH / body.monW
     readonly property real scale: body.cardW / body.monW
-    // Dynamic height: derived from the computed grid (leaves report
-    // implicitHeight 0, so no implicit chain is possible here — but every
-    // term below is itself reactive, no hardcoded px). Text DOES report a
-    // real implicitHeight, so the empty-state line measures itself.
+    // Dynamic height from the computed grid (leaves report implicitHeight 0, so no implicit chain);
+    // every term is reactive, and the empty-state Text measures itself.
     readonly property real gridH: body.rows * body.cardH + (body.rows - 1) * body.gap
 
     width: 920
@@ -68,8 +47,7 @@ Item {
     height: implicitHeight
 
     // ---- live geometry poll (`hyprctl clients -j`, keyed by address) ----
-    // Keys are normalized (no `0x` prefix, lowercase): HyprlandToplevel
-    // addresses come bare (`556a…`) while hyprctl reports `0x556a…`.
+    // Keys are normalized (no `0x`, lowercase): toplevel addresses are bare, hyprctl reports 0x.
     function normAddr(a) {
         const s = (a ?? "") + "";
         const t = (s.startsWith("0x") || s.startsWith("0X")) ? s.slice(2) : s;
@@ -138,12 +116,8 @@ Item {
         return out;
     }
 
-    // ---- drag state: the drop card is resolved GEOMETRICALLY from the
-    // dragged tile's center at release (DropArea entered/exited fires, but
-    // onDropped never arrives for internal drags and exit-before-release
-    // races clear tracked state). DropAreas remain as hover highlight.
-    // Which card (1-10) contains body-local point (px, py)? -1 = none.
-    // Grid is uniform: cards + gaps start at x=0 (no content margins).
+    // ---- drag state: the drop card is resolved GEOMETRICALLY from the dragged tile's center at
+    // release (onDropped never arrives for internal drags); DropAreas stay as hover highlight.
     function cardAt(px, py) {
         const gx = px, gy = py;
         const col = Math.floor(gx / (body.cardW + body.gap));
@@ -167,12 +141,8 @@ Item {
         return false;
     }
 
-    // ---- actions through the Lua dispatchers (hyprctl CLI wraps args as
-    // `hl.dispatch(<args>)` evaluated as Lua, so `workspace 3` /
-    // `focuswindow address:…` are syntax errors there — this Hyprland is
-    // Luaified. The working reference is Workspaces.qml:
-    // `hl.dsp.focus({workspace = N})`. Addresses are `0x`-prefixed like
-    // hyprctl reports them (end-4 passes them through verbatim too).
+    // ---- actions go through the Lua dispatchers (`hl.dsp.focus({workspace = N})`): hyprctl
+    // wraps args as hl.dispatch(...) evaluated as Lua, so `workspace 3` is a syntax error.
     function dsp(expr) {
         Hyprland.dispatch(expr);
     }
@@ -236,9 +206,8 @@ Item {
                         font.bold: true
                     }
 
-                    // Click empty space = focus workspace. Declared BEFORE
-                    // the window tiles so they paint above and win their
-                    // clicks; wheel-transparent for outer scrollers.
+                    // Click empty space = focus workspace. Declared BEFORE the tiles so they paint
+                    // above and win their clicks; wheel-transparent for outer scrollers.
                     MouseArea {
                         anchors.fill: parent
                         acceptedButtons: Qt.LeftButton

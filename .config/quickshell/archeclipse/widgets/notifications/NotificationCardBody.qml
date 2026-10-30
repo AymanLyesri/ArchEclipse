@@ -5,13 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Shared notification card body used by the popup toast delegate
-// (NotificationPopups.qml) and the history card
-// (widgets/rightPanel/NotificationItem.qml). Display state arrives as
-// plain props so snapshot-toast and live-notification hosts feed it
-// identically; every side effect bubbles out as a signal. Hosts keep
-// only their shells: swipe/timeout-bar (popup) vs click-copy background
-// (history).
+// Shared notification card body for the popup toast and the history card: display state arrives
+// as plain props so both hosts feed it identically, and side effects bubble out as signals.
 Column {
     id: root
     spacing: Theme.spacing
@@ -171,8 +166,7 @@ Column {
             }
 
             // ---- body (expandable, markup handling) ----
-            // Hidden when it's just the image path — the
-            // image beside it already shows it.
+            // Hidden when it is just the image path — the image beside it already shows it.
             Text {
                 width: parent.width
                 visible: !root.hideBody

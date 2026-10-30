@@ -189,9 +189,8 @@ def main() -> None:
     for raw in resp.iter_lines(decode_unicode=False):
         if raw is None:
             continue
-        # Decode UTF-8 ourselves: decode_unicode=True lets requests fall
-        # back to latin-1 when the SSE response has no charset, mojibake'ing
-        # every non-ASCII token (“ -> â€œ, ’ -> â€™, — -> â€”).
+        # Decode UTF-8 ourselves: decode_unicode=True lets requests fall back to latin-1 when the
+        # SSE response has no charset, mojibake'ing every non-ASCII token.
         kind, val = parse_sse_line(decode_sse_raw(raw))
         if kind == "content":
             state["reply"] += val

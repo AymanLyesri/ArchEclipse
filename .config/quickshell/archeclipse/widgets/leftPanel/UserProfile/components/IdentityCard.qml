@@ -4,9 +4,8 @@ import Quickshell.Widgets
 import qs.theme
 import qs.widgets.shared
 
-// Identity block: circular avatar standing alone above the card container.
-// The card below holds the username + email/supporter flow + status.
-// Exposes `username` (alias of the edit field) for the host's updateProfile().
+// Identity block: circular avatar standing alone above the card; the card holds username,
+// email/supporter flow and status. Exposes `username` for the host's updateProfile().
 Column {
     id: root
     required property var store

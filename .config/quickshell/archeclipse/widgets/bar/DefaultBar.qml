@@ -7,34 +7,19 @@ import qs.widgets.bar
 import qs.widgets.bar.islands
 import qs.widgets.shared
 
-// Center section (ex-Information) is inlined here directly:
-// launcher + focused window title on the left; center rectangle with
-// bandwidth | control panel | clock; resource bars + battery/brightness/
-// volume/tray on the right. The title never contributes to the bar's
-// width (see topRow.leftMinWidth) — it fills only its own natural slot.
-// Weather and media live outside this bar as their own standalone pills
-// (Bar.qml, recording-pill pattern).
-// Top row holds all content; the workspace strip sits at the very bottom,
-// stretched across the full bar width.
-// The control panel is NOT an island page and NOT a card hanging off the
-// bar: clicking the gear swaps the center pill's content for ControlCard
-// and the bar becomes that panel — the zones drop out, the width collapses
-// to the panel + the pill's inset, and the row takes the panel's height so
-// the workspace strip is pushed below it.
+// Launcher + window title left, center pill (bandwidth | control | clock), resources and
+// battery/brightness/volume/tray right; the gear turns the center pill into ControlCard.
 Column {
     id: root
     spacing: Theme.spacing / 2
     property string monitorName: ""
 
-    // Injected by Bar.qml (currentPageLoader.onLoaded) — the stack that owns
-    // the pill width. The volume/brightness sliders animate their own width,
-    // and while they do the pill must track them rigidly instead of easing
-    // toward a target that moves every frame (see stack.rigidWidth in Bar.qml).
+    // Injected by Bar.qml: the stack that owns the pill width. While the sliders animate
+    // their own width the pill must track rigidly (stack.rigidWidth), not ease after it.
     property var barStack: null
     readonly property bool contentGliding: volumeWidget.revealing || brightnessWidget.revealing
-    // True while the center pill's own box animates (control open/close).
-    // Its width/height targets move every frame during that unfold, so the
-    // bar pill must track them rigidly instead of easing after a moving target.
+    // True while the center pill's own box animates (control open/close): its targets move
+    // every frame, so the bar pill must track them rigidly instead of easing.
     readonly property bool panelGliding: controlCard.gliding
     onContentGlidingChanged: root.setContentGliding(root.contentGliding)
     onPanelGlidingChanged: root.setPanelGliding(root.panelGliding)
@@ -55,9 +40,8 @@ Column {
             root.barStack.rigidDirect = on;
     }
 
-    // Workspace-strip passthrough for the window mask + hover chaining
-    // (Bar.qml): the hanging wave buttons live BELOW the (never-growing)
-    // pill, so clicks/hover there need their own region.
+    // Workspace-strip passthrough for the window mask + hover chaining: the hanging wave
+    // buttons live below the never-growing pill, so they need their own region.
     readonly property Item waveHitbox: workspaces.waveHitbox
     readonly property bool stripHovered: workspaces.stripHovered
     readonly property bool stripExpanded: workspaces.stripExpanded
@@ -69,9 +53,8 @@ Column {
         id: bandHover
     }
 
-    // Fixed-width dynamic speed: always 4 chars (3-char numeric + 1-char
-    // unit that scales B/K/M/G), so the bandwidth cell never shifts width
-    // as speeds change. Monospace font keeps every string the same width.
+    // Fixed-width speed, always 4 chars (3 numeric + 1 unit scaling B/K/M/G) in a monospace
+    // font, so the bandwidth cell never shifts width as speeds change.
     function fmtSpeed(bps) {
         if (bps < 1000)
             return String(Math.round(bps)).padStart(3, " ") + "B";
@@ -93,47 +76,26 @@ Column {
 
     Item {
         id: topRow
-        // Left zone minimums — the fixed resident item is the launcher; the
-        // focused window title is deliberately NOT counted. It elides into
-        // whatever the zone is given, so a long title can never widen the
-        // pill: counting it made the whole bar track the focused window
-        // (783 -> 930 just by focusing a long-titled window, and the width
-        // no longer retracted when the title shortened). Counting the
-        // resource monitor here is equally wrong — it lives in `utilities`
-        // (right zone); the phantom width was 86px that nothing occupied.
-        // Widths stay implicit-only (never assigned) so the sideWidth ->
-        // zone-width -> fill-width chain can't bind back into itself
-        // (Flickable-style polish loop, cf. RightIsland).
+        // Left zone minimums count the launcher only: counting the title let a long one widen
+        // the bar (783 -> 930), and the monitor added 86px nothing occupied. Widths stay implicit.
         readonly property real leftMinWidth: launcherButton.implicitWidth + Theme.spacing
         readonly property real rightMinWidth: utilities.implicitWidth
         readonly property real sideWidth: Math.max(leftMinWidth, rightMinWidth)
-        // Title cap shared by WindowTitle's Layout.maximumWidth and its
-        // text elide width (minus pill chrome) — upstream-only values so
-        // the title width can never bind back into the layout (degenerate
-        // 0-width fixed point, seen 2026-10-14).
+        // Title cap shared by Layout.maximumWidth and the elide width (minus pill chrome):
+        // upstream-only, or the title width feeds the Row it is measured from (0-width fixpoint).
         readonly property real titleCap: Math.max(80, Math.min(240, sideWidth - launcherButton.implicitWidth - Theme.spacing * 2))
-        // Quick settings up: the bar IS the panel. Zones drop out, the row
-        // takes the panel's height (which pushes the workspace strip below
-        // it) and the width collapses to the panel + the pill's own inset.
-        // Follows the *intent* (`open`), not the body's lifetime (`shown`):
-        // `shown` outlives the close retract, so keying the chrome off it kept
-        // the band content away for the whole fold and landed it afterwards.
+        // Quick settings up: the bar IS the panel (zones out, row at panel height, width
+        // collapsed). Follow `open`, not `shown` — `shown` outlives the retract.
         readonly property bool panelUp: controlCard.open
-        // The shell morphs with the same unfold driver as the center pill, so
-        // the bar (and the strip below it) narrows as the panel grows instead
-        // of snapping to the open width on the first frame.
+        // The shell morphs with the center pill's unfold, so the bar and strip narrow as the
+        // panel grows instead of snapping on the first frame.
         readonly property real closedWidth: 2 * sideWidth + centerPill.collapsedWidth + Theme.spacing * 2
         implicitWidth: closedWidth + (centerPill.openWidth - closedWidth) * controlCard.openT
         width: implicitWidth
         height: Theme.barContentHeight + (Math.max(controlCard.cardHang, Theme.barContentHeight) - Theme.barContentHeight) * controlCard.openT
 
-        // Bar chrome (zones, band row, notch) cross-fades out while the panel
-        // opens, and back in from the FIRST frame of the close retract: the
-        // band content returns gradually across the shrinking panel instead of
-        // popping in once the box has already folded. Opening keeps the short
-        // effects fade; closing spans the whole retract so the two halves land
-        // together. `chromeVisible` only gates hit-testing — it stays live for
-        // the length of the fade-out, then drops the invisible buttons.
+        // Chrome cross-fades out on open and back in from the first frame of the retract;
+        // `chromeVisible` only gates hit-testing and stays live through the fade-out.
         property real chromeOpacity: panelUp ? 0 : 1
         property bool chromeVisible: true
         onPanelUpChanged: {
@@ -161,22 +123,12 @@ Column {
             onTriggered: topRow.chromeVisible = false
         }
 
-        // Center rectangle — bandwidth on the left, control panel
-        // button dead-center, clock on the right. No top margin: the
-        // body reaches the bar's screen-edge wall, traced by
-        // PillBackground as one fill (straight wall edge + concave
-        // inverted corners, rounded lower corners like before).
-        //
-        // Quick settings lives INSIDE this pill: the gear swaps the band
-        // row for ControlCard and the bump itself grows (wide enough for
-        // the 680 body, as tall as the unfolded card) while its wall-side
-        // edge stays pinned. The bar pill follows it — a single surface
-        // around the panel, with the workspace strip pushed underneath.
+        // Center rectangle: bandwidth | control | clock, no top margin so the body reaches the
+        // wall as one PillBackground fill; quick settings grows this same bump into the panel.
         Item {
             id: centerPill
-            // Gap between the content row and the pill's wall = the
-            // stack's per-state outer inset (only shown for states that
-            // render this bar, which all keep the default 4).
+            // Gap between the content row and the pill's wall = the stack's per-state outer
+            // inset (the states that render this bar all keep the default 4).
             readonly property real edgePad: root.barStack ? root.barStack.effPad : 0
             readonly property bool controlOpen: BarState.stateFor(root.monitorName) === "control"
             // Resting bump: content row plus 20px chrome, bottom on the
@@ -184,11 +136,8 @@ Column {
             readonly property real collapsedWidth: centerRow.implicitWidth + 20
             readonly property real collapsedHeight: Theme.barContentHeight + edgePad
             readonly property real collapsedY: (Theme.barContentHeight - collapsedHeight) / 2 + (Settings.barOrientation ? -1 : 1) * edgePad / 2
-            // Full panel footprint. `openT` is the single unfold driver: this
-            // item's real width/height grow from the band bump and the bar pill
-            // + strip morph with it (topRow above). Height tracks cardHang
-            // while open, so the volume section's own growth still pushes the
-            // pill (and the strip) down live.
+            // Full panel footprint, driven only by `openT`: height tracks cardHang while open,
+            // so the volume section's own growth still pushes the pill and strip down live.
             readonly property real openWidth: controlCard.cardWidth
             readonly property real openHeight: Math.max(controlCard.cardHang, collapsedHeight)
 
@@ -202,10 +151,8 @@ Column {
                 topBar: Settings.barOrientation
                 bodyWidth: centerPill.width
                 bodyHeight: centerPill.height
-                // The bump is the center pill's own surface: it is what you
-                // see unfold into the panel and retract back into the band,
-                // so it stays fully opaque the whole way — no hand-off fade,
-                // no double-blend shortcut.
+                // The bump is the center pill's own surface, so it stays fully opaque through
+                // the unfold — no hand-off fade, no double-blend shortcut.
                 visible: topRow.chromeVisible || controlCard.shown
                 anchors.horizontalCenter: parent.horizontalCenter
             }
@@ -213,18 +160,15 @@ Column {
             Row {
                 id: centerRow
                 anchors.horizontalCenter: parent.horizontalCenter
-                // Pinned to the wall with the band's own height: the bump is
-                // as tall as the open panel while it cross-fades, and a
-                // centred row would drag the bandwidth/clock text down the
-                // middle of the panel.
+                // Pinned to the wall with the band's height: a centred row would drag the
+                // bandwidth/clock text down the middle of the panel while it cross-fades.
                 height: Theme.barContentHeight
                 y: (centerPill.collapsedHeight - height) / 2
                 spacing: Theme.spacing / 2
                 // Swapped out for the card (cross-fade, see topRow).
                 visible: topRow.chromeVisible
                 opacity: topRow.chromeOpacity
-                // Equal-width side cells so the control button stays
-                // dead-center relative to the whole bar even when
+                // Equal-width side cells keep the control button dead-center even when
                 // bandwidth and clock text widths differ.
                 readonly property real sideCellWidth: Math.max(bandwidthRow.implicitWidth, clockItem.width)
 
@@ -277,17 +221,14 @@ Column {
                     height: Theme.barContentHeight
                     icon: "\uf303"
                     pixelSize: Theme.fontSize + 1
-                    // The row is hidden while the panel is open, so the
-                    // checked highlight only ever shows for a frame at
-                    // close; kept so the toggle reflects the state.
+                    // The row is hidden while the panel is open, so this highlight only shows
+                    // for a frame at close; kept so the toggle reflects the state.
                     toggle: true
                     checked: BarState.stateFor(root.monitorName) === "control"
                     tooltipText: "Quick settings"
                     onClicked: {
-                        // Toggle the control card. Wallpaper sits above
-                        // control (priority), so yield it first — otherwise
-                        // opening control while the wallpaper island is up
-                        // looks dead.
+                        // Wallpaper ranks above control, so yield it first — otherwise opening
+                        // control while the wallpaper island is up looks dead.
                         if (BarState.stateFor(root.monitorName) === "control")
                             BarState.deactivate("control", root.monitorName);
                         else {
@@ -309,10 +250,8 @@ Column {
                 }
             }
 
-            // Quick settings — the pill's own content while open. The card is
-            // full panel size; this wrapper is clipped to the center pill's
-            // real box, so the content is revealed by that box growing (the
-            // pill's own geometry), not by an inner iris animation.
+            // Quick settings — the pill's own content while open. Clipped to the center pill's
+            // real box, so the box growing is the reveal, not an inner iris animation.
             Item {
                 id: panelClip
                 width: centerPill.width
@@ -321,11 +260,8 @@ Column {
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 clip: true
-                // The card sits above the band row, so an opaque card would
-                // hide the chrome fading in underneath it for the whole
-                // retract. Fading the content with the same driver as the
-                // box makes the close a real cross-fade; opening keeps it
-                // fully opaque (the growing box is the reveal there).
+                // An opaque card would hide the chrome fading in underneath for the whole
+                // retract, so the content fades with the box; opening keeps it opaque.
                 opacity: controlCard.open ? 1 : controlCard.openT
 
                 ControlCard {
@@ -340,26 +276,21 @@ Column {
             }
         }
 
-        // left zone — fixed sideWidth (mirrors the wider right zone so the
-        // center pill stays centered with clearance). The title occupies
-        // only its natural slot here; the rest of the zone stays empty and
-        // no title length can widen the bar. (Weather lives outside this
-        // bar as its own pill.)
+        // left zone — fixed sideWidth mirroring the right zone so the center pill stays
+        // centered; the title takes only its natural slot, so no title length widens the bar.
         Item {
             id: leftZone
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             width: topRow.sideWidth
             height: parent.height
-            // Cross-fades out while the panel opens (see topRow): the bar
-            // narrows to the panel's width, so these would otherwise be
-            // clipped off in one frame.
+            // Cross-fades out while the panel opens: the bar narrows to the panel width, so
+            // these would otherwise be clipped off in one frame.
             visible: topRow.chromeVisible
             opacity: topRow.chromeOpacity
 
-            // Plain Row (not RowLayout): RowLayout distributed the zone's
-            // mirror-slack around the title (measured title.x 75..88
-            // instead of 40), while a Row packs left with exact spacing.
+            // Plain Row, not RowLayout: RowLayout distributed the mirror-slack around the
+            // title (measured x 75..88 instead of 40); a Row packs left with exact spacing.
             Row {
                 id: leftRow
                 anchors.left: parent.left
@@ -390,14 +321,8 @@ Column {
                 WindowTitle {
                     id: windowTitleButton
                     monitorName: root.monitorName
-                    // Natural size (never stretches into the slack), capped
-                    // so a long title elides instead of spilling past the
-                    // zone into the center pill. An explicit width (not a
-                    // layout cap) — it never feeds implicitWidth, so it
-                    // can't loop back into sideWidth. textMaxWidth carries
-                    // the same bound minus pill chrome (margins + icon +
-                    // spacing) so the text elides at the true available
-                    // width at any bar size.
+                    // Natural size capped by an explicit width (never a layout cap, so it cannot
+                    // loop into sideWidth); textMaxWidth carries that bound minus pill chrome.
                     width: Math.min(implicitWidth, topRow.titleCap)
                     textMaxWidth: Math.max(0, topRow.titleCap - 36)
                 }
@@ -412,9 +337,8 @@ Column {
             anchors.verticalCenter: parent.verticalCenter
             width: topRow.sideWidth
             height: parent.height
-            // Cross-fades out while the panel opens (see topRow): the bar
-            // narrows to the panel's width, so these would otherwise be
-            // clipped off in one frame.
+            // Cross-fades out while the panel opens: the bar narrows to the panel width, so
+            // these would otherwise be clipped off in one frame.
             visible: topRow.chromeVisible
             opacity: topRow.chromeOpacity
 

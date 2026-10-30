@@ -9,16 +9,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// WallpaperPanelBody — pick a wallpaper per workspace, or set the greeter
-// login background, browse a category, add a new wallpaper, or delete one.
-//
-// Lives in its own widgets/wallpaperPanel folder (same pattern as
-// widgets/controlPanel/ControlPanelBody) and is hosted by WallpaperIsland
-// in the main bar pill. Hosts size this Item (implicit 960x360) and call
-// refresh() when it becomes visible.
-//
-// Previews render the original files directly via AppImage (Qt Quick
-// Image, asynchronous + sourceSize-constrained) — no thumbnail files.
+// Pick a wallpaper per workspace or the greeter background, browse/add/delete; hosted by
+// WallpaperIsland in the main pill. Previews render the original files, no thumbnails.
 Item {
     id: root
 
@@ -26,21 +18,13 @@ Item {
     property string monitorName: ""
     readonly property string effectiveMonitor: root.monitorName || Registry.monitorName
 
-    // No implicitWidth here on purpose: the host (WallpaperIsland) owns the
-    // width — the bar reads the island's implicitWidth and stretches this
-    // body to the clip's width, so a value here would be inert.
-    // True-height island: the results area is settings-sized (rows × tile
-    // height), so the body reports its content height and WallpaperIsland
-    // grows to fit instead of clipping a fixed 360. No margin term here —
-    // mainCol has none, so its implicitHeight IS the body's height.
+    // No implicitWidth: the host owns the width (the bar reads the island's implicitWidth), so
+    // a value here is inert. Height is content-driven — mainCol has no margin, so its is the body's.
     implicitHeight: mainCol.implicitHeight
 
     readonly property string home: Quickshell.env("HOME")
-    // WallEclipse CLI: `walleclipse set <monitor> <ws> <path>` (config + show),
-    // `walleclipse transition [name]` (workspace-switch slide/fade, persisted
-    // daemon-side across reload + reboot).
-    // No reload step exists — the daemon re-reads config on every event, so
-    // the reload action below is a daemon health-check (`walleclipse list`).
+    // WallEclipse CLI: `set <monitor> <ws> <path>` and `transition [slide|fade]` (persisted
+    // daemon-side). The daemon re-reads config per event, so "reload" is just a health-check.
     readonly property string walleclipseBin: "walleclipse"
 
     function isVideoFile(file) {
@@ -60,9 +44,8 @@ Item {
     readonly property var targetTypes: ["workspace", "greeter"]
     property string targetType: "workspace"
     property int selectedWorkspaceId: 1
-    // Fixed filename the greeter surface reads (overwritten in place on
-    // every set, so the tile below loads it cache:false + reloads
-    // explicitly — a static cached source would serve the stale load).
+    // Fixed filename the greeter reads, overwritten in place on every set — so the tile loads
+    // it cache:false and reloads explicitly, never a cached static source.
     readonly property string greeterPath: "/etc/xdg/quickshell/archeclipse-greeter/greeter-wallpaper"
     readonly property string greeterThemePath: "/etc/xdg/quickshell/archeclipse-greeter/colors.scss"
     readonly property string greeterThemeCache: root.home + "/.cache/archeclipse-greeter-theme"
@@ -78,10 +61,8 @@ Item {
         Qt.callLater(() => greeterImg.source = root.greeterSource);
     }
 
-    // Phased progress (text label in the action bar, no spinner):
-    // idle | searching | downloading | setting | deleting | adding
-    // | reloading | loading (generic fallback) | success | error.
-    // Each flow sets its phase; success/error auto-reset to idle after 1.5s.
+    // Phased progress label (no spinner): searching/downloading/setting/deleting/adding and so
+    // on; success and error auto-reset to idle after 1.5s.
     property string progressStatus: "idle"
     readonly property string progressText: {
         switch (root.progressStatus) {
@@ -127,29 +108,23 @@ Item {
         onTriggered: root.progressStatus = "idle"
     }
 
-    // Shared store (fetched once at boot): WallpaperService owns the
-    // category map, thumb manifest and aspect cache; this body binds
-    // read-only so every monitor shares one WallpaperService scan.
+    // Shared store fetched at boot: WallpaperService owns the category map, thumb manifest and
+    // aspect cache, and this body binds read-only so every monitor shares one scan.
     readonly property var wallpapers: WallpaperService.wallpapers
     readonly property var categories: Object.keys(wallpapers)
-    // Single source of truth: Settings.wallpaperCategory. This binding is NEVER
-    // assigned locally, so it can't desync like a mirrored var: every
-    // writer goes through Settings.updateSetting (immediate persist) and
-    // every reader — grid, combobox — follows the binding.
+    // Single source of truth: Settings.wallpaperCategory, never assigned locally so it cannot
+    // desync — writers go through Settings.updateSetting and every reader follows the binding.
     readonly property string selectedCategory: Settings.wallpaperCategory
-    // Self-heal a saved category that no longer exists (dir deleted).
-    // Gated on ready + non-empty categories so a fast fetch can't clobber
-    // the saved value before Settings.reload() has adopted the file.
+    // Self-heal a saved category whose dir was deleted, gated on ready + non-empty so a fast
+    // fetch cannot clobber the saved value before Settings.reload() adopts the file.
     function validateCategory() {
         if (!Settings.ready || root.categories.length === 0)
             return;
         if (!root.categories.includes(Settings.wallpaperCategory))
             Settings.updateSetting("wallpaperSwitcher.category", root.categories[0]);
     }
-    // ComboBox sets currentIndex internally on user pick and resets it
-    // to 0 on model replacement, which breaks/clobbers any currentIndex
-    // binding — re-sync imperatively, deferred past the ComboBox's own
-    // model-reset handling (it runs after our change handlers).
+    // ComboBox resets currentIndex on model replacement (breaking any binding), so re-sync
+    // imperatively, deferred past its own model-reset handling.
     function syncCategoryCombo() {
         Qt.callLater(() => {
             const i = root.categories.indexOf(root.selectedCategory);
@@ -179,35 +154,25 @@ Item {
     readonly property alias localMasonry: localMasonry
 
     // ------------------------------------------------- provider abstraction
-    // Generic provider schema: "local" reuses the folder categories above
-    // (default/* + custom, no special-casing); "wallhaven" queries the
-    // wallhaven.cc API and downloads full-res files into wallhaven/
-    // (save + apply), after which the local apply/delete/theme pipeline
-    // takes over unchanged. Each provider declares its params; the panel
-    // renders them below (category combo vs. the Wallhaven filter form).
+    // "local" reuses the folder categories; "wallhaven" fetches into wallhaven/, same pipeline.
     readonly property var providerTypes: ["local", "wallhaven"]
     readonly property string provider: Settings.wallpaperProvider
-    // Workspace-switch transition (slide default, fade optional): single
-    // source of truth is Settings.wallpaperTransition (persisted); the
-    // daemon keeps its own durable copy — setTransition() writes both,
-    // then reloads the daemon so the change applies immediately.
+    // Workspace-switch transition (slide default, fade optional): Settings.wallpaperTransition
+    // is the source of truth, the daemon keeps its own copy, and setTransition() reloads it.
     readonly property var transitionTypes: ["slide", "fade"]
     readonly property string transition: Settings.wallpaperTransition
     readonly property var wh: Settings.wallpaperWallhaven
     readonly property string whApiKey: Settings.apiKey("wallhaven", "key")
     readonly property bool isWallhaven: root.provider === "wallhaven"
 
-    // Shared masonry view (both providers, persisted): exact results-area
-    // height from rows × tile height (+ row gaps + scrollbar room). Tile
-    // widths come from aspect ratios, never from the viewport.
+    // Shared masonry (both providers): exact results height from rows × tile height plus gaps;
+    // tile widths come from aspect ratios, never the viewport.
     readonly property real resultsH: Math.max(1, Settings.wallpaperMasonryRows) * Settings.wallpaperTileSize + (Math.max(1, Settings.wallpaperMasonryRows) - 1) * 6 + 12
     function setMasonryRows(n) {
         Settings.updateSetting("wallpaperSwitcher.masonryRows", Math.min(4, Math.max(1, n)));
     }
-    // Decoded-aspect cache lives in the shared store (reassigned, never
-    // mutated, so the masonry recomputes exactly like selectedWallpapers
-    // does on fetch). Unknown paths fall back to 16:9 until their thumb
-    // decodes and reports in (brief reshuffle on first open, then stable).
+    // Decoded-aspect cache in the shared store, reassigned (not mutated) so the masonry
+    // recomputes; unknown paths fall back to 16:9 and settle once their thumb decodes.
     readonly property var localAspect: WallpaperService.localAspect
     function localAspectOf(path) {
         return WallpaperService.localAspectOf(path);
@@ -250,10 +215,8 @@ Item {
         return (v === items[0] ? "" : v);
     }
 
-    // Read-modify-write one Wallhaven filter through updateSetting (new
-    // object identity, so the wh binding re-evaluates like selectedCategory).
-    // Filter edits reset to page 1 and debounce past typing; page turns pass
-    // immediate=true to search at once.
+    // Read-modify-write one Wallhaven filter through updateSetting (new identity so the binding
+    // re-evaluates). Filter edits reset to page 1 and debounce; page turns search immediately.
     function setWh(key, value, immediate) {
         const next = Object.assign({}, root.wh);
         next[key] = value;
@@ -295,12 +258,8 @@ Item {
             root.whSearch();
     }
     onProviderChanged: {
-        // NOTE: read root.provider (the property that just changed), NOT
-        // root.isWallhaven: dependent bindings re-evaluate AFTER change
-        // handlers run, so isWallhaven still holds the OLD value here.
-        // The handler passes force=true (after checking root.provider,
-        // always fresh in its own handler) so whSearch's own guard —
-        // which reads the same stale binding — doesn't bail.
+        // NOTE: read root.provider, NOT isWallhaven — dependent bindings re-evaluate after change
+        // handlers, so isWallhaven still holds the old value. force=true skips whSearch's guard.
         if (root.provider === "wallhaven")
             root.whSearch(true);
     }
@@ -311,12 +270,8 @@ Item {
         // Shared store is primed at shell boot; ensure it here too for
         // island-first creation paths, then load this monitor's current.
         WallpaperService.start();
-        // The bar delivers the real monitor name in onLoaded, after this
-        // onCompleted runs (boot prime builds hidden with monitorName "").
-        // Fetch --current only once the name is known; otherwise the
-        // Registry fallback can resolve to the wrong monitor and an
-        // in-flight stale run would swallow the corrected re-fetch
-        // (setting running=true on a running Process is a no-op).
+        // The real monitor name arrives in onLoaded (after onCompleted): waiting avoids the
+        // Registry fallback resolving wrong and a stale run swallowing the corrected fetch.
         if (root.monitorName !== "")
             fetchCurrentWallpapers();
         const ws = Hyprland.focusedWorkspace;
@@ -326,9 +281,8 @@ Item {
             root.whSearch();
     }
 
-    // Best-effort: a fire-and-forget spawn during teardown may not survive
-    // (the child Process is destroyed with us), so the daemon's own 5s
-    // preview watchdog is the real guarantee when the island goes away.
+    // Best-effort: a fire-and-forget spawn during teardown may not survive, so the daemon's own
+    // 5s preview watchdog is the real guarantee when the island goes away.
     Component.onDestruction: {
         previewDwell.stop();
         root.clearPreview();
@@ -343,10 +297,8 @@ Item {
             root.whSearch();
     }
 
-    // Re-fetch when the bar delivers the real monitor name (onLoaded
-    // fires after our Component.onCompleted, so the first fetch waits for
-    // it — see above). Restart (not just start) so a stale in-flight run
-    // for a previous monitor can't deliver after us.
+    // Re-fetch when the real monitor name arrives (onLoaded is after onCompleted). Restart, not
+    // start, so a stale in-flight run for the previous monitor cannot deliver after us.
     onMonitorNameChanged: {
         if (root.monitorName !== "") {
             // The overlay is bound to the monitor that was hovered; drop it
@@ -377,32 +329,24 @@ Item {
     }
 
     // ---------------------------------------------------------- data fetch
-    // Category map + thumbs live in WallpaperService (fetched once at
-    // boot); this body keeps only the cheap per-monitor --current read.
+    // Category map + thumbs come from WallpaperService (boot); this body keeps only --current.
     function fetchWallpapers() {
         WallpaperService.refresh();
     }
 
     Process {
         id: fetchCurrentProc
-        // Compat flag: bodies bind `fetchCurrentProc.running` for readiness.
-        // No declarative command: launcher functions below assign it
-        // explicitly (see restartCurrentFetch NOTE about stale bindings).
+        // Compat flag: bodies bind `fetchCurrentProc.running` for readiness. No declarative
+        // command — launcher functions assign it explicitly (see restartCurrentFetch).
         property bool running: false
     }
-    // --current, QML-native (replaces get-wallpapers.sh --current):
-    // reads $HOME/.config/walleclipse/config/<monitor>/defaults.conf
-    // (`key=path` per line) via a one-shot FileView. One reader per
-    // fetch — a reused FileView fires loaded only on its first load
-    // (probed 2026-10-13). _currentSeq guards stale deliveries the
-    // same way the old running=false/true restart did.
+    // --current, QML-native: reads defaults.conf (`key=path`) via a one-shot FileView — one
+    // reader per fetch (a reused one fires loaded only once); _currentSeq drops stale deliveries.
     property var _currentReader: null
     property int _currentSeq: 0
     function _parseCurrentDefaults(text) {
-        // Mirrors `while IFS='=' read -r key path` + sed s~^\$HOME~$HOME~
-        // + xargs: split at first '=', expand a literal $HOME prefix,
-        // trim/squeeze whitespace. The trailing-newline artifact yields
-        // no iteration under read, so drop it (interior blanks stay "").
+        // Mirrors the shell `while read` + sed + xargs: split at the first '=', expand a literal
+        // $HOME prefix, trim whitespace. The trailing-newline artifact yields no iteration.
         const out = [];
         const raw = String(text || "").split("\n");
         if (raw.length > 0 && raw[raw.length - 1] === "")
@@ -447,17 +391,8 @@ Item {
     function fetchCurrentWallpapers() {
         root._readCurrentFor(root.effectiveMonitor);
     }
-    // Superseding restart for monitor changes: a run for the old monitor
-    // may still be in flight (boot prime), and running=true on a running
-    // Process is a no-op that would let the stale delivery win.
-    // Superseding restart for monitor changes: a run for the old monitor
-    // may still be in flight (boot prime), and running=true on a running
-    // Process is a no-op that would let the stale delivery win.
-    // NOTE: builds command from root.monitorName, NOT effectiveMonitor:
-    // dependent bindings re-evaluate AFTER change handlers run, so
-    // effectiveMonitor still holds the old value inside this handler
-    // (same trap as onProviderChanged/isWallhaven — verified via probe:
-    // mon=[DP-2] eff=[eDP-1] launched an eDP-1 fetch returning []).
+    // Superseding restart: a boot-prime run may still be in flight and running=true is a no-op.
+    // Build the command from root.monitorName, NOT effectiveMonitor (still stale in the handler).
     function restartCurrentFetch() {
         root._readCurrentFor(root.monitorName);
     }
@@ -465,12 +400,8 @@ Item {
     // ------------------------------------------------- wallhaven provider
 
     function whSearch(force) {
-        // NOTE: never gate on root.isWallhaven alone here: this is called
-        // from onProviderChanged, where dependent bindings haven't
-        // re-evaluated yet and isWallhaven still holds the OLD value
-        // (local->wallhaven bailed forever with empty results). The
-        // handler passes force=true after checking root.provider itself,
-        // which is always fresh inside its own change handler.
+        // Never gate on isWallhaven here: onProviderChanged runs before it re-evaluates
+        // (local->wallhaven bailed with no results) — the handler passes force=true instead.
         if (!force && !root.isWallhaven)
             return;
         root._whSeq++;
@@ -494,10 +425,8 @@ Item {
             cmd.push("--api-key", root.whApiKey);
         whSearchProc._seq = seq;
         whSearchProc.command = cmd;
-        // Assigning ·starting on an in-flight Process is a no-op — kill first
-        // so the new search actually runs; the killed run's stale delivery
-        // is dropped by the _seq guard (a no-op start wedged whLoading true
-        // forever, verified by trace).
+        // Assigning ·starting on an in-flight Process is a no-op, so kill first; the killed
+        // run's delivery is dropped by _seq (a no-op start wedged whLoading true forever).
         if (whSearchProc.running)
             whSearchProc.running = false;
         whSearchProc.running = true;
@@ -548,10 +477,8 @@ Item {
         }
     }
 
-    // Save + apply flow: download the full-res file into wallhaven/ (it
-    // becomes a permanent local category), then reuse applyWallpaper so
-    // theme regen / workspace badges / delete all behave identically.
-    // Right-click saves without applying.
+    // Save + apply: download the full-res file into wallhaven/ (a permanent local category),
+    // then reuse applyWallpaper so theme regen, badges and delete behave identically.
     function whSaveApply(item, apply) {
         if (!item || whDownloadProc.running)
             return;
@@ -631,10 +558,8 @@ Item {
                     root.regenGreeterTheme(wallpaper);
                     return;
                 }
-                // Share the global theme: regenerate pywal/cwal colors from
-                // the new wallpaper (coloreclipse wal honors autocolor=false
-                // itself; _pendingThemeRegen is only set when workspace
-                // target + Settings.dynamicThemeColors).
+                // Share the global theme: regenerate cwal colors from the wallpaper (coloreclipse
+                // wal honors autocolor), only for a workspace target with dynamicThemeColors.
                 if (root._pendingThemeRegen !== "")
                     root.regenTheme(root._pendingThemeRegen);
                 else
@@ -655,9 +580,8 @@ Item {
     function commandFor(target, path) {
         switch (target) {
         case "greeter":
-            // Fixed filename the greeter surface reads (Ready-gated Image):
-            // copy + world-read bit via pkexec since the mirror is
-            // root-managed. Excluded from sync --delete (see sync-greeter.sh).
+            // Fixed filename the greeter reads (Ready-gated Image): copy + world-read bit via
+            // pkexec since the mirror is root-managed; excluded from sync --delete.
             return ["pkexec", "bash", "-c", `cp ${shq(path)} /etc/xdg/quickshell/archeclipse-greeter/greeter-wallpaper && chmod a+r /etc/xdg/quickshell/archeclipse-greeter/greeter-wallpaper`];
         default:
             // workspace (WallEclipse arg order: set <monitor> <ws> <path>)
@@ -670,9 +594,8 @@ Item {
         // call, so a second apply mid-flight would overwrite the first's.
         if (setProc.running)
             return;
-        // A set supersedes any live hover preview on this monitor. The
-        // daemon cuts it too, but clearing first leaves no frame of stale
-        // preview over the incoming wallpaper.
+        // A set supersedes any live hover preview: the daemon cuts it too, but clearing first
+        // leaves no frame of stale preview over the incoming wallpaper.
         root.clearPreview();
         setProgress("setting");
         root._pendingTarget = root.targetType;
@@ -682,13 +605,8 @@ Item {
         setProc.running = true;
     }
 
-    // Fullscreen hover previews cover the monitor until the cursor leaves:
-    // WallEclipse handles still images; WallpaperAnimatedPreview handles GIFs
-    // and videos. Daemon-down ERR is ignored silently —
-    // no toast, no progress change. The client serializes show/clear requests
-    // before sending them; the daemon also supersedes requests by generation.
-    // _previewSeq is local bookkeeping only. Leave clears only when the
-    // leaving tile still owns _previewPath.
+    // Fullscreen hover previews clear on leave: WallEclipse for stills, WallpaperAnimatedPreview
+    // for GIFs/videos. A daemon-down ERR is ignored; show/clear requests are serialized.
     property int _previewSeq: 0
     property string _previewPath: ""
     property string _previewMonitor: ""
@@ -698,9 +616,8 @@ Item {
     property string _previewSentPath: ""
     property string _previewSentMonitor: ""
     property bool _previewCommandSent: false
-    // Hover dwell: only preview once the cursor has settled on a tile, so
-    // sweeping across the strip fires nothing (and the daemon allocates no
-    // fade per tile crossed). Raise `previewDwellMs` to make it lazier.
+    // Hover dwell: preview only once the cursor settles, so sweeping the strip fires nothing and
+    // no per-tile fade is allocated. Raise previewDwellMs to make it lazier.
     readonly property int previewDwellMs: 1000
     property string _dwellPath: ""
     function hoverPreview(path) {
@@ -734,15 +651,13 @@ Item {
         root._previewSeq += 1;
         root._previewPath = String(path);
         root._previewMonitor = monitor;
-        // WallEclipse previews static wallpapers as a still. Animated files
-        // use the per-monitor QML overlay instead, while clearing any static
-        // preview that may still be underneath it.
+        // WallEclipse previews static wallpapers as a still; animated files use the per-monitor
+        // QML overlay instead, clearing any static preview underneath it.
         root.requestPreviewCommand(root.isAnimatedPreviewFile(root._previewPath) ? "" : root._previewPath, monitor);
     }
 
-    // Serialize preview/clear CLI requests. Separate short-lived clients can
-    // otherwise reach the daemon out of order if the pointer leaves while a
-    // preview request is still starting.
+    // Serialize preview/clear CLI requests: separate short-lived clients can otherwise reach the
+    // daemon out of order when the pointer leaves mid-request.
     function requestPreviewCommand(path, monitor) {
         root._previewCommandPath = String(path);
         root._previewCommandMonitor = String(monitor);
@@ -944,10 +859,8 @@ Item {
         reloadProc.running = true;
     }
 
-    // Workspace-switch transition: persist UI-side (settings.json) and
-    // daemon-side (`walleclipse transition`, durable across reload +
-    // reboot), then reload so the change takes effect immediately — the
-    // reload itself re-applies with a fade.
+    // Persist UI-side (settings.json) and daemon-side (`walleclipse transition`, durable), then
+    // reload so the change takes effect immediately — the reload applies with a fade.
     Process {
         id: transitionProc
         onExited: code => {
@@ -1059,14 +972,12 @@ Item {
         ColumnLayout {
             id: mainCol
             anchors.fill: parent
-            // No outer margin: the bar's Theme.islandPad is the only inset
-            // between the pill edge and content. Adding one here would stack
-            // a second one on top of it (this body used to add 12).
+            // No outer margin: Theme.islandPad is the only inset between pill edge and content —
+            // adding one here stacks a second (this body used to add 12).
             spacing: Theme.spacing
 
-            // per-workspace current wallpaper strip — workspace tiles
-            // scroll so 11+ workspaces glide instead of overflowing;
-            // greeter + separator stay fixed outside the flickable.
+            // per-workspace current wallpaper strip — tiles scroll so 11+ workspaces glide
+            // instead of overflowing; greeter + separator stay fixed outside the flickable.
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: Theme.spacing
@@ -1127,9 +1038,8 @@ Item {
                 // Workspace tiles only — the scrollable part.
                 SmoothFlickable {
                     id: wsStripScroll
-                    // Content-sized when narrow (group stays centered),
-                    // capped at the leftover island width when wide
-                    // (greeter 100 + separator 2 + 2x spacing 10).
+                    // Content-sized when narrow (group stays centered), capped at the leftover
+                    // island width when wide (greeter 100 + separator 2 + 2x spacing 10).
                     Layout.preferredWidth: Math.max(0, Math.min(wsStripRow.width, mainCol.width - 122))
                     Layout.preferredHeight: 66
                     flickableDirection: Flickable.HorizontalFlick
@@ -1143,10 +1053,8 @@ Item {
                         id: wsStripRow
                         height: wsStripScroll.height
                         spacing: Theme.spacing
-                        // Content-driven width, never bound to the viewport
-                        // (see polish-loop pitfall in AGENTS.md). Left-origin
-                        // so tiles hug the separator instead of centering
-                        // in the leftover viewport width.
+                        // Content-driven width, never bound to the viewport (polish-loop pitfall);
+                        // left-origin so tiles hug the separator instead of centering.
                         Repeater {
                             model: root.currentWallpapers
                             delegate: Rectangle {
@@ -1154,15 +1062,8 @@ Item {
                                 required property string modelData
                                 required property int index
                                 readonly property bool isFocused: Hyprland.focusedWorkspace?.id === index + 1
-                                // Tile source: original for images, first-frame
-                                // thumb for videos. A live AppVideo here decoded
-                                // every workspace video wallpaper forever (one
-                                // full h264 pipeline each, panel closed or not
-                                // — boot-primed cached loader + `active` bound
-                                // to nothing but the file), measured ~10% CPU
-                                // per video + ~1GB RSS with two video
-                                // workspaces. Static thumbs, same as the main
-                                // strip's idle tiles.
+                                // Original for images, first-frame thumb for videos: a live AppVideo here
+                                // decoded every workspace video forever (~10% CPU and ~1GB RSS each).
                                 readonly property string wsSource: wsTile.modelData === "" ? "" : (root.isVideoFile(wsTile.modelData) ? root.thumbFor(wsTile.modelData) : wsTile.modelData)
 
                                 width: 100
@@ -1176,18 +1077,15 @@ Item {
                                     visible: wsTile.modelData !== ""
                                     anchors.fill: parent
                                     anchors.margins: 2
-                                    // Native preview: original file, decoded near
-                                    // tile size (async + cached inside AppImage).
-                                    // Videos use the first-frame thumb (wsSource
-                                    // resolves it) — never a live decoder here.
+                                    // Native preview: original file decoded near tile size (async +
+                                    // cached in AppImage). Videos use the first-frame thumb, no decoder.
                                     source: wsTile.wsSource === "" ? "" : "file://" + wsTile.wsSource
                                     sourceWidth: wsTile.width
                                     badges: [(wsTile.index + 1).toString()]
                                 }
                                 Text {
-                                    // Video icon until the background thumb run
-                                    // delivers a first frame (or permanently when
-                                    // no thumb exists).
+                                    // Video icon until the background thumb run delivers a frame (or
+                                    // permanently when no thumb exists).
                                     visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && wsTile.wsSource === ""
                                     anchors.centerIn: parent
                                     text: ""
@@ -1240,9 +1138,8 @@ Item {
                         onActivated: (i, v) => root.targetType = v
                     }
 
-                    // Workspace-switch transition: slide (default) or fade.
-                    // Persists daemon-side (survives reload + reboot), then
-                    // reloads the daemon so it applies with a fade right away.
+                    // Workspace-switch transition: slide (default) or fade, persisted daemon-side
+                    // and followed by a reload so it applies with a fade right away.
                     AppSegmentedControl {
                         model: root.transitionTypes
                         currentIndex: root.transitionTypes.indexOf(root.transition)
@@ -1251,20 +1148,6 @@ Item {
                         onActivated: (i, v) => root.setTransition(v)
                     }
 
-                    // pywal palette swatches (color1..7)
-                    // Row {
-                    //     spacing: 4
-                    //     Repeater {
-                    //         model: [Theme.color0, Theme.color1, Theme.color2, Theme.color3, Theme.color4, Theme.color8, Theme.fg]
-                    //         delegate: Rectangle {
-                    //             required property string modelData
-                    //             width: 10
-                    //             height: 10
-                    //             radius: 5
-                    //             color: modelData
-                    //         }
-                    //     }
-                    // }
 
                     AppComboBox {
                         id: categoryCombo
@@ -1325,9 +1208,8 @@ Item {
                         stepSize: 10
                         value: Settings.wallpaperTileSize
                         onValueChanged: {
-                            // Same binding guard as the booru sliders: the
-                            // settings write re-evaluates value to the same
-                            // number, which must not write back in a loop.
+                            // Same binding guard as the booru sliders: the settings write re-evaluates
+                            // value to the same number, which must not write back in a loop.
                             const v = Math.round(value);
                             if (v === Settings.wallpaperTileSize)
                                 return;
@@ -1354,10 +1236,8 @@ Item {
                 }
             }
 
-            // wallhaven provider: dynamic filter form. Each control writes one
-            // wallpaperWallhaven field via setWh (debounced search); the form
-            // is the provider's declared params rendered with shared controls,
-            // so a future provider reuses this pattern with its own fields.
+            // wallhaven provider: dynamic filter form. Each control writes one wallpaperWallhaven
+            // field via setWh (debounced search); the form renders the provider's declared params.
             Rectangle {
                 visible: root.isWallhaven
                 Layout.fillWidth: true
@@ -1534,17 +1414,15 @@ Item {
                     rows: Settings.wallpaperMasonryRows
                     spacing: Theme.spacing
                     rowHeight: Settings.wallpaperTileSize
-                    // Preserve the (now alphabetically sorted) file order
-                    // left-to-right instead of shortest-row bin-packing,
-                    // which shuffled tiles every time aspects refined.
+                    // Preserve the (alphabetically sorted) file order left-to-right instead of
+                    // shortest-row bin-packing, which shuffled tiles as aspects refined.
                     balanceRows: false
                     model: root.selectedWallpapers
                     aspectRatio: function (path) {
                         return root.localAspectOf(path);
                     }
-                    // Lazy window: only instantiate tiles near the viewport
-                    // (fast open on 100+ folders, left-to-right materialize
-                    // on scroll, decoders freed when scrolled away).
+                    // Lazy window: instantiate only tiles near the viewport (fast open on 100+
+                    // folders, decoders freed when scrolled away).
                     viewLeft: wallScroll.contentX - 700
                     viewRight: wallScroll.contentX + wallScroll.width + 700
                     buffer: 700
@@ -1557,26 +1435,16 @@ Item {
                         // Plain (not required) modelData — the masonry pushes
                         // it via Loader onLoaded (same contract as AppMasonry).
                         property var modelData
-                        // Masonry widths are always aspect-derived (the old
-                        // hover-expand would fight the layout). Each thumb
-                        // reports its decoded ratio back, refining the width.
+                        // Masonry widths are always aspect-derived (a hover-expand would fight the
+                        // layout); each thumb reports its decoded ratio back, refining the width.
                         width: localMasonry.widthFor(modelData)
                         height: localMasonry.rowHeight
-                        // Fades in once the preview settles — image decoded
-                        // (Error counts as settled so a missing file can't
-                        // hide a tile forever) or video ready (first frame
-                        // or decode failure, which falls back to the icon
-                        // below). modelData arrives via Loader push just
-                        // after creation, so every access below is guarded.
-                        // Idle video tiles show the offline first-frame thumb (no
-                        // decoder); "" until the background run maps it, in
-                        // which case the icon fallback below holds the tile.
+                        // Fades in once the preview settles (image decoded or Error, video ready);
+                        // modelData arrives via Loader push after creation, so every access is guarded.
                         readonly property string tileThumb: root.thumbFor(tile.modelData)
                         readonly property bool thumbSettled: (tile.modelData !== undefined && root.isVideoFile(tile.modelData)) ? (tile.previewing ? tileVideo.ready : (tile.tileThumb === "" || tileImg.status === Image.Ready || tileImg.status === Image.Error)) : (tileImg.status === Image.Ready || tileImg.status === Image.Error)
-                        // Workspace number badges: which workspace(s)
-                        // currently use this wallpaper (top-right).
-                        // Shared by the still preview and the live
-                        // video below (only one is visible at a time).
+                        // Workspace badges: which workspaces use this wallpaper (top-right), shared
+                        // by the still preview and the live video (only one is visible).
                         readonly property var badgeIds: {
                             const ids = [];
                             const cur = root.currentWallpapers;
@@ -1612,24 +1480,11 @@ Item {
                         AppImage {
                             id: tileImg
                             anchors.fill: parent
-                            // Zero inset: tiles read edge-to-edge like the booru
-                            // masonry (the card ring used to add +6px to every gap).
-                            // AppImage is a ClippingRectangle, so thumbs keep
-                            // their own rounded corners. Hover border overlaps
-                            // the thumb edge by design.
-                            // Native preview: original file decoded near
-                            // tile size (asynchronous + cached; the
-                            // strip's virtualized Repeater keeps the
-                            // instance count bounded while scrolling).
-                            // Videos show the offline first-frame thumb
-                            // (empty until the background run maps it —
-                            // the icon below holds the tile meanwhile).
+                            // Zero inset so tiles read edge-to-edge like the booru masonry; the hover
+                            // border overlaps the edge by design. Images decode the original file.
                             source: (tile.modelData === undefined) ? "" : (root.isVideoFile(tile.modelData) ? (tile.tileThumb !== "" ? "file://" + tile.tileThumb : "") : "file://" + tile.modelData)
-                            // Decode at a stable width: binding sourceWidth to
-                            // the aspect-derived tile.width reloaded the image
-                            // on every aspect refine (width change -> reload
-                            // -> opacity dip -> fade = flicker). Tile height
-                            // is the fixed rowHeight, so one size fits all.
+                            // Decode at a stable width: sourceWidth following the aspect-derived width
+                            // reloaded on every refine (flicker); the fixed rowHeight sizes it instead.
                             sourceWidth: Math.max(1, Math.round(Settings.wallpaperTileSize * 2))
                             badges: tile.badgeIds
                             animated: tileMa.containsMouse && tile.modelData !== undefined && root.isGifFile(tile.modelData)
@@ -1638,16 +1493,8 @@ Item {
                                     root.noteLocalAspect(tile.modelData, tileImg.implicitImageWidth / tileImg.implicitImageHeight);
                             }
                         }
-                        // Live video preview (MP4/WebM): shared AppVideo,
-                        // muted + looping, cropped like the static tiles.
-                        // Plays ON HOVER ONLY: a video folder opens ~25
-                        // tiles in-window and each decoder eats a full
-                        // file (103×15MB in grey/), so autoplaying all
-                        // of them freezes the panel. Non-hovered tiles
-                        // show the icon fallback below (same look as a
-                        // failed decode); empty source = zero decoder work.
-                        // No viewport gating (masonry positions are
-                        // layout-driven, not x-derived).
+                        // Live video preview: shared AppVideo, muted + looping, ON HOVER ONLY — a
+                        // video folder opens ~25 tiles and autoplaying them all froze the panel.
                         readonly property bool previewing: tile.modelData !== undefined && root.isVideoFile(tile.modelData) && tileMa.containsMouse
                         AppVideo {
                             id: tileVideo
@@ -1669,10 +1516,8 @@ Item {
                             }
                         }
                         Column {
-                            // Idle fallback for videos: shown while no thumb
-                            // is mapped yet (generator still running) or the
-                            // thumb failed to load — same icon look as before.
-                            // Hover swaps in the live preview above instead.
+                            // Idle fallback for videos: no thumb mapped yet (generator running) or
+                            // the thumb failed — same icon look; hover swaps in the live preview.
                             visible: tile.modelData !== undefined && root.isVideoFile(tile.modelData) && !tile.previewing && (tile.tileThumb === "" || tileImg.status === Image.Error)
                             anchors.centerIn: parent
                             spacing: Theme.spacing
@@ -1695,9 +1540,8 @@ Item {
                             }
                         }
 
-                        // Hidden while the strip moves: a visible tooltip
-                        // window sits under the cursor and swallows wheel
-                        // events, which kills the momentum glide.
+                        // Hidden while the strip moves: a visible tooltip window sits under the cursor
+                        // and swallows wheel events, killing the momentum glide.
                         AppTooltip {
                             visible: tileMa.containsMouse && !wallScroll.moving
                             delay: 400
@@ -1710,9 +1554,8 @@ Item {
                             hoverEnabled: true
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                             cursorShape: Qt.PointingHandCursor
-                            // Tiles cover the strip: let wheel fall through
-                            // to the strip's SmoothWheelHandler so the
-                            // horizontal momentum glide actually receives it.
+                            // Tiles cover the strip: let wheel fall through to the strip's
+                            // SmoothWheelHandler so the horizontal glide receives it.
                             onWheel: wheel => wheel.accepted = false
                             onContainsMouseChanged: {
                                 if (!containsMouse && !copyMa.containsMouse && !delMa.containsMouse)
@@ -1730,10 +1573,8 @@ Item {
                             }
                         }
 
-                        // Local-only action overlay (top-left, badge-style):
-                        // copy path + two-step delete. Badges already occupy
-                        // top-right via AppImage/AppVideo. On top of tileMa
-                        // so button clicks don't fall through to apply.
+                        // Local-only action overlay (top-left, badge-style): copy path + two-step
+                        // delete; badges already occupy top-right. Above tileMa so clicks land.
                         Row {
                             anchors.top: parent.top
                             anchors.left: parent.left
@@ -1815,9 +1656,8 @@ Item {
                 }
             }
 
-            // wallhaven results — remote thumbs with the same tile chrome.
-            // Click downloads the full-res file into wallhaven/ and applies
-            // it; right-click saves without applying.
+            // wallhaven results — remote thumbs with the same tile chrome: click downloads the
+            // full-res file into wallhaven/ and applies it, right-click saves only.
             SmoothFlickable {
                 id: whScroll
                 visible: root.isWallhaven

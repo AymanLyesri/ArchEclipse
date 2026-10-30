@@ -5,9 +5,8 @@ import Quickshell.Hyprland
 import qs.services
 import qs.theme
 
-// Registry — tracks island/window handles by monitor name for IPC lookup.
-// Side islands register themselves as "left-island-<monitorName>" (and the
-// bare "left-island" alias); other windows keep their own keys.
+// Tracks island/window handles by monitor for IPC lookup: side islands register as
+// "left-island-<monitorName>" plus a bare alias; windows keep their own keys.
 QtObject {
     id: root
 
@@ -26,11 +25,8 @@ QtObject {
         delete root._windows[name]
     }
 
-    // NOTE: there is intentionally no trackIsland auto-unregister helper:
-    // this engine does not expose the `destroyed` signal as a connectable
-    // value (`item.destroyed === undefined` on live items, verified
-    // 2026-09-13), so keyed entries are unregistered in each island's own
-    // Component.onDestruction block (bare alias + keyed entry together).
+    // No auto-unregister helper: the engine does not expose `destroyed` as a connectable
+    // value, so each island unregisters in its own Component.onDestruction block.
 
     function get(name) {
         return root._windows[name] || null
@@ -41,10 +37,8 @@ QtObject {
         if (w) w.visible = !w.visible
     }
 
-    // Optional `target` is a widget-defined key (e.g. an API key's
-    // "provider.field" path) the destination widget can use to scroll to
-    // and briefly highlight a specific field after switching. Requests are
-    // queued by monitor so only the destination island can consume one.
+    // Optional `target` ("provider.field") lets the destination widget scroll to and
+    // highlight a field; requests queue per monitor so only that island consumes one.
     function selectLeftTab(tabName, target, monitorName) {
         const monitor = monitorName || root.monitorName;
         Settings.setLeftPanelWidgetFor(monitor, tabName);

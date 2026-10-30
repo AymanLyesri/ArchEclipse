@@ -4,11 +4,8 @@ import qs.services
 import qs.theme
 import qs.widgets.shared
 
-// Bottom bar: tabs + progress + page buttons + prev/reveal/next.
-// (BooruToolbar merged in: API / Bookmarks / Pins tabs live here now,
-// so BooruViewer only instantiates this + the settings panel).
-// viewer: entry root (page, selectedTab, progressStatus, gotoPage,
-// fetchImages, loadBookmarks, loadPins...).
+// Bottom bar: tabs + progress + page buttons + prev/reveal/next (BooruToolbar merged in, so
+// the viewer only instantiates this and the settings panel). viewer: entry root.
 Column {
     property var viewer
 
@@ -68,12 +65,8 @@ Column {
         spacing: Theme.spacing
         anchors.horizontalCenter: parent.horizontalCenter
 
-        // Windowed page buttons as a sliding segment: the
-        // active page carries the highlight, "..." is a disabled cell.
-        // NOTE: viewer.page / viewer.widgetWidth are read directly so
-        // these bindings re-run on page turns and panel resizes (reads
-        // buried inside buildPageButtons() alone don't retrigger them,
-        // which left the highlight stuck on the old page).
+        // Windowed page buttons as a sliding segment ("..." is a disabled cell). viewer.page and
+        // widgetWidth are read directly — inside buildPageButtons() the highlight stuck.
         AppSegmentedControl {
             enabled: viewer.progressStatus !== "loading"
             pixelSize: Theme.fontSize - 2
@@ -129,9 +122,8 @@ Column {
         }
     }
 
-    // Revealer trigger container: prev / expand-to-fill toggle / next.
-    // The middle chevron claims all leftover width so the whole bar is a
-    // big, easy-to-hit trigger (no dead spacer).
+    // Revealer trigger: prev / expand-to-fill toggle / next; the middle chevron claims all
+    // leftover width so the whole bar is an easy target.
     Row {
         id: triggerRow
 

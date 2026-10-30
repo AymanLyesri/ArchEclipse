@@ -10,11 +10,8 @@ import qs.widgets.leftPanel.UserProfile.components as Profile
 import qs.widgets.shared
 import qs.services
 
-// User Profile widget - full port of UserProfile.tsx + Supabase.class.tsx
-// Auth via magic link -> local Python callback server writes session.json ->
-// profile fetched from Supabase REST. Settings sync upload/download to
-// ~/.cache/quickshell/settings/settings.json (quickshell-local).
-// minimal mode (for the lockscreen overlay): shows only avatar + username
+// User profile: magic-link auth writes session.json, the profile comes from Supabase REST,
+// settings sync to the qs cache. Minimal mode (lockscreen) shows avatar + username only.
 Item {
     id: root
     property string monitorName: ""
@@ -27,9 +24,8 @@ Item {
     readonly property string supabaseUrl: Supabase.url
     readonly property string supabaseKey: Supabase.anonKey
     readonly property string homeDir: Supabase.homeDir
-    // scripts/auth-server-callback.py owns session.json (SESSION_PATH in the
-    // script) — no legacy paths. shell.qml ensures the auth
-    // cache dir exists at startup.
+    // scripts/auth-server-callback.py owns session.json (its SESSION_PATH) — no legacy paths;
+    // shell.qml ensures the auth cache dir at startup.
     readonly property string authServerScript: homeDir + "/.config/quickshell/archeclipse/scripts/auth-server-callback.py"
     readonly property string authSessionPath: Supabase.authSessionPath
     readonly property string authLogPath: "/tmp/qs-auth-server.log"
@@ -106,10 +102,8 @@ Item {
     property string _lastSessionText: ""
     property int _netAttempts: 0
 
-    // Shell-lifetime cache: LeftIsland is destroyed/recreated on every
-    // open/close (Bar Loader swap). Restore instantly from UserProfileState
-    // and skip the net gate + REST fetch — a single cheap local `cat` of
-    // session.json refetches only if the session actually changed elsewhere.
+    // UserProfileState cache: LeftIsland is recreated on every open, so restore instantly and
+    // refetch only when a cheap local `cat` shows session.json actually changed elsewhere.
     function saveToCache() {
         UserProfileState.profile = root.profile;
         UserProfileState.cachedSession = root._cachedSession;
@@ -147,9 +141,8 @@ Item {
     Component.onCompleted: {
         if (UserProfileState.initialized) {
             restoreFromCache();
-            // No usable profile cached (first load failed or was still in
-            // flight, or signed state changed): retry with one load.
-            // Signed-out this is local-only (cat → idle, no network).
+            // No usable cached profile (first load failed, still in flight, or signed state
+            // changed): retry once. Signed out this is local-only (cat -> idle, no network).
             if (!root.profile) {
                 root.loadProfile();
                 pollTimer.restart();
@@ -166,16 +159,13 @@ Item {
             return;
         }
         applySettingsSyncMeta();
-        // On-demand auth server: NOT started here. sendMagicLink() starts
-        // the Quickshell-managed listener, and it stops itself once
-        // session.json appears (or after a timeout). This avoids a stale
-        // detached server dying across reboots and leaving /callback dead.
+        // The auth server is NOT started here: sendMagicLink() starts the managed listener and it
+        // stops itself once session.json appears (or times out), so no detached server goes stale.
         _netTimer.restart();
     }
     Component.onDestruction: {
-        // Never clobber a good cached profile with a transient failure:
-        // if this instance never got a profile but the cache has one and
-        // the session didn't change, keep the cache.
+        // Never clobber a good cached profile with a transient failure: if this instance has
+        // none, the cache holds one and the session didn't change, keep the cache.
         if (!root.profile && UserProfileState.profile && root._lastSessionText === UserProfileState.lastSessionText)
             return;
         root.saveToCache();
@@ -234,17 +224,13 @@ Item {
     function lookupUserId() {
         return root._cachedUid || _cachedSession?.user?.id || _cachedSession?.id || "";
     }
-    // UID resolved from /auth/v1/user (step 1).
-    // session.json from auth-server-callback.py only carries tokens — no id —
-    // so the profile query cannot reuse lookupUserId() synchronously.
+    // UID resolved from /auth/v1/user: session.json only carries tokens (no id), so the profile
+    // query cannot reuse lookupUserId() synchronously.
     property string _cachedUid: ""
     property string _cachedEmail: ""
     property string supporterSince: ""
-    // Auto-refresh: Supabase access_tokens expire after 1h (expires_in=3600).
-    // Without this every API call fails with "JWT expired" ~1h after login,
-    // which surfaced as "profile not found" / "No settings found" and forced
-    // a full magic-link re-login. We refresh via grant_type=refresh_token
-    // and retry the original request once.
+    // Supabase access_tokens expire after 1h, so refresh via grant_type=refresh_token and retry
+    // the request once — else every call fails "JWT expired" and forces a magic-link re-login.
     property bool _refreshing: false
     property string _retryAfterRefresh: ""
 
@@ -306,9 +292,8 @@ Item {
             });
             return;
         }
-        // Merge refreshed tokens into the cached session, preserving the
-        // embedded user (session.json from older saves carries it) and the
-        // magic-link type marker.
+        // Merge refreshed tokens into the cached session, preserving the embedded user (older
+        // saves carry it) and the magic-link type marker.
         const prev = root._cachedSession || {};
         root._cachedSession = {
             access_token: r.access_token,
@@ -426,10 +411,8 @@ Item {
         p.running = true;
     }
 
-    // ===== SUPPORTER STATE =====
-    // Authoritative state lives in Supabase: a row in `supporters` means the
-    // user is a supporter. That row is written only by the verified-payment
-    // DB trigger — this query is read-only and can never grant status.
+    // ===== SUPPORTER STATE ===== — a `supporters` row is written only by the verified-payment
+    // DB trigger, so this read-only query can never grant status.
     function supporterLabel() {
         if (!root.profile)
             return "Not signed in";
@@ -479,17 +462,12 @@ Item {
         root.progressText = root.supporterLabel();
     }
 
-    // ===== MAGIC LINK =====
-    // Quickshell-managed on-demand listener: authServerProc (below) runs
-    // scripts/auth-server-callback.py as a child Process while
-    // authServerActive is true — no nohup/detach, so Quickshell owns its
-    // lifetime and it dies with the shell instead of going stale.
+    // ===== MAGIC LINK ===== — managed on-demand listener: authServerProc runs the callback
+    // script as a child while authServerActive is true (no nohup), dying with the shell.
     property bool authServerActive: false
     property string authServerStatus: "stopped"
-    // Local-only fallback when the browser can't reach the listener (server
-    // down, link opened on another machine, etc.): paste the full
-    // http://127.0.0.1:53100/callback#... URL and we parse the #fragment
-    // in pure QML — no HTTP server involved at all.
+    // Fallback when the browser cannot reach the listener (server down, link opened elsewhere):
+    // paste the full callback URL and the #fragment is parsed in pure QML — no HTTP server.
     property string callbackUrlText: ""
     function sendMagicLink(email) {
         if (!email || email.trim() === "") {
@@ -514,11 +492,8 @@ Item {
     }
 
     function startAuthServer() {
-        // Kill any stale detached server (legacy nohup one holding the port
-        // or a previous crash), then the onExited handler flips
-        // authServerActive=true which spawns the managed child.
-        // (The #fragment never reaches the server — the /callback JS must
-        // POST it to /save, which requires the server to be listening.)
+        // Kill a stale detached server (legacy nohup holding the port), then onExited spawns the
+        // managed child; the #fragment never reaches it, so /callback must POST it to /save.
         if (root.authServerActive)
             return;
         root.authServerStatus = "starting";
@@ -535,9 +510,8 @@ Item {
         authServerTimeout.stop();
     }
 
-    // Server-less fallback: parse the pasted callback URL's #fragment
-    // (browsers never send it to any server) and write session.json
-    // directly. Works even if the listener was never started.
+    // Server-less fallback: parse the pasted callback URL's #fragment (browsers never send it)
+    // and write session.json directly, even if the listener never started.
     function importCallbackUrl(url) {
         const s = (url || "").trim();
         if (!s) {
@@ -680,9 +654,8 @@ Item {
                 });
                 return;
             }
-            // Write the payload to a temp file and --data-binary it: inlining
-            // the JSON in -d '<json>' breaks on any single quote inside the
-            // settings (e.g. xal'atath) and always reported "Upload failed".
+            // Write the payload to a temp file and --data-binary it: inlining JSON in -d breaks
+            // on any single quote in the settings and always reported "Upload failed".
             const payload = JSON.stringify({
                 id: uid,
                 settings: settingsJson,
@@ -951,10 +924,8 @@ Item {
         }
     }
 
-    // Hidden Process components for async operations (wrapped in Component for createObject).
-    // Exit-code rule: onStreamFinished parses payloads; onExited with a
-    // non-zero code overrides to the error state (curl -sS still exits 0 on
-    // HTTP errors only when -f is absent — network/DNS failures exit non-zero).
+    // Hidden Process components for async ops. onStreamFinished parses payloads; onExited with
+    // a non-zero code overrides to the error state (curl -sS exits 0 on HTTP errors without -f).
     Component {
         id: netGateComp
         Process {

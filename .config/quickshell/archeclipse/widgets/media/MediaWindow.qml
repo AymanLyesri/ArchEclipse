@@ -7,9 +7,8 @@ import Quickshell.Wayland
 import qs.theme
 import qs.services
 
-// MediaWindow — standalone player control window (SUPER+m).
-// Standalone toggleable player window (media-<monitor>).
-// Toggled via IPC (`qs ipc call bar togglePanel media-panel <monitor>`).
+// MediaWindow — standalone player control window (SUPER+m), toggled per monitor via
+// `qs ipc call bar togglePanel media-panel <monitor>`.
 PanelWindow {
     id: root
 
@@ -17,10 +16,8 @@ PanelWindow {
     // (see Bar.qml); a shadow would leave the surface on one output.
     readonly property string monitorName: Hyprland.monitorFor(screen)?.name ?? screen?.name ?? ""
 
-    // Top-center floating panel (overlay layer,
-    // no exclusive zone, on-demand keyboard focus).
-    // Top, full-width layer surface; content pill centered horizontally
-    // (layer-shell has no horizontalCenter anchor, so center the inner rect).
+    // Top, full-width layer surface on the overlay layer (no exclusive zone, on-demand keyboard
+    // focus); layer-shell has no horizontalCenter anchor, so the inner pill is centered by hand.
     anchors {
         top: true
         left: true

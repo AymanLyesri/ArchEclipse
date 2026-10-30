@@ -152,11 +152,8 @@ Item {
             if (root.widget) Settings.setLeftPanelWidgetFor(root.monitor, root.widget);
             if (root.overviewMode) Settings.setLeftPanelWidgetFor(root.monitor, "BooruViewer");
             if (name === "wallpaper-switcher") {
-                // README capture always shows the SFW set: after opening,
-                // jump straight to defaults/images_sfw (first sfw-bearing
-                // category when it is missing) on the local provider.
-                // Direct assignment, never updateSetting, so the detour is
-                // not persisted; restore() puts the user's values back.
+                // SFW set for the README shot: direct assignment, never updateSetting, so
+                // the detour is not persisted — restore() puts the user's values back.
                 Settings.wallpaperProvider = "local";
                 const cats = Object.keys(WallpaperService.wallpapers || {});
                 const preferred = "defaults/images_sfw";
@@ -185,9 +182,8 @@ Item {
             const info = bar.captureGeometry();
             let ready = info.visible;
             if (root.overviewMode)
-                // Hero shot: main pill shows the player island while both
-                // side pills are open, so captureGeometry reports the left
-                // pill — check the resolved main-pill state instead.
+                // Open side pills make captureGeometry report the left pill, so the hero
+                // shot must check the resolved main-pill state instead.
                 ready = ready && BarState.stateFor(root.monitor) === "player" && BarState.isOpenFor("left", root.monitor) && BarState.isOpenFor("right", root.monitor);
             else if (root.desiredState === "left")
                 ready = ready && BarState.isOpenFor("left", root.monitor);

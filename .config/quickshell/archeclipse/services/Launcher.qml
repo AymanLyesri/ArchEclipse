@@ -6,21 +6,8 @@ import Quickshell.Hyprland
 import qs.theme
 import qs.services
 
-// Port of widgets/applauncher + utilities: query parsing pipeline and results.
-//
-// Query grammar:
-//   cb ...            clipboard history  (search cache/launcher/clipboard-history.json)
-//   note ...          notes CRUD          (list/add/edit <n>/del <n> over cache/launcher/notes.json)
-//   apps ...          list all apps
-//   emoji ...         emoji search        (search assets/emojis/emojis.json)
-//   translate <t> > <lang>  translate via trans(1) (translate-shell, direct)
-//   N unit in/unit M  unit conversion     (full table incl. speed/digital/temp)
-//   arithmetic        ..*/+-..
-//   URL               open link
-//   "name > args"     custom commands filtered
-//   fallback          fuzzy app search (DesktopEntries), then terminal hint
-//
-// Data files live in the quickshell cache (single source of truth).
+// Launcher query pipeline: `cb` clipboard, `note` notes, `apps`, `emoji`, `translate`,
+// `N unit in/unit M`, arithmetic, URLs, "cmd > args", then fuzzy DesktopEntries.
 
 QtObject {
     id: root
@@ -34,17 +21,11 @@ QtObject {
     property var results: []
     property int selectedIndex: 0
     property string lastQuery: ""
-    // Preset query for keybind opens (SUPER+SHIFT+V clipboard, SUPER+A apps,
-    // etc.): Ipc sets this BEFORE BarState.activate("search"), and
-    // LauncherPanel consumes it on creation / state change. Needed because
-    // the panel resets to default ("") on both paths, clobbering any
-    // runQuery issued before activation (its onCompleted runs after the Ipc
-    // call returns). Direct apply when search is already open (no
-    // creation/reset happens then) — see Ipc clipboard/emojis/notes/apps.
+    // Ipc sets this before BarState.activate("search") because LauncherPanel resets to
+    // "" on creation/state change; it is consumed after that reset, or applied directly.
     property string pendingQuery: ""
-    // Quickshell exposes desktop-entry IDs and metadata, but not their source
-    // file paths. This index maps IDs to the XDG application-directory groups
-    // used by the old launcher.
+    // Quickshell exposes desktop-entry IDs but not their source paths, so this index
+    // maps IDs to the XDG application-directory groups the old launcher used.
     property var appSourceById: ({})
     property bool appSourceMapReady: false
     property Process _appSourceProcess: Process {
@@ -67,10 +48,8 @@ QtObject {
         }
     }
 
-    // Emitted when a navigation row wants the search box to adopt its query
-    // (e.g. activating "cb ..." fills "cb " so typing continues from there).
-    // SearchIsland listens and sets its TextInput (programmatic set doesn't
-    // emit textEdited, so no double query).
+    // Wants the search box to adopt a query (activating "cb ..." fills "cb "), set
+    // programmatically so no textEdited fires and no double query runs.
     signal fillInputRequested(string query)
 
     // launch history persisted to quickshell app-history.json
@@ -79,10 +58,8 @@ QtObject {
         watchChanges: false
         printErrors: false
         onLoaded: {
-            // FileView loads async: the first default view may have
-            // snapshotted an empty history (quick-apps fallback). Refresh it
-            // live once disk content arrives — unless the user typed
-            // something meanwhile (lastQuery), which must not be clobbered.
+            // FileView loads async and the first view may have snapshotted an empty
+            // history — refresh once disk content arrives, unless the user typed since.
             if (root.lastQuery === "")
                 root.runQuery("");
         }
@@ -94,11 +71,8 @@ QtObject {
             return [];
         }
     }
-    // DesktopEntries scans installed .desktop files asynchronously. The
-    // launcher can be opened before that scan finishes, so the initial
-    // recent-app lookup may mistake installed apps for shell commands. Wait
-    // for a short quiet period after model changes, then rebuild only results
-    // that depend on the desktop-entry catalog.
+    // DesktopEntries scans async, so an open before the scan finishes mistakes apps for
+    // shell commands; rebuild after a short quiet period, not on every change.
     property Timer _desktopEntriesRefreshTimer: Timer {
         interval: 250
         repeat: false
@@ -134,9 +108,8 @@ QtObject {
         history = h;
     }
 
-    // ---- recent apps (AppHistory) — history entries that resolve to
-    // DesktopEntries render as apps; the rest are past shell commands (see
-    // the "Try … in terminal" fallback in runQuery) and re-run as such ----
+    // Recent apps: entries resolving to DesktopEntries render as apps, the rest are
+    // past shell commands (the "Try … in terminal" fallback) and re-run as such.
     function recentApps() {
         const entries = [];
         const appsByName = {};
@@ -240,11 +213,8 @@ QtObject {
     function activateSelected() {
         const r = results[selectedIndex];
         if (r && r.launch) {
-            // Navigation rows (keepOpen) only refill the query — the
-            // launcher must stay open to show the new results. Real
-            // launches drop the search island BEFORE spawning so the
-            // bar's Exclusive keyboard grab releases first and the new
-            // app receives focus instead of the bar keeping it.
+            // Navigation rows only refill the query; a real launch drops the search island
+            // BEFORE spawning so the bar's Exclusive grab releases before focus moves.
             if (r.keepOpen !== true) {
                 BarState.deactivate("search");
                 root.expectLaunchedWindow();
@@ -256,15 +226,8 @@ QtObject {
         return true;
     }
 
-    // ---- focus-steal for freshly launched apps ----
-    // Hyprland runs follow_mouse=1, so keyboard focus follows the cursor —
-    // which sits over the bar pill after a launch. A newly mapped client
-    // therefore never takes focus until the pointer moves onto it. Arm an
-    // expectation on every real launch; the next openwindow on the current
-    // workspace gets an explicit focus dispatch (same hl.dsp.focus syntax
-    // as OverviewBody.focusWindow — plain dispatch verbs are Lua syntax
-    // errors on this Hyprland). Window-less launches (wl-copy, theme
-    // scripts) simply expire via the timer below.
+    // follow_mouse=1 leaves focus on the bar pill after a launch, so each launch arms
+    // an expectation and the next openwindow gets hl.dsp.focus (plain verbs are Lua errors).
     property int _expectWindows: 0
     property Timer _expectTimer: Timer {
         interval: 4000
@@ -280,8 +243,7 @@ QtObject {
         function onRawEvent(event) {
             if (root._expectWindows <= 0)
                 return;
-            // HyprlandIpcEvent object with .name/.data (cf.
-            // AutoWorkspaceSwitching) — openwindow data is
+            // HyprlandIpcEvent with .name/.data; openwindow data is
             // ADDRESS,WORKSPACENAME,CLASS,TITLE with a bare-hex address.
             if ((event?.name ?? "") !== "openwindow")
                 return;
@@ -300,13 +262,8 @@ QtObject {
         }
     }
 
-    // ---- result row factory ----
-    // `icon` accepts either a desktop icon reference (theme name, absolute
-    // path, or legacy "image://icon/..." URL) or a single text glyph
-    // (Nerd Font "\uF..." codepoint, emoji). It is auto-split into
-    // `icon` (theme name / file path, resolved by AppEntry through
-    // Quickshell.iconPath into an image://icon/ URL) vs `glyph`
-    // (for Text) so AppEntry can render both without callers caring.
+    // `icon` takes a theme name, absolute path, image:// URL or a Nerd Font glyph and
+    // is auto-split into icon/glyph, so AppEntry renders both without callers caring.
     function mkResult(name, icon, description, launch, argText) {
         const s = String(icon ?? "");
         let iconSrc = "", glyph = "";
@@ -394,9 +351,8 @@ QtObject {
             const bb = hb >= 0 ? Math.max(48 - hb * 8, 8) : 0;
             return (b.s + bb) - (a.s + ba) || a.e.name.localeCompare(b.e.name);
         });
-        // Bare `apps ` is the all-apps view; only filtered searches should
-        // use the normal result cap. ListView virtualizes the delegates, so
-        // exposing the full catalog here does not build every row at once.
+        // Bare `apps ` is the all-apps view (no result cap); ListView virtualizes, so
+        // exposing the full catalog costs nothing up front.
         const limit = q ? maxItems : scored.length;
         const selected = scored.slice(0, limit).map(({
                 e
@@ -444,10 +400,8 @@ QtObject {
         return rows;
     }
 
-    // ---- term <command>: run a shell command in a new foot ----
-    // Deterministic twin of the fuzzy "Try … in terminal" fallback row
-    // (that row only exists when no desktop entry matches). The whole
-    // argument text is the command, so multi-word commands work.
+    // Deterministic twin of the fuzzy "Try … in terminal" row (that one exists only
+    // when no desktop entry matches); the whole argument text is the command.
     function termResults(cmd) {
         const c = (cmd || "").trim();
         if (!c)
@@ -463,9 +417,8 @@ QtObject {
         return [mkResult("Light Theme", "\u{F1042}", "Switch to light theme", () => Quickshell.execDetached(["coloreclipse", "switch", "light"])), mkResult("Dark Theme", "\u{F1046}", "Switch to dark theme", () => Quickshell.execDetached(["coloreclipse", "switch", "dark"])), mkResult("System Sleep", "\u{F1046}", "Suspend system", () => Quickshell.execDetached(["bash", "-c", `qs -p ${Quickshell.env("HOME")}/.config/quickshell/archeclipse ipc call lock activate && sleep 1 && systemctl suspend`])), mkResult("System Restart", "\u{F1781}", "Reboot system", () => Quickshell.execDetached(["reboot"])), mkResult("System Shutdown", "\u{F1741}", "Power off system", () => Quickshell.execDetached(["shutdown", "now"]))];
     }
 
-    // ---- ">" command palette (quickapps / recent / commands as results) ----
-    // Full helper tips live here now (moved off the empty launcher state):
-    // bare ">" / ">help" lists every query mode as a runnable row.
+    // ">" command palette (quickapps / recent / commands as results); bare ">" and
+    // ">help" list every query mode as a runnable row.
     function paletteHelp() {
         // Navigation row: activating it refills the query (launcher stays
         // open via keepOpen) AND adopts the query into the search box.
@@ -524,11 +477,8 @@ QtObject {
         let i = 0;
         while (i < rows.length && rows[i] && rows[i].isHeader)
             i++;
-        // BEFORE the model swap: the panel binds ListView.currentIndex to
-        // selectedIndex and the view overwrites that property itself while
-        // the model changes. An unchanged index value emits nothing, so the
-        // binding would never re-apply and the highlight would park on the
-        // header row.
+        // Before the model swap: the view writes currentIndex itself on model change,
+        // and an unchanged value emits nothing, so the binding would never re-apply.
         selectedIndex = Math.min(i, Math.max(0, rows.length - 1));
         results = rows;
     }
@@ -804,10 +754,8 @@ QtObject {
         return [mkResult("Note saved", "\u{F19DB}", content, null)];
     }
 
-    // ---- clipboard (history owned live by ClipboardService; the JSON
-    // file is persistence only — a FileView watch on it misses updates
-    // after rename-replace writes, verified live 2026-10-13: copies
-    // landed in the file but `cb` kept searching a boot-time snapshot) ----
+    // Clipboard history is owned live by ClipboardService; the JSON is persistence
+    // only — a FileView watch misses rename-replace writes (seen live 2026-10-13).
     readonly property var _clipboardIndex: ClipboardService.history
     function clipboardResults(query) {
         const q = query.toLowerCase().trim();
@@ -850,9 +798,8 @@ QtObject {
         }
     }
 
-    // ---- main entry (debounced 100ms) ----
-    // NOTE: QML has no setTimeout/clearTimeout — use a restartable Timer.
-    // QtObject singletons cannot host bare Timer children, so property form.
+    // Main entry, debounced 100ms. QML has no setTimeout and QtObject singletons
+    // cannot host bare Timer children, so the timer is a restartable property.
     property Timer _debounceTimer: Timer {
         interval: 100
         repeat: false
@@ -865,10 +812,8 @@ QtObject {
     }
     function runQuery(text) {
         lastQuery = text;
-        // Prefix dispatch on leading-trim only. (Qt's JS engine
-        // has no String.trimStart, so strip leading whitespace by regex.)
-        // A full trim would eat the trailing space of bare modes like
-        // "cb " / "note " / "emoji " and misroute them to app search.
+        // Prefix dispatch trims leading whitespace by regex only (there is no
+        // trimStart, and a full trim eats "cb " / "note " into app search).
         const t = String(text || "").replace(/^\s+/, "");
 
         if (!t || t.trim() === "") {
@@ -911,10 +856,8 @@ QtObject {
         // translate "hello > es" — trans(1) direct (auto-detect source)
         const trMatch = t.match(/^(.+?)\s*>\s*(\w{2})$/);
         if (trMatch) {
-            // Setting ·starting on an in-flight Process is a no-op (same
-            // trap the wallpaper search documents), so kill + rearm + bump
-            // the seq: the killed run's delivery is dropped by _seq, not
-            // published under the new query.
+            // Setting ·starting on an in-flight Process is a no-op, so kill + rearm +
+            // bump the seq: the killed run is dropped by _seq, not published under it.
             root._trSeq++;
             trProc._seq = root._trSeq;
             trProc.mode = "translate";

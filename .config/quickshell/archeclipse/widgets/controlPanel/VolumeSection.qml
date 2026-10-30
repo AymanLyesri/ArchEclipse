@@ -5,14 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// pavucontrol-style volume section: Playback / Recording / Output / Input.
-// Type filters use PwNodeType.toString() strict-compare on purpose: the
-// flags overlap (AudioOutStream 21 & AudioInStream 13 == 5), so the old
-// `type & PwNodeType.AudioInStream` fallback excluded EVERY stream and the
-// application list was always empty despite pavucontrol showing apps.
-// `properties` needs a bound node, but `type`/`isStream`/`audio` do not,
-// so filtering never depends on bind state. A global PwObjectTracker binds
-// all nodes so delegates can read properties/audio/mute freely.
+// pavucontrol-style volume section: Playback / Recording / Output / Input. Type filters compare
+// PwNodeType.toString() strictly — the flags overlap (21 & 13 == 5), emptying the app list.
 Item {
     id: root
     height: volCard.height
@@ -131,9 +125,8 @@ Item {
         root.popupCount = Math.max(0, root.popupCount + (visible ? 1 : -1));
     }
 
-    // Hover wrapper: Card forwards direct children to its content Column,
-    // so the HoverHandler lives on this plain Item (it monitors its
-    // parent = the whole card bounds).
+    // Hover wrapper: Card forwards direct children to its content Column, so the HoverHandler
+    // lives on this plain Item (it monitors its parent, the whole card bounds).
     HoverHandler {
         id: volHover
         onHoveredChanged: {

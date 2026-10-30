@@ -2,10 +2,8 @@ import QtQuick
 import qs.widgets.bar.islands
 import qs.widgets.media
 
-// Player island now shows the full MediaWidget (cover art, track info,
-// controls, seek bar) instead of the old title-only ticker.
-// Size derives from the MediaWidget's implicit size — no hardcoded
-// width/height here.
+// Player island shows the full MediaWidget (art, track info, controls, seek bar) instead of
+// a title ticker; size derives from its implicit size, so nothing is hardcoded here.
 Item {
     id: root
 
@@ -38,11 +36,8 @@ Item {
         }
     }
 
-    // Pin while hovered so it doesn't close mid-interaction. The pin must
-    // NOT self-arm its open-grace timer at creation: the Loader recreates
-    // the island on every open, and a hover/click reveal (cursor on the
-    // sidepill, never on this island) would be killed ~1s later by the
-    // grace. Closers: hold timer (pulses), pill hover-out, island leave.
+    // Pin while hovered, but never arm the grace at creation: the Loader recreates this island
+    // per open, so a hover/click reveal would be killed ~1s later.
     IslandHoverPin {
         stateName: "player"
         monitorName: root.monitorName

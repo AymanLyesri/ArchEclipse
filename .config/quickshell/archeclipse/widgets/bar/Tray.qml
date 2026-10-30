@@ -8,14 +8,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Tray widget implementation: first 3 items are shown inline,
-// hidden items are accessible via an overflow popup ("more" icon, MAX_VISIBLE=3).
-//
-// Drag & Drop behavior:
-//   * Between bar icons -> reorders items.
-//   * Onto the "..." button or open overflow popup -> moves item to the hidden list.
-//   * From overflow popup into the bar -> makes the item visible in the bar.
-// Saved configuration path: ~/.cache/quickshell/settings/tray-order.json
+// First 3 items inline, the rest behind a "more" popup (MAX_VISIBLE=3). Drag & drop reorders,
+// hides and restores the list, persisted to ~/.cache/quickshell/settings/tray-order.json.
 Row {
     id: root
     spacing: 2

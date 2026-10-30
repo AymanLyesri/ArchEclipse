@@ -1,16 +1,5 @@
-// Model-entry accessors shared by the pill/chip/segment controls.
-//
-// A control model is either a list of strings (value == label, always
-// enabled, no tooltip/icon) or a list of objects using the field aliases the
-// call sites already used:
-//   value   <- value | display | name | the object itself
-//   label   <- label | display | name | String(value)
-//   icon    <- icon
-//   tooltip <- tooltip | tooltipText
-//   enabled <- enabled (default true)
-//
-// Out-of-range indexes read as undefined/""/false so delegates created
-// during a model swap can never throw.
+// Model-entry accessors shared by the pill/chip/segment controls: a model is either a list of
+// strings (value == label) or objects with value/label/icon/tooltip/enabled aliases.
 function _at(model, i) {
     if (!model || i < 0 || i >= model.length)
         return undefined;

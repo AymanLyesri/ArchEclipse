@@ -5,16 +5,8 @@ import qs.widgets.bar.islands
 import qs.widgets.controlPanel
 import qs.widgets.shared
 
-// Quick-settings body that lives INSIDE DefaultBar's center pill. Clicking
-// the gear swaps the band row (bandwidth | gear | clock) for this card and
-// DefaultBar grows the center pill's own box around it: that box's real
-// width/height are driven by `openT`, so the surface expands out of the band
-// footprint and retracts back into it. There is no inner iris/clip animation
-// faking the unfold — DefaultBar clips the card to the real pill box.
-//
-// Nothing paints here — while open the surface is the bar pill itself
-// (DefaultBar hands the bump fill off to it). This item owns the unfold
-// driver, the hover pin and Esc only.
+// Quick-settings body inside DefaultBar's center pill: `openT` drives the pill's real
+// width/height, so the surface expands out of the band footprint with no iris animation.
 Item {
     id: root
 
@@ -22,18 +14,15 @@ Item {
 
     // Driven by DefaultBar: BarState.stateFor(monitor) === "control".
     property bool open: false
-    // Only the unfold lifetime exists on screen: hiding the card while it is
-    // folded also disables its hover pin, so brushing the band bump can never
-    // open quick settings without a click.
+    // Only the unfold lifetime exists on screen: hiding the card while folded also disables
+    // its hover pin, so brushing the band bump can never open quick settings.
     visible: root.shown
-    // Cursor is on the bar band (i.e. on the gear that opened us). Holds the
-    // hover pin so the open-grace can't shut the card while the pointer sits
-    // on the button.
+    // Cursor on the bar band (the gear that opened us): holds the hover pin so the
+    // open-grace cannot shut the card under the pointer.
     property bool bandHovered: false
 
-    // Unfold driver: 0 = band footprint, 1 = full panel. DefaultBar turns this
-    // into the center pill's real width/height, so this is the only animation
-    // source for the transition.
+    // Unfold driver: 0 = band footprint, 1 = full panel — the only animation source for
+    // DefaultBar's center-pill width/height.
     property real openT: 0
     Behavior on openT {
         enabled: Settings.animationsEnabled
@@ -56,18 +45,16 @@ Item {
     // Fold driver: `shown` keeps the body alive through the close retract;
     // `openT` is the geometry DefaultBar animates.
     property bool shown: false
-    // True for the length of the unfold/retract. DefaultBar uses it to make
-    // the bar pill track the moving center-pill box rigidly (a Behavior chasing
-    // a target that changes every frame never catches up).
+    // True through the unfold/retract: DefaultBar then tracks the moving box rigidly (a
+    // Behavior chasing a per-frame target never catches up).
     property bool gliding: false
     // Remembered across the body's destruction so a reopen animates from the
     // body's real height even before the Loader finishes.
     property real bodyHeight: 0
 
     readonly property real cardWidth: (bodyLoader.item ? bodyLoader.item.width : 680) + Theme.islandPad * 2
-    // Full unfolded extent. DefaultBar interpolates from the band footprint
-    // to this with `openT`, then tracks it live while open (the volume section
-    // grows after the unfold).
+    // Full unfolded extent: DefaultBar interpolates to it with `openT`, then tracks it live
+    // while open (the volume section grows after the unfold).
     readonly property real cardHang: root.shown ? root.height : 0
     // Must match the duration of the Behavior above (close timers wait exactly
     // this long).
@@ -92,9 +79,8 @@ Item {
     function syncOpen() {
         if (root.open) {
             root.shown = true;
-            // Fresh open-grace on every open (the pin outlives closes).
-            // While the band is hovered the pin is held instead — leaving the
-            // band then arms it, so no timer needs to run now.
+            // Fresh open-grace on every open (the pin outlives closes); while the band is
+            // hovered the pin is held instead, and leaving it arms the timer.
             if (!root.bandHovered)
                 hoverPin.arm();
             // Body already alive (reopen mid-retract): unfold straight away.
@@ -116,10 +102,8 @@ Item {
             root.openT = 0;
         }
     }
-    // Explicit glide window (the Behavior on openT has no `running` to read):
-    // exactly one unfold duration, started on every openT assignment. When a
-    // retract finishes it also drops the body — before then the card stays
-    // alive so the closing pill never reveals an empty box.
+    // Explicit glide window (the Behavior has no `running`): one unfold duration per
+    // assignment; a finished retract drops the body so the closing pill stays filled.
     function beginGlide() {
         root.gliding = true;
         glideTimer.restart();
@@ -134,10 +118,8 @@ Item {
         }
     }
 
-    // Hover pin: the card (or the band) holds control pinned; leaving both
-    // arms the reveal-out timer. Sliders/ComboBox popups need the explicit
-    // hold — HoverHandler.hovered drops while a button is pressed, and the
-    // popup renders outside these bounds.
+    // Hover pin: the card or the band holds control pinned; leaving both arms the
+    // reveal-out timer. Sliders need the hold — hovered drops while a button is pressed.
     IslandHoverPin {
         id: hoverPin
         stateName: "control"
@@ -148,9 +130,8 @@ Item {
         holdOpen: root.bandHovered || (bodyLoader.item ? (bodyLoader.item.adjusting || bodyLoader.item.popupOpen) : false)
     }
 
-    // Esc dismiss only while the card exists: an always-present grabber
-    // would keep a focused 1x1 item on the bar page for its whole lifetime
-    // (every other island ships its grabber with the island's lifetime).
+    // Esc dismiss only while the card exists: an always-present grabber would keep a
+    // focused 1x1 item on the bar page for its whole lifetime.
     Loader {
         active: root.shown
         sourceComponent: escPage
@@ -181,10 +162,8 @@ Item {
         }
     }
 
-    // The body is not a fixed size: expanding the volume section grows
-    // VolumeSection (its own height Behavior), which grows ControlPanelBody.
-    // Track it live — reading the height once on load left the pill (and the
-    // strip below it) stuck at the collapsed size.
+    // The body is not fixed size: expanding volume grows VolumeSection and ControlPanelBody.
+    // Track it live — reading the height once left pill and strip stuck collapsed.
     Connections {
         target: bodyLoader.item
         ignoreUnknownSignals: true
