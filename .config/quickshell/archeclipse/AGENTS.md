@@ -1,7 +1,12 @@
 # AGENTS.md — ArchEclipse Quickshell
 
-Quickshell/QtQuick shell for ArchEclipse on Hyprland. Pure QML + Python/Rust
-helpers; no C++ plugin, no build step. This checkout is a **dotfiles repo rooted
+> **IMPORTANT — HARD LIMIT: no comment block exceeds 2 lines.** One block per
+> major section, stating the constraint, trap or measurement (the *why*) — never
+> the *what* of the next line. No commented-out code, no changelog notes, no
+> restating this file. If it needs more than 2 lines, it belongs here instead.
+
+Quickshell/QtQuick shell for ArchEclipse on Hyprland: pure QML + Python/Rust
+helpers, no C++ plugin, no build step. This checkout is a **dotfiles repo rooted
 at `$HOME`** (`git status` shows `../../` paths) and the shell lives in
 `.config/quickshell/archeclipse/` — that directory is the project root for all
 commands below.
@@ -75,15 +80,27 @@ center pill: `openT` grows the pill box itself). Shared helpers:
 `IslandWindowActions`, `IslandSideRail` (left only). Islands register in `Registry`
 (`left-island-<mon>`, `right-island-<mon>`, `media-panel-<mon>`, `lock-screen`).
 
+## Panels, islands and category navigation
+
 Left island is a `StackLayout` of 8 lazy `Loader`s that stay alive after first
 select (`UserProfile, BooruViewer, ChatBot, MangaViewer, SettingsWidget,
 CustomScripts, KeyBinds, Donations`). Height is explicit; each tab scrolls
-internally. Settings/Key Binds share `CategoryNav` (active/focus + centred
-scroll) + `CategoryRail` (labels come from the host model) + `CategorySection`;
-clear the focus fade on manual scroll or island close (use `BarState`, since
-`visible` is effective visibility and parent hides do not reliably re-fire it).
-Right island renders enabled `Settings.rightPanelWidgets` — only the five names
-above; `Settings.mergeRightPanelWidgets()` drops unknown entries.
+internally. Right island renders enabled `Settings.rightPanelWidgets` — only the
+five names above; `Settings.mergeRightPanelWidgets()` drops unknown entries.
+
+Settings/Key Binds share `CategoryNav` (selection + centred scroll) +
+`CategoryRail` (labels come from the host model) + `CategorySection`. Selection
+is symmetric and the fade is permanent: a rail click scrolls to a category, a
+manual scroll selects whichever category holds the anchor line, and both drive
+the rail pill and the distance fade.
+
+`anchorY()` is the viewport centre, squashed to the content edges over the
+first/last half viewport of travel — the scroll range is one viewport shorter
+than the content, so without the squash a short first/last section could never
+reach the centre and was unselectable (measured: 3 of 11 categories). Close
+only re-anchors (`nav.clearFocus()` no longer drops the fade); use `BarState` to
+detect the close, since `visible` is effective visibility and parent hides do
+not reliably re-fire it.
 
 ## Services (`services/qmldir`)
 

@@ -1,17 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Shared category navigation for panel widgets (Settings, Key Binds, …).
-//
-// Owns the active/focus state, the animated centering scroll and the
-// programmatic-vs-manual scroll distinction. A host supplies the Flickable,
-// its content Column and the category model; every section item declares a
-// `categoryIndex` and is a direct child of that Column, so targets are
-// derived from live geometry instead of hardcoded offsets.
-//
-// Manual scrolling clears the focus effect; the host wires its ScrollBar's
-// pressed signal to cancel() (wheel/drag are handled here via the
-// Flickable's own signals).
+// Shared category navigation (Settings, Key Binds): hosts pass the Flickable,
+// its content Column and the model; rail clicks and scrolls drive the selection.
 QtObject {
     id: root
 
@@ -22,15 +13,10 @@ QtObject {
     // The scrolling Column. Its direct children are the category sections.
     property Item content: null
 
-    // activeIndex: rail highlight (set immediately on select()).
-    // focusIndex/focusActive: the distance fade, applied only when the
-    // scroll settles so it never jumps mid-flight.
-    // navInProgress: true while the animation owns contentY, so the
-    // manual-scroll handler ignores its own writes.
-    // navToken: only the newest navigation may announce completion.
+    // activeIndex: rail pill, re-derived on scroll. focusIndex: fade anchor.
+    // navInProgress/navToken: an in-flight animation owns contentY.
     property int activeIndex: 0
     property int focusIndex: 0
-    property bool focusActive: false
     property bool navInProgress: false
     property int navToken: 0
     property int navFocusIndex: -1
@@ -48,8 +34,6 @@ QtObject {
     }
 
     function opacityFor(index) {
-        if (!root.focusActive)
-            return 1;
         return Math.max(root.minimumOpacity, 1 - Math.abs(index - root.focusIndex) * root.opacityStep);
     }
 
@@ -75,6 +59,68 @@ QtObject {
                 return child.categoryIndex;
         }
         return Math.max(0, root.categories.length - 1);
+    }
+
+    // Selection anchor: viewport centre, squashed to the content edges over the
+    // first/last half viewport — the scroll range is a viewport shorter.
+    function anchorY() {
+        const f = root.flickable;
+        const half = f.height / 2;
+        const maxY = Math.max(0, f.contentHeight - f.height);
+        const y = f.contentY;
+        if (maxY <= 0)
+            return f.contentHeight / 2;
+        if (y <= 0)
+            return 0;
+        if (y >= maxY)
+            return f.contentHeight;
+        // Half a viewport, or half the scroll range when the content is
+        // barely taller than the viewport (the two zones then meet).
+        const zone = Math.min(half, maxY / 2);
+        if (y < zone)
+            return y * (zone + half) / zone;
+        if (y > maxY - zone)
+            return f.contentHeight - (maxY - y) * (zone + half) / zone;
+        return y + half;
+    }
+
+    // Contains wins over nearest midpoint: a section taller than the viewport
+    // can't be centred (targetFor pins its top), so it must still own the anchor.
+    function centeredIndex() {
+        if (!root.content || !root.flickable)
+            return root.activeIndex;
+        const anchor = root.anchorY();
+        let nearest = -1;
+        let nearestDistance = Infinity;
+        for (let i = 0; i < root.content.children.length; i++) {
+            const child = root.content.children[i];
+            // Zero-height children are unbuilt or hidden; they own no pixels
+            // and must not win the nearest-midpoint fallback.
+            if (child.categoryIndex === undefined || child.height <= 0)
+                continue;
+            if (anchor >= child.y && anchor < child.y + child.height)
+                return child.categoryIndex;
+            const distance = Math.abs(child.y + child.height / 2 - anchor);
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = child.categoryIndex;
+            }
+        }
+        return nearest >= 0 ? nearest : root.activeIndex;
+    }
+
+    // Manual scroll path: rail pill and fade both follow the centred
+    // category live, mid-gesture, so neither is ever dropped.
+    function syncFromScroll() {
+        // Pre-layout every section sits at y=0 and the viewport is 0-sized;
+        // deriving from that parks the selection on an arbitrary index.
+        if (!root.flickable || root.flickable.height <= 0 || root.flickable.contentHeight <= 0)
+            return;
+        const index = root.centeredIndex();
+        if (index < 0)
+            return;
+        root.activeIndex = index;
+        root.focusIndex = index;
     }
 
     function targetFor(index) {
@@ -124,10 +170,8 @@ QtObject {
         if (token !== root.navToken)
             return;
         root.navInProgress = false;
-        if (root.navFocusIndex >= 0) {
+        if (root.navFocusIndex >= 0)
             root.focusIndex = root.navFocusIndex;
-            root.focusActive = true;
-        }
         root.navFocusIndex = -1;
     }
 
@@ -141,25 +185,26 @@ QtObject {
         root.scrollAnimation.stop();
     }
 
+    // Hosts call this on close/reset: stop an in-flight animation and re-anchor
+    // on what is centred (the fade is permanent now).
     function clearFocus() {
-        root.focusActive = false;
         root.cancel();
+        root.syncFromScroll();
     }
 
-    // Model reloads shift indices (Key Binds parses its categories from
-    // files); keep the rail in range and drop a stale focus pattern.
+    // Key Binds reloads shift indices: keep the rail in range, re-anchor once
+    // the new sections are laid out.
     function resetForModelChange() {
         root.cancel();
-        root.focusActive = false;
-        root.focusIndex = 0;
         root.activeIndex = Math.max(0, Math.min(root.activeIndex, root.categories.length - 1));
+        root.focusIndex = root.activeIndex;
+        Qt.callLater(() => root.syncFromScroll());
     }
 
     onCategoriesChanged: root.resetForModelChange()
 
-    // Deferred completion check: restart() stops then starts in the same
-    // tick, so a stop handler must not finalize the previous target. The
-    // token also rejects every superseded navigation.
+    // restart() stops then starts in one tick, so completion is deferred: only
+    // the newest token may finalize.
     property NumberAnimation scrollAnimation: NumberAnimation {
         target: root.flickable
         property: "contentY"
@@ -179,14 +224,24 @@ QtObject {
 
     property Connections scrollHooks: Connections {
         target: root.flickable
-        // Manual scroll = any contentY change that isn't ours. navInProgress
-        // is still true for the final animation frame, so the automatic
-        // scroll can't clear its own focus.
+        // Manual scroll = any contentY change that isn't ours (navInProgress is
+        // still true on the final animation frame).
         function onContentYChanged() {
             if (root.navInProgress)
                 return;
-            if (root.focusActive)
-                root.focusActive = false;
+            root.syncFromScroll();
+        }
+        // Geometry can shift under a still contentY (dynamic rows, reveal
+        // layout, resize): re-anchor so the rail never points elsewhere.
+        function onContentHeightChanged() {
+            if (root.navInProgress)
+                return;
+            root.syncFromScroll();
+        }
+        function onHeightChanged() {
+            if (root.navInProgress)
+                return;
+            root.syncFromScroll();
         }
         function onMovementStarted() {
             root.cancel();

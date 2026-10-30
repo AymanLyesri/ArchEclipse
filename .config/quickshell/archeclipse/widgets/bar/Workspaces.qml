@@ -3,25 +3,8 @@ import Quickshell.Hyprland
 import qs.theme
 import qs.services
 
-// Bottom workspace strip: 10 bars, 5px tall, stretched across the bar width.
-// Empty = greyed out (muted, low opacity), occupied = full opacity.
-// On genuine workspace switch, strip hover, or special-open the strip
-// expands in height and reveals each workspace's app icon, then collapses
-// back after peekDuration. Auto-expands are settle-gated so bar-island
-// switches (which recreate this widget) never pop it open by themselves.
-//
-// The reveal is a wave: every button reveals independently, the focused one
-// to full height and each ring further out to a progressively shorter travel
-// (height), delayed by ring so the reveal rolls outward from focus and
-// retracts inward. Buttons hang off the strip's FIXED top edge; each one's
-// own animating height carries it downward, so a shorter button reads as
-// having travelled less — and the pill's background never moves: the root
-// item's implicitHeight stays collapsed for the Column while its actual
-// height covers the wave hang below the pill (Bar.qml masks the hang for
-// clicks while the wave is up).
-//
-// The special workspace sits in the middle (between 5 and 6): narrower
-// than a normal slot and always accent-tinted so it stands out.
+// Bottom workspace strip: 10 bars, 5px tall, across the bar width; a switch,
+// hover or special-open expands it to show app icons (ring wave from focus).
 Item {
     id: root
 
@@ -33,45 +16,33 @@ Item {
     property real barHeight: 3
     property real iconSize: 11
     property real btnSpacing: 4
-    // Horizontal inset of the strip Row within the widget: a little air
-    // on the left and right so the end buttons don't flush against the
-    // pill's straight edges.
+    // Horizontal inset of the strip Row so the end buttons don't flush against
+    // the pill's straight edges.
     property real edgeMargin: 6
     property real hitHeight: 6
     // Gap between a slot's icon holder and its bar (Column spacing).
-    property real iconSpacing: 2
+    property real iconSpacing: 1
     // --- wave reveal tuning ---
-    // Every button reveals independently: the focused one gets the full
-    // height and each ring out from it adds `waveStep` px, starting from a
-    // floor that already fits icon + bar with `headroom` to spare (so the
-    // shortest button never clips). `maxRings` caps the ramp, which keeps
-    // the strip a stable height no matter where focus sits.
+    // Each ring out adds `waveStep` from a floor fitting icon + bar; `maxRings` caps the ramp.
     property real headroom: 0
     property real waveStep: 4
     property real waveDelay: 50
-    property int maxRings: 4
+    property int maxRings: 6
     property int peekDuration: 1000
     // Width of the special slot relative to a normal one.
     property real specialRatio: 0.55
-    // Bottom edge of the never-growing pill, in strip coordinates:
-    // strip top + collapsed strip + the stack's outer pad (effPad is 4 in
-    // every state that renders this strip — see Bar.qml stack.showsDefault).
-    // Button hang backgrounds must only paint BELOW this line: painting it
-    // over the pill's own translucent surface double-blends darker.
+    // Bottom edge of the never-growing pill, in strip coordinates: hang
+    // backgrounds must paint only below it or they double-blend darker.
     property real pillOuterPad: 4
     readonly property real pillFlush: root.hitHeight + root.pillOuterPad
 
     // --- derived wave geometry ---
-    // Strip position of a normal slot: 1-5 are indices 0-4, then the
-    // narrow special slot takes index 5, then 6-10 follow as 6-10.
+    // Normal slots map 1-5 → 0-4, the narrow special takes 5, 6-10 follow as 6-10.
     function slotIndex(wid) {
         return wid <= 5 ? wid - 1 : wid;
     }
-    // Index of the button the wave radiates from. A hovered button takes
-    // priority (the wave peaks where the mouse is, tracked by the slots'
-    // MouseAreas and reset by the strip's HoverHandler on leave); special
-    // focus anchors on the special slot; focus outside the strip clamps
-    // to the nearest edge so the nearest buttons still come out tallest.
+    // Button the wave radiates from: hover wins, then special focus, else the
+    // nearest edge (slot MouseAreas track it, the strip HoverHandler clears it).
     property int hoverAnchor: -1
     readonly property int focusIndex: {
         if (root.hoverAnchor >= 0)
@@ -90,24 +61,16 @@ Item {
     readonly property real expandedHeight: root.floorHeight + root.waveStep * root.maxRings
 
     property bool expanded: false
-    // Edge-latched hover peek: a HoverHandler fires hoveredChanged when a
-    // fresh item appears under a stationary cursor — and every bar-island
-    // switch recreates this widget — which would pop the strip open with
-    // no real hover. Latching only genuine enter edges while settled
-    // avoids that.
+    // Edge-latched hover peek: a HoverHandler fires on a fresh item under a still
+    // cursor (every island switch recreates this widget) — only real edges count.
     property bool hoverPeek: false
     // Settle gate: ignore all auto-expand triggers for a beat after
     // creation so recreation/refresh transients can't pop the strip.
     property bool _ready: false
     // True while icons are revealed.
     readonly property bool showIcons: root.expanded || root.hoverPeek
-    // Wave/alarm state for the window input mask + bar hover chaining
-    // (Bar.qml). The hanging buttons live outside the pill rectangle, so
-    // clicks there need their own mask region while any hang is up: either
-    // the wave stepper or a blinking (new-client) button. `_hangHold`
-    // keeps the window open one extra flight after the gate clears, so the
-    // LAST collapsing tab (ring 0 — the longest) plays out its full 250ms
-    // fold instead of being snapped away the instant waveIdx hits -1.
+    // Wave/alarm gate for the window input mask + bar hover chaining: hangs sit
+    // outside the pill, so clicks need their own region; `_hangHold` outlives it.
     readonly property bool hasBlinks: Object.keys(root.blinking).length > 0
     property bool _hangHold: false
     Timer {
@@ -123,26 +86,20 @@ Item {
     }
     readonly property bool stripExpanded: root.waveIdx >= 0 || root.hasBlinks || root._hangHold || root.specialOpen
     readonly property bool stripHovered: stripHover.hovered
-    // How far, in px, the wave buttons hang below the pill while expanded
-    // (strip top is hitHeight above the pill's bottom edge): the clip in
-    // Bar.qml extends by this while the wave is up.
+    // Px the buttons hang below the pill; Bar.qml extends the clip by this while
+    // the wave is up.
     readonly property real stripHang: root.expandedHeight - root.hitHeight
     // The strip Row spans the full wave extent below the pill — the mask
     // region item for the hanging buttons (root itself is only 6px tall).
     readonly property Item waveHitbox: strip
-    // Reveal progress of one button, 0 collapsed -> 1 at that button's own
-    // target. Drives icon opacity so a button still waiting on its wave delay
-    // is invisible rather than just short, and so the icon fades with its own
-    // delayed collapse instead of popping out when the strip starts closing.
+    // 0 collapsed → 1 at this button's target; drives icon opacity so a waiting
+    // button is invisible rather than short, and fades with its own collapse.
     function revealProgress(reveal, target) {
         return Math.max(0, Math.min(1, (reveal - root.hitHeight) / Math.max(1, target - root.hitHeight)));
     }
 
     // --- new-client blink: 3 blinks on unfocused workspaces ---
-    // Tracks client counts per monitor and workspace; a count increase on a
-    // non-focused workspace on this monitor arms 6 half-blinks (3 full cycles)
-    // at 220ms cadence. Map wid -> remaining ticks; reassigned whole
-    // so dependents re-evaluate (QML var-map pattern).
+    // Count increase arms 6 half-blinks at 220ms; map wid → ticks, reassigned whole.
     property var _counts: ({})
     property bool _countsInit: false
     property var blinking: ({})
@@ -174,12 +131,8 @@ Item {
         for (let i = 1; i <= root.count; i++) {
             const o = prev[i] ?? 0, n = cur[i] ?? 0;
             if (n > o && i !== root.focusedId) {
-                // Any new client on an unfocused workspace rides its own
-                // button alone (alerting clause in the reveal binding: its
-                // normal wave target height, never the full expanded stop):
-                // no strip-wide reveal ever, and no conflict if a wave is
-                // already up — the alert simply overrides that button's
-                // height until its ticks run out.
+                // A new client on an unfocused workspace rides its own button
+                // alone — no strip-wide reveal, no conflict with a running wave.
                 nb[i] = 6;
                 touch = true;
             } else if (i === root.focusedId && nb[i] !== undefined) {
@@ -223,32 +176,32 @@ Item {
     }
 
     // --- wave stepper ---
-    // The stagger lives here, not inside the slot animations: waveIdx
-    // walks 0 -> maxRings while revealing and maxRings -> -1 while
-    // hiding, one step per waveDelay. A button reveals when its ring is
-    // <= waveIdx and hides when ring > waveIdx, so the wave rolls
-    // outward from focus on the way up and sweeps inward (edges first)
-    // on the way down — deterministically, on the restart of every step.
+    // waveIdx (outermost revealed) and hideIdx walk one step per waveDelay; re-entry rewinds hideIdx.
     property int waveIdx: -1
+    property int hideIdx: -1
     Timer {
         id: waveTimer
         interval: root.waveDelay
         repeat: true
         running: false
         onTriggered: {
-            if (root.showIcons && root.waveIdx < root.maxRings) {
-                root.waveIdx++;
-            } else if (!root.showIcons && root.waveIdx > -1) {
-                root.waveIdx--;
+            if (root.showIcons) {
+                if (root.hideIdx >= 0)
+                    root.hideIdx--;
+                else if (root.waveIdx < root.maxRings)
+                    root.waveIdx++;
+            } else if (root.hideIdx < root.waveIdx) {
+                root.hideIdx++;
             }
-            const done = root.showIcons && root.waveIdx >= root.maxRings;
-            const hiddenDone = !root.showIcons && root.waveIdx <= -1;
+            const done = root.showIcons && root.waveIdx >= root.maxRings && root.hideIdx < 0;
+            const hiddenDone = !root.showIcons && root.hideIdx >= root.waveIdx;
             if (done || hiddenDone)
                 waveTimer.stop();
-            // Wave fully retracted: clear the hover peak and hold the
-            // clip window open one flight so the last tab finishes its
-            // fold (see _hangHold).
+            // Fully retracted: clear the hover peak and hold the clip one more
+            // flight so the last tab finishes its fold.
             if (hiddenDone) {
+                root.waveIdx = -1;
+                root.hideIdx = -1;
                 root.hoverAnchor = -1;
                 root._hangHold = true;
                 hangHoldTimer.restart();
@@ -256,27 +209,19 @@ Item {
         }
     }
     onShowIconsChanged: {
-        // Expanding from fully hidden: ring 0 (focused) shows right away,
-        // then the stepper walks the rings. If mid-speed the target is
-        // already underneath us, the timer simply keeps going from the
-        // current index.
+        // Ring 0 shows/folds first, then the stepper walks the rest; mid-speed it
+        // keeps going from the current index.
         if (root.showIcons) {
             if (root.waveIdx < 0)
                 root.waveIdx = 0;
-            waveTimer.restart();
         } else {
-            waveTimer.restart();
+            root.hideIdx = 0;
         }
+        waveTimer.restart();
     }
 
-    // Layout vs geometry split. The DefaultBar Column treats this root as
-    // its collapsed strip (implicitHeight = hitHeight, and Column assigns
-    // height from implicit since we set none) — so the pill and its
-    // background NEVER change size for the wave. The full wave extent
-    // lives on the `strip` Row below, which hangs BELOW the pill over the
-    // transparent part of the window, each button travelling on its own
-    // clock. The hang needs its own input-mask region: Bar.qml wires
-    // workspaces.waveHitbox for that.
+    // Layout vs geometry: the Column sees only the collapsed strip, so the pill
+    // never resizes; the hang lives on `strip` below (Bar.qml wires waveHitbox).
     implicitHeight: hitHeight
 
     readonly property var localMonitor: {
@@ -285,9 +230,8 @@ Item {
             return null;
         return Hyprland.monitors.values.find(m => m.name === root.monitorName) ?? null;
     }
-    // activeWorkspace stays local even when the pointer focuses another
-    // monitor. focusedWorkspace is only a fallback while Hyprland is still
-    // resolving this monitor's active workspace during startup/hotplug.
+    // activeWorkspace stays local when the pointer focuses another monitor;
+    // focusedWorkspace is only the startup/hotplug fallback.
     readonly property var localWorkspace: {
         const active = root.localMonitor?.activeWorkspace;
         if (active)
@@ -296,16 +240,12 @@ Item {
     }
     readonly property int focusedId: root.localWorkspace?.id ?? 1
     onFocusedIdChanged: {
-        // Entering the special workspace is not a numbered-workspace
-        // switch: only the special tab hangs. Leaving it lands on a real
-        // workspace and peeks as any genuine switch would.
+        // Entering special is not a numbered switch: only the special tab hangs;
+        // leaving it lands on a real workspace and peeks normally.
         if (!root.specialFocusedHere)
             root.requestExpand();
-        // A genuine switch re-peaks the wave at the new workspace, even
-        // when the mouse is on its way out of the strip: clear the stale
-        // hover anchor here (silent while collapsed; if tabs are in
-        // flight it is a single coherent retarget, not the double
-        // animation a leave-cleared anchor produced).
+        // A real switch re-peaks the wave even while the mouse leaves: clearing
+        // here is one coherent retarget, not the old double animation.
         root.hoverAnchor = -1;
         if (root.blinking[root.focusedId] !== undefined) {
             const nb = Object.assign({}, root.blinking);
@@ -348,17 +288,14 @@ Item {
     }
     readonly property bool specialOccupied: root.specialTops.length > 0
     readonly property bool specialActive: root.specialWs?.active ?? false
-    // "Opened" = visible on this monitor. The focused-workspace and active-
-    // toplevel fallbacks also stay monitor-scoped when the special workspace
-    // object is absent while empty.
+    // "Opened" = visible on this monitor; the fallbacks stay monitor-scoped while
+    // the special workspace object is absent.
     readonly property bool specialFocusedHere: ((root.localWorkspace?.name ?? "") + "").startsWith("special")
     readonly property bool specialHasFocus: Hyprland.activeToplevel?.monitor?.name === root.monitorName && ((Hyprland.activeToplevel?.workspace?.name ?? "") + "").startsWith("special")
     readonly property bool specialOpen: root.specialActive || root.specialFocusedHere || root.specialHasFocus
     onSpecialOpenChanged: {
-        // Special toggling never peeks the strip wave; the special tab
-        // hangs on its own via its reveal binding. On close the strip may
-        // be fully collapsed — grab the one-flight hold so the fold can
-        // play out under the clip (same mechanism as hiddenDone).
+        // Special toggling never peeks the wave; the tab hangs on its own. On
+        // close, grab the one-flight hold so the fold plays under the clip.
         if (!root.specialOpen) {
             root._hangHold = true;
             hangHoldTimer.restart();
@@ -385,17 +322,13 @@ Item {
                 return d ? d.icon : WorkspaceIcons.emptyIcon;
             }
 
-            // Wave: ring distance from the focused button, and the height
-            // this button reveals to. The focused one is tallest; every ring
-            // out adds `waveStep`, capped at `maxRings`.
+            // Ring distance from the focus button; each ring out adds `waveStep`,
+            // capped at `maxRings`.
             readonly property int ring: Math.min(root.maxRings, Math.abs(root.slotIndex(slot.wid) - root.focusIndex))
             readonly property real targetH: root.expandedHeight - root.waveStep * slot.ring
-            // Reveal driven by the wave stepper: this button is "revealed" once
-            // waveIdx reaches its ring. The Behaviour animates only the
-            // size change — the stagger itself comes from when the wave
-            // stepper flips the target, so reveal and collapse order can
-            // never invert the way a self-delayed PauseAnimation did.
-            property real reveal: slot.alerting ? slot.targetH : ((slot.ring <= root.waveIdx) ? slot.targetH : root.hitHeight)
+            // Stepper-driven: revealed at waveIdx, folded at hideIdx; only the size
+            // change animates, so reveal/collapse order can never invert.
+            property real reveal: slot.alerting ? slot.targetH : ((slot.ring <= root.waveIdx && slot.ring > root.hideIdx) ? slot.targetH : root.hitHeight)
             Behavior on reveal {
                 NumberAnimation {
                     duration: 250
@@ -407,12 +340,8 @@ Item {
             width: strip.normalW
             height: strip.height
 
-            // TOP-anchored and clipped: the button hangs off the strip's
-            // fixed top edge and its own animating height carries it
-            // downward — a shorter button travels less and stops sooner.
-            // Gluing it to the strip's bottom edge instead made every
-            // button ride the same moving edge (what read as "all buttons
-            // reveal down at the same time").
+            // TOP-anchored and clipped: the animating height carries the button
+            // down; bottom-anchoring made every button ride the same edge.
             Item {
                 id: revealBox
                 width: slot.width
@@ -420,17 +349,11 @@ Item {
                 anchors.top: parent.top
                 clip: true
 
-                // Per-button hang background — single-fill tab below the
-                // pill (PillBackground.qml's rule: one fill, never paint
-                // over an already-painted translucent region; that's what
-                // double-blended darker at the intersection). Straight
-                // top edge flush with the pill's bottom edge, rounded
-                // bottom corners, same Theme.surface fill as the pill.
-                // Collapsed is a no-op (height clamps to 0).
+                // Single fill below the pill (never over a painted translucent
+                // region — that double-blends): flush top, rounded bottom.
                 Canvas {
-                    // Canvas top must sit AT the flush line, not at the
-                    // revealBox top (y=0): topMargin shifts the fill into
-                    // the below-pill region so it never double-blends.
+                    // AT the flush line, not revealBox y=0: topMargin shifts the
+                    // fill below the pill so it never double-blends.
                     anchors.top: parent.top
                     anchors.topMargin: root.pillFlush
                     anchors.left: parent.left
@@ -471,10 +394,8 @@ Item {
                     anchors.bottom: parent.bottom
                     spacing: root.iconSpacing
 
-                    // icon holder — the reveal box clips it while the wave runs.
-                    // An alerting button shows its icon even with the strip
-                    // collapsed (independent new-client hang): the blink tick
-                    // in the text opacity below drives the flicker.
+                    // The reveal box clips the icon while the wave runs; an alerting
+                    // button shows it even collapsed (the blink drives opacity).
                     Item {
                         width: slot.width
                         height: (root.showIcons || slot.alerting) ? root.iconSize : 0
@@ -519,13 +440,8 @@ Item {
             }
 
             MouseArea {
-                // Click/hover only over the button's own revealed extent —
-                // the strip item is always the full wave height (it hangs
-                // below the pill over transparent surface), so the slot
-                // bounds would swallow clicks on empty space. Hovering
-                // re-anchors the wave's peak at this button; anchor clearing
-                // lives on the strip's HoverHandler only (exiting into an
-                // adjacent button must not flash the anchor back to focus).
+                // Clicks/hover only over the revealed extent — the slot is the full
+                // wave height and would swallow empty space; anchor clears on leave only.
                 anchors.top: parent.top
                 anchors.left: parent.left
                 width: slot.width
@@ -540,9 +456,8 @@ Item {
 
     Row {
         id: strip
-        // Full wave extent anchored to the strip's top — the parent root
-        // is only 6px tall (Column/positioner accounting), so this row
-        // deliberately hangs BELOW the pill over the transparent surface.
+        // Full wave extent from the strip's top: the root is only 6px tall, so
+        // this row deliberately hangs below the pill.
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.leftMargin: root.edgeMargin
@@ -561,12 +476,8 @@ Item {
                         root.hoverPeek = true;
                 } else {
                     root.hoverPeek = false;
-                    // Anchor stays put while the strip collapses (clearing
-                    // here would retarget every button from the hover
-                    // profile to the focus profile mid-flight, then again
-                    // as the sweep passes — reads as lag). It is cleared
-                    // when the wave finishes retracting (waveTimer
-                    // hiddenDone), silently, once nothing is visible.
+                    // Anchor stays while collapsing (clearing retargets every button
+                    // mid-flight, reads as lag); cleared silently on hiddenDone.
                 }
             }
         }
@@ -585,18 +496,13 @@ Item {
             width: strip.specialW
             height: strip.height
 
-            // Same wave as the normal slots: it sits at strip index 5, so
-            // it radiates like any other button. Its bar is 1px taller, hence
-            // the +1 on the target height.
+            // Same wave as the slots at index 5; its bar is 1px taller, hence +1.
             readonly property int ring: Math.min(root.maxRings, Math.abs(5 - root.focusIndex))
             readonly property real targetH: root.expandedHeight - root.waveStep * specialSlot.ring + 1
             readonly property bool open: root.specialOpen
-            // Open special overrides the wave: this tab hangs alone, the
-            // rest of the strip stays collapsed unless it has its own
-            // reason to unfold (hover / numbered-workspace switch).
-            // Animated per button: rises to its own target on reveal, back to the
-            // collapsed stop on hide.
-            property real reveal: specialSlot.open ? specialSlot.targetH : ((specialSlot.ring <= root.waveIdx) ? specialSlot.targetH : root.hitHeight)
+            // Open special overrides the wave: this tab hangs alone, the rest stays
+            // collapsed unless hover/switch unfolds it.
+            property real reveal: specialSlot.open ? specialSlot.targetH : ((specialSlot.ring <= root.waveIdx && specialSlot.ring > root.hideIdx) ? specialSlot.targetH : root.hitHeight)
             Behavior on reveal {
                 NumberAnimation {
                     duration: 250

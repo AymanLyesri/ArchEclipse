@@ -6,12 +6,8 @@ import Quickshell.Io
 import qs.theme
 import qs.widgets.shared
 
-// Key Binds widget — reads the Hyprland Lua keybinds, groups them by
-// category, and renders each binding as an array of key chips joined by "+".
-// Loads keybinds natively (bind.lua + custom/*.lua parsed in JS via FileView;
-// output object matches the old scripts/get-keybinds.sh JSON),
-// groups by category, renders each binding as an array of key chips
-// joined by "+".
+// Key Binds widget — parses bind.lua + custom/*.lua in JS via FileView and
+// renders each binding as key chips joined by "+", grouped by category.
 Item {
     id: root
     property int widgetWidth: parent.width
@@ -20,10 +16,8 @@ Item {
     property var keybinds: ({})
     property bool loading: true
 
-    // Replayable staggered reveal (same reason as CustomScriptsWidget:
-    // StackLayout builds tabs once, hidden). A counter steps 0→totalBinds
-    // each time the tab becomes visible; rows key off their flat position
-    // (category offset + row index) so the cascade runs across categories.
+    // Replayable staggered reveal (StackLayout builds tabs hidden): a counter
+    // steps 0→totalBinds; rows key off their flat category+row position.
     property int revealCount: 0
     property var flatOffsets: []
     property int totalBinds: 0
@@ -68,8 +62,7 @@ Item {
     }
 
     // ---- load keybinds natively: parse bind.lua + custom/*.lua in JS ----
-    // (QML-native port of scripts/get-keybinds.sh; output object is
-    // JSON.parse-identical to the script so UI bindings don't change)
+    // QML port of scripts/get-keybinds.sh; the object shape is JSON.parse-identical.
     property string bindFilePath: Quickshell.env("HOME") + "/.config/hypr/config/bind.lua"
     property string customDirPath: Quickshell.env("HOME") + "/.config/hypr/config/custom"
     property var _customTexts: []
@@ -271,11 +264,8 @@ Item {
             onStreamFinished: root._onCustomList(text)
         }
     }
-    // Per-file parallel readers: one FileView per custom file, path baked
-    // in at creation with declarative onLoaded/onLoadFailed handlers.
-    // (A reused FileView emits loaded only on its first load, and the
-    // loaded *signal* is shadowed by the loaded *bool property*, so
-    // imperative loaded.connect() throws — probed 2026-10-13.)
+    // One FileView per custom file: a reused one emits `loaded` once, and the
+    // signal is shadowed by the loaded bool, so connect() throws (probed 2026-10-13).
     property var _readers: []
     function _spawnReader(filePath, idx) {
         const esc = filePath.split("\\").join("\\\\").split('"').join('\\"');
@@ -313,9 +303,8 @@ Item {
         onTriggered: root._finish()
     }
 
-    // Sorted category names. Empty groups are dropped: comment-only custom
-    // files (e.g. monitor.lua) produce parser categories with no binds, and
-    // a category rail must not offer entries that lead nowhere.
+    // Empty groups are dropped: comment-only custom files yield categories with
+    // no binds, and the rail must not offer entries that lead nowhere.
     property var categories: Object.keys(root.keybinds).filter(c => (root.keybinds[c] || []).length > 0).sort()
 
     // Shared category navigation: the rail selects a category, scrolls it
@@ -400,23 +389,13 @@ Item {
                             property int categoryIndex: index
                             width: parent.width
                             spacing: Theme.spacing
-                            // The divider fades with its card, and the whole
-                            // group gets one focus opacity (the card below
-                            // keeps its default full opacity) — no per-card
-                            // stacking of fades.
+                            // The divider fades with its card; one focus opacity for
+                            // the whole group, never stacked per card.
                             opacity: (root.revealCount > rowBase ? 1 : 0) * nav.opacityFor(index)
                             Behavior on opacity {
                                 Anim {
                                     type: Anim.DefaultEffects
                                 }
-                            }
-
-                            // Divider line between categories (first one has none)
-                            Rectangle {
-                                visible: catSec.index > 0
-                                width: parent.width
-                                height: 1
-                                color: Theme.border
                             }
 
                             CategorySection {
@@ -425,19 +404,16 @@ Item {
 
                                 Repeater {
                                     model: root.keybinds[catSec.category] || []
-                                    // Two lines: category names are long and
-                                    // the content column is shared with the
-                                    // rail, so description + chips side by
-                                    // side would leave the description 0px.
+                                    // Two lines: category names are long and the
+                                    // column is shared with the rail.
                                     delegate: Rectangle {
                                         required property var modelData
                                         required property int index
                                         width: parent.width
                                         height: bindBody.implicitHeight + 8
                                         color: "transparent"
-                                        // Flat position (category base + row)
-                                        // vs the reveal counter; +1 so rows
-                                        // trail their header.
+                                        // Flat position vs the reveal counter; +1 so
+                                        // rows trail their header.
                                         opacity: (catSec.rowBase + index + 1) <= root.revealCount ? 1 : 0
                                         Behavior on opacity {
                                             NumberAnimation {

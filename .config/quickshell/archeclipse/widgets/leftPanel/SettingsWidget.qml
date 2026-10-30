@@ -7,19 +7,16 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Settings Widget — shell settings panel
-// Sections: Bar (layout reorder + toggles), Panels, Theme, Interface,
-// Animations, User Agents, Api Keys, Hyprland, Lockscreen, Recording,
-// Screenshots, Apply/Reset buttons
+// Settings Widget — shell settings panel. Sections run Bar → Screenshots plus
+// the Apply/Reset footer; order must match `categories` below.
 Item {
     id: root
     property int widgetWidth: parent.width
     property string className: ""
     property string monitorName: ""
 
-    // Settings categories — the one source of truth for the left rail and
-    // the section headers (CategorySection looks its title up here by
-    // index). Order MUST match the CategorySection order below.
+    // Single source of truth for rail labels and section headers; order MUST
+    // match the CategorySection order below.
     readonly property var categories: [
         { key: "bar", title: "Bar" },
         { key: "panels", title: "Panels" },
@@ -34,18 +31,13 @@ Item {
         { key: "screenshots", title: "Screenshots" }
     ]
 
-    // Island motion-style choices. These used to hang off the Animations
-    // section's Column; the shared CategorySection card has no per-section
-    // property bag, so they live with the other option arrays at root.
+    // Island motion-style choices live at root: the shared CategorySection has
+    // no per-section property bag.
     readonly property var islandAnimStyleValues: ["Standard", "Emphasized", "ExpressiveFast", "ExpressiveDefault", "ExpressiveSlow"]
     readonly property var islandAnimStyleLabels: ["Standard (smooth)", "Emphasized (smooth)", "Bouncy Fast", "Bouncy Default", "Bouncy Slow"]
 
-    // Replayable staggered section reveal (CustomScripts/KeyBinds parity):
-    // StackLayout builds all tabs once at startup (hidden), so
-    // creation-time fades would fire unseen and the tab switch would only
-    // play the container-wide fade. Instead a counter steps 0→sectionCount
-    // each time this tab becomes visible and sections key their opacity
-    // off their index.
+    // Replayable staggered reveal: StackLayout builds tabs hidden at startup, so
+    // a counter steps 0→sectionCount and sections key their opacity off it.
     property int revealCount: 0
     property int sectionCount: root.categories.length
     Timer {
@@ -88,9 +80,8 @@ Item {
         }
     }
 
-    // `visible` is *effective* visibility here: hiding the island (or a
-    // parent tab) does not emit visibleChanged, so the close cleanup above
-    // can't rely on it. The island's own state is the authoritative signal.
+    // `visible` is effective here: hiding the island does not emit
+    // visibleChanged, so the close cleanup keys off BarState instead.
     Connections {
         target: BarState
         function onPanelStatesByMonitorChanged() {
@@ -99,17 +90,14 @@ Item {
         }
     }
 
-    // Cross-widget deep link (see Registry.selectLeftTab's `target` arg):
-    // scrolls the matching row into view and briefly flashes it. Currently
-    // only wired to apiKeyRepeater rows (matched by their "provider.field"
-    // path) — extend the search below if other sections gain targets.
+    // Cross-widget deep link (Registry.selectLeftTab `target`): scrolls the
+    // matching apiKeyRepeater row into view and flashes it.
     function handlePendingTarget() {
         const key = Registry.takePendingTarget(root.monitorName);
         if (key === "")
             return;
-        // Rows aren't laid out yet on the very first frame a hidden tab
-        // becomes visible; defer one tick so mapToItem/contentHeight are
-        // accurate.
+        // Rows aren't laid out on the first visible frame; defer so
+        // mapToItem/contentHeight are accurate.
         Qt.callLater(() => root.scrollToAndHighlight(key));
     }
     Connections {
@@ -126,10 +114,10 @@ Item {
             if (!item || item.objectName !== key)
                 continue;
             const y = item.mapToItem(settingsCol, 0, 0).y;
-            // Keep the rail honest about where the deep link landed, but
-            // don't apply the focus fade — the flash is the highlight.
+            // Keep the rail and the fade anchored on where the deep link
+            // landed; the flash is the highlight, not a nav target.
             nav.activeIndex = nav.indexForY(y);
-            nav.focusActive = false;
+            nav.focusIndex = nav.activeIndex;
             nav.scrollToY(y - 24, -1);
             if (item.flash)
                 item.flash();
@@ -192,11 +180,7 @@ Item {
                     // island's Theme.pad), right-panel parity.
 
                     // ============ BAR SETTINGS ============
-                    // NOTE: smart-hide, full-width and visibility are
-                    // intentionally not exposed here: the bar always shows all
-                    // sections in a centered pill and never auto-hides. The
-                    // SUPER+ALT+BACKSPACE IPC toggle is the only visibility
-                    // switch.
+                    // Always all sections; visibility only via SUPER+ALT+BACKSPACE IPC.
                     CategorySection {
                         nav: nav
                         categoryIndex: 0
@@ -392,9 +376,8 @@ Item {
                                 to: 1
                                 value: Settings.uiOpacity
                                 stepSize: 0.01
-                                // Fill: the value label already fixes the
-                                // right edge; a fixed 150 starved the row
-                                // label in the narrower two-column layout.
+                                // Fill: the value label fixes the right edge; a
+                                // fixed 150 starved the row label.
                                 Layout.fillWidth: true
                                 onValueChanged: {
                                     if (value === Settings.uiOpacity)
@@ -542,9 +525,8 @@ Item {
                                     SettingLabel {
                                         text: modelData.label
                                         tip: "Custom User-Agent sent with " + modelData.label + " requests."
-                                        // Share the row with the field: a
-                                        // fixed 90 left the field ~30px once
-                                        // the category rail took its width.
+                                        // Share the row with the field: a fixed 90
+                                        // left it ~30px once the rail took its width.
                                         Layout.fillWidth: true
                                     }
                                     AppTextField {
@@ -682,10 +664,8 @@ Item {
                                         placeholderText: "Enter " + modelData.label
                                         echoMode: parent.parent.reveal ? TextField.Normal : TextField.Password
                                         fillColor: "transparent"
-                                        // Fill + minimum: this dense row also
-                                        // carries show/copy buttons, so a
-                                        // fixed 160 overflowed once the
-                                        // category rail took its width.
+                                        // Fill: this dense row also carries
+                                        // show/copy buttons, so a fixed 160 overflowed.
                                         Layout.fillWidth: true
                                         Layout.minimumWidth: 48
                                         onAccepted: {
@@ -767,9 +747,8 @@ Item {
                             }
                         }
 
-                        // Blue light: auto mode — toggle + "from – to" time in ONE row
-                        // (the toggle drives the schedule; the times stay editable
-                        // when it is off so they can be preset)
+                        // Blue light auto mode: toggle + "from – to" in one row;
+                        // the times stay editable while it is off.
                         SettingRow {
                             text: "Blue Light: Auto Mode"
                             tip: "Run the blue-light filter on a schedule."
@@ -837,10 +816,8 @@ Item {
                         }
 
 
-                        // Hyprland leaves: one row component per leaf
-                        // type. `value` carries the read-back; the row
-                        // writes through Settings.hyprSet + the live
-                        // hyprctl push.
+                        // One row component per Hyprland leaf type; `value` is the
+                        // read-back, writes go through Settings.hyprSet + live push.
                         HyprSliderRow {
                             text: "Decoration: Rounding"
                             tip: "Window corner radius in px."
@@ -943,9 +920,8 @@ Item {
                             to: 1
                             value: Settings.hyprGet("decoration.inactive_opacity")
                         }
-                        // Apply / Reset — stacked: the two labels no longer
-                        // fit side by side once the category rail takes its
-                        // width (their button text would overlap).
+                        // Stacked: the two labels no longer fit side by side once
+                        // the rail takes its width.
                         Column {
                             width: parent.width
                             spacing: Theme.spacing
@@ -1616,8 +1592,7 @@ Item {
     }
 
     function applyHyprlandSettings() {
-        // Write one nested-table lua file per leaf (recursive
-        // recursion) + reload. JSON.stringify of the whole object is NOT
+        // One nested-table lua file per leaf + reload: JSON.stringify is not
         // valid lua (keys need `=`, nesting needs tables).
         try {
             const leaves = [];
