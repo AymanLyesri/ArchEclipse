@@ -7,8 +7,8 @@ capture workspace at the same rects capture-readme.py uses, right-panel
 layout shuffle, left-panel tab walk, and wallpaper-switcher demonstrates.
 
 State mutated during the run (wallpaper mappings, rightPanel.widgets,
-waifuWidget.current, booru.pins, booru.tags, the temp chatbot session) is
-restored afterwards.
+waifuWidget.current, booru.pins, booru.tags, the fastfetch pin cache, the temp
+chatbot session) is restored afterwards.
 Owns nothing but what it spawned: spawned windows are closed by the exact
 pid observed at mapping — never kill by class or workspace (a user SCP or
 terminal must survive a capture run).
@@ -23,6 +23,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import subprocess
@@ -48,6 +49,11 @@ CHATBOT_SESSIONS = (
 )
 RECORDINGS = Path.home() / "Videos/ScreenRecords/fullscreen"
 SCREENRECORD_SCRIPT = Path.home() / ".config/hypr/scripts/screenrecord.sh"
+# FastfetchPins renders one webp per pin here; fastfetch.sh shuffles every file
+# in the dir, so the demo pin only shows if its render is the only one left.
+FASTFETCH_CACHE = Path.home() / ".config/fastfetch/cache"
+PIN_CACHE_PREFIX = "booru-pin-"
+PIN_CACHE_TIMEOUT = 30.0
 CAPTURE_WS = 10
 WS9 = 9
 # Wallpaper daemon reapplies + opacity transitions; the dwells double as
@@ -56,6 +62,13 @@ WORKSPACE_SETTLE = 1.0
 WALLPAPER_SETTLE = 1.0
 STEP_SETTLE = 1.0
 IPC_SETTLE = 0.5
+# `qs ipc` answers this while the shell's IPC server is still coming up after a
+# reload; the call is never delivered, so a retry cannot apply twice.
+IPC_NOT_READY = "Not ready to accept queries yet."
+IPC_READY_TIMEOUT = 5.0
+# BooruViewer.boot() retries on a 200ms timer and then starts its fetch; the
+# demo tags are pushed after both, or a late boot write overwrites them.
+BOOT_SETTLE = 1.0
 # The bar adopts a recording it did not start on its 1s pgrep poll; this
 # dwell lets the sidepill show the running timer before the take begins.
 RECORD_SETTLE = 1.5
@@ -176,7 +189,16 @@ def run(cmd, timeout=10):
 
 
 def ipc_call(action, *args, timeout=10):
-    text = run(["qs", "-p", QS_CONFIG, "ipc", "call", "bar", action, *args], timeout)
+    deadline = time.monotonic() + IPC_READY_TIMEOUT
+    while True:
+        text = run(
+            ["qs", "-p", QS_CONFIG, "ipc", "call", "bar", action, *args], timeout
+        )
+        if text != IPC_NOT_READY:
+            break
+        if time.monotonic() >= deadline:
+            raise RuntimeError(f"ipc {action}: shell is not accepting queries")
+        time.sleep(0.25)
     if text.startswith("EX: "):
         raise RuntimeError(f"ipc {action}: {text}")
     return text
@@ -244,6 +266,67 @@ def settings_set(key, value, settle=SETTINGS_SETTLE):
     time.sleep(settle)
 
 
+def pin_render_name(pin):
+    """Cache filename FastfetchPins derives from a pin (sanitized api + id)."""
+    api = (pin.get("api") or {}).get("value")
+    if not isinstance(api, str) or not api or pin.get("id") is None:
+        return None
+    api = re.sub(r"[^a-zA-Z0-9_-]", "_", api)
+    return f"{PIN_CACHE_PREFIX}{api}-{pin['id']}.webp"
+
+
+def wait_pin_renders(pins, timeout=PIN_CACHE_TIMEOUT, strict=False):
+    """Poll until FastfetchPins has rendered each pin's webp (async magick)."""
+    wanted = {name for name in map(pin_render_name, pins) if name}
+    deadline = time.monotonic() + timeout
+    while True:
+        missing = sorted(n for n in wanted if not (FASTFETCH_CACHE / n).is_file())
+        if not missing:
+            return
+        if time.monotonic() >= deadline:
+            message = "fastfetch pin renders missing: " + ", ".join(missing)
+            if strict:
+                raise RuntimeError(message)
+            print("WARNING: " + message, flush=True)
+            return
+        time.sleep(0.25)
+
+
+def pin_fastfetch_image():
+    """Leave the demo pin as the only image fastfetch can shuffle.
+
+    FastfetchPins converts asynchronously, and its stale sweep drops at most a
+    file or two per pass (every removal shares one Process, so most never run)
+    — unpinned renders linger and fastfetch.sh's shuffle can pick an old post.
+    Wait for the demo render, drop the rest, and refuse to record with a
+    foreign image present rather than record the wrong logo.
+    """
+    demo = {"id": WAIFU_POST_ID, "api": {"value": SHELL_API_BOORU}}
+    FASTFETCH_CACHE.mkdir(parents=True, exist_ok=True)
+    wait_pin_renders([demo], strict=True)
+    expected = pin_render_name(demo)
+    for stale in FASTFETCH_CACHE.glob(PIN_CACHE_PREFIX + "*.webp"):
+        if stale.name != expected:
+            stale.unlink(missing_ok=True)
+    extra = sorted(
+        p.name
+        for p in FASTFETCH_CACHE.iterdir()
+        if not p.name.startswith(".") and p.name != expected
+    )
+    if extra:
+        raise RuntimeError(
+            "fastfetch cache holds images the take would shuffle in: "
+            + ", ".join(extra)
+        )
+    print(f"Fastfetch image: post {WAIFU_POST_ID} only", flush=True)
+
+
+def restore_fastfetch_pins(snap):
+    """Wait for the restored pins to be re-rendered (we deleted stale ones)."""
+    if snap.pins:
+        wait_pin_renders(snap.pins)
+
+
 class Snapshot:
     """Pre-capture state used both by setup and restore."""
 
@@ -298,8 +381,8 @@ def setup_phase(snap):
     # demo shows exactly one pinned post.
     settings_set("booru.pins", [waifu])
     print(f"Booru pins: post {WAIFU_POST_ID} only", flush=True)
-    settings_set("booru.tags", [BOORU_TAG])
-    print("Booru tags: " + BOORU_TAG, flush=True)
+    pin_fastfetch_image()
+    prime_booru_viewer(snap)
     current = snap.settings.get("waifuWidget", {}).get("current") or {}
     if int(current.get("id", 0)) != WAIFU_POST_ID:
         settings_set("waifuWidget.current", waifu)
@@ -400,6 +483,75 @@ def activate_chatbot_session(snap):
     # keep the panel/graveyard state out of the capture workspace restore.
     ipc_call("toggleLeftPanel", snap.monitor)
     print("Chatbot session active: " + CHAT_SESSION_ID, flush=True)
+
+
+def set_left_panel(snap, open_):
+    """toggleLeftPanel reports the resulting state; flip it back if wrong."""
+    state = ipc_call("toggleLeftPanel", snap.monitor).strip().endswith("open")
+    if state != open_:
+        state = ipc_call("toggleLeftPanel", snap.monitor).strip().endswith("open")
+    if state != open_:
+        raise RuntimeError("left island would not " + ("open" if open_ else "close"))
+
+
+def booru_live_tags(snap):
+    return ipc_call("widgetState", "tags", snap.monitor)
+
+
+def wait_booru_fetch(snap, timeout=45):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        status = ipc_call("widgetState", "fetchStatus", snap.monitor)
+        if status == "success":
+            return
+        if status == "error":
+            raise RuntimeError(
+                "Booru fetch failed: "
+                + ipc_call("widgetState", "lastFetchError", snap.monitor)
+            )
+        time.sleep(0.5)
+    raise RuntimeError("Booru fetch did not finish")
+
+
+def prime_booru_viewer(snap):
+    """Load the Booru tab, then push the demo tags onto the booted widget.
+
+    boot() calls ensureRatingTagFirst(), which prepends -rating:explicit unless
+    the list already carries a rating:explicit entry — a first load during the
+    take rewrites the demo tags on camera. Booting the lazy Loader here spends
+    that one-shot normalization, and the grid is re-fetched so it shows the
+    demo query instead of the fetch boot() started with.
+    """
+    set_left_panel(snap, True)
+    ipc_call("showWidget", "BooruViewer", snap.monitor)
+    deadline = time.monotonic() + 15
+    live = ""
+    while time.monotonic() < deadline:
+        live = booru_live_tags(snap)
+        if not live.startswith("no "):
+            break
+        time.sleep(0.25)
+    else:
+        set_left_panel(snap, False)
+        raise RuntimeError("BooruViewer never loaded: " + live)
+    time.sleep(BOOT_SETTLE)
+    settings_set("booru.tags", [BOORU_TAG])
+    print("Booru tags: " + BOORU_TAG, flush=True)
+    result = ipc_call("widgetState", "fetchApi", snap.monitor)
+    if not result.startswith("fetchImages called"):
+        set_left_panel(snap, False)
+        raise RuntimeError("Booru refetch not started: " + result)
+    wait_booru_fetch(snap)
+    live = booru_live_tags(snap)
+    if live != BOORU_TAG:
+        # A late boot write raced the push — reapply once before giving up.
+        settings_set("booru.tags", [BOORU_TAG])
+        live = booru_live_tags(snap)
+        if live != BOORU_TAG:
+            set_left_panel(snap, False)
+            raise RuntimeError(f"Booru tags are {live!r}, expected {BOORU_TAG!r}")
+    set_left_panel(snap, False)
+    print("Booru viewer primed, tags applied", flush=True)
 
 
 def _foot_clients():
@@ -668,7 +820,8 @@ def restore_state(snap, keep):
     if keep:
         print(
             "MUTATED (kept): wallpaper rows, right-panel order, waifu, "
-            "booru pins/tags, temp chatbot session, left-panel tab",
+            "booru pins/tags, fastfetch image, temp chatbot session, "
+            "left-panel tab",
             flush=True,
         )
         return
@@ -705,9 +858,10 @@ def restore_state(snap, keep):
         restore_settings(snap)
         print("State re-applied after late shell writes", flush=True)
 
+    restore_fastfetch_pins(snap)
     print(
         "State restored: workspace, wallpapers, right-panel order, waifu, "
-        "booru pins/tags, temp session removed",
+        "booru pins/tags, fastfetch image, temp session removed",
         flush=True,
     )
 

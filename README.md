@@ -1,6 +1,12 @@
 <div align="center">
 
-<img src=".github/assets/overview.png" alt="ArchEclipse Overview" width="100%"/>
+## Overview
+
+<p align="center">
+  <a href=".github/assets/overview.mp4">
+    <img src=".github/assets/overview.png" width="100%" alt="ArchEclipse overview">
+  </a>
+</p>
 
 <br/>
 
@@ -11,7 +17,7 @@
 [![](https://img.shields.io/github/last-commit/AymanLyesri/ArchEclipse?&style=for-the-badge&color=8ad7eb&logo=git&logoColor=D9E0EE&labelColor=1E202B)](https://github.com/AymanLyesri/ArchEclipse/commits/master)
 [![](https://img.shields.io/github/stars/AymanLyesri/ArchEclipse?style=for-the-badge&logo=andela&color=86dbd7&logoColor=D9E0EE&labelColor=1E202B)](https://github.com/AymanLyesri/ArchEclipse/stargazers)
 [![](https://img.shields.io/github/repo-size/AymanLyesri/ArchEclipse?color=86dbce&label=SIZE&logo=protondrive&style=for-the-badge&logoColor=D9E0EE&labelColor=1E202B)](https://github.com/AymanLyesri/ArchEclipse)
-<a href="https://discord.gg/fMGt4vH6s5"> <img alt="Discord members" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscordapp.com%2Fapi%2Finvites%2FfMGt4vH6s5%3Fwith_counts%3Dtrue&query=approximate_member_count&style=for-the-badge&logo=discord&logoColor=D9E0EE&label=discord&labelColor=%231E202B&color=86dbc0&link=https%3A%2F%2Fdiscord.gg%2FfMGt4vH6s5"> </a>
+<a href="https://discord.gg/fMGt4vH6s5"> <img alt="Discord members" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscordapp.com%2Fapi%2Finvites%2FfMGt4vH6s5%3Fwith_counts%3Dtrue&query=approximate_member_count&style=for-the-badge&logo=discord&logoColor=D9E0EE&label=discord&labelColor=%231E202B&color=5865F2&link=https%3A%2F%2Fdiscord.gg%2FfMGt4vH6s5"> </a>
 
 </div>
 
@@ -25,19 +31,17 @@
 
 ---
 
-## Community — join the Discord
+## Discord Community
 
 <div align="center">
 
 **Stuck on install? Got a bug, an idea, or a screenshot to show off? The Discord is where it all happens.**
 
-<a href="https://discord.gg/fMGt4vH6s5">
-  <img src="https://img.shields.io/badge/Join_the_Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join the ArchEclipse Discord" />
-</a>
+<a href="https://discord.gg/fMGt4vH6s5"> <img alt="Discord members" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fdiscordapp.com%2Fapi%2Finvites%2FfMGt4vH6s5%3Fwith_counts%3Dtrue&query=approximate_member_count&style=for-the-badge&logo=discord&logoColor=D9E0EE&label=discord&labelColor=%231E202B&color=5865F2&link=https%3A%2F%2Fdiscord.gg%2FfMGt4vH6s5"> </a>
 
 </div>
 
-Fastest place to get help — faster than issues, and the maintainer hangs out there.
+Fastest place to get help — faster than github issues, and the maintainer hangs out there.
 
 ---
 
@@ -245,15 +249,15 @@ Bugs / ideas → [open an issue](https://github.com/AymanLyesri/ArchEclipse/issu
 
 ---
 
+[![Star History Chart](https://star-history.dera.page/svg?repos=aymanlyesri/ArchEclipse&type=Date)](https://star-history.dera.page/#aymanlyesri/ArchEclipse&Date)
+
+---
+
 ## Visuals
 
 ### Launcher
 
 ![Application Launcher](.github/assets/app-launcher.png)
-
-<!-- ### Control Panel
-
-![Control Panel](.github/assets/control-panel.png) -->
 
 ### Right Panel
 
@@ -317,7 +321,5 @@ Coffee = more dev. Thanks.
 ```
 
 </details>
-
-[![Star History Chart](https://star-history.dera.page/svg?repos=aymanlyesri/ArchEclipse&type=Date)](https://star-history.dera.page/#aymanlyesri/ArchEclipse&Date)
 
 </div>

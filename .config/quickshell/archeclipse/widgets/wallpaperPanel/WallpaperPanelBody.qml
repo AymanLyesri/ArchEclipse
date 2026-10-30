@@ -167,7 +167,7 @@ Item {
 
     // Shared masonry (both providers): exact results height from rows × tile height plus gaps;
     // tile widths come from aspect ratios, never the viewport.
-    readonly property real resultsH: Math.max(1, Settings.wallpaperMasonryRows) * Settings.wallpaperTileSize + (Math.max(1, Settings.wallpaperMasonryRows) - 1) * 6 + 12
+    readonly property real resultsH: Math.max(1, Settings.wallpaperMasonryRows) * Settings.wallpaperTileSize + (Math.max(1, Settings.wallpaperMasonryRows) - 1) * 6
     function setMasonryRows(n) {
         Settings.updateSetting("wallpaperSwitcher.masonryRows", Math.min(4, Math.max(1, n)));
     }
@@ -405,9 +405,16 @@ Item {
         if (!force && !root.isWallhaven)
             return;
         root._whSeq++;
-        const seq = root._whSeq;
         root.whLoading = true;
         setProgress("searching");
+        // In-flight run: let it finish and start the newest request from its onExited.
+        // Killing it delivered SIGTERM as a failure of the run that replaced it.
+        if (whSearchProc.running)
+            return;
+        startWhSearch();
+    }
+
+    function startWhSearch() {
         const w = root.wh;
         const cmd = ["python3", root.wallhavenScript, "--search", "--categories", w.categories, "--purity", w.purity, "--sorting", w.sorting, "--order", w.order, "--page", String(w.page)];
         if (w.q !== "")
@@ -423,12 +430,9 @@ Item {
             cmd.push("--seed", root.whMeta.seed);
         if (root.whApiKey !== "")
             cmd.push("--api-key", root.whApiKey);
-        whSearchProc._seq = seq;
+        whSearchProc._seq = root._whSeq;
         whSearchProc.command = cmd;
-        // Assigning ·starting on an in-flight Process is a no-op, so kill first; the killed
-        // run's delivery is dropped by _seq (a no-op start wedged whLoading true forever).
-        if (whSearchProc.running)
-            whSearchProc.running = false;
+        root._whErr = "";
         whSearchProc.running = true;
     }
 
@@ -437,7 +441,8 @@ Item {
         property int _seq: 0
         stdout: StdioCollector {
             onStreamFinished: {
-                // Stale guard: rapid filter edits fire overlapping searches.
+                // _seq is set at start only, so a superseded run's delivery is dropped here
+                // (the old per-run overwrite before the kill misread it as current).
                 if (whSearchProc._seq !== root._whSeq)
                     return;
                 root.whLoading = false;
@@ -460,12 +465,16 @@ Item {
         }
         stderr: StdioCollector {
             onStreamFinished: {
-                root._whErr = text;
+                if (whSearchProc._seq === root._whSeq)
+                    root._whErr = text;
             }
         }
         onExited: code => {
-            if (whSearchProc._seq !== root._whSeq)
+            // A superseded run: its result was dropped, so run the request that replaced it.
+            if (whSearchProc._seq !== root._whSeq) {
+                root.startWhSearch();
                 return;
+            }
             root.whLoading = false;
             if (code !== 0) {
                 let msg = "search failed (exit " + code + ")";

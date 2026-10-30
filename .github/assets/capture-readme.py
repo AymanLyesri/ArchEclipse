@@ -17,8 +17,8 @@ import tempfile
 import time
 import zlib
 
-CONFIG = Path(__file__).resolve().parent.parent
-REPO = CONFIG.parents[2]
+CONFIG = Path("/home/ayman/.config/quickshell/archeclipse")
+REPO = Path(__file__).resolve().parents[2]
 CACHE = (
     Path(os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache")))
     / "archeclipse-capture"
@@ -89,7 +89,7 @@ MANIFEST = [
         "wallpaper-switcher",
         "wallpaper",
         fullscreen=True,
-        wallpaper="/home/ayman/.config/wallpapers/defaults/images_nsfw/__prinz_moritz_azur_lane__3c7795af9ae9b14715a33c33eb584651.png",
+        wallpaper="/home/ayman/.config/wallpapers/defaults/images_sfw/__luci_hexia_drawn_by_damcheong__08d0e1c429ef1d88c0cd274cb75cbf86.jpg",
     ),
     shot(
         "workspace-overview",
@@ -249,7 +249,9 @@ def workspace_mapping(monitor, workspace):
     return None
 
 
-def apply_wallpaper(monitor, path, workspace=CAPTURE_WORKSPACE_ID, timeout=15, settle=4.0):
+def apply_wallpaper(
+    monitor, path, workspace=CAPTURE_WORKSPACE_ID, timeout=15, settle=4.0
+):
     # WallEclipse `set` updates the workspace mapping AND shows immediately
     # (replaces `hyprctl hyprpaper wallpaper`, which was live-only).
     # Callers save/restore the mapping around capture runs.
