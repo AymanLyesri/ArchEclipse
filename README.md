@@ -6,6 +6,9 @@
   <a href=".github/assets/overview.mp4">
     <img src=".github/assets/overview.png" width="100%" alt="ArchEclipse overview">
   </a>
+
+https://github.com/user-attachments/assets/48210e9f-d21b-437d-ab72-445ba45b8a7d
+
 </p>
 
 <br/>
