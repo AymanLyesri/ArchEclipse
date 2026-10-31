@@ -23,6 +23,15 @@ Singleton {
     property int uiSpacing: 6
     property int uiFontSize: 12
 
+    // Keybind glyph settings
+    property string keybindsSuperKey: Icons.keySuperArch
+    property bool keybindsUseMacSymbol: false
+    property bool keybindsUseFunctionSymbol: false
+    property bool keybindsUseMouseSymbol: false
+    property bool keybindsSplitButtons: false
+    property int keybindsFontSize: 12
+    property int keybindsDescriptionFontSize: 11
+
     // animScale multiplies every Theme.anim duration (1.0 = normal, lower = faster);
     // islandAnimStyle picks the IslandExpandClip easing.
     property bool animationsEnabled: true
@@ -398,8 +407,8 @@ Singleton {
         {
             path: ["decoration", "shadow", "render_power"],
             name: "Shadow Render Power",
-            min: 0,
-            max: 20,
+            min: 1,
+            max: 4,
             type: "int",
             def: 3,
             typeFirst: true
@@ -832,6 +841,15 @@ Singleton {
                         value: root.uiFontSize
                     }
                 },
+                keybinds: {
+                    superKey: root.keybindsSuperKey,
+                    useMacSymbol: root.keybindsUseMacSymbol,
+                    useFunctionSymbol: root.keybindsUseFunctionSymbol,
+                    useMouseSymbol: root.keybindsUseMouseSymbol,
+                    splitButtons: root.keybindsSplitButtons,
+                    fontSize: root.keybindsFontSize,
+                    descriptionFontSize: root.keybindsDescriptionFontSize
+                },
                 animations: {
                     enabled: {
                         value: root.animationsEnabled
@@ -1044,6 +1062,15 @@ Singleton {
                 root.uiPad = s.ui?.pad?.value ?? 8;
                 root.uiSpacing = s.ui?.spacing?.value ?? 8;
                 root.uiFontSize = s.ui?.fontSize?.value ?? 12;
+
+                const keybinds = s.keybinds ?? {};
+                root.keybindsSuperKey = typeof keybinds.superKey === "string" && keybinds.superKey !== "" ? keybinds.superKey : Icons.keySuperArch;
+                root.keybindsUseMacSymbol = keybinds.useMacSymbol ?? false;
+                root.keybindsUseFunctionSymbol = keybinds.useFunctionSymbol ?? false;
+                root.keybindsUseMouseSymbol = keybinds.useMouseSymbol ?? false;
+                root.keybindsSplitButtons = keybinds.splitButtons ?? false;
+                root.keybindsFontSize = Math.min(30, Math.max(8, parseInt(keybinds.fontSize) || 12));
+                root.keybindsDescriptionFontSize = Math.min(30, Math.max(8, parseInt(keybinds.descriptionFontSize) || 11));
 
                 // Shell motion: accept both {value} leaves and plain values;
                 // clamp scale so a stale file can't freeze or stall motion.
@@ -1498,6 +1525,27 @@ Singleton {
             root.schedulePersist();
         }
         function onUiFontSizeChanged() {
+            root.schedulePersist();
+        }
+        function onKeybindsSuperKeyChanged() {
+            root.schedulePersist();
+        }
+        function onKeybindsUseMacSymbolChanged() {
+            root.schedulePersist();
+        }
+        function onKeybindsUseFunctionSymbolChanged() {
+            root.schedulePersist();
+        }
+        function onKeybindsUseMouseSymbolChanged() {
+            root.schedulePersist();
+        }
+        function onKeybindsSplitButtonsChanged() {
+            root.schedulePersist();
+        }
+        function onKeybindsFontSizeChanged() {
+            root.schedulePersist();
+        }
+        function onKeybindsDescriptionFontSizeChanged() {
             root.schedulePersist();
         }
         function onAnimationsEnabledChanged() {

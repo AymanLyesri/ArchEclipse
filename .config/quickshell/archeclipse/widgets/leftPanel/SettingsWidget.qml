@@ -28,7 +28,8 @@ Item {
         { key: "hyprland", title: "Hyprland" },
         { key: "lockscreen", title: "Lockscreen" },
         { key: "recording", title: "Recording" },
-        { key: "screenshots", title: "Screenshots" }
+        { key: "screenshots", title: "Screenshots" },
+        { key: "keybinds", title: "Keybinds" }
     ]
 
     // Island motion-style choices live at root: the shared CategorySection has
@@ -872,8 +873,8 @@ Item {
                             text: "Shadow Render Power"
                             tip: "Shadow softness and strength."
                             settingKey: "decoration.shadow.render_power"
-                            from: 0
-                            to: 20
+                            from: 1
+                            to: 4
                             value: Settings.hyprGet("decoration.shadow.render_power")
                         }
                         HyprSliderRow {
@@ -1247,6 +1248,107 @@ Item {
                             text: "PNG is lossless; JPEG trades image detail for smaller files. Settings apply to the next capture."
                             color: Theme.fgDim
                             font.pixelSize: Theme.fontSize - 1
+                        }
+                    }
+
+                    // ============ KEYBINDS ============
+                    CategorySection {
+                        nav: nav
+                        categoryIndex: 11
+                        revealed: root.revealCount > 11
+
+                        SettingRow {
+                            text: "Super key symbol"
+                            tip: "Choose the glyph used for the Super / Windows modifier."
+
+                            AppComboBox {
+                                model: [Icons.keySuperArch, Icons.keySuperManjaro, Icons.keySuperEndeavour, Icons.keySuperCachyOS, Icons.keySuperGaruda, Icons.keySuperArchcraft, Icons.keySuperArcoLinux, Icons.keySuperArtix, Icons.keySuperLinuxTerminal, Icons.keySuperLinux, Icons.keySuperGentoo, Icons.keySuperDebian, Icons.keySuperUbuntu, Icons.keySuperRedHat, Icons.keySuperFedora, Icons.keySuperSteam, Icons.keySuperApple, Icons.keySuperCommand, Icons.keySuperAndroid, Icons.keySuperAssistant, Icons.keySuperChrome, Icons.keySuperWindows11, Icons.keySuperWindowsClassic]
+                                currentIndex: Math.max(0, model.indexOf(Settings.keybindsSuperKey))
+                                onActivated: Settings.keybindsSuperKey = model[index]
+                                Layout.preferredWidth: 120
+                            }
+
+                        }
+
+                        SettingRow {
+                            text: "Use macOS-like mod symbols"
+                            tip: "Render Ctrl/Alt/Shift with the classic macOS glyphs."
+
+                            AppToggle {
+                                checked: Settings.keybindsUseMacSymbol
+                                onToggled: Settings.keybindsUseMacSymbol = checked
+                            }
+
+                        }
+
+                        SettingRow {
+                            text: "Use symbols for function keys"
+                            tip: "Render F1–F12 with Nerd Font glyphs."
+
+                            AppToggle {
+                                checked: Settings.keybindsUseFunctionSymbol
+                                onToggled: Settings.keybindsUseFunctionSymbol = checked
+                            }
+
+                        }
+
+                        SettingRow {
+                            text: "Use symbols for mouse"
+                            tip: "Render mouse actions and buttons with compact glyphs."
+
+                            AppToggle {
+                                checked: Settings.keybindsUseMouseSymbol
+                                onToggled: Settings.keybindsUseMouseSymbol = checked
+                            }
+
+                        }
+
+                        SettingRow {
+                            text: "Split buttons"
+                            tip: "Display modifier and key as separate chips."
+
+                            AppToggle {
+                                checked: Settings.keybindsSplitButtons
+                                onToggled: Settings.keybindsSplitButtons = checked
+                            }
+
+                        }
+
+                        SettingRow {
+                            text: "Keybind font size"
+                            tip: "Size of each key cap in the keybind list."
+
+                            AppSpinBox {
+                                from: 8
+                                to: 30
+                                value: Settings.keybindsFontSize
+                                Layout.preferredWidth: 50
+                                onValueChanged: {
+                                    if (value === Settings.keybindsFontSize)
+                                        return ;
+
+                                    Settings.keybindsFontSize = value;
+                                }
+                            }
+
+                        }
+
+                        SettingRow {
+                            text: "Description font size"
+                            tip: "Size of the keybind description text."
+
+                            AppSpinBox {
+                                from: 8
+                                to: 30
+                                value: Settings.keybindsDescriptionFontSize
+                                Layout.preferredWidth: 50
+                                onValueChanged: {
+                                    if (value === Settings.keybindsDescriptionFontSize)
+                                        return ;
+
+                                    Settings.keybindsDescriptionFontSize = value;
+                                }
+                            }
                         }
                     }
                 }
