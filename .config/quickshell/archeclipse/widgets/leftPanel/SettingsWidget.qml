@@ -37,24 +37,19 @@ Item {
     readonly property var islandAnimStyleValues: ["Standard", "Emphasized", "ExpressiveFast", "ExpressiveDefault", "ExpressiveSlow"]
     readonly property var islandAnimStyleLabels: ["Standard (smooth)", "Emphasized (smooth)", "Bouncy Fast", "Bouncy Default", "Bouncy Slow"]
 
-    // Replayable staggered reveal: StackLayout builds tabs hidden at startup, so
-    // a counter steps 0→sectionCount and sections key their opacity off it.
-    property int revealCount: 0
-    property int sectionCount: root.categories.length
-    Timer {
-        id: revealTimer
-        interval: 60
-        repeat: true
-        onTriggered: {
-            if (root.revealCount >= root.sectionCount)
-                revealTimer.stop();
-            else
-                root.revealCount++;
-        }
+    // Unified entrance fade (StackLayout builds tabs hidden): the whole page
+    // fades in once, replacing the old per-section stagger.
+    property real revealOpacity: 0
+    Anim {
+        id: revealFade
+        target: root
+        property: "revealOpacity"
+        from: 0
+        to: 1
+        type: Anim.DefaultEffects
     }
     function playReveal() {
-        root.revealCount = 0;
-        revealTimer.restart();
+        revealFade.restart();
     }
 
     // Shared category navigation (rail highlight, centered scroll, distance
@@ -129,6 +124,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
+        opacity: root.revealOpacity
 
         RowLayout {
             Layout.fillWidth: true
@@ -151,6 +147,7 @@ Item {
             CategoryRail {
                 Layout.preferredWidth: root.sidebarWidth
                 Layout.alignment: Qt.AlignTop
+                nav: nav
                 model: root.categories
                 currentIndex: nav.activeIndex
                 onSelected: index => nav.select(index)
@@ -185,7 +182,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 0
-                        revealed: root.revealCount > 0
 
                         SettingRow {
                             text: "Orientation"
@@ -203,7 +199,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 1
-                        revealed: root.revealCount > 1
 
                         SettingRow {
                             text: "Left Panel Width"
@@ -292,7 +287,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 2
-                        revealed: root.revealCount > 2
 
                         SettingRow {
                             text: "Dynamic Theme Colors"
@@ -367,7 +361,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 3
-                        revealed: root.revealCount > 3
 
                         SettingRow {
                             text: "Opacity"
@@ -415,7 +408,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 4
-                        revealed: root.revealCount > 4
 
                         SettingRow {
                             text: "Enabled"
@@ -502,7 +494,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 5
-                        revealed: root.revealCount > 5
 
                         Repeater {
                             model: [
@@ -569,7 +560,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 6
-                        revealed: root.revealCount > 6
 
                         Repeater {
                             id: apiKeyRepeater
@@ -712,7 +702,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 7
-                        revealed: root.revealCount > 7
 
                         // Game Mode
                         SettingRow {
@@ -945,7 +934,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 8
-                        revealed: root.revealCount > 8
 
                         SettingRow {
                             text: "Grace Period (seconds)"
@@ -975,7 +963,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 9
-                        revealed: root.revealCount > 9
 
                         SettingRow {
                             text: "Video Codec"
@@ -1136,7 +1123,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 10
-                        revealed: root.revealCount > 10
 
                         SettingRow {
                             text: "Directory to save screenshots"
@@ -1255,7 +1241,6 @@ Item {
                     CategorySection {
                         nav: nav
                         categoryIndex: 11
-                        revealed: root.revealCount > 11
 
                         SettingRow {
                             text: "Super key symbol"

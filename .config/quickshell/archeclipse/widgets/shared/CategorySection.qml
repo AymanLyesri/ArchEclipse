@@ -33,6 +33,19 @@ Rectangle {
         }
     }
 
+    // Hovering a card parks the fade anchor on it: it reads at full strength and the rest step
+    // down, matching the scroll fade (a scroll clears it again).
+    HoverHandler {
+        onHoveredChanged: {
+            if (!root.nav || root.categoryIndex < 0)
+                return;
+            if (hovered)
+                root.nav.hoverIndex = root.categoryIndex;
+            else if (root.nav.hoverIndex === root.categoryIndex)
+                root.nav.hoverIndex = -1;
+        }
+    }
+
     Column {
         id: body
 

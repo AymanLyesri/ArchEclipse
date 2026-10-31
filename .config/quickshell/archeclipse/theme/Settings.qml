@@ -45,7 +45,7 @@ Singleton {
     property bool notifDnd: false
     property bool leftPanelLock: false
     property bool rightPanelLock: false
-    property int leftPanelWidth: 400
+    property int leftPanelWidth: 500
     property int rightPanelWidth: 350
     // Per-monitor overrides. The flat properties above remain the defaults
     // for monitors without an explicit override and for older settings files.

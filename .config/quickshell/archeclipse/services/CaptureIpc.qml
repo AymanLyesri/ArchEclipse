@@ -199,7 +199,7 @@ Item {
                 ready = ready && !!island && island.selectedWidget === root.widget && !!island.activeWidget;
                 if (ready && root.widget === "KeyBinds") {
                     const item = island.activeWidget;
-                    ready = !item.loading && item.totalBinds > 0 && item.revealCount >= item.totalBinds;
+                    ready = !item.loading && item.totalBinds > 0 && item.revealOpacity >= 1;
                 }
                 if (ready && root.widget === "BooruViewer") {
                     const item = island.activeWidget;

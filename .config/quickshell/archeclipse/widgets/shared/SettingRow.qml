@@ -29,5 +29,12 @@ Item {
             // instead of starving the control; the label still elides with a full-text tooltip.
             Layout.preferredWidth: root.labelWidth < 0 ? 0 : Math.min(root.labelWidth, Math.max(64, root.width * 0.4))
         }
+
+        // Capped-label rows pack controls left, leaving a dead gap on the row's edge; a
+        // zero-preference filler right-aligns them and yields to any fillWidth control.
+        Item {
+            Layout.fillWidth: root.labelWidth >= 0
+            Layout.preferredWidth: 0
+        }
     }
 }

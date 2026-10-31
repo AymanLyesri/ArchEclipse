@@ -9,6 +9,10 @@ Rectangle {
     property var model: []
     property int currentIndex: 0
     signal selected(int index)
+    // Optional nav hook: only the falloff constants are used, so a rail hover dims its
+    // neighbours exactly like the section fade. The selection is never touched.
+    property CategoryNav nav: null
+    property int hoveredIndex: -1
 
     readonly property int inset: Theme.pad
     readonly property int entryHeight: Math.max(28, Theme.fontSize + 16)
@@ -23,6 +27,10 @@ Rectangle {
     // Hug the entries: a full-height rail would be mostly empty borders on
     // a tall monitor and read as a second content pane.
     implicitHeight: entries.implicitHeight + inset * 2
+
+    // A hidden rail cannot deliver onExited, so a close mid-hover must drop the preview.
+    onVisibleChanged: if (!root.visible) root.hoveredIndex = -1
+    onModelChanged: root.hoveredIndex = -1
 
     function labelAt(index) {
         const entry = root.model[index];
@@ -87,6 +95,14 @@ Rectangle {
 
                 width: entries.width
                 height: root.entryHeight
+                // Hovered entry reads at full strength, the rest step down with the section
+                // fade's falloff (no nav wired = no dimming).
+                opacity: root.nav ? root.nav.falloffFor(index, root.hoveredIndex) : 1
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
 
                 Rectangle {
                     anchors.fill: parent
@@ -132,6 +148,8 @@ Rectangle {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.selected(cell.index)
+                    onEntered: root.hoveredIndex = cell.index
+                    onExited: if (root.hoveredIndex === cell.index) root.hoveredIndex = -1
                 }
             }
         }

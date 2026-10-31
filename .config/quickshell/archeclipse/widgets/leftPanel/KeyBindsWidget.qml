@@ -16,40 +16,26 @@ Item {
     property var keybinds: ({})
     property bool loading: true
 
-    // Replayable staggered reveal (StackLayout builds tabs hidden): a counter
-    // steps 0→totalBinds; rows key off their flat category+row position.
-    property int revealCount: 0
-    property var flatOffsets: []
+    // Unified entrance fade (StackLayout builds tabs hidden): the whole page
+    // fades in once, replacing the old per-row stagger.
+    property real revealOpacity: 0
     property int totalBinds: 0
-    Timer {
-        id: revealTimer
-        interval: 25
-        repeat: true
-        onTriggered: {
-            if (root.revealCount >= root.totalBinds)
-                revealTimer.stop();
-            else
-                root.revealCount++;
-        }
+    Anim {
+        id: revealFade
+        target: root
+        property: "revealOpacity"
+        from: 0
+        to: 1
+        type: Anim.DefaultEffects
     }
     function recomputeOffsets() {
-        const cats = Object.keys(root.keybinds).sort();
-        const offs = [];
         let n = 0;
-        for (const c of cats) {
-            offs.push(n);
+        for (const c of Object.keys(root.keybinds).sort())
             n += ((root.keybinds[c] || []).length);
-        }
-        root.flatOffsets = offs;
         root.totalBinds = n;
     }
-    function catBase(i) {
-        const o = root.flatOffsets;
-        return (o && o[i] !== undefined) ? o[i] : 0;
-    }
     function playReveal() {
-        root.revealCount = 0;
-        revealTimer.restart();
+        revealFade.restart();
     }
     onVisibleChanged: {
         if (visible && !root.loading)
@@ -332,7 +318,9 @@ Item {
     // Shared category navigation: the rail selects a category, scrolls it
     // to the middle of the viewport and applies the distance focus fade.
     CategoryNav {
-        id: nav
+        // Not `nav`: inside a Repeater delegate an unqualified `nav` resolves to the
+        // component's own property, so the id must differ for those bindings.
+        id: catNav
         flickable: keyScroll
         content: keyCol
         categories: root.categories
@@ -342,6 +330,7 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
+        opacity: root.revealOpacity
 
         Label {
             text: "Key Binds"
@@ -370,9 +359,10 @@ Item {
                 Layout.preferredWidth: 104
                 Layout.alignment: Qt.AlignTop
                 visible: !root.loading && root.categories.length > 0
+                nav: catNav
                 model: root.categories
-                currentIndex: nav.activeIndex
-                onSelected: index => nav.select(index)
+                currentIndex: catNav.activeIndex
+                onSelected: index => catNav.select(index)
             }
 
             SmoothFlickable {
@@ -387,7 +377,7 @@ Item {
                     policy: ScrollBar.AsNeeded
                     onPressedChanged: {
                         if (pressed)
-                            nav.cancel();
+                            catNav.cancel();
                     }
                 }
 
@@ -403,58 +393,42 @@ Item {
                             required property string modelData
                             required property int index
                             property string category: modelData
-                            // Flat base of this category's rows in the reveal
-                            // order (inner rows add their own index to it).
-                            property int rowBase: root.catBase(index)
                             // Direct child of keyCol: CategoryNav finds the
                             // section for centering by this key.
                             property int categoryIndex: index
                             width: parent.width
                             spacing: Theme.spacing
-                            // The divider fades with its card; one focus opacity for
-                            // the whole group, never stacked per card.
-                            opacity: (root.revealCount > rowBase ? 1 : 0) * nav.opacityFor(index)
-                            Behavior on opacity {
-                                Anim {
-                                    type: Anim.DefaultEffects
-                                }
-                            }
+                            // The card owns the fade (hover + scroll anchor); see CategorySection.
 
                             CategorySection {
                                 width: parent.width
+                                nav: catNav
+                                categoryIndex: catSec.categoryIndex
                                 title: catSec.category
 
                                 Repeater {
                                     model: root.keybinds[catSec.category] || []
-                                    // Two lines: category names are long and the
-                                    // column is shared with the rail.
+                                    // Title and keys sit on one line: the description
+                                    // elides (tooltip on truncation) to leave the chips room.
                                     delegate: Rectangle {
                                         required property var modelData
                                         required property int index
                                         width: parent.width
                                         height: bindBody.implicitHeight + 8
                                         color: "transparent"
-                                        // Flat position vs the reveal counter; +1 so
-                                        // rows trail their header.
-                                        opacity: (catSec.rowBase + index + 1) <= root.revealCount ? 1 : 0
-                                        Behavior on opacity {
-                                            NumberAnimation {
-                                                duration: 220
-                                                easing.type: Easing.OutCubic
-                                            }
-                                        }
 
-                                        Column {
+                                        RowLayout {
                                             id: bindBody
 
                                             anchors.fill: parent
                                             anchors.topMargin: 4
                                             anchors.bottomMargin: 4
-                                            spacing: 4
+                                            spacing: Theme.spacing
 
                                             Label {
                                                 id: descriptionLabel
-                                                width: parent.width
+                                                Layout.fillWidth: true
+                                                Layout.alignment: Qt.AlignVCenter
                                                 text: modelData.description
                                                 font.pixelSize: ((typeof Settings !== "undefined") && Settings.keybindsDescriptionFontSize) ? Settings.keybindsDescriptionFontSize : Theme.fontSize
                                                 color: Theme.fg
@@ -474,6 +448,7 @@ Item {
 
                                             // key chips joined by "+" (shared AppKeybind widget)
                                             AppKeybind {
+                                                Layout.alignment: Qt.AlignVCenter
                                                 keys: modelData.keys || []
                                             }
                                         }

@@ -20,6 +20,8 @@ QtObject {
     property bool navInProgress: false
     property int navToken: 0
     property int navFocusIndex: -1
+    // Card hover anchor. Any scroll clears it, so the scroll fade always re-wins after a gesture.
+    property int hoverIndex: -1
 
     // Distance falloff: restrained enough that neighbouring sections stay
     // readable; far ones recede but never disappear.
@@ -33,8 +35,16 @@ QtObject {
         return typeof entry === "string" ? entry : (entry.title || "");
     }
 
+    // One falloff for every host: the fading sections anchor on focusIndex, a rail hover
+    // anchors on its own entry, so both read identically.
+    function falloffFor(index, anchor) {
+        if (anchor === undefined || anchor < 0)
+            return 1;
+        return Math.max(root.minimumOpacity, 1 - Math.abs(index - anchor) * root.opacityStep);
+    }
+
     function opacityFor(index) {
-        return Math.max(root.minimumOpacity, 1 - Math.abs(index - root.focusIndex) * root.opacityStep);
+        return root.falloffFor(index, root.hoverIndex >= 0 ? root.hoverIndex : root.focusIndex);
     }
 
     function sectionItem(index) {
@@ -119,6 +129,7 @@ QtObject {
         const index = root.centeredIndex();
         if (index < 0)
             return;
+        root.hoverIndex = -1;
         root.activeIndex = index;
         root.focusIndex = index;
     }
@@ -196,6 +207,7 @@ QtObject {
     // the new sections are laid out.
     function resetForModelChange() {
         root.cancel();
+        root.hoverIndex = -1;
         root.activeIndex = Math.max(0, Math.min(root.activeIndex, root.categories.length - 1));
         root.focusIndex = root.activeIndex;
         Qt.callLater(() => root.syncFromScroll());
