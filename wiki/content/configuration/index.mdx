@@ -1,0 +1,163 @@
+---
+title: Configuration
+description: How the Hyprland Lua modules, custom overrides, Quickshell settings and startup scripts fit together.
+group: Configuration
+groupOrder: 2
+order: 1
+---
+
+ArchEclipse has two configuration layers:
+
+1. **Hyprland** — Lua modules in `~/.config/hypr`, loaded by `hyprland.lua`.
+2. **Quickshell** — runtime settings in
+   `~/.cache/quickshell/settings/settings.json`, edited through the in-shell
+   Settings tab.
+
+Some things live in both. A Hyprland slider in Settings writes a machine-local
+Lua module and pushes it to Hyprland; the shell's own appearance is stored in
+the JSON settings file.
+
+## Configuration paths
+
+| Path | Contents |
+| --- | --- |
+| `~/.config/hypr/hyprland.lua` | Entry point: XDG environment, module loading, custom modules |
+| `~/.config/hypr/config/*.lua` | Tracked base configuration, one file per section |
+| `~/.config/hypr/config/custom/*.lua` | Machine-local overrides, loaded last |
+| `~/.config/hypr/config/defaults/*.lua` | Templates copied into `custom/` by the installer |
+| `~/.config/hypr/config/scripts/` | Hyprland-side Lua helpers (bar restart, brightness, drag, RC) |
+| `~/.config/hypr/scripts/` | Bash capture scripts (`screenshot.sh`, `screenrecord.sh`) |
+| `~/.config/hypr/maintenance/` | Python installer, updater and their components |
+| `~/.config/quickshell/archeclipse/` | Shell source: `shell.qml`, services, widgets, theme |
+| `~/.cache/quickshell/settings/settings.json` | Persisted shell settings |
+| `~/.cache/coloreclipse/colors.scss` | Palette generated from the wallpaper |
+| `~/.config/wallpapers/` | Wallpaper categories, custom images and Wallhaven downloads |
+
+## Load order
+
+`hyprland.lua` first sets the session environment, then requires the base
+modules in this order:
+
+```lua
+animations, scripts, bind, decoration, device, env, exec,
+general, gesture, input, layerrule, layouts, misc,
+monitor, windowrule, workspace
+```
+
+After that, every `*.lua` file in `~/.config/hypr/config/custom/` is loaded in
+sorted order. Because custom modules run last, they can override a value set by
+a base module. They cannot undo the effect of a function that already ran
+unless Hyprland exposes a matching API.
+
+The base list lives in `hyprland.lua`. Adding a new base section means creating
+`config/<name>.lua` and adding it to that list. Host-specific changes belong in
+`custom/`.
+
+## What the base config sets
+
+These are the tracked defaults. The Settings panel can change several of them
+at runtime, and custom modules take precedence.
+
+| Area | Default |
+| --- | --- |
+| Layout | `dwindle`, `force_split = 2`, `preserve_split = true` |
+| Gaps | `gaps_in = 4`, `gaps_out = 12` |
+| Borders | `border_size = 0` (active/inactive border colors are inert at 0) |
+| Rounding | `rounding = 12` |
+| Opacity | `active_opacity = 0.85`, `inactive_opacity = 0.85` |
+| Blur | enabled, `size = 4`, `passes = 4`, popups enabled |
+| Shadows | disabled (`shadow.enabled = false`) |
+| Monitor | one fallback rule: `output = ""`, `mode = "highres"`, `position = "auto"`, `scale = 1` |
+| Keyboard | `kb_rules = "evdev"`, `kb_model = "pc105"`, `kb_options = "grp:alt_shift_toggle"` |
+| Touchpad | natural scroll, tap-to-click, `scroll_factor = 0.1`, no disable-while-typing |
+| Gestures | 3-finger horizontal = workspaces, 3-finger up = special, 4-finger up = fullscreen, 4-finger left/right = float |
+| Misc | logo and splash disabled, DPMS wake on input, swallow disabled |
+| Animations | enabled, shared `ease` curve, `phi * 2` interval |
+
+<Callout type="warning" title="Border colors need a border">
+`border_size = 0` in `general.lua` means border colors do not render. If you
+set a nonzero border size, also set `col.active_border` and
+`col.inactive_border` in a custom decoration module.
+</Callout>
+
+## Making changes
+
+### Prefer `config/custom/`
+
+Create a new Lua file in `~/.config/hypr/config/custom/`, for example:
+
+```lua
+-- ~/.config/hypr/config/custom/decoration_gaps.lua
+hl.config({
+    general = {
+        gaps_in = 6,
+        gaps_out = 16,
+    },
+})
+```
+
+Custom modules are outside the tracked base configuration, so they survive the
+installer's copy-if-missing step. The updater still resets the whole checkout,
+but `custom/` is gitignored and left alone.
+
+### Do not rely on load order
+
+Custom files load alphabetically, not in dependency order. Keep each file
+self-contained: repeat the table path you are changing instead of assuming
+another module set it first.
+
+### Apply and validate
+
+```bash
+hyprctl reload
+hyprctl configerrors
+```
+
+You can syntax-check the Lua before reloading:
+
+```bash
+luac -p ~/.config/hypr/hyprland.lua ~/.config/hypr/config/*.lua
+```
+
+`config/defaults/` contains `{{ PLACEHOLDER }}` templates for the installer and
+is not valid Lua; do not lint that directory as-is.
+
+## Settings that are not in Hyprland
+
+The Quickshell layer reads its own settings file and does not read the Hyprland
+Lua modules. Examples:
+
+- bar orientation, opacity, radius, padding and font size;
+- panel widths and hot-zone sizes;
+- shell animation speed and island motion style;
+- screenshot and recording options;
+- notification DND and lock grace period.
+
+Those are documented in [Settings](/docs/configuration/settings).
+
+## Startup applications
+
+`~/.config/hypr/config/exec.lua` registers a single
+`hl.on("hyprland.start", ...)` handler for the wallpaper daemon, bar, polkit
+agent, theme applier and tray applets. The installer adds
+`config/custom/browser.lua` and `config/custom/discord_client.lua`, which start
+the selected browser and chat client and place their windows.
+
+<Callout type="note" title="No reload loop">
+Do not add `hyprpm reload && hyprctl reload` to the startup handler: it
+re-triggers the start block. Reload plugins manually after changing them.
+</Callout>
+
+## Quickshell configuration
+
+The shell is not compiled and has no build step. It is pure QML plus helper
+scripts. Its runtime state lives in `services/QML` singletons and is exposed
+through `qs` IPC:
+
+```bash
+qs -p ~/.config/quickshell/archeclipse ipc call bar toggleBar HDMI-A-1
+```
+
+Shell modules are declared in `qmldir` files. Adding a new QML file requires
+registering it there; adding a documentation page does not. See
+[Widgets](/docs/configuration/widgets) and [Bar](/docs/configuration/bar).

@@ -1,0 +1,152 @@
+---
+title: Installation
+description: Run the installer, understand every step, choose a branch, update safely and uninstall ArchEclipse.
+group: Getting Started
+groupOrder: 1
+order: 2
+---
+
+The installer is a Python entrypoint at
+`.config/hypr/maintenance/install.py`. It bootstraps its own prerequisites,
+clones the repository, and then runs a plan of optional components. This page
+describes what each part does so you can decide what to accept.
+
+## Prerequisites in detail
+
+1. **Arch Linux** with a working graphical stack. The repository targets Arch;
+   other Arch-based systems are not tested upstream.
+2. **Hyprland installed and working.** ArchEclipse installs `hyprland` from the
+   package list, but does not install or configure your GPU drivers. Verify a
+   plain Hyprland session starts before continuing.
+3. **Python 3.** The installer is run with `python3`.
+4. **`sudo` access.** Packages, greetd configuration and system tweaks require it.
+5. **An AUR helper or the ability to build one.** If `yay` and `paru` are both
+   missing, the installer clones and builds the helper you select.
+
+<Callout type="note" title="Disk and download size">
+Package downloads dominate installation time. The repository does not publish
+a fixed disk-size requirement; the installer pulls the full package list and a
+set of wallpapers. **TODO:** document measured package and wallpaper sizes.
+</Callout>
+
+## Run the installer
+
+```bash
+python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/refs/heads/master/.config/hypr/maintenance/install.py)
+```
+
+The script prints an installation plan and asks which steps to run. Defaults are
+shown in brackets; pressing Enter accepts the default.
+
+### Installer steps
+
+| Step | Default | What happens |
+| --- | --- | --- |
+| Back up old dotfiles | no | Copies tracked entries that already exist in `~` into `~/dotfiles_backup_<date>` before deployment. |
+| Apply ArchEclipse configuration | yes | Sets a git worktree at `$HOME` and force-checks out tracked files. |
+| Keyboard configuration | no | Optional keyboard setup component. |
+| Locale | no | Adds `en_US.UTF-8` if it is missing. |
+| Remove unwanted packages | no | Removes `dunst` and `swaync` if installed (Quickshell owns notifications). |
+| Install necessary packages | yes | Installs the embedded package list with your chosen AUR helper. |
+| Greetd + Quickshell greeter | yes | Configures the greetd login screen and syncs the greeter theme. |
+| Default configurations | yes | Copies `config/defaults/*` into `config/custom/` only when the target does not exist. |
+| Browser | yes | Lets you pick a browser and generates `config/custom/browser.lua`. |
+| Discord client | yes | Lets you pick a client and generates `config/custom/discord_client.lua`. |
+| Wallpapers | yes | Downloads the default wallpaper categories. |
+| Plugins | yes | Installs Hyprland plugins with `hyprpm`. |
+| System tweaks | yes | Masks `NetworkManager-wait-online.service` to shorten boot. |
+
+The plan is collected before anything runs. The installer then executes the
+selected steps without further prompts, apart from package manager interaction.
+
+### Browser and Discord choices
+
+The browser step offers `helium-browser` (recommended), `zen-browser`, `firefox`,
+`chromium` and `google-chrome`. The Discord step offers `legcord`
+(recommended), `discord`, `betterdiscord` and `vesktop`. Each choice rewrites a
+small Lua module in `~/.config/hypr/config/custom/`, which starts the app and
+places its window on a workspace.
+
+### After the installer
+
+The script reloads Hyprland and prints a completion message. Package changes,
+the greetd configuration and user services still need a reboot or a fresh login.
+Reboot, then follow [First Boot](/docs/getting-started/first-boot).
+
+## Choosing a branch
+
+The installer accepts a branch in three ways, in this order of precedence:
+
+```bash
+# 1. Explicit flag
+python3 install.py --branch dev
+
+# 2. Environment variable
+ARCHECLIPSE_BRANCH=dev python3 install.py
+
+# 3. Legacy positional argument
+python3 install.py dev
+```
+
+Without any of these it installs `master`. The checkout is shallow
+(`--depth 1 --single-branch`) and is reset to the fetched branch.
+
+## Updating
+
+Use the Zsh function:
+
+```bash
+archeclipse
+```
+
+or run the local updater:
+
+```bash
+python3 ~/.config/hypr/maintenance/update.py
+```
+
+The updater:
+
+1. Verifies that `~` is still a valid ArchEclipse checkout and repairs it with
+   a fresh clone if git history is missing or corrupt.
+2. Fetches the branch and runs `git reset --hard` plus a checkout.
+3. Reinstalls/updates the package list with `yay` or `paru` when available.
+4. Reloads the bar, updates plugins and optionally reconfigures the greeter.
+
+<Callout type="warning" title="Local changes are discarded">
+`update.py` does not create a backup. Keep durable customizations in
+`~/.config/hypr/config/custom/`, `~/.config/zsh/custom/local.zsh`, or files
+outside the tracked configuration. The updater can also kill running package
+manager processes and remove a stale pacman lock if it finds one.
+</Callout>
+
+## Uninstalling
+
+The local uninstaller removes tracked ArchEclipse paths from `$HOME`, optionally
+restores the latest `dotfiles_backup_*`, and can remove packages from the
+project list (protected packages are kept).
+
+```bash
+python3 ~/.config/hypr/maintenance/uninstall.py
+```
+
+Useful flags:
+
+| Flag | Effect |
+| --- | --- |
+| `--yes` | Skip prompts; keeps packages unless `--remove-packages` is given. |
+| `--backup` / `--no-backup` | Create a temporary recovery copy in `/tmp`, or skip it. |
+| `--remove-packages` / `--keep-packages` | Decide whether installed project packages are offered for removal. |
+| `--remove-plugins` | Remove Hyprland plugin repositories configured by ArchEclipse. |
+| `--reset-shell` | Switch the login shell back to Bash and remove `~/.zshrc`. |
+| `--no-restore` | Do not restore the latest installation backup. |
+
+The uninstaller refuses to run as root. It creates a safety copy only when
+asked, then removes the tracked paths, restores a previous dotfiles backup when
+one exists, and finally removes `~/ArchEclipse`.
+
+<Callout type="note" title="Uninstall scope">
+Package removal is conservative: packages needed by other software are kept by
+pacman, and a fixed protected list (Hyprland, foot, NetworkManager, PipeWire,
+greetd and others) is never offered for removal.
+</Callout>

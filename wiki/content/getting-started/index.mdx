@@ -1,0 +1,82 @@
+---
+title: Getting Started
+description: Requirements, what the installer changes, and the shortest path to a working ArchEclipse session.
+group: Getting Started
+groupOrder: 1
+order: 1
+---
+
+This guide is the short version. It covers what you need before installing,
+what the installer does to your system, and where to go next. Detailed flags
+and recovery options live in [Installation](/docs/getting-started/installation).
+
+## Before you begin
+
+ArchEclipse is deployed by a Python installer that clones the repository to
+`~/ArchEclipse` and checks the tracked dotfiles out into your home directory.
+Treat it as a desktop environment installation, not a portable theme.
+
+| Requirement | Notes |
+| --- | --- |
+| Arch Linux or a close Arch derivative | Upstream documentation targets Arch Linux. Other Arch-based distributions may work with varying results. |
+| A working Hyprland installation | Install it first and confirm it starts. ArchEclipse replaces its configuration. |
+| Python 3 | Used by `install.py` and the maintenance components. |
+| `git`, `curl`, `sudo` | The installer checks for and installs core tools. |
+| An AUR helper | The installer offers to build `yay` or `paru` if neither exists. |
+| Network access | Packages, wallpapers and the initial clone are downloaded. |
+
+<Callout type="warning" title="Back up your dotfiles">
+The installer can create a timestamped `~/dotfiles_backup_*` directory before
+deploying configuration. Answer **yes** to the backup step unless you already
+have your own copy. A running Hyprland configuration can be replaced by the
+git checkout.
+</Callout>
+
+ArchEclipse installs packages, enables user timers, configures a greetd login
+screen and can mask `NetworkManager-wait-online.service` as a boot-time tweak.
+Review the [installer steps](/docs/getting-started/installation#installer-steps)
+before accepting every prompt.
+
+## Install
+
+Run the official one-liner:
+
+```bash
+python3 <(curl -fsSL https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/refs/heads/master/.config/hypr/maintenance/install.py)
+```
+
+The script requests sudo once, clones the `master` branch, then presents a plan
+of optional steps. Select an AUR helper when prompted. A different branch can be
+requested with `--branch <name>` or `ARCHECLIPSE_BRANCH=<name>`.
+
+When it finishes, reboot and select the Hyprland session from greetd. Continue
+with [First Boot](/docs/getting-started/first-boot).
+
+## Keep it updated
+
+`archeclipse` is a Zsh function defined in `~/.config/zsh/40-functions.zsh`. It
+downloads and runs the current updater, which resets the local checkout and
+reinstalls packages from the embedded list.
+
+```bash
+archeclipse
+```
+
+You can also run the local updater directly:
+
+```bash
+python3 ~/.config/hypr/maintenance/update.py
+```
+
+<Callout type="danger" title="Updates discard local modifications">
+The updater uses `git reset --hard` against the remote branch. Put machine-local
+changes in `~/.config/hypr/config/custom/` or your own files, not in tracked
+base configuration. There is no automatic backup before the reset.
+</Callout>
+
+## Where to next
+
+- [Installation](/docs/getting-started/installation) — installer prompts, branches, updating and removal.
+- [First Boot](/docs/getting-started/first-boot) — the greetd session and the first five minutes.
+- [Desktop Overview](/docs/getting-started/desktop-overview) — bar, launcher, panels and workspace layout.
+- [Configuration](/docs/configuration) — how the Hyprland and Quickshell configuration is structured.

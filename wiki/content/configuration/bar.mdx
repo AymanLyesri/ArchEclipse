@@ -1,0 +1,178 @@
+---
+title: Bar
+description: How the ArchEclipse bar is structured, how islands open, and how to control it with IPC.
+group: Configuration
+groupOrder: 2
+order: 4
+---
+
+The bar is one Quickshell window per monitor, created by `Bar.qml` inside a
+`Variants` model over `Quickshell.screens`. Each bar window is full-monitor
+height, but most of it is an input mask: only the visible pill or open island
+receives pointer events. This is what allows panels to grow in place without
+reallocating a layer surface.
+
+```text
+shell.qml
+└── Variants (one per screen)
+    └── Bar.qml
+        ├── DefaultBar          # always-on status pill
+        ├── SearchIsland        # launcher
+        ├── OverviewIsland      # workspace overview
+        ├── WallpaperIsland     # wallpaper picker
+        ├── PlayerIsland, WeatherIsland, SystemMonitorIsland
+        ├── OsdIsland           # volume/brightness feedback
+        ├── ScreenshotIsland, RecordingIsland
+        └── LeftIsland, RightIsland
+```
+
+## The main pill and islands
+
+The central pill displays the default status layout. Actions replace its body
+with an island:
+
+- `SUPER + SUPER_L` — launcher (`search`)
+- `SUPER + SHIFT + TAB` — workspace overview
+- `SUPER + W` — wallpaper picker
+- `SUPER + M` — standalone media window, not a bar island
+- the media, volume, brightness, network and weather cells expand on hover
+
+`BarState` manages which state is displayed per monitor. States have fixed
+priorities, so opening the wallpaper picker cannot be hidden by a volume
+change:
+
+| State | Priority |
+| --- | --- |
+| default | 0 |
+| recording | 40 |
+| volume / brightness / network / player / weather / system | 80 |
+| overview | 85 |
+| control | 90 |
+| left / right panels | 93 |
+| wallpaper | 95 |
+| search | 100 |
+
+Volume, brightness and network pulses auto-close after a few seconds. The left,
+right, wallpaper, overview and search islands stay open until you close them
+(with `Esc`, their shortcut again, or a click outside).
+
+## Panels and hot zones
+
+The left and right panels are side pills, not separate windows. They dock to the
+screen edges and push the main pill toward the centre while open.
+
+- **Hot zones**: hovering the left or right edge opens the matching panel. Both
+  are enabled by default; the strip is 5 px and can be changed in Settings.
+- **Hover pressure**: pills and islands wait `revealInPressure` (default 250 ms)
+  before opening and stay open for `revealOutPressure` (default 1000 ms) after
+  the pointer leaves.
+- **Locks**: panels can be locked open from the shell data. Locked panels ignore
+  close guards until unlocked.
+- **Per-monitor widths**: Settings stores a width override per monitor name.
+
+There is currently no smart-hide control in the Settings panel: the bar is
+visible unless hidden explicitly. **TODO:** document the intended smart-hide
+behaviour; `barSmartHide` and `barFullWidth` exist in the settings schema but are
+not wired to bar visibility.
+
+## Orientation and appearance
+
+Settings → Bar switches the bar between the top and bottom edge. The rest of the
+bar's visual tokens come from Settings:
+
+| Token | Default | Used for |
+| --- | --- | --- |
+| `uiOpacity` | 0.618 | Pill and panel surfaces |
+| `uiRadius` | 12 | Corners |
+| `uiPad` | 6 | Content inset |
+| `uiSpacing` | 6 | Gaps between cells |
+| `uiFontSize` | 12 | Bar text, with derived caption sizes |
+| `dateFormat` | `%H:%M` | Clock; also `%I:%M %p` |
+
+The accent and surface colors come from the wallpaper palette, not from the
+settings file. See [Theming and Customization](/docs/configuration/theming).
+
+## Hiding and restarting
+
+`SUPER + ALT + Backspace` toggles the bar on the focused monitor. The setting is
+kept per monitor until the shell restarts. Opening a panel or island forces the
+bar visible again.
+
+`SUPER + B` restarts the entire shell through
+`~/.config/hypr/config/scripts/bar.lua`. The script acquires a lock, stops the
+existing Quickshell process for the ArchEclipse config, launches a new one, and
+syncs the greeter theme. Its log is:
+
+```text
+/tmp/qs-bar-$USER.log
+```
+
+You can run the same restart manually:
+
+```bash
+lua ~/.config/hypr/config/scripts/bar.lua
+```
+
+<Callout type="note" title="One bar process">
+`bar.lua` matches Quickshell processes whose command line points at
+`~/.config/quickshell/archeclipse` and excludes `qs ... ipc call` clients. If you
+start a second shell with a different config, the restart script will not manage
+it.
+</Callout>
+
+## IPC
+
+The shell exposes two IPC targets: `bar` and `brightness` (plus internal
+capture targets). Most commands take a monitor name. Get the focused monitor
+first:
+
+```bash
+MON=$(hyprctl activeworkspace -j | jq -r '.monitor')
+```
+
+Then call the shell:
+
+```bash
+qs -p ~/.config/quickshell/archeclipse ipc call bar toggleBar "$MON"
+```
+
+Useful `bar` commands:
+
+| Command | Arguments | Effect |
+| --- | --- | --- |
+| `toggleBar` | monitor | Show/hide the bar |
+| `toggleSearch` | monitor | Toggle the launcher |
+| `toggleLeftPanel` | monitor | Toggle the left panel |
+| `toggleRightPanel` | monitor | Toggle the right panel |
+| `toggleOverview` | monitor | Toggle the workspace overview |
+| `togglePanel` | name, monitor | Toggle a registered island by name (`wallpaper-switcher`, `media-panel`, …) |
+| `showWidget` | widget, monitor | Open the left panel on a tab (`SettingsWidget`, `KeyBinds`, …) |
+| `clipboard` | monitor | Open the launcher with `cb ` |
+| `emojis` | monitor | Open the launcher with `emoji ` |
+| `notes` | monitor | Open the launcher with `note ` |
+| `apps` | monitor | Open the all-apps list |
+| `presetSearch` | query, monitor | Open the launcher with a query |
+
+Examples:
+
+```bash
+# wallpaper picker on the focused output
+qs -p ~/.config/quickshell/archeclipse ipc call bar togglePanel wallpaper-switcher "$MON"
+
+# open Settings directly
+qs -p ~/.config/quickshell/archeclipse ipc call bar showWidget SettingsWidget "$MON"
+```
+
+The `brightness` target provides `increment`, `decrement`, `set`, `get` and
+per-monitor variants (`incrementFor`, `decrementFor`, `adjustFor`, `setFor`).
+Hyprland's brightness keys call these first and fall back to
+`config/scripts/brightness.lua` when the shell is not running.
+
+```bash
+qs -p ~/.config/quickshell/archeclipse ipc call brightness incrementFor "$MON"
+```
+
+<Callout type="tip" title="IPC is safe to script">
+`qs ipc call` starts a short-lived client process, not a second shell. The
+restart script excludes these clients when looking for the running shell.
+</Callout>

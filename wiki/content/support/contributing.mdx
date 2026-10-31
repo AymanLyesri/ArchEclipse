@@ -1,0 +1,167 @@
+---
+title: Contributing
+description: How to change the Hyprland config, Quickshell shell, maintenance scripts or this documentation.
+group: Support
+groupOrder: 3
+order: 3
+---
+
+ArchEclipse accepts contributions through GitHub pull requests and discussion
+on Discord. Because the repository is deployed as live dotfiles, a change that
+works on your machine can still break someone else's session. Keep patches
+small, explain the failure they fix, and include the exact test you ran.
+
+## Repository map
+
+| Path | Language | Notes |
+| --- | --- | --- |
+| `.config/hypr/` | Lua, Bash, Python | Hyprland config, capture scripts, installer/updater |
+| `.config/hypr/config/custom/` | Lua | Gitignored machine-local overrides; never commit |
+| `.config/quickshell/archeclipse/` | QML, Python, Rust | Shell, services, widgets, theme, helper scripts |
+| `.config/quickshell/archeclipse-greeter/` | QML, Lua | Greeter configuration mirrored to `/etc/xdg` |
+| `.config/zsh/` | Zsh | Shell config and the `archeclipse` update function |
+| `docs/` | Markdown | Legacy Hyprland documentation |
+| `wiki/` | TypeScript, MDX | This documentation site |
+
+Both `.config/hypr/AGENTS.md` and
+`.config/quickshell/archeclipse/AGENTS.md` describe the local architecture and
+known pitfalls. Read the relevant one before changing that subtree.
+
+## Hyprland changes
+
+- Use the `hl.*` Lua API (`hl.config`, `hl.bind`, `hl.monitor`, `hl.window_rule`,
+  `hl.gesture`, `hl.exec_cmd`, `hl.on`).
+- Put tracked base changes in `config/<section>.lua`; put machine-local or
+  experimental changes in `config/custom/`.
+- Do not add `hyprpm reload && hyprctl reload` to `hyprland.start`; it causes a
+  reload loop.
+- Comment every bind in `bind.lua` with a one-line `--- description`.
+- Validate:
+
+```bash
+luac -p ~/.config/hypr/hyprland.lua ~/.config/hypr/config/*.lua
+bash -n ~/.config/hypr/scripts/*.sh
+python3 -m py_compile ~/.config/hypr/maintenance/install.py \
+  ~/.config/hypr/maintenance/update.py \
+  ~/.config/hypr/maintenance/components/*.py
+hyprctl reload && hyprctl configerrors
+```
+
+Do not run `install.py` or `update.py` just to test a patch: they reset `$HOME`
+and install packages. Test the component function directly or in a disposable
+VM.
+
+## Quickshell changes
+
+- QML modules are declared in `qmldir` files. A new file must be registered or
+  `import qs.<module>` silently sees nothing.
+- Keep UI files "dumb": state belongs in `services/` singletons.
+- Use `Theme.*` tokens for colors, spacing, radii and animation durations. Do
+  not hardcode hex colors or animation timings in widgets.
+- Use the shared components and `Anim`/`CAnim` behaviors rather than bespoke
+  animations, except where the code intentionally does otherwise.
+- Comments must state the constraint or trap (the *why*), with a two-line limit
+  in this shell.
+- Validate QML as far as your environment allows (`qmllint` is configured via
+  `.qmllint.ini`), then restart the bar and exercise the changed interaction on
+  every monitor you have.
+
+```bash
+lua ~/.config/hypr/config/scripts/bar.lua
+tail -f /tmp/qs-bar-$USER.log
+```
+
+## Maintenance scripts
+
+`install.py` and `update.py` use a plan-then-run UX. New steps should:
+
+1. live in a `components/*.py` module;
+2. be loaded in `load_components`;
+3. be added as a `PlannedStep` with a sensible default;
+4. be executed through `presentation.execute_planned_step`.
+
+The plan is shown once, then steps run unattended. Avoid interactive prompts
+inside a component. `components/defaults.py` is copy-if-missing and must never
+overwrite `custom/`.
+
+## Do not commit
+
+- `config/custom/`, monitor/workspace state, or generated files
+- API keys, tokens, `settings.json`
+- `__pycache__`, `.pyc`
+- wallpapers you do not have rights to redistribute
+- secrets captured in screenshots or logs
+
+The gitignore and tracked tree already cover most of these. If a generated file
+appears in `git status`, do not add it.
+
+## Documentation contributions
+
+This wiki is a self-contained Next.js project in `wiki/`. Content lives in
+`wiki/content/` as MDX with frontmatter:
+
+```mdx
+---
+title: Installation
+description: One sentence used in navigation cards and metadata.
+group: Getting Started
+groupOrder: 1
+order: 2
+---
+```
+
+- `group` becomes a collapsible sidebar category.
+- `groupOrder` orders categories; `order` orders pages inside a category.
+- Adding a file is enough: navigation, breadcrumbs, previous/next links, the
+  table of contents and the Pagefind search index are generated at build time.
+- Use site-absolute links (`/docs/configuration/bar`) so base paths work.
+- Put images in `wiki/public/images/` and reference them as
+  `/images/name.webp`.
+- Callouts are available without imports:
+
+```mdx
+<Callout type="warning" title="Back up first">
+The installer replaces tracked files in your home directory.
+</Callout>
+```
+
+Build and validate:
+
+```bash
+cd wiki
+npm install
+npm run build
+npx serve out
+```
+
+The build runs `next build` and then `pagefind` against the exported HTML. Open
+the served site, test search (Ctrl/Cmd+K), theme modes, sidebar and mobile
+layout, and confirm there are no console errors.
+
+## Tests and demos
+
+There is no unit-test suite for the dotfiles. Validation is by running the
+configuration and exercising the changed feature. For visual changes, include a
+screenshot or short clip in the pull request: bar, panels, launcher, wallpaper
+switcher, lock screen, greeter or settings.
+
+For shell helper scripts, run the script directly with representative input
+before wiring it into a widget. For QML services, test the IPC path as well as
+the UI (`qs -p ~/.config/quickshell/archeclipse ipc call ...`).
+
+## Pull requests
+
+- Keep the scope narrow and describe the user-visible effect.
+- Mention the hardware, Hyprland version and monitor setup used for testing.
+- List every command you ran to validate.
+- Do not mix formatting-only changes with behavior changes.
+- For documentation, state which repository commit the facts come from.
+
+Open issues and pull requests at
+[github.com/AymanLyesri/ArchEclipse](https://github.com/AymanLyesri/ArchEclipse).
+For questions, use [Discord](https://discord.gg/fMGt4vH6s5).
+
+## License
+
+ArchEclipse is licensed under GPL-3.0. By contributing you agree that your
+changes are distributed under the same license.

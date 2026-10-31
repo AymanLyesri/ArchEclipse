@@ -1,0 +1,150 @@
+---
+title: Animations
+description: Tune Hyprland window animations and the Quickshell island motion separately.
+group: Configuration
+groupOrder: 2
+order: 6
+---
+
+ArchEclipse has two animation systems that are controlled independently:
+
+1. **Hyprland** animates windows, workspaces and special workspaces. It is
+   configured in `~/.config/hypr/config/animations.lua`.
+2. **Quickshell** animates the bar, islands, panels and toasts. It uses the
+   motion tokens in `theme/Theme.qml`, driven by Settings.
+
+Changing one does not change the other. If the desktop feels slow, check both.
+
+## Hyprland animations
+
+`animations.lua` defines reusable Bézier and spring curves, then attaches them
+to animation leaves. The tracked configuration is:
+
+```lua
+local phi = 1.618
+local phi_min = 0.618
+local interval = phi * 2
+
+hl.curve("ease", { type = "bezier", points = { { 0, 1 }, { phi_min, 1 } } })
+hl.curve("overshoot", { type = "bezier", points = { { 0.5, 0.9 }, { 0.1, 1.1 } } })
+hl.curve("rubber", { type = "spring", mass = 1, stiffness = 70, dampening = 10 })
+
+local curve = "ease"
+
+hl.config({
+    animations = { enabled = true },
+})
+
+hl.animation({ leaf = "windowsIn", enabled = true, speed = interval, bezier = curve, style = "popin 85%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = interval, bezier = curve, style = "popin 85%" })
+hl.animation({ leaf = "windowsMove", enabled = true, speed = interval, bezier = curve, style = "slide" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = interval, bezier = curve, style = "slide" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = interval, bezier = curve, style = "slidevert" })
+hl.animation({ leaf = "fadePopups", enabled = true, speed = interval, bezier = curve })
+```
+
+Other curves are defined but unused by default: `default`, `wind`, `winIn`,
+`winOut`, `linear` and `overshoot`. The layer animation is commented out; layers
+such as the wallpaper daemon use `layerrule` fades instead.
+
+### Adjust the feel
+
+Create a custom module that loads after the base config. For example, a faster
+window animation:
+
+```lua
+-- ~/.config/hypr/config/custom/animations_fast.lua
+hl.animation({
+    leaf = "windowsIn",
+    enabled = true,
+    speed = 1.6,
+    bezier = "ease",
+    style = "popin 90%",
+})
+```
+
+Then reload:
+
+```bash
+hyprctl reload
+hyprctl configerrors
+```
+
+### Disable Hyprland animations
+
+```lua
+-- ~/.config/hypr/config/custom/animations_off.lua
+hl.config({ animations = { enabled = false } })
+```
+
+<Callout type="note" title="Custom modules load last">
+`hyprland.lua` loads the tracked modules first and then every
+`config/custom/*.lua` in sorted order. Use custom files for machine-local
+changes; the updater resets tracked files.
+</Callout>
+
+## Shell animations
+
+The shell's motion system is a Material-3-expressive-inspired token set in
+`theme/Theme.qml`. Every duration is multiplied by
+`Settings.animationsEnabled ? Settings.animScale : 0`, so the Settings panel can
+disable motion without editing QML.
+
+Settings → Animations:
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| Enabled | on | Off snaps all shell animation durations to zero |
+| Speed | 1.00× | 0.2–2.0; lower is faster |
+| Island style | Emphasized | Standard, Emphasized, Bouncy Fast, Bouncy Default, Bouncy Slow |
+| Reveal-in pressure | 250 ms | Hover dwell before islands open |
+| Reveal-out pressure | 1000 ms | Grace period before they close |
+
+Available motion styles:
+
+| Style | Character |
+| --- | --- |
+| Standard | Smooth, conventional easing |
+| Emphasized | Default; longer, expressive easing |
+| Bouncy Fast / Default / Slow | Spring-like overshoot at three speeds |
+
+The bar's island expansion, panel slides, hover previews, notification toasts and
+lock card use these tokens. Some bespoke animations (notification view
+transitions and the lock card spring) intentionally use their own curves.
+
+## Performance
+
+The defaults are tuned for integrated GPUs:
+
+- Hyprland blur is `size = 4`, `passes = 4`.
+- Shadows are disabled in the tracked config.
+- Window opacity is 0.85, which still requires compositing but not blur
+  multiplication.
+- Shell motion durations are short by default (200–600 ms base values).
+
+If animations stutter:
+
+1. Set Settings → Animations → Speed below 1.0, or disable shell animations.
+2. Reduce **Decoration: Blur Size** and **Blur Passes** in Settings → Hyprland.
+   Blur cost grows with both.
+3. Enable **Game Mode** in Settings → Hyprland. It disables Hyprland animations,
+   blur and shadows, sets gaps to zero, enables tearing and switches the power
+   profile to performance when available.
+4. Check the monitor refresh rate with `hyprctl monitors`.
+
+<Callout type="tip" title="Game Mode is reversible">
+Game Mode records the previous power profile in
+`${XDG_RUNTIME_DIR:-/tmp}/archeclipse-gamemode-profile-$UID` and restores it when
+toggled off. It also writes a runtime Hyprland config through `hyprctl eval`; a
+Hyprland reload returns to the tracked configuration.
+</Callout>
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Window animations ignore custom values | `hyprctl configerrors`; duplicate leaf in a later custom file |
+| Everything animates despite settings | Settings → Animations → Enabled; the Hyprland switch is separate |
+| Animations are choppy | blur size/passes, refresh rate, Game Mode |
+| Bar feels sluggish but windows are fine | lower shell animation speed or island style |
+| No animations at all | `animations.enabled` in `animations.lua` or a custom override |

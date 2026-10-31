@@ -1,0 +1,109 @@
+---
+title: First Boot
+description: What happens after the installer, how the greetd login works, and the first commands to try.
+group: Getting Started
+groupOrder: 1
+order: 3
+---
+
+Installation finishes by reloading Hyprland, but the login stack and user services
+need a reboot. This page covers the first login and a quick health check.
+
+## Reboot and log in
+
+```bash
+sudo reboot
+```
+
+The installer configures **greetd** and points it at the ArchEclipse Quickshell
+greeter. It also disables SDDM, LightDM and GDM if they are enabled, adds the
+`greeter` user to the `video` and `input` groups, and enables a text login on
+VT2 as a rescue path.
+
+At the login screen, pick your session and sign in with your normal user
+account. The session list is read from the greeter's `sessions.json`; the
+default session starts Hyprland with the greeter compositor configuration.
+
+<Callout type="tip" title="If the greeter does not appear">
+Switch to a text console with `Ctrl + Alt + F2`. Log in, check
+`journalctl -u greetd` and your user's journal, and confirm that
+`hyprland` starts from a normal TTY. The previous greetd configuration is
+backed up at `/etc/greetd/config.toml.bak-noctalia` (the backup name is
+historical and is not overwritten after the first install).
+</Callout>
+
+## What starts with the session
+
+`~/.config/hypr/config/exec.lua` runs the following on `hyprland.start`:
+
+| Process | Purpose |
+| --- | --- |
+| `walleclipse` | Wallpaper daemon (static and animated wallpapers, per workspace) |
+| `lua ~/.config/hypr/config/scripts/bar.lua` | Starts the Quickshell shell, or restarts it if already running |
+| `systemctl --user start hyprpolkitagent` | Graphical authentication agent |
+| `coloreclipse apply` | Applies the current light/dark theme and palette to system apps |
+| `nm-applet` | NetworkManager tray applet |
+| `blueman-applet` | Bluetooth tray applet |
+
+The shell creates its cache directories, primes the wallpaper store, fastfetch
+pins, power-profile probe and clipboard watcher at startup. The first open of a
+panel should therefore be fast, though video wallpaper thumbnails may still be
+generating in the background.
+
+## First five things to try
+
+| Action | Shortcut |
+| --- | --- |
+| Open a terminal (`foot`) | `SUPER + Return` |
+| Open the application launcher | `SUPER` twice (`SUPER + SUPER_L`) |
+| Pick a wallpaper | `SUPER + W` |
+| Open the right panel | `SUPER + R` |
+| Open the left panel (settings live here) | `SUPER + L` |
+| Take a screenshot | `SUPER + SHIFT + S` |
+| Start or stop a recording | `SUPER + SHIFT + R` |
+| Open the welcome tour | `SUPER + F1` |
+
+The full list is in [Keyboard Shortcuts](/docs/configuration/keyboard-shortcuts).
+If the bar is missing, it can be restarted with `SUPER + B` or by running:
+
+```bash
+lua ~/.config/hypr/config/scripts/bar.lua
+```
+
+## Quick health check
+
+Run these in a terminal:
+
+```bash
+hyprctl version
+hyprctl monitors
+pgrep -a qs
+coloreclipse get
+walleclipse current
+```
+
+Expected results:
+
+- `hyprctl version` prints the running Hyprland build. ArchEclipse requires the
+  Lua configuration support; a Hyprland build without it will not load
+  `hyprland.lua`.
+- `pgrep -a qs` shows a Quickshell process using
+  `~/.config/quickshell/archeclipse`.
+- `coloreclipse get` reports `light` or `dark`.
+- `walleclipse current` prints the wallpaper state for the current output. The
+  exact output format is defined by WallEclipse; **TODO:** document its fields.
+
+If `qs` is not running, inspect `/tmp/qs-bar-$USER.log`. If the bar starts but
+looks unstyled, check that `~/.cache/coloreclipse/colors.scss` exists and run
+`coloreclipse apply`.
+
+## First configuration changes
+
+The Settings tab in the left panel writes changes immediately to
+`~/.cache/quickshell/settings/settings.json`. Hyprland-specific rows write a
+machine-local module under `~/.config/hypr/config/custom/` and push it live.
+Base configuration lives in `~/.config/hypr/config/`; see
+[Configuration](/docs/configuration) for the load order.
+
+For changes that survive updates, use `~/.config/hypr/config/custom/` and
+`~/.config/zsh/custom/local.zsh`. The updater resets tracked files.

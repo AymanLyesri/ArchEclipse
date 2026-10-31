@@ -43,6 +43,9 @@
 # commit it (also drops stale generated schemes from other users' machines)
 .config/qt6ct/colors/
 
+# include the wiki
+!wiki/
+
 # include icons (cursort theme)
 !.icons/
 

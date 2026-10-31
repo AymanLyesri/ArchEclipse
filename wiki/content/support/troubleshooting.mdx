@@ -1,0 +1,269 @@
+---
+title: Troubleshooting
+description: Diagnose configuration, login, shell, wallpaper, theme, audio, capture and performance problems.
+group: Support
+groupOrder: 3
+order: 1
+---
+
+Start with the state of the session, then narrow down to the component that is
+misbehaving.
+
+## Collect the basics
+
+```bash
+hyprctl version
+hyprctl systeminfo
+hyprctl monitors
+hyprctl configerrors
+journalctl --user -b -p warning
+```
+
+Key log files:
+
+| File | Contents |
+| --- | --- |
+| `/tmp/qs-bar-$USER.log` | Quickshell stdout/stderr for the bar |
+| `/tmp/walleclipse.log` | WallEclipse daemon |
+| `/tmp/walleclipse-daemon-out.log` | Daemon output when started manually |
+| `/tmp/screenrecord.log` | `screenrecord.sh` decisions |
+| `/tmp/screenrecord-gpu.log` | `gpu-screen-recorder` output |
+| `~/.cache/coloreclipse/colors.scss` | Generated palette |
+
+## Configuration does not load
+
+```bash
+luac -p ~/.config/hypr/hyprland.lua ~/.config/hypr/config/*.lua
+hyprctl reload
+hyprctl configerrors
+```
+
+- Hyprland must include **Lua configuration support**. A build without it will
+  not read `hyprland.lua`; this repository targets that configuration format.
+- `config/defaults/` contains `{{ PLACEHOLDER }}` templates and is not valid
+  Lua. Do not include it in a syntax check.
+- If a custom module broke the session, move
+  `~/.config/hypr/config/custom/` aside, reload, then re-add files one at a
+  time.
+- `hyprctl reload` does not restart Quickshell; see the bar section below.
+
+## Bar is missing, blank or stale
+
+```bash
+pgrep -a qs
+tail -n 100 /tmp/qs-bar-$USER.log
+lua ~/.config/hypr/config/scripts/bar.lua
+```
+
+- `bar.lua` stops the existing Quickshell process for
+  `~/.config/quickshell/archeclipse` and starts a new one. If a lock is held,
+  wait for it or remove the stale lock under `${XDG_RUNTIME_DIR}` after making
+  sure no restart is running.
+- The bar window is full-monitor height with an input mask. If the pill is not
+  visible but `qs` is running, check whether the bar was hidden with
+  `SUPER + ALT + Backspace`.
+- After editing QML, a restart is required. A syntax error usually appears in
+  the bar log and prevents the window from loading.
+- Missing icons or fonts usually mean `ttf-jetbrains-mono-nerd` or
+  `noto-fonts-emoji` is not installed.
+
+## Greeter or login loop
+
+1. Switch to VT2: `Ctrl + Alt + F2`.
+2. Log in and inspect:
+
+```bash
+systemctl status greetd
+journalctl -u greetd -b
+```
+
+3. The installer backs up the previous greetd config to
+   `/etc/greetd/config.toml.bak-noctalia` and enables `getty@tty2.service`.
+4. Re-run the greeter component if the mirror is stale:
+
+```bash
+cd ~/ArchEclipse/.config/hypr/maintenance
+python3 -c "from components import greeter; greeter.configure_greeter()"
+```
+
+This asks for sudo, rewrites `/etc/greetd/config.toml`, installs the sync
+sudoers rule and syncs the greeter mirror. It is the same function the
+installer's greeter step calls.
+
+<Callout type="note" title="Greeter is a separate user">
+The greeter runs as the `greeter` user and cannot read your private home
+configuration. `sync-greeter.sh` copies a sanitized mirror to
+`/etc/xdg/quickshell/archeclipse-greeter`, excluding API-key-shaped names,
+`settings.json` and `colors.scss`.
+</Callout>
+
+## Wallpaper does not change
+
+```bash
+pgrep -a walleclipse
+walleclipse current
+walleclipse reload
+```
+
+- Still wallpapers are drawn by WallEclipse; animated GIF/MP4/WebM need
+  `mpvpaper`.
+- Per-monitor state is in
+  `~/.config/walleclipse/config/<monitor>/defaults.conf`. Confirm the monitor
+  name with `hyprctl monitors -j`.
+- If the picker is empty, check the file extensions and that files are under
+  `~/.config/wallpapers`. Restart the bar to rescan the folder cache.
+- If only the greeter wallpaper is wrong, re-apply the greeter target from the
+  picker; it requires `pkexec`.
+
+## Colors are wrong or do not update
+
+```bash
+coloreclipse get
+coloreclipse apply
+ls -l ~/.cache/coloreclipse/colors.scss
+```
+
+- Settings → Theme → Dynamic Theme Colors must be on for wallpaper-driven
+  regeneration.
+- `colors.scss` is generated; do not edit it.
+- If the shell has colors but Qt apps do not, verify
+  `QT_QPA_PLATFORMTHEME=qt6ct` and `~/.config/qt6ct/colors/coloreclipse.conf`.
+- If the shell has fallback colors, the palette file is missing or unreadable.
+
+## Brightness keys do nothing
+
+- Internal panels use `brightnessctl`; external monitors use DDC/CI through
+  `ddcutil`.
+- Both are in the package list. Confirm `brightnessctl` works directly and
+  that `ddcutil detect` finds the monitor.
+- The keybind tries the shell's `brightness` IPC first, then falls back to
+  `config/scripts/brightness.lua`. If the shell is running but has no brightness
+  backend, test the script manually:
+
+```bash
+lua ~/.config/hypr/config/scripts/brightness.lua -10
+```
+
+- DDC/CI must be enabled in the monitor's OSD on some models.
+
+## No audio or volume keys do not work
+
+```bash
+wpctl status
+wpctl get-volume @DEFAULT_AUDIO_SINK@
+systemctl --user status pipewire wireplumber
+```
+
+Use `pavucontrol` to verify the default sink. Volume binds call
+`wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+` and update the bar through IPC.
+
+## Screenshots fail
+
+- `grim` is required for capture; `slurp` for area selection; `hyprpicker` for
+  the freeze effect; `wl-clipboard` for clipboard copy; ImageMagick for PNG
+  optimization.
+- Read the settings the script uses:
+
+```bash
+jq '.screenshot' ~/.cache/quickshell/settings/settings.json
+```
+
+- If area selection hangs, make sure the scripts are up to date. The tracked
+  scripts explicitly pass `</dev/null` to `slurp` so a non-TTY caller cannot
+  block it. Old copies of the script may still hang.
+- A cancelled area selection exits silently; that is expected.
+
+## Recording fails
+
+```bash
+jq '.recording' ~/.cache/quickshell/settings/settings.json
+tail -n 50 /tmp/screenrecord.log
+tail -n 50 /tmp/screenrecord-gpu.log
+```
+
+- `gpu-screen-recorder` must be installed and able to capture the compositor.
+- Container/codec combinations are validated. WebM only accepts VP8/VP9/AV1;
+  FLV only H.264. Choose MP4/MKV or a compatible codec.
+- Frame-rate mode `content` is rejected on direct Wayland capture.
+- Only one recording session at a time is tracked through `/tmp/screenrecord.pid`.
+  If a previous recorder died, the script clears stale PIDs on the next run.
+- Output defaults to `~/Videos/ScreenRecords/`.
+
+## Clipboard history is empty
+
+```bash
+pgrep -a wl-paste
+```
+
+Quickshell's `ClipboardService` owns a single `wl-paste --watch` process and
+culls stale watchers at startup. If you started additional watchers manually,
+kill them and restart the bar. `wl-clipboard` must be installed.
+
+## Notifications
+
+Notifications are drawn by Quickshell. The installer removes `dunst` and
+`swaync` because they would compete for the notification daemon slot. Check DND
+in the shell settings and the notification history widget in the right panel.
+
+## Performance and stutter
+
+- Settings → Hyprland → Game Mode disables Hyprland animations, blur and
+  shadows, zeroes gaps, enables tearing and requests a performance power
+  profile.
+- Lower blur size/passes before disabling everything.
+- Settings → Animations controls the shell separately from Hyprland.
+- Check `hyprctl monitors` for the actual refresh rate.
+
+## Update problems
+
+- `archeclipse` is a **Zsh** function. From Bash, run the updater directly:
+  `python3 ~/.config/hypr/maintenance/update.py`.
+- The updater fetches the remote branch and hard-resets the checkout. Local
+  changes to tracked files are lost. Keep customizations in `custom/`.
+- If the updater reports corrupt git history, it falls back to a fresh shallow
+  clone and copies it over `$HOME`.
+- If a package manager was interrupted, the updater can kill `pacman`, `yay` or
+  `paru` and remove `/var/lib/pacman/db.lck`. Review what it is doing before
+  confirming.
+
+## Displays and hotplug
+
+The base monitor module is a single fallback:
+
+```lua
+hl.monitor({
+    output = "",
+    mode = "highres",
+    position = "auto",
+    scale = 1,
+})
+```
+
+For a non-default layout, add a per-output rule above it in a custom module and
+reload. `nwg-displays` is available from the Custom Scripts tab and writes to
+`~/.config/hypr/config/custom/monitors.conf`; note that the tracked
+configuration loads `.lua` modules, not `.conf`. Verify the generated file is
+actually loaded before relying on it. **TODO:** document the supported
+`nwg-displays` output path for the Lua configuration.
+
+## Input devices
+
+```bash
+hyprctl devices
+```
+
+The base config applies `sensitivity = 0.1` to a device named `elan-touchpad`.
+On other hardware that rule does nothing. Add your device by its exact name in a
+custom module, or change the base `device.lua`.
+
+## Still stuck?
+
+Include the following in a GitHub issue or Discord question:
+
+- `hyprctl version` and `hyprctl systeminfo`
+- the failing command and its output
+- relevant log lines (`/tmp/qs-bar-$USER.log`, `journalctl`, recorder logs)
+- the custom Lua/QML you added
+
+Open an issue at
+[github.com/AymanLyesri/ArchEclipse/issues](https://github.com/AymanLyesri/ArchEclipse/issues).

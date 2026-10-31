@@ -1,0 +1,79 @@
+---
+title: Introduction
+description: What ArchEclipse is, what it ships, and how this documentation is organised.
+group: Overview
+groupOrder: 0
+order: 1
+---
+
+ArchEclipse is an opinionated Arch Linux desktop built around **Hyprland** and a
+custom **Quickshell** interface. It is not a distribution and it is not a theme
+pack: the repository contains the compositor configuration, the QML shell, the
+wallpaper and color tooling, maintenance scripts and the installer that deploys
+them together.
+
+The project describes itself as a *Hyprland desktop that just works*. In
+practice that means a complete session: bar, launcher, side panels, lock screen,
+greeter, wallpapers, per-workspace colors, clipboard history, screenshots and
+screen recording.
+
+## What is in the repository
+
+| Area | Location | What it does |
+| --- | --- | --- |
+| Hyprland configuration | `~/.config/hypr` | Lua modules for binds, animations, decoration, input, monitors, window rules and startup |
+| Quickshell shell | `~/.config/quickshell/archeclipse` | Bar, launcher, left/right panels, lock screen, overview and IPC |
+| Shell services | `~/.config/quickshell/archeclipse/services` | State, clipboard, notifications, weather, recording, brightness, theming |
+| Installer and updater | `~/.config/hypr/maintenance` | Python scripts that install packages, deploy dotfiles and update the checkout |
+| Wallpapers | `~/.config/wallpapers` | Default categories, a `custom` folder and a Wallhaven download folder |
+| Wallpaper daemon | external `walleclipse` binary | Per-monitor and per-workspace static or video wallpapers |
+| Theme applier | external `coloreclipse` binary | Generates colors from the wallpaper and switches light/dark |
+| Terminal and shell | `~/.config/foot`, `~/.config/zsh` | Foot terminal, Zsh prompt and the `archeclipse` update function |
+
+The configuration in `~/.config/hypr` is loaded by `hyprland.lua`. It is a
+dotfiles repository rooted at `$HOME`, which is why installation involves a git
+checkout rather than copying a single folder.
+
+## How the pieces fit together
+
+1. **Hyprland** runs the session and loads Lua modules from
+   `~/.config/hypr/config/`.
+2. **Quickshell** runs `shell.qml` per monitor. It owns the bar, launcher,
+   panels, lock screen and most user-facing controls.
+3. **WallEclipse** paints wallpapers, including animated ones through
+   `mpvpaper`.
+4. **ColorEclipse** reads the current wallpaper, writes a palette to
+   `~/.cache/coloreclipse/colors.scss`, and applies light or dark system themes.
+5. **The shell theme** reads that palette at runtime, so the bar and panels
+   follow the wallpaper without a restart.
+
+<Callout type="note" title="Documentation scope">
+These pages document the repository on the `master` branch. Commands, paths and
+defaults are taken from the tracked configuration. Anything that could not be
+verified from the repository is marked **TODO** rather than guessed.
+</Callout>
+
+## Who this is for
+
+ArchEclipse assumes you are comfortable with Arch Linux and willing to let an
+installer modify your home directory. The installer installs packages, deploys
+tracked dotfiles into `$HOME`, can back up the existing `.config`, and configures
+a greetd-based login screen.
+
+If you want to understand the desktop before changing it, read
+[Desktop Overview](/docs/getting-started/desktop-overview) after installation.
+If you are installing for the first time, start with
+[Installation](/docs/getting-started/installation).
+
+## Documentation map
+
+- **Getting Started** — requirements, installation, first login and a tour of the desktop.
+- **Configuration** — Hyprland modules, the settings panel, widgets, bar, wallpapers, animations, keybindings and theming.
+- **Support** — troubleshooting, frequently asked questions and contribution guidelines.
+
+## Project links
+
+- [GitHub repository](https://github.com/AymanLyesri/ArchEclipse)
+- [Discord community](https://discord.gg/fMGt4vH6s5)
+- [Issue tracker](https://github.com/AymanLyesri/ArchEclipse/issues)
+- [License (GPL-3.0)](https://github.com/AymanLyesri/ArchEclipse/blob/master/LICENSE)

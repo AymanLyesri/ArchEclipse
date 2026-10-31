@@ -1,0 +1,147 @@
+---
+title: FAQ
+description: Short answers about requirements, updates, configuration, theming, privacy and optional integrations.
+group: Support
+groupOrder: 3
+order: 2
+---
+
+## Is ArchEclipse a Linux distribution?
+
+No. It is a set of dotfiles, a Quickshell shell, installer/maintenance scripts
+and companion tooling deployed onto an existing Arch Linux system. It does not
+ship an ISO or manage kernel/GPU driver installation.
+
+## Which systems are supported?
+
+Arch Linux is the target. The documentation notes that other Arch-based systems
+may work with varying degrees of success. Hyprland must support Lua
+configuration. **TODO:** publish a tested distribution/version matrix.
+
+## Do I need to reinstall Arch?
+
+No. You need a working Arch + Hyprland installation, Python 3, sudo and network
+access. The installer adds packages and deploys the home-directory
+configuration.
+
+## Will the installer overwrite my existing config?
+
+It force-checks out tracked files into `$HOME`, so files with the same paths are
+replaced. The optional backup step copies your existing tracked entries to
+`~/dotfiles_backup_<date>` first. Accept it, or back up `.config` yourself.
+
+## How do I update?
+
+```bash
+archeclipse
+```
+
+That is a Zsh function that fetches and runs the current updater. From Bash:
+
+```bash
+python3 ~/.config/hypr/maintenance/update.py
+```
+
+The updater hard-resets the checkout. Local changes to tracked files are lost.
+
+## Where do I put custom configuration?
+
+- Hyprland: `~/.config/hypr/config/custom/*.lua`
+- Zsh: `~/.config/zsh/custom/local.zsh`
+- Shell settings: use the Settings panel (persisted to
+  `~/.cache/quickshell/settings/settings.json`)
+- Wallpapers: `~/.config/wallpapers/custom/`
+
+`config/custom/` loads last and is not overwritten by the copy-if-missing step.
+
+## How do I change a keybinding?
+
+Add an `hl.bind(...)` in a custom Lua module. See
+[Keyboard Shortcuts](/docs/configuration/keyboard-shortcuts#adding-a-binding).
+Removing a default binding requires editing the tracked `bind.lua`.
+
+## How do I change the wallpaper?
+
+`SUPER + W`, then pick a wallpaper for the current workspace. The picker also
+switches between local folders and Wallhaven and can set the greeter wallpaper.
+Files can be dropped into `~/.config/wallpapers/custom/`.
+
+## Are wallpapers per workspace?
+
+Yes. WallEclipse stores a wallpaper per monitor and workspace, so switching
+workspaces can change the background. The greeter has a separate target.
+
+## Where does the color scheme come from?
+
+From the wallpaper, through ColorEclipse. It writes
+`~/.cache/coloreclipse/colors.scss`; Quickshell derives its semantic colors from
+that palette. Light/dark is separate and can be switched from the control panel
+or with `coloreclipse switch`. See
+[Theming and Customization](/docs/configuration/theming).
+
+## Can I use my own bar or window manager?
+
+Hyprland is central, and the default keybindings, panels and capture flow call
+Quickshell IPC. You can replace the shell in principle, but you would also need
+to rewrite those bindings and scripts. Replacing Hyprland is not supported by
+this configuration. **TODO:** document a minimal Quickshell-free setup.
+
+## Why does the launcher open on double Super?
+
+The binding is `SUPER + SUPER_L`, which most keyboards trigger by tapping the
+Super key twice. It is defined in `config/bind.lua`.
+
+## Why is my browser/Discord client on a specific workspace?
+
+The installer writes `config/custom/browser.lua` and
+`config/custom/discord_client.lua` from your choices, with window rules for
+workspace 2 and 6. Other apps are placed by `windowrule.lua` (Spotify on 4,
+Steam on 7, games on 10).
+
+## Does ArchEclipse require upower for the battery?
+
+The current `battery_check.lua` reads `/sys/class/power_supply/BAT0` and `BAT1`
+directly and runs from a user systemd timer, so it does not depend on `upower`.
+Older documentation that mentions installing `upower` is stale. **TODO:**
+document this in the installer output as well.
+
+## What is the `archeclipse` command?
+
+A Zsh function in `~/.config/zsh/40-functions.zsh`. It downloads the updater
+from the project and runs it. It is not a binary installed in `PATH`.
+
+## Does the installer send data anywhere?
+
+`install.py` and `update.py` make a request to a project counter endpoint
+(`personal-counter-two.vercel.app`) with an install/update counter. The scripts
+also clone from GitHub, install packages and download wallpapers. Review the
+scripts before running them if that matters to you. **TODO:** document exactly
+what the counter stores.
+
+## Are the chatbot, booru and manga features required?
+
+No. They are optional tabs. ChatBot uses OpenRouter; Booru supports
+Danbooru/Gelbooru/Safebooru; the manga reader is marked WIP. API keys are entered
+in Settings → API Keys and stored locally in plain text.
+
+## Why did my panel order reset?
+
+Right-panel widgets are merged onto a fixed canonical list. Unknown names are
+dropped, and icons come from code. If a saved entry no longer exists after an
+update, it is removed. Re-enable the widget from the panel selector.
+
+## How do I uninstall?
+
+```bash
+python3 ~/.config/hypr/maintenance/uninstall.py
+```
+
+It removes tracked paths, optionally restores the latest installation backup,
+and can offer installed packages for removal. See
+[Installation](/docs/getting-started/installation#uninstalling).
+
+## Where can I get help?
+
+The [Discord](https://discord.gg/fMGt4vH6s5) is the fastest option. Bugs and
+feature requests belong in
+[GitHub issues](https://github.com/AymanLyesri/ArchEclipse/issues).
