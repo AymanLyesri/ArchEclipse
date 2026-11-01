@@ -22,6 +22,7 @@ def install_plugins() -> None:
     plugins = [
         ("hyprland-plugins", "https://github.com/hyprwm/hyprland-plugins"),
         ("dynamic-cursors", "https://github.com/virtcode/hypr-dynamic-cursors"),
+        # ("hyprclass", "https://github.com/hyprnux/hyprglass"),
     ]
 
     for plugin, repo in plugins:
@@ -40,6 +41,7 @@ def remove_plugins() -> None:
     plugins = [
         ("hyprland-plugins", "https://github.com/hyprwm/hyprland-plugins"),
         ("dynamic-cursors", "https://github.com/virtcode/hypr-dynamic-cursors"),
+        # ("hyprclass", "https://github.com/hyprnux/hyprglass"),
     ]
 
     result = run_cmd(["hyprpm", "list"], capture_output=True, check=False)
@@ -47,9 +49,7 @@ def remove_plugins() -> None:
         raise RuntimeError("Could not list installed Hyprland plugins with hyprpm.")
 
     installed = [
-        (name, repo)
-        for name, repo in plugins
-        if name in (result.stdout or "")
+        (name, repo) for name, repo in plugins if name in (result.stdout or "")
     ]
     if not installed:
         print("No ArchEclipse Hyprland plugin repositories are installed.")

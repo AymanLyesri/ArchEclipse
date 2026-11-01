@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Record the ArchEclipse overview demo (README hero) as an mp4.
 
-Drives the live shell end to end: per-workspace wallpapers (WallEclipse),
-fabricated chatbot session, launcher selections (foot / cava) landed on the
-capture workspace at the same rects capture-readme.py uses, right-panel
-layout shuffle, left-panel tab walk, and wallpaper-switcher demonstrates.
+Drives the live shell end to end: media-pill intro (player island + play),
+per-workspace wallpapers (WallEclipse), fabricated chatbot session, launcher
+selections (foot / cava) landed on the capture workspace at the same rects
+capture-readme.py uses, right-panel layout shuffle, left-panel tab walk, and
+wallpaper-switcher demonstrates.
 
 State mutated during the run (wallpaper mappings, rightPanel.widgets,
 waifuWidget.current, booru.pins, booru.tags, the fastfetch pin cache, the temp
@@ -14,7 +15,7 @@ pid observed at mapping — never kill by class or workspace (a user SCP or
 terminal must survive a capture run).
 
 Requires the scripted-capture IPC helpers in services/Ipc.qml
-(launcherActivate, launcherRow, chatSession).
+(launcherActivate, launcherRow, chatSession, mediaPill, playerToggle).
 """
 
 import argparse
@@ -22,7 +23,6 @@ import base64
 import fcntl
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import signal
@@ -31,6 +31,7 @@ import sys
 import tempfile
 import time
 import uuid
+from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parent  # ~/.github/assets
 OUTPUT = ASSETS / "overview.mp4"
@@ -60,7 +61,8 @@ WS9 = 9
 # the on-camera time each change is visible in the recording.
 WORKSPACE_SETTLE = 1.0
 WALLPAPER_SETTLE = 1.0
-STEP_SETTLE = 1.0
+MEDIA_SETTLE=0.5
+STEP_SETTLE = 1.5
 IPC_SETTLE = 0.5
 # `qs ipc` answers this while the shell's IPC server is still coming up after a
 # reload; the call is never delivered, so a retry cannot apply twice.
@@ -71,16 +73,21 @@ IPC_READY_TIMEOUT = 5.0
 BOOT_SETTLE = 1.0
 # The bar adopts a recording it did not start on its 1s pgrep poll; this
 # dwell lets the sidepill show the running timer before the take begins.
-RECORD_SETTLE = 1.5
+RECORD_SETTLE = 1.0
 # Settings.qml watches the file and reloads after a short delay — the
 # reactive bindings (right-island widget order, waifu, booru) follow once
 # reload lands.
 SETTINGS_SETTLE = 2.0
 # Visible dwell after each right-panel reorder — the IPC write is
 # synchronous, so this is the only wait between layouts.
-LAYOUT_SWITCH_DWELL = 1.0
+LAYOUT_SWITCH_DWELL = 1.5
 # Window for in-flight shell writers to flush before the drift re-check.
 RESTORE_RECHECK = 4.0
+# MediaPill's own left-click pulses the player island for 2.5s (Bar.qml's
+# `mediaPill`); the intro beat spends that window opening it and pressing play.
+MEDIA_PILL_HOLD = 2.5
+# MPRIS Play is a D-Bus round trip; the island must show the pause glyph.
+PLAYER_PLAY_TIMEOUT = 5.0
 # Final mp4 pass goes through compress-video.py (never-bigger in-place).
 COMPRESS_AFTER_TAKE = True
 # The GIF is the README-sharable artifact (repo mp4 links don't render);
@@ -91,6 +98,7 @@ SHELL_API_BOORU = "danbooru"
 
 WAIFU_POST_ID = 8951684
 BOORU_TAG = "+rating:g"
+WALLPAPER_ROOT = Path.home() / ".config/wallpapers"
 WALLPAPER_CATEGORY = "defaults/images_sfw"
 CHAT_SESSION_ID = "session-capture-demo"
 
@@ -348,6 +356,8 @@ class Snapshot:
         # showWidget/chatSession persist the left island's selected tab
         # override (leftPanel.monitors.<mon>.widget) — restore it wholesale.
         self.left_monitors = self.settings.get("leftPanel", {}).get("monitors")
+        # Set by the media-pill beat when it started playback that was paused.
+        self.player_resumed = False
         self.recordings = (
             sorted(RECORDINGS.glob("screenrecord*.mp4")) if RECORDINGS.is_dir() else []
         )
@@ -402,6 +412,18 @@ def setup_wallpapers(snap):
     time.sleep(WALLPAPER_SETTLE)
 
 
+def api_credential(keys, field):
+    """One apiKeys field as a plain string, whichever shape Settings stored.
+
+    settings.json holds `{value}` leaves (Settings.apiKey unwraps them for the
+    shell); a flat string is the older shape and still accepted.
+    """
+    value = keys.get(field)
+    if isinstance(value, dict):
+        value = value.get("value")
+    return value.replace("\n", "").strip() if isinstance(value, str) else ""
+
+
 def fetch_waifu_post(snap):
     """Full waifu object for post 8951684: from a booru pin, else booru.py."""
     pins = snap.settings.get("booru", {}).get("pins") or []
@@ -423,12 +445,16 @@ def fetch_waifu_post(snap):
         str(WAIFU_POST_ID),
     ]
     keys = snap.settings.get("apiKeys", {}).get(SHELL_API_BOORU) or {}
-    if keys.get("user") and keys.get("key"):
-        cmd += ["--api-user", keys["user"], "--api-key", keys["key"]]
+    user = api_credential(keys, "user")
+    secret = api_credential(keys, "key")
+    if user and secret:
+        cmd += ["--api-user", user, "--api-key", secret]
     post = json.loads(run(cmd, timeout=30))
     if not post or int(post[0].get("id", 0)) != WAIFU_POST_ID:
         raise RuntimeError("booru.py could not fetch post " + str(WAIFU_POST_ID))
-    post[0].update(api)  # api identity travels inside the waifu object
+    # Nested, exactly like a pin the viewer stores: FastfetchPins keys renders
+    # off pin.api.value, and flattening it also clobbers the post's CDN url.
+    post[0]["api"] = api
     return post[0]
 
 
@@ -701,6 +727,43 @@ def close_spawned(spawned):
     raise RuntimeError("Spawned windows did not exit: " + str(spawned))
 
 
+def process_media_pill(snap):
+    """Intro beat: open the bar's media pill, then play on its player.
+
+    Mirrors MediaPill's left-click (the BarState "player" pulse) because a
+    capture has no pointer to click the pill with, and presses play on the
+    same playing-else-first player the island's MediaWidget renders.
+    """
+    status = ipc_call("playerDiag")
+    if status == "no players":
+        raise RuntimeError("No MPRIS player behind the media pill")
+    snap.player_resumed = not status.endswith("| playing")
+    ipc_call("mediaPill", snap.monitor)
+    deadline = time.monotonic() + IPC_READY_TIMEOUT
+    while ipc_call("barDiag", "state") != "player":
+        if time.monotonic() >= deadline:
+            raise RuntimeError("media pill did not resolve the player island")
+    time.sleep(MEDIA_SETTLE)  # unfold + button on camera before the press
+    if snap.player_resumed:
+        result = ipc_call("playerToggle")
+        if not result.startswith("toggled "):
+            raise RuntimeError("Player play failed: " + result)
+        deadline = time.monotonic() + PLAYER_PLAY_TIMEOUT
+        while not ipc_call("playerDiag").endswith("| playing"):
+            if time.monotonic() >= deadline:
+                raise RuntimeError("Player did not start playing")
+            time.sleep(0.2)
+    else:
+        print("Media pill: player already playing, no press", flush=True)
+    print("Media pill: " + ipc_call("playerDiag"), flush=True)
+    # The pill's own pulse closes the island; don't let the launcher beat
+    # start on that swap.
+    deadline = time.monotonic() + MEDIA_PILL_HOLD + 1.0
+    while ipc_call("barDiag", "state") == "player":
+        if time.monotonic() >= deadline:
+            break
+
+
 def process_right_layouts(snap):
     ipc_call("toggleRightPanel", snap.monitor)
     time.sleep(IPC_SETTLE)
@@ -814,11 +877,14 @@ def settings_drifted(snap, current):
     return False
 
 
-def restore_state(snap, keep):
+def restore_state(snap, keep, saved_category=None):
     try:
         ensure_workspace(snap.workspace)
     except RuntimeError as e:
         print("WARNING: workspace restore: " + str(e), flush=True)
+    if saved_category:
+        settings_set("wallpaperSwitcher.category", saved_category)
+        print(f"wallpaper category restored: {saved_category}", flush=True)
     if keep:
         print(
             "MUTATED (kept): wallpaper rows, right-panel order, waifu, "
@@ -835,6 +901,15 @@ def restore_state(snap, keep):
     except RuntimeError as e:
         print("WARNING: wallpaper restore: " + str(e), flush=True)
 
+    # The intro beat started playback that was paused before the take; only
+    # toggle back if nothing else touched it since.
+    if snap.player_resumed:
+        try:
+            if ipc_call("playerDiag").endswith("| playing"):
+                ipc_call("playerToggle")
+        except RuntimeError as e:
+            print("WARNING: player restore: " + str(e), flush=True)
+
     # Deactivate choreography actors first: an open left island echoes its
     # selected tab into settings, and the ChatBot widget reacts to its live
     # session vanishing — both can re-persist the demo state over the
@@ -850,6 +925,13 @@ def restore_state(snap, keep):
             time.sleep(IPC_SETTLE)
     except RuntimeError as e:
         print("WARNING: left panel close: " + str(e), flush=True)
+
+    # Restore the wallpaper category after Settings.updateSetting() below; the
+    # latter writes `wallpaperSwitcher.category` fresh from the picker widget,
+    # which inherits the pre-take value.
+    if saved_category is not None:
+        settings_set("wallpaperSwitcher.category", saved_category)
+        print(f"wallpaper category restored: {saved_category}", flush=True)
 
     restore_settings(snap)
 
@@ -883,6 +965,7 @@ def capture_run(args):
         start_recording(snap)
         time.sleep(RECORD_SETTLE)
         try:
+            process_media_pill(snap)
             launcher_place_floats(snap, spawned.add)
             process_right_layouts(snap)
             process_wallpaper_switcher(
@@ -922,7 +1005,7 @@ def capture_run(args):
                 ],
                 timeout=900,
             )
-            print(f"Compressed: {OUTPUT.stat().st_size/1e6:.1f} MB", flush=True)
+            print(f"Compressed: {OUTPUT.stat().st_size / 1e6:.1f} MB", flush=True)
         except BaseException as e:
             print(f"WARNING: compression skipped: {e}", flush=True)
     if (GIF_AFTER_TAKE or args.gif) and not args.no_gif:
@@ -937,7 +1020,7 @@ def capture_run(args):
                 timeout=900,
             )
             print(
-                f"GIF: {OUTPUT.with_suffix('.gif').stat().st_size/1e6:.1f} MB",
+                f"GIF: {OUTPUT.with_suffix('.gif').stat().st_size / 1e6:.1f} MB",
                 flush=True,
             )
         except BaseException as e:

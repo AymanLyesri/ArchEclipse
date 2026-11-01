@@ -50,8 +50,10 @@ Rectangle {
         id: body
 
         anchors.fill: parent
-        anchors.margins: Theme.pad *2
+        anchors.margins: Theme.pad
         spacing: Theme.spacing
+
+        Item { height: Theme.pad; width: parent.width }
 
         Label {
             // Names can be arbitrary strings (Key Binds reads bind.lua comments): elide instead

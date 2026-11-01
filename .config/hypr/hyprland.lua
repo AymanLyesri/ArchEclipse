@@ -32,6 +32,26 @@ local function require_custom_dir()
 	handle:close()
 end
 
+local function require_plugins_dir()
+	local home = os.getenv("HOME") or ""
+	local plugins_dir = home .. "/.config/hypr/config/plugins"
+	local handle = io.popen('ls -1 -- "' .. plugins_dir .. '" 2>/dev/null | sort')
+
+	if not handle then
+		return
+	end
+
+	for file in handle:lines() do
+		local module = file:match("^(.*)%.lua$")
+
+		if module then
+			require("config.plugins." .. module)
+		end
+	end
+
+	handle:close()
+end
+
 require_all({
 	"animations",
 	"scripts",
@@ -51,4 +71,5 @@ require_all({
 	"workspace",
 })
 
+require_plugins_dir()
 require_custom_dir()

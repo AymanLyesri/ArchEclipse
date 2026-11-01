@@ -141,6 +141,39 @@ Item {
             }
         }
 
+        // Scripted capture helper: MediaPill's left-click path, so a take can
+        // open the player island without a pointer to click the pill with.
+        function mediaPill(monitor: string): string {
+            try {
+                BarState.activate("player", 2500, monitor);
+                return "player pill open";
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
+        // Scripted capture helper: presses the player island's play/pause on the
+        // playing-else-first player MediaWidget renders (not the pill's own rule).
+        function playerToggle(): string {
+            try {
+                let target = null;
+                const vals = Mpris.players.values;
+                for (const p of vals) {
+                    if (p.isPlaying) {
+                        target = p;
+                        break;
+                    }
+                }
+                if (!target && vals.length > 0)
+                    target = vals[0];
+                if (!target) return "no player";
+                target.togglePlaying();
+                return "toggled " + (target.identity || "?") + " | " + (target.trackTitle || "?");
+            } catch (e) {
+                return "EX: " + e;
+            }
+        }
+
         // Dumps raw MPRIS fields plus every MediaWidget.appIconSource resolution step,
         // so a stuck fallback glyph traces back to its failing layer.
         function playerIconDiag(): string {

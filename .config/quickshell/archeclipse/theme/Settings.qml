@@ -19,7 +19,7 @@ Singleton {
     readonly property var dateFormats: ["%H:%M", "%I:%M %p"]
     property real uiOpacity: 0.618
     property int uiRadius: 12
-    property int uiPad: 6
+    property int uiPad: 8
     property int uiSpacing: 6
     property int uiFontSize: 12
 
