@@ -213,10 +213,9 @@ Item {
         }
 
         // Body: network subsection, divider, bluetooth subsection.
-        Column {
+        SectionScroll {
             id: connBody
             width: parent.width
-            spacing: Theme.spacing
             visible: root.sectionOpen
 
             // ----- Network -----

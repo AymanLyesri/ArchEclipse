@@ -61,7 +61,7 @@ WS9 = 9
 # the on-camera time each change is visible in the recording.
 WORKSPACE_SETTLE = 1.0
 WALLPAPER_SETTLE = 1.0
-MEDIA_SETTLE=0.5
+MEDIA_SETTLE = 0.5
 STEP_SETTLE = 1.5
 IPC_SETTLE = 0.5
 # `qs ipc` answers this while the shell's IPC server is still coming up after a
@@ -70,7 +70,7 @@ IPC_NOT_READY = "Not ready to accept queries yet."
 IPC_READY_TIMEOUT = 5.0
 # BooruViewer.boot() retries on a 200ms timer and then starts its fetch; the
 # demo tags are pushed after both, or a late boot write overwrites them.
-BOOT_SETTLE = 1.0
+BOOT_SETTLE = 0
 # The bar adopts a recording it did not start on its 1s pgrep poll; this
 # dwell lets the sidepill show the running timer before the take begins.
 RECORD_SETTLE = 1.0

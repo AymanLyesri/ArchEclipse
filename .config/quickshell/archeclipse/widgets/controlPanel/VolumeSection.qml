@@ -260,9 +260,8 @@ Item {
             }
 
             // ----- Playback -----
-            Column {
+            SectionScroll {
                 width: parent.width
-                spacing: Theme.spacing
                 visible: root.tabIndex === 0
                 Repeater {
                     model: root.playbackStreams
@@ -410,9 +409,8 @@ Item {
             }
 
             // ----- Recording -----
-            Column {
+            SectionScroll {
                 width: parent.width
-                spacing: Theme.spacing
                 visible: root.tabIndex === 1
                 Repeater {
                     model: root.recordingStreams
@@ -550,9 +548,8 @@ Item {
             }
 
             // ----- Output devices -----
-            Column {
+            SectionScroll {
                 width: parent.width
-                spacing: Theme.spacing
                 visible: root.tabIndex === 2
                 Repeater {
                     model: root.outputDevices
@@ -649,9 +646,8 @@ Item {
             }
 
             // ----- Input devices -----
-            Column {
+            SectionScroll {
                 width: parent.width
-                spacing: Theme.spacing
                 visible: root.tabIndex === 3
                 Repeater {
                     model: root.inputDevices
