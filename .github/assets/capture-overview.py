@@ -3,7 +3,7 @@
 
 Drives the live shell end to end: media-pill intro (player island + play),
 per-workspace wallpapers (WallEclipse), fabricated chatbot session, launcher
-selections (foot / cava) landed on the capture workspace at the same rects
+selections (foot / cava / pipes) landed on the capture workspace at the same rects
 capture-readme.py uses, right-panel layout shuffle, left-panel tab walk, and
 wallpaper-switcher demonstrates.
 
@@ -110,13 +110,15 @@ WALLPAPERS = {
     "columbina": "~/.config/wallpapers/defaults/images_sfw/__columbina_genshin_impact_drawn_by_void_0__86cc14bd3da8a9578bff20e148c1e74a.jpg",
     "angel": "/home/ayman/.config/wallpapers/defaults/images_sfw/__original_drawn_by_void_0__8b433da3ef498514c37f51c75617566c.jpg",
 }
-# Overview hero floats, from capture-readme.py's OVERVIEW_FLOATS (1920x1080).
-# cava has no desktop entry: the launcher's `term` prefix mode runs it in
-# foot (foot running bash -c cava) — deterministic, unlike the fuzzy
+# Overview hero floats, measured from the live ws10 placement (1920x1080,
+# absolute monitor pixels, 2026-11-03).
+# cava and pipes.sh have no desktop entry: the launcher's `term` prefix mode runs
+# them in foot (foot bash -c ...) — deterministic, unlike the fuzzy
 # "Try ... in terminal" fallback that vanishes once any entry matches.
 OVERVIEW_FLOATS = [
-    dict(query="apps foot", row="foot", x=935, y=580, w=1091, h=469),
-    dict(query="term cava", row="Run cava", x=1184, y=389, w=652, h=161),
+    dict(query="apps foot", row="foot", x=27, y=584, w=874, h=473),
+    dict(query="term cava", row="Run cava", x=26, y=415, w=496, h=153),
+    dict(query="term pipes.sh", row="Run pipes.sh", x=27, y=252, w=337, h=138),
 ]
 RIGHT_LAYOUTS = [
     (

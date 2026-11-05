@@ -27,7 +27,7 @@ Item {
     property real headroom: 0
     property real waveStep: 4
     property real waveDelay: 50
-    property int maxRings: 6
+    property int maxRings: 4
     property int peekDuration: 1000
     // Width of the special slot relative to a normal one.
     property real specialRatio: 0.55

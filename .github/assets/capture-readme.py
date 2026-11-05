@@ -32,11 +32,12 @@ CAPTURE_WORKSPACE_ID = 10
 # a half-faded wallpaper.
 WORKSPACE_SETTLE = 2.0
 
-# ArchEclipse Overview hero floats, measured from the live ws10 reference
-# placement (absolute monitor pixels on the 1920x1080 output).
+# ArchEclipse Overview hero floats, measured from the live ws10 layout
+# (absolute monitor pixels on the 1920x1080 output, 2026-11-03).
 OVERVIEW_FLOATS = [
-    dict(cmd=["foot", "-f", "monospace:size=9"], x=935, y=580, w=1091, h=469),
-    dict(cmd=["foot", "-f", "monospace:size=9", "cava"], x=1184, y=389, w=652, h=161),
+    dict(cmd=["foot", "-f", "monospace:size=9"], x=27, y=584, w=874, h=473),
+    dict(cmd=["foot", "-f", "monospace:size=9", "cava"], x=26, y=415, w=496, h=153),
+    dict(cmd=["foot", "-f", "monospace:size=9", "pipes.sh"], x=27, y=252, w=337, h=138),
 ]
 
 

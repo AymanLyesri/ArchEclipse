@@ -56,6 +56,7 @@ require_all({
 	"animations",
 	"scripts",
 	"bind",
+	"cursor",
 	"decoration",
 	"device",
 	"env",

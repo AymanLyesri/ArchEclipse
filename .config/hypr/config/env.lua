@@ -1,4 +1,5 @@
-hl.env("HYPRCURSOR_SIZE", "24")
+hl.env("XCURSOR_THEME", "phinger-cursors-dark")
+hl.env("XCURSOR_SIZE", "24")
 
 -- qt6ct provides the QPalette every Qt app consumes (Fusion), colored from
 -- the coloreclipse-generated file in ~/.config/qt6ct/colors. Without this
