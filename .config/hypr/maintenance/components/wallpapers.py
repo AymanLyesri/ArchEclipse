@@ -154,7 +154,6 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/39/e7/__vei_vshojo_drawn_by_dyarikku__39e7f60261458bd057e60b60edd7784b.jpg",
     "https://cdn.donmai.us/original/62/1d/__ishtar_fate_and_1_more_drawn_by_bao_pixiv_99415611__621d71a2e6d36ad8424e638bca8f9238.jpg",
     "https://cdn.donmai.us/original/83/6a/__nayuta_goddess_of_victory_nikke_drawn_by_bao_pixiv_99415611__836a218f385eab00edaea7cc69d95afe.jpg",
-    "https://cdn.donmai.us/original/85/4b/__brest_azur_lane_drawn_by_yolanda__854bb1c71e05317287583199ec536201.jpg",
     "https://cdn.donmai.us/original/95/e4/__dusk_arknights_drawn_by_omone_hokoma_agm__95e438265a597f57c5e7878aea35017d.jpg",
     "https://cdn.donmai.us/original/3c/ed/__xilonen_genshin_impact_drawn_by_void_0__3ced6e28ec3bc14b4c69911032593b1c.jpg",
     "https://cdn.donmai.us/original/18/65/__tanacita_tansy_hermis_chion_and_eleanor_stella_limnos_drawn_by_naguanan__186580294296d21d60fceba4ba59358c.jpg",

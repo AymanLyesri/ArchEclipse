@@ -1,3 +1,7 @@
+-- Guard per upstream README: without this, Lua parses plugin.dynamic_cursors
+-- before hyprpm has loaded the .so on cold start -> config error each reboot.
+-- `hyprpm reload` only "fixes" it because the plugin is registered by then.
+if hl.plugin.dynamic_cursors then
 hl.config { plugin = { dynamic_cursors = {
 
     -- enables the plugin
@@ -112,8 +116,10 @@ hl.config { plugin = { dynamic_cursors = {
         -- 2 - always use pixelated scaling
         nearest = 1,
 
-        -- enable dedicated hyprcursor support
-        enabled = true,
+        -- cursor.enable_hyprcursor is false (config/cursor.lua, phinger is
+        -- Xcursor-only with no hyprcursor theme), so this can never succeed
+        -- at boot; keep tilt/shake on XCursor with pixelated scaling.
+        enabled = false,
 
         -- resolution in pixels to load the magnified shapes at
         -- be warned that loading a very high-resolution image will take a long time and might impact memory consumption
@@ -126,3 +132,4 @@ hl.config { plugin = { dynamic_cursors = {
         fallback = "clientside",
     },
 }}}
+end
