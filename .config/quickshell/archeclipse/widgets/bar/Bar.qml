@@ -261,7 +261,10 @@ PanelWindow {
 
             // Width follows the stack content: content swaps immediately while the width glides,
             // the island wipe masks the grow and `clip` cuts spill at the animating edge.
-            property real targetWidth: Math.max(stack.width + stack.effPad * 2, 100)
+            // DefaultBar states keep a little breathing room between the strokes and the row,
+            // but not the full meter box: content sits closer without ever landing under a stroke.
+            readonly property real meterSlack: stack.showsDefault ? 2 * (pillMeter.corner + 2) : 0
+            property real targetWidth: Math.max(stack.width + stack.effPad * 2 + pill.meterSlack, 100)
             // One path/fill for body + both screen-edge flares: separate shapes either hairline
             // (abutted) or double-blend (overlapped, on a translucent surface).
             PillBackground {
@@ -270,6 +273,23 @@ PanelWindow {
                 bodyHeight: pill.height
                 topBar: Settings.barOrientation
                 x: -flare
+            }
+            // CPU/RAM/GPU strokes inside each body end; DefaultBar publishes the chrome curve
+            // so they fade with the bar as quick settings takes the pill over.
+            PillBorderMeter {
+                id: pillMeter
+                x: -pillMeter.flare
+                bodyWidth: pill.width
+                bodyHeight: pill.height
+                flare: Theme.radius
+                corner: Theme.radius
+                topBar: Settings.barOrientation
+                monitorName: root.monitorName
+                visible: stack.showsDefault
+                opacity: {
+                    var page = currentPageLoader.item;
+                    return (page && page["chromeOpacity"] !== undefined) ? page.chromeOpacity : 1;
+                }
             }
             // Content clip: extends by the wave hang while the strip is expanded so hanging
             // buttons are not clipped away, and stays tight for width glides otherwise.

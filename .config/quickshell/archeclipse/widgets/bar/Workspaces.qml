@@ -13,12 +13,12 @@ Item {
     property string monitorName: ""
 
     property int count: 10
-    property real barHeight: 3
+    property real barHeight: 4
     property real iconSize: 11
-    property real btnSpacing: 4
+    property real btnSpacing: 0
     // Horizontal inset of the strip Row so the end buttons don't flush against
     // the pill's straight edges.
-    property real edgeMargin: 6
+    property real edgeMargin: 0
     property real hitHeight: 6
     // Gap between a slot's icon holder and its bar (Column spacing).
     property real iconSpacing: 1

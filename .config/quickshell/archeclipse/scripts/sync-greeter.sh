@@ -5,7 +5,21 @@ set -u
 SRC="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/archeclipse-greeter"
 DST="${GREETER_DST:-/etc/xdg/quickshell/archeclipse-greeter}"
 SESSION_DIR="/usr/share/wayland-sessions"
-SUDO="${SYNC_GREETER_SUDO-sudo}"
+SUDO="${SYNC_GREETER_SUDO-sudo -n}"
+
+# Freshness gate: bar.lua runs this every launch, but a full mirror is only
+# needed after greeter edits; skip while nothing in $SRC is newer than $DST.
+if [ -f "$DST/keyboard-input.lua" ] && [ -z "$(find "$SRC" -type f -newer "$DST/keyboard-input.lua" -print -quit 2>/dev/null)" ]; then
+    echo "greeter already in sync -> $DST"
+    exit 0
+fi
+
+# Fail fast when NOPASSWD is unavailable: five interactive sudo prompts at
+# boot lock the account via pam_faillock, so bail before touching anything.
+# Probe uses rsync itself (whitelisted); bare `sudo -n true` never matches.
+if ! sudo -n /usr/bin/rsync --version >/dev/null 2>&1; then
+    exit 0
+fi
 
 # NOTE: `#` comments cannot sit inside the backslash-continued rsync (they break the
 # continuation), so: secret-shaped names must never leak, and --delete must keep the user data.

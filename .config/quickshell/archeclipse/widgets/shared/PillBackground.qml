@@ -1,5 +1,6 @@
 import QtQuick
 import qs.theme
+import "PillPath.js" as PillPath
 
 // Single-fill pill background: body + both concave edge flares as one path, so no seam appears —
 // abutting shapes leave a hairline, overlapping ones double-blend on a translucent surface.
@@ -38,29 +39,7 @@ Canvas {
             return;
         ctx.reset();
         ctx.fillStyle = root.color;
-        ctx.beginPath();
-        if (root.topBar) {
-            ctx.moveTo(0, 0);
-            ctx.lineTo(W, 0);
-            ctx.arc(W, f, f, -Math.PI / 2, Math.PI, true);
-            ctx.lineTo(W - f, bh - cr);
-            ctx.arc(W - f - cr, bh - cr, cr, 0, Math.PI / 2, false);
-            ctx.lineTo(f + cr, bh);
-            ctx.arc(f + cr, bh - cr, cr, Math.PI / 2, Math.PI, false);
-            ctx.lineTo(f, f);
-            ctx.arc(0, f, f, 0, -Math.PI / 2, true);
-        } else {
-            ctx.moveTo(0, bh);
-            ctx.lineTo(W, bh);
-            ctx.arc(W, bh - f, f, Math.PI / 2, Math.PI, false);
-            ctx.lineTo(W - f, cr);
-            ctx.arc(W - f - cr, cr, cr, 0, -Math.PI / 2, true);
-            ctx.lineTo(f + cr, 0);
-            ctx.arc(f + cr, cr, cr, -Math.PI / 2, Math.PI, true);
-            ctx.lineTo(f, bh - f);
-            ctx.arc(0, bh - f, f, 0, Math.PI / 2, false);
-        }
-        ctx.closePath();
+        PillPath.bodyPath(ctx, W, bh, f, cr, root.topBar);
         ctx.fill();
         // Outer-flare recolor slivers: same geometry painted over the flare region, making the
         // shared edge a deliberate two-colour boundary instead of a hairline.

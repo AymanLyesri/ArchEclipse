@@ -9,7 +9,7 @@ DefaultBar 1.0 DefaultBar.qml
 HotZone 1.0 HotZone.qml
 MediaPill 1.0 MediaPill.qml
 NetworkWidget 1.0 NetworkWidget.qml
-ResourceMonitor 1.0 ResourceMonitor.qml
+PillBorderMeter 1.0 PillBorderMeter.qml
 Tray 1.0 Tray.qml
 Volume 1.0 Volume.qml
 WindowTitle 1.0 WindowTitle.qml

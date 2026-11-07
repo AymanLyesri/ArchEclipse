@@ -7,12 +7,14 @@ import qs.widgets.bar
 import qs.widgets.bar.islands
 import qs.widgets.shared
 
-// Launcher + window title left, center pill (bandwidth | control | clock), resources and
-// battery/brightness/volume/tray right; the gear turns the center pill into ControlCard.
+// Launcher + window title left, center pill (bandwidth | control | clock), battery/brightness/
+// volume/tray right; the gear turns the center pill into ControlCard.
 Column {
     id: root
     spacing: Theme.spacing / 2
     property string monitorName: ""
+    // Bar.qml's pill border meter fades with this exact chrome curve (control open/retract).
+    readonly property real chromeOpacity: topRow.chromeOpacity
 
     // Injected by Bar.qml: the stack that owns the pill width. While the sliders animate
     // their own width the pill must track rigidly (stack.rigidWidth), not ease after it.
@@ -349,10 +351,6 @@ Column {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
 
-                ResourceMonitor {
-                    id: resourceMonitor
-                    monitorName: root.monitorName
-                }
                 Battery {}
                 Brightness {
                     id: brightnessWidget
