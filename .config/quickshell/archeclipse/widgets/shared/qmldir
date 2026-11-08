@@ -22,6 +22,7 @@ AppMasonry 1.0 AppMasonry.qml
 AppMasonryRow 1.0 AppMasonryRow.qml
 AppSegmentedControl 1.0 AppSegmentedControl.qml
 AppProgress 1.0 AppProgress.qml
+AppNavigationSidePanel 1.0 AppNavigationSidePanel.qml
 AppTooltip 1.0 AppTooltip.qml
 SettingLabel 1.0 SettingLabel.qml
 SettingRow 1.0 SettingRow.qml

@@ -1,15 +1,15 @@
 import QtQuick
 import qs.theme
 
-// Shared category rail: model is the same array the section cards index, so labels cannot
-// drift; currentIndex is caller-driven and taps report via selected(). One sliding pill animates.
+// Shared navigation for section cards (Settings/KeyBinds) and exclusive tabs (Booru/Manga/ChatBot).
+// Model is the same array the host indexes, so labels cannot drift; taps report via selected().
 Rectangle {
     id: root
 
     property var model: []
     property int currentIndex: 0
     signal selected(int index)
-    // Optional nav hook: only the falloff constants are used, so a rail hover dims its
+    // Optional nav hook: only the falloff constants are used, so a navigation hover dims its
     // neighbours exactly like the section fade. The selection is never touched.
     property CategoryNav nav: null
     property int hoveredIndex: -1
@@ -24,11 +24,11 @@ Rectangle {
     border.color: Theme.border
     border.width: 1
     clip: true
-    // Hug the entries: a full-height rail would be mostly empty borders on
+    // Hug the entries: a full-height navigation would be mostly empty borders on
     // a tall monitor and read as a second content pane.
     implicitHeight: entries.implicitHeight + inset * 2
 
-    // A hidden rail cannot deliver onExited, so a close mid-hover must drop the preview.
+    // A hidden navigation cannot deliver onExited, so a close mid-hover must drop the preview.
     onVisibleChanged: if (!root.visible) root.hoveredIndex = -1
     onModelChanged: root.hoveredIndex = -1
 
@@ -39,13 +39,20 @@ Rectangle {
         return typeof entry === "string" ? entry : (entry.title || "");
     }
 
+    function entryEnabledAt(index) {
+        const entry = root.model[index];
+        if (entry === undefined || entry === null)
+            return true;
+        return typeof entry === "string" ? true : entry.enabled !== false;
+    }
+
     Rectangle {
         id: highlight
 
         visible: root.model.length > 0
         x: root.inset
         // Clamp the index: a stale/out-of-range selection must never park
-        // the pill outside the rail (e.g. after a model reload).
+        // the pill outside the shared navigation (e.g. after a model reload).
         y: root.inset + Math.max(0, Math.min(root.currentIndex, root.model.length - 1)) * (root.entryHeight + root.entrySpacing)
         width: root.rowWidth
         height: root.entryHeight
@@ -92,12 +99,13 @@ Rectangle {
                 required property var modelData
                 required property int index
                 readonly property bool active: index === root.currentIndex
+                readonly property bool cellEnabled: root.entryEnabledAt(index)
 
                 width: entries.width
                 height: root.entryHeight
                 // Hovered entry reads at full strength, the rest step down with the section
                 // fade's falloff (no nav wired = no dimming).
-                opacity: root.nav ? root.nav.falloffFor(index, root.hoveredIndex) : 1
+                opacity: (cell.cellEnabled ? 1 : 0.45) * (root.nav ? root.nav.falloffFor(index, root.hoveredIndex) : 1)
                 Behavior on opacity {
                     Anim {
                         type: Anim.DefaultEffects
@@ -128,7 +136,7 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSizeSmall
                     font.bold: cell.active
-                    color: cell.active ? Theme.accent : (hover.hovered ? Theme.fg : Theme.fgDim)
+                    color: cell.cellEnabled ? (cell.active ? Theme.accent : (hover.hovered ? Theme.fg : Theme.fgDim)) : Theme.muted
                     Behavior on color {
                         CAnim {}
                     }
@@ -145,9 +153,10 @@ Rectangle {
                     id: hover
 
                     anchors.fill: parent
+                    enabled: cell.cellEnabled
                     hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.selected(cell.index)
+                    cursorShape: cell.cellEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: if (cell.cellEnabled) root.selected(cell.index)
                     onEntered: root.hoveredIndex = cell.index
                     onExited: if (root.hoveredIndex === cell.index) root.hoveredIndex = -1
                 }

@@ -47,6 +47,8 @@ Singleton {
     property bool rightPanelLock: false
     property int leftPanelWidth: 500
     property int rightPanelWidth: 350
+    // Shared navigation side panel width (Booru/Manga/ChatBot), dragged on its right edge, persisted.
+    property int leftNavPanelWidth: 128
     // Per-monitor overrides. The flat properties above remain the defaults
     // for monitors without an explicit override and for older settings files.
     property var leftPanelByMonitor: ({})
@@ -170,7 +172,7 @@ Singleton {
                     url: "https://danbooru.donmai.us/",
                     idSearchUrl: "https://danbooru.donmai.us/posts/"
                 }),
-            tags: ["-rating:explicit"],
+            tags: ["-rating:e"],
             limit: 30,
             page: 1,
             columns: 3,
@@ -429,11 +431,11 @@ Singleton {
     property string chatBotApi: "openai/gpt-4o-mini"
     // ChatBot context chips (Minimal+explicit: workspace/window/clipboard/active-file).
     property var chatBotContext: ({
-        ws: true,
-        win: true,
-        clip: true,
-        file: true
-    })
+            ws: true,
+            win: true,
+            clip: true,
+            file: true
+        })
     // ChatBot reply notifications (default off — replies stay in the tab).
     property bool chatBotNotify: false
 
@@ -671,8 +673,7 @@ Singleton {
                 clean.lock = !!rawLock;
             }
             if (side === "left" && entry.widget !== undefined) {
-                const rawWidget = entry.widget && typeof entry.widget === "object"
-                    ? (entry.widget.name ?? entry.widget.value) : entry.widget;
+                const rawWidget = entry.widget && typeof entry.widget === "object" ? (entry.widget.name ?? entry.widget.value) : entry.widget;
                 const widget = String(rawWidget ?? "");
                 if (root.leftPanelWidgetNames.includes(widget))
                     clean.widget = widget;
@@ -709,6 +710,7 @@ Singleton {
             "leftPanel.lock": "leftPanelLock",
             "rightPanel.lock": "rightPanelLock",
             "leftPanel.width": "leftPanelWidth",
+            "leftPanel.navWidth": "leftNavPanelWidth",
             "leftPanel.widget": "leftPanelWidget",
             "wallpaperSwitcher.category": "wallpaperCategory",
             "wallpaperSwitcher.provider": "wallpaperProvider",
@@ -868,6 +870,7 @@ Singleton {
                     },
                     lock: root.leftPanelLock,
                     width: root.leftPanelWidth,
+                    navWidth: root.leftNavPanelWidth,
                     monitors: root.leftPanelByMonitor,
                     widget: {
                         name: root.leftPanelWidget
@@ -1092,6 +1095,9 @@ Singleton {
                 root.leftPanelLock = !!s.leftPanel?.lock;
                 root.rightPanelLock = !!s.rightPanel?.lock;
                 root.leftPanelWidth = (typeof s.leftPanel?.width === "object" && s.leftPanel?.width !== null ? s.leftPanel.width.value : s.leftPanel?.width) ?? 400;
+                const _nw = s.leftPanel?.navWidth;
+                const _nwV = (typeof _nw === "object" && _nw !== null ? _nw.value : _nw);
+                root.leftNavPanelWidth = Math.min(320, Math.max(96, parseInt(_nwV) || 128));
                 root.leftPanelByMonitor = root.normalizePanelOverrides(s.leftPanel?.monitors, "left");
                 // The file may store {name, icon}; only {name} is persisted and restored —
                 // left icons live in LeftIsland (legacy files used "leftPanel.widget").
@@ -1158,12 +1164,12 @@ Singleton {
                 const _ble = s.blueLight?.end;
                 root.blueLightEnd = root._normTime((typeof _ble === "object" && _ble !== null) ? _ble.value : _ble, "07:00");
 
-                // Rating tag leads, defaulting to -rating:explicit, done here (not viewer
+                // Rating tag leads, defaulting to -rating:e, done here (not viewer
                 // boot) so the file's tags are normalized the moment they are adopted.
-                let _tags = (s.booru?.tags ?? ["-rating:explicit"]).slice();
-                const _rt = _tags.find(t => t.match(/[-]rating:explicit|rating:explicit/));
-                _tags = _tags.filter(t => !t.match(/[-]rating:explicit|rating:explicit/));
-                _tags.unshift(_rt ?? "-rating:explicit");
+                let _tags = (s.booru?.tags ?? ["-rating:e"]).slice();
+                const _rt = _tags.find(t => t.match(/[-]rating:e|rating:e/));
+                _tags = _tags.filter(t => !t.match(/[-]rating:e|rating:e/));
+                _tags.unshift(_rt ?? "-rating:e");
                 root.booru = {
                     api: s.booru?.api ?? {
                         name: "Danbooru",
@@ -1195,11 +1201,11 @@ Singleton {
                 // ChatBot context chips (defaults on; merge saved flags over them).
                 const cbCtx = s.chatBot?.context ?? {};
                 root.chatBotContext = ({
-                    ws: cbCtx.ws ?? true,
-                    win: cbCtx.win ?? true,
-                    clip: cbCtx.clip ?? true,
-                    file: cbCtx.file ?? true
-                });
+                        ws: cbCtx.ws ?? true,
+                        win: cbCtx.win ?? true,
+                        clip: cbCtx.clip ?? true,
+                        file: cbCtx.file ?? true
+                    });
                 root.chatBotNotify = s.chatBot?.notify ?? false;
 
                 // Lockscreen grace period (seconds of free Esc dismiss)
@@ -1382,8 +1388,7 @@ Singleton {
         if (s === e)
             return "Start equals end: the filter will never turn on.";
         const dur = (e - s + 1440) % 1440;
-        let t = "ON " + root.blueLightStart + " \u2192 OFF " + root.blueLightEnd + (s > e ? " (next day)" : "")
-            + " \u00b7 " + Math.floor(dur / 60) + " h " + (dur % 60) + " min";
+        let t = "ON " + root.blueLightStart + " \u2192 OFF " + root.blueLightEnd + (s > e ? " (next day)" : "") + " \u00b7 " + Math.floor(dur / 60) + " h " + (dur % 60) + " min";
         if (root._blSched === 1)
             t += " \u00b7 active now";
         return t;
@@ -1579,6 +1584,9 @@ Singleton {
             root.schedulePersist();
         }
         function onLeftPanelWidthChanged() {
+            root.schedulePersist();
+        }
+        function onLeftNavPanelWidthChanged() {
             root.schedulePersist();
         }
         function onLeftPanelWidgetChanged() {

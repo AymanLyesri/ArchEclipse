@@ -1086,11 +1086,119 @@ Item {
 
     // ColumnLayout (not Column): children size via Layout.* props, so width/height bindings
     // are derived, not hardcoded.
+    // Navigation panel: provider entries on top, context-chip toggles below. The panel is a
+    // whole section, not just a segmented control — chips live here permanently.
+    // providerNavModel is the rendered snapshot: onSelected reads this same array, so an
+    // index can never resolve against a provider list that changed since the tap.
+    readonly property var providerNavModel: root.visibleProviders().map(p => ({ title: p.name, value: p.value }))
+    AppNavigationSidePanel {
+        id: navPanel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: navPanel.panelWidth
+        height: parent.height
+        navModel: root.providerNavModel
+        navCurrentIndex: Math.max(0, root.providerNavModel.findIndex(p => p.value === root.currentApiModel))
+        onNavSelected: index => {
+            const p = root.providerNavModel[index];
+            if (!p)
+                return;
+            root.currentApiModel = p.value;
+            Settings.chatBotApi = p.value;
+            root.loadSessions();
+        }
+
+        // Hug the content (CategoryRail does the same) so the card never stretches
+        // to fill the panel when the chips take a row or two.
+        Rectangle {
+            width: parent.width
+            height: ctxBody.implicitHeight + Theme.pad * 2
+            color: Theme.surface
+            radius: Theme.radius
+            border.color: Theme.border
+            border.width: 1
+            clip: true
+
+            Column {
+                id: ctxBody
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Theme.pad
+                spacing: Theme.spacing
+
+                Label {
+                    width: parent.width
+                    text: "Context"
+                    font.pixelSize: Theme.fontSize
+                    font.bold: true
+                    color: Theme.accent
+                }
+
+                // Context toggles: a wrapping Flow (booru-tag pattern) so the four
+                // pills wrap instead of stacking one per line.
+                Flow {
+                    width: parent.width
+                    spacing: Theme.spacing
+
+                    Repeater {
+                        model: [
+                            { value: "ws", label: "WS", tooltip: "Include active workspace in prompt context" },
+                            { value: "win", label: "Win", tooltip: "Include focused window in prompt context" },
+                            { value: "clip", label: "Clip", tooltip: "Include clipboard head in prompt context" },
+                            { value: "file", label: "File", tooltip: "Auto-include the file open in the focused editor" }
+                        ]
+
+                        delegate: AppButton {
+                            required property var modelData
+                            toggle: true
+                            checked: Settings.chatBotContext[modelData.value] ?? true
+                            height: 24
+                            pixelSize: Theme.fontSize - 2
+                            text: modelData.label
+                            tooltipText: modelData.tooltip
+                            idleBg: checked ? Theme.surfaceActive : Theme.bg
+                            idleFg: checked ? Theme.accent : Theme.fg
+                            hoverFg: checked ? Theme.accent : Theme.fg
+                            outlined: true
+                            outlineColor: Theme.border
+                            onClicked: {
+                                const v = modelData.value;
+                                const next = !(Settings.chatBotContext[v] ?? true);
+                                Settings.chatBotContext = Object.assign({}, Settings.chatBotContext, { [v]: next });
+                                if (v === "file")
+                                    root.refreshAutoFile();
+                            }
+                        }
+                    }
+                }
+
+                Label {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    font.pixelSize: Theme.fontSize - 1
+                    color: Theme.fgDim
+                    elide: Text.ElideMiddle
+                    wrapMode: Text.WordWrap
+                    text: (Settings.chatBotContext.file ?? true) ? (root.autoFile.name !== "" ? "📄 " + root.autoFile.name : "no file focused") : "auto-file off"
+                    HoverHandler {
+                        id: autoFileHover
+                    }
+                    AppTooltip {
+                        visible: autoFileHover.hovered && root.autoFile.path !== ""
+                        text: root.autoFile.path
+                    }
+                }
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
+        anchors.leftMargin: navPanel.panelWidth + Theme.spacing
         spacing: Theme.spacing
 
-        // [1] Info: provider name + description + session (always visible)
+        // [1] Info: provider + session (always visible). Context lives in the navigation panel.
         Column {
             Layout.fillWidth: true
             spacing: 2
@@ -1503,27 +1611,12 @@ Item {
             onMovementStarted: root._shouldScroll = false
         }
 
-        // [4] BottomBar: input + clear + image toggle + session tabs + API tabs
+        // [4] Input row only (slash popup + input + stop): providers live on the shared navigation, chips in the header.
         Column {
             Layout.fillWidth: true
             spacing: Theme.spacing
 
-                Label {
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignHCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    font.pixelSize: Theme.fontSize - 1
-                    color: Theme.fgDim
-                    elide: Text.ElideMiddle
-                    text: (Settings.chatBotContext.file ?? true) ? (root.autoFile.name !== "" ? "📄 " + root.autoFile.name : "no file focused") : "auto-file off"
-                    HoverHandler {
-                        id: autoFileHover
-                    }
-                    AppTooltip {
-                        visible: autoFileHover.hovered && root.autoFile.path !== ""
-                        text: root.autoFile.path
-                    }
-                }
+
  
 
             // Slash-command popup: commands + session hits for
@@ -1650,81 +1743,9 @@ Item {
                 }
             }
 
-            // Context bar: chips toggle what is injected, the path field attaches a file head;
-            // chips persist via Settings.
-            RowLayout {
-                width: parent.width
-                spacing: Theme.spacing
-                AppFilterChips {
-                    Layout.alignment: Qt.AlignHCenter
-                    chipHeight: 26
-                    model: [
-                        {
-                            value: "ws",
-                            label: "WS",
-                            tooltip: "Include active workspace in prompt context"
-                        },
-                        {
-                            value: "win",
-                            label: "Win",
-                            tooltip: "Include focused window in prompt context"
-                        },
-                        {
-                            value: "clip",
-                            label: "Clip",
-                            tooltip: "Include clipboard head in prompt context"
-                        },
-                        {
-                            value: "file",
-                            label: "File",
-                            tooltip: "Auto-include the file open in the focused editor"
-                        }
-                    ]
-                    checkedValues: {
-                        const onValues = [];
-                        if (Settings.chatBotContext.ws ?? true)
-                            onValues.push("ws");
-                        if (Settings.chatBotContext.win ?? true)
-                            onValues.push("win");
-                        if (Settings.chatBotContext.clip ?? true)
-                            onValues.push("clip");
-                        if (Settings.chatBotContext.file ?? true)
-                            onValues.push("file");
-                        return onValues;
-                    }
-                    allowEmpty: true
-                    onToggled: (i, value, checked) => {
-                        Settings.chatBotContext = Object.assign({}, Settings.chatBotContext, {
-                            [value]: checked
-                        });
-                        if (value === "file")
-                            root.refreshAutoFile();
-                    }
-                }
-            }
-
             // Session management is slash-only now (/new /list /switch
             // /rename /delete) — no tab UI. Active session shows in [1].
 
-            // API provider tabs (stretched row; filtered by live model list)
-            RowLayout {
-                width: parent.width
-                spacing: Theme.spacing
-                AppSegmentedControl {
-                    Layout.alignment: Qt.AlignHCenter
-                    model: root.visibleProviders().map(p => ({
-                        value: p.value,
-                        label: p.icon,
-                        tooltip: "<b>" + p.name + "</b>\n" + p.description
-                    }))
-                    currentIndex: Math.max(0, root.visibleProviders().findIndex(p => p.value === root.currentApiModel))
-                    onActivated: (i, v) => {
-                        root.currentApiModel = v;
-                        Settings.chatBotApi = v;
-                        root.loadSessions();
-                    }
-                }
-            }
         }
 
         // [5] removed: loading/error now render inline in the messages

@@ -13,7 +13,6 @@ import qs.widgets.shared
 // Booru viewer: API tabs (Danbooru/Gelbooru/Safebooru), bookmarks, pins, tag search, masonry
 // grid, keyboard pagination and preview downloads through booru.py.
 Item {
-
     id: root
 
     property int widgetWidth: parent.width
@@ -56,7 +55,7 @@ Item {
     property string pageDirection: "next"
     property var fetchedTags: []
     property string cacheSize: "0mb"
-    property var currentTags: Settings.booru.tags ? Settings.booru.tags : ["-rating:explicit"]
+    property var currentTags: Settings.booru.tags ? Settings.booru.tags : ["-rating:e"]
     property int limit: Settings.booru.limit ? Settings.booru.limit : 100
     property int columns: Settings.booru.columns ? Settings.booru.columns : 3
     // Diagnostic: last fetch command with secrets redacted (IPC-readable)
@@ -83,8 +82,7 @@ Item {
     property bool popupHovered: false
     // Back-reference injected by LeftIsland (booruView.hostPanel = island).
     property var hostPanel: null
-    readonly property string panelMonitorName: root.hostPanel && root.hostPanel.monitorName
-        ? root.hostPanel.monitorName : Registry.monitorName
+    readonly property string panelMonitorName: root.hostPanel && root.hostPanel.monitorName ? root.hostPanel.monitorName : Registry.monitorName
     // Reactive binding, not a one-shot onLoaded assign: the nested booru Loader can finish
     // before the island's screen arrives, which left this null and the float never visible.
     property var hostScreen: root.hostPanel && root.hostPanel.screen ? root.hostPanel.screen : null
@@ -122,7 +120,6 @@ Item {
     property var downloadedIds: ({})
     // forces dialog overlay to recompute toggle states after downloads
     property int dialogVersion: 0
-    property bool bottomRevealed: false
     property bool keyEnabled: true
     property Timer _limitDebounce
     readonly property var booruApis: [
@@ -357,8 +354,7 @@ Item {
         try {
             if (root.dialogImage !== null && detailPopup.visible && typeof detailPopup.anchor.updateAnchor === "function")
                 detailPopup.anchor.updateAnchor();
-        } catch (e) {
-        }
+        } catch (e) {}
     }
 
     // --------- helpers for image dialog (shared via BooruActions) ---------
@@ -571,15 +567,15 @@ Item {
     }
 
     function ensureRatingTagFirst() {
-        // Find existing rating tag, remove it, re-add at front (or default -rating:explicit)
+        // Find existing rating tag, remove it, re-add at front (or default -rating:e)
         let tags = root.currentTags.slice();
         const ratingTag = tags.find(t => {
-            return t.match(/[-]rating:explicit|rating:explicit/);
+            return t.match(/[-]rating:e|rating:e/);
         });
         tags = tags.filter(t => {
-            return !t.match(/[-]rating:explicit|rating:explicit/);
+            return !t.match(/[-]rating:e|rating:e/);
         });
-        tags.unshift(ratingTag ?? "-rating:explicit");
+        tags.unshift(ratingTag ?? "-rating:e");
         root.currentTags = tags;
         Settings.booru.tags = tags;
         Settings.updateSetting("booru.tags", tags);
@@ -671,6 +667,41 @@ Item {
         Settings.updateSetting("booru.page", pageNo);
     }
 
+    // Navigation model: API names + Bookmarks + Pins. Filter controls live in the
+    // navigation panel below the entries, not as entries themselves.
+    readonly property var tabValues: root.booruApis.map(a => a.name).concat(["Bookmarks", "Pins"])
+
+    function resetPage() {
+        root.page = 1;
+        Settings.booru.page = 1;
+        Settings.updateSetting("booru.page", 1);
+    }
+
+    function activateTab(v) {
+        if (v === "Bookmarks") {
+            root.selectedTab = "Bookmarks";
+            Settings.booru.selectedTab = "Bookmarks";
+            Settings.updateSetting("booru.selectedTab", "Bookmarks");
+            resetPage();
+            loadBookmarks();
+        } else if (v === "Pins") {
+            root.selectedTab = "Pins";
+            Settings.booru.selectedTab = "Pins";
+            Settings.updateSetting("booru.selectedTab", "Pins");
+            resetPage();
+            loadPins();
+        } else {
+            const api = root.booruApis.find(a => a.name === v) || root.booruApis[0];
+            Settings.booru.api = api;
+            Settings.updateSetting("booru.api", api);
+            root.selectedTab = api.name;
+            Settings.booru.selectedTab = api.name;
+            Settings.updateSetting("booru.selectedTab", api.name);
+            resetPage();
+            fetchImages();
+        }
+    }
+
     // Drop the whole stack: scroll offset, dividers and page numbers belong to one search.
     function resetStack(pageNo) {
         const p = Math.max(1, Math.round(Number(pageNo) || 1));
@@ -732,6 +763,28 @@ Item {
         return root.loadLocalPage(pageNo || root.page, side, Settings.booru.pins || []);
     }
 
+    // The single write point for the stack. `anchor` is whether the change can shift the viewport:
+    // only then is the anchor captured, and restored once the layout has run.
+    function writeStack(mutate, anchor) {
+        const list = root.loadedPages.slice();
+        if (mutate(list) === false)
+            return;
+        list.sort((a, b) => a.page - b.page);
+        const cap = anchor ? grid.captureViewport() : null;
+        root.loadedPages = list;
+        if (cap)
+            Qt.callLater(() => grid.restoreViewport(cap));
+    }
+
+    // Replace the page's entry in a stack copy, or add it in page order.
+    function upsertPage(list, entry) {
+        const idx = list.findIndex(pg => pg.page === entry.page);
+        if (idx >= 0)
+            list[idx] = entry;
+        else
+            list.push(entry);
+    }
+
     // The one mutation point for the stack: replace resets, append/prepend only add a block.
     function applyPage(pageNo, imgs, side, exhausted) {
         const entry = {
@@ -763,33 +816,24 @@ Item {
             return;
         }
         const isAppend = side === "append";
-        const list = root.loadedPages.slice();
-        const idx = list.findIndex(pg => pg.page === pageNo);
         if (entry.images.length === 0) {
             // Empty answer: drop the edge placeholder and stop that direction for good.
-            const cap = isAppend ? null : grid.captureViewport();
-            if (idx >= 0)
+            root.writeStack(list => {
+                const idx = list.findIndex(pg => pg.page === pageNo);
+                if (idx < 0)
+                    return false;
                 list.splice(idx, 1);
-            root.loadedPages = list;
+            }, !isAppend);
             if (isAppend)
                 root.endBelow = true;
             else
                 root.endAbove = true;
             root._pendingScrollPage = 0;
-            if (!isAppend)
-                Qt.callLater(() => grid.restoreViewport(cap));
             return;
         }
-        // Prepend inserts above the viewport, so the anchor has to be captured first.
-        const cap = isAppend ? null : grid.captureViewport();
-        if (idx >= 0)
-            list[idx] = entry;
-        else
-            list.push(entry);
-        list.sort((a, b) => a.page - b.page);
         if (!isAppend && root.dialogImage !== null && !root.dialogDetached)
             root.requestClose();
-        root.loadedPages = list;
+        root.writeStack(list => root.upsertPage(list, entry), !isAppend);
         if (exhausted) {
             if (isAppend)
                 root.endBelow = true;
@@ -801,8 +845,6 @@ Item {
         if (root._pendingScrollPage === pageNo) {
             root._pendingScrollPage = 0;
             Qt.callLater(() => grid.scrollToPage(pageNo));
-        } else if (!isAppend) {
-            Qt.callLater(() => grid.restoreViewport(cap));
         }
         root.trimStack(pageNo);
     }
@@ -813,48 +855,35 @@ Item {
         const MAX_PAGES = 8;
         if (root.loadedPages.length <= MAX_PAGES)
             return;
-        const cap = grid.captureViewport();
-        const list = root.loadedPages.slice();
-        while (list.length > MAX_PAGES) {
-            let victim = -1;
-            let far = -1;
-            for (let i = 0; i < list.length; i++) {
-                const dist = Math.abs(list[i].page - anchorPage);
-                if (dist <= 1 || list[i].loading)
-                    continue;
-                if (dist > far) {
-                    far = dist;
-                    victim = i;
+        root.writeStack(list => {
+            const before = list.length;
+            while (list.length > MAX_PAGES) {
+                let victim = -1;
+                let far = -1;
+                for (let i = 0; i < list.length; i++) {
+                    const dist = Math.abs(list[i].page - anchorPage);
+                    if (dist <= 1 || list[i].loading)
+                        continue;
+                    if (dist > far) {
+                        far = dist;
+                        victim = i;
+                    }
                 }
+                if (victim < 0)
+                    break;
+                list.splice(victim, 1);
             }
-            if (victim < 0)
-                break;
-            list.splice(victim, 1);
-        }
-        if (list.length === root.loadedPages.length)
-            return;
-        root.loadedPages = list;
-        Qt.callLater(() => grid.restoreViewport(cap));
+            return list.length !== before;
+        }, true);
     }
 
     function beginPage(pageNo, side) {
-        const cap = side === "prepend" ? grid.captureViewport() : null;
-        const list = root.loadedPages.slice();
-        const idx = list.findIndex(pg => pg.page === pageNo);
-        const entry = {
-            "page": pageNo,
-            "images": [],
-            "loading": true,
-            "error": ""
-        };
-        if (idx >= 0)
-            list[idx] = entry;
-        else
-            list.push(entry);
-        list.sort((a, b) => a.page - b.page);
-        root.loadedPages = list;
-        if (cap)
-            Qt.callLater(() => grid.restoreViewport(cap));
+        root.writeStack(list => root.upsertPage(list, {
+                "page": pageNo,
+                "images": [],
+                "loading": true,
+                "error": ""
+            }), side === "prepend");
     }
 
     function failPage(pageNo, side, msg) {
@@ -872,17 +901,17 @@ Item {
             return;
         }
         // Edge failure: loaded pages stay mounted and the block offers a retry.
-        const list = root.loadedPages.slice();
-        const idx = list.findIndex(pg => pg.page === pageNo);
-        if (idx < 0)
-            return;
-        list[idx] = {
-            "page": pageNo,
-            "images": list[idx].images || [],
-            "loading": false,
-            "error": detail
-        };
-        root.loadedPages = list;
+        root.writeStack(list => {
+            const idx = list.findIndex(pg => pg.page === pageNo);
+            if (idx < 0)
+                return false;
+            list[idx] = {
+                "page": pageNo,
+                "images": list[idx].images || [],
+                "loading": false,
+                "error": detail
+            };
+        }, false);
     }
 
     function fetchApiPage(pageNo, side) {
@@ -1114,8 +1143,8 @@ Item {
         // One disk probe per call: cached previews turn previewIds warm instead of re-downloading.
         const checkProc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
         checkProc.command = ["bash", "-c", tasks.map(t => {
-            return "test -s " + JSON.stringify(t.path) + " && echo " + JSON.stringify(t.key);
-        }).join("; ") + "; true"];
+                return "test -s " + JSON.stringify(t.path) + " && echo " + JSON.stringify(t.key);
+            }).join("; ") + "; true"];
         checkProc.stdout.onStreamFinished.connect(function () {
             const have = {};
             (checkProc.stdout.text || "").trim().split(/\s+/).forEach(key => {
@@ -1339,12 +1368,52 @@ Item {
         onTriggered: root.boot()
     }
 
+    // Shared navigation panel: entries on top, the actual filter controls below.
+    // Content entries are inert while loading. The panel is a whole section, not just
+    // a segmented control — the grid always shows; filters live here permanently.
+    AppNavigationSidePanel {
+        id: navPanel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: navPanel.panelWidth
+        height: parent.height
+        navModel: root.booruApis.map(a => ({
+                    title: a.name,
+                    enabled: root.progressStatus !== "loading"
+                })).concat([
+            {
+                title: "Bookmarks",
+                enabled: root.progressStatus !== "loading"
+            },
+            {
+                title: "Pins",
+                enabled: root.progressStatus !== "loading"
+            }
+        ])
+        navCurrentIndex: Math.max(0, root.tabValues.indexOf(root.selectedTab))
+        onNavSelected: index => root.activateTab(root.tabValues[index])
+
+        SmoothFlickable {
+            anchors.fill: parent
+            contentWidth: width
+            contentHeight: settingsPanel.implicitHeight
+            clip: true
+
+            Booru.BooruSettingsPanel {
+                id: settingsPanel
+                viewer: root
+                width: parent.width
+            }
+        }
+    }
+
     // ColumnLayout (NOT Column): the ScrollView needs Layout.fillHeight to claim space — in a
     // plain Column it is ignored and the grid collapses to zero height.
     ColumnLayout {
-        // The grid always claims the full widget width: the detail is a floating popup, so
-        // opening it never resizes or relayouts grid, navigation or settings.
+        // Content sits right of the navigation panel; a floating detail popup never
+        // relayouts grid, navigation or settings.
         anchors.fill: parent
+        anchors.leftMargin: navPanel.panelWidth + Theme.spacing
         spacing: Theme.spacing
 
         // Image masonry grid (Flickable: ScrollView hides contentY, and
@@ -1360,10 +1429,9 @@ Item {
             onPageBecameVisible: pageNo => root.handlePageVisible(pageNo)
         }
 
-        // Tabs, page buttons and prev/reveal/next live in BooruNavigation (BooruToolbar was
-        // merged into it). Bookmark toggling lives in BooruActions (booru.py toggle-bookmark).
+        // Page buttons live in BooruNavigation. Bookmark toggling lives in BooruActions.
 
-        // Bottom bar: navigation + revealable settings
+        // Bottom bar: page navigation only
         Column {
             Layout.fillWidth: true
             width: parent.width
@@ -1372,12 +1440,7 @@ Item {
             Booru.BooruNavigation {
                 viewer: root
             }
-            Booru.BooruSettingsPanel {
-                viewer: root
-            }
-
         }
-
     }
 
     // Floating detail popup: a STATIC surface docked to the island's right edge with the card
@@ -1461,14 +1524,6 @@ Item {
     Item {
         anchors.fill: parent
         focus: true
-        Keys.onUpPressed: {
-            root.bottomRevealed = true;
-            event.accepted = true;
-        }
-        Keys.onDownPressed: {
-            root.bottomRevealed = false;
-            event.accepted = true;
-        }
         Keys.onLeftPressed: {
             if (root.keyEnabled && root.progressStatus !== "loading" && root.page > 1) {
                 root.gotoPage(root.page - 1);

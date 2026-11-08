@@ -80,9 +80,8 @@ SmoothFlickable {
         return e && e.images ? e.images : [];
     }
 
-    // Anchor = the page block under the viewport probe plus its y now. Corrections use how far
-    // that y moves, not an absolute offset: between capture and layout the flick keeps scrolling,
-    // and restoring the old offset snapped the view back instead of keeping the coast.
+    // Anchor = the page block under the viewport probe. Corrections use how far its y moves, not
+    // an absolute offset: restoring one also undid whatever the flick had scrolled meanwhile.
     function captureViewport() {
         const probe = contentY + height * 0.35;
         let near = null;
@@ -245,9 +244,8 @@ SmoothFlickable {
         // fire both sides back to back while the other page was still loading.
         if (Date.now() - _edgeStamp < 900)
             return;
-        // A quarter of the scroll range, capped at 1.5 viewports: SmoothWheelHandler refuses wheel
-        // input at the hard edge, so the band must start early. A band wider than a quarter of a
-        // short stack covers the middle too, and one gesture then fetches both neighbours.
+        // A quarter of the scroll range, capped at 1.5 viewports: it must start before the hard
+        // edge, but a wider band covers the middle of a short stack and fetches both neighbours.
         const band = Math.min(height * 1.5, Math.max(0, contentHeight - height) * 0.25);
         if (contentHeight > height) {
             const nearBelow = y + height >= contentHeight - band;
@@ -525,9 +523,8 @@ SmoothFlickable {
         onTriggered: gridScroll.autoFill()
     }
 
-    // Retries a pending scroll/restore when no reposition happens; stops once applied or stale.
-    // One frame, not 60 ms: the compensation is a delta and idempotent, so landing it in the same
-    // frame as the layout hides the shift that used to read as a pop.
+    // Retries a pending op until it applies or goes stale. 16 ms, not 60: the delta is idempotent,
+    // so landing it in the layout's own frame hides the shift that used to read as a pop.
     Timer {
         id: layoutFallback
 

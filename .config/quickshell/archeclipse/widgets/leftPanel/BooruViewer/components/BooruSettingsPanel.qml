@@ -5,208 +5,177 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Revealable settings: limit/columns/tags/cache. The old `width: tagText2.implicitWidth`
-// referenced a missing id (runtime error), so AppButton sizes to content instead.
-Rectangle {
-    id: settingsReveal
+// Filter controls: limit/columns/tags/cache. Lives in the shared navigation panel, rendered
+// as CategorySection cards so the panel reads with the Settings/KeyBinds rhythm.
+Column {
+    id: settingsCol
     property var viewer
-    width: parent.width
-    height: bottomRevealed ? settingsCol.implicitHeight + 16 : 0
-    color: "transparent"
-    clip: true
-    border.width: 0
 
-    Behavior on height {
-        NumberAnimation {
-            duration: Theme.anim.small
-            easing.type: Easing.InOutQuad
+    width: parent.width
+    spacing: Theme.spacing
+
+    CategorySection {
+        width: parent.width
+        title: "Limit"
+
+        AppSpinBox {
+            id: limitSpin
+            width: parent.width
+            from: 0
+            to: 100
+            stepSize: 10
+            value: viewer.limit
+            onValueChanged: {
+                // Guard: creating the spinbox (or a settings reload) sets value from
+                // viewer.limit, so writing it back breaks the binding (limit stuck at 100).
+                const v = Math.round(limitSpin.value);
+                if (v === viewer.limit)
+                    return;
+                viewer.limit = v;
+                Settings.booru.limit = viewer.limit;
+                Settings.updateSetting("booru.limit", viewer.limit);
+                // Changing the limit triggers fetchImages (debounced 300ms)
+                viewer._limitDebounce.restart();
+            }
         }
     }
 
-    Column {
-        id: settingsCol
-        spacing: Theme.spacing
+    CategorySection {
         width: parent.width
-        anchors.margins: Theme.pad
+        title: "Columns"
 
-        // Limit slider
-        Row {
-            spacing: Theme.spacing
+        AppSpinBox {
+            id: columnsSpin
             width: parent.width
-            Text {
-                text: "Limit: " + viewer.limit
-                color: Theme.fg
-                font.pixelSize: Theme.fontSize - 2
-            }
-            AppSlider {
-                id: limitSlider
-                from: 0
-                to: 100
-                stepSize: 10
-                value: viewer.limit
-                Layout.fillWidth: true
-                onValueChanged: {
-                    // Guard: creating the slider (or a settings reload) sets value from
-                    // viewer.limit, so writing it back breaks the binding (limit stuck at 100).
-                    const v = Math.round(limitSlider.value);
-                    if (v === viewer.limit)
-                        return;
-                    viewer.limit = v;
-                    Settings.booru.limit = viewer.limit;
-                    Settings.updateSetting("booru.limit", viewer.limit);
-                    // Changing the limit triggers fetchImages (debounced 300ms)
-                    viewer._limitDebounce.restart();
-                }
+            from: 1
+            to: 5
+            stepSize: 1
+            value: viewer.columns
+            onValueChanged: {
+                // Same binding guard as the limit spinbox above.
+                const v = Math.round(columnsSpin.value);
+                if (v === viewer.columns)
+                    return;
+                viewer.columns = v;
+                Settings.booru.columns = viewer.columns;
+                Settings.updateSetting("booru.columns", viewer.columns);
+                // Columns only re-layout the loaded pages: the stack is untouched.
             }
         }
+    }
 
-        // Columns slider
-        Row {
+    CategorySection {
+        width: parent.width
+        title: "Tags"
+
+        // Tags flow
+        Flow {
             spacing: Theme.spacing
             width: parent.width
-            Text {
-                text: "Columns: " + viewer.columns
-                color: Theme.fg
-                font.pixelSize: Theme.fontSize - 2
-            }
-            AppSlider {
-                id: columnsSlider
-                from: 1
-                to: 5
-                stepSize: 1
-                value: viewer.columns
-                Layout.fillWidth: true
-                onValueChanged: {
-                    // Same binding guard as the limit slider above.
-                    const v = Math.round(columnsSlider.value);
-                    if (v === viewer.columns)
-                        return;
-                    viewer.columns = v;
-                    Settings.booru.columns = viewer.columns;
-                    Settings.updateSetting("booru.columns", viewer.columns);
-                    // Columns only re-layout the loaded pages: the stack is untouched.
-                }
-            }
-        }
-
-        // Tags
-        Column {
-            spacing: Theme.spacing
-            width: parent.width
-
-            // Tags flow
-            Flow {
-                spacing: Theme.spacing
-                width: parent.width
-                Repeater {
-                    model: viewer.currentTags
-                    delegate: AppButton {
-                        readonly property bool isRating: modelData.match(/[-]rating:explicit|rating:explicit/) !== null
-                        height: 22
-                        cornerRadius: 4
-                        pixelSize: Theme.fontSize - 2
-                        idleBg: isRating ? Theme.surfaceActive : Theme.bg
-                        idleFg: isRating ? Theme.accent : Theme.fg
-                        hoverFg: isRating ? Theme.accent : Theme.fg
-                        outlined: true
-                        outlineColor: isRating ? Theme.accent : Theme.border
-                        text: modelData
-                        tooltipText: isRating ? "Toggle explicit filter" : "Remove tag"
-                        onClicked: {
-                            // Hoist: assigning currentTags destroys this delegate mid-click, after
-                            // which `viewer` lookups throw and the refetch below never runs.
-                            const v = viewer;
-                            if (isRating) {
-                                // Toggle -rating:explicit <-> rating:explicit, move to front, refetch
-                                const newRating = modelData.startsWith("-") ? "rating:explicit" : "-rating:explicit";
-                                let newTags = v.currentTags.filter(t => !t.match(/[-]rating:explicit|rating:explicit/));
-                                newTags.unshift(newRating);
-                                v.currentTags = newTags;
-                                Settings.booru.tags = newTags;
-                                Settings.updateSetting("booru.tags", newTags);
-                            } else {
-                                // Remove tag, refetch
-                                const newTags = v.currentTags.filter(t => t !== modelData);
-                                console.info("[Booru] chip remove:", modelData, "->", JSON.stringify(newTags));
-                                v.currentTags = newTags;
-                                Settings.booru.tags = newTags;
-                                Settings.updateSetting("booru.tags", newTags);
-                            }
-                            // Refetch except in Bookmarks/Pins tabs
-                            if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins") {
-                                v.fetchImages();
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Add tag entry + search
-            Row {
-                spacing: Theme.spacing
-                width: parent.width
-                AppTextField {
-                    id: tagEntry
-                    placeholderText: "Search tags..."
-                    font.pixelSize: Theme.fontSize - 2
-                    width: parent.width - 60
+            Repeater {
+                model: viewer.currentTags
+                delegate: AppButton {
+                    readonly property bool isRating: modelData.match(/[-]rating:e|rating:e/) !== null
+                    height: 22
                     cornerRadius: 4
-                    onTextChanged: {
-                        // Debounced tag fetch
-                        if (text.length > 0) {
-                            viewer.fetchTags(text);
-                        }
-                    }
-                    Keys.onReturnPressed: {
-                        if (text.trim()) {
-                            const newTags = [...new Set([...viewer.currentTags, ...text.trim().split(" ")])];
-                            viewer.currentTags = newTags;
-                            Settings.booru.tags = newTags;
-                            Settings.updateSetting("booru.tags", newTags);
-                            tagEntry.text = "";
-                            // Adding tags always refetches
-                            if (viewer.selectedTab !== "Bookmarks" && viewer.selectedTab !== "Pins") {
-                                viewer.fetchImages();
-                            }
-                        }
-                    }
-                }
-                AppButton {
-                    text: viewer.cacheSize
-                    width: 50
-                    height: 24
-                    tooltipText: "Clear cache"
-                    onClicked: viewer.cleanCache()
-                }
-            }
-
-            // Fetched tag suggestions
-            Flow {
-                spacing: Theme.spacing
-                width: parent.width
-                visible: viewer.fetchedTags.length > 0
-                Repeater {
-                    model: viewer.fetchedTags
-                    delegate: AppButton {
-                        text: modelData
-                        tooltipText: "Add this tag to the search"
-                        height: 20
-                        pixelSize: Theme.fontSize - 3
-                        onClicked: {
-                            // Hoist (same delegate-destruction hazard as
-                            // the tag chips above).
-                            const v = viewer;
-                            if (v.currentTags.includes(modelData)) {
-                                return;
-                            }
-                            const newTags = [...v.currentTags, modelData];
+                    pixelSize: Theme.fontSize - 2
+                    idleBg: isRating ? Theme.surfaceActive : Theme.bg
+                    idleFg: isRating ? Theme.accent : Theme.fg
+                    hoverFg: isRating ? Theme.accent : Theme.fg
+                    outlined: true
+                    outlineColor: isRating ? Theme.accent : Theme.border
+                    text: modelData
+                    tooltipText: isRating ? "Toggle explicit filter" : "Remove tag"
+                    onClicked: {
+                        // Hoist: assigning currentTags destroys this delegate mid-click, after
+                        // which `viewer` lookups throw and the refetch below never runs.
+                        const v = viewer;
+                        if (isRating) {
+                            // Toggle -rating:e <-> rating:e, move to front, refetch
+                            const newRating = modelData.startsWith("-") ? "rating:e" : "-rating:e";
+                            let newTags = v.currentTags.filter(t => !t.match(/[-]rating:e|rating:e/));
+                            newTags.unshift(newRating);
                             v.currentTags = newTags;
                             Settings.booru.tags = newTags;
                             Settings.updateSetting("booru.tags", newTags);
-                            // Fetched-tag click refetches (except local tabs)
-                            if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins") {
-                                v.fetchImages();
-                            }
+                        } else {
+                            // Remove tag, refetch
+                            const newTags = v.currentTags.filter(t => t !== modelData);
+                            console.info("[Booru] chip remove:", modelData, "->", JSON.stringify(newTags));
+                            v.currentTags = newTags;
+                            Settings.booru.tags = newTags;
+                            Settings.updateSetting("booru.tags", newTags);
+                        }
+                        // Refetch except in Bookmarks/Pins tabs
+                        if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins") {
+                            v.fetchImages();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add tag entry + search
+        AppTextField {
+            id: tagEntry
+            placeholderText: "Search tags..."
+            font.pixelSize: Theme.fontSize - 2
+            width: parent.width
+            cornerRadius: 4
+            onTextChanged: {
+                // Debounced tag fetch
+                if (text.length > 0) {
+                    viewer.fetchTags(text);
+                }
+            }
+            Keys.onReturnPressed: {
+                if (text.trim()) {
+                    const newTags = [...new Set([...viewer.currentTags, ...text.trim().split(" ")])];
+                    viewer.currentTags = newTags;
+                    Settings.booru.tags = newTags;
+                    Settings.updateSetting("booru.tags", newTags);
+                    tagEntry.text = "";
+                    // Adding tags always refetches
+                    if (viewer.selectedTab !== "Bookmarks" && viewer.selectedTab !== "Pins") {
+                        viewer.fetchImages();
+                    }
+                }
+            }
+        }
+
+        AppButton {
+            width: parent.width
+            text: viewer.cacheSize
+            tooltipText: "Clear cache"
+            onClicked: viewer.cleanCache()
+        }
+
+        // Fetched tag suggestions
+        Flow {
+            spacing: Theme.spacing
+            width: parent.width
+            visible: viewer.fetchedTags.length > 0
+            Repeater {
+                model: viewer.fetchedTags
+                delegate: AppButton {
+                    text: modelData
+                    tooltipText: "Add this tag to the search"
+                    height: 20
+                    pixelSize: Theme.fontSize - 3
+                    onClicked: {
+                        // Hoist (same delegate-destruction hazard as
+                        // the tag chips above).
+                        const v = viewer;
+                        if (v.currentTags.includes(modelData)) {
+                            return;
+                        }
+                        const newTags = [...v.currentTags, modelData];
+                        v.currentTags = newTags;
+                        Settings.booru.tags = newTags;
+                        Settings.updateSetting("booru.tags", newTags);
+                        // Fetched-tag click refetches (except local tabs)
+                        if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins") {
+                            v.fetchImages();
                         }
                     }
                 }

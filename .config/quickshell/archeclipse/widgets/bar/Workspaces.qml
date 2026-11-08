@@ -13,9 +13,9 @@ Item {
     property string monitorName: ""
 
     property int count: 10
-    property real barHeight: 4
+    property real barHeight: 2
     property real iconSize: 11
-    property real btnSpacing: 0
+    property real btnSpacing: 2
     // Horizontal inset of the strip Row so the end buttons don't flush against
     // the pill's straight edges.
     property real edgeMargin: 0

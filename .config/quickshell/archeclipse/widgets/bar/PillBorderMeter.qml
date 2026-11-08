@@ -19,8 +19,8 @@ Item {
 
     // Outer -> inner = CPU, RAM, GPU (same order both ends). The stack must stay put: a band
     // may lose its fill, never its track, or the three would re-flow on every sample.
-    property real strokeWidth: 6
-    property real gap: 1.5
+    property real strokeWidth: 2
+    property real gap: 2
     property real edgeGap: 1.5
     property real tail: 4
 

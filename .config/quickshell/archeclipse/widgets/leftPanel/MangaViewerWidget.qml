@@ -39,7 +39,6 @@ Item {
     property string currentTab: "Manga"
     property string progressStatus: "idle"
     property string searchQuery: ""
-    property bool bottomRevealed: false
     property var mainFlickable: null   // set by Pages Flickable, for scroll reset
 
     Component.onCompleted: fetchPopular()
@@ -298,8 +297,57 @@ Item {
 
     // ===== UI (ColumnLayout: children size via Layout.*, no fragile
     // parent.height - N math; the content rect takes leftover space) =====
+    // Navigation panel: entries on top, provider switch + Popular below. Chapters and Pages
+    // unlock once a manga and a chapter exist. The panel is a whole section, not just a
+    // segmented control — provider and Popular live here permanently.
+    AppNavigationSidePanel {
+        id: navPanel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: navPanel.panelWidth
+        height: parent.height
+        navModel: [
+            { title: "Manga", enabled: true },
+            { title: "Chapters", enabled: root.selectedManga !== null && root.selectedManga !== undefined },
+            { title: "Pages", enabled: root.selectedChapter !== null && root.selectedChapter !== undefined }
+        ]
+        navCurrentIndex: Math.max(0, ["Manga", "Chapters", "Pages"].indexOf(root.currentTab))
+        onNavSelected: index => root.currentTab = ["Manga", "Chapters", "Pages"][index]
+
+        // Providers render like the shared navigation itself: one rail entry per
+        // provider, the pill on the active one. A second rail under the tabs, same
+        // component, so the panel's styling stays one family.
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
+
+            Label {
+                width: parent.width
+                text: "Provider"
+                font.pixelSize: Theme.fontSize
+                font.bold: true
+                color: Theme.accent
+            }
+
+            CategoryRail {
+                width: parent.width
+                model: root.providers.map(p => ({ title: p.label }))
+                currentIndex: Math.max(0, root.providers.findIndex(p => p.id === root.provider))
+                onSelected: index => root.switchProvider(root.providers[index].id)
+            }
+
+            AppButton {
+                width: parent.width
+                text: Icons.popular + " Popular"
+                tooltipText: "Browse popular manga"
+                onClicked: root.fetchPopular()
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
+        anchors.leftMargin: navPanel.panelWidth + Theme.spacing
         spacing: Theme.spacing
 
         // Content area (fills leftover space)
@@ -322,6 +370,15 @@ Item {
                     id: mangaCol
                     width: mangaFlick.width
                     spacing: Theme.spacing
+
+                    // Search heads the tab (Enter submits; provider + Popular live on the navigation).
+                    AppTextField {
+                        width: parent.width
+                        placeholderText: "Search manga..."
+                        text: root.searchQuery
+                        onTextChanged: root.searchQuery = text
+                        onAccepted: root.searchManga(text)
+                    }
 
                     // Progress
                     AppProgress {
@@ -427,6 +484,49 @@ Item {
                         wrapMode: Text.WordWrap
                     }
 
+                    // Chapter navigation + current-chapter label: heads the tab now (was bottom bar).
+                    RowLayout {
+                        width: parent.width
+                        spacing: Theme.spacing
+
+                        AppButton {
+                            Layout.fillWidth: true
+                            text: "\u25C0 Previous Chapter"
+                            tooltipText: "Previous chapter"
+                            enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
+                            onClicked: root.goToChapter("prev")
+                        }
+
+                        AppButton {
+                            Layout.fillWidth: true
+                            text: "Next Chapter \u25B6"
+                            tooltipText: "Next chapter"
+                            enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
+                            onClicked: root.goToChapter("next")
+                        }
+                    }
+
+                    Label {
+                        width: parent.width
+                        // Show "No chapter selected" (grayed) when nothing is chosen
+                        opacity: (root.selectedChapter !== null && root.selectedChapter !== undefined) ? 1 : 0.4
+                        text: {
+                            const ch = root.selectedChapter;
+                            if (!ch)
+                                return "<b>No chapter selected</b>";
+                            const vol = ch.volume ? "Vol. " + ch.volume + " " : "";
+                            const num = ch.chapter || "?";
+                            const title = (ch.title || "").trim();
+                            if (!title || title === "Chapter " + num || title === "Volume " + num)
+                                return "<b>" + vol + "Chapter " + num + "</b>";
+                            return "<b>" + vol + "Chapter " + num + ": " + title + "</b>";
+                        }
+                        color: Theme.fgDim
+                        font.pixelSize: Theme.fontSize - 1
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
                     Repeater {
                         model: root.chapters
                         delegate: Rectangle {
@@ -444,6 +544,38 @@ Item {
                                     root.selectedChapter = modelData;
                                     root.fetchPages(modelData.id);
                                 }
+                            }
+                        }
+                    }
+
+                    // URL bar + copy: closes the Chapters tab now (was bottom bar).
+                    RowLayout {
+                        width: parent.width
+                        spacing: Theme.spacing
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 28
+                            color: Theme.bg
+                            radius: Theme.radius
+
+                            Label {
+                                anchors.fill: parent
+                                anchors.margins: Theme.pad
+                                text: root.getUrl()
+                                color: Theme.fgDim
+                                font.pixelSize: Theme.fontSize - 2
+                                elide: Text.ElideRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        AppButton {
+                            text: Icons.copy + " Copy"
+                            tooltipText: "Copy the image URL"
+                            onClicked: {
+                                const url = root.getUrl();
+                                Quickshell.execDetached(["bash", "-c", "echo -n '" + url + "' | wl-copy 2>/dev/null || echo -n '" + url + "' | xclip -selection clipboard"]);
                             }
                         }
                     }
@@ -523,174 +655,7 @@ Item {
                 }
             }
         }
-
-        // ===== Bottom action bar (actions / page + chapter navigation / URL bar / sections / tabs) =====
-
-        // Reveal button
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.spacing
-            AppButton {
-                Layout.fillWidth: true
-                text: root.bottomRevealed ? Icons.chevronDown : Icons.chevronUp // down/up chevron
-                tooltipText: root.bottomRevealed ? "Hide settings" : "Show settings"
-                onClicked: root.bottomRevealed = !root.bottomRevealed
-            }
-        }
-
-        // Revealable search actions
-        Column {
-            Layout.fillWidth: true
-            spacing: Theme.spacing
-            visible: root.bottomRevealed
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: Theme.anim.fastEffects
-                }
-            }
-            opacity: root.bottomRevealed ? 1 : 0
-
-            AppTextField {
-                width: parent.width
-                placeholderText: "Search manga..."
-                text: root.searchQuery
-                onTextChanged: root.searchQuery = text
-                onAccepted: root.searchManga(text)
-            }
-            RowLayout {
-                width: parent.width
-                spacing: Theme.spacing
-                AppButton {
-                    Layout.fillWidth: true
-                    text: Icons.search + " Search"
-                    tooltipText: "Search manga"
-                    onClicked: root.searchManga(root.searchQuery)
-                }
-                AppButton {
-                    Layout.fillWidth: true
-                    text: Icons.popular + " Popular"
-                    tooltipText: "Browse popular manga"
-                    onClicked: root.fetchPopular()
-                }
-            }
-        }
-
-        // Chapter navigation — always visible
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.spacing
-            AppButton {
-                Layout.fillWidth: true
-                text: "\u25C0 Previous Chapter"
-                tooltipText: "Previous chapter"
-                enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
-                onClicked: root.goToChapter("prev")
-            }
-            AppButton {
-                Layout.fillWidth: true
-                text: "Next Chapter \u25B6"
-                tooltipText: "Next chapter"
-                enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
-                onClicked: root.goToChapter("next")
-            }
-        }
-        Label {
-            Layout.fillWidth: true
-            // Show "No chapter selected" (grayed) when nothing is chosen
-            opacity: (root.selectedChapter !== null && root.selectedChapter !== undefined) ? 1 : 0.4
-            text: {
-                const ch = root.selectedChapter;
-                if (!ch)
-                    return "<b>No chapter selected</b>";
-                const vol = ch.volume ? "Vol. " + ch.volume + " " : "";
-                const num = ch.chapter || "?";
-                const title = (ch.title || "").trim();
-                if (!title || title === "Chapter " + num || title === "Volume " + num)
-                    return "<b>" + vol + "Chapter " + num + "</b>";
-                return "<b>" + vol + "Chapter " + num + ": " + title + "</b>";
-            }
-            color: Theme.fgDim
-            font.pixelSize: Theme.fontSize - 1
-            elide: Text.ElideRight
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        // URL bar — visible complexity low, always rendered
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.spacing
-            Rectangle {
-                Layout.fillWidth: true
-                height: 28
-                color: Theme.bg
-                radius: Theme.radius
-
-                Label {
-                    anchors.fill: parent
-                    anchors.margins: Theme.pad
-                    text: root.getUrl()
-                    color: Theme.fgDim
-                    font.pixelSize: Theme.fontSize - 2
-                    elide: Text.ElideRight
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-            AppButton {
-                text: Icons.copy + " Copy"
-                tooltipText: "Copy the image URL"
-                onClicked: {
-                    const url = root.getUrl();
-                    Quickshell.execDetached(["bash", "-c", "echo -n '" + url + "' | wl-copy 2>/dev/null || echo -n '" + url + "' | xclip -selection clipboard"]);
-                }
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignHCenter
-            spacing: Theme.spacing
-            AppSegmentedControl {
-                // Per-tab availability rides in the model (Chapters needs a
-                // manga, Pages a chapter) — disabled cells don't activate.
-                model: [
-                    {
-                        value: "Manga",
-                        label: "Manga",
-                        enabled: true
-                    },
-                    {
-                        value: "Chapters",
-                        label: "Chapters",
-                        enabled: (root.selectedManga !== null) && (root.selectedManga !== undefined)
-                    },
-                    {
-                        value: "Pages",
-                        label: "Pages",
-                        enabled: (root.selectedChapter !== null) && (root.selectedChapter !== undefined)
-                    }
-                ]
-                currentIndex: ["Manga", "Chapters", "Pages"].indexOf(root.currentTab)
-                onActivated: (i, v) => root.currentTab = v
-            }
-        }
-
-        // Provider tabs
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.alignment: Qt.AlignHCenter
-            spacing: Theme.spacing
-            AppSegmentedControl {
-                Layout.alignment: Qt.AlignHCenter
-                model: root.providers.map(p => ({
-                            value: p.id,
-                            label: p.label
-                        }))
-                currentIndex: root.providers.findIndex(p => p.id === root.provider)
-                onActivated: (i, v) => root.switchProvider(v)
-            }
-        }
-
-        // Keyboard nav (Left/Right page, Up/Down reveal). NOTE: the Item lives OUTSIDE the
+        // Keyboard nav (Left/Right page). NOTE: the Item lives OUTSIDE the
         // ColumnLayout (positioners ignore anchors and collapse it) — anchored to root instead.
     }
     Item {
@@ -705,18 +670,6 @@ Item {
         Keys.onRightPressed: {
             if (root.currentTab === "Pages") {
                 root.navigatePage("next");
-                event.accepted = true;
-            }
-        }
-        Keys.onUpPressed: {
-            if (!root.bottomRevealed) {
-                root.bottomRevealed = true;
-                event.accepted = true;
-            }
-        }
-        Keys.onDownPressed: {
-            if (root.bottomRevealed) {
-                root.bottomRevealed = false;
                 event.accepted = true;
             }
         }

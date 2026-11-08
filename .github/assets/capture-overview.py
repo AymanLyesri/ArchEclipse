@@ -545,8 +545,8 @@ def wait_booru_fetch(snap, timeout=45):
 def prime_booru_viewer(snap):
     """Load the Booru tab, then push the demo tags onto the booted widget.
 
-    boot() calls ensureRatingTagFirst(), which prepends -rating:explicit unless
-    the list already carries a rating:explicit entry — a first load during the
+    boot() calls ensureRatingTagFirst(), which prepends -rating:e unless
+    the list already carries a rating:e entry — a first load during the
     take rewrites the demo tags on camera. Booting the lazy Loader here spends
     that one-shot normalization, and the grid is re-fetched so it shows the
     demo query instead of the fetch boot() started with.
