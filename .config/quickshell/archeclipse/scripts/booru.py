@@ -301,17 +301,23 @@ class DanbooruProvider(BooruProvider):
                 f"Connection error: Unable to reach {self.BASE}. Check your internet connection."
             )
         except requests.exceptions.HTTPError as e:
-            if r and r.status_code == 401:
+            if r is not None and r.status_code == 401:
                 raise Exception(
                     f"Authentication failed (401): Invalid API credentials for Danbooru"
                 )
-            elif r and r.status_code == 404:
+            elif r is not None and r.status_code == 404:
                 raise Exception(
                     f"Post not found (404): Post ID {post_id} does not exist"
                 )
+            elif r is not None and r.status_code in (429, 502, 503, 504):
+                raise Exception(
+                    f"{self.BASE} is temporarily unavailable ({r.status_code}). "
+                    f"It is likely down for maintenance or overloaded — "
+                    f"try again in a few minutes or switch API in Settings."
+                )
             else:
                 raise Exception(
-                    f"HTTP error {r.status_code}: {r.reason}" if r else str(e)
+                    f"HTTP error {r.status_code}: {r.reason}" if r is not None else str(e)
                 )
         except Exception as e:
             raise Exception(f"Unexpected error: {str(e)}")
@@ -366,13 +372,20 @@ class DanbooruProvider(BooruProvider):
                 f"Connection error: Unable to reach {self.BASE}. Check your internet connection."
             )
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 401:
+            status = e.response.status_code if e.response is not None else None
+            if status == 401:
                 raise Exception(
                     f"Authentication failed (401): Invalid API credentials for Danbooru"
                 )
+            elif status in (429, 502, 503, 504):
+                raise Exception(
+                    f"{self.BASE} is temporarily unavailable ({status}). "
+                    f"It is likely down for maintenance or overloaded — "
+                    f"try again in a few minutes or switch API in Settings."
+                )
             else:
                 raise Exception(
-                    f"HTTP error {e.response.status_code}: {e.response.reason}"
+                    f"HTTP error {status}: {e.response.reason}"
                 )
         except Exception as e:
             raise Exception(f"Unexpected error: {str(e)}")
@@ -420,13 +433,20 @@ class GelbooruProvider(BooruProvider):
                 f"Connection error: Unable to reach Gelbooru. Check your internet connection."
             )
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 401:
+            status = e.response.status_code if e.response is not None else None
+            if status == 401:
                 raise Exception(
                     f"Authentication failed (401): Invalid API credentials for Gelbooru"
                 )
+            elif status in (429, 502, 503, 504):
+                raise Exception(
+                    f"Gelbooru is temporarily unavailable ({status}). "
+                    f"It is likely down for maintenance or overloaded — "
+                    f"try again in a few minutes or switch API in Settings."
+                )
             else:
                 raise Exception(
-                    f"HTTP error {e.response.status_code}: {e.response.reason}"
+                    f"HTTP error {status}: {e.response.reason}"
                 )
         except Exception as e:
             raise Exception(f"Unexpected error: {str(e)}")
@@ -480,7 +500,13 @@ class GelbooruProvider(BooruProvider):
                 f"Connection error: Unable to reach Gelbooru. Check your internet connection."
             )
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"HTTP error {e.response.status_code}: {e.response.reason}")
+            status = e.response.status_code if e.response is not None else None
+            if status in (429, 502, 503, 504):
+                raise Exception(
+                    f"Gelbooru is temporarily unavailable ({status}). "
+                    f"Try again in a few minutes or switch API in Settings."
+                )
+            raise Exception(f"HTTP error {status}: {e.response.reason}")
         except Exception as e:
             raise Exception(f"Unexpected error: {str(e)}")
 
@@ -536,13 +562,20 @@ class SafebooruProvider(BooruProvider):
                 f"Connection error: Unable to reach Safebooru. Check your internet connection."
             )
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
+            status = e.response.status_code if e.response is not None else None
+            if status == 404:
                 raise Exception(
                     f"Post not found (404): Post ID {post_id} does not exist"
                 )
+            elif status in (429, 502, 503, 504):
+                raise Exception(
+                    f"{self.BASE} is temporarily unavailable ({status}). "
+                    f"It is likely down for maintenance or overloaded — "
+                    f"try again in a few minutes or switch API in Settings."
+                )
             else:
                 raise Exception(
-                    f"HTTP error {e.response.status_code}: {e.response.reason}"
+                    f"HTTP error {status}: {e.response.reason}"
                 )
         except Exception as e:
             raise Exception(f"Unexpected error: {str(e)}")
@@ -594,7 +627,13 @@ class SafebooruProvider(BooruProvider):
                 f"Connection error: Unable to reach Safebooru. Check your internet connection."
             )
         except requests.exceptions.HTTPError as e:
-            raise Exception(f"HTTP error {e.response.status_code}: {e.response.reason}")
+            status = e.response.status_code if e.response is not None else None
+            if status in (429, 502, 503, 504):
+                raise Exception(
+                    f"{self.BASE} is temporarily unavailable ({status}). "
+                    f"Try again in a few minutes or switch API in Settings."
+                )
+            raise Exception(f"HTTP error {status}: {e.response.reason}")
         except Exception as e:
             raise Exception(str(e))
 

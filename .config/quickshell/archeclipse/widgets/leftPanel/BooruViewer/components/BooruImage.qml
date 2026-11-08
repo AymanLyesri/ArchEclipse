@@ -26,13 +26,18 @@ Rectangle {
     readonly property bool popped: card.isVideo ? turnArrived : (turnArrived && imgReady)
     opacity: popped ? 1 : 0
     scale: popped ? 1 : 0.97
+    // A card of a re-created block (prepend/trim) is already revealed: no second pop-in, or the
+    // whole stack would fade again.
+    readonly property bool alreadyRevealed: card.turnArrived
     Behavior on opacity {
+        enabled: !card.alreadyRevealed
         NumberAnimation {
             duration: 280
             easing.type: Easing.OutCubic
         }
     }
     Behavior on scale {
+        enabled: !card.alreadyRevealed
         NumberAnimation {
             duration: 280
             easing.type: Easing.OutCubic

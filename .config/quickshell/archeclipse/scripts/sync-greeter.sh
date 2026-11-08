@@ -8,8 +8,8 @@ SESSION_DIR="/usr/share/wayland-sessions"
 SUDO="${SYNC_GREETER_SUDO-sudo -n}"
 
 # Freshness gate: bar.lua runs this every launch, but a full mirror is only
-# needed after greeter edits; skip while nothing in $SRC is newer than $DST.
-if [ -f "$DST/keyboard-input.lua" ] && [ -z "$(find "$SRC" -type f -newer "$DST/keyboard-input.lua" -print -quit 2>/dev/null)" ]; then
+# needed after greeter edits; -L is required — theme/services/widgets are symlinks plain find skips.
+if [ -f "$DST/keyboard-input.lua" ] && [ -z "$(find -L "$SRC" -type f -newer "$DST/keyboard-input.lua" -print -quit 2>/dev/null)" ]; then
     echo "greeter already in sync -> $DST"
     exit 0
 fi

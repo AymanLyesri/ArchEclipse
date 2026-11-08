@@ -6,7 +6,7 @@ import qs.widgets.shared
 import "../shared/PillPath.js" as PillPath
 
 // Three nested metric strokes at each pill end, tracing the fill's flare -> side -> bottom
-// corner; each fills from its tail end upward, so it reads as the silhouette, not a bar.
+// corner; each fills from the top downward, so it reads as the silhouette, not a bar.
 Item {
     id: root
 

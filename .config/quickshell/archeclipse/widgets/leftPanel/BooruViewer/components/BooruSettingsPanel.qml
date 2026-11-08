@@ -84,8 +84,7 @@ Rectangle {
                     viewer.columns = v;
                     Settings.booru.columns = viewer.columns;
                     Settings.updateSetting("booru.columns", viewer.columns);
-                    // Changing the column count triggers fetchImages (debounced 300ms)
-                    viewer._limitDebounce.restart();
+                    // Columns only re-layout the loaded pages: the stack is untouched.
                 }
             }
         }

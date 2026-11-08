@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
@@ -14,6 +15,27 @@ Row {
     id: root
     spacing: 2
     property string monitorName: ""
+
+    // Dark surface check for the tray-icon recolor: dark icons vanish on a dark bar.
+    readonly property bool darkSurface: Theme.relLum(Theme.background) < 0.2
+
+    // ColorQuantizer can't load image://icon/ provider URLs, so resolve theme icons to a PNG file first.
+    function quantSrc(iconUrl) {
+        const u = String(iconUrl || "");
+        if (u === "" || u.startsWith("file://") || u.startsWith("/") || u.startsWith("qrc:/"))
+            return u;
+        if (u.startsWith("image://icon/")) {
+            const rest = u.slice(13);
+            const q = rest.indexOf("?");
+            const name = q >= 0 ? rest.slice(0, q) : rest;
+            const m = u.match(/[?&]path=([^&]+)/);
+            if (m)
+                return "file://" + decodeURIComponent(m[1]) + "/" + name + ".png";
+            const p = Quickshell.iconPath(name, true);
+            return p || "";
+        }
+        return u;
+    }
 
     // Maximum number of visible icons in the bar strip
     readonly property int maxVisible: 3
@@ -53,10 +75,10 @@ Row {
             return index < 0 ? 1e9 : index;
         };
         return sourceItems.map((item, index) => ({
-            it: item,
-            i: index,
-            r: getRank(item)
-        })).sort((a, b) => a.r !== b.r ? a.r - b.r : a.i - b.i).map(entry => entry.it);
+                    it: item,
+                    i: index,
+                    r: getRank(item)
+                })).sort((a, b) => a.r !== b.r ? a.r - b.r : a.i - b.i).map(entry => entry.it);
     }
 
     // Save the updated tray order to disk
@@ -109,11 +131,41 @@ Row {
             z: 1000
             opacity: Theme.opacity.soft
             property var icon: ""
-            IconImage {
+            // Per-icon check: only dim monochrome icons are recolored; colored/light ones pass through.
+            ColorQuantizer {
+                id: ghostQuant
+                source: root.quantSrc(ghost.icon)
+                depth: 2
+                rescaleSize: 32
+            }
+
+            readonly property bool needsRecolor: {
+                const cols = ghostQuant.colors;
+                if (!cols || cols.length === 0)
+                    return true;
+                for (let i = 0; i < cols.length; i++) {
+                    const hsv = Theme._hsv(cols[i]);
+                    if (hsv[1] >= 0.35 || hsv[2] >= 0.6)
+                        return false;
+                }
+                return true;
+            }
+
+            Image {
+                id: ghostIconSrc
+                visible: false
+                source: ghost.icon
+                asynchronous: true
+            }
+            MultiEffect {
                 anchors.centerIn: parent
                 width: 16
                 height: 16
-                source: ghost.icon
+                source: ghostIconSrc
+                brightness: (root.darkSurface && ghost.needsRecolor) ? 1.0 : 0.0
+                saturation: (root.darkSurface && ghost.needsRecolor) ? -1.0 : 0.0
+                colorization: (root.darkSurface && ghost.needsRecolor) ? 1.0 : 0.0
+                colorizationColor: Theme.foreground
             }
         }
     }
@@ -142,10 +194,7 @@ Row {
     }
 
     function inRect(rect, x, y, padding) {
-        return x >= rect.x - padding &&
-               x <= rect.x + rect.w + padding &&
-               y >= rect.y - padding &&
-               y <= rect.y + rect.h + padding;
+        return x >= rect.x - padding && x <= rect.x + rect.w + padding && y >= rect.y - padding && y <= rect.y + rect.h + padding;
     }
 
     // Handle drag initiation on mouse press
@@ -164,7 +213,7 @@ Row {
         if (!root.dragItem)
             return;
         const pos = area.mapToItem(null, mouse.x, mouse.y);
-        
+
         if (!root.dragActive) {
             if (Math.abs(pos.x - root.dragPressX) < 8 && Math.abs(pos.y - root.dragPressY) < 8)
                 return;
@@ -173,7 +222,7 @@ Row {
                 root.dragHeld = true;
                 BarState.holdPopup(root.monitorName);
             }
-            
+
             const overlay = Overlay.overlay;
             if (overlay) {
                 root._ghost = ghostComp.createObject(overlay, {
@@ -187,7 +236,7 @@ Row {
             root._ghost.x = pos.x - 10;
             root._ghost.y = pos.y - 10;
         }
-        
+
         root.updateDrop(pos.x, pos.y);
     }
 
@@ -197,7 +246,7 @@ Row {
         const totalCount = list.length;
         const maxVis = root.maxVisible;
         const fromIndex = list.indexOf(root.dragItem);
-        
+
         let zone = "";
         let idx = -1;
         let lineX = 0, lineY = 0, lineH = 0;
@@ -216,7 +265,7 @@ Row {
                     break;
                 }
             }
-            
+
             if (fromIndex >= maxVis) {
                 const calculatedSlot = maxVis + targetCell;
                 idx = calculatedSlot > fromIndex ? calculatedSlot - 1 : calculatedSlot;
@@ -225,29 +274,29 @@ Row {
             }
             idx = Math.min(idx, totalCount - 1);
             zone = "popup";
-        } 
+        } else
         // 2) Check drop interaction over the overflow button ("...")
-        else if (overflow.visible && root.inRect(root.sceneRect(overflow), x, y, 2)) {
+        if (overflow.visible && root.inRect(root.sceneRect(overflow), x, y, 2)) {
             zone = "overflowBtn";
             idx = fromIndex < maxVis ? Math.min(maxVis, totalCount - 1) : -1;
             if (!overflowPopup.opened && !openOverflowTimer.running) {
                 openOverflowTimer.restart();
             }
-        } 
+        } else
         // 3) Check drop interaction between items in the main bar strip
-        else if (root.inRect(root.sceneRect(root), x, y, 6)) {
+        if (root.inRect(root.sceneRect(root), x, y, 6)) {
             let slot = 0;
             for (let k = 0; k < inlineRep.count; k++) {
                 const delegateItem = inlineRep.itemAt(k);
                 if (delegateItem && delegateItem.mapToItem(null, delegateItem.width / 2, 0).x < x)
                     slot++;
             }
-            
+
             if (fromIndex < maxVis)
                 idx = slot > fromIndex ? slot - 1 : slot;
             else
                 idx = Math.min(slot, maxVis - 1);
-                
+
             zone = "bar";
             if (inlineRep.count > 0) {
                 const referenceItem = inlineRep.itemAt(Math.min(slot, inlineRep.count - 1));
@@ -279,7 +328,7 @@ Row {
         const wasActive = root.dragActive;
         const item = root.dragItem;
         const idx = root.dropIndex;
-        
+
         openOverflowTimer.stop();
 
         if (wasActive && commit && item && idx >= 0) {
@@ -330,6 +379,26 @@ Row {
             width: 20
             height: Theme.barContentHeight
 
+            // Per-icon check: only dim monochrome icons are recolored; colored/light ones (Spotify) pass through.
+            ColorQuantizer {
+                id: trayQuant
+                source: root.quantSrc(entry.modelData.icon)
+                depth: 2
+                rescaleSize: 32
+            }
+
+            readonly property bool needsRecolor: {
+                const cols = trayQuant.colors;
+                if (!cols || cols.length === 0)
+                    return true;
+                for (let i = 0; i < cols.length; i++) {
+                    const hsv = Theme._hsv(cols[i]);
+                    if (hsv[1] >= 0.35 || hsv[2] >= 0.6)
+                        return false;
+                }
+                return true;
+            }
+
             Component.onDestruction: {
                 if (root.dragItem === entry.modelData)
                     root.dragFinish(false);
@@ -341,12 +410,23 @@ Row {
                 color: inlineHover.hovered ? Theme.surfaceHover : "transparent"
             }
 
-            IconImage {
+            // Hidden texture source; the MultiEffect renders it recolored to the foreground in dark mode.
+            Image {
+                id: trayIconSrc
+                visible: false
+                source: entry.modelData.icon
+                asynchronous: true
+            }
+
+            MultiEffect {
                 anchors.centerIn: parent
                 width: 14
                 height: 14
-                source: entry.modelData.icon
-                asynchronous: true
+                source: trayIconSrc
+                brightness: (root.darkSurface && entry.needsRecolor) ? 1.0 : 0.0
+                saturation: (root.darkSurface && entry.needsRecolor) ? -1.0 : 0.0
+                colorization: (root.darkSurface && entry.needsRecolor) ? 1.0 : 0.0
+                colorizationColor: Theme.foreground
                 opacity: (root.dragActive && root.dragItem === entry.modelData) ? 0.3 : 1
             }
 
@@ -432,11 +512,22 @@ Row {
             opacity: root.dropZone === "overflowBtn" ? 0.3 : 0
         }
 
-        IconImage {
+        Image {
+            id: overflowIconSrc
+            visible: false
+            source: Quickshell.iconPath("view-more-symbolic", true)
+            asynchronous: true
+        }
+
+        MultiEffect {
             anchors.centerIn: parent
             width: 12
             height: 12
-            source: Quickshell.iconPath("view-more-symbolic", true)
+            source: overflowIconSrc
+            brightness: root.darkSurface ? 1.0 : 0.0
+            saturation: root.darkSurface ? -1.0 : 0.0
+            colorization: root.darkSurface ? 1.0 : 0.0
+            colorizationColor: Theme.foreground
         }
 
         MouseArea {
@@ -491,6 +582,26 @@ Row {
                         width: 28
                         height: 28
 
+                        // Per-icon check: only dim monochrome icons are recolored; colored/light ones pass through.
+                        ColorQuantizer {
+                            id: hiddenQuant
+                            source: root.quantSrc(hiddenEntry.modelData.icon)
+                            depth: 2
+                            rescaleSize: 32
+                        }
+
+                        readonly property bool needsRecolor: {
+                            const cols = hiddenQuant.colors;
+                            if (!cols || cols.length === 0)
+                                return true;
+                            for (let i = 0; i < cols.length; i++) {
+                                const hsv = Theme._hsv(cols[i]);
+                                if (hsv[1] >= 0.35 || hsv[2] >= 0.6)
+                                    return false;
+                            }
+                            return true;
+                        }
+
                         Component.onDestruction: {
                             if (root.dragItem === hiddenEntry.modelData)
                                 root.dragFinish(false);
@@ -521,12 +632,23 @@ Row {
                             color: hiddenHover.hovered ? Theme.surfaceHover : "transparent"
                         }
 
-                        IconImage {
+                        // Hidden texture source; the MultiEffect renders it recolored to the foreground in dark mode.
+                        Image {
+                            id: hiddenIconSrc
+                            visible: false
+                            source: hiddenEntry.modelData.icon
+                            asynchronous: true
+                        }
+
+                        MultiEffect {
                             anchors.centerIn: parent
                             width: 18
                             height: 18
-                            source: hiddenEntry.modelData.icon
-                            asynchronous: true
+                            source: hiddenIconSrc
+                            brightness: (root.darkSurface && hiddenEntry.needsRecolor) ? 1.0 : 0.0
+                            saturation: (root.darkSurface && hiddenEntry.needsRecolor) ? -1.0 : 0.0
+                            colorization: (root.darkSurface && hiddenEntry.needsRecolor) ? 1.0 : 0.0
+                            colorizationColor: Theme.foreground
                             opacity: (root.dragActive && root.dragItem === hiddenEntry.modelData) ? 0.3 : 1
                         }
 

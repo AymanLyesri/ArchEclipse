@@ -430,9 +430,10 @@ Item {
                     const imgs = item.images || [];
                     if (!imgs.length) return "no-images";
                     const n = Object.keys(item.previewIds || {}).length;
-                    const cols = (item.masonryColumns || []).map(c => c.length).join("/");
-                    return `cached=${n} cols=[${cols}] src0=${item.gridSource(imgs[0])}`;
+                    const pages = (item.loadedPages || []).map(p => p.page + ":" + (p.images || []).length).join("/");
+                    return `cached=${n} pages=[${pages}] src0=${item.gridSource(imgs[0])}`;
                 }
+                case "pages": return (item.loadedPages || []).map(p => p.page + ":" + (p.images || []).length + (p.loading ? "L" : "") + (p.error ? "E" : "")).join("/") + ` end=${item.endAbove ? "A" : ""}${item.endBelow ? "B" : ""}`;
                 case "bookmarkCount": return String((Settings.booru.bookmarks || []).length);
                 case "pinCount": return String((Settings.booru.pins || []).length);
                 case "fetchStatus": return item.progressStatus || "?";
@@ -498,6 +499,13 @@ Item {
                         item.dialogImage = found;
                         const src = (typeof item.dialogSource === "function") ? item.dialogSource(found) : "?";
                         return `dialog=${id} src=${src}`;
+                    }
+                    if (query.startsWith("goto:")) {
+                        // "goto:4" drives the same path as the page buttons/chevrons.
+                        const p = Math.max(1, Number(query.substring(5)) || 1);
+                        if (typeof item.gotoPage !== "function") return "no gotoPage";
+                        item.gotoPage(p);
+                        return `goto=${p} pages=` + (item.loadedPages || []).map(x => x.page).join(",");
                     }
                     if (query.startsWith("setPage:")) {
                         // "setPage:5" -> substring(8) = "5"

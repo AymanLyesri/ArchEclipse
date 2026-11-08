@@ -21,40 +21,35 @@ Item {
     readonly property string booruPath: `${Quickshell.env("HOME")}/.cache/quickshell/booru`
     readonly property string booruScript: `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/scripts/booru.py`
     // --- state (per-instance, not singleton) ---
-    property var images: []
-    // fetched image objects
-    property bool _firstImages: true
-    // Monotonic fetch sequence: rapid tag changes fire overlapping fetches and a stale
-    // response must not overwrite a newer one.
-    property int _fetchSeq: 0
-    // Download generation: a new downloadPreviews() supersedes the previous queue, so
-    // leftover tasks are dropped instead of spending bandwidth on a stale grid.
-    property int _dlSeq: 0
-    // Masonry: shortest-column-by-aspect-ratio distribution. Must live on root — a property
-    // among ColumnLayout children belongs to the layout.
-    readonly property var masonryColumns: {
-        const imgs = root.images || [];
-        const n = Math.max(1, root.columns);
-        const cols = [];
-        for (let i = 0; i < n; i++)
-            cols.push({
-                "h": 0,
-                "items": []
-            });
-        for (const im of imgs) {
-            const ratio = (im.width && im.height) ? im.height / im.width : 1;
-            let t = cols[0];
-            for (const c of cols)
-                if (c.h < t.h) {
-                    t = c;
-                }
-            t.items.push(im);
-            t.h += ratio;
+    // Ordered page stack: one grid block per page, so an append keeps every loaded page mounted.
+    property var loadedPages: []
+    // Flat projection for the remaining consumers (dialog predicates, cache cleanup).
+    readonly property var images: {
+        const out = [];
+        for (const pg of root.loadedPages) {
+            for (const im of (pg.images || []))
+                out.push(im);
         }
-        return cols.map(c => {
-            return c.items;
-        });
+        return out;
     }
+    property bool _firstImages: true
+    // Stack token: a response may only touch the stack that started it — a reset bumps the
+    // generation and a settings change alters the signature.
+    property string _stackKey: ""
+    property int _stackGen: 0
+    property bool endAbove: false
+    property bool endBelow: false
+    property int _pendingScrollPage: 0
+    // One request per direction at a time: the loading placeholder is only ~44px tall, so an
+    // ungated edge check queues page after page while it is still in flight.
+    property bool loadingAbove: false
+    property bool loadingBelow: false
+    // Preview pool: one deduped queue (max 4 curls). Only a full reset cancels, so an append
+    // never drops the previous page's downloads.
+    property var _dlQueue: []
+    property int _dlActive: 0
+    property var _dlKeys: ({})
+    property int _dlGen: 0
     property string progressStatus: "idle" // "loading" | "error" | "success" | "idle"
     property string selectedTab: Settings.booru.api ? Settings.booru.api.name : "Danbooru"
     property int page: Settings.booru.page ?? 1
@@ -626,109 +621,343 @@ Item {
             root.downloadedIds = BooruUtils.purgeApiKeys(root.downloadedIds, apiValue);
             root.fullIds = BooruUtils.purgeApiKeys(root.fullIds, apiValue);
             root.resetReveal();
+            root.downloadCancel();
             proc.destroy();
-            // Re-fetch previews for the current page if we still have results.
-            if (root.images && root.images.length > 0)
+            // Re-fetch previews for the loaded pages (the files are gone).
+            if (root.images.length > 0)
                 root.downloadPreviews(root.images);
         });
         proc.running = true;
     }
 
+    // --- page stack -----------------------------------------------------------
+    function stackKey() {
+        return (Settings.booru.api ? Settings.booru.api.value : "danbooru") + "|" + root.currentTags.join(",") + "|" + root.limit;
+    }
+
+    function stackToken() {
+        return root._stackKey + "#" + root._stackGen;
+    }
+
+    function pageEntry(pageNo) {
+        for (const pg of root.loadedPages) {
+            if (pg.page === pageNo)
+                return pg;
+        }
+        return null;
+    }
+
+    function hasPage(pageNo) {
+        return root.pageEntry(pageNo) !== null;
+    }
+
+    function pageLoading(pageNo) {
+        const e = root.pageEntry(pageNo);
+        return !!e && e.loading;
+    }
+
+    function minLoadedPage() {
+        return root.loadedPages.length ? root.loadedPages[0].page : 0;
+    }
+
+    function maxLoadedPage() {
+        return root.loadedPages.length ? root.loadedPages[root.loadedPages.length - 1].page : 0;
+    }
+
+    function persistPage(pageNo) {
+        if (Settings.booru.page === pageNo)
+            return;
+        Settings.booru.page = pageNo;
+        Settings.updateSetting("booru.page", pageNo);
+    }
+
+    // Drop the whole stack: scroll offset, dividers and page numbers belong to one search.
+    function resetStack(pageNo) {
+        const p = Math.max(1, Math.round(Number(pageNo) || 1));
+        root._stackKey = root.stackKey();
+        root._stackGen = root._stackGen + 1;
+        root._pendingScrollPage = 0;
+        root.endAbove = false;
+        root.endBelow = false;
+        root.loadingAbove = false;
+        root.loadingBelow = false;
+        root.downloadCancel();
+        root.loadedPages = [];
+        root.page = p;
+        root.persistPage(p);
+        root.loadPage(p, "replace");
+    }
+
+    // New search identity (tags / api / limit): always restarts at page 1.
+    function refetchFromFirstPage() {
+        root.resetStack(1);
+    }
+
     function fetchImages() {
-        root.progressStatus = "loading";
-        root._fetchSeq = root._fetchSeq + 1;
+        root.refetchFromFirstPage();
+    }
+
+    function loadPage(pageNo, side) {
+        if (root.loadLocalPage(pageNo, side))
+            return;
+        root.fetchApiPage(pageNo, side);
+    }
+
+    // Local tabs: pages are instant slices of the saved arrays (no network, no loading state).
+    function localList() {
+        return root.selectedTab === "Pins" ? (Settings.booru.pins || []) : (Settings.booru.bookmarks || []);
+    }
+
+    function localSnapshot(list, pageNo) {
+        if (!(root.limit > 0))
+            return pageNo === 1 ? list.map(x => root.clonify(x)) : [];
+        return BooruUtils.pagedSlice(list, root.limit, pageNo).map(x => root.clonify(x));
+    }
+
+    function loadLocalPage(pageNo, side, list) {
+        const isLocal = root.selectedTab === "Bookmarks" || root.selectedTab === "Pins";
+        if (!isLocal && !list)
+            return false;
+        const imgs = root.localSnapshot(list || root.localList(), pageNo);
+        root.applyPage(pageNo, imgs, side || "replace", !(root.limit > 0) || imgs.length < root.limit);
+        return true;
+    }
+
+    // Single source for the local slices (bookmark toggle refresh, IPC and page turns alike).
+    function loadBookmarks(pageNo, side) {
+        return root.loadLocalPage(pageNo || root.page, side, Settings.booru.bookmarks || []);
+    }
+
+    function loadPins(pageNo, side) {
+        return root.loadLocalPage(pageNo || root.page, side, Settings.booru.pins || []);
+    }
+
+    // The one mutation point for the stack: replace resets, append/prepend only add a block.
+    function applyPage(pageNo, imgs, side, exhausted) {
+        const entry = {
+            "page": pageNo,
+            "images": imgs || [],
+            "loading": false,
+            "error": ""
+        };
+        root.loadingAbove = false;
+        root.loadingBelow = false;
+        if (side === "replace") {
+            root.resetReveal();
+            root.page = pageNo;
+            root.persistPage(pageNo);
+            root.loadedPages = [entry];
+            root.endAbove = false;
+            root.endBelow = exhausted || entry.images.length === 0;
+            root.progressStatus = "success";
+            // A docked card is anchored to a card of the dropped stack; a detached float is its
+            // own window and stays.
+            if (root.dialogImage !== null && !root.dialogDetached)
+                root.requestClose();
+            grid.scrollToTop();
+            if (!root._firstImages)
+                grid.slideFrom(root.pageDirection === "next" ? 60 : -60);
+            root._firstImages = false;
+            root.queueRevealFor(entry.images);
+            root.downloadPreviews(entry.images);
+            return;
+        }
+        const isAppend = side === "append";
+        const list = root.loadedPages.slice();
+        const idx = list.findIndex(pg => pg.page === pageNo);
+        if (entry.images.length === 0) {
+            // Empty answer: drop the edge placeholder and stop that direction for good.
+            const cap = isAppend ? null : grid.captureViewport();
+            if (idx >= 0)
+                list.splice(idx, 1);
+            root.loadedPages = list;
+            if (isAppend)
+                root.endBelow = true;
+            else
+                root.endAbove = true;
+            root._pendingScrollPage = 0;
+            if (!isAppend)
+                Qt.callLater(() => grid.restoreViewport(cap));
+            return;
+        }
+        // Prepend inserts above the viewport, so the anchor has to be captured first.
+        const cap = isAppend ? null : grid.captureViewport();
+        if (idx >= 0)
+            list[idx] = entry;
+        else
+            list.push(entry);
+        list.sort((a, b) => a.page - b.page);
+        if (!isAppend && root.dialogImage !== null && !root.dialogDetached)
+            root.requestClose();
+        root.loadedPages = list;
+        if (exhausted) {
+            if (isAppend)
+                root.endBelow = true;
+            else
+                root.endAbove = true;
+        }
+        root.queueRevealFor(entry.images);
+        root.downloadPreviews(entry.images);
+        if (root._pendingScrollPage === pageNo) {
+            root._pendingScrollPage = 0;
+            Qt.callLater(() => grid.scrollToPage(pageNo));
+        } else if (!isAppend) {
+            Qt.callLater(() => grid.restoreViewport(cap));
+        }
+        root.trimStack(pageNo);
+    }
+
+    // Memory guard: AppMasonry instantiates every card, so only 8 page blocks stay mounted.
+    // The victim is the block farthest from the anchor, never it or a neighbour.
+    function trimStack(anchorPage) {
+        const MAX_PAGES = 8;
+        if (root.loadedPages.length <= MAX_PAGES)
+            return;
+        const cap = grid.captureViewport();
+        const list = root.loadedPages.slice();
+        while (list.length > MAX_PAGES) {
+            let victim = -1;
+            let far = -1;
+            for (let i = 0; i < list.length; i++) {
+                const dist = Math.abs(list[i].page - anchorPage);
+                if (dist <= 1 || list[i].loading)
+                    continue;
+                if (dist > far) {
+                    far = dist;
+                    victim = i;
+                }
+            }
+            if (victim < 0)
+                break;
+            list.splice(victim, 1);
+        }
+        if (list.length === root.loadedPages.length)
+            return;
+        root.loadedPages = list;
+        Qt.callLater(() => grid.restoreViewport(cap));
+    }
+
+    function beginPage(pageNo, side) {
+        const cap = side === "prepend" ? grid.captureViewport() : null;
+        const list = root.loadedPages.slice();
+        const idx = list.findIndex(pg => pg.page === pageNo);
+        const entry = {
+            "page": pageNo,
+            "images": [],
+            "loading": true,
+            "error": ""
+        };
+        if (idx >= 0)
+            list[idx] = entry;
+        else
+            list.push(entry);
+        list.sort((a, b) => a.page - b.page);
+        root.loadedPages = list;
+        if (cap)
+            Qt.callLater(() => grid.restoreViewport(cap));
+    }
+
+    function failPage(pageNo, side, msg) {
+        const detail = String(msg || "Unknown booru error").slice(0, 200);
+        root.lastFetchError = detail;
+        root.loadingAbove = false;
+        root.loadingBelow = false;
+        if (side === "replace") {
+            root.progressStatus = "error";
+            root.loadedPages = [];
+            Notifications.notify({
+                "summary": root.selectedTab === "Bookmarks" ? "Error loading bookmarks" : root.selectedTab === "Pins" ? "Error loading pins" : "Error fetching images",
+                "body": detail
+            });
+            return;
+        }
+        // Edge failure: loaded pages stay mounted and the block offers a retry.
+        const list = root.loadedPages.slice();
+        const idx = list.findIndex(pg => pg.page === pageNo);
+        if (idx < 0)
+            return;
+        list[idx] = {
+            "page": pageNo,
+            "images": list[idx].images || [],
+            "loading": false,
+            "error": detail
+        };
+        root.loadedPages = list;
+    }
+
+    function fetchApiPage(pageNo, side) {
+        // Edge requests are single-flight per side (a retry of the same side waits its turn).
+        if (side === "append" ? root.loadingBelow : (side === "prepend" ? root.loadingAbove : false))
+            return;
+        const token = root.stackToken();
         const apiValue = Settings.booru.api ? Settings.booru.api.value : "danbooru";
         const apiObj = root.booruApis.find(a => {
             return a.value === apiValue;
         }) || root.booruApis[0];
-        const tagsStr = root.currentTags.join(",");
-        const currentPage = Math.max(1, root.page);
-        const startIndex = root.limit > 0 ? (currentPage - 1) * root.limit : 0;
-        // Build command
-        let cmd = ["python", root.booruScript, "--api", apiValue, "--tags", tagsStr, "--limit", String(root.limit), "--page", String(currentPage)];
-        // Add API credentials when available: Settings.apiKey unwraps either shape and falls
-        // back to the shipped public defaults.
+        let cmd = ["python", root.booruScript, "--api", apiValue, "--tags", root.currentTags.join(","), "--limit", String(root.limit), "--page", String(pageNo)];
+        // Credentials: Settings.apiKey unwraps either shape and falls back to the shipped
+        // public defaults.
         const apiUser = Settings.apiKey(apiValue, "user");
         const apiPass = Settings.apiKey(apiValue, "key");
         if (apiUser !== "" && apiPass !== "")
             cmd.push("--api-user", apiUser, "--api-key", apiPass);
-
-        const cmdJson = JSON.stringify(cmd);
         root.lastFetchCmd = JSON.stringify(cmd.map((a, i) => {
             return (a === "--api-key" || a === "--api-user") ? a : (cmd[i - 1] === "--api-key" || cmd[i - 1] === "--api-user" ? "***" : a);
         }));
         root.lastFetchError = "";
-        const proc = Qt.createQmlObject('import Quickshell.Io; Process { command: ' + cmdJson + ' }', root);
+        // Only a replace drives the nav pill; an edge shows its own block state.
+        if (side === "replace") {
+            root.progressStatus = "loading";
+        } else {
+            if (side === "append")
+                root.loadingBelow = true;
+            else
+                root.loadingAbove = true;
+            root.beginPage(pageNo, side);
+        }
+        const proc = Qt.createQmlObject('import Quickshell.Io; Process { command: ' + JSON.stringify(cmd) + ' }', root);
         // Collectors must be attached before running (never after), and
         // inline `stderr:` is rejected by the QML parser — assign here.
         proc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
         proc.stderr = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
         proc.running = true;
-        const mySeq = root._fetchSeq;
         // Read streams on process exit, NOT on stdout.onStreamFinished: stderr may not have
         // flushed yet, which hid the script's real error envelope.
         proc.exited.connect(function (exitCode, exitStatus) {
-            // Drop stale responses: a newer fetch (newer tag set) supersedes
-            // this one, so its results must not touch the grid.
-            if (mySeq !== root._fetchSeq) {
+            // A reset or a settings change since the request supersedes it.
+            if (token !== root.stackToken()) {
                 proc.destroy();
                 return;
             }
             const text = proc.stdout.text;
-            // booru.py emit_error() writes to STDERR with empty stdout, so a
-            // credential rejection would otherwise surface as a generic error.
             const errText = proc.stderr.text;
-            if ((!text || !text.trim()) && errText && errText.trim()) {
-                root.progressStatus = "error";
-                let msg = errText.trim().slice(0, 300);
-                try {
-                    const ej = JSON.parse(errText.trim());
-                    if (ej && ej.message)
-                        msg = String(ej.message);
-                } catch (e) {}
-                Notifications.notify({
-                    "summary": "Booru error",
-                    "body": msg
-                });
-                proc.destroy();
-                return;
-            }
-            // Surface the script's error envelope
-            // message (e.g. missing API credentials) instead of a generic error
             let parsed = null;
             try {
                 parsed = text && text.trim() ? JSON.parse(text) : null;
             } catch (e) {
                 parsed = null;
             }
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.error === true) {
-                root.progressStatus = "error";
-                const msg = (parsed.message && String(parsed.message).trim()) || "Unknown booru error";
-                Notifications.notify({
-                    "summary": "Booru error",
-                    "body": msg
-                });
-                proc.destroy();
-                return;
+            let msg = "";
+            if ((!text || !text.trim()) && errText && errText.trim()) {
+                msg = errText.trim().slice(0, 300);
+                try {
+                    const ej = JSON.parse(errText.trim());
+                    if (ej && ej.message)
+                        msg = String(ej.message);
+                } catch (e) {}
+            } else if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.error === true) {
+                msg = (parsed.message && String(parsed.message).trim()) || "Unknown booru error";
+            } else if (!Array.isArray(parsed)) {
+                msg = text && text.trim() ? text.trim().slice(0, 200) : "Failed to fetch images";
             }
-            if (!Array.isArray(parsed)) {
-                root.progressStatus = "error";
-                // Notify per-tab error (bookmarks/pins/images)
-                const tab = root.selectedTab;
-                const summary = tab === "Bookmarks" ? "Error loading bookmarks" : tab === "Pins" ? "Error loading pins" : "Error fetching images";
-                const body = tab === "Bookmarks" ? "Failed to load bookmarks" : tab === "Pins" ? "Failed to load pins" : "Failed to fetch images";
-                const detail = text && text.trim() ? text.trim().slice(0, 200) : body;
+            if (msg !== "") {
                 root.lastFetchError = "stdout[" + (text ? text.trim().slice(0, 200) : "<empty>") + "] stderr[" + (errText ? errText.slice(0, 200) : "<empty>") + "]";
-                Notifications.notify({
-                    "summary": summary,
-                    "body": detail
-                });
+                root.failPage(pageNo, side, msg);
                 proc.destroy();
                 return;
             }
             try {
-                const data = parsed;
-                root.images = data.map(img => {
+                const data = parsed.map(img => {
                     return ({
                             "id": img.id || 0,
                             "width": img.width || 0,
@@ -742,19 +971,75 @@ Item {
                         });
                 });
                 root.calculateCacheSize();
-                root.progressStatus = "success";
-                // Download previews for the NEW images (was previously called
-                // on the stale list before the fetch completed)
-                root.downloadPreviews(root.images);
+                root.applyPage(pageNo, data, side, data.length === 0);
             } catch (e) {
-                root.progressStatus = "error";
-                Notifications.notify({
-                    "summary": "Error fetching images",
-                    "body": String(e)
-                });
+                root.failPage(pageNo, side, String(e));
             }
             proc.destroy();
         });
+    }
+
+    function retryPage(pageNo) {
+        if (!root.hasPage(pageNo))
+            return;
+        root._pendingScrollPage = pageNo;
+        root.fetchApiPage(pageNo, pageNo === root.minLoadedPage() ? "prepend" : "append");
+    }
+
+    // Grid edge request: one page in that direction, never below 1, never twice.
+    function loadEdgePage(dir) {
+        if (root.loadedPages.length === 0)
+            return;
+        if (dir > 0 ? root.loadingBelow : root.loadingAbove)
+            return;
+        const pageNo = dir > 0 ? root.maxLoadedPage() + 1 : root.minLoadedPage() - 1;
+        if (pageNo < 1 || root.hasPage(pageNo))
+            return;
+        if (dir > 0 ? root.endBelow : root.endAbove)
+            return;
+        root.loadPage(pageNo, dir > 0 ? "append" : "prepend");
+    }
+
+    // Scroll-spy owns the page number while the grid scrolls; persistence is debounced so a
+    // fast flick writes once.
+    function handlePageVisible(pageNo) {
+        if (pageNo < 1 || pageNo === root.page)
+            return;
+        root.page = pageNo;
+        _pagePersistTimer.restart();
+    }
+
+    function gotoPage(p) {
+        const target = Math.round(Number(p));
+        if (!(target >= 1))
+            return;
+        const entry = root.pageEntry(target);
+        if (entry) {
+            if (entry.loading) {
+                root._pendingScrollPage = target;
+                return;
+            }
+            if (entry.error !== "") {
+                root.retryPage(target);
+                return;
+            }
+            // Mounted page: navigation is a scroll, not a fetch.
+            root.page = target;
+            root.persistPage(target);
+            grid.scrollToPage(target);
+            return;
+        }
+        const min = root.minLoadedPage();
+        const max = root.maxLoadedPage();
+        if (min > 0 && (target === min - 1 || target === max + 1)) {
+            root._pendingScrollPage = target;
+            root.pageDirection = target > max ? "next" : "prev";
+            root.loadPage(target, target > max ? "append" : "prepend");
+            return;
+        }
+        // Jump: clear the stack and load only that page as a fresh set.
+        root.pageDirection = target > root.page ? "next" : "prev";
+        root.resetStack(target);
     }
 
     function isRevealed(img) {
@@ -773,12 +1058,11 @@ Item {
 
     // Anything cached but neither revealed nor queued joins the FIFO; the timer drains one
     // per tick so cards fade in one at a time in grid order.
-    function queueAvailableForReveal() {
-        const imgs = root.images || [];
+    function queueRevealFor(imgs) {
         let q = root._revealQueue.slice();
         const revealed = root.revealedIds;
         let added = false;
-        for (const img of imgs) {
+        for (const img of (imgs || [])) {
             if (!img)
                 continue;
             const key = BooruUtils.cacheKey(img);
@@ -795,98 +1079,96 @@ Item {
         }
     }
 
+    function queueAvailableForReveal() {
+        root.queueRevealFor(root.images);
+    }
+
     // Grid source: the full file if downloaded, else the cached preview, else blank until
     // downloadPreviews() caches it — no remote fallback (Qt TLS segfaults on cdn.donmai.us).
     function gridSource(img) {
         return BooruUtils.gridSource(root.booruPath, root.downloadedIds, root.previewIds, img);
     }
 
-    // Bounded preview downloads (max 4 curls): one batch disk check then a worker pump of
-    // managed Processes, so a page turn drops the stale queue via _dlSeq.
+    // Preview pool: one deduped queue, max 4 curls in flight. An append joins the same pool, so
+    // earlier pages keep downloading; only a full stack reset cancels.
     function downloadPreviews(imgList) {
-        root._dlSeq++;
-        const mySeq = root._dlSeq;
-        const MAX_DL = 4;
         const tasks = [];
-        (imgList || []).forEach(img => {
+        for (const img of (imgList || [])) {
             if (!img || !img.preview || !img.api || !img.api.value)
-                return;
-            const previewDir = `${root.booruPath}/${img.api.value}/previews`;
-            // Same path gridSource/getIconPath use (preview still ext, not
-            // the post's mp4/webm extension).
-            const previewPath = BooruUtils.getIconPath(root.booruPath, img, "previews");
+                continue;
+            const key = BooruUtils.cacheKey(img);
+            if (!key || root._dlKeys[key] || root.previewIds[key])
+                continue;
+            root._dlKeys[key] = true;
             tasks.push({
-                "key": BooruUtils.cacheKey(img),
-                "dir": previewDir,
-                "path": previewPath,
+                "key": key,
+                "dir": `${root.booruPath}/${img.api.value}/previews`,
+                "path": BooruUtils.getIconPath(root.booruPath, img, "previews"),
                 "url": img.preview,
                 "referer": img.api.url || ""
             });
-        });
+        }
         if (tasks.length === 0)
             return;
-
-        // One batch check of what is already on disk. Attach stdout in the constructor —
-        // setting running=true first races and drops output.
+        const gen = root._dlGen;
+        // One disk probe per call: cached previews turn previewIds warm instead of re-downloading.
         const checkProc = Qt.createQmlObject('import Quickshell.Io; Process { stdout: StdioCollector {} }', root);
         checkProc.command = ["bash", "-c", tasks.map(t => {
             return "test -s " + JSON.stringify(t.path) + " && echo " + JSON.stringify(t.key);
         }).join("; ") + "; true"];
         checkProc.stdout.onStreamFinished.connect(function () {
-            const current = (mySeq === root._dlSeq);
             const have = {};
-            checkProc.stdout.text.trim().split(/\s+/).forEach(key => {
+            (checkProc.stdout.text || "").trim().split(/\s+/).forEach(key => {
                 if (key)
                     have[key] = true;
             });
             checkProc.destroy();
+            if (gen !== root._dlGen)
+                return;
             if (Object.keys(have).length > 0) {
                 const ids = Object.assign({}, root.previewIds);
                 for (const key in have)
                     ids[key] = true;
                 root.previewIds = ids;
             }
-            if (current)
-                pump(tasks.filter(t => {
-                    return !have[t.key];
-                }));
+            root._dlQueue = root._dlQueue.concat(tasks.filter(t => {
+                return !have[t.key];
+            }));
+            root.pumpDownloads();
         });
         checkProc.running = true;
+    }
 
-        function pump(missing) {
-            let next = 0;
-            let active = 0;
-            function pumpMore() {
-                // Superseded (new search/page): stop scheduling stale
-                // tasks; in-flight workers finish and warm the disk cache.
-                if (mySeq !== root._dlSeq)
-                    return;
-                while (active < MAX_DL && next < missing.length) {
-                    const t = missing[next++];
-                    active++;
-                    // Write to .part then mv atomically so checkProc never marks a truncated
-                    // target and Image never opens a half-written preview.
-                    const part = t.path + ".part";
-                    const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
-                    dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(t.dir)} && curl -sSf --max-time 30 -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("booru"))} -H ${Settings.shQuote("Referer: " + t.referer)} -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(t.path)} ${JSON.stringify(t.url)} && test -s ${JSON.stringify(t.path)}`];
-                    dl.exited.connect(function (code) {
-                        active--;
-                        // Mark even when superseded: the file is warm on disk and the reveal
-                        // queue only admits keys in the current result set.
-                        if (code === 0) {
-                            const ids = Object.assign({}, root.previewIds);
-                            if (!ids[t.key]) {
-                                ids[t.key] = true;
-                                root.previewIds = ids;
-                            }
-                        }
-                        dl.destroy();
-                        pumpMore();
-                    });
-                    dl.running = true;
+    function downloadCancel() {
+        root._dlGen = root._dlGen + 1;
+        root._dlQueue = [];
+        root._dlKeys = ({});
+    }
+
+    function pumpDownloads() {
+        const MAX_DL = 4;
+        while (root._dlActive < MAX_DL && root._dlQueue.length > 0) {
+            const t = root._dlQueue.shift();
+            root._dlActive = root._dlActive + 1;
+            const dl = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
+            dl.command = ["bash", "-c", `mkdir -p ${JSON.stringify(t.dir)} && curl -sSf --max-time 30 -H ${Settings.shQuote("User-Agent: " + Settings.userAgent("booru"))} -H ${Settings.shQuote("Referer: " + t.referer)} -H "Accept: image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8" -o ${JSON.stringify(t.path)} ${JSON.stringify(t.url)} && test -s ${JSON.stringify(t.path)}`];
+            dl.exited.connect(function (code) {
+                root._dlActive = Math.max(0, root._dlActive - 1);
+                // Mark even when superseded: the file is warm on disk for the next visit.
+                if (code === 0) {
+                    const ids = Object.assign({}, root.previewIds);
+                    if (!ids[t.key]) {
+                        ids[t.key] = true;
+                        root.previewIds = ids;
+                    }
+                } else {
+                    // Release the key so a later call can retry a transient failure.
+                    delete root._dlKeys[t.key];
                 }
-            }
-            pumpMore();
+                dl.destroy();
+                root.pumpDownloads();
+            });
+            dl.running = true;
         }
     }
 
@@ -931,74 +1213,18 @@ Item {
         return BooruUtils.buildPageButtons(root.widgetWidth, root.page, Icons.refresh);
     }
 
-    // Local tabs (paginate local list with (page-1)*limit offset)
-    function pagedSlice(list) {
-        return BooruUtils.pagedSlice(list, root.limit, root.page);
-    }
-
-    function loadBookmarks() {
-        const bookmarks = Settings.booru.bookmarks || [];
-        root.images = root.pagedSlice(bookmarks).map(b => {
-            return root.clonify(b);
-        });
-        root.downloadPreviews(root.images);
-        root.progressStatus = "success";
-    }
-
-    function loadPins() {
-        const pins = Settings.booru.pins || [];
-        root.images = root.pagedSlice(pins).map(p => {
-            return root.clonify(p);
-        });
-        root.downloadPreviews(root.images);
-        root.progressStatus = "success";
-    }
-
-    function loadLocalTab() {
-        if (root.selectedTab === "Bookmarks") {
-            root.loadBookmarks();
-            return true;
-        }
-        if (root.selectedTab === "Pins") {
-            root.loadPins();
-            return true;
-        }
-        return false;
-    }
-
-    function gotoPage(p) {
-        // Page buttons always fetchImages() — same-page click refreshes.
-        if (p < 1)
-            return;
-
-        if (p !== root.page) {
-            root.pageDirection = p > root.page ? "next" : "prev";
-            root.page = p;
-            Settings.booru.page = p;
-            Settings.updateSetting("booru.page", p);
-        }
-        if (!root.loadLocalTab())
-            root.fetchImages();
-    }
-
+    // Initial load, branched to bookmarks/pins/API from the restored tab. Deferred until
+    // Settings.ready — booting on defaults fetched with the wrong limit and persisted them.
     function boot() {
-        if (root._booted)
+        if (root._booted || root.dialogOnly || !Settings.ready)
             return;
-
-        if (root.dialogOnly)
-            return;
-
-        if (!Settings.ready)
-            return;
-
         root._booted = true;
         _bootTimer.stop();
-        ensureRatingTagFirst();
-        const savedTab = Settings.booru.selectedTab || Settings.booru.api.name;
-        root.selectedTab = savedTab;
+        root.ensureRatingTagFirst();
+        root.selectedTab = Settings.booru.selectedTab || Settings.booru.api.name;
         root.calculateCacheSize();
-        if (!root.loadLocalTab())
-            root.fetchImages();
+        // The persisted page restores as a single-block stack (jump semantics).
+        root.resetStack(root.page);
     }
 
     onDialogImageChanged: {
@@ -1015,24 +1241,6 @@ Item {
             }
             Qt.callLater(() => root.refreshDialogTop(-1));
         }
-    }
-    // On new images slide the page in from the travel direction and scroll to top; the
-    // anchor card is invalidated, so the dialog drops at once.
-    onImagesChanged: {
-        // A detached card is its own window: new grid results must not
-        // pull it away. Docked cards drop at once (anchor invalidated).
-        if (!root.dialogDetached)
-            root.requestClose();
-        grid.resetScroll();
-        // New result set: restart the staggered pop-in from scratch, then
-        // reveal anything already cached (bookmarks/pins revisits).
-        root.resetReveal();
-        root.queueAvailableForReveal();
-        if (root._firstImages) {
-            root._firstImages = false;
-            return;
-        }
-        grid.slideFrom(root.pageDirection === "next" ? 60 : -60);
     }
     onPreviewIdsChanged: root.queueAvailableForReveal()
     onDownloadedIdsChanged: root.queueAvailableForReveal()
@@ -1051,16 +1259,27 @@ Item {
         target: Settings
         function onBooruChanged() {
             const b = Settings.booru || {};
-            if (b.selectedTab && b.selectedTab !== root.selectedTab)
+            // Only an outside change (file reload, another tab) reaches here with a different
+            // value: our own writes land after the property is already updated.
+            let identity = false;
+            if (b.selectedTab && b.selectedTab !== root.selectedTab) {
                 root.selectedTab = b.selectedTab;
+                identity = true;
+            }
             if (b.page && b.page !== root.page)
                 root.page = b.page;
-            if (b.limit && b.limit !== root.limit)
+            if (b.limit && b.limit !== root.limit) {
                 root.limit = b.limit;
+                identity = true;
+            }
             if (b.columns && b.columns !== root.columns)
                 root.columns = b.columns;
-            if (Array.isArray(b.tags) && JSON.stringify(b.tags) !== JSON.stringify(root.currentTags))
+            if (Array.isArray(b.tags) && JSON.stringify(b.tags) !== JSON.stringify(root.currentTags)) {
                 root.currentTags = b.tags.slice();
+                identity = true;
+            }
+            if (identity && root._booted && !root.dialogOnly && !root.dialogPinned)
+                root.refetchFromFirstPage();
         }
     }
 
@@ -1105,6 +1324,14 @@ Item {
     }
 
     Timer {
+        id: _pagePersistTimer
+
+        interval: 300
+        repeat: false
+        onTriggered: root.persistPage(root.page)
+    }
+
+    Timer {
         id: _bootTimer
 
         interval: 200
@@ -1128,6 +1355,9 @@ Item {
             viewer: root
             Layout.fillWidth: true
             Layout.fillHeight: true
+            onNeedPageBelow: root.loadEdgePage(1)
+            onNeedPageAbove: root.loadEdgePage(-1)
+            onPageBecameVisible: pageNo => root.handlePageVisible(pageNo)
         }
 
         // Tabs, page buttons and prev/reveal/next live in BooruNavigation (BooruToolbar was
@@ -1264,6 +1494,6 @@ Item {
     _limitDebounce: Timer {
         interval: 300
         repeat: false
-        onTriggered: root.fetchImages()
+        onTriggered: root.refetchFromFirstPage()
     }
 }
