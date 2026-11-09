@@ -19,7 +19,7 @@ commands below.
 | `services/` | Stateful singletons (`services/qmldir`); UI files stay dumb. |
 | `theme/` | `Theme` (tokens + motion) and `Settings` (persisted config). |
 | `widgets/bar/` | Pill, bar cells, and `islands/` (in-bar pages + side pills). |
-| `widgets/leftPanel/` | Left island tabs (`SettingsWidget`, `KeyBindsWidget`, `ChatBotWidget`, `DonationsWidget`, `BooruViewer/`, …), `CategoryRail` hosts, row helpers (`HyprSliderRow`, `HyprToggleRow`, `DonationCard`). |
+| `widgets/leftPanel/` | Left island tabs (`SettingsWidget`, `KeyBindsWidget`, `ChatBotWidget`, `DonationsWidget`, `BooruViewer/`, …), `AppNavigationSidePanel` hosts, row helpers (`HyprSliderRow`, `HyprToggleRow`, `DonationCard`). |
 | `widgets/rightPanel/` | Right island widgets: `Calendar`, `NotificationHistory`, `SystemResources`, `Waifu`, `Media` (in `widgets/media`). |
 | `widgets/shared/` | Buttons/inputs/scroll/motion primitives + `ModelEntry.js` (model-entry accessors). |
 | `widgets/{launcher,lock,media,notifications,overview,controlPanel,wallpaperPanel,weather,welcome,selection,greeter}/` | Each is its own QML module (`qmldir`). `greeter/` ships to `/etc/xdg/quickshell/archeclipse-greeter` via `scripts/sync-greeter.sh`. |
@@ -88,11 +88,18 @@ CustomScripts, KeyBinds, Donations`). Height is explicit; each tab scrolls
 internally. Right island renders enabled `Settings.rightPanelWidgets` — only the
 five names above; `Settings.mergeRightPanelWidgets()` drops unknown entries.
 
-Settings/Key Binds share `CategoryNav` (selection + centred scroll) +
-`CategoryRail` (labels come from the host model) + `CategorySection`. Selection
-is symmetric and the fade is permanent: a rail click scrolls to a category, a
-manual scroll selects whichever category holds the anchor line, and both drive
-the rail pill and the distance fade.
+`AppNavigationSidePanel` is the shared left navigation panel and owns the rail,
+the selection controller and, in section mode, the Flickable plus the section
+cards themselves. In tab mode (Booru/Manga/ChatBot) hosts drive
+`navModel`/`navCurrentIndex`/`onNavSelected` and put controls below the rail.
+In section mode (Settings/Key Binds) hosts set `sectionMode`, `navModel` and
+`sections` (one body Component per nav entry, aligned by index); the panel
+builds the cards, centres scrolls and runs the distance fade, and exposes the
+controller as `nav` plus `sectionColumn`/`findItemByObjectName` for external
+lookups (Settings uses both for its deep link).
+Selection is symmetric and the fade is permanent: a rail click scrolls to a
+category, a manual scroll selects whichever category holds the anchor line,
+and both drive the rail pill and the distance fade.
 
 `anchorY()` is the viewport centre, squashed to the content edges over the
 first/last half viewport of travel — the scroll range is one viewport shorter

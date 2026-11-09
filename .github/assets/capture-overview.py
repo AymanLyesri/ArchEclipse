@@ -61,19 +61,21 @@ WS9 = 9
 # the on-camera time each change is visible in the recording.
 WORKSPACE_SETTLE = 1.0
 WALLPAPER_SETTLE = 1.0
-MEDIA_SETTLE = 0.5
+MEDIA_SETTLE = 0
 STEP_SETTLE = 1.5
 IPC_SETTLE = 0.5
 # `qs ipc` answers this while the shell's IPC server is still coming up after a
 # reload; the call is never delivered, so a retry cannot apply twice.
 IPC_NOT_READY = "Not ready to accept queries yet."
 IPC_READY_TIMEOUT = 5.0
+# settingsSet carries the whole pins array; the shell can be busy with a fetch.
+SETTINGS_SET_TIMEOUT = 30.0
 # BooruViewer.boot() retries on a 200ms timer and then starts its fetch; the
 # demo tags are pushed after both, or a late boot write overwrites them.
 BOOT_SETTLE = 0
 # The bar adopts a recording it did not start on its 1s pgrep poll; this
 # dwell lets the sidepill show the running timer before the take begins.
-RECORD_SETTLE = 1.0
+RECORD_SETTLE = 0
 # Settings.qml watches the file and reloads after a short delay — the
 # reactive bindings (right-island widget order, waifu, booru) follow once
 # reload lands.
@@ -94,10 +96,10 @@ COMPRESS_AFTER_TAKE = True
 # with dither=none defaults it lands near mp4 size. Off via --no-gif.
 GIF_AFTER_TAKE = False
 
-SHELL_API_BOORU = "danbooru"
+SHELL_API_BOORU = "gelbooru"
 
-WAIFU_POST_ID = 8951684
-BOORU_TAG = "+rating:g"
+WAIFU_POST_ID = 15198801
+BOORU_TAG = "rating:g"
 WALLPAPER_ROOT = Path.home() / ".config/wallpapers"
 WALLPAPER_CATEGORY = "defaults/images_sfw"
 CHAT_SESSION_ID = "session-capture-demo"
@@ -184,27 +186,51 @@ CHAT_CONVERSATION = [
 ]
 
 
+class CommandTimeout(RuntimeError):
+    pass
+
+
+def _short_cmd(argv):
+    parts = []
+    for x in argv:
+        s = str(x)
+        if len(s) > 120:
+            s = s[:120] + f"...[truncated, total {len(s)} chars]"
+        parts.append(repr(s))
+    return "[" + ", ".join(parts) + "]"
+
+
 def run(cmd, timeout=10):
+    argv = [str(x) for x in cmd]
     try:
         return subprocess.run(
-            [str(x) for x in cmd],
+            argv,
             capture_output=True,
             text=True,
             timeout=timeout,
             check=True,
         ).stdout.strip()
-    except (OSError, subprocess.SubprocessError) as e:
-        raise RuntimeError(
-            f"Command failed: {cmd}: {getattr(e, 'stderr', '') or e}"
+    except subprocess.TimeoutExpired as e:
+        raise CommandTimeout(
+            f"Command timed out after {timeout}s: {_short_cmd(argv)}"
         ) from e
+    except (OSError, subprocess.SubprocessError) as e:
+        detail = getattr(e, "stderr", "") or f"exit {getattr(e, 'returncode', '?')}"
+        raise RuntimeError(f"Command failed: {_short_cmd(argv)}: {detail}") from e
 
 
-def ipc_call(action, *args, timeout=10):
-    deadline = time.monotonic() + IPC_READY_TIMEOUT
+def ipc_call(action, *args, timeout=10, retry_on_timeout=False):
+    deadline = time.monotonic() + timeout * 2 + IPC_READY_TIMEOUT
     while True:
-        text = run(
-            ["qs", "-p", QS_CONFIG, "ipc", "call", "bar", action, *args], timeout
-        )
+        try:
+            text = run(
+                ["qs", "-p", QS_CONFIG, "ipc", "call", "bar", action, *args], timeout
+            )
+        except CommandTimeout:
+            if not retry_on_timeout or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.25)
+            continue
         if text != IPC_NOT_READY:
             break
         if time.monotonic() >= deadline:
@@ -267,10 +293,13 @@ def settings_set(key, value, settle=SETTINGS_SETTLE):
     synchronously in-process, so callers can shrink settle to just the
     visible dwell they need.
     """
+    # Idempotent set, so a timed-out call can be retried without double-applying.
     result = ipc_call(
         "settingsSet",
         key,
         base64.b64encode(json.dumps(value, separators=(",", ":")).encode()).decode(),
+        timeout=SETTINGS_SET_TIMEOUT,
+        retry_on_timeout=True,
     )
     if not result.startswith("set " + key):
         raise RuntimeError(f"settingsSet {key}: {result}")
@@ -355,6 +384,7 @@ class Snapshot:
         self.waifu = self.settings.get("waifuWidget", {}).get("current")
         self.pins = self.settings.get("booru", {}).get("pins")
         self.tags = self.settings.get("booru", {}).get("tags")
+        self.category = self.settings.get("wallpaperSwitcher", {}).get("category")
         # showWidget/chatSession persist the left island's selected tab
         # override (leftPanel.monitors.<mon>.widget) — restore it wholesale.
         self.left_monitors = self.settings.get("leftPanel", {}).get("monitors")
@@ -371,10 +401,8 @@ def dry_check(snap):
     if not SCREENRECORD_SCRIPT.is_file():
         raise RuntimeError("Recording script not found: " + str(SCREENRECORD_SCRIPT))
     data = snap.settings
-    if data.get("booru", {}).get("selectedTab") != "Danbooru":
-        raise RuntimeError("booru.selectedTab is not Danbooru")
-    if data.get("wallpaperSwitcher", {}).get("category") != WALLPAPER_CATEGORY:
-        raise RuntimeError(f"wallpaperSwitcher.category is not {WALLPAPER_CATEGORY}")
+    if data.get("booru", {}).get("selectedTab") != "Gelbooru":
+        raise RuntimeError("booru.selectedTab is not Gelbooru")
     pinned = any(
         int(p.get("id", 0)) == WAIFU_POST_ID
         for p in data.get("booru", {}).get("pins") or []
@@ -427,17 +455,20 @@ def api_credential(keys, field):
 
 
 def fetch_waifu_post(snap):
-    """Full waifu object for post 8951684: from a booru pin, else booru.py."""
+    """Full waifu object for post 15198801: from a booru pin, else booru.py."""
     pins = snap.settings.get("booru", {}).get("pins") or []
     for pin in pins:
-        if int(pin.get("id", 0)) == WAIFU_POST_ID:
+        if (
+            int(pin.get("id", 0)) == WAIFU_POST_ID
+            and (pin.get("api") or {}).get("value") == SHELL_API_BOORU
+        ):
             return dict(pin)
     booru = snap.settings.get("booru", {})
     api = dict(booru.get("api") or {})
-    api.setdefault("name", "Danbooru")
+    api.setdefault("name", "Gelbooru")
     api.setdefault("value", SHELL_API_BOORU)
-    api.setdefault("url", "https://danbooru.donmai.us/")
-    api.setdefault("idSearchUrl", "https://danbooru.donmai.us/posts/")
+    api.setdefault("url", "https://gelbooru.com/")
+    api.setdefault("idSearchUrl", "https://gelbooru.com/index.php?page=post&s=view&id=")
     cmd = [
         "python3",
         str(QS_CONFIG / "scripts/booru.py"),
@@ -534,10 +565,12 @@ def wait_booru_fetch(snap, timeout=45):
         if status == "success":
             return
         if status == "error":
-            raise RuntimeError(
-                "Booru fetch failed: "
-                + ipc_call("widgetState", "lastFetchError", snap.monitor)
-            )
+            last_err = ipc_call("widgetState", "lastFetchError", snap.monitor)
+            # Gelbooru returns NO_RESULTS for rating:g (kept tag) — empty grid.
+            if "No results found" in last_err:
+                print("WARNING: booru fetch empty: " + last_err, flush=True)
+                return
+            raise RuntimeError("Booru fetch failed: " + last_err)
         time.sleep(0.5)
     raise RuntimeError("Booru fetch did not finish")
 
@@ -754,7 +787,6 @@ def process_media_pill(snap):
         while not ipc_call("playerDiag").endswith("| playing"):
             if time.monotonic() >= deadline:
                 raise RuntimeError("Player did not start playing")
-            time.sleep(0.2)
     else:
         print("Media pill: player already playing, no press", flush=True)
     print("Media pill: " + ipc_call("playerDiag"), flush=True)
@@ -876,22 +908,23 @@ def settings_drifted(snap, current):
         and current.get("leftPanel", {}).get("monitors") != snap.left_monitors
     ):
         return True
+    if (
+        snap.category is not None
+        and current.get("wallpaperSwitcher", {}).get("category") != snap.category
+    ):
+        return True
     return False
 
 
-def restore_state(snap, keep, saved_category=None):
+def restore_state(snap, keep):
     try:
         ensure_workspace(snap.workspace)
     except RuntimeError as e:
         print("WARNING: workspace restore: " + str(e), flush=True)
-    if saved_category:
-        settings_set("wallpaperSwitcher.category", saved_category)
-        print(f"wallpaper category restored: {saved_category}", flush=True)
     if keep:
         print(
-            "MUTATED (kept): wallpaper rows, right-panel order, waifu, "
-            "booru pins/tags, fastfetch image, temp chatbot session, "
-            "left-panel tab",
+            "MUTATED (kept): wallpaper rows, wallpaper category, right-panel order, waifu, "
+            "booru pins/tags, fastfetch image, temp chatbot session, left-panel tab",
             flush=True,
         )
         return
@@ -928,25 +961,26 @@ def restore_state(snap, keep, saved_category=None):
     except RuntimeError as e:
         print("WARNING: left panel close: " + str(e), flush=True)
 
-    # Restore the wallpaper category after Settings.updateSetting() below; the
-    # latter writes `wallpaperSwitcher.category` fresh from the picker widget,
-    # which inherits the pre-take value.
-    if saved_category is not None:
-        settings_set("wallpaperSwitcher.category", saved_category)
-        print(f"wallpaper category restored: {saved_category}", flush=True)
-
     restore_settings(snap)
+
+    # Picker persists `wallpaperSwitcher.category` fresh on updateSetting,
+    # so re-apply the pre-take value after restore_settings() writes.
+    if snap.category is not None:
+        settings_set("wallpaperSwitcher.category", snap.category)
+        print(f"wallpaper category restored: {snap.category}", flush=True)
 
     # Late shell-side writers can land a full persist seconds after ours —
     # settle, re-read and heal once if anything drifted back to demo state.
     time.sleep(RESTORE_RECHECK)
     if settings_drifted(snap, json.loads(SETTINGS.read_text())):
         restore_settings(snap)
+        if snap.category is not None:
+            settings_set("wallpaperSwitcher.category", snap.category)
         print("State re-applied after late shell writes", flush=True)
 
     restore_fastfetch_pins(snap)
     print(
-        "State restored: workspace, wallpapers, right-panel order, waifu, "
+        "State restored: workspace, wallpapers, wallpaper category, right-panel order, waifu, "
         "booru pins/tags, fastfetch image, temp session removed",
         flush=True,
     )
@@ -960,6 +994,13 @@ def capture_run(args):
     spawned = set()  # windows this run observed mapping — the only things we own
     try:
         setup_phase(snap)
+        # Wallpaper picker inherits the category: force the demo one for the take.
+        if snap.category != WALLPAPER_CATEGORY:
+            settings_set("wallpaperSwitcher.category", WALLPAPER_CATEGORY)
+            print(
+                f"wallpaper category: {WALLPAPER_CATEGORY} (was {snap.category})",
+                flush=True,
+            )
         if args.setup_only:
             return  # falls through to the restore below
         ensure_workspace(CAPTURE_WS)
@@ -992,7 +1033,17 @@ def capture_run(args):
                 if spawned:
                     close_spawned(spawned)
     finally:
-        restore_state(snap, args.keep)
+        _in_flight = sys.exc_info()
+        try:
+            restore_state(snap, args.keep)
+        except Exception as restore_e:
+            print(
+                "WARNING: restore_state failed: " + str(restore_e),
+                flush=True,
+                file=sys.stderr,
+            )
+            if _in_flight[0] is None:
+                raise
     collect_recording(snap.recordings, OUTPUT)
     if COMPRESS_AFTER_TAKE and not args.raw:
         # The take is secured: a compression failure must not fail it.

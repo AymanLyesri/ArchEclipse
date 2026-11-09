@@ -314,9 +314,9 @@ Item {
         navCurrentIndex: Math.max(0, ["Manga", "Chapters", "Pages"].indexOf(root.currentTab))
         onNavSelected: index => root.currentTab = ["Manga", "Chapters", "Pages"][index]
 
-        // Providers render like the shared navigation itself: one rail entry per
-        // provider, the pill on the active one. A second rail under the tabs, same
-        // component, so the panel's styling stays one family.
+        // Providers render like the shared navigation itself: one entry per
+        // provider, highlighted on the active one. A second list under the
+        // tabs, same family, so the panel's styling stays one piece.
         Column {
             width: parent.width
             spacing: Theme.spacing
@@ -329,11 +329,23 @@ Item {
                 color: Theme.accent
             }
 
-            CategoryRail {
-                width: parent.width
-                model: root.providers.map(p => ({ title: p.label }))
-                currentIndex: Math.max(0, root.providers.findIndex(p => p.id === root.provider))
-                onSelected: index => root.switchProvider(root.providers[index].id)
+            Repeater {
+                model: root.providers
+                delegate: AppButton {
+                    required property var modelData
+                    width: parent.width
+                    height: Math.max(28, Theme.fontSize + 16)
+                    toggle: true
+                    checked: modelData.id === root.provider
+                    text: modelData.label
+                    tooltipText: "Switch to " + modelData.label
+                    idleBg: checked ? Theme.surfaceActive : Theme.bg
+                    idleFg: checked ? Theme.accent : Theme.fg
+                    hoverFg: checked ? Theme.accent : Theme.fg
+                    outlined: true
+                    outlineColor: Theme.border
+                    onClicked: root.switchProvider(modelData.id)
+                }
             }
 
             AppButton {

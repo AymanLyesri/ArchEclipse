@@ -16,7 +16,7 @@ Item {
     property string monitorName: ""
 
     // Single source of truth for rail labels and section headers; order MUST
-    // match the CategorySection order below.
+    // match the section order below.
     readonly property var categories: [
         { key: "bar", title: "Bar" },
         { key: "panels", title: "Panels" },
@@ -32,8 +32,7 @@ Item {
         { key: "keybinds", title: "Keybinds" }
     ]
 
-    // Island motion-style choices live at root: the shared CategorySection has
-    // no per-section property bag.
+    // Island motion-style choices live at root.
     readonly property var islandAnimStyleValues: ["Standard", "Emphasized", "ExpressiveFast", "ExpressiveDefault", "ExpressiveSlow"]
     readonly property var islandAnimStyleLabels: ["Standard (smooth)", "Emphasized (smooth)", "Bouncy Fast", "Bouncy Default", "Bouncy Slow"]
 
@@ -52,18 +51,9 @@ Item {
         revealFade.restart();
     }
 
-    // Shared category navigation (rail highlight, centered scroll, distance
-    // focus). The sections below bind to this controller.
-    CategoryNav {
-        id: nav
-        flickable: settingsScroll
-        content: settingsCol
-        categories: root.categories
-    }
-
-    // 104 keeps the longest label ("Screenshots") unelided at the
-    // default type scale while costing the content column only 30%.
-    readonly property int sidebarWidth: 104
+    // The side panel owns the navigation controller; this alias keeps the
+    // deep-link handlers bound to the same controller.
+    readonly property QtObject nav: navPanel.nav
 
     onVisibleChanged: {
         if (visible) {
@@ -87,7 +77,7 @@ Item {
     }
 
     // Cross-widget deep link (Registry.selectLeftTab `target`): scrolls the
-    // matching apiKeyRepeater row into view and flashes it.
+    // matching api-key row into view and flashes it.
     function handlePendingTarget() {
         const key = Registry.takePendingTarget(root.monitorName);
         if (key === "")
@@ -105,11 +95,11 @@ Item {
     }
 
     function scrollToAndHighlight(key) {
-        for (let i = 0; i < apiKeyRepeater.count; i++) {
-            const item = apiKeyRepeater.itemAt(i);
-            if (!item || item.objectName !== key)
-                continue;
-            const y = item.mapToItem(settingsCol, 0, 0).y;
+        const item = navPanel.findItemByObjectName(key);
+        if (!item)
+            return;
+        {
+            const y = item.mapToItem(navPanel.sectionColumn, 0, 0).y;
             // Keep the rail and the fade anchored on where the deep link
             // landed; the flash is the highlight, not a nav target.
             nav.activeIndex = nav.indexForY(y);
@@ -121,67 +111,12 @@ Item {
         }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: Theme.spacing
-        opacity: root.revealOpacity
+    Component {
+        id: sec0
 
-        RowLayout {
-            Layout.fillWidth: true
+        Column {
+            width: parent.width
             spacing: Theme.spacing
-            Label {
-                text: "Settings"
-                font.pixelSize: Theme.fontSize + 4
-                font.bold: true
-                color: Theme.fg
-                Layout.fillWidth: true
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: Theme.spacing
-
-            // Persistent category rail: fixed while the content scrolls.
-            CategoryRail {
-                Layout.preferredWidth: root.sidebarWidth
-                Layout.alignment: Qt.AlignTop
-                nav: nav
-                model: root.categories
-                currentIndex: nav.activeIndex
-                onSelected: index => nav.select(index)
-            }
-
-            SmoothFlickable {
-                id: settingsScroll
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                contentWidth: width
-                contentHeight: settingsCol.height
-                ScrollBar.vertical: ScrollBar {
-                    policy: ScrollBar.AsNeeded
-                    // Dragging the bar is a manual scroll: stop an in-flight
-                    // category animation so the two never fight over contentY.
-                    onPressedChanged: {
-                        if (pressed)
-                            nav.cancel();
-                    }
-                }
-
-                Column {
-                    id: settingsCol
-                    spacing: Theme.spacing
-                    width: settingsScroll.width
-                    // No edge padding: the panel owns the content inset (the
-                    // island's Theme.pad), right-panel parity.
-
-                    // ============ BAR SETTINGS ============
-                    // Always all sections; visibility only via SUPER+ALT+BACKSPACE IPC.
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 0
 
                         SettingRow {
                             text: "Orientation"
@@ -193,12 +128,15 @@ Item {
                                 Layout.preferredWidth: 160
                             }
                         }
-                    }
+        }
+    }
 
-                    // ============ PANEL SETTINGS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 1
+    Component {
+        id: sec1
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Left Panel Width"
@@ -281,12 +219,15 @@ Item {
                             tooltipText: "Flash the edge hover areas on screen."
                             onClicked: root.previewHotZones()
                         }
-                    }
+        }
+    }
 
-                    // ============ THEME SETTINGS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 2
+    Component {
+        id: sec2
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Dynamic Theme Colors"
@@ -355,12 +296,15 @@ Item {
                                 }
                             }
                         }
-                    }
+        }
+    }
 
-                    // ============ INTERFACE ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 3
+    Component {
+        id: sec3
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Opacity"
@@ -402,12 +346,15 @@ Item {
                                 }
                             }
                         }
-                    }
+        }
+    }
 
-                    // ============ ANIMATIONS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 4
+    Component {
+        id: sec4
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Enabled"
@@ -488,12 +435,15 @@ Item {
                                 }
                             }
                         }
-                    }
+        }
+    }
 
-                    // ============ USER AGENTS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 5
+    Component {
+        id: sec5
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         Repeater {
                             model: [
@@ -554,12 +504,15 @@ Item {
                                 }
                             }
                         }
-                    }
+        }
+    }
 
-                    // ============ API KEYS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 6
+    Component {
+        id: sec6
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         Repeater {
                             id: apiKeyRepeater
@@ -696,12 +649,15 @@ Item {
                                 onToggled: Settings.chatBotNotify = checked
                             }
                         }
-                    }
+        }
+    }
 
-                    // ============ HYPRLAND ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 7
+    Component {
+        id: sec7
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         // Game Mode
                         SettingRow {
@@ -928,12 +884,15 @@ Item {
                                 onClicked: root.resetToDefaults()
                             }
                         }
-                    }
+        }
+    }
 
-                    // ============ LOCKSCREEN ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 8
+    Component {
+        id: sec8
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Grace Period (seconds)"
@@ -957,12 +916,15 @@ Item {
                             color: Theme.fgDim
                             font.pixelSize: Theme.fontSize - 1
                         }
-                    }
+        }
+    }
 
-                    // ============ RECORDING SETTINGS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 9
+    Component {
+        id: sec9
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Video Codec"
@@ -1117,12 +1079,15 @@ Item {
                             color: Theme.fgDim
                             font.pixelSize: Theme.fontSize - 1
                         }
-                    }
+        }
+    }
 
-                    // ============ SCREENSHOT SETTINGS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 10
+    Component {
+        id: sec10
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Directory to save screenshots"
@@ -1235,12 +1200,15 @@ Item {
                             color: Theme.fgDim
                             font.pixelSize: Theme.fontSize - 1
                         }
-                    }
+        }
+    }
 
-                    // ============ KEYBINDS ============
-                    CategorySection {
-                        nav: nav
-                        categoryIndex: 11
+    Component {
+        id: sec11
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
 
                         SettingRow {
                             text: "Super key symbol"
@@ -1335,9 +1303,33 @@ Item {
                                 }
                             }
                         }
-                    }
-                }
+        }
+    }
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: Theme.spacing
+        opacity: root.revealOpacity
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.spacing
+            Label {
+                text: "Settings"
+                font.pixelSize: Theme.fontSize + 4
+                font.bold: true
+                color: Theme.fg
+                Layout.fillWidth: true
             }
+        }
+
+        AppNavigationSidePanel {
+            id: navPanel
+
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            sectionMode: true
+            navModel: root.categories
+            sections: [sec0, sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11]
         }
     }
 

@@ -315,18 +315,66 @@ Item {
     // no binds, and the rail must not offer entries that lead nowhere.
     property var categories: Object.keys(root.keybinds).filter(c => (root.keybinds[c] || []).length > 0).sort()
 
-    // Shared category navigation: the rail selects a category, scrolls it
-    // to the middle of the viewport and applies the distance focus fade.
-    CategoryNav {
-        // Not `nav`: inside a Repeater delegate an unqualified `nav` resolves to the
-        // component's own property, so the id must differ for those bindings.
-        id: catNav
-        flickable: keyScroll
-        content: keyCol
-        categories: root.categories
+    Component {
+        id: keybindsBody
+
+        Column {
+            property string category: ""
+
+            width: parent.width
+            spacing: Theme.spacing
+
+            Repeater {
+                model: root.keybinds[category] || []
+                // Title and keys sit on one line: the description
+                // elides (tooltip on truncation) to leave the chips room.
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+                    width: parent.width
+                    height: bindBody.implicitHeight + 8
+                    color: "transparent"
+
+                    RowLayout {
+                        id: bindBody
+
+                        anchors.fill: parent
+                        anchors.topMargin: 4
+                        anchors.bottomMargin: 4
+                        spacing: Theme.spacing
+
+                        Label {
+                            id: descriptionLabel
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                            text: modelData.description
+                            font.pixelSize: ((typeof Settings !== "undefined") && Settings.keybindsDescriptionFontSize) ? Settings.keybindsDescriptionFontSize : Theme.fontSize
+                            color: Theme.fg
+                            elide: Text.ElideRight
+                            maximumLineCount: 1
+
+                            HoverHandler {
+                                id: descriptionHover
+                            }
+
+                            AppTooltip {
+                                visible: descriptionHover.hovered && descriptionLabel.truncated
+                                text: descriptionLabel.text
+                            }
+                        }
+
+                        // key chips joined by "+" (shared AppKeybind widget)
+                        AppKeybind {
+                            Layout.alignment: Qt.AlignVCenter
+                            keys: modelData.keys || []
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    // ---- UI: persistent category rail + one card per category ----
+    // ---- UI: navigation panel + one card per category ----
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
@@ -348,117 +396,18 @@ Item {
             variant: "spinner"
         }
 
-        RowLayout {
+        // Categories are user-defined strings (bind.lua comments), so
+        // long names elide with a full-name tooltip. One body component
+        // serves every section; the panel fills its category per section.
+        AppNavigationSidePanel {
+            id: navPanel
+
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spacing
-
-            // Categories are user-defined strings (bind.lua comments), so
-            // long names elide with a full-name tooltip.
-            CategoryRail {
-                Layout.preferredWidth: 104
-                Layout.alignment: Qt.AlignTop
-                visible: !root.loading && root.categories.length > 0
-                nav: catNav
-                model: root.categories
-                currentIndex: catNav.activeIndex
-                onSelected: index => catNav.select(index)
-            }
-
-            SmoothFlickable {
-                id: keyScroll
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                visible: !root.loading
-                contentWidth: width
-                contentHeight: keyCol.height
-                ScrollBar.vertical: ScrollBar {
-                    policy: ScrollBar.AsNeeded
-                    onPressedChanged: {
-                        if (pressed)
-                            catNav.cancel();
-                    }
-                }
-
-                Column {
-                    id: keyCol
-                    width: keyScroll.width
-                    spacing: Theme.spacing
-
-                    Repeater {
-                        model: root.categories
-                        delegate: Column {
-                            id: catSec
-                            required property string modelData
-                            required property int index
-                            property string category: modelData
-                            // Direct child of keyCol: CategoryNav finds the
-                            // section for centering by this key.
-                            property int categoryIndex: index
-                            width: parent.width
-                            spacing: Theme.spacing
-                            // The card owns the fade (hover + scroll anchor); see CategorySection.
-
-                            CategorySection {
-                                width: parent.width
-                                nav: catNav
-                                categoryIndex: catSec.categoryIndex
-                                title: catSec.category
-
-                                Repeater {
-                                    model: root.keybinds[catSec.category] || []
-                                    // Title and keys sit on one line: the description
-                                    // elides (tooltip on truncation) to leave the chips room.
-                                    delegate: Rectangle {
-                                        required property var modelData
-                                        required property int index
-                                        width: parent.width
-                                        height: bindBody.implicitHeight + 8
-                                        color: "transparent"
-
-                                        RowLayout {
-                                            id: bindBody
-
-                                            anchors.fill: parent
-                                            anchors.topMargin: 4
-                                            anchors.bottomMargin: 4
-                                            spacing: Theme.spacing
-
-                                            Label {
-                                                id: descriptionLabel
-                                                Layout.fillWidth: true
-                                                Layout.alignment: Qt.AlignVCenter
-                                                text: modelData.description
-                                                font.pixelSize: ((typeof Settings !== "undefined") && Settings.keybindsDescriptionFontSize) ? Settings.keybindsDescriptionFontSize : Theme.fontSize
-                                                color: Theme.fg
-                                                elide: Text.ElideRight
-                                                maximumLineCount: 1
-
-
-                                                HoverHandler {
-                                                    id: descriptionHover
-                                                }
-
-                                                AppTooltip {
-                                                    visible: descriptionHover.hovered && descriptionLabel.truncated
-                                                    text: descriptionLabel.text
-                                                }
-                                            }
-
-                                            // key chips joined by "+" (shared AppKeybind widget)
-                                            AppKeybind {
-                                                Layout.alignment: Qt.AlignVCenter
-                                                keys: modelData.keys || []
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            visible: !root.loading && root.categories.length > 0
+            sectionMode: true
+            navModel: root.categories
+            sections: root.categories.map(() => keybindsBody)
         }
     }
 }

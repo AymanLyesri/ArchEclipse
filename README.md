@@ -7,7 +7,7 @@
     <img src=".github/assets/overview.png" width="100%" alt="ArchEclipse overview">
   </a>
 
-https://github.com/user-attachments/assets/48210e9f-d21b-437d-ab72-445ba45b8a7d
+https://github.com/user-attachments/assets/c27fa3ab-1804-4506-8eb3-1dc8de7aa4c2
 
 </p>
 

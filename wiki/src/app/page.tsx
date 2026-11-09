@@ -123,11 +123,11 @@ export default function HomePage() {
                 The desktop, in motion.
               </h2>
               <p className="mt-1 max-w-[68ch] text-[13.5px] leading-relaxed text-muted">
-                A 22-second tour of the bar, launcher, side panels, wallpaper
+                A 28-second tour of the bar, launcher, side panels, wallpaper
                 picker and wallpaper-driven theming.
               </p>
             </div>
-            <span className="font-mono text-[11px] text-faint">00:22</span>
+            <span className="font-mono text-[11px] text-faint">00:28</span>
           </div>
 
           <figure>
@@ -142,7 +142,7 @@ export default function HomePage() {
                 aria-label="ArchEclipse desktop overview"
               >
                 <source
-                  src={withBasePath("/media/overview.mp4")}
+                  src="https://raw.githubusercontent.com/AymanLyesri/ArchEclipse/master/.github/assets/overview.mp4"
                   type="video/mp4"
                 />
                 Your browser does not support the video element. The overview

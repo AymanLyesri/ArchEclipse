@@ -1108,7 +1108,7 @@ Item {
             root.loadSessions();
         }
 
-        // Hug the content (CategoryRail does the same) so the card never stretches
+        // Hug the content (the navigation rail does the same) so the card never stretches
         // to fill the panel when the chips take a row or two.
         Rectangle {
             width: parent.width
