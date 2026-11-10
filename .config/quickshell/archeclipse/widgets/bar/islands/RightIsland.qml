@@ -130,13 +130,44 @@ Item {
                 clip: true
                 visible: true
 
-                Column {
-                    id: selectorColumn
+                // Cells are placed here, not by a Column: a positioner re-places its children on
+                // relayout and stranded a dropped cell at y=0 until the list changed.
+                Item {
+                    id: selectorList
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.margins: Theme.pad
-                    spacing: Theme.spacing
+                    readonly property int cellHeight: 40
+                    // 40 + live spacing: a hardcoded 48 aimed drops 2px off per slot, and
+                    // Theme.spacing is user-adjustable.
+                    readonly property int pitch: cellHeight + Theme.spacing
+                    readonly property int count: Settings.rightPanelWidgets.length
+                    readonly property int lastSlot: Math.max(0, count - 1)
+                    height: count > 0 ? count * cellHeight + (count - 1) * Theme.spacing : 0
+
+                    // Drag target: a standalone proxy, never a layout child, so nothing can
+                    // re-place the held cell mid-gesture.
+                    property int dragFrom: -1
+                    property int dragTo: dragFrom < 0 ? -1 : Math.max(0, Math.min(lastSlot, Math.round(dragProxy.y / pitch)))
+                    Item {
+                        id: dragProxy
+                        width: 0
+                        height: 0
+                    }
+
+                    // Cell i's slot: its own index, or one slot out of the held cell's way.
+                    function slotFor(i) {
+                        const from = selectorList.dragFrom;
+                        const to = selectorList.dragTo;
+                        if (from < 0 || from === to)
+                            return i;
+                        if (i === from)
+                            return to;
+                        if (from < to)
+                            return i > from && i <= to ? i - 1 : i;
+                        return i >= to && i < from ? i + 1 : i;
+                    }
 
                     Repeater {
                         id: widgetSelectorRepeater
@@ -145,61 +176,68 @@ Item {
                             id: selectorItem
                             required property var modelData
                             required property int index
-                            width: parent.width
-                            height: 40
-                            // Set on release after a real drag so the
-                            // trailing click doesn't toggle the widget.
-                            property bool suppressClick: false
-                            // Y at press time: the Column owns the absolute y (index*48), so the
-                            // target slot derives from the drag DELTA, not absolute y.
-                            property real dragStartY: 0
-
-                            // --- Drag to reorder, resolved on release: live reordering rebuilds
-                            // the delegate under the cursor, kills the gesture, strands isDragging ---
-                            Drag.active: cellBtn.dragActive
-                            Drag.hotSpot: Qt.point(width / 2, height / 2)
-                            Drag.source: selectorItem
+                            width: selectorList.width
+                            height: selectorList.cellHeight
+                            readonly property int slot: selectorList.slotFor(index)
+                            readonly property bool dragging: cellBtn.dragActive
+                            // Latch: a drag that lands back in its own slot must still not toggle.
+                            property bool moved: false
+                            y: dragging ? dragProxy.y : slot * selectorList.pitch
+                            z: dragging ? 2 : 0
+                            scale: dragging ? 1.06 : 1
+                            // 1:1 with the cursor while held, a slide for every other cell.
+                            Behavior on y {
+                                enabled: !selectorItem.dragging
+                                Anim {
+                                    type: Anim.FastEffects
+                                }
+                            }
+                            Behavior on scale {
+                                Anim {
+                                    type: Anim.FastEffects
+                                }
+                            }
+                            onDraggingChanged: if (dragging)
+                                moved = true
 
                             AppButton {
                                 id: cellBtn
                                 anchors.fill: parent
-                                icon: modelData.icon
+                                icon: (cellBtn.hovered || selectorItem.dragging) ? Icons.move : modelData.icon
                                 toggle: true
                                 checked: modelData.enabled
                                 outlined: BarState.tourHighlightMonitor === (root.monitorName || Registry.monitorName) && BarState.tourHighlightTab === modelData.name
                                 outlineColor: Theme.accent
-                                // Tooltip: "<b>Hold To Drag</b>\n${name}"
-                                tooltipText: "Hold To Drag\n" + modelData.name
+                                tooltipText: "Click to toggle · drag to reorder\n" + modelData.name
+                                dragging: selectorItem.dragging
                                 draggable: true
-                                dragTarget: selectorItem
+                                dragTarget: dragProxy
                                 dragAxis: Drag.YAxis
-                                dragMinimum: -selectorItem.index * 48
-                                dragMaximum: (Settings.rightPanelWidgets.length - 1 - selectorItem.index) * 48
+                                dragMinimum: 0
+                                dragMaximum: selectorList.height - selectorList.cellHeight
                                 onPressed: {
-                                    cellBtn.dragging = true;
+                                    // Seed the proxy on the cell's own slot first, so a plain
+                                    // press cannot displace anything.
+                                    dragProxy.y = selectorItem.slot * selectorList.pitch;
+                                    selectorList.dragFrom = selectorItem.index;
+                                    selectorItem.moved = false;
                                     root.isDragging = true;
-                                    selectorItem.dragStartY = selectorItem.y;
                                 }
                                 onReleased: {
-                                    cellBtn.dragging = false;
                                     root.isDragging = false;
-                                    // Release-time reorder: target slot from the dragged offset
-                                    // (cell 40 + spacing 8 = 48px pitch), clamped to the list.
-                                    const to = Math.max(0, Math.min(Settings.rightPanelWidgets.length - 1, selectorItem.index + Math.round((selectorItem.y - selectorItem.dragStartY) / 48)));
-                                    selectorItem.x = 0;
-                                    selectorItem.y = 0;
-                                    if (to !== selectorItem.index) {
-                                        selectorItem.suppressClick = true;
-                                        const list = Settings.rightPanelWidgets.slice();
-                                        const [item] = list.splice(selectorItem.index, 1);
-                                        list.splice(to, 0, item);
-                                        Settings.rightPanelWidgets = list;
-                                        Settings.updateSetting("rightPanel.widgets", list);
-                                    }
+                                    const from = selectorList.dragFrom;
+                                    const to = selectorList.dragTo;
+                                    selectorList.dragFrom = -1;
+                                    if (from < 0 || to < 0 || from === to)
+                                        return;
+                                    const list = Settings.rightPanelWidgets.slice();
+                                    const [item] = list.splice(from, 1);
+                                    list.splice(to, 0, item);
+                                    Settings.updateSetting("rightPanel.widgets", list);
                                 }
                                 onClicked: {
-                                    if (selectorItem.suppressClick) {
-                                        selectorItem.suppressClick = false;
+                                    if (selectorItem.moved) {
+                                        selectorItem.moved = false;
                                         return;
                                     }
                                     const widgets = Settings.rightPanelWidgets.slice();
@@ -207,7 +245,6 @@ Item {
                                     const newWidgets = widgets.map(item => item.name === w.name ? Object.assign({}, item, {
                                             enabled: !item.enabled
                                         }) : item);
-                                    Settings.rightPanelWidgets = newWidgets;
                                     Settings.updateSetting("rightPanel.widgets", newWidgets);
                                 }
                             }

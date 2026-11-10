@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
@@ -15,27 +14,6 @@ Row {
     id: root
     spacing: 2
     property string monitorName: ""
-
-    // Dark surface check for the tray-icon recolor: dark icons vanish on a dark bar.
-    readonly property bool darkSurface: Theme.relLum(Theme.background) < 0.2
-
-    // ColorQuantizer can't load image://icon/ provider URLs, so resolve theme icons to a PNG file first.
-    function quantSrc(iconUrl) {
-        const u = String(iconUrl || "");
-        if (u === "" || u.startsWith("file://") || u.startsWith("/") || u.startsWith("qrc:/"))
-            return u;
-        if (u.startsWith("image://icon/")) {
-            const rest = u.slice(13);
-            const q = rest.indexOf("?");
-            const name = q >= 0 ? rest.slice(0, q) : rest;
-            const m = u.match(/[?&]path=([^&]+)/);
-            if (m)
-                return "file://" + decodeURIComponent(m[1]) + "/" + name + ".png";
-            const p = Quickshell.iconPath(name, true);
-            return p || "";
-        }
-        return u;
-    }
 
     // Maximum number of visible icons in the bar strip
     readonly property int maxVisible: 3
@@ -131,41 +109,11 @@ Row {
             z: 1000
             opacity: Theme.opacity.soft
             property var icon: ""
-            // Per-icon check: only dim monochrome icons are recolored; colored/light ones pass through.
-            ColorQuantizer {
-                id: ghostQuant
-                source: root.quantSrc(ghost.icon)
-                depth: 2
-                rescaleSize: 32
-            }
-
-            readonly property bool needsRecolor: {
-                const cols = ghostQuant.colors;
-                if (!cols || cols.length === 0)
-                    return true;
-                for (let i = 0; i < cols.length; i++) {
-                    const hsv = Theme._hsv(cols[i]);
-                    if (hsv[1] >= 0.35 || hsv[2] >= 0.6)
-                        return false;
-                }
-                return true;
-            }
-
-            Image {
-                id: ghostIconSrc
-                visible: false
-                source: ghost.icon
-                asynchronous: true
-            }
-            MultiEffect {
+            IconImage {
                 anchors.centerIn: parent
                 width: 16
                 height: 16
-                source: ghostIconSrc
-                brightness: (root.darkSurface && ghost.needsRecolor) ? 1.0 : 0.0
-                saturation: (root.darkSurface && ghost.needsRecolor) ? -1.0 : 0.0
-                colorization: (root.darkSurface && ghost.needsRecolor) ? 1.0 : 0.0
-                colorizationColor: Theme.foreground
+                source: ghost.icon
             }
         }
     }
@@ -379,26 +327,6 @@ Row {
             width: 20
             height: Theme.barContentHeight
 
-            // Per-icon check: only dim monochrome icons are recolored; colored/light ones (Spotify) pass through.
-            ColorQuantizer {
-                id: trayQuant
-                source: root.quantSrc(entry.modelData.icon)
-                depth: 2
-                rescaleSize: 32
-            }
-
-            readonly property bool needsRecolor: {
-                const cols = trayQuant.colors;
-                if (!cols || cols.length === 0)
-                    return true;
-                for (let i = 0; i < cols.length; i++) {
-                    const hsv = Theme._hsv(cols[i]);
-                    if (hsv[1] >= 0.35 || hsv[2] >= 0.6)
-                        return false;
-                }
-                return true;
-            }
-
             Component.onDestruction: {
                 if (root.dragItem === entry.modelData)
                     root.dragFinish(false);
@@ -410,23 +338,12 @@ Row {
                 color: inlineHover.hovered ? Theme.surfaceHover : "transparent"
             }
 
-            // Hidden texture source; the MultiEffect renders it recolored to the foreground in dark mode.
-            Image {
-                id: trayIconSrc
-                visible: false
-                source: entry.modelData.icon
-                asynchronous: true
-            }
-
-            MultiEffect {
+            IconImage {
                 anchors.centerIn: parent
                 width: 14
                 height: 14
-                source: trayIconSrc
-                brightness: (root.darkSurface && entry.needsRecolor) ? 1.0 : 0.0
-                saturation: (root.darkSurface && entry.needsRecolor) ? -1.0 : 0.0
-                colorization: (root.darkSurface && entry.needsRecolor) ? 1.0 : 0.0
-                colorizationColor: Theme.foreground
+                source: entry.modelData.icon
+                asynchronous: true
                 opacity: (root.dragActive && root.dragItem === entry.modelData) ? 0.3 : 1
             }
 
@@ -512,22 +429,11 @@ Row {
             opacity: root.dropZone === "overflowBtn" ? 0.3 : 0
         }
 
-        Image {
-            id: overflowIconSrc
-            visible: false
-            source: Quickshell.iconPath("view-more-symbolic", true)
-            asynchronous: true
-        }
-
-        MultiEffect {
+        IconImage {
             anchors.centerIn: parent
             width: 12
             height: 12
-            source: overflowIconSrc
-            brightness: root.darkSurface ? 1.0 : 0.0
-            saturation: root.darkSurface ? -1.0 : 0.0
-            colorization: root.darkSurface ? 1.0 : 0.0
-            colorizationColor: Theme.foreground
+            source: Quickshell.iconPath("view-more-symbolic", true)
         }
 
         MouseArea {
@@ -582,26 +488,6 @@ Row {
                         width: 28
                         height: 28
 
-                        // Per-icon check: only dim monochrome icons are recolored; colored/light ones pass through.
-                        ColorQuantizer {
-                            id: hiddenQuant
-                            source: root.quantSrc(hiddenEntry.modelData.icon)
-                            depth: 2
-                            rescaleSize: 32
-                        }
-
-                        readonly property bool needsRecolor: {
-                            const cols = hiddenQuant.colors;
-                            if (!cols || cols.length === 0)
-                                return true;
-                            for (let i = 0; i < cols.length; i++) {
-                                const hsv = Theme._hsv(cols[i]);
-                                if (hsv[1] >= 0.35 || hsv[2] >= 0.6)
-                                    return false;
-                            }
-                            return true;
-                        }
-
                         Component.onDestruction: {
                             if (root.dragItem === hiddenEntry.modelData)
                                 root.dragFinish(false);
@@ -632,23 +518,12 @@ Row {
                             color: hiddenHover.hovered ? Theme.surfaceHover : "transparent"
                         }
 
-                        // Hidden texture source; the MultiEffect renders it recolored to the foreground in dark mode.
-                        Image {
-                            id: hiddenIconSrc
-                            visible: false
-                            source: hiddenEntry.modelData.icon
-                            asynchronous: true
-                        }
-
-                        MultiEffect {
+                        IconImage {
                             anchors.centerIn: parent
                             width: 18
                             height: 18
-                            source: hiddenIconSrc
-                            brightness: (root.darkSurface && hiddenEntry.needsRecolor) ? 1.0 : 0.0
-                            saturation: (root.darkSurface && hiddenEntry.needsRecolor) ? -1.0 : 0.0
-                            colorization: (root.darkSurface && hiddenEntry.needsRecolor) ? 1.0 : 0.0
-                            colorizationColor: Theme.foreground
+                            source: hiddenEntry.modelData.icon
+                            asynchronous: true
                             opacity: (root.dragActive && root.dragItem === hiddenEntry.modelData) ? 0.3 : 1
                         }
 

@@ -52,6 +52,10 @@ Item {
     property alias dragActive: hoverArea.drag.active
     readonly property bool highlighted: root.toggle && root.checked
     readonly property color fgColor: {
+        // Drag paints the cell with Theme.accent; accent ink on it is invisible.
+        if (root.dragging)
+            return Theme.accentFg;
+
         if (root.highlighted)
             return root.activeFg;
 

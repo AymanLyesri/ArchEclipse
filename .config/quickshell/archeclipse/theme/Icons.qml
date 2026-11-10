@@ -266,6 +266,10 @@ QtObject {
     readonly property string asciiquarium: "\u{EF30}"
     readonly property string popular: "\uF06D"
 
+    // --- drag handles (Material "drag" glyphs; the grip bodies are drawn in QML) ---
+    readonly property string move: "\u{f0041}"
+    readonly property string dragVertical: "\u{ee57}"
+
     // --- device stats ---
     readonly property string cpu: "\uF4BC"
     readonly property string ram: "\u{EFC5}"

@@ -313,30 +313,20 @@ Item {
                         spacing: Theme.spacing
 
                         // Drag grip: floats the card into its own window on first move, then moves
-                        // it locally (no compositor handshake, no gesture race). Pure-QML dots.
+                        // it locally (no compositor handshake, no gesture race).
                         Item {
                             id: dragGrip
+
                             width: 14
                             height: 26
                             Layout.alignment: Qt.AlignVCenter
-                            Row {
+                            Text {
                                 anchors.centerIn: parent
-                                spacing: 2
-                                Repeater {
-                                    model: 2
-                                    Column {
-                                        spacing: 2
-                                        Repeater {
-                                            model: 3
-                                            Rectangle {
-                                                width: 3
-                                                height: 3
-                                                radius: 1.5
-                                                color: Theme.fgDim
-                                            }
-                                        }
-                                    }
-                                }
+                                text: Icons.dragVertical
+                                textFormat: Text.PlainText
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSize * 1.5
+                                color: dragMouse.containsMouse ? Theme.fg : Theme.fgDim
                             }
                             MouseArea {
                                 id: dragMouse

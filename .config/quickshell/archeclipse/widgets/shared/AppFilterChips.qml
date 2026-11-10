@@ -43,7 +43,8 @@ Row {
             height: root.chipHeight
             pixelSize: root.pixelSize
             enabled: ModelEntry.enabledAt(root.model, index)
-            tooltipText: ModelEntry.tooltipAt(root.model, index)
+            // String models carry no tooltip; the label is still the only explanation there.
+            tooltipText: ModelEntry.tooltipAt(root.model, index) || ("Toggle " + text)
             idleBg: on ? Theme.surfaceActive : Theme.bg
             idleFg: on ? Theme.accent : Theme.fg
             hoverFg: on ? Theme.accent : Theme.fg

@@ -1353,7 +1353,7 @@ Item {
                                 hoverFg: on ? Theme.accent : Theme.fg
                                 outlined: true
                                 outlineColor: on ? Theme.accent : Theme.border
-                                tooltipText: (needsKey && root.whApiKey === "") ? "Needs a Wallhaven API key (Settings → API Keys)" : ""
+                                tooltipText: (needsKey && root.whApiKey === "") ? "Needs a Wallhaven API key (Settings → API Keys)" : "Filter results to " + modelData.label
                                 onClicked: root.setWh("purity", modelData.value)
                             }
                         }

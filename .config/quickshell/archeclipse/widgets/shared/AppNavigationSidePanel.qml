@@ -310,7 +310,8 @@ Item {
                     clip: true
                     implicitHeight: entries.implicitHeight + inset * 2
 
-                    onVisibleChanged: if (!navBar.visible) navBar.hoveredIndex = -1
+                    onVisibleChanged: if (!navBar.visible)
+                        navBar.hoveredIndex = -1
                     onModelChanged: navBar.hoveredIndex = -1
 
                     function labelAt(index) {
@@ -436,7 +437,8 @@ Item {
                                             root.navSelected(cell.index);
                                     }
                                     onEntered: navBar.hoveredIndex = cell.index
-                                    onExited: if (navBar.hoveredIndex === cell.index) navBar.hoveredIndex = -1
+                                    onExited: if (navBar.hoveredIndex === cell.index)
+                                        navBar.hoveredIndex = -1
                                 }
                             }
                         }
@@ -552,13 +554,27 @@ Item {
         }
     }
 
+    // Resize line: one full-height Rectangle, so the line cannot run short on either side of
+    // the grip, and the grip is centred on it by construction rather than by font metrics.
+    readonly property color gripTone: gripArea.containsMouse || gripArea.pressed ? Theme.accent : Theme.border
+
     Rectangle {
         x: root.panelWidth - 1
+        y: 0
         width: 1
-        height: parent.height
-        color: gripArea.containsMouse || gripArea.pressed ? Theme.accent : Theme.border
-        Behavior on color {
-            CAnim {}
+        height: root.height
+        color: root.gripTone
+
+        // Centred on paintedWidth/Height, not painted box centre: the glyph's ink is not
+        // symmetric inside its advance, and this line is only 1 px wide.
+        Text {
+            x: Math.round((parent.width - paintedWidth) / 2)
+            y: Math.round((parent.height - paintedHeight) / 2)
+            text: Icons.dragVertical
+            textFormat: Text.PlainText
+            font.family: Theme.fontFamily * 1.5
+            font.pixelSize: Theme.fontSize
+            color: root.gripTone
         }
     }
 
