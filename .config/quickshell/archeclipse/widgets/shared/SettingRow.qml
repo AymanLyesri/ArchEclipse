@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import qs.theme
 
-// One unified settings row: tooltip label left, control(s) right via the default property, fixed
-// height so rows align; labelWidth makes the control span the leftover space.
+// One unified settings row: tooltip label left, control(s) right via the default property, a
+// fixed rhythm so rows align; labelWidth makes the control span the leftover space.
 Item {
     id: root
 
@@ -14,12 +14,12 @@ Item {
     default property alias content: layout.data
 
     width: parent.width
-    height: 30
+    height: Math.max(32, Theme.fontSize + 20)
 
     RowLayout {
         id: layout
         anchors.fill: parent
-        spacing: Theme.spacing
+        spacing: Theme.spaceMd
 
         SettingLabel {
             id: label

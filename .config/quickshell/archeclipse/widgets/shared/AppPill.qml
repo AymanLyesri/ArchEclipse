@@ -4,9 +4,9 @@ import qs.theme
 // Minimalist togglable pill/chip.
 //
 // Three render states:
-//   active=true   — surfaceActive fill, accent bold text
+//   active=true   — accent-washed fill, accent bold text
 //   strike=true   — dim text with strikethrough decoration (previously removed)
-//   neither       — transparent bg, faint border, dim text (idle/removable)
+//   neither       — raised fill, dim text (idle/removable) — fill instead of a hairline
 Item {
     id: root
 
@@ -19,13 +19,13 @@ Item {
     property bool enabled: true
     property string tooltipText: ""
     property int pixelSize: Theme.fontSizeSmall
-    property real cornerRadius: Math.max(3, Theme.radius - 5)
+    property real cornerRadius: Theme.radius
 
     signal clicked()
     signal removed()
 
     readonly property real pHeight: Theme.fontSize + 16
-    readonly property real hPad: 8
+    readonly property real hPad: 10
 
     // Size to content so each pill matches its own text width.
     implicitWidth: label.implicitWidth + hPad * 2
@@ -34,15 +34,13 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: root.cornerRadius
-        color: root.active ? Theme.surfaceActive : "transparent"
-        border.width: root.active ? 0 : 1
-        border.color: root.active ? "transparent" : Theme.rgba(Theme.fg, 0.12)
+        color: root.active ? Theme.surfaceActive : (hoverArea.containsMouse ? Theme.surfaceRaised : Theme.rgba(Theme.fg, 0.04))
+        opacity: root.enabled ? 1 : Theme.opacity.disabled
         Behavior on color { CAnim {} }
-        Behavior on border.color { CAnim {} }
 
         Row {
             anchors.centerIn: parent
-            spacing: 4
+            spacing: Theme.spaceXs
 
             Text {
                 id: label
@@ -69,6 +67,7 @@ Item {
                 height: Theme.fontSize - 2
                 radius: width / 2
                 color: Theme.fgDim
+                Behavior on color { CAnim {} }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor

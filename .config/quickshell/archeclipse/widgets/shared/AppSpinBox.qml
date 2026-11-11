@@ -2,11 +2,14 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 
+// Shared numeric stepper: one recessed pill holding the value and two icon steppers, so the
+// control reads as a single object instead of three outlined boxes.
 SpinBox {
     id: root
     editable: true
     font.family: Theme.fontFamily
     font.pixelSize: Theme.fontSize
+    implicitHeight: Math.max(30, Theme.fontSize + 18)
 
     contentItem: TextInput {
         z: 2
@@ -24,47 +27,47 @@ SpinBox {
 
     background: Rectangle {
         implicitWidth: 120
-        implicitHeight: 28
-        color: Theme.surface
-        border.color: root.activeFocus ? Theme.accent : Theme.border
-        border.width: 1
+        color: Theme.surfaceRaised
         radius: Theme.radius
     }
 
     up.indicator: Rectangle {
         x: parent.width - width
-        height: parent.height / 2
+        y: 3
+        height: parent.height / 2 - 4
         width: 24
-        color: root.up.pressed ? Theme.surfaceActive : "transparent"
-        border.color: Theme.border
-        border.width: 1
         radius: Theme.radius
+        color: root.up.pressed ? Theme.surfaceOverlay : (root.up.hovered ? Theme.surfaceHover : "transparent")
+
+        Behavior on color {
+            CAnim {}
+        }
         Text {
-            text: "+"
-            color: Theme.fg
+            text: Icons.plus
+            color: Theme.muted
             anchors.centerIn: parent
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize
-            font.bold: true
+            font.pixelSize: Theme.fontSizeCaption
         }
     }
 
     down.indicator: Rectangle {
         x: parent.width - width
-        y: parent.height / 2
-        height: parent.height / 2
+        y: parent.height / 2 + 1
+        height: parent.height / 2 - 4
         width: 24
-        color: root.down.pressed ? Theme.surfaceActive : "transparent"
-        border.color: Theme.border
-        border.width: 1
         radius: Theme.radius
+        color: root.down.pressed ? Theme.surfaceOverlay : (root.down.hovered ? Theme.surfaceHover : "transparent")
+
+        Behavior on color {
+            CAnim {}
+        }
         Text {
-            text: "-"
-            color: Theme.fg
+            text: Icons.minus
+            color: Theme.muted
             anchors.centerIn: parent
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize
-            font.bold: true
+            font.pixelSize: Theme.fontSizeCaption
         }
     }
 }

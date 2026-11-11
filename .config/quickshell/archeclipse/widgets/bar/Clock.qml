@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // Time always visible; hovering reveals the long date. Tight margins: 4px
 // padding each side, 6px between time and date.
@@ -66,9 +67,8 @@ Rectangle {
             visible: width > 0
 
             Behavior on width {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.InOutQuad
+                Anim {
+                    type: Anim.FastEffects
                 }
             }
 

@@ -3,6 +3,7 @@ import QtQuick.Controls
 import qs.theme
 import qs.services
 import qs.widgets.notifications
+import qs.widgets.shared
 
 // Single history card (body shared with toasts via NotificationCardBody): left-click copies the
 // content, right-click dismisses. Its background MouseArea sits first so buttons stay clickable.
@@ -71,23 +72,27 @@ Item {
         width: parent.width
         // Content-driven: body is top-anchored inside the fill-item
         // shift, so this never feeds back into itself.
-        height: body.height + 22
+        height: body.height + Theme.spaceLg + 4
         Behavior on height {
-            NumberAnimation {
-                duration: 280
-                easing.type: Easing.OutCubic
+            Anim {
+                type: Anim.FastSpatial
             }
         }
+        // Same material as the toasts above the wallpaper: one raised plate, no outline, and
+        // a warm top wash when the notification is critical.
         radius: Theme.radius
         color: root.critical ? Theme.dangerSurface : Theme.surface
-        border.color: root.isHovered ? Qt.alpha(Theme.accent, 0.5) : Qt.alpha(Theme.fg, 0.1)
-        border.width: 1
-        Behavior on border.color {
-            ColorAnimation {
-                duration: Theme.anim.defaultEffects
-            }
-        }
         clip: true
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 2
+            color: Theme.danger
+            visible: root.critical
+            opacity: 0.7
+        }
 
         // Background interaction layer FIRST so buttons above stay clickable: left-click copies,
         // right-click dismisses, and presses pass through so the Flickable still drags.
@@ -116,9 +121,8 @@ Item {
             anchors.bottomMargin: 2
             scale: root.isHovered ? 1.012 : 1
             Behavior on scale {
-                NumberAnimation {
-                    duration: 220
-                    easing.type: Easing.OutCubic
+                Anim {
+                    type: Anim.FastEffects
                 }
             }
             NotificationCardBody {
@@ -126,9 +130,9 @@ Item {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.topMargin: 10
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
+                anchors.topMargin: Theme.pad
+                anchors.leftMargin: Theme.pad
+                anchors.rightMargin: Theme.pad
                 iconFile: root.iconFile
                 iconName: root.iconName
                 previewFile: root.previewFile

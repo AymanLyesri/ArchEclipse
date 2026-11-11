@@ -9,7 +9,8 @@ import qs.widgets.shared
 // as plain props so both hosts feed it identically, and side effects bubble out as signals.
 Column {
     id: root
-    spacing: Theme.spacing
+    // Group rhythm: header/body are one block, actions and controls are their own rows.
+    spacing: Theme.spaceSm
 
     property string iconFile: ""
     property string iconName: ""
@@ -41,7 +42,7 @@ Column {
     Row {
         id: contentRow
         width: parent.width
-        spacing: Theme.spacing
+        spacing: Theme.spaceMd
 
         // ---- app icon / image: the image takes the icon's
         // place, spanning the text height (72-120px) ----
@@ -54,15 +55,13 @@ Column {
             width: showMedia ? previewSize : 28
             height: showMedia ? previewSize : 28
             Behavior on width {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
+                Anim {
+                    type: Anim.FastSpatial
                 }
             }
             Behavior on height {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
+                Anim {
+                    type: Anim.FastSpatial
                 }
             }
             IconImage {
@@ -132,12 +131,11 @@ Column {
             id: textCol
             width: (root.previewFile !== "" || root.videoFile !== "") ? parent.width - 128 : parent.width - 36
             Behavior on width {
-                NumberAnimation {
-                    duration: 250
-                    easing.type: Easing.OutCubic
+                Anim {
+                    type: Anim.FastSpatial
                 }
             }
-            spacing: 3
+            spacing: Theme.spaceXs / 2 + 1
 
             // ---- top bar: title + time (24h %H:%M) ----
             RowLayout {
@@ -198,18 +196,18 @@ Column {
     Row {
         id: actionsRow
         visible: root.actionItems.length > 0
-        spacing: 4
+        spacing: Theme.spaceXs
         Repeater {
             model: root.actionItems
             delegate: AppButton {
                 required property var modelData
                 text: Notifications.actionLabel(modelData)
                 tooltipText: "Run this action"
-                height: 24
-                pixelSize: Theme.fontSize - 2
-                cornerRadius: 4
+                height: 26
+                pixelSize: Theme.typeCaption
+                cornerRadius: Theme.radius
                 idleBg: Theme.surface
-                outlined: true
+                hoverBg: Theme.surfaceHover
                 onClicked: root.actionClicked(modelData)
             }
         }
@@ -221,17 +219,18 @@ Column {
         visible: root.controlsVisible
         opacity: root.controlsVisible ? 1 : 0
         Behavior on opacity {
-            NumberAnimation {
-                duration: 180
+            Anim {
+                type: Anim.FastEffects
             }
         }
-        spacing: Theme.spacing
+        spacing: Theme.spaceXs
         AppButton {
             icon: Icons.eye
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface
-            outlined: true
+            hoverBg: Theme.surfaceHover
+            hPadding: 8
             tooltipText: root.openFile
             visible: root.openFile !== ""
             onClicked: root.openRequested(root.openFile)
@@ -241,16 +240,18 @@ Column {
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface
-            outlined: true
+            hoverBg: Theme.surfaceHover
+            hPadding: 8
             tooltipText: root.copyTip
             onClicked: root.copyRequested()
         }
         AppButton {
-            icon: root.bodyExpanded ? Icons.chevronUp : Icons.chevronDown 
+            icon: root.bodyExpanded ? Icons.chevronUp : Icons.chevronDown
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface
-            outlined: true
+            hoverBg: Theme.surfaceHover
+            hPadding: 8
             tooltipText: root.bodyExpanded ? "Collapse" : "Expand"
             visible: root.longBody
             onClicked: root.bodyExpanded = !root.bodyExpanded
@@ -260,7 +261,8 @@ Column {
             pixelSize: Theme.fontSizeSmall
             cornerRadius: Theme.radius
             idleBg: Theme.surface
-            outlined: true
+            hoverBg: Theme.surfaceHover
+            hPadding: 8
             tooltipText: root.dismissTip
             onClicked: root.dismissRequested()
         }

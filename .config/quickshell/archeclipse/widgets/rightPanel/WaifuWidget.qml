@@ -52,8 +52,11 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.pad
-        width: 32
-        height: 32
+        width: 34
+        height: 34
+        cornerRadius: Theme.radius
+        idleBg: Theme.rgba(Theme.bg, 0.65)
+        hoverBg: Theme.surfaceActive
         text: Icons.upload
         tooltipText: "Upload custom image"
         visible: root.hasWaifu
@@ -165,14 +168,14 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             anchors.margins: Theme.pad
-            spacing: Theme.spacing
+            spacing: Theme.spaceSm
 
             Text {
                 width: parent.width
                 text: "No image selected"
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
-                font.pixelSize: Theme.fontSize + 4
+                font.pixelSize: Theme.typeSubtitle
                 font.bold: true
                 color: Theme.fg
             }
@@ -181,8 +184,8 @@ Item {
                 text: "Open Booru Viewer to select an image"
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
-                color: Theme.fgDim
-                font.pixelSize: Theme.fontSize
+                color: Theme.muted
+                font.pixelSize: Theme.typeLabel
             }
             // Centered button row (Column has no alignment of its own —
             // that's Layouts-only).

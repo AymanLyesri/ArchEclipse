@@ -17,11 +17,11 @@ commands below.
 |---|---|
 | `shell.qml` | `ShellRoot`: one `Bar` + one `MediaWindow` per screen (`Variants`), plus `WelcomeScreen`, `SelectionOverlay` per screen, single-scope `LockScreen`, and the two plain `IpcHandler` hosts (`Ipc`, `CaptureIpc`). Also mkdirs every `FileView` cache dir and primes `FastfetchPins`, `PpdState`, `WallpaperService`, `ClipboardService`. |
 | `services/` | Stateful singletons (`services/qmldir`); UI files stay dumb. |
-| `theme/` | `Theme` (tokens + motion) and `Settings` (persisted config). |
+| `theme/` | `Theme` (colour, density, type, radius, motion tokens) and `Settings` (persisted config). |
 | `widgets/bar/` | Pill, bar cells, and `islands/` (in-bar pages + side pills). |
 | `widgets/leftPanel/` | Left island tabs (`SettingsWidget`, `KeyBindsWidget`, `ChatBotWidget`, `DonationsWidget`, `BooruViewer/`, …), `AppNavigationSidePanel` hosts, row helpers (`HyprSliderRow`, `HyprToggleRow`, `DonationCard`). |
 | `widgets/rightPanel/` | Right island widgets: `Calendar`, `NotificationHistory`, `SystemResources`, `Waifu`, `Media` (in `widgets/media`). |
-| `widgets/shared/` | Buttons/inputs/scroll/motion primitives + `ModelEntry.js` (model-entry accessors). |
+| `widgets/shared/` | Primitives: `Surface` (depth plate), `Card`, `App*` controls, `SettingRow`/`SettingLabel`, scroll/motion wrappers, `ModelEntry.js` (model-entry accessors). |
 | `widgets/{launcher,lock,media,notifications,overview,controlPanel,wallpaperPanel,weather,welcome,selection,greeter}/` | Each is its own QML module (`qmldir`). `greeter/` ships to `/etc/xdg/quickshell/archeclipse-greeter` via `scripts/sync-greeter.sh`. |
 | `scripts/` | Python helpers (`booru.py`, `manga.py`, `wallhaven.py`, `chatbot/`), `sysmonitor.rs` (rustc-gated into `~/.cache/quickshell/binaries/`), greeter helpers. Hyprland-side scripts (`screenrecord.sh`, `screenshot.sh`) live outside this repo in `~/.config/hypr/scripts/`. |
 
@@ -77,8 +77,9 @@ reopen), `PlayerIsland`, `WeatherIsland`, `SystemMonitorIsland`, `OsdIsland`,
 center pill: `openT` grows the pill box itself). Shared helpers:
 `IslandExpandClip` (clip+fade+scale unfold), `IslandHoverPin` (root **is** the
 `HoverHandler`; 1 s open grace, hover pins the state), `IslandEscClose`,
-`IslandWindowActions`, `IslandSideRail` (left only). Islands register in `Registry`
-(`left-island-<mon>`, `right-island-<mon>`, `media-panel-<mon>`, `lock-screen`).
+`IslandWindowActions`, `IslandSideRail` (left only). Islands register in
+`Registry` (`left-island-<mon>`, `right-island-<mon>`, `media-panel-<mon>`,
+`lock-screen`).
 
 ## Panels, islands and category navigation
 
@@ -96,10 +97,10 @@ In section mode (Settings/Key Binds) hosts set `sectionMode`, `navModel` and
 `sections` (one body Component per nav entry, aligned by index); the panel
 builds the cards, centres scrolls and runs the distance fade, and exposes the
 controller as `nav` plus `sectionColumn`/`findItemByObjectName` for external
-lookups (Settings uses both for its deep link).
-Selection is symmetric and the fade is permanent: a rail click scrolls to a
-category, a manual scroll selects whichever category holds the anchor line,
-and both drive the rail pill and the distance fade.
+lookups (Settings uses both for its deep link). Selection is symmetric and the
+fade is permanent: a rail click scrolls to a category, a manual scroll selects
+whichever category holds the anchor line, and both drive the rail pill and the
+distance fade.
 
 `anchorY()` is the viewport centre, squashed to the content edges over the
 first/last half viewport of travel — the scroll range is one viewport shorter
@@ -131,11 +132,47 @@ screenshot/recording settings, and the Hyprland subtree helpers `hyprGet`,
 is rejected on lua-parser builds). Section rows use `HyprSliderRow` /
 `HyprToggleRow`; add a leaf by adding a row, not by copying the slider body.
 
-## Theme + motion (`theme/`)
+## Theme, density and motion (`theme/`)
 
-Consume `Theme.fg/bg/surface/accent/radius/fontSize/...` — never hardcode
-colours. `Theme.anim` holds durations (× `anim.scale`) and Caelestia
-`Easing.BezierSpline` curves. New `Behavior`s use `Anim` (movement) or `CAnim`
+Everything visual comes from `Theme`. Hardcoded colours, radii, type sizes and
+insets are bugs, not shortcuts; the Settings sliders exist so one value restyles
+the whole shell.
+
+**One radius.** `Theme.radius` (`Settings.uiRadius`) is the only corner token.
+There is no ladder (`radiusSm/Lg/Xl` were removed) and no per-widget literal —
+small indicators may be narrower than the radius and clamp, which is fine.
+
+**Insets vs gaps — do not cross the streams.**
+- `Theme.pad` (`Settings.uiPad`) is the only *content inset*: card padding,
+  panel margins, island bodies, `Card.contentMargins`.
+- `Theme.spaceXs/Sm/Md/Lg/Xl/Xxl` derive from `Settings.uiSpacing` and are for
+  *distances between siblings* — layout `spacing`, gaps, block rhythm.
+- `Theme.islandPad` is the bar-pill edge inset and belongs to the bar only.
+Using the spacing ladder as a margin silently detaches that widget from the pad
+slider (and vice versa) — the drift is invisible until the user moves a slider,
+which is how `Card` regressed once already.
+
+**Depth, not outlines.** `Surface.qml` is the shared plate: `level` 0 flat,
+1 resting card, 2 raised row, 3 overlay; plus `tint`, `lit` (top-lit gradient)
+and `glow`. `Card` is a `Surface` at level 1 with `Theme.pad` content margins
+and `Theme.spaceSm` content spacing. Decorative 1px borders are banned — borders
+survive only as `focusRing` and meaningful state/hover rings.
+
+**Translucency trap.** `Theme.surface` is `rgba(bg, uiOpacity)` and therefore
+translucent; the depth ladder (`surfaceRaised/Overlay/Float`, `surfaceSunken`)
+mixes into the raw opaque `bg` and is **opaque by design**. Floating overlays —
+toasts, tooltips, OSD, popups, media window — must use `Theme.surface` (or an
+explicit `Theme.rgba`), never a depth token, or the panel reads as a sticker
+over the wallpaper. This is why notification cards are `Theme.surface` and not
+`surfaceFloat`.
+
+**Type.** `typeCaption/Label/Body/Subtitle/Title/Display` are multiples of
+`fontSize` (`Settings.uiFontSize`); `fontSizeSmall/Caption/Badge/Large` remain
+for existing call sites. Never write a pixel font size.
+
+**Motion.** `Theme.anim` holds durations (× `anim.scale`, which is 0 when
+animations are disabled) and Caelestia `Easing.BezierSpline` curves. New
+`Behavior`s use `Anim` (movement, press feedback under `anim.micro`) or `CAnim`
 (colour), never a hardcoded `NumberAnimation`; `Anim { duration: X }` keeps a
 custom duration with expressive easing. Bespoke on purpose: notification toast
 `ViewTransition`s and the lock-card `SpringAnimation`.
@@ -167,8 +204,8 @@ dense pages 24). `SmoothFlickable`/`SmoothListView` are wrappers. Never wrap a
    became `accentFg`); handlers have no default property, so inline `Timer`s
    must be property values.
 10. **`qmllint` exit 255 with no output is the env baseline** for files importing
-    `qs.*` (Quickshell types are invisible to standalone lint). Real gate is a
-    bar reload + clean log. Files without `qs.*` imports must exit 0.
+    `qs.*` (Quickshell types are invisible to standalone lint). Lint still
+    catches syntax errors; the real gate is a config load + clean log.
 11. **QML→Hyprland actions only via `hl.dsp.*`**; `Hyprland.dispatch` strings and
     `hyprctl dispatch` verbs are parsed as Lua and fail.
 12. **Hyprland data:** `HyprlandToplevel.address` is bare hex while
@@ -176,14 +213,30 @@ dense pages 24). `SmoothFlickable`/`SmoothListView` are wrappers. Never wrap a
     poll `hyprctl clients -j` for live geometry (overview does).
 13. **Clipboard history files must be written in place** (no tmp+rename): an
     inode swap freezes Quickshell's file watching and `cb` binds a boot snapshot.
+14. **Mechanical renames are syntax hazards.** A regex that rewrites token names
+    across 30+ files can emit `Theme.radius.5` from `radius: 2.5` and abort the
+    whole config at load. After any bulk rewrite, reload and check `barDiag`
+    answers — linting the touched files alone does not prove the thing runs.
 
 ## Verify
 
 ```sh
 cd ~/.config/quickshell/archeclipse
-qmllint <touched files>          # 0, or 255 for qs.* importers
-lua ~/.config/hypr/config/scripts/bar.lua   # SUPER+B: stop + relaunch, truncates the log
-# headless state checks (monitor name from `hyprctl monitors -j`):
+qmllint <touched files>            # 0, or 255 for qs.* importers (see pitfall 10)
+setsid lua ~/.config/hypr/config/scripts/bar.lua   # SUPER+B: stop + relaunch, truncates the log
+sleep 8; ps -eo pid,args | grep "[q]s -n -p"       # must show one live instance
+qs -p "$PWD" ipc call bar barDiag state            # must answer, not "No running instances"
+grep -inE "error|unavailable|is not defined" /tmp/qs-bar-$USER.log
+```
+
+`nohup` inside an agent shell does not survive the tool's process-group cleanup;
+`setsid` does. A single syntax error anywhere aborts the entire config, and the
+log shows a `caused by` chain ending at the offending `file:line` — that chain is
+the fastest diagnosis, not the file you last edited.
+
+Headless state checks (monitor name from `hyprctl monitors -j`):
+
+```sh
 Q="qs -p ~/.config/quickshell/archeclipse ipc call"
 $Q bar toggleSearch DP-2 ; $Q bar barDiag state
 $Q bar toggleLeftPanel DP-2 ; $Q bar toggleRightPanel DP-2
@@ -192,7 +245,6 @@ $Q bar togglePanel media-panel DP-2 ; $Q bar togglePanel user-panel DP-2
 $Q bar toggleOverview DP-2 ; $Q bar toggleBar DP-2
 $Q bar showWidget SettingsWidget DP-2     # left-island tab by name
 $Q bar widgetState selected DP-2          # live widget probe
-grep -in "typeerror|referenceerror|is not defined" /tmp/qs-bar-$USER.log
 ```
 
 `bar barDiag state`, `notifDiag`, `playerDiag`, `playerIconDiag`, `timerDiag`,
@@ -213,7 +265,7 @@ Lock: `ipc call lock activate|focus`. Brightness:
 - Stage only the files you touched; never `git add .`. Do not commit unless
   asked. Commit style: `fix(scope): …` / `feat(scope): …`.
 - Never capture or read screenshots; verify from logs, lint, IPC results and
-  numeric probes. Visual confirmation is the human's job.
+  numeric probes. Visual sign-off is the human's job.
 - Don't reintroduce removed dead subsystems: the right-panel Crypto/ScriptTimer
   widgets (with `Crypto*`, `TaskItem`, `RightPanelCard`, `FormShell`,
   `JsonListStore`), `WaveVisualizer`, `KeyboardLayoutWidget`, `AnchorAnim`,

@@ -8,8 +8,8 @@ import qs.widgets.launcher
 // the pill transition, height snapped) while the results body unfolds.
 Column {
     id: root
-    width: 516
-    spacing: Theme.spacing
+    width: 528
+    spacing: Theme.spaceSm
     property string monitorName: ""
 
     signal queryChanged(string query)

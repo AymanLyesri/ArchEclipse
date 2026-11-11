@@ -11,8 +11,10 @@ Rectangle {
     implicitWidth: 500
     implicitHeight: 448
     property string monitorName: ""
+    // Recessed results well: the pill around it is the surface, so the list sinks into it
+    // instead of stacking a second identical plate.
     radius: Theme.radius
-    color: Theme.surface
+    color: Theme.surfaceSunken
 
     SmoothListView {
         id: resultsList
@@ -38,8 +40,8 @@ Rectangle {
             y: resultsList.currentItem ? resultsList.currentItem.y : 0
             width: resultsList.width
             height: resultsList.currentItem ? resultsList.currentItem.height : 0
-            radius: Theme.radius - 2
-            color: Theme.surfaceActive
+            radius: Theme.radius
+            color: Theme.surfaceOverlay
             Behavior on y {
                 Anim {}
             }
@@ -53,8 +55,8 @@ Rectangle {
             required property var modelData
             required property int index
             width: resultsList.width
-            height: modelData.isHeader === true ? 28 : ((modelData.actions !== undefined && modelData.actions.length > 0) ? 56 : 52)
-            radius: Theme.radius - 2
+            height: modelData.isHeader === true ? 30 : ((modelData.actions !== undefined && modelData.actions.length > 0) ? 56 : 52)
+            radius: Theme.radius
             color: "transparent"
 
             // Header row. NOTE: strict `=== true` — a bare isHeader is undefined for normal rows,
@@ -65,20 +67,21 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: 12
-                spacing: Theme.spacing
+                spacing: Theme.spaceSm
                 Rectangle {
-                    width: 4
-                    height: 16
-                    radius: 2
+                    width: 3
+                    height: 12
+                    radius: Theme.radius
                     color: Theme.accent
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
-                    text: modelData.name
+                    text: String(modelData.name).toUpperCase()
                     anchors.verticalCenter: parent.verticalCenter
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 1
+                    font.pixelSize: Theme.typeCaption
                     font.bold: true
+                    font.letterSpacing: 1.2
                     color: Theme.muted
                 }
             }
@@ -108,10 +111,10 @@ Rectangle {
                     delegate: AppButton {
                         text: modelData.label
                         height: 26
-                        pixelSize: Theme.fontSize - 1
-                        cornerRadius: 4
-                        idleBg: Theme.surface
-                        outlined: true
+                        pixelSize: Theme.typeLabel
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
                         tooltipText: modelData.tooltip || modelData.label
                         onClicked: modelData.onClick()
                     }

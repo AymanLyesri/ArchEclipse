@@ -196,9 +196,9 @@ Item {
         anchors.fill: parent
         radius: Theme.radius
         clip: true
-        color: Theme.surface
-
-        border.color: Theme.border
+        // Media card: raised plate with the cover bleeding through at low opacity, so the
+        // artwork itself supplies the depth. No outline.
+        color: Theme.surfaceRaised
         visible: root.player !== null
 
         // Blurred background cover ("img" blurred layer)
@@ -228,8 +228,6 @@ Item {
                     radius: Theme.radius
                     clip: true
                     color: Theme.bg
-
-                    border.color: Theme.border
 
                     AppImage {
                         id: coverImg
@@ -493,9 +491,7 @@ Item {
                 Layout.preferredHeight: 6
                 height: 6
                 radius: 3
-                color: Theme.bg
-
-                border.color: Theme.border
+                color: Theme.track
 
                 property real frac: root.scrubbing ? (root.scrubPos / Math.max(1, root.player?.length ?? 1)) : (root.player?.length ?? 0) > 0 ? (root.player?.position ?? 0) / root.player.length : 0
                 property real fill: Math.max(0, Math.min(1, frac))

@@ -116,7 +116,7 @@ Rectangle {
     implicitWidth: root.hasPlayable ? contentRow.implicitWidth + Theme.islandPad * 2 : 0
     width: implicitWidth
     radius: Theme.radius
-    color: playerHover.hovered ? Theme.surfaceHover : Theme.surfaceActive
+    color: playerHover.hovered ? Theme.surfaceOverlay : Theme.surfaceRaised
 
     Behavior on color {
         ColorAnimation {

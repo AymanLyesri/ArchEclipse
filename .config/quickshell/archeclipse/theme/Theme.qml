@@ -271,11 +271,21 @@ QtObject {
     readonly property string accent: rawAccent
     // Muted secondary text/icons.
     readonly property string muted: mix(foreground, color2, phiMin)
-    // Surfaces: translucent base, opaque hover, accent-tinted active.
+    // Surfaces: translucent base, tinted hover, accent-washed active. Hover is a translucent
+    // wash rather than an opaque plate — over a wallpaper an opaque hover reads as a sticker.
     readonly property string surface: rgba(bg, Settings.uiOpacity)
-    readonly property string surfaceHover: bg
-    readonly property string surfaceActive: mix(bg, accent, 0.2)
-    readonly property string border: rgba(foreground, 0.15)
+    readonly property string surfaceHover: rgba(foreground, 0.07)
+    readonly property string surfaceActive: mix(bg, accent, 0.16)
+    // Depth ladder: sunken < base < raised < overlay < float. Separation comes from these
+    // stacked fills (plus the top-lit gradient in Surface), never from 1px outlines.
+    readonly property string surfaceSunken: mix(bg, "#000000", 0.32)
+    readonly property string surfaceRaised: mix(bg, foreground, 0.05)
+    readonly property string surfaceOverlay: mix(bg, foreground, 0.09)
+    readonly property string surfaceFloat: mix(bg, foreground, 0.13)
+    // A hairline is a deliberate rule (table row, rail edge), never a card outline.
+    readonly property string hairline: rgba(foreground, 0.06)
+    readonly property string border: rgba(foreground, 0.12)
+    readonly property string focusRing: rgba(accent, 0.65)
 
     // --- status / data-viz tokens (see helpers below; floors: text 4.5:1,
     // non-text 3:1, both validated by tools/style_audit.py --palette) ---
@@ -315,11 +325,12 @@ QtObject {
     readonly property int fontSizeCaption: Math.max(7, fontSize - 2)
     readonly property int fontSizeBadge: Math.max(7, fontSize - 3)
     readonly property int fontSizeLarge: fontSize + 2
+    // The ONE corner token: no ladder and no per-widget literals.
     readonly property int radius: Settings.uiRadius
     readonly property string accentFg: "white"
     readonly property int spacing: Settings.uiSpacing   // bar element spacing
-    // The ONE padding token: content inset for cards, panels and island bodies. Padings
-    // of 8+ bind this; smaller values are optical micro-adjustments and stay literal.
+    // The ONE inset token: card, panel and island-body padding. Distances between
+    // siblings use the spacing ladder instead — never swap the two.
     readonly property int pad: Settings.uiPad
     // Single source for bar content height — every bar widget binds this instead of
     // hardcoding its own, so all bar content stays the same height.
@@ -333,6 +344,23 @@ QtObject {
     // The ONE inset between a bar pill's edge and its island content: wrappers add no
     // outer margin and bodies pad no root layout (they once stacked to 8–17px).
     readonly property int islandPad: 8
+
+    // --- spacing ladder (Settings.uiSpacing is the base; every gutter derives from it) ---
+    readonly property int spaceXs: Math.max(2, Math.round(spacing / 2))
+    readonly property int spaceSm: spacing
+    readonly property int spaceMd: spacing + Math.round(spacing / 2)
+    readonly property int spaceLg: spacing * 2
+    readonly property int spaceXl: spacing * 3
+    readonly property int spaceXxl: spacing * 4
+
+    // --- type ladder (multiples of the Settings-driven base, so one slider rescales all) ---
+    readonly property int typeCaption: Math.max(8, Math.round(fontSize * 0.83))
+    readonly property int typeLabel: fontSizeSmall
+    readonly property int typeBody: fontSize
+    readonly property int typeSubtitle: Math.round(fontSize * 1.17)
+    readonly property int typeTitle: Math.round(fontSize * 1.5)
+    readonly property int typeDisplay: Math.round(fontSize * 2.0)
+
 
     // Three nameable emphasis levels for opacity literals.
     readonly property QtObject opacity: QtObject {
@@ -352,6 +380,8 @@ QtObject {
         readonly property int normal: Math.round(400 * scale)
         readonly property int large: Math.round(600 * scale)
         readonly property int extraLarge: Math.round(1000 * scale)
+        // Press/hover feedback: must land inside the ~120ms perceptual "immediate" band.
+        readonly property int micro: Math.round(120 * scale)
         // expressive durations
         readonly property int fastSpatial: Math.round(350 * scale)
         readonly property int defaultSpatial: Math.round(500 * scale)
@@ -362,9 +392,11 @@ QtObject {
         // easing curves (BezierSpline point lists)
         readonly property var standard: [0.2, 0, 0, 1, 1, 1]
         readonly property var emphasized: [0.05, 0, 0.1333, 0.06, 0.1667, 0.4, 0.2083, 0.82, 0.25, 1, 1, 1]
-        readonly property var expressiveFastSpatial: [0.42, 1.67, 0.21, 0.9, 1, 1]
-        readonly property var expressiveDefaultSpatial: [0.38, 1.21, 0.22, 1, 1, 1]
-        readonly property var expressiveSlowSpatial: [0.39, 1.29, 0.35, 0.98, 1, 1]
+        // Overshoot trimmed to a hint (was 1.67 peak): a shell that springs on every
+        // hover reads busy, and the long tail kept the bar edge trailing its content.
+        readonly property var expressiveFastSpatial: [0.32, 1.1, 0.24, 1, 1, 1]
+        readonly property var expressiveDefaultSpatial: [0.3, 1.06, 0.2, 1, 1, 1]
+        readonly property var expressiveSlowSpatial: [0.32, 1.12, 0.28, 1, 1, 1]
         readonly property var expressiveFastEffects: [0.31, 0.94, 0.34, 1, 1, 1]
         readonly property var expressiveDefaultEffects: [0.34, 0.8, 0.34, 1, 1, 1]
         readonly property var expressiveSlowEffects: [0.34, 0.88, 0.34, 1, 1, 1]

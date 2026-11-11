@@ -27,6 +27,7 @@ AppTooltip 1.0 AppTooltip.qml
 SettingLabel 1.0 SettingLabel.qml
 SettingRow 1.0 SettingRow.qml
 Card 1.0 Card.qml
+Surface 1.0 Surface.qml
 PillBackground 1.0 PillBackground.qml
 SystemResourcesContent 1.0 SystemResourcesContent.qml
 AppPill 1.0 AppPill.qml

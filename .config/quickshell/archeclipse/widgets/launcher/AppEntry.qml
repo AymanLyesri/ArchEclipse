@@ -56,7 +56,7 @@ Item {
     readonly property int _iconSize: compact ? 22 : 28
 
     implicitWidth: 100
-    implicitHeight: compact ? 40 : 52
+    implicitHeight: compact ? 40 : 54
 
     // RowLayout (not Row + anchors on managed children): the text column
     // can never slide under the icon slot, by construction.
@@ -65,8 +65,8 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 6
-        spacing: Theme.spacing
+        anchors.margins: Theme.pad
+        spacing: Theme.spaceMd
 
         // ---------- icon slot ----------
         Item {
@@ -125,28 +125,29 @@ Item {
                 visible: root._showName
                 elide: Text.ElideRight
                 text: root._name
-                color: Theme.fg
+                color: root.selected ? Theme.fg : Theme.fg
                 font.family: Theme.fontFamily
-                font.pixelSize: root.compact ? Theme.fontSize : Theme.fontSize + 1
+                font.pixelSize: root.compact ? Theme.typeBody : Theme.typeSubtitle
                 font.bold: root.selected || root.compact
+                opacity: root.selected ? 1 : 0.92
             }
             Text {
                 Layout.fillWidth: true
                 visible: root._description !== ""
                 elide: Text.ElideRight
                 text: root._description
-                color: root.selected ? Qt.alpha(Theme.fg, 0.7) : Theme.muted
+                color: root.selected ? Theme.fgDim : Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: root.compact ? Theme.fontSize - 2 : Theme.fontSize - 1
+                font.pixelSize: root.compact ? Theme.typeCaption : Theme.typeLabel
             }
             Text {
                 Layout.fillWidth: true
                 visible: root._argText !== "" && !root.compact
                 elide: Text.ElideRight
                 text: root._argText
-                color: root.selected ? Qt.alpha(Theme.fg, 0.5) : Theme.muted
+                color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize - 2
+                font.pixelSize: Theme.typeCaption
             }
         }
     }

@@ -115,11 +115,12 @@ Item {
 
             // ----- Sidebar with widget toggles (drag-reorderable) -----
             // Stays custom (not IslandSideRail): live reorder + the isDragging hold need it.
+            // Recessed rail, matching the left island's selector column.
             Rectangle {
                 id: sidebar
-                width: 48
+                width: 52
                 height: parent.height
-                color: Theme.bg
+                color: Theme.surfaceSunken
                 // Square on the screen-edge side so the rail runs flush
                 // into the panel's edge (mirrors bar orientation).
                 topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
@@ -284,7 +285,7 @@ Item {
                     // Width MUST come from the Flickable's explicit width, never parent.width:
                     // the viewport negotiates with content and wedges a silent polish loop.
                     width: contentScroll.width
-                    spacing: Theme.spacing
+                    spacing: Theme.spaceMd
                     padding: Theme.pad
 
                     Repeater {
@@ -315,11 +316,12 @@ Item {
                             // Fill the padded area, not the full Column width: parent.width here
                             // overshoots the viewport by the padding and clip cuts the right edge.
                             width: contentColumn.width - contentColumn.leftPadding - contentColumn.rightPadding
-                            // Fade-in on show.
+                            // Fade-in on show: staggered below so the stack arrives as a
+                            // sequence instead of one block of cards appearing at once.
                             opacity: 0
                             Behavior on opacity {
                                 NumberAnimation {
-                                    duration: Theme.anim.large
+                                    duration: Theme.anim.normal
                                     easing.type: Easing.OutCubic
                                 }
                             }
@@ -380,7 +382,9 @@ Item {
                                 anchors.fill: parent
                                 visible: !isBare
 
-                                color: Theme.surface
+                                // Raised plate: widgets separate from the panel floor by
+                                // depth alone, so nothing here draws an outline.
+                                color: Theme.surfaceRaised
                                 radius: Theme.radius
                             }
 

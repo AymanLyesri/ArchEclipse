@@ -121,9 +121,7 @@ Item {
             id: dialogMedia
             anchors.fill: parent
             radius: Theme.radius
-            color: Theme.bg
-            border.color: Theme.border
-            border.width: 1
+            color: Theme.surfaceFloat
             clip: true
 
             // The AppImage still stays as the poster and the video covers it on the first frame
@@ -281,9 +279,7 @@ Item {
             // Cap at the card height; overflow scrolls.
             height: Math.min(sheetContent.height + 16, Math.max(120, dialogRoot.height - 16))
             radius: Theme.radius
-            color: Theme.surfaceHover
-            border.color: Theme.border
-            border.width: 1
+            color: Theme.surfaceFloat
             opacity: dialogRoot.sheetRevealed ? 1 : 0
             Behavior on opacity {
                 NumberAnimation {
@@ -504,9 +500,7 @@ Item {
                                         width: tagDetail.implicitWidth + 14
                                         height: 22
                                         radius: height / 2
-                                        color: tagDetailMa.containsMouse ? Theme.surfaceActive : Theme.surface
-                                        border.color: Theme.border
-                                        border.width: 1
+                                        color: tagDetailMa.containsMouse ? Theme.surfaceOverlay : Theme.surfaceRaised
                                         Text {
                                             id: tagDetail
                                             anchors.centerIn: parent
@@ -677,7 +671,7 @@ Item {
                     Rectangle {
                         width: 3
                         height: 3
-                        radius: 1.5
+                        radius: Theme.radius
                         color: Theme.fgDim
                         x: 12 - index * 4
                         y: 12 - index * 4

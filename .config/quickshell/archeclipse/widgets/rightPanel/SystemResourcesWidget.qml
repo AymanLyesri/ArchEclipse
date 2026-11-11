@@ -7,7 +7,7 @@ import qs.widgets.shared
 Item {
     id: root
 
-    implicitHeight: content.implicitHeight + 16
+    implicitHeight: content.implicitHeight + Theme.spaceXl
 
     SystemResourcesContent {
         id: content

@@ -82,13 +82,12 @@ Rectangle {
         id: batteryPop
         x: 0
         y: parent.height + 6
-        width: 160
-        padding: 6
+        width: 176
+        padding: 8
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: Rectangle {
-            color: Theme.surface
+            color: Theme.surfaceFloat
             radius: Theme.radius
-            border.color: Theme.border
         }
 
         Column {
@@ -98,12 +97,12 @@ Rectangle {
                 model: root.profiles
                 delegate: Rectangle {
                     width: parent.width
-                    height: 28
+                    height: 30
                     radius: Theme.radius
-                    color: ma.containsMouse ? Theme.surfaceActive : "transparent"
+                    color: ma.containsMouse ? Theme.surfaceOverlay : "transparent"
                     Text {
                         anchors.left: parent.left
-                        anchors.leftMargin: 8
+                        anchors.leftMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
                         text: modelData + (modelData === root.activeProfile ? "  •" : "")
                         color: modelData === root.activeProfile ? Theme.accent : Theme.fg

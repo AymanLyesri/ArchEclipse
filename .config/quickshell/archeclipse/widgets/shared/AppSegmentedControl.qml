@@ -1,4 +1,4 @@
-// Shared animated segmented control: single-select pills with one sliding highlight Rectangle
+// Shared animated segmented control: single-select pills with one sliding highlight plate
 // (model [string] or [{value,label,icon,tooltip,enabled}], currentIndex caller-driven).
 import QtQuick
 import QtQuick.Controls
@@ -15,10 +15,10 @@ Item {
 
     property int pixelSize: Theme.fontSize
     property string fontFamily: Theme.fontFamily
-    property int cornerRadius: 8
-    property int cellHPadding: 14
-    property int cellVPadding: 8
-    property int highlightMargin: 2
+    property int cornerRadius: Theme.radius
+    property int cellHPadding: 12
+    property int cellVPadding: 6
+    property int highlightMargin: 3
     property int animationDuration: Theme.anim.defaultEffects
     // Opt-in equal-fill: cells stretch to share root.width, off by default so implicit-sized
     // usages stay untouched.
@@ -58,14 +58,13 @@ Item {
         anchors.fill: parent
         implicitWidth: row.implicitWidth + root.highlightMargin * 2
         implicitHeight: row.implicitHeight + root.highlightMargin * 2
-        radius: root.cornerRadius + 2
-        color: Theme.bg
-        border.width: 1
-        border.color: Theme.border
+        radius: root.cornerRadius + root.highlightMargin
+        // The group is a recessed well; the moving plate is the only raised element, so the
+        // selection reads by depth rather than by an outline around the whole control.
+        color: Theme.surfaceSunken
+        border.width: 0
         opacity: root.enabled ? 1 : Theme.opacity.disabled
 
-        // Sliding selection pill — the only animated chrome; geometry follows highlightCell so
-        // it never sticks after a model/currentIndex swap.
         Rectangle {
             id: highlight
             visible: root.highlightCell !== null
@@ -74,9 +73,8 @@ Item {
             y: root.highlightMargin
             height: parent.height - root.highlightMargin * 2
             radius: root.cornerRadius
-            color: Theme.surfaceActive
-            border.width: 1
-            border.color: Theme.border
+            color: Theme.surfaceOverlay
+            border.width: 0
             Behavior on x {
                 Anim {
                     duration: root.animationDuration
@@ -85,6 +83,24 @@ Item {
             Behavior on width {
                 Anim {
                     duration: root.animationDuration
+                }
+            }
+
+            // One accent rule under the moving plate: the only chrome the control needs.
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 3
+                width: Math.min(parent.width - 16, 18)
+                height: 2
+                radius: Theme.radius
+                color: Theme.accent
+                opacity: root.highlightCell !== null ? 1 : 0
+
+                Behavior on width {
+                    Anim {
+                        duration: root.animationDuration
+                    }
                 }
             }
         }
@@ -128,14 +144,14 @@ Item {
                     Row {
                         id: cellRow
                         anchors.centerIn: parent
-                        spacing: Theme.spacing
+                        spacing: Theme.spaceXs + 2
                         Text {
                             visible: cell.icon !== ""
                             text: cell.icon
                             font.pixelSize: root.pixelSize
                             font.family: root.fontFamily
                             verticalAlignment: Text.AlignVCenter
-                            color: cell.dimmed ? Theme.muted : (cell.selected ? Theme.accent : (cellMa.containsMouse ? Theme.fg : Theme.muted))
+                            color: cell.dimmed ? Theme.muted : (cell.selected ? Theme.accent : (cellMa.containsMouse ? Theme.fg : Theme.fgDim))
                             opacity: cell.dimmed ? Theme.opacity.disabled : 1
                             Behavior on color {
                                 CAnim {}
@@ -145,8 +161,9 @@ Item {
                             text: cell.label
                             font.pixelSize: root.pixelSize
                             font.family: root.fontFamily
+                            font.bold: cell.selected
                             verticalAlignment: Text.AlignVCenter
-                            color: cell.dimmed ? Theme.muted : (cell.selected ? Theme.accent : (cellMa.containsMouse ? Theme.fg : Theme.muted))
+                            color: cell.dimmed ? Theme.muted : (cell.selected ? Theme.accent : (cellMa.containsMouse ? Theme.fg : Theme.fgDim))
                             opacity: cell.dimmed ? Theme.opacity.disabled : 1
                             Behavior on color {
                                 CAnim {}

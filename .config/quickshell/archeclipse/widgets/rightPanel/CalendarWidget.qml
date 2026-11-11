@@ -118,7 +118,7 @@ Item {
     Column {
         anchors.fill: parent
         anchors.margins: Theme.pad
-        spacing: Theme.spacing
+        spacing: Theme.spaceSm
 
         // Header: year step, month step, centered title (click = today),
         // month step, year step.
@@ -129,8 +129,9 @@ Item {
             AppButton {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
-                cornerRadius: 6
-                idleBg: Theme.surface
+                cornerRadius: Theme.radius
+                idleBg: Theme.surfaceRaised
+                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 text: "«"
                 pixelSize: Theme.fontSize
@@ -140,8 +141,9 @@ Item {
             AppButton {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
-                cornerRadius: 6
-                idleBg: Theme.surface
+                cornerRadius: Theme.radius
+                idleBg: Theme.surfaceRaised
+                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 icon: Icons.chevronLeft
                 pixelSize: Theme.fontSize
@@ -162,8 +164,9 @@ Item {
                     text: root.monthTitle
                     color: Theme.fg
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize + 2
+                    font.pixelSize: Theme.typeSubtitle
                     font.bold: true
+                    font.letterSpacing: 0.3
                 }
                 MouseArea {
                     id: titleMa
@@ -180,8 +183,9 @@ Item {
             AppButton {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
-                cornerRadius: 6
-                idleBg: Theme.surface
+                cornerRadius: Theme.radius
+                idleBg: Theme.surfaceRaised
+                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 icon: Icons.chevronRight
                 pixelSize: Theme.fontSize
@@ -191,8 +195,9 @@ Item {
             AppButton {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
-                cornerRadius: 6
-                idleBg: Theme.surface
+                cornerRadius: Theme.radius
+                idleBg: Theme.surfaceRaised
+                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 text: "»"
                 pixelSize: Theme.fontSize
@@ -209,19 +214,20 @@ Item {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignVCenter
                 text: root.selectedLabel
-                color: Theme.fgDim
+                color: Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize - 1
+                font.pixelSize: Theme.typeLabel
                 elide: Text.ElideRight
             }
             AppButton {
                 width: 64
-                height: 24
-                cornerRadius: 6
-                idleBg: Theme.surface
+                height: 26
+                cornerRadius: Theme.radius
+                idleBg: Theme.surfaceRaised
+                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 text: "Today"
-                pixelSize: Theme.fontSize - 1
+                pixelSize: Theme.typeLabel
                 tooltipText: "Jump to today"
                 enabled: !root.showingCurrentMonth || !root.selectedIsToday
                 onClicked: root.goToday()
@@ -236,11 +242,13 @@ Item {
                 delegate: Text {
                     width: parent.width / 7
                     horizontalAlignment: Text.AlignHCenter
-                    text: modelData
-                    color: Theme.fgDim
+                    text: String(modelData).toUpperCase()
+                    color: Theme.muted
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontSize - 2
+                    font.pixelSize: Theme.typeCaption
                     font.bold: true
+                    font.letterSpacing: 0.8
+                    bottomPadding: 2
                 }
             }
         }
@@ -250,43 +258,55 @@ Item {
             id: dayGrid
             columns: 7
             width: parent.width
-            columnSpacing: 1
-            rowSpacing: 1
+            columnSpacing: 2
+            rowSpacing: 2
             Repeater {
                 model: root.cells
+                // Bare numbers on a flat grid: no per-day boxes, so the month reads as one
+                // surface. Today is an accent dot, selection is the only filled cell.
                 delegate: Rectangle {
                     readonly property bool today: root.isToday(modelData.y, modelData.m, modelData.d)
                     readonly property bool selected: root.isSelected(modelData.y, modelData.m, modelData.d)
-                    width: Math.max(0, (dayGrid.width - 6) / 7)
-                    height: 30
+                    width: Math.max(0, (dayGrid.width - 12) / 7)
+                    height: 32
                     radius: Theme.radius
                     color: {
                         if (selected)
                             return Theme.accent;
                         if (cellMa.containsMouse)
-                            return Theme.surfaceActive;
-                        return modelData.inMonth ? Theme.surface : "transparent";
+                            return Theme.surfaceHover;
+                        return "transparent";
                     }
-                    border.width: (!selected && today) ? 1 : 0
-                    border.color: Theme.accent
                     Behavior on color {
                         CAnim {}
                     }
                     Text {
                         anchors.centerIn: parent
+                        anchors.verticalCenterOffset: parent.today ? -2 : 0
                         text: modelData.d
                         color: {
                             if (parent.selected)
                                 return Theme.pickOn(Theme.accent, Theme.accentFg, Theme.bg);
                             if (!modelData.inMonth)
-                                return Theme.fgDim;
+                                return Theme.rgba(Theme.fg, 0.32);
                             if (parent.today)
                                 return Theme.accent;
                             return Theme.fg;
                         }
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize
+                        font.pixelSize: Theme.typeBody
                         font.bold: parent.today || parent.selected
+                    }
+                    // Today marker: a 3px accent dot, visible even while another day is selected.
+                    Rectangle {
+                        visible: parent.today
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 4
+                        width: 3
+                        height: 3
+                        radius: Theme.radius
+                        color: parent.selected ? Theme.pickOn(Theme.accent, Theme.accentFg, Theme.bg) : Theme.accent
                     }
                     MouseArea {
                         id: cellMa

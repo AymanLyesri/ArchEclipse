@@ -188,8 +188,9 @@ Item {
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter
                     text: "ArchEclipse"
-                    font.pixelSize: Theme.fontSize + 4
+                    font.pixelSize: Theme.typeTitle
                     font.bold: true
+                    font.letterSpacing: 0.4
                     color: Theme.fg
                 }
 

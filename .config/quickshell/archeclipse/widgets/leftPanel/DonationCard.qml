@@ -6,16 +6,20 @@ import qs.theme
 Rectangle {
     id: root
 
-    // Status card tints the border while supporter status is active.
+    // Status card tints the border while supporter status is active; the rule only draws when
+    // a host opts in, so the resting card stays a borderless plate.
     property color borderColor: Theme.border
+    property bool highlighted: false
     default property alias content: col.data
 
     width: parent.width
     implicitHeight: col.implicitHeight + 20
     radius: Theme.radius
-    color: Theme.surface
+    // Raised plate: the donation cards separate from the page by depth, and an accent
+    // `borderColor` still wins when a host wants to highlight one.
+    color: Theme.surfaceRaised
     border.color: root.borderColor
-    border.width: 1
+    border.width: root.highlighted ? 1 : 0
 
     Column {
         id: col

@@ -7,6 +7,7 @@ import qs.widgets.shared
 
 // Quick-settings body: volume + connectivity left, actions/brightness/power right. Lives in
 // ControlCard inside the center pill (the bump grows around it); closes via BarState.deactivate.
+// Hierarchy is carried by type and spacing: one caption per group, roomy gutters, no dividers.
 Item {
     id: body
 
@@ -79,8 +80,18 @@ Item {
     // island's HoverHandler, so hovering it reads as "left" and folds the island mid-pick.
     readonly property bool popupOpen: volSection.popupCount > 0
 
-    // ---- content: two columns ----
-    // Left: volume + connectivity sections (own files) + brightness + power. Right: action grid.
+    component GroupLabel: Text {
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.typeCaption
+        font.bold: true
+        font.letterSpacing: 1.1
+        color: Theme.muted
+        opacity: 0.9
+    }
+
+    // ---- content: two balanced columns ----
+    // Left: the two live sections. Right: actions, then brightness/power. The old split piled
+    // four blocks on the left and one grid on the right, so the panel read lopsided.
     Row {
         id: contentRow
         anchors.top: parent.top
@@ -88,13 +99,13 @@ Item {
         anchors.right: parent.right
         // No outer margin: the bar's Theme.islandPad is the only inset
         // between the pill edge and content (this row used to add 16).
-        spacing: Theme.spacing
+        spacing: Theme.spaceMd
 
         // ===== Left column: sections =====
         Column {
             id: leftCol
             width: (parent.width - parent.spacing) / 2
-            spacing: Theme.spacing
+            spacing: Theme.spaceMd
 
             VolumeSection {
                 id: volSection
@@ -105,27 +116,133 @@ Item {
             ConnectivitySection {
                 width: parent.width
             }
+        }
 
-            // ===== Brightness =====
+        // ===== Right column: actions + system =====
+        Column {
+            id: rightCol
+            width: (parent.width - parent.spacing) / 2
+            spacing: Theme.spaceMd
+
             Column {
                 width: parent.width
-                spacing: Theme.spacing
-                visible: Brightness.hasBacklightFor(body.effectiveMonitor)
+                spacing: Theme.spaceSm
+
+                GroupLabel {
+                    text: "QUICK ACTIONS"
+                }
+
+                // Action buttons (shared AppButton cells, 2x2): raised plates on the card.
+                Grid {
+                    width: parent.width
+                    columns: 2
+                    columnSpacing: Theme.spaceSm
+                    rowSpacing: Theme.spaceSm
+                    // Theme toggle
+                    AppButton {
+                        width: (parent.width - parent.columnSpacing) / 2
+                        height: 48
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        icon: GlobalTheme.currentTheme ? Icons.sun : Icons.moon
+                        pixelSize: Theme.fontSize + 2
+                        tooltipText: GlobalTheme.currentTheme ? "Switch to Light Theme" : "Switch to Dark Theme"
+                        onClicked: GlobalTheme.setTheme(!GlobalTheme.currentTheme)
+                    }
+                    // DND toggle
+                    AppButton {
+                        width: (parent.width - parent.columnSpacing) / 2
+                        height: 48
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        icon: Settings.notifDnd ? Icons.bellOff : Icons.bell
+                        pixelSize: Theme.fontSize + 2
+                        toggle: true
+                        checked: Settings.notifDnd || body.dndPing
+                        tooltipText: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
+                        onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd)
+                    }
+                    // Game Mode: always applies the Hyprland preset; gamemoded and
+                    // powerprofilesctl are optional integrations.
+                    AppButton {
+                        width: (parent.width - parent.columnSpacing) / 2
+                        height: 48
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        icon: Icons.game
+                        pixelSize: Theme.fontSize + 2
+                        toggle: true
+                        checked: Settings.gameModeEnabled
+                        tooltipText: Settings.gameModeEnabled ? "Disable Game Mode" : "Enable Game Mode"
+                        onClicked: Settings.applyGameMode(!Settings.gameModeEnabled)
+                    }
+                    // Blue light filter (hyprsunset). Temperature lives in
+                    // Settings.blueLightTemperature (settings key blueLight.temperature).
+                    AppButton {
+                        width: (parent.width - parent.columnSpacing) / 2
+                        height: 48
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        icon: Icons.lightbulb
+                        pixelSize: Theme.fontSize + 2
+                        toggle: true
+                        checked: Settings.blueLightEnabled
+                        tooltipText: (Settings.blueLightEnabled ? "Disable Blue Light Filter" : "Enable Blue Light Filter (" + Settings.blueLightTemperature + "K)")
+                            + (Settings.blueLightAuto ? "\nAuto: " + Settings.blueLightStart + " \u2013 " + Settings.blueLightEnd : "")
+                        onClicked: Settings.applyBlueLight(!Settings.blueLightEnabled)
+                    }
+                    // Keyboard layout — shows the current layout code, click cycles
+                    AppButton {
+                        width: (parent.width - parent.columnSpacing) / 2
+                        height: 48
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        text: KeyboardLayout.layout
+                        visible: KeyboardLayout.layout !== ""
+                        pixelSize: Theme.fontSize + 2
+                        tooltipText: (KeyboardLayout.layoutName || "Keyboard Layout") + "\nClick to switch layout"
+                        onClicked: KeyboardLayout.nextLayout()
+                    }
+                }
+            }
+
+            Column {
+                width: parent.width
+                spacing: Theme.spaceXs + 2
+
                 Row {
                     width: parent.width
-                    spacing: Theme.spacing
+                    spacing: Theme.spaceSm
                     Text {
                         text: body.brightnessIcon
-                        color: Theme.fg
-                        font.family: "JetBrainsMono NFP"
-                        font.pixelSize: Theme.fs(1.5)
+                        color: Theme.accent
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize + 2
                         verticalAlignment: Text.AlignVCenter
                     }
                     Text {
                         text: "Brightness"
+                        color: Theme.fgDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeLabel
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Item {
+                        width: Math.max(0, parent.width - parent.spacing * 2 - 100)
+                        height: 1
+                    }
+                    Text {
+                        text: Math.round(body.monitorBrightness * 100) + "%"
                         color: Theme.muted
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 1
+                        font.pixelSize: Theme.typeCaption
+                        verticalAlignment: Text.AlignVCenter
+                        font.preferShaping: false
                     }
                 }
                 AppSlider {
@@ -135,6 +252,7 @@ Item {
                     to: 1
                     stepSize: 0.01
                     value: body.monitorBrightness
+                    visible: Brightness.hasBacklightFor(body.effectiveMonitor)
                     onMoved: Brightness.setScreen(brightSlider.value, body.effectiveMonitor)
                 }
             }
@@ -142,30 +260,35 @@ Item {
             // ===== Power profile (power-profiles-daemon, native UPower service) =====
             Column {
                 width: parent.width
-                spacing: Theme.spacing
+                spacing: Theme.spaceXs + 2
                 visible: PpdState.available
+
                 Row {
                     width: parent.width
-                    spacing: Theme.spacing
+                    spacing: Theme.spaceSm
                     Text {
                         text: Icons.speed
-                        color: Theme.fg
-                        font.family: "JetBrainsMono NFP"
-                        font.pixelSize: Theme.fs(1.5)
+                        color: Theme.accent
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSize + 2
                         verticalAlignment: Text.AlignVCenter
                     }
                     Text {
                         text: "Power"
-                        color: Theme.muted
+                        color: Theme.fgDim
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 1
+                        font.pixelSize: Theme.typeLabel
                         verticalAlignment: Text.AlignVCenter
+                    }
+                    Item {
+                        width: Math.max(0, parent.width - parent.spacing * 2 - 100)
+                        height: 1
                     }
                     Text {
                         text: body.powerLabel
                         color: Theme.accent
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 2
+                        font.pixelSize: Theme.typeCaption
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
@@ -173,11 +296,11 @@ Item {
                     width: parent.width
                     height: implicitHeight
                     stretchCells: true
-                    pixelSize: Theme.fontSize - 1
+                    pixelSize: Theme.typeLabel
                     model: [
                         {
                             value: PowerProfile.PowerSaver,
-                            label: "Power Saver",
+                            label: "Saver",
                             tooltip: "Limit performance to save power"
                         },
                         {
@@ -187,93 +310,13 @@ Item {
                         },
                         {
                             value: PowerProfile.Performance,
-                            label: "Performance",
+                            label: "Perf",
                             tooltip: PowerProfiles.hasPerformanceProfile ? "Maximize performance" : "Performance not available on this system",
                             enabled: PowerProfiles.hasPerformanceProfile
                         }
                     ]
                     currentIndex: body.powerIndex
                     onActivated: (i, v) => PowerProfiles.profile = v
-                }
-            }
-        }
-
-        // ===== Right column: action grid =====
-        Column {
-            id: rightCol
-            width: (parent.width - parent.spacing) / 2
-            spacing: Theme.spacing
-
-            // ===== Action buttons (shared AppButton cells, 2x2) =====
-            Grid {
-                width: parent.width
-                columns: 2
-                columnSpacing: Theme.spacing
-                rowSpacing: Theme.spacing
-                // Theme toggle
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: GlobalTheme.currentTheme ? Icons.sun : Icons.moon
-                    pixelSize: Theme.fontSize + 2
-                    tooltipText: GlobalTheme.currentTheme ? "Switch to Light Theme" : "Switch to Dark Theme"
-                    onClicked: GlobalTheme.setTheme(!GlobalTheme.currentTheme)
-                }
-                // DND toggle
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: Settings.notifDnd ? Icons.bellOff : Icons.bell
-                    pixelSize: Theme.fontSize + 2
-                    toggle: true
-                    checked: Settings.notifDnd || body.dndPing
-                    tooltipText: Settings.notifDnd ? "Disable Do Not Disturb" : "Enable Do Not Disturb"
-                    onClicked: Settings.updateSetting("notifications.dnd", !Settings.notifDnd)
-                }
-                // Game Mode: always applies the Hyprland preset; gamemoded and
-                // powerprofilesctl are optional integrations.
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: Icons.game
-                    pixelSize: Theme.fontSize + 2
-                    toggle: true
-                    checked: Settings.gameModeEnabled
-                    tooltipText: Settings.gameModeEnabled ? "Disable Game Mode" : "Enable Game Mode"
-                    onClicked: Settings.applyGameMode(!Settings.gameModeEnabled)
-                }
-                // Blue light filter (hyprsunset). Temperature lives in
-                // Settings.blueLightTemperature (settings key blueLight.temperature).
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    icon: Icons.lightbulb
-                    pixelSize: Theme.fontSize + 2
-                    toggle: true
-                    checked: Settings.blueLightEnabled
-                    tooltipText: (Settings.blueLightEnabled ? "Disable Blue Light Filter" : "Enable Blue Light Filter (" + Settings.blueLightTemperature + "K)")
-                        + (Settings.blueLightAuto ? "\nAuto: " + Settings.blueLightStart + " \u2013 " + Settings.blueLightEnd : "")
-                    onClicked: Settings.applyBlueLight(!Settings.blueLightEnabled)
-                }
-                // Keyboard layout — shows the current layout code, click cycles
-                AppButton {
-                    width: (parent.width - parent.columnSpacing) / 2
-                    height: 46
-                    cornerRadius: Theme.radius
-                    idleBg: Theme.surface
-                    text: KeyboardLayout.layout
-                    visible: KeyboardLayout.layout !== ""
-                    pixelSize: Theme.fontSize + 2
-                    tooltipText: (KeyboardLayout.layoutName || "Keyboard Layout") + "\nClick to switch layout"
-                    onClicked: KeyboardLayout.nextLayout()
                 }
             }
         }

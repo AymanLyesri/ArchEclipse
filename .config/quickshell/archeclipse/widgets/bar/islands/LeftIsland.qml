@@ -213,12 +213,13 @@ Item {
             height: root.bodyHeight
             spacing: 0
 
-            // Left sidebar with widget selectors
+            // Left sidebar with widget selectors — a recessed rail sunk into the panel floor,
+            // so the content plane sits above it without any dividing line.
             Rectangle {
                 id: sidebar
-                width: 48
+                width: 52
                 height: parent.height
-                color: Theme.bg
+                color: Theme.surfaceSunken
                 // Square on the screen-edge side so the rail runs flush
                 // into the panel's edge (mirrors bar orientation).
                 topLeftRadius: Settings.barOrientation ? 0 : Theme.radius
@@ -295,11 +296,12 @@ Item {
 
                 // Each tab activates on first select and stays alive, so switches preserve
                 // scroll/page state; only the selected one instantiates. Order matches the rail.
+                // Tab swap cross-fade: short and front-loaded so a rail click feels instant.
                 OpacityAnimator on opacity {
                     id: switchAnim
                     from: 0
                     to: 1
-                    duration: Theme.anim.large
+                    duration: Theme.anim.normal
                     easing.type: Easing.OutCubic
                 }
                 StackLayout {

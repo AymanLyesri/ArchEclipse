@@ -1,5 +1,6 @@
 // Shared multi-toggle filter chips where any subset stays on (wallhaven Categories): model is
 // [string] or [{value,label,tooltip,enabled}], checkedValues caller-driven, allowEmpty guard.
+// Chips are fills on the depth ladder — an unselected chip is a raised well, not an outline.
 import QtQuick
 import qs.theme
 import "ModelEntry.js" as ModelEntry
@@ -7,14 +8,14 @@ import "ModelEntry.js" as ModelEntry
 Row {
     id: root
 
-    spacing: Theme.spacing
+    spacing: Theme.spaceXs + 2
 
     property string label: ""
     property var model: []
     property var checkedValues: []
     property bool allowEmpty: true
-    property int chipHeight: 24
-    property int pixelSize: Theme.fontSize - 2
+    property int chipHeight: 26
+    property int pixelSize: Theme.fontSizeSmall
 
     signal toggled(int index, var value, bool checked)
     signal emptyRejected()
@@ -29,7 +30,7 @@ Row {
         color: Theme.fgDim
         font.family: Theme.fontFamily
         font.pixelSize: root.pixelSize
-        height: root.chipHeight + 2
+        height: root.chipHeight
         verticalAlignment: Text.AlignVCenter
     }
 
@@ -42,14 +43,14 @@ Row {
             text: ModelEntry.labelAt(root.model, index)
             height: root.chipHeight
             pixelSize: root.pixelSize
+            hPadding: 10
             enabled: ModelEntry.enabledAt(root.model, index)
             // String models carry no tooltip; the label is still the only explanation there.
             tooltipText: ModelEntry.tooltipAt(root.model, index) || ("Toggle " + text)
-            idleBg: on ? Theme.surfaceActive : Theme.bg
-            idleFg: on ? Theme.accent : Theme.fg
+            idleBg: on ? Theme.surfaceActive : Theme.surfaceRaised
+            idleFg: on ? Theme.accent : Theme.fgDim
+            hoverBg: on ? Theme.surfaceActive : Theme.surfaceOverlay
             hoverFg: on ? Theme.accent : Theme.fg
-            outlined: true
-            outlineColor: Theme.border
             onClicked: {
                 const v = ModelEntry.valueAt(root.model, index);
                 const checked = !root.isChecked(index);

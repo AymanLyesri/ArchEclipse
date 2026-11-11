@@ -1,5 +1,6 @@
 // Shared progress indicator: status idle|loading|error|success over pill/bar/badge/inline/
 // spinner variants (value < 0 = indeterminate). Collapses to 0 height when inactive.
+// Surfaces are fills, never outlined boxes: state is carried by colour and the fill edge.
 
 import QtQuick
 import QtQuick.Controls
@@ -51,7 +52,7 @@ Item {
             return 20;
         if (variant === "inline")
             return inlineLabel.implicitHeight;
-        return 22;
+        return 24;
     }
     implicitWidth: {
         if (variant === "badge")
@@ -69,7 +70,6 @@ Item {
         visible: root.variant === "pill" && root.active
         radius: Theme.radius
         color: root.statusBg
-        border.color: root.statusColor
         clip: true
 
         // Determinate fill underneath the label.
@@ -80,7 +80,7 @@ Item {
             anchors.bottom: parent.bottom
             width: parent.width * root.clampedValue
             color: root.statusColor
-            opacity: 0.35
+            opacity: 0.28
             Behavior on width {
                 Anim {
                     type: Anim.FastEffects
@@ -94,6 +94,7 @@ Item {
             color: root.statusColor
             font.pixelSize: Theme.fontSizeSmall
             font.family: Theme.fontFamily
+            font.bold: true
         }
     }
 
@@ -105,7 +106,7 @@ Item {
         height: 4
         radius: 2
         visible: root.variant === "bar" && root.active
-        color: root.determinate ? Theme.color8 : root.statusColor
+        color: Theme.track
 
         Rectangle {
             anchors.left: parent.left
@@ -127,13 +128,12 @@ Item {
         anchors.fill: parent
         visible: root.variant === "badge" && root.active
         radius: Theme.radius
-        color: root.status === "error" ? Theme.danger : (root.status === "success" ? Theme.surfaceActive : Theme.bg)
-        border.color: root.status === "error" ? Theme.danger : Theme.border
+        color: root.status === "error" ? Theme.dangerBg : Theme.surfaceRaised
 
         Text {
             anchors.centerIn: parent
             text: root.displayText
-            color: root.status === "loading" ? Theme.fgDim : (root.status === "error" ? Theme.criticalFg : Theme.accent)
+            color: root.status === "error" ? Theme.danger : (root.status === "loading" ? Theme.fgDim : Theme.accent)
             font.pixelSize: Theme.fontSizeSmall
             font.family: Theme.fontFamily
         }
@@ -166,13 +166,15 @@ Item {
     Text {
         anchors.centerIn: parent
         visible: root.variant === "spinner" && root.active && root.status === "error"
-        text: "⚠"
+        text: Icons.alert
         color: Theme.danger
+        font.family: Theme.fontFamily
     }
     Text {
         anchors.centerIn: parent
         visible: root.variant === "spinner" && root.active && root.status === "success"
-        text: "✓"
+        text: Icons.check
         color: Theme.success
+        font.family: Theme.fontFamily
     }
 }

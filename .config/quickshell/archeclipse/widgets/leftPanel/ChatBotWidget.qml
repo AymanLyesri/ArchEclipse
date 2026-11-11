@@ -1113,10 +1113,8 @@ Item {
         Rectangle {
             width: parent.width
             height: ctxBody.implicitHeight + Theme.pad * 2
-            color: Theme.surface
+            color: Theme.surfaceRaised
             radius: Theme.radius
-            border.color: Theme.border
-            border.width: 1
             clip: true
 
             Column {
@@ -1617,9 +1615,8 @@ Item {
                 // Column positions by explicit height: collapse to 0 hidden.
                 height: visible ? slashList.implicitHeight + 12 : 0
                 visible: root.slashPopupCount() > 0 && root.progressStatus !== "loading"
-                color: Theme.surface
+                color: Theme.surfaceRaised
                 radius: Theme.radius
-                border.color: Theme.border
                 clip: true
 
                 Column {

@@ -5,6 +5,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs.theme
 import qs.services
+import qs.widgets.shared
 
 // OverviewBody — live workspace overview: 5×2 monitor-proportioned cards with ScreencopyView
 // thumbnails; windows drag between cards (hl.dsp.* only), click focuses, middle-click closes.
@@ -32,7 +33,7 @@ Item {
     readonly property int focusedId: Hyprland.focusedWorkspace?.id ?? 1
 
     // ---- card metrics (island is 920 wide; see OverviewIsland) ----
-    readonly property real gap: 10
+    readonly property real gap: Theme.spaceSm + 4
     // Grid spans the full body width (no body padding — the island owns
     // all margins); cards split it evenly.
     readonly property real cardW: (body.width - body.gap * (body.cols - 1)) / body.cols
@@ -167,7 +168,7 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: Theme.spacing
+        spacing: Theme.spaceMd
 
         // ===== workspace grid: 5 columns × 2 rows, all 10 =====
         GridLayout {
@@ -191,16 +192,42 @@ Item {
                     width: body.cardW
                     height: body.cardH
                     radius: Theme.radius
-                    color: wsCard.dropHot ? Theme.surfaceActive : Theme.surface
-                    border.color: wsCard.dropHot ? Theme.accent : (wsCard.isFocused ? Theme.accent : Theme.border)
-                    border.width: (wsCard.dropHot || wsCard.isFocused) ? 2 : 1
+                    // Depth instead of outlines: the focused workspace is the raised plate and
+                    // carries an accent rule; a drop target shares that lift.
+                    color: wsCard.dropHot ? Theme.surfaceOverlay : (wsCard.isFocused ? Theme.surfaceRaised : Theme.surface)
+                    scale: wsCard.dropHot ? 1.012 : 1
 
-                    // Giant dim workspace number.
+                    Behavior on color {
+                        CAnim {}
+                    }
+                    Behavior on scale {
+                        Anim {
+                            type: Anim.FastEffects
+                        }
+                    }
+
+                    // Focused rule: one 2px accent edge, the same marker the nav rail uses.
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.margins: 1
+                        height: 2
+                        radius: Theme.radius
+                        color: Theme.accent
+                        opacity: wsCard.isFocused || wsCard.dropHot ? 1 : 0
+
+                        Behavior on opacity {
+                            CAnim {}
+                        }
+                    }
+
+                    // Giant dim workspace number, quiet enough to sit under the windows.
                     Text {
                         anchors.centerIn: parent
                         text: wsCard.wid
                         color: Theme.muted
-                        opacity: 0.35
+                        opacity: wsCard.isFocused ? 0.22 : 0.14
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fs(3.33)
                         font.bold: true
@@ -284,7 +311,7 @@ Item {
             text: "No open windows on this monitor"
             color: Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSize - 1
+            font.pixelSize: Theme.typeLabel
         }
     }
 }

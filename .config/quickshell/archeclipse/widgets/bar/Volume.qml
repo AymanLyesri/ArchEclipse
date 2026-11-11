@@ -17,7 +17,7 @@ Rectangle {
     width: pulse ? fixedWidth : content.width
     height: Theme.barContentHeight
     radius: Theme.radius
-    color: pulse ? Theme.surface : "transparent"
+    color: pulse ? Theme.surfaceRaised : "transparent"
 
     // default sink via Pipewire service
     readonly property PwNode sink: Pipewire.defaultAudioSink

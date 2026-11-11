@@ -303,7 +303,9 @@ Item {
                     readonly property int entrySpacing: 2
                     readonly property int rowWidth: Math.max(0, width - inset * 2)
 
-                    color: Theme.surface
+                    // Recessed rail: the nav sits below the content plane, so selection reads
+                    // as a raised plate rather than an outlined row.
+                    color: Theme.surfaceSunken
                     radius: Theme.radius
                     clip: true
                     implicitHeight: entries.implicitHeight + inset * 2
@@ -335,7 +337,7 @@ Item {
                         width: navBar.rowWidth
                         height: navBar.entryHeight
                         radius: Theme.radius
-                        color: Theme.surfaceActive
+                        color: Theme.surfaceOverlay
                         Behavior on y {
                             Anim {
                                 type: Anim.FastSpatial
@@ -354,8 +356,8 @@ Item {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             width: 3
-                            height: Math.min(parent.height - 10, 18)
-                            radius: 2
+                            height: Math.min(parent.height - 12, 14)
+                            radius: Theme.radius
                             color: Theme.accent
                         }
                     }
@@ -398,7 +400,7 @@ Item {
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: Math.max(4, Theme.radius - 4)
-                                    color: cell.active ? "transparent" : (hover.hovered ? Theme.rgba(Theme.fg, 0.06) : "transparent")
+                                    color: cell.active ? "transparent" : (hover.hovered ? Theme.surfaceHover : "transparent")
                                     Behavior on color {
                                         CAnim {}
                                     }
@@ -415,7 +417,7 @@ Item {
                                     text: navBar.labelAt(cell.index)
                                     elide: Text.ElideRight
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSizeSmall
+                                    font.pixelSize: Theme.typeLabel
                                     font.bold: cell.active
                                     color: cell.cellEnabled ? (cell.active ? Theme.accent : (hover.hovered ? Theme.fg : Theme.fgDim)) : Theme.muted
                                     Behavior on color {
@@ -499,11 +501,11 @@ Item {
                         }
 
                         width: sectionCol.width
-                        implicitHeight: cardBody.implicitHeight + Theme.pad * 2 + 8
+                        implicitHeight: cardBody.implicitHeight + Theme.spaceLg * 2
                         radius: Theme.radius
-                        color: Theme.surface
-                        border.color: Theme.rgba(Theme.fg, 0.08)
-                        border.width: 0.5
+                        // Raised plate on the recessed panel floor: depth separates the
+                        // sections, so no outline is needed anywhere in the stack.
+                        color: Theme.surfaceRaised
 
                         opacity: navController.opacityFor(sectionCard.categoryIndex)
                         Behavior on opacity {
@@ -526,12 +528,12 @@ Item {
 
                             anchors.fill: parent
                             anchors.margins: Theme.pad
-                            spacing: Theme.spacing
+                            spacing: Theme.spaceSm
 
                             Rectangle {
                                 width: parent.width
                                 height: 2
-                                radius: 1
+                                radius: Theme.radius
                                 color: navController.activeIndex === sectionCard.categoryIndex ? Theme.accent : "transparent"
                                 Behavior on color {
                                     CAnim {}
@@ -540,9 +542,9 @@ Item {
 
                             Label {
                                 width: parent.width
-                                topPadding: Theme.pad / 2
+                                topPadding: Theme.pad
                                 text: sectionCard.title
-                                font.pixelSize: Theme.fontSize + 2
+                                font.pixelSize: Theme.typeSubtitle
                                 font.bold: true
                                 color: Theme.accent
                                 elide: Text.ElideRight
@@ -571,7 +573,7 @@ Item {
 
     // Resize grip: two line segments top/bottom of the icon so the line
     // does not pass through the glyph; accent on hover/press.
-    readonly property color gripTone: gripArea.containsMouse || gripArea.pressed ? Theme.accent : Theme.border
+    readonly property color gripTone: gripArea.containsMouse || gripArea.pressed ? Theme.accent : Theme.hairline
     readonly property real gripIconRatio: 0.05   // fraction of height occupied by the icon gap
 
     Rectangle {

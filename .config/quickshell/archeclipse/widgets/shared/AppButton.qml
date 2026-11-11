@@ -1,12 +1,11 @@
 // THE shared button for the whole shell: centered glyph + optional label in a rounded cell.
 // A Controls Button's padding pushes content off-center, so this is Rectangle + Row + MouseArea.
+// Depth, not outlines: idle cells are flat, hover lifts a translucent wash, press settles.
 
 import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-    // toggle: false = momentary, true = highlighted while caller-driven `checked` (autoToggle
-    // opts into local state). text is an optional label, outlined always draws the border.
 Item {
     id: root
 
@@ -27,6 +26,9 @@ Item {
     property string labelFontFamily: ""
     property int pixelSize: Theme.fontSize
     property int cornerRadius: Theme.radius
+    // Icon/label gap, exposed so dense rails and roomy headers can both breathe.
+    property int contentSpacing: Theme.spaceXs + 2
+    property int hPadding: 10
     property bool toggle: false
     property bool checked: false
     property bool autoToggle: false
@@ -39,7 +41,7 @@ Item {
     property color hoverFg: idleFg
     property color activeFg: Theme.accent
     property color borderColor: Theme.accent
-    property color outlineColor: Theme.border
+    property color outlineColor: Theme.hairline
     property bool borderedWhenActive: false
     property bool dragging: false
     // Reorder drag (right selector rail). Null target = plain click cell.
@@ -59,7 +61,7 @@ Item {
         if (root.highlighted)
             return root.activeFg;
 
-        if (root.hovered)
+        if (root.hovered && !root.quiet)
             return root.hoverFg;
 
         return root.idleFg;
@@ -74,8 +76,8 @@ Item {
     Component.onCompleted: if (tooltipText === "" && showTooltip)
         console.warn("MISSING TOOLTIPTEXT AppButton:", this, "icon:", JSON.stringify(icon), "text:", JSON.stringify(text))
 
-    implicitWidth: contentRow.implicitWidth + 28
-    implicitHeight: 34
+    implicitWidth: contentRow.implicitWidth + root.hPadding * 2
+    implicitHeight: Math.max(28, Theme.fontSize + 18)
 
     // Keyboard activation: Return/Enter/Space click the cell, one focus
     // ring style for every button instance in the shell.
@@ -100,11 +102,11 @@ Item {
 
     Rectangle {
         id: bgRect
+
         anchors.fill: parent
         radius: root.cornerRadius
-        // Subtle grow on hover, shrink on press — visual only, layout unchanged.
-        // Quiet cells skip the hover branch entirely (hover stays unread).
-        scale: !root.enabled ? 1 : (hoverArea.pressed ? 0.96 : (root.hovered && !root.quiet ? 1.04 : 1))
+        // Press sinks the cell; hover lifts it a hair. Visual only, layout untouched.
+        scale: !root.enabled ? 1 : (hoverArea.pressed ? 0.96 : (root.hovered && !root.quiet ? 1.03 : 1))
         color: {
             if (root.dragging)
                 return Theme.accent;
@@ -115,11 +117,16 @@ Item {
             if (root.highlighted)
                 return root.activeBg;
 
-            if (root.hovered)
+            if (root.hovered && !root.quiet)
                 return root.hoverBg;
 
             return root.idleBg;
         }
+        // A focus ring is an accessibility affordance, not decoration; nothing else outlines.
+        border.width: root.activeFocus ? 2 : (root.outlined ? 1 : 0)
+        border.color: root.activeFocus ? Theme.accent : (root.highlighted ? root.borderColor : root.outlineColor)
+        opacity: root.enabled ? (root.dragging ? Theme.opacity.hoverDim : 1) : Theme.opacity.disabled
+
         Behavior on color {
             CAnim {}
         }
@@ -128,27 +135,15 @@ Item {
                 type: Anim.FastEffects
             }
         }
-        border.width: root.activeFocus ? 2 : (root.outlined ? 1 : ((root.highlighted || root.dragging) && root.borderedWhenActive ? 1 : 0))
-        border.color: {
-            // Focus ring: accent ring beats every idle/outline border.
-            if (root.activeFocus)
-                return Theme.accent;
-
-            if (root.dragging)
-                return Theme.accent;
-
-            if (root.highlighted)
-                return root.borderColor;
-
-            return root.outlined ? root.outlineColor : root.borderColor;
+        Behavior on border.color {
+            CAnim {}
         }
-        opacity: root.enabled ? (root.dragging ? Theme.opacity.hoverDim : 1) : Theme.opacity.disabled
 
         Row {
             id: contentRow
 
             anchors.centerIn: parent
-            spacing: 6
+            spacing: root.contentSpacing
 
             Text {
                 visible: root.icon !== ""
@@ -158,6 +153,10 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 color: root.fgColor
+
+                Behavior on color {
+                    CAnim {}
+                }
             }
 
             Text {
@@ -170,6 +169,10 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
                 color: root.fgColor
+
+                Behavior on color {
+                    CAnim {}
+                }
             }
         }
     }

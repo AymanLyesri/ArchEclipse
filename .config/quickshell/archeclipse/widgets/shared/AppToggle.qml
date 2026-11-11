@@ -17,21 +17,18 @@ Switch {
     indicator: Rectangle {
         id: track
 
-        implicitWidth: 38
+        implicitWidth: 40
         implicitHeight: 22
         x: root.leftPadding
         y: root.height / 2 - height / 2
         radius: height / 2
-        // A filled neutral track reads as a control at a glance; the outline is hover/focus
-        // feedback only, so neither state depends on a hairline that vanishes on light cards.
-        color: root.checked ? Theme.accent : Theme.track
-        border.width: root.visualFocus ? 2 : 1
-        border.color: root.visualFocus ? Theme.fg : (root.hovered && !root.checked ? Theme.fgDim : "transparent")
+        // Off is a neutral track at the raised depth; on is the accent. No hairline either
+        // way — the knob and fill carry the state, and a focus ring covers keyboard users.
+        color: root.checked ? Theme.accent : (root.hovered ? Theme.surfaceOverlay : Theme.surfaceRaised)
+        border.width: root.visualFocus ? 2 : 0
+        border.color: Theme.focusRing
 
         Behavior on color {
-            CAnim {}
-        }
-        Behavior on border.color {
             CAnim {}
         }
 
@@ -40,14 +37,17 @@ Switch {
 
             // Off uses the full foreground: a bg-coloured knob disappears on the neutral
             // track in exactly one of the two variants, and pickOn cannot see the track.
-            x: root.checked ? parent.width - width - 2 : 2
+            x: root.checked ? parent.width - width - 3 : 3
             y: (parent.height - height) / 2
-            width: 18
-            height: 18
-            radius: width / 2
+            width: 16 + (root.pressed ? 3 : 0)
+            height: 16
+            radius: height / 2
             color: root.checked ? Theme.pickOn(Theme.accent, Theme.accentFg, Theme.bg) : Theme.fg
 
             Behavior on x {
+                Anim { type: Anim.FastSpatial }
+            }
+            Behavior on width {
                 Anim { type: Anim.FastEffects }
             }
             Behavior on color {

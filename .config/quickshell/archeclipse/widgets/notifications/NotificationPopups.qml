@@ -176,23 +176,28 @@ Item {
                 transformOrigin: Item.Top
                 // Content-driven: body is top-anchored inside the fill-item
                 // shift, so this never feeds back into itself.
-                height: body.height + 22
+                height: body.height + Theme.spaceLg
                 Behavior on height {
-                    NumberAnimation {
-                        duration: 280
-                        easing.type: Easing.OutCubic
+                    Anim {
+                        type: Anim.FastSpatial
                     }
                 }
+                // Floating plate: a toast sits above everything and says so with the top of
+                // the depth ladder, not with an outline.
                 radius: Theme.radius
                 color: critical ? Theme.dangerSurface : Theme.surface
-                border.color: isHovered ? Qt.alpha(Theme.accent, 0.5) : Qt.alpha(Theme.fg, 0.1)
-                border.width: 1
-                Behavior on border.color {
-                    ColorAnimation {
-                        duration: Theme.anim.defaultEffects
-                    }
-                }
                 clip: true
+
+                // Critical cards get a warm wash along the top edge instead of a border.
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: 2
+                    color: Theme.danger
+                    visible: card.critical
+                    opacity: 0.7
+                }
 
                 // Background interaction layer FIRST so buttons stay clickable: drag sideways past
                 // the threshold to fling-dismiss, right-click dismisses instantly.
@@ -270,9 +275,8 @@ Item {
                     anchors.bottomMargin: 2
                     scale: card.isHovered && shift.x === 0 ? 1.012 : 1
                     Behavior on scale {
-                        NumberAnimation {
-                            duration: 220
-                            easing.type: Easing.OutCubic
+                        Anim {
+                            type: Anim.FastEffects
                         }
                     }
                     NotificationCardBody {
@@ -280,9 +284,9 @@ Item {
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.topMargin: 10
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
+                        anchors.topMargin: Theme.pad
+                        anchors.leftMargin: Theme.pad
+                        anchors.rightMargin: Theme.pad
                         iconFile: card.toast ? card.toast.iconFile : ""
                         iconName: card.toast ? card.toast.iconName : ""
                         previewFile: card.toast ? card.toast.previewFile : ""
@@ -324,7 +328,7 @@ Item {
                     anchors.bottom: parent.bottom
                     height: 2
                     visible: card.toast ? (card.toast.life > 0 || card.toast.progress >= 0) : false
-                    color: Qt.alpha(Theme.fg, 0.08)
+                    color: Theme.rgba(Theme.fg, 0.06)
                     Rectangle {
                         id: barFill
                         anchors.left: parent.left

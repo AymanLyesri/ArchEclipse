@@ -6,9 +6,11 @@ import qs.widgets.shared
 
 // Shared system-resources content used by both SystemMonitorIsland and the right panel's
 // SystemResourcesWidget: wide lays cards out horizontally, narrow stacks them.
+// Each metric group is a raised plate; the meters are the only accent on the surface, so the
+// eye lands on the numbers and the fills rather than on card outlines.
 Column {
     id: root
-    spacing: Theme.spacing
+    spacing: Theme.spaceMd
 
     readonly property var stats: SysInfo.systemResources
     readonly property var gpus: stats?.gpus ?? []
@@ -16,7 +18,7 @@ Column {
     readonly property real ramFrac: (stats?.ramUsedGB && stats?.ramTotalGB) ? Math.max(0, Math.min(1, stats.ramUsedGB / stats.ramTotalGB)) : 0
     readonly property int totalCards: 2 + root.gpus.length
     readonly property bool stacked: width < 380
-    readonly property real cardWidth: width <= 0 ? 0 : (root.stacked ? width : (width - 8 * (root.totalCards - 1)) / root.totalCards)
+    readonly property real cardWidth: width <= 0 ? 0 : (root.stacked ? width : (width - Theme.spaceSm * (root.totalCards - 1)) / root.totalCards)
 
     Component.onCompleted: SysInfo.acquireResources()
     Component.onDestruction: SysInfo.releaseResources()
@@ -34,33 +36,111 @@ Column {
         return Number(used).toFixed(2) + "/" + Number(total).toFixed(2) + " GB";
     }
 
+    // One metric plate: icon + label header, a meter, then key/value rows.
+    component MetricCard: Rectangle {
+        id: card
+
+        property string glyph: ""
+        property string label: ""
+        property real frac: 0
+        property var rows: []
+        default property alias body: inner.data
+
+        width: root.cardWidth
+        height: inner.implicitHeight + Theme.spaceLg
+        radius: Theme.radius
+        color: Theme.surfaceRaised
+
+        Column {
+            id: inner
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: Theme.pad
+            spacing: Theme.spaceSm
+
+            Row {
+                width: parent.width
+                spacing: Theme.spaceXs + 2
+                Text {
+                    text: card.glyph
+                    color: Theme.accent
+                    font.pixelSize: Theme.typeBody
+                    font.family: Theme.fontFamily
+                    font.bold: true
+                    verticalAlignment: Text.AlignVCenter
+                }
+                Text {
+                    text: card.label
+                    color: Theme.fg
+                    font.pixelSize: Theme.typeLabel
+                    font.family: Theme.fontFamily
+                    font.bold: true
+                    font.letterSpacing: 0.4
+                    elide: Text.ElideRight
+                    width: parent.width - parent.spacing * 2 - chip.width
+                    verticalAlignment: Text.AlignVCenter
+                }
+                Text {
+                    id: chip
+                    text: Math.round(card.frac * 100) + "%"
+                    color: Theme.accent
+                    font.pixelSize: Theme.typeCaption
+                    font.family: Theme.fontFamily
+                    font.preferShaping: false
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 5
+                radius: Theme.radius
+                color: Theme.track
+
+                Rectangle {
+                    width: parent.width * Math.max(0, Math.min(1, card.frac))
+                    height: parent.height
+                    radius: Theme.radius
+                    color: Theme.accent
+
+                    Behavior on width {
+                        Anim {
+                            type: Anim.FastEffects
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // ---- header ----
     Row {
         width: parent.width
-        spacing: Theme.spacing
+        spacing: Theme.spaceSm
         Label {
             text: "System Resources"
-            font.pixelSize: Theme.fontSizeLarge
+            font.pixelSize: Theme.typeSubtitle
             font.family: Theme.fontFamily
             font.bold: true
             color: Theme.fg
-            width: parent.width - updatedLabel.width - 8
+            width: parent.width - updatedLabel.width - Theme.spaceSm
             elide: Text.ElideRight
         }
         Label {
             id: updatedLabel
-            text: root.stats ? "Updated: " + (root.stats.updatedAt || "--") : "Updated: --"
-            font.pixelSize: Theme.fontSizeCaption
+            text: root.stats ? "Updated " + (root.stats.updatedAt || "--") : "—"
+            font.pixelSize: Theme.typeCaption
             font.family: Theme.fontFamily
-            color: Theme.fgDim
+            color: Theme.muted
         }
     }
 
     Label {
         visible: !root.stats
         text: "Collecting system stats…"
-        color: Theme.fgDim
-        font.pixelSize: Theme.fontSize
+        color: Theme.muted
+        font.pixelSize: Theme.typeLabel
         font.family: Theme.fontFamily
     }
 
@@ -68,147 +148,87 @@ Column {
     Flow {
         visible: root.stats
         width: parent.width
-        spacing: Theme.spacing
+        spacing: Theme.spaceSm
 
-        // CPU card
-        Rectangle {
-            width: root.cardWidth
-            height: cpuCol.height + 16
-            radius: Theme.radius
-            color: Theme.surface
-            border.color: Theme.border
-            Column {
-                id: cpuCol
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.margins: Theme.pad
-                spacing: Theme.spacing
-                Text {
-                    text: Icons.cpu + " " + (root.stats?.cpuLabel || "CPU")
-                    font.pixelSize: Theme.fontSize
-                    font.bold: true
-                    font.family: Theme.fontFamily
-                    color: Theme.fg
-                    elide: Text.ElideRight
-                    width: parent.width
-                }
-                Rectangle {
-                    width: parent.width
-                    height: 4
-                    radius: 2
-                    color: Theme.color8
-                    Rectangle {
-                        width: parent.width * root.cpuFrac
-                        height: parent.height
-                        radius: 2
-                        color: Theme.accent
-                        Behavior on width {
-                            Anim {
-                                type: Anim.FastEffects
-                            }
-                        }
-                    }
-                }
-                Text { text: "Load: " + root.fmt(root.stats?.cpuLoad, 1, "%"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Clock: " + root.fmt(root.stats?.clockGHz, 2, " GHz"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Temp: " + root.fmt(root.stats?.cpuTempC, 1, "°C"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+        MetricCard {
+            glyph: Icons.cpu
+            label: root.stats?.cpuLabel || "CPU"
+            frac: root.cpuFrac
+
+            Text {
+                text: "Load  " + root.fmt(root.stats?.cpuLoad, 1, "%")
+                font.pixelSize: Theme.typeLabel
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
+            }
+            Text {
+                text: "Clock  " + root.fmt(root.stats?.clockGHz, 2, " GHz")
+                font.pixelSize: Theme.typeLabel
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
+            }
+            Text {
+                text: "Temp  " + root.fmt(root.stats?.cpuTempC, 1, "°C")
+                font.pixelSize: Theme.typeLabel
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
             }
         }
 
-        // RAM card
-        Rectangle {
-            width: root.cardWidth
-            height: ramCol.height + 16
-            radius: Theme.radius
-            color: Theme.surface
-            border.color: Theme.border
-            Column {
-                id: ramCol
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.margins: Theme.pad
-                spacing: Theme.spacing
-                Text {
-                    text: Icons.ram + " RAM"
-                    font.pixelSize: Theme.fontSize
-                    font.bold: true
-                    font.family: Theme.fontFamily
-                    color: Theme.fg
-                }
-                Rectangle {
-                    width: parent.width
-                    height: 4
-                    radius: 2
-                    color: Theme.color8
-                    Rectangle {
-                        width: parent.width * root.ramFrac
-                        height: parent.height
-                        radius: 2
-                        color: Theme.accent
-                        Behavior on width {
-                            Anim {
-                                type: Anim.FastEffects
-                            }
-                        }
-                    }
-                }
-                Text { text: "Used: " + root.fmt(root.stats?.ramUsedGB, 2, " GB"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Free: " + root.fmt(root.stats?.ramFreeGB, 2, " GB"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
-                Text { text: "Total: " + root.fmt(root.stats?.ramTotalGB, 2, " GB"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+        MetricCard {
+            glyph: Icons.ram
+            label: "RAM"
+            frac: root.ramFrac
+
+            Text {
+                text: "Used  " + root.fmt(root.stats?.ramUsedGB, 2, " GB")
+                font.pixelSize: Theme.typeLabel
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
+            }
+            Text {
+                text: "Free  " + root.fmt(root.stats?.ramFreeGB, 2, " GB")
+                font.pixelSize: Theme.typeLabel
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
+            }
+            Text {
+                text: "Total  " + root.fmt(root.stats?.ramTotalGB, 2, " GB")
+                font.pixelSize: Theme.typeLabel
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
             }
         }
 
         // GPU cards (dynamic)
         Repeater {
             model: root.gpus
-            Rectangle {
-                id: gpuCard
+            delegate: MetricCard {
                 required property var modelData
-                required property int index
-                width: root.cardWidth
-                height: gpuCol.height + 16
-                radius: Theme.radius
-                color: Theme.surface
-                border.color: Theme.border
                 readonly property real frac: (modelData.load ?? null) !== null ? Math.max(0, Math.min(1, modelData.load / 100)) : 0
-                Column {
-                    id: gpuCol
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.margins: Theme.pad
-                    spacing: Theme.spacing
-                    Text {
-                        text: Icons.gpu + " " + (gpuCard.modelData.label || "GPU")
-                        font.pixelSize: Theme.fontSize
-                        font.bold: true
-                        font.family: Theme.fontFamily
-                        color: Theme.fg
-                        elide: Text.ElideRight
-                        width: parent.width
-                    }
-                    Rectangle {
-                        width: parent.width
-                        height: 4
-                        radius: 2
-                        color: Theme.color8
-                        Rectangle {
-                            width: parent.width * gpuCard.frac
-                            height: parent.height
-                            radius: 2
-                            color: Theme.accent
-                            Behavior on width {
-                            Anim {
-                                type: Anim.FastEffects
-                            }
-                        }
-                        }
-                    }
-                    Text { text: "Load: " + root.fmt(gpuCard.modelData.load, 1, "%"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
-                    Text { text: "Mem: " + root.gpuMem(gpuCard.modelData.memoryUsedGB, gpuCard.modelData.memoryTotalGB); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg; elide: Text.ElideRight; width: parent.width }
-                    Text { text: "Temp: " + root.fmt(gpuCard.modelData.tempC, 1, "°C"); font.pixelSize: Theme.fontSizeSmall; font.family: Theme.fontFamily; color: Theme.fg }
+
+                glyph: Icons.gpu
+                label: modelData.label || "GPU"
+
+                Text {
+                    text: "Load  " + root.fmt(modelData.load, 1, "%")
+                    font.pixelSize: Theme.typeLabel
+                    font.family: Theme.fontFamily
+                    color: Theme.fgDim
+                }
+                Text {
+                    text: "Mem  " + root.gpuMem(modelData.memoryUsedGB, modelData.memoryTotalGB)
+                    font.pixelSize: Theme.typeLabel
+                    font.family: Theme.fontFamily
+                    color: Theme.fgDim
+                    elide: Text.ElideRight
+                    width: parent.width
+                }
+                Text {
+                    text: "Temp  " + root.fmt(modelData.tempC, 1, "°C")
+                    font.pixelSize: Theme.typeLabel
+                    font.family: Theme.fontFamily
+                    color: Theme.fgDim
                 }
             }
         }

@@ -21,7 +21,7 @@ Rectangle {
     width: pulse ? fixedWidth : content.width
     height: Theme.barContentHeight
     radius: Theme.radius
-    color: pulse ? Theme.surface : "transparent"
+    color: pulse ? Theme.surfaceRaised : "transparent"
     visible: root.hasBacklight
 
     // Live sync from the Brightness service (inotify, zero polling): external changes update

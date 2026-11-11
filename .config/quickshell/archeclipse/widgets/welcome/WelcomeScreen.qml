@@ -596,10 +596,8 @@ Scope {
             Rectangle {
                 id: card
                 anchors.fill: parent
-                radius: Theme.radius + 4
-                color: Theme.bg
-                border.color: Theme.border
-                border.width: 1
+                radius: Theme.radius
+                color: Theme.surfaceFloat
                 clip: true
 
                 property real t: 0
@@ -703,10 +701,8 @@ Scope {
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                radius: Theme.cardRadius
-                                color: Theme.surface
-                                border.color: Theme.border
-                                border.width: 1
+                                radius: Theme.radius
+                                color: Theme.surfaceRaised
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -813,10 +809,8 @@ Scope {
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                radius: Theme.cardRadius
-                                color: Theme.surface
-                                border.color: Theme.border
-                                border.width: 1
+                                radius: Theme.radius
+                                color: Theme.surfaceRaised
 
                                 ColumnLayout {
                                     anchors.fill: parent

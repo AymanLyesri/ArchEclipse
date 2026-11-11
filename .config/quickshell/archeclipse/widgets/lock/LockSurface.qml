@@ -133,10 +133,8 @@ MouseArea {
                 easing.type: Easing.OutCubic
             }
         }
-        radius: 24
-        color: Theme.surface
-        border.color: Theme.border
-        border.width: 1
+        radius: Theme.radius
+        color: Theme.surfaceFloat
         // Unfold with the expand driver (origin Top: grows downward).
         scale: 0.96 + 0.04 * root.expand
         opacity: Math.max(0, Math.min(1, root.expand * 1.2))

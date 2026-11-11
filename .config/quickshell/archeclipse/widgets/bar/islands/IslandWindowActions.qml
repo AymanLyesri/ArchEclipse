@@ -9,14 +9,14 @@ Column {
     id: root
     property string side: "left"  // "left" | "right"
     property string monitorName: ""
-    spacing: Theme.spacing
+    spacing: Theme.spaceXs
     readonly property bool isLeft: root.side === "left"
     readonly property int minWidth: root.isLeft ? 500 : 250
     readonly property bool locked: Settings.panelLockFor(root.side, root.monitorName)
 
     Item {
         width: 1
-        height: 8
+        height: Theme.spaceSm
     } // spacer
 
     // Expand (+50 to max 1500)
@@ -25,7 +25,7 @@ Column {
         icon: Icons.plus
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
-        hoverBg: Theme.surface
+        hoverBg: Theme.surfaceHover
         hoverFg: Theme.accent
         tooltipText: "Expand island"
         onClicked: {
@@ -39,7 +39,7 @@ Column {
         icon: Icons.minus
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
-        hoverBg: Theme.surface
+        hoverBg: Theme.surfaceHover
         hoverFg: Theme.accent
         tooltipText: "Shrink island"
         onClicked: {
@@ -55,7 +55,7 @@ Column {
         cornerRadius: Theme.radius
         toggle: true
         checked: root.locked
-        hoverBg: Theme.surface
+        hoverBg: Theme.surfaceHover
         tooltipText: root.locked ? "Unlock island" : "Lock island"
         onClicked: {
             Settings.setPanelLockFor(root.side, root.monitorName, !root.locked);
@@ -67,7 +67,7 @@ Column {
         icon: Icons.close
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
-        hoverBg: Theme.surface
+        hoverBg: Theme.surfaceHover
         hoverFg: Theme.danger
         tooltipText: "Close island"
         onClicked: {

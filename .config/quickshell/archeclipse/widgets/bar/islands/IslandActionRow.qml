@@ -13,14 +13,14 @@ Item {
     signal activated()
 
     implicitWidth: row.implicitWidth
-    implicitHeight: 22
+    implicitHeight: 24
     width: implicitWidth
     height: implicitHeight
 
     Row {
         id: row
         anchors.centerIn: parent
-        spacing: 4
+        spacing: Theme.spaceXs + 2
 
         ModeButton {
             glyph: root.glyph
@@ -30,9 +30,9 @@ Item {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: root.label
-            color: Theme.fg
+            color: Theme.fgDim
             font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSizeSmall
+            font.pixelSize: Theme.typeLabel
         }
     }
 

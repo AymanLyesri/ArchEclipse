@@ -7,7 +7,7 @@ import qs.theme
 ToolTip {
     id: root
 
-    property int cornerRadius: 6
+    property int cornerRadius: Theme.radius
 
     delay: 600
 
@@ -16,16 +16,17 @@ ToolTip {
     topPadding: 6
     bottomPadding: 6
 
+    // Tooltips must stay readable over any wallpaper surface, so the fill is opaque-derived
+    // (a mixed hex) rather than a translucent palette wash.
     background: Rectangle {
-        color: Theme.bg
+        color: Theme.surfaceFloat
         radius: root.cornerRadius
-        border.color: Theme.border
-        border.width: 1
+        border.width: 0
     }
     contentItem: Text {
         text: root.text
         font.family: Theme.fontFamily
-        font.pixelSize: Theme.fontSize
+        font.pixelSize: Theme.fontSizeSmall
         color: Theme.fg
         // Tooltips may contain lightweight markup such as <b>...</b>.
         // Explicit RichText prevents the tags from being shown literally.

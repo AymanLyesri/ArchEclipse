@@ -56,13 +56,13 @@ Item {
     // Never bind Text.height to implicitHeight (WordWrap loops). Column
     // already skips invisible children; only count the hint when shown.
     readonly property real emptyHintH: visibleNotifications.length === 0 ? emptyHint.implicitHeight : 0
-    implicitHeight: headerRow.implicitHeight + filterField.implicitHeight + listH + emptyHintH + mainCol.spacing * 3 + 16
+    implicitHeight: headerRow.implicitHeight + filterField.implicitHeight + listH + emptyHintH + mainCol.spacing * 3 + 24
 
     Column {
         id: mainCol
         anchors.fill: parent
         anchors.margins: Theme.pad
-        spacing: Theme.spacing
+        spacing: Theme.spaceMd
 
         // Header: title + match count + clear-all.
         RowLayout {
@@ -71,8 +71,8 @@ Item {
             spacing: Theme.spacing
 
             Label {
-                text: "Notification History"
-                font.pixelSize: Theme.fontSize + 4
+                text: "Notifications"
+                font.pixelSize: Theme.typeSubtitle
                 font.bold: true
                 color: Theme.fg
                 Layout.fillWidth: true
@@ -81,15 +81,16 @@ Item {
 
             Text {
                 text: "(" + visibleNotifications.length + ")"
-                font.pixelSize: Theme.fontSize - 1
-                color: Theme.fgDim
+                font.pixelSize: Theme.typeLabel
+                color: Theme.muted
                 visible: visibleNotifications.length > 0
             }
 
             AppButton {
                 icon: Icons.trashOutline
-                pixelSize: Theme.fontSize - 2
-                cornerRadius: 4
+                pixelSize: Theme.typeLabel
+                cornerRadius: Theme.radius
+                hPadding: 8
                 tooltipText: "Clear all"
                 visible: notifications.length > 0
                 onClicked: Notifications.clearHistory()
@@ -139,7 +140,7 @@ Item {
             Column {
                 id: listColumn
                 width: parent.width
-                spacing: Theme.spacing
+                spacing: Theme.spaceSm
 
                 Repeater {
                     model: visibleNotifications
@@ -156,9 +157,9 @@ Item {
             id: emptyHint
             width: parent.width
             visible: visibleNotifications.length === 0
-            text: filterText !== "" ? "No matching notifications" : "No notifications"
-            font.pixelSize: Theme.fontSize
-            color: Theme.fgDim
+            text: filterText !== "" ? "No matching notifications" : "You are all caught up"
+            font.pixelSize: Theme.typeLabel
+            color: Theme.muted
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
         }

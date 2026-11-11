@@ -2,9 +2,9 @@ import QtQuick
 import qs.theme
 import qs.widgets.shared
 
-// N×M page-grid segmented control: a block of contiguous page cells plus a
-// prev/next pair that shifts the block by one window. Layout-neutral — the host
-// sizes it; implicitHeight carries the real content height.
+// N×M page-grid segmented control: a block of contiguous page cells that slides
+// with the current page. Layout-neutral — the host sizes it; implicitHeight
+// carries the real content height.
 Item {
     id: ctrl
 
@@ -13,10 +13,20 @@ Item {
     property int rows: 3
     readonly property int cellCount: Math.max(1, ctrl.cols * ctrl.rows)
 
-    readonly property int windowIndex: ctrl.viewer ? Math.max(0, Math.floor((ctrl.viewer.page - 1) / ctrl.cellCount)) : 0
-    readonly property int windowStart: ctrl.windowIndex * ctrl.cellCount + 1
+    // Current page sits mid-grid, so the block advances one cell at a time and the
+    // pages past the right edge become selectable (a fixed block stalled at 1..9).
+    readonly property int centerOffset: Math.floor((ctrl.cellCount - 1) / 2)
+    readonly property int windowStart: ctrl.viewer ? Math.max(1, ctrl.viewer.page - ctrl.centerOffset) : 1
     readonly property int windowEnd: ctrl.windowStart + ctrl.cellCount - 1
-    readonly property bool hasPrevWindow: ctrl.windowIndex > 0
+
+    // Jump box: the block reaches neighbouring pages; this reaches any page number.
+    function jump() {
+        const n = Math.round(Number(jumpField.text));
+        if (!ctrl.viewer || !(n >= 1))
+            return;
+        jumpField.text = "";
+        ctrl.viewer.gotoPage(n);
+    }
 
     // Deterministic cell size: derived from width, never from Grid's implicit sizing
     // (which resolves a frame late and collapsed the block to one row).
@@ -26,8 +36,8 @@ Item {
     implicitWidth: grid.implicitWidth
     implicitHeight: body.implicitHeight
 
-    // Only the cell block here: it joins the panel body as a sibling section of
-    // Display/Tags, so the body's own spacing is the single gap between sections.
+    // The page block plus its jump box: both are one section of the panel body,
+    // which supplies the single gap to Display/Tags.
     Column {
         id: body
         width: parent.width
@@ -65,6 +75,19 @@ Item {
                     onClicked: ctrl.viewer.gotoPage(pageNo)
                 }
             }
+        }
+
+        // Enter jumps; the field clears so the next number starts empty.
+        AppTextField {
+            id: jumpField
+
+            width: parent.width
+            height: Math.max(24, Math.round(ctrl.cellSize * 0.72))
+            font.pixelSize: Math.min(Theme.fontSize - 2, Math.max(9, Math.round(ctrl.cellSize * 0.36)))
+            placeholderText: "Jump to page"
+            inputMethodHints: Qt.ImhDigitsOnly
+            validator: IntValidator { bottom: 1; top: 99999 }
+            Keys.onReturnPressed: ctrl.jump()
         }
     }
 }

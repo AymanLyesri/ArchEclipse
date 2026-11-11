@@ -20,7 +20,8 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: Theme.spacing
+        // Half-step gutter: the cells are the rhythm, the rail should not add its own beat.
+        spacing: Theme.spaceXs
 
         Repeater {
             model: root.model
@@ -36,10 +37,14 @@ Rectangle {
                 AppButton {
                     anchors.fill: parent
                     icon: modelData.icon !== undefined ? modelData.icon : ""
+                    cornerRadius: Theme.radius
+                    pixelSize: Theme.fontSize + 2
                     toggle: true
                     checked: index === root.currentIndex
                     outlined: modelData.name === root.highlightedName
                     outlineColor: Theme.accent
+                    // Selected cells sit on the raised plane, not on an accent outline.
+                    activeBg: Theme.surfaceOverlay
                     // Donations special red color to nudge users toward
                     // the support widget (preserved from LeftIsland).
                     idleBg: modelData.name === "Donations" ? "#f96854" : "transparent"

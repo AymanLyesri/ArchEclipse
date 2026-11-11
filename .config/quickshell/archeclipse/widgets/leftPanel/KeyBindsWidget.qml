@@ -382,8 +382,9 @@ Item {
 
         Label {
             text: "Key Binds"
-            font.pixelSize: Theme.fontSize + 4
+            font.pixelSize: Theme.typeTitle
             font.bold: true
+            font.letterSpacing: 0.2
             color: Theme.fg
             Layout.fillWidth: true
         }
