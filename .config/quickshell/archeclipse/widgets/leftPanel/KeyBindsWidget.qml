@@ -380,21 +380,40 @@ Item {
         spacing: Theme.spacing
         opacity: root.revealOpacity
 
-        Label {
-            text: "Key Binds"
-            font.pixelSize: Theme.typeTitle
-            font.bold: true
-            font.letterSpacing: 0.2
-            color: Theme.fg
+        // Header carries identity and the live size of the map; the spinner sits beside it
+        // instead of taking a layout row while loading.
+        RowLayout {
             Layout.fillWidth: true
-        }
+            spacing: Theme.spaceSm
 
-        // Loading indicator (centered manually: parent is a layout,
-        // which ignores anchors on children)
-        AppProgress {
-            Layout.alignment: Qt.AlignHCenter
-            status: root.loading ? "loading" : "idle"
-            variant: "spinner"
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 1
+                Label {
+                    text: "Key Binds"
+                    font.pixelSize: Theme.typeTitle
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 0.2
+                    color: Theme.fg
+                }
+                Label {
+                    text: {
+                        let n = 0;
+                        for (const c of root.categories)
+                            n += (root.keybinds[c] || []).length;
+                        return n + (n === 1 ? " binding" : " bindings") + " · " + root.categories.length + (root.categories.length === 1 ? " category" : " categories");
+                    }
+                    font.pixelSize: Theme.typeCaption
+                    color: Theme.muted
+                    visible: !root.loading
+                }
+            }
+
+            AppProgress {
+                Layout.alignment: Qt.AlignVCenter
+                status: root.loading ? "loading" : "idle"
+                variant: "spinner"
+            }
         }
 
         // Categories are user-defined strings (bind.lua comments), so

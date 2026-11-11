@@ -26,10 +26,8 @@ Item {
         anchors.fill: parent
         radius: Theme.radius
         color: "transparent"
-        // Constant width (color-only hover): toggling width 0→1 would
-        // shift the tile content by a pixel on every hover.
-        border.color: root.hovered ? Theme.accent : "transparent"
-        border.width: 1
+        // Hover is carried by the wash below, not by an outline around the capture.
+        border.width: 0
 
         ScreencopyView {
             id: preview

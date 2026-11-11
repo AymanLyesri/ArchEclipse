@@ -1,11 +1,13 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Unified weather card for WeatherWidget (compact) and WeatherIsland: current conditions with sun
-// times and humidity/precip/wind plus a city search; forecasts render when showForecast is set.
+// Unified weather card for WeatherWidget (compact) and WeatherIsland. Layout: one condition
+// panel that reads as a poster (city, temperature, sky) with a stat band inside it, then the
+// forecast as two flat bands instead of a field of little boxes.
 Item {
     id: root
     property bool showForecast: true
@@ -14,9 +16,6 @@ Item {
     // fixed card width, height follows the laid-out content.
     implicitWidth: 460
     implicitHeight: content.implicitHeight
-
-    // Value formatting via Weather.fmt/fmtRaw/formatTime/formatDate.
-
 
     readonly property var cur: root.wx ? (root.wx.current ?? {}) : ({})
     readonly property var day: root.wx ? (root.wx.daily ?? {}) : ({})
@@ -30,9 +29,33 @@ Item {
     readonly property string windUnit: cu.wind_speed_10m || "km/h"
     readonly property string codeBg: hasData ? Weather.background(cur.weather_code) : "transparent"
 
+    // Today's headline numbers, shared by the stat band and the forecast strip.
+    readonly property var statItems: [
+        {
+            icon: Icons.sunrise,
+            label: "Sunrise",
+            value: Weather.formatTime(root.day.sunrise?.[0])
+        },
+        {
+            icon: Icons.sunset,
+            label: "Sunset",
+            value: Weather.formatTime(root.day.sunset?.[0])
+        },
+        {
+            icon: Icons.humidity,
+            label: "Humidity",
+            value: Weather.fmt(root.cur.relative_humidity_2m, "%")
+        },
+        {
+            icon: Icons.wind,
+            label: "Wind",
+            value: Weather.fmtRaw(root.cur.wind_speed_10m, "") + " " + root.windUnit
+        }
+    ]
+
     Column {
         id: content
-        spacing: Theme.spacing
+        spacing: Theme.spaceMd
         width: parent.width
 
         // No-data placeholder
@@ -45,240 +68,161 @@ Item {
         Column {
             visible: root.hasData
             width: parent.width
-            spacing: Theme.spacing
+            spacing: Theme.spaceMd
 
-            // Current conditions panel (code-colored background)
+            // ---- condition poster: city + temperature lead, stats sit inside the same plane ----
             Rectangle {
                 width: parent.width
-                height: headerCol.height + 28
+                height: hero.implicitHeight + Theme.pad * 4
                 color: root.codeBg
                 radius: Theme.radius
 
-                Column {
-                    id: headerCol
+                ColumnLayout {
+                    id: hero
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.topMargin: 14
-                    width: parent.width - 28
-                    spacing: Theme.spacing
+                    anchors.margins: Theme.pad * 2
+                    spacing: Theme.spaceMd
 
-                    Row {
-                        spacing: Theme.spacing
-                        width: parent.width
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceMd
 
-                        // Main column: icon, city, temp, description, feels-like, date
-                        Column {
-                            spacing: Theme.spacing
-                            width: parent.width / 2
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.spaceXs
 
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: Weather.icon(root.cur.weather_code)
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fs(2)
-                                color: Theme.accentFg
+                            RowLayout {
+                                spacing: Theme.spaceXs
+                                Text {
+                                    text: Icons.location
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeLabel
+                                    color: Theme.onPlateInkDim
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: root.wx.city || "Auto (IP)"
+                                    elide: Text.ElideRight
+                                    color: Theme.accentFg
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeSubtitle
+                                    font.weight: Font.DemiBold
+                                }
                             }
+
+                            // The temperature is the one number the card is about.
                             Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: root.hasData ? Icons.location + " " + (root.wx.city || "Auto (IP)") : ""
-                                font.pixelSize: Theme.fontSize
-                                font.bold: true
-                                color: Theme.accentFg
-                                font.family: Theme.fontFamily
-                            }
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
                                 text: Weather.fmtRaw(root.cur.temperature_2m, root.tempUnit)
-                                font.pixelSize: Theme.fs(1.83)
-                                font.bold: true
                                 color: Theme.accentFg
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.typeDisplay
+                                font.weight: Font.DemiBold
                             }
+
                             Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
                                 text: Weather.description(root.cur.weather_code)
                                 color: Theme.onPlateInk
-                                font.pixelSize: Theme.fontSize
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.typeBody
                             }
+
                             Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: `Feels like: ${Weather.fmtRaw(root.cur.apparent_temperature, root.tempUnit)}`
+                                text: "Feels like " + Weather.fmtRaw(root.cur.apparent_temperature, root.tempUnit)
+                                    + " · " + Weather.formatDate(root.day.time?.[0])
                                 color: Theme.onPlateInkDim
-                                font.pixelSize: Theme.fontSize - 2
-                            }
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: Weather.formatDate(root.day.time?.[0])
-                                color: Theme.onPlateInkDim
-                                font.pixelSize: Theme.fontSize - 2
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.typeCaption
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
                             }
                         }
 
-                        // Right column: sun, humidity, precip, wind
-                        Column {
-                            spacing: Theme.spacing
-                            width: parent.width / 2
+                        Text {
+                            Layout.alignment: Qt.AlignTop
+                            text: Weather.icon(root.cur.weather_code)
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.typeDisplay * 1.6
+                            color: Theme.accentFg
+                        }
+                    }
 
-                            Row {
-                                spacing: Theme.spacing
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                Column {
-                                    spacing: 2
-                                    Text {
-                                        text: Icons.sunrise
-                                        font.family: Theme.fontFamily
-                                        color: Theme.accentFg
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
-                                    Text {
-                                        text: Weather.formatTime(root.day.sunrise?.[0])
-                                        color: Theme.accentFg
-                                        font.pixelSize: Theme.fontSize - 2
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
+                    // Stat band: four peers, evenly split, no per-cell plates or outlines.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: Theme.spaceXs
+                        spacing: Theme.spaceSm
+
+                        Repeater {
+                            model: root.statItems
+                            delegate: ColumnLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                spacing: 1
+
+                                Text {
+                                    text: modelData.icon
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeLabel
+                                    color: Theme.accentFg
                                 }
                                 Text {
-                                    text: Icons.daytime
-                                    color: Theme.onPlateInk
-                                    font.pixelSize: Theme.fontSize
+                                    text: modelData.label
                                     font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeCaption
+                                    color: Theme.onPlateInkDim
                                 }
-                                Column {
-                                    spacing: 2
-                                    Text {
-                                        text: Icons.sunset
-                                        font.family: Theme.fontFamily
-                                        color: Theme.accentFg
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
-                                    Text {
-                                        text: Weather.formatTime(root.day.sunset?.[0])
-                                        color: Theme.accentFg
-                                        font.pixelSize: Theme.fontSize - 2
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
-                                }
-                            }
-
-                            Row {
-                                spacing: Theme.spacing
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                Rectangle {
-                                    width: 90
-                                    height: 34
-                                    radius: Theme.radius
-                                    color: Qt.alpha(Theme.onMediaInk, 0.13)
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 1
-                                        Text {
-                                            text: Icons.humidity
-                                            font.family: Theme.fontFamily
-                                            color: Theme.accentFg
-                                            font.pixelSize: Theme.fontSize - 3
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                        Text {
-                                            text: Weather.fmt(root.cur.relative_humidity_2m, "%")
-                                            color: Theme.accentFg
-                                            font.pixelSize: Theme.fontSize - 3
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                    }
-                                }
-                                Rectangle {
-                                    width: 90
-                                    height: 34
-                                    radius: Theme.radius
-                                    color: Qt.alpha(Theme.onMediaInk, 0.13)
-                                    Column {
-                                        anchors.centerIn: parent
-                                        spacing: 1
-                                        Text {
-                                            text: Icons.precipitation
-                                            font.family: Theme.fontFamily
-                                            color: Theme.accentFg
-                                            font.pixelSize: Theme.fontSize - 3
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                        Text {
-                                            text: Weather.fmt(root.cur.precipitation, " mm")
-                                            color: Theme.accentFg
-                                            font.pixelSize: Theme.fontSize - 3
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                width: 190
-                                height: 34
-                                radius: Theme.radius
-                                color: Qt.alpha(Theme.onMediaInk, 0.13)
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                Column {
-                                    anchors.centerIn: parent
-                                    spacing: 1
-                                    Text {
-                                        text: Icons.wind
-                                        font.family: Theme.fontFamily
-                                        color: Theme.accentFg
-                                        font.pixelSize: Theme.fontSize - 3
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
-                                    Text {
-                                        text: `${Weather.fmtRaw(root.cur.wind_speed_10m, "")} ${root.windUnit} ${Weather.windDirection(root.cur.wind_direction_10m)}`
-                                        color: Theme.accentFg
-                                        font.pixelSize: Theme.fontSize - 3
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                    }
+                                Text {
+                                    text: modelData.value
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeLabel
+                                    font.weight: Font.DemiBold
+                                    color: Theme.accentFg
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
                                 }
                             }
                         }
                     }
 
-                    // City search entry + apply + clear
-                    Row {
-                        spacing: Theme.spacing
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: parent.width * 0.9
+                    // City search: one quiet row under the poster content.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceSm
 
                         AppTextField {
                             id: cityEntry
-                            placeholderText: (root.wx?.city ? "Search..." : "Not " + (root.wx?.city || "IP") + "?...")
-                            onAccepted: root.applyCity()
-                            width: parent.width - 76
+                            Layout.fillWidth: true
                             height: 30
                             color: Theme.accentFg
                             fillColor: Theme.scrimSoft
                             placeholderTextColor: Qt.alpha(Theme.onMediaInk, 0.8)
+                            placeholderText: "Search a city..."
+                            onAccepted: root.applyCity()
                             Component.onCompleted: text = Weather._cityOverride
                         }
                         AppButton {
                             width: 32
                             height: 30
                             icon: Icons.check
-                            pixelSize: Theme.fontSizeLarge
+                            pixelSize: Theme.typeLabel
                             cornerRadius: Theme.radius
                             idleBg: Theme.scrimSoft
                             idleFg: Theme.accentFg
                             hoverBg: Theme.scrimSoft
-                            outlined: true
-                            outlineColor: Qt.alpha(Theme.onMediaInk, 0.33)
                             tooltipText: "Search city"
                             onClicked: root.applyCity()
                         }
                         AppButton {
                             width: 32
                             height: 30
-                            icon: Icons.thermometer
-                            pixelSize: Theme.fontSizeLarge
+                            icon: Icons.location
+                            pixelSize: Theme.typeLabel
                             cornerRadius: Theme.radius
                             idleBg: Theme.scrimSoft
                             idleFg: Theme.accentFg
                             hoverBg: Theme.scrimSoft
-                            outlined: true
-                            outlineColor: Qt.alpha(Theme.onMediaInk, 0.33)
                             tooltipText: "Auto (IP)"
                             onClicked: root.clearCity()
                         }
@@ -286,64 +230,68 @@ Item {
                 }
             }
 
-            // Today's Forecast (showForecast only — popover mode)
+            // ---- today: one band, four numbers, label on the left edge ----
             Column {
                 visible: root.showForecast
                 width: parent.width
-                spacing: Theme.spacing
+                spacing: Theme.spaceSm
 
-                Label {
-                    text: "Today's Forecast"
-                    font.pixelSize: Theme.fontSize
-                    font.bold: true
-                    color: Theme.fg
+                Text {
+                    text: "TODAY"
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.typeCaption
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.1
                 }
 
-                Row {
-                    spacing: Theme.spacing
+                Card {
                     width: parent.width
-                    Repeater {
-                        model: [
-                            {
-                                label: "Max",
-                                value: Weather.fmtRaw(root.day.temperature_2m_max?.[0], root.tempUnit)
-                            },
-                            {
-                                label: "Min",
-                                value: Weather.fmtRaw(root.day.temperature_2m_min?.[0], root.tempUnit)
-                            },
-                            {
-                                label: "Rain",
-                                value: `${root.day.precipitation_sum?.[0] ?? 0} mm`
-                            },
-                            {
-                                label: "Wind",
-                                value: `${root.day.wind_speed_10m_max?.[0] ?? "N/A"} ${root.windUnit}`
-                            }
-                        ]
-                        delegate: Rectangle {
-                            width: parent.width / 4 - 6
-                            height: 56
-                            radius: Theme.radius
-                            color: Theme.surface
-                            border.color: Theme.border
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 2
+                    height: contentMargins * 2 + todayRow.height
+                    contentMargins: Theme.pad
+                    contentSpacing: Theme.spaceSm
+
+                    RowLayout {
+                        id: todayRow
+                        width: parent.width
+                        spacing: Theme.spaceSm
+                        Repeater {
+                            model: [
+                                {
+                                    label: "High",
+                                    value: Weather.fmtRaw(root.day.temperature_2m_max?.[0], root.tempUnit)
+                                },
+                                {
+                                    label: "Low",
+                                    value: Weather.fmtRaw(root.day.temperature_2m_min?.[0], root.tempUnit)
+                                },
+                                {
+                                    label: "Rain",
+                                    value: (root.day.precipitation_sum?.[0] ?? 0) + " mm"
+                                },
+                                {
+                                    label: "Gust",
+                                    value: (root.day.wind_speed_10m_max?.[0] ?? "N/A") + " " + root.windUnit
+                                }
+                            ]
+                            delegate: ColumnLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                spacing: 1
                                 Text {
                                     text: modelData.label
-                                    color: Theme.fgDim
-                                    font.pixelSize: Theme.fontSize - 3
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeCaption
                                 }
                                 Text {
                                     text: modelData.value
                                     color: Theme.fg
-                                    font.pixelSize: Theme.fontSize - 2
-                                    font.bold: true
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    wrapMode: Text.WordWrap
-                                    horizontalAlignment: Text.AlignHCenter
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeLabel
+                                    font.weight: Font.DemiBold
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
                                 }
                             }
                         }
@@ -351,52 +299,62 @@ Item {
                 }
             }
 
-            // Hourly Forecast (showForecast only)
+            // ---- next hours: one band, each hour a small column ----
             Column {
                 visible: root.showForecast
                 width: parent.width
-                spacing: Theme.spacing
+                spacing: Theme.spaceSm
 
-                Label {
-                    text: "Hourly Forecast"
-                    font.pixelSize: Theme.fontSize
-                    font.bold: true
-                    color: Theme.fg
+                Text {
+                    text: "NEXT HOURS"
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.typeCaption
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.1
                 }
 
-                Row {
-                    spacing: Theme.spacing
+                Card {
                     width: parent.width
-                    Repeater {
-                        model: root.hourlyItems()
-                        delegate: Rectangle {
-                            width: parent.width / 4 - 6
-                            height: 78
-                            radius: Theme.radius
-                            color: Theme.surface
-                            border.color: Theme.border
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: Theme.spacing
+                    height: contentMargins * 2 + hourRow.height
+                    contentMargins: Theme.pad
+                    contentSpacing: Theme.spaceSm
+
+                    RowLayout {
+                        id: hourRow
+                        width: parent.width
+                        spacing: Theme.spaceSm
+                        Repeater {
+                            model: root.hourlyItems()
+                            delegate: ColumnLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Text {
+                                    text: modelData.time
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeCaption
+                                }
                                 Text {
                                     text: Weather.icon(modelData.code)
                                     font.family: Theme.fontFamily
                                     color: Theme.accent
-                                    font.pixelSize: Theme.fontSize + 4
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    font.pixelSize: Theme.typeTitle
                                 }
                                 Text {
-                                    text: `${Math.round(modelData.temp)}°  ${modelData.time}`
+                                    text: Math.round(modelData.temp) + "°"
                                     color: Theme.fg
-                                    font.pixelSize: Theme.fontSize - 2
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeLabel
+                                    font.weight: Font.DemiBold
                                 }
                                 Text {
                                     visible: modelData.precip > 0
-                                    text: `${modelData.precip}mm`
+                                    text: modelData.precip + "mm"
                                     color: Theme.accent
-                                    font.pixelSize: Theme.fontSize - 3
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.typeCaption
                                 }
                             }
                         }

@@ -7,9 +7,10 @@ import qs.widgets.shared
 
 // Shared notification card body for the popup toast and the history card: display state arrives
 // as plain props so both hosts feed it identically, and side effects bubble out as signals.
+// Layout contract: optional media hero on top, then a badge + text block, then actions. Controls
+// replace the timestamp in the header on hover, so a card never changes height while hovered.
 Column {
     id: root
-    // Group rhythm: header/body are one block, actions and controls are their own rows.
     spacing: Theme.spaceSm
 
     property string iconFile: ""
@@ -39,146 +40,197 @@ Column {
     signal dismissRequested()
     signal actionClicked(var action)
 
+    readonly property bool hasVideo: root.videoFile !== ""
+    readonly property bool hasImage: root.previewFile !== ""
+    // Media pulls the eye first: a wide preview reads better than a square thumbnail squeezed
+    // against the text, and it gives screenshots their real proportion.
+    readonly property bool hasMedia: root.hasVideo || root.hasImage
+    readonly property string timeText: root.stamp > 0 ? new Date(root.stamp * 1000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    }) : ""
+
+    // ---- media hero ----
+    Rectangle {
+        id: hero
+        width: parent.width
+        height: root.hasMedia ? Math.min(200, Math.round(width * 0.5)) : 0
+        visible: root.hasMedia
+        radius: Theme.radius
+        clip: true
+        color: Qt.alpha(Theme.fg, 0.05)
+
+        Image {
+            id: previewImg
+            anchors.fill: parent
+            visible: root.hasImage && status !== Image.Error
+            source: root.hasImage ? "file://" + root.previewFile : ""
+            asynchronous: true
+            cache: false
+            fillMode: Image.PreserveAspectCrop
+            opacity: status === Image.Ready ? 1 : 0
+            Behavior on opacity {
+                Anim {
+                    type: Anim.FastEffects
+                }
+            }
+        }
+        AppVideo {
+            anchors.fill: parent
+            visible: root.hasVideo && !previewImg.visible
+            source: root.videoFile
+            active: visible && root.videoActive
+            muted: true
+        }
+        // A single wash folds the image into the card instead of outlining it.
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop {
+                    position: 0.55
+                    color: "transparent"
+                }
+                GradientStop {
+                    position: 1
+                    color: Qt.rgba(0, 0, 0, 0.35)
+                }
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.openRequested(root.hasImage ? root.previewFile : root.videoFile)
+        }
+    }
+
+    // ---- identity + text ----
     Row {
-        id: contentRow
         width: parent.width
         spacing: Theme.spaceMd
 
-        // ---- app icon / image: the image takes the icon's
-        // place, spanning the text height (72-120px) ----
-        Item {
-            id: iconSlot
-            readonly property bool showPreview: root.previewFile !== "" && previewImg.status !== Image.Error
-            readonly property bool showVideo: root.videoFile !== ""
-            readonly property bool showMedia: showPreview || showVideo
-            readonly property real previewSize: Math.min(Math.max(textCol.height, 72), 120)
-            width: showMedia ? previewSize : 28
-            height: showMedia ? previewSize : 28
-            Behavior on width {
-                Anim {
-                    type: Anim.FastSpatial
-                }
-            }
-            Behavior on height {
-                Anim {
-                    type: Anim.FastSpatial
-                }
-            }
+        // App badge: the icon sits in its own plate so a dark glyph still reads on the card.
+        Surface {
+            id: badge
+            width: 32
+            height: 32
+            level: 2
+            radius: Theme.radius
+
             IconImage {
-                id: iconImg
-                visible: !parent.showMedia && status === Image.Ready && (root.iconFile !== "" || root.iconName !== "")
+                id: badgeIcon
                 anchors.fill: parent
+                anchors.margins: 6
+                visible: (root.iconFile !== "" || root.iconName !== "") && status === Image.Ready
                 source: root.iconFile !== "" ? root.iconFile : root.iconName
             }
             Text {
-                visible: !iconImg.visible && !parent.showMedia
-                width: parent.width
-                height: parent.height
+                visible: !badgeIcon.visible
+                anchors.centerIn: parent
                 text: root.isRecorder ? Icons.record : (root.critical ? Icons.alert : Icons.notification)
-                color: root.isRecorder ? Theme.danger : (root.critical ? Theme.criticalFg : Theme.fg)
+                color: root.isRecorder ? Theme.danger : (root.critical ? Theme.criticalFg : Theme.muted)
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fs(1.83)
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            Rectangle {
-                visible: parent.showPreview
-                opacity: previewImg.status === Image.Ready ? 1 : 0
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 250
-                    }
-                }
-                anchors.fill: parent
-                radius: Theme.radius
-                clip: true
-                color: Qt.alpha(Theme.fg, 0.06)
-                Image {
-                    id: previewImg
-                    anchors.fill: parent
-                    source: root.previewFile !== "" ? "file://" + root.previewFile : ""
-                    asynchronous: true
-                    cache: false
-                    fillMode: Image.PreserveAspectCrop
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.openRequested(root.previewFile)
-                }
-            }
-            Rectangle {
-                visible: parent.showVideo && !parent.showPreview
-                anchors.fill: parent
-                radius: Theme.radius
-                clip: true
-                color: Qt.alpha(Theme.fg, 0.06)
-                AppVideo {
-                    anchors.fill: parent
-                    source: root.videoFile
-                    active: visible && root.videoActive
-                    muted: true
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.openRequested(root.videoFile)
-                }
+                font.pixelSize: Theme.typeSubtitle
             }
         }
 
         Column {
-            id: textCol
-            width: (root.previewFile !== "" || root.videoFile !== "") ? parent.width - 128 : parent.width - 36
-            Behavior on width {
-                Anim {
-                    type: Anim.FastSpatial
-                }
-            }
-            spacing: Theme.spaceXs / 2 + 1
+            width: parent.width - badge.width - Theme.spaceMd
+            spacing: Theme.spaceXs
 
-            // ---- top bar: title + time (24h %H:%M) ----
+            // Title keeps the full width; time and controls swap places on hover at the same
+            // height, so the card body never reflows vertically.
             RowLayout {
-                spacing: Theme.spacing
                 width: parent.width
+                spacing: Theme.spaceSm
+
                 Text {
+                    Layout.fillWidth: true
                     text: root.title
                     textFormat: Text.StyledText
                     elide: Text.ElideRight
-                    Layout.fillWidth: true
+                    maximumLineCount: 2
                     color: root.critical ? Theme.criticalFg : Theme.fg
                     font.family: Theme.fontFamily
-                    font.bold: true
-                    font.pixelSize: Theme.fontSize
+                    font.weight: Font.DemiBold
+                    font.pixelSize: Theme.typeBody
                 }
+
                 Text {
-                    text: root.stamp > 0 ? new Date(root.stamp * 1000).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false
-                    }) : ""
-                    color: root.critical ? Qt.alpha(Theme.criticalFg, Theme.opacity.hoverDim) : Theme.fgDim
-                    font.pixelSize: Theme.fontSize - 2
-                    visible: text !== ""
+                    text: root.timeText
+                    visible: !root.controlsVisible && text !== ""
+                    color: Theme.muted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.typeCaption
+                }
+
+                Row {
+                    spacing: 2
+                    visible: root.controlsVisible
+
+                    AppButton {
+                        icon: Icons.eye
+                        pixelSize: Theme.typeCaption
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceHover
+                        hoverBg: Theme.surfaceActive
+                        hPadding: 6
+                        height: 22
+                        tooltipText: root.openFile
+                        visible: root.openFile !== ""
+                        onClicked: root.openRequested(root.openFile)
+                    }
+                    AppButton {
+                        icon: Icons.copy
+                        pixelSize: Theme.typeCaption
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceHover
+                        hoverBg: Theme.surfaceActive
+                        hPadding: 6
+                        height: 22
+                        tooltipText: root.copyTip
+                        onClicked: root.copyRequested()
+                    }
+                    AppButton {
+                        icon: root.bodyExpanded ? Icons.chevronUp : Icons.chevronDown
+                        pixelSize: Theme.typeCaption
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceHover
+                        hoverBg: Theme.surfaceActive
+                        hPadding: 6
+                        height: 22
+                        tooltipText: root.bodyExpanded ? "Collapse" : "Expand"
+                        visible: root.longBody
+                        onClicked: root.bodyExpanded = !root.bodyExpanded
+                    }
+                    AppButton {
+                        icon: Icons.close
+                        pixelSize: Theme.typeCaption
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceHover
+                        hoverBg: Theme.surfaceActive
+                        hPadding: 6
+                        height: 22
+                        tooltipText: root.dismissTip
+                        onClicked: root.dismissRequested()
+                    }
                 }
             }
 
-            // ---- body (expandable, markup handling) ----
-            // Hidden when it is just the image path — the image beside it already shows it.
+            // Body sits under the title, indented to the text column, not the badge.
             Text {
                 width: parent.width
-                visible: !root.hideBody
+                visible: !root.hideBody && root.bodyText !== ""
                 text: root.bodyText
                 textFormat: Text.StyledText
                 wrapMode: Text.WordWrap
-                maximumLineCount: root.bodyExpanded ? undefined : 4
+                maximumLineCount: root.bodyExpanded ? undefined : (root.hasMedia ? 2 : 4)
                 elide: root.bodyExpanded ? Text.ElideNone : Text.ElideRight
                 color: root.critical ? Qt.alpha(Theme.criticalFg, Theme.opacity.soft) : Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSize - 1
+                font.pixelSize: Theme.typeLabel
+                lineHeight: 1.15
 
-                // Tap expand only where the background doesn't own
-                // press-drag (history); a disabled TapHandler is inert.
                 TapHandler {
                     enabled: root.tapToExpand
                     gesturePolicy: TapHandler.ReleaseWithinBounds
@@ -189,82 +241,28 @@ Column {
                     cursorShape: Qt.PointingHandCursor
                 }
             }
-        }
-    }
 
-    // ---- action buttons (all actions, invoke, NO dismiss) ----
-    Row {
-        id: actionsRow
-        visible: root.actionItems.length > 0
-        spacing: Theme.spaceXs
-        Repeater {
-            model: root.actionItems
-            delegate: AppButton {
-                required property var modelData
-                text: Notifications.actionLabel(modelData)
-                tooltipText: "Run this action"
-                height: 26
-                pixelSize: Theme.typeCaption
-                cornerRadius: Theme.radius
-                idleBg: Theme.surface
-                hoverBg: Theme.surfaceHover
-                onClicked: root.actionClicked(modelData)
+            // Actions are the card's second tier: chips on their own row, never mixed with
+            // icon controls.
+            Row {
+                width: parent.width
+                spacing: Theme.spaceXs
+                visible: root.actionItems.length > 0
+                Repeater {
+                    model: root.actionItems
+                    delegate: AppButton {
+                        required property var modelData
+                        text: Notifications.actionLabel(modelData)
+                        tooltipText: "Run this action"
+                        height: 26
+                        pixelSize: Theme.typeCaption
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceHover
+                        hoverBg: Theme.surfaceActive
+                        onClicked: root.actionClicked(modelData)
+                    }
+                }
             }
-        }
-    }
-
-    // ---- control buttons: open, copy, expand, dismiss ----
-    Row {
-        id: buttonsRow
-        visible: root.controlsVisible
-        opacity: root.controlsVisible ? 1 : 0
-        Behavior on opacity {
-            Anim {
-                type: Anim.FastEffects
-            }
-        }
-        spacing: Theme.spaceXs
-        AppButton {
-            icon: Icons.eye
-            pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radius
-            idleBg: Theme.surface
-            hoverBg: Theme.surfaceHover
-            hPadding: 8
-            tooltipText: root.openFile
-            visible: root.openFile !== ""
-            onClicked: root.openRequested(root.openFile)
-        }
-        AppButton {
-            icon: Icons.copy
-            pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radius
-            idleBg: Theme.surface
-            hoverBg: Theme.surfaceHover
-            hPadding: 8
-            tooltipText: root.copyTip
-            onClicked: root.copyRequested()
-        }
-        AppButton {
-            icon: root.bodyExpanded ? Icons.chevronUp : Icons.chevronDown
-            pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radius
-            idleBg: Theme.surface
-            hoverBg: Theme.surfaceHover
-            hPadding: 8
-            tooltipText: root.bodyExpanded ? "Collapse" : "Expand"
-            visible: root.longBody
-            onClicked: root.bodyExpanded = !root.bodyExpanded
-        }
-        AppButton {
-            icon: Icons.close
-            pixelSize: Theme.fontSizeSmall
-            cornerRadius: Theme.radius
-            idleBg: Theme.surface
-            hoverBg: Theme.surfaceHover
-            hPadding: 8
-            tooltipText: root.dismissTip
-            onClicked: root.dismissRequested()
         }
     }
 }

@@ -3,10 +3,11 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import qs.services
 import qs.theme
+import qs.widgets.notifications
 import qs.widgets.shared
 
-// Notification history: a flat newest-first list of the same cards the toasts use
-// (NotificationCardBody) — left-click copies, right-click dismisses.
+// Notification history: newest-first cards grouped by day, so a long backlog reads as a
+// timeline instead of one undifferentiated stack. Left-click copies, right-click dismisses.
 Item {
     id: root
 
@@ -49,14 +50,58 @@ Item {
 
     property var visibleNotifications: filteredList(notifications, filterText)
 
-    // Natural height for embedders: header + filter + list (capped, internal scroll) + hint; the
-    // list measures real delegate heights instead of guessing per-notification pixels.
+    // ---- timeline rows: one day header before each day's cards ----
+    function dayStart(t) {
+        const d = new Date(t * 1000);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    }
+
+    function dayLabel(t) {
+        const today = root.dayStart(Date.now() / 1000);
+        const d = root.dayStart(t);
+        if (d === today)
+            return "Today";
+        if (d === today - 86400000)
+            return "Yesterday";
+        return new Date(t * 1000).toLocaleDateString([], {
+            weekday: "short",
+            day: "numeric",
+            month: "short"
+        });
+    }
+
+    function buildRows(list) {
+        const rows = [];
+        let lastDay = -1;
+        for (let i = 0; i < list.length; i++) {
+            const entry = list[i];
+            const d = root.dayStart(entry.time || 0);
+            if (d !== lastDay) {
+                lastDay = d;
+                rows.push({
+                    kind: "day",
+                    label: root.dayLabel(entry.time || 0)
+                });
+            }
+            rows.push({
+                kind: "item",
+                entry: entry
+            });
+        }
+        return rows;
+    }
+
+    property var rows: buildRows(visibleNotifications)
+    readonly property int todayCount: visibleNotifications.filter(n => root.dayStart(n.time || 0) === root.dayStart(Date.now() / 1000)).length
+
+    // Natural height for embedders: header + list (capped, internal scroll) + hint. The list
+    // measures real delegate heights instead of guessing per-notification pixels.
     readonly property real maxListH: 380
     readonly property real listH: visibleNotifications.length === 0 ? 0 : Math.min(listColumn.height, maxListH)
     // Never bind Text.height to implicitHeight (WordWrap loops). Column
     // already skips invisible children; only count the hint when shown.
     readonly property real emptyHintH: visibleNotifications.length === 0 ? emptyHint.implicitHeight : 0
-    implicitHeight: headerRow.implicitHeight + filterField.implicitHeight + listH + emptyHintH + mainCol.spacing * 3 + 24
+    implicitHeight: headerRow.implicitHeight + listH + emptyHintH + mainCol.spacing * 2 + Theme.pad * 2
 
     Column {
         id: mainCol
@@ -64,47 +109,55 @@ Item {
         anchors.margins: Theme.pad
         spacing: Theme.spaceMd
 
-        // Header: title + match count + clear-all.
-        RowLayout {
+        // Header owns identity, the live count and the one destructive action. The filter is a
+        // compact field on the same band, so the list starts one row higher than before.
+        Column {
             id: headerRow
             width: parent.width
-            spacing: Theme.spacing
+            spacing: Theme.spaceSm
 
-            Label {
-                text: "Notifications"
-                font.pixelSize: Theme.typeSubtitle
-                font.bold: true
-                color: Theme.fg
-                Layout.fillWidth: true
-                elide: Text.ElideRight
+            RowLayout {
+                width: parent.width
+                spacing: Theme.spacing
+
+                Column {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    Text {
+                        text: "Notifications"
+                        font.pixelSize: Theme.typeSubtitle
+                        font.weight: Font.DemiBold
+                        color: Theme.fg
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
+                    Text {
+                        text: root.visibleNotifications.length === 0 ? "Nothing new" : (root.todayCount > 0 ? root.todayCount + " today · " + root.visibleNotifications.length + " total" : root.visibleNotifications.length + " in history")
+                        font.pixelSize: Theme.typeCaption
+                        color: Theme.muted
+                        elide: Text.ElideRight
+                        width: parent.width
+                    }
+                }
+
+                AppButton {
+                    icon: Icons.trashOutline
+                    pixelSize: Theme.typeLabel
+                    cornerRadius: Theme.radius
+                    hPadding: 8
+                    tooltipText: "Clear all"
+                    visible: root.notifications.length > 0
+                    onClicked: Notifications.clearHistory()
+                }
             }
 
-            Text {
-                text: "(" + visibleNotifications.length + ")"
-                font.pixelSize: Theme.typeLabel
-                color: Theme.muted
-                visible: visibleNotifications.length > 0
+            AppTextField {
+                id: filterField
+                width: parent.width
+                placeholderText: "Filter by name or text..."
+                text: root.filterText
+                onTextChanged: root.filterText = text
             }
-
-            AppButton {
-                icon: Icons.trashOutline
-                pixelSize: Theme.typeLabel
-                cornerRadius: Theme.radius
-                hPadding: 8
-                tooltipText: "Clear all"
-                visible: notifications.length > 0
-                onClicked: Notifications.clearHistory()
-            }
-        }
-
-        // Filter lives at the top so it reads before the list it filters.
-        // Matches the app name, the summary title, and the body text.
-        AppTextField {
-            id: filterField
-            width: parent.width
-            placeholderText: "Filter by name or text..."
-            text: root.filterText
-            onTextChanged: root.filterText = text
         }
 
         // The list fills the leftover card space, never sizing from content: that clipped the
@@ -113,7 +166,7 @@ Item {
             id: nScroll
             width: parent.width
             // Guarded: a negative height sends Flickable into a silent polish loop
-            height: visibleNotifications.length === 0 ? 0 : Math.max(0, parent.height - y - 8)
+            height: visibleNotifications.length === 0 ? 0 : Math.max(0, parent.height - y - Theme.spaceSm)
             visible: visibleNotifications.length > 0
             clip: true
             flickableDirection: Flickable.VerticalFlick
@@ -143,10 +196,33 @@ Item {
                 spacing: Theme.spaceSm
 
                 Repeater {
-                    model: visibleNotifications
-                    delegate: NotificationItem {
-                        width: parent.width
-                        entry: modelData
+                    model: root.rows
+                    delegate: Item {
+                        id: rowItem
+                        required property var modelData
+                        readonly property bool isDay: modelData.kind === "day"
+                        width: listColumn.width
+                        height: isDay ? dayLabelText.implicitHeight + Theme.spaceXs : cardItem.height
+
+                        // Day header: a quiet label plus the count, no rule underneath.
+                        Text {
+                            id: dayLabelText
+                            visible: rowItem.isDay
+                            text: rowItem.modelData.label || ""
+                            color: Theme.muted
+                            font.pixelSize: Theme.typeCaption
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: 0.6
+                            font.capitalization: Font.AllUppercase
+                            topPadding: Theme.spaceXs
+                        }
+
+                        NotificationItem {
+                            id: cardItem
+                            visible: !rowItem.isDay
+                            width: parent.width
+                            entry: rowItem.isDay ? null : (rowItem.modelData.entry || null)
+                        }
                     }
                 }
             }

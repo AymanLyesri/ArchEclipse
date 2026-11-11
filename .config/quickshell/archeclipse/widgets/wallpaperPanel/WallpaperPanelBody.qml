@@ -978,9 +978,228 @@ Item {
         color: "transparent"
         radius: Theme.radius
 
+        // Left control panel: shared nav-panel chrome (width, drag grip, body slot) with the rail
+        // hidden; the provider switch is a horizontal segmented control inside its body.
+        AppNavigationSidePanel {
+            id: navPanel
+            anchors.top: parent.top
+            anchors.left: parent.left
+            width: navPanel.panelWidth
+            height: parent.height
+            railVisible: false
+
+            SmoothFlickable {
+                anchors.fill: parent
+                contentWidth: width
+                contentHeight: panelControls.implicitHeight
+                clip: true
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
+
+                Column {
+                    id: panelControls
+                    width: parent.width
+                    spacing: Theme.spaceSm
+
+                    component PanelLabel: Text {
+                        width: parent.width
+                        text: ""
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 1
+                    }
+
+                    // Provider pages as a horizontal switch (the rail used to hold these).
+                    AppSegmentedControl {
+                        width: parent.width
+                        stretchCells: true
+                        pixelSize: Theme.typeCaption
+                        cellHPadding: 6
+                        model: [
+                            {
+                                label: "Local",
+                                tooltip: "Wallpapers from your local folders"
+                            },
+                            {
+                                label: "Wallhaven",
+                                tooltip: "Search and download from wallhaven.cc"
+                            }
+                        ]
+                        currentIndex: root.providerTypes.indexOf(root.provider)
+                        onActivated: i => Settings.updateSetting("wallpaperSwitcher.provider", root.providerTypes[i])
+                    }
+
+                    PanelLabel {
+                        text: "TARGET"
+                        topPadding: Theme.spaceXs
+                    }
+                    AppSegmentedControl {
+                        width: parent.width
+                        stretchCells: true
+                        pixelSize: Theme.typeCaption
+                        cellHPadding: 6
+                        model: [
+                            {
+                                label: "Desktop",
+                                tooltip: "Pick a wallpaper per workspace"
+                            },
+                            {
+                                label: "Greeter",
+                                tooltip: "Set the greeter (login) wallpaper"
+                            }
+                        ]
+                        currentIndex: root.targetTypes.indexOf(root.targetType)
+                        onActivated: i => root.targetType = root.targetTypes[i]
+                    }
+
+                    PanelLabel {
+                        text: "TRANSITION"
+                        topPadding: Theme.spaceXs
+                    }
+                    AppSegmentedControl {
+                        width: parent.width
+                        stretchCells: true
+                        pixelSize: Theme.typeCaption
+                        model: root.transitionTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1))
+                        currentIndex: Math.max(0, root.transitionTypes.indexOf(root.transition))
+                        onActivated: i => root.setTransition(root.transitionTypes[i])
+                    }
+
+                    PanelLabel {
+                        text: "COLLECTION"
+                        topPadding: Theme.spaceXs
+                        visible: !root.isWallhaven
+                    }
+                    AppComboBox {
+                        id: categoryCombo
+                        objectName: "categoryCombo"
+                        width: parent.width
+                        visible: !root.isWallhaven
+                        model: root.categories
+                        currentIndex: root.categories.indexOf(root.selectedCategory)
+                        onActivated: i => Settings.updateSetting("wallpaperSwitcher.category", root.categories[i])
+                    }
+
+                    PanelLabel {
+                        text: "TILES"
+                        topPadding: Theme.spaceXs
+                    }
+                    RowLayout {
+                        width: parent.width
+                        spacing: Theme.spaceXs
+                        AppButton {
+                            text: "−"
+                            tooltipText: "Fewer masonry rows"
+                            enabled: Settings.wallpaperMasonryRows > 1
+                            Layout.preferredWidth: 26
+                            height: 26
+                            onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows - 1)
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignHCenter
+                            text: Settings.wallpaperMasonryRows + (Settings.wallpaperMasonryRows === 1 ? " row" : " rows")
+                            color: Theme.fgDim
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.typeCaption
+                        }
+                        AppButton {
+                            text: "+"
+                            tooltipText: "More masonry rows"
+                            enabled: Settings.wallpaperMasonryRows < 4
+                            Layout.preferredWidth: 26
+                            height: 26
+                            onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows + 1)
+                        }
+                    }
+                    AppSlider {
+                        width: parent.width
+                        from: 92
+                        to: 256
+                        stepSize: 4
+                        // Reset point: the shipped tile size, marked on the track and snapped to.
+                        defaultValue: 192
+                        value: Settings.wallpaperTileSize
+                        onValueChanged: {
+                            // Binding guard: the settings write re-evaluates value to the same
+                            // number, so never write back.
+                            const v = Math.round(value);
+                            if (v === Settings.wallpaperTileSize)
+                                return;
+                            Settings.updateSetting("wallpaperSwitcher.tileSize", v);
+                        }
+                    }
+                    Text {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignRight
+                        text: Settings.wallpaperTileSize + "px tile size"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                    }
+
+                    PanelLabel {
+                        text: "ACTIONS"
+                        topPadding: Theme.spaceXs
+                    }
+                    AppButton {
+                        width: parent.width
+                        text: "Random"
+                        tooltipText: "Set a random wallpaper from this view"
+                        visible: !root.isWallhaven
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        onClicked: root.setRandomWallpaper()
+                    }
+                    AppButton {
+                        width: parent.width
+                        text: "Reload"
+                        icon: Icons.refresh
+                        contentSpacing: Theme.spaceXs
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        tooltipText: "Reload the wallpaper daemon"
+                        onClicked: root.reloadDaemon()
+                    }
+                    AppButton {
+                        width: parent.width
+                        text: "Add…"
+                        icon: Icons.plus
+                        contentSpacing: Theme.spaceXs
+                        cornerRadius: Theme.radius
+                        idleBg: Theme.surfaceRaised
+                        hoverBg: Theme.surfaceOverlay
+                        tooltipText: "Pick a wallpaper image to add"
+                        onClicked: root.pickWallpaper()
+                    }
+
+                    // Phased progress text (replaces the spinner), under the actions it describes.
+                    Text {
+                        width: parent.width
+                        topPadding: Theme.spaceXs
+                        wrapMode: Text.WordWrap
+                        text: root.progressText
+                        color: root.progressColor
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                        visible: text !== ""
+                    }
+                }
+            }
+        }
+
         ColumnLayout {
             id: mainCol
-            anchors.fill: parent
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.left: navPanel.right
+            anchors.leftMargin: Theme.spaceMd
             // No outer margin: Theme.islandPad is the only inset between pill edge and content —
             // adding one here stacks a second (this body used to add 12).
             spacing: Theme.spacing
@@ -1079,8 +1298,12 @@ Item {
                                 height: 66
                                 radius: Theme.radius
                                 color: modelData === "" ? "black" : "transparent"
-                                border.width: isFocused ? 1 : 0
-                                border.color: Theme.muted
+                                // Focus is a lift, not an outline: the active workspace stays
+                                // full strength while the rest recede.
+                                opacity: isFocused ? 1 : 0.8
+                                Behavior on opacity {
+                                    Anim {}
+                                }
 
                                 AppImage {
                                     visible: wsTile.modelData !== ""
@@ -1109,138 +1332,19 @@ Item {
                                     color: Theme.muted
                                     font.family: Theme.fontFamily
                                 }
+                                // Focus marker: the same 2px accent edge the nav rail uses.
+                                Rectangle {
+                                    visible: wsTile.isFocused
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.margins: 4
+                                    height: 2
+                                    radius: 1
+                                    color: Theme.accent
+                                }
                             }
                         }
-                    }
-                }
-            }
-
-            // action bar — wrapped so radius / bg / border apply as one pill
-            Rectangle {
-                Layout.alignment: Qt.AlignHCenter
-                implicitWidth: actionBar.implicitWidth + 16
-                implicitHeight: actionBar.implicitHeight + 10
-                radius: Theme.radius
-                color: Theme.surface
-
-                clip: true
-
-                RowLayout {
-                    id: actionBar
-                    anchors.centerIn: parent
-                    spacing: Theme.spacing
-
-                    // Provider switch: local folders vs. wallhaven.cc API.
-                    AppSegmentedControl {
-                        model: root.providerTypes
-                        currentIndex: root.providerTypes.indexOf(root.provider)
-                        cellHPadding: 8
-                        cellVPadding: 4
-                        onActivated: (i, v) => Settings.updateSetting("wallpaperSwitcher.provider", v)
-                    }
-
-                    AppSegmentedControl {
-                        model: root.targetTypes
-                        currentIndex: root.targetTypes.indexOf(root.targetType)
-                        cellHPadding: 8
-                        cellVPadding: 4
-                        onActivated: (i, v) => root.targetType = v
-                    }
-
-                    // Workspace-switch transition: slide (default) or fade, persisted daemon-side
-                    // and followed by a reload so it applies with a fade right away.
-                    AppSegmentedControl {
-                        model: root.transitionTypes
-                        currentIndex: root.transitionTypes.indexOf(root.transition)
-                        cellHPadding: 8
-                        cellVPadding: 4
-                        onActivated: (i, v) => root.setTransition(v)
-                    }
-
-
-                    AppComboBox {
-                        id: categoryCombo
-                        objectName: "categoryCombo"
-                        visible: !root.isWallhaven
-                        model: root.categories
-                        Layout.preferredHeight: 26
-                        currentIndex: root.categories.indexOf(root.selectedCategory)
-                        onActivated: i => Settings.updateSetting("wallpaperSwitcher.category", root.categories[i])
-                    }
-
-                    AppButton {
-                        tooltipText: "Set a random wallpaper from this view"
-                        text: "Random"
-                        visible: !root.isWallhaven
-                        Layout.preferredHeight: 26
-                        onClicked: root.setRandomWallpaper()
-                    }
-                    AppButton {
-                        tooltipText: "Reload the wallpaper daemon"
-                        text: "Reload"
-                        Layout.preferredHeight: 26
-                        onClicked: root.reloadDaemon()
-                    }
-                    AppButton {
-                        tooltipText: "Pick a wallpaper image to add"
-                        text: "Add…"
-                        Layout.preferredHeight: 26
-                        onClicked: root.pickWallpaper()
-                    }
-
-                    // Shared masonry view (both providers, persisted).
-                    AppButton {
-                        text: "‹"
-                        tooltipText: "Fewer masonry rows"
-                        enabled: Settings.wallpaperMasonryRows > 1
-                        Layout.preferredHeight: 26
-                        onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows - 1)
-                    }
-                    Text {
-                        text: Settings.wallpaperMasonryRows + (Settings.wallpaperMasonryRows === 1 ? " row" : " rows")
-                        color: Theme.fg
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 2
-                    }
-                    AppButton {
-                        text: "›"
-                        tooltipText: "More masonry rows"
-                        enabled: Settings.wallpaperMasonryRows < 4
-                        Layout.preferredHeight: 26
-                        onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows + 1)
-                    }
-                    AppSlider {
-                        Layout.preferredWidth: 64
-                        Layout.preferredHeight: 26
-                        from: 80
-                        to: 200
-                        stepSize: 10
-                        value: Settings.wallpaperTileSize
-                        onValueChanged: {
-                            // Same binding guard as the booru sliders: the settings write re-evaluates
-                            // value to the same number, which must not write back in a loop.
-                            const v = Math.round(value);
-                            if (v === Settings.wallpaperTileSize)
-                                return;
-                            Settings.updateSetting("wallpaperSwitcher.tileSize", v);
-                        }
-                    }
-                    Text {
-                        text: Settings.wallpaperTileSize + "px"
-                        color: Theme.fgDim
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 2
-                    }
-
-                    Text {
-                        // Phased progress text (replaces the spinner): fixed
-                        // width so phase changes don't jitter the action bar.
-                        width: 70
-                        elide: Text.ElideRight
-                        text: root.progressText
-                        color: root.progressColor
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSize - 2
                     }
                 }
             }

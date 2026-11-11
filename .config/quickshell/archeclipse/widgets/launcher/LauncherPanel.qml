@@ -18,7 +18,10 @@ Rectangle {
 
     SmoothListView {
         id: resultsList
-        anchors.fill: parent
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: footer.top
         // No outer margin: the bar's Theme.islandPad is the only inset
         // between the pill edge and content (the list used to add 8).
         clip: true
@@ -143,6 +146,89 @@ Rectangle {
                         modelData.launch();
                     }
                 }
+            }
+        }
+    }
+
+    // Footer band: keyboard model + result count. It sits below the list so the list owns the
+    // whole panel body and the hints never push results around.
+    Rectangle {
+        id: footer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 30
+        color: Qt.alpha(Theme.bg, 0.35)
+        radius: Theme.radius
+
+        Row {
+            anchors.fill: parent
+            anchors.leftMargin: Theme.pad + 4
+            anchors.rightMargin: Theme.pad + 4
+            spacing: Theme.spaceSm
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "\u2191\u2193"
+                color: Theme.fgDim
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaption
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "navigate"
+                color: Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaption
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "\u21B5"
+                color: Theme.fgDim
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaption
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "open"
+                color: Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaption
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "esc"
+                color: Theme.fgDim
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaption
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "close"
+                color: Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaption
+            }
+
+            Item {
+                width: Math.max(0, parent.width - 260)
+                height: 1
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: {
+                    let n = 0;
+                    const res = Launcher.results || [];
+                    for (let i = 0; i < res.length; i++) {
+                        if (res[i] && res[i].isHeader !== true)
+                            n++;
+                    }
+                    return n + (n === 1 ? " result" : " results");
+                }
+                color: Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaption
             }
         }
     }

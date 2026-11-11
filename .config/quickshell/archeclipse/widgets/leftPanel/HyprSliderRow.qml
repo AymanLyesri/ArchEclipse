@@ -16,6 +16,8 @@ SettingRow {
     property real stepSize: 0
     property int decimals: 0
     property real value: 0
+    // Optional reset point forwarded to the slider; undefined keeps the plain track.
+    property var defaultValue: undefined
 
     labelWidth: 170
 
@@ -23,6 +25,7 @@ SettingRow {
         from: root.from
         to: root.to
         stepSize: root.stepSize
+        defaultValue: root.defaultValue
         value: root.value
         Layout.fillWidth: true
         onValueChanged: {

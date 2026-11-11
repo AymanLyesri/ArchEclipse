@@ -161,17 +161,15 @@ Item {
             width: generalFlick.width
             spacing: Theme.spacing
 
-            // ── Hero: avatar + title + version chip + links ──
-            Column {
+            // ── Identity header: compact and left-aligned like every settings row below it ──
+            RowLayout {
                 width: parent.width
-                spacing: Theme.spacing
+                spacing: Theme.spaceMd
 
-                // Circular avatar with accent ring (manual x-center —
-                // parent is a Column positioner, anchors don't apply)
+                // Circular avatar with accent ring (identity mark, not decoration)
                 Rectangle {
-                    x: (parent.width - width) / 2
-                    width: 84
-                    height: 84
+                    Layout.preferredWidth: 56
+                    Layout.preferredHeight: 56
                     radius: width / 2
                     clip: true
                     border.width: 2
@@ -184,28 +182,35 @@ Item {
                     }
                 }
 
-                Text {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    text: "ArchEclipse"
-                    font.pixelSize: Theme.typeTitle
-                    font.bold: true
-                    font.letterSpacing: 0.4
-                    color: Theme.fg
-                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 1
 
-                Text {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    text: root.currentVersion !== "" && root.currentVersion !== "Unknown" ? "build " + root.currentVersion : ""
-                    font.pixelSize: Theme.fontSizeCaption
-                    color: Theme.fgDim
-                    visible: text !== ""
+                    Text {
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        text: "ArchEclipse"
+                        font.pixelSize: Theme.typeTitle
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 0.3
+                        color: Theme.fg
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        text: root.currentVersion !== "" && root.currentVersion !== "Unknown" ? "build " + root.currentVersion : ""
+                        font.pixelSize: Theme.fontSizeCaption
+                        color: Theme.fgDim
+                        visible: text !== ""
+                    }
                 }
 
                 Row {
-                    x: (parent.width - width) / 2
-                    spacing: Theme.spacing
+                    id: socialRow
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: Theme.spaceXs
                     Repeater {
                         model: [
                             {
@@ -225,12 +230,13 @@ Item {
                             }
                         ]
                         delegate: AppButton {
-                            width: 38
-                            height: 38
-                            cornerRadius: 8
-                            outlined: true
+                            width: 34
+                            height: 34
+                            cornerRadius: Theme.radius
+                            idleBg: Theme.surfaceRaised
+                            hoverBg: Theme.surfaceOverlay
                             icon: modelData.icon
-                            pixelSize: Theme.fs(1.4)
+                            pixelSize: Theme.typeSubtitle
                             tooltipText: modelData.tip
                             onClicked: Quickshell.execDetached(["xdg-open", modelData.url])
                         }

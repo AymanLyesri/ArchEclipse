@@ -164,9 +164,9 @@ Item {
                     text: root.monthTitle
                     color: Theme.fg
                     font.family: Theme.fontFamily
-                    font.pixelSize: Theme.typeSubtitle
-                    font.bold: true
-                    font.letterSpacing: 0.3
+                    font.pixelSize: Theme.typeTitle
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 0.2
                 }
                 MouseArea {
                     id: titleMa
@@ -203,34 +203,6 @@ Item {
                 pixelSize: Theme.fontSize
                 tooltipText: "Next year"
                 onClicked: root.moveYear(1)
-            }
-        }
-
-        // Sub-header: selected date + Today shortcut.
-        RowLayout {
-            width: parent.width
-            spacing: Theme.spacing
-            Text {
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
-                text: root.selectedLabel
-                color: Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeLabel
-                elide: Text.ElideRight
-            }
-            AppButton {
-                width: 64
-                height: 26
-                cornerRadius: Theme.radius
-                idleBg: Theme.surfaceRaised
-                hoverBg: Theme.surfaceOverlay
-                hoverFg: Theme.accent
-                text: "Today"
-                pixelSize: Theme.typeLabel
-                tooltipText: "Jump to today"
-                enabled: !root.showingCurrentMonth || !root.selectedIsToday
-                onClicked: root.goToday()
             }
         }
 
@@ -326,6 +298,35 @@ Item {
                         }
                     }
                 }
+            }
+        }
+
+        // Footer: the grid is the page, the selection is its status line. Keeping these below
+        // the month means the weekday header sits directly under the title.
+        RowLayout {
+            width: parent.width
+            spacing: Theme.spacing
+            Text {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+                text: root.selectedLabel
+                color: Theme.fgDim
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeLabel
+                elide: Text.ElideRight
+            }
+            AppButton {
+                width: 64
+                height: 26
+                cornerRadius: Theme.radius
+                idleBg: Theme.surfaceRaised
+                hoverBg: Theme.surfaceOverlay
+                hoverFg: Theme.accent
+                text: "Today"
+                pixelSize: Theme.typeLabel
+                tooltipText: "Jump to today"
+                enabled: !root.showingCurrentMonth || !root.selectedIsToday
+                onClicked: root.goToday()
             }
         }
     }

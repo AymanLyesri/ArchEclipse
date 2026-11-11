@@ -32,7 +32,7 @@ Item {
     // folding buttons (mediaY/osdY arrive already pushed).
     property real waveHang: 0
 
-    width: 400
+    width: 420
     height: popList.contentHeight
 
     // Centered under the main pill, clamped 8px inside the screen. x tracks the pill rigidly;
@@ -176,7 +176,7 @@ Item {
                 transformOrigin: Item.Top
                 // Content-driven: body is top-anchored inside the fill-item
                 // shift, so this never feeds back into itself.
-                height: body.height + Theme.spaceLg
+                height: body.height + Theme.pad * 2
                 Behavior on height {
                     Anim {
                         type: Anim.FastSpatial

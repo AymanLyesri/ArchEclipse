@@ -1,13 +1,14 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import qs.theme
 import qs.services
 import qs.widgets.shared
 
 // Shared system-resources content used by both SystemMonitorIsland and the right panel's
-// SystemResourcesWidget: wide lays cards out horizontally, narrow stacks them.
-// Each metric group is a raised plate; the meters are the only accent on the surface, so the
-// eye lands on the numbers and the fills rather than on card outlines.
+// SystemResourcesWidget. One hero number per subsystem, a meter, then a stat grid: the layout
+// answers "how loaded is it" before "what are the details". Wide pools CPU/RAM side by side;
+// GPUs always take a full row because they carry the most fields.
 Column {
     id: root
     spacing: Theme.spaceMd
@@ -16,9 +17,8 @@ Column {
     readonly property var gpus: stats?.gpus ?? []
     readonly property real cpuFrac: (stats?.cpuLoad ?? null) !== null ? Math.max(0, Math.min(1, stats.cpuLoad / 100)) : 0
     readonly property real ramFrac: (stats?.ramUsedGB && stats?.ramTotalGB) ? Math.max(0, Math.min(1, stats.ramUsedGB / stats.ramTotalGB)) : 0
-    readonly property int totalCards: 2 + root.gpus.length
-    readonly property bool stacked: width < 380
-    readonly property real cardWidth: width <= 0 ? 0 : (root.stacked ? width : (width - Theme.spaceSm * (root.totalCards - 1)) / root.totalCards)
+    // CPU and RAM pair up only when each card keeps room for three stat cells.
+    readonly property bool twoUp: root.width >= 460
 
     Component.onCompleted: SysInfo.acquireResources()
     Component.onDestruction: SysInfo.releaseResources()
@@ -32,22 +32,51 @@ Column {
         if (used === null || used === undefined)
             return "N/A";
         if (total === null || total === undefined)
-            return Number(used).toFixed(2) + " GB";
-        return Number(used).toFixed(2) + "/" + Number(total).toFixed(2) + " GB";
+            return Number(used).toFixed(1) + " GB";
+        return Number(used).toFixed(1) + "/" + Number(total).toFixed(1) + " GB";
+    }
+    // Load colour is state, and it is always paired with the number itself.
+    function loadColor(frac) {
+        return frac >= 0.85 ? Theme.danger : Theme.accent;
     }
 
-    // One metric plate: icon + label header, a meter, then key/value rows.
+    component StatCell: Column {
+        property string value: ""
+        property string label: ""
+        spacing: 0
+
+        Text {
+            width: parent.width
+            text: parent.value
+            color: Theme.fg
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.typeLabel
+            font.weight: Font.DemiBold
+            elide: Text.ElideRight
+        }
+        Text {
+            width: parent.width
+            text: parent.label
+            color: Theme.muted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.typeCaption
+            elide: Text.ElideRight
+        }
+    }
+
+    // One subsystem plate: label + hero value header, meter, then evenly split stats.
     component MetricCard: Rectangle {
         id: card
 
         property string glyph: ""
         property string label: ""
+        property string primary: ""
+        property string unit: ""
         property real frac: 0
-        property var rows: []
-        default property alias body: inner.data
+        property var statItems: []
 
-        width: root.cardWidth
-        height: inner.implicitHeight + Theme.spaceLg
+        width: parent ? parent.width : 0
+        height: inner.implicitHeight + Theme.pad * 2
         radius: Theme.radius
         color: Theme.surfaceRaised
 
@@ -59,36 +88,45 @@ Column {
             anchors.margins: Theme.pad
             spacing: Theme.spaceSm
 
-            Row {
+            RowLayout {
                 width: parent.width
                 spacing: Theme.spaceXs + 2
+
                 Text {
+                    Layout.alignment: Qt.AlignVCenter
                     text: card.glyph
-                    color: Theme.accent
+                    color: root.loadColor(card.frac)
                     font.pixelSize: Theme.typeBody
                     font.family: Theme.fontFamily
-                    font.bold: true
-                    verticalAlignment: Text.AlignVCenter
                 }
                 Text {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
                     text: card.label
-                    color: Theme.fg
-                    font.pixelSize: Theme.typeLabel
-                    font.family: Theme.fontFamily
-                    font.bold: true
-                    font.letterSpacing: 0.4
-                    elide: Text.ElideRight
-                    width: parent.width - parent.spacing * 2 - chip.width
-                    verticalAlignment: Text.AlignVCenter
-                }
-                Text {
-                    id: chip
-                    text: Math.round(card.frac * 100) + "%"
-                    color: Theme.accent
+                    color: Theme.fgDim
                     font.pixelSize: Theme.typeCaption
                     font.family: Theme.fontFamily
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 0.8
+                    elide: Text.ElideRight
+                }
+                // Hero value: the first thing read, and the only large type on the plate.
+                Text {
+                    Layout.alignment: Qt.AlignBaseline
+                    text: card.primary
+                    color: root.loadColor(card.frac)
+                    font.pixelSize: Theme.typeTitle
+                    font.family: Theme.fontFamily
+                    font.weight: Font.DemiBold
                     font.preferShaping: false
-                    verticalAlignment: Text.AlignVCenter
+                }
+                Text {
+                    Layout.alignment: Qt.AlignBaseline
+                    visible: card.unit !== ""
+                    text: card.unit
+                    color: Theme.muted
+                    font.pixelSize: Theme.typeCaption
+                    font.family: Theme.fontFamily
                 }
             }
 
@@ -102,33 +140,52 @@ Column {
                     width: parent.width * Math.max(0, Math.min(1, card.frac))
                     height: parent.height
                     radius: Theme.radius
-                    color: Theme.accent
+                    color: root.loadColor(card.frac)
 
                     Behavior on width {
                         Anim {
                             type: Anim.FastEffects
                         }
                     }
+                    Behavior on color {
+                        CAnim {}
+                    }
+                }
+            }
+
+            // Stats share the row equally: values align in columns across cards.
+            Row {
+                width: parent.width
+                spacing: Theme.spaceSm
+                Repeater {
+                    model: card.statItems
+                    delegate: StatCell {
+                        required property var modelData
+                        width: (parent.width - parent.spacing * (card.statItems.length - 1)) / Math.max(1, card.statItems.length)
+                        value: modelData.value
+                        label: modelData.label
+                    }
                 }
             }
         }
     }
 
-    // ---- header ----
-    Row {
+    // ---- header: identity + freshness ----
+    RowLayout {
         width: parent.width
         spacing: Theme.spaceSm
+
         Label {
+            Layout.fillWidth: true
             text: "System Resources"
             font.pixelSize: Theme.typeSubtitle
             font.family: Theme.fontFamily
-            font.bold: true
+            font.weight: Font.DemiBold
             color: Theme.fg
-            width: parent.width - updatedLabel.width - Theme.spaceSm
             elide: Text.ElideRight
         }
         Label {
-            id: updatedLabel
+            Layout.alignment: Qt.AlignVCenter
             text: root.stats ? "Updated " + (root.stats.updatedAt || "--") : "—"
             font.pixelSize: Theme.typeCaption
             font.family: Theme.fontFamily
@@ -144,93 +201,88 @@ Column {
         font.family: Theme.fontFamily
     }
 
-    // ---- resource cards (Flow wraps to vertical when stacked) ----
-    Flow {
-        visible: root.stats
+    // ---- CPU + RAM: two up when they fit, stacked otherwise ----
+    Grid {
+        visible: root.stats !== null
         width: parent.width
-        spacing: Theme.spaceSm
+        columns: root.twoUp ? 2 : 1
+        columnSpacing: Theme.spaceSm
+        rowSpacing: Theme.spaceSm
 
         MetricCard {
             glyph: Icons.cpu
-            label: root.stats?.cpuLabel || "CPU"
+            label: (root.stats?.cpuLabel || "CPU").toUpperCase()
+            primary: root.fmt(root.stats?.cpuLoad, 1)
+            unit: "%"
             frac: root.cpuFrac
-
-            Text {
-                text: "Load  " + root.fmt(root.stats?.cpuLoad, 1, "%")
-                font.pixelSize: Theme.typeLabel
-                font.family: Theme.fontFamily
-                color: Theme.fgDim
-            }
-            Text {
-                text: "Clock  " + root.fmt(root.stats?.clockGHz, 2, " GHz")
-                font.pixelSize: Theme.typeLabel
-                font.family: Theme.fontFamily
-                color: Theme.fgDim
-            }
-            Text {
-                text: "Temp  " + root.fmt(root.stats?.cpuTempC, 1, "°C")
-                font.pixelSize: Theme.typeLabel
-                font.family: Theme.fontFamily
-                color: Theme.fgDim
-            }
+            width: root.twoUp ? (parent.width - parent.columnSpacing) / 2 : parent.width
+            statItems: [
+                {
+                    label: "Clock",
+                    value: root.fmt(root.stats?.clockGHz, 2, " GHz")
+                },
+                {
+                    label: "Temp",
+                    value: root.fmt(root.stats?.cpuTempC, 1, "°C")
+                },
+                {
+                    label: "Threads",
+                    value: root.stats?.threads ?? "N/A"
+                }
+            ]
         }
 
         MetricCard {
             glyph: Icons.ram
             label: "RAM"
+            primary: root.fmt(root.stats?.ramUsage, 0)
+            unit: "%"
             frac: root.ramFrac
-
-            Text {
-                text: "Used  " + root.fmt(root.stats?.ramUsedGB, 2, " GB")
-                font.pixelSize: Theme.typeLabel
-                font.family: Theme.fontFamily
-                color: Theme.fgDim
-            }
-            Text {
-                text: "Free  " + root.fmt(root.stats?.ramFreeGB, 2, " GB")
-                font.pixelSize: Theme.typeLabel
-                font.family: Theme.fontFamily
-                color: Theme.fgDim
-            }
-            Text {
-                text: "Total  " + root.fmt(root.stats?.ramTotalGB, 2, " GB")
-                font.pixelSize: Theme.typeLabel
-                font.family: Theme.fontFamily
-                color: Theme.fgDim
-            }
+            width: root.twoUp ? (parent.width - parent.columnSpacing) / 2 : parent.width
+            statItems: [
+                {
+                    label: "Used",
+                    value: root.fmt(root.stats?.ramUsedGB, 1, " GB")
+                },
+                {
+                    label: "Free",
+                    value: root.fmt(root.stats?.ramFreeGB, 1, " GB")
+                },
+                {
+                    label: "Total",
+                    value: root.fmt(root.stats?.ramTotalGB, 1, " GB")
+                }
+            ]
         }
+    }
 
-        // GPU cards (dynamic)
-        Repeater {
-            model: root.gpus
-            delegate: MetricCard {
-                required property var modelData
-                readonly property real frac: (modelData.load ?? null) !== null ? Math.max(0, Math.min(1, modelData.load / 100)) : 0
+    // ---- GPUs: full width, one plate each ----
+    Repeater {
+        model: root.gpus
+        delegate: MetricCard {
+            required property var modelData
+            readonly property real gpuFrac: (modelData.load ?? null) !== null ? Math.max(0, Math.min(1, modelData.load / 100)) : 0
 
-                glyph: Icons.gpu
-                label: modelData.label || "GPU"
-
-                Text {
-                    text: "Load  " + root.fmt(modelData.load, 1, "%")
-                    font.pixelSize: Theme.typeLabel
-                    font.family: Theme.fontFamily
-                    color: Theme.fgDim
+            width: root.width
+            glyph: Icons.gpu
+            label: (modelData.label || "GPU").toUpperCase()
+            primary: root.fmt(modelData.load, 1)
+            unit: "%"
+            frac: gpuFrac
+            statItems: [
+                {
+                    label: "VRAM",
+                    value: root.gpuMem(modelData.memoryUsedGB, modelData.memoryTotalGB)
+                },
+                {
+                    label: "Temp",
+                    value: root.fmt(modelData.tempC, 1, "°C")
+                },
+                {
+                    label: "Driver",
+                    value: modelData.driver || "N/A"
                 }
-                Text {
-                    text: "Mem  " + root.gpuMem(modelData.memoryUsedGB, modelData.memoryTotalGB)
-                    font.pixelSize: Theme.typeLabel
-                    font.family: Theme.fontFamily
-                    color: Theme.fgDim
-                    elide: Text.ElideRight
-                    width: parent.width
-                }
-                Text {
-                    text: "Temp  " + root.fmt(modelData.tempC, 1, "°C")
-                    font.pixelSize: Theme.typeLabel
-                    font.family: Theme.fontFamily
-                    color: Theme.fgDim
-                }
-            }
+            ]
         }
     }
 }

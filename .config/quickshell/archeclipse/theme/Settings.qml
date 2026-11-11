@@ -68,7 +68,7 @@ Singleton {
     // Shared masonry view (row count + exact tile height in px): both providers render
     // through one AppMasonryRow and the island grows to the true height.
     property int wallpaperMasonryRows: 2
-    property int wallpaperTileSize: 120
+    property int wallpaperTileSize: 192
     // Workspace-switch transition: "slide" (default) or "fade" — anything else falls back
     // to slide. The daemon keeps its own copy in its config dir; this mirrors it.
     property string wallpaperTransition: "slide"
@@ -519,16 +519,17 @@ Singleton {
 
     // Hyprland settings (plain values internally; persist() writes the
     // {name,value,min,max,type} leaf shape the settings panel renders).
+    // These mirror config/general.lua + decoration.lua, the values that actually render.
     property var hyprland: ({
             general: {
                 border_size: 0,
-                gaps_in: 7,
-                gaps_out: 10
+                gaps_in: 4,
+                gaps_out: 12
             },
             decoration: {
-                rounding: 16,
-                active_opacity: 0.9,
-                inactive_opacity: 0.8,
+                rounding: 12,
+                active_opacity: 0.85,
+                inactive_opacity: 0.85,
                 blur: {
                     enabled: true,
                     size: 4,
@@ -1129,13 +1130,13 @@ Singleton {
                 }
                 root.wallpaperWallhaven = _wh;
                 // Shared masonry view: plain or {value} leaves, clamped
-                // (rows 1-4, tile height 80-200px).
+                // (rows 1-4, tile height 92-256px).
                 const _mr = s.wallpaperSwitcher?.masonryRows;
                 const _mrV = (typeof _mr === "object" && _mr !== null ? _mr.value : _mr);
                 root.wallpaperMasonryRows = Math.min(4, Math.max(1, parseInt(_mrV) || 2));
                 const _ts = s.wallpaperSwitcher?.tileSize;
                 const _tsV = (typeof _ts === "object" && _ts !== null ? _ts.value : _ts);
-                root.wallpaperTileSize = Math.min(200, Math.max(80, parseInt(_tsV) || 120));
+                root.wallpaperTileSize = Math.min(256, Math.max(92, parseInt(_tsV) || 192));
                 // Workspace transition: only slide/fade are adopted.
                 const _wt = s.wallpaperSwitcher?.transition;
                 const _wtV = ((typeof _wt === "object" && _wt !== null ? _wt.value : _wt) ?? "slide");
@@ -1330,7 +1331,7 @@ Singleton {
         root.schedulePersist();
     }
 
-    // Lua builders emit nested tables (hl.config({ decoration = { rounding = 16 } }));
+    // Lua builders emit nested tables (hl.config({ decoration = { rounding = 12 } }));
     // the flat "decoration:rounding = 16" form is invalid on lua-parser Hyprland builds.
     function luaValue(v) {
         if (typeof v === "boolean")

@@ -17,18 +17,41 @@ Item {
 
     // Natural size (single source of truth): consumers without a sized parent (PlayerIsland)
     // derive from these instead of hardcoding width/height.
+    // Extra row when more than one player is available (the switcher above the art).
+    readonly property real switcherHeight: root.orderedPlayers.length > 1 ? 30 : 0
     implicitWidth: 400
-    implicitHeight: (root.player !== null && root.hasLyrics) ? 242 : 170
+    implicitHeight: 172 + root.switcherHeight + (root.player !== null && root.hasLyrics ? 72 : 0)
 
-    // Pick the active player: the PLAYING one, else the first. Mpris.players is an
+    // All players, PLAYING first: the switcher shows this order. Mpris.players is an
     // UntypedObjectModel, so iterate via .values.
     readonly property var playersList: Mpris.players.values ?? (Array.from ? Array.from(Mpris.players.values() ?? []) : [])
-    readonly property var player: {
+    readonly property var orderedPlayers: {
+        Mpris.players.values;
+        const playing = [];
+        const rest = [];
         for (const p of root.playersList) {
-            if (p.isPlaying)
-                return p;
+            if (!p)
+                continue;
+            const title = String(p.trackTitle ?? "").trim();
+            const identity = String(p.identity ?? "").trim();
+            if (title === "" && identity === "")
+                continue;
+            if (p.isPlaying === true)
+                playing.push(p);
+            else
+                rest.push(p);
         }
-        return root.playersList.length > 0 ? root.playersList[0] : null;
+        return playing.concat(rest);
+    }
+    // -1 follows the list head (always the playing player). A chip pins one explicitly.
+    property int selectedIndex: -1
+    readonly property var player: {
+        const list = root.orderedPlayers;
+        if (list.length === 0)
+            return null;
+        if (root.selectedIndex >= 0 && root.selectedIndex < list.length)
+            return list[root.selectedIndex];
+        return list[0];
     }
 
     readonly property bool playing: root.player?.isPlaying ?? false
@@ -150,14 +173,30 @@ Item {
         }
     }
 
-    // Title change → slide animation via MPRIS trackTitleChanged signal
+    // Title change → the track block rises into place instead of swapping text in place.
     Connections {
         target: root.player
         function onTrackTitleChanged() {
-            slideAnim.stop();
-            textLayer.anchors.verticalCenterOffset = -12;
-            slideAnim.to = 0;
-            slideAnim.restart();
+            trackIn.restart();
+        }
+    }
+    ParallelAnimation {
+        id: trackIn
+        NumberAnimation {
+            target: textLayer
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: Theme.anim.small
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: textShift
+            property: "y"
+            from: 8
+            to: 0
+            duration: Theme.anim.small
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -205,26 +244,96 @@ Item {
         AppImage {
             anchors.fill: parent
             source: root._lastCover || ""
-
-            opacity: 0.15
+            opacity: 0.12
             visible: root._lastCover !== ""
         }
 
+        // One vertical reading: who is playing, how far along, what you can do, what is sung.
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Theme.pad
-            spacing: Theme.spacing
+            spacing: Theme.spaceSm
 
-            // Top row: spinner cover art + title/artist + app icon
-            Row {
+            // ---- player switcher: every player, playing one first ----
+            Flickable {
                 Layout.fillWidth: true
-                spacing: Theme.spacing
+                Layout.preferredHeight: root.switcherHeight > 0 ? 24 : 0
+                visible: root.switcherHeight > 0
+                clip: true
+                contentWidth: chipRow.width
+                contentHeight: 24
+                flickableDirection: Flickable.HorizontalFlick
 
-                // Spinning cover art thumbnail
+                Row {
+                    id: chipRow
+                    height: 24
+                    spacing: Theme.spaceXs
+
+                    Repeater {
+                        model: root.orderedPlayers
+                        delegate: Rectangle {
+                            required property var modelData
+                            required property int index
+                            readonly property bool current: root.player === modelData
+                            readonly property bool rowPlaying: modelData.isPlaying === true
+
+                            width: chipText.implicitWidth + (rowPlaying ? 14 : 0) + Theme.spaceSm * 2
+                            height: 22
+                            radius: Theme.radius
+                            color: current ? Theme.surfaceOverlay : (chipHover.hovered ? Theme.surfaceHover : "transparent")
+                            Behavior on color {
+                                CAnim {}
+                            }
+
+                            Text {
+                                id: chipText
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.spaceSm
+                                text: modelData.identity || "Player"
+                                elide: Text.ElideRight
+                                width: Math.min(implicitWidth, 92)
+                                color: current ? Theme.fg : Theme.fgDim
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.typeCaption
+                            }
+                            Rectangle {
+                                visible: parent.rowPlaying
+                                anchors.right: parent.right
+                                anchors.rightMargin: Theme.spaceSm
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 5
+                                height: 5
+                                radius: 3
+                                color: Theme.accent
+                            }
+
+                            HoverHandler {
+                                id: chipHover
+                                cursorShape: Qt.PointingHandCursor
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: false
+                                preventStealing: false
+                                propagateComposedEvents: true
+                                onClicked: root.selectedIndex = index
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- identity: art, track, source app ----
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spaceMd
+
+                // Cover art is the anchor of the card: large enough to recognize at a glance.
                 Rectangle {
                     id: coverBox
-                    width: 64
-                    height: 64
+                    Layout.preferredWidth: 84
+                    Layout.preferredHeight: 84
                     radius: Theme.radius
                     clip: true
                     color: Theme.bg
@@ -234,107 +343,70 @@ Item {
                         anchors.fill: parent
                         source: root._lastCover || ""
                     }
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "transparent"
-                        radius: Theme.radius
-                    }
-                    // spinning indicator (rotation while playing)
+
+                    // Playback state is a dot on the art, not a second progress ring: the bar
+                    // below already carries position.
                     Rectangle {
                         anchors.right: parent.right
-                        anchors.top: parent.top
-                        width: 10
-                        height: 10
-                        radius: height / 2
+                        anchors.bottom: parent.bottom
+                        anchors.margins: 6
+                        width: 8
+                        height: 8
+                        radius: 4
                         color: root.playing ? Theme.accent : Theme.fgDim
                         Behavior on color {
-                            ColorAnimation {
-                                duration: Theme.anim.defaultEffects
-                            }
-                        }
-                    }
-                    // progress ring while playing (spinner visual)
-                    Canvas {
-                        id: ringCanvas
-                        anchors.fill: parent
-                        visible: root.playing
-                        function redrawRing() {
-                            if (!visible)
-                                return;
-                            const ctx = getContext("2d");
-                            if (!ctx)
-                                return;
-                            ctx.reset();
-                            const len = root.player ? root.player.length : 0;
-                            const pos = root.player ? root.player.position : 0;
-                            const frac = len > 0 ? pos / len : 0;
-                            ctx.beginPath();
-                            ctx.strokeStyle = Theme.accent;
-                            ctx.lineWidth = 2;
-                            ctx.arc(width / 2, height / 2, width / 2 - 4, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * frac);
-                            ctx.stroke();
-                        }
-                        onVisibleChanged: if (visible)
-                            redrawRing()
-                        // periodic repaint while playing (avoids null-player Connections)
-                        Timer {
-                            interval: 1000
-                            running: ringCanvas.visible
-                            repeat: true
-                            onTriggered: ringCanvas.redrawRing()
+                            CAnim {}
                         }
                     }
                 }
 
-                // Title / artist with slide transition. Explicit width (cover + icon + spacing):
-                // a dead Layout.fillWidth left this at 0 and no text showed.
-                Item {
-                    id: trackBlock
-                    width: parent.width - 64 - 22 - 20
-                    height: 64
-                    clip: true
-
-                    Column {
-                        id: textLayer
-                        width: parent.width
-                        spacing: 2
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        Label {
-                            id: titleLabel
-                            width: parent.width
-                            elide: Text.ElideRight
-                            font.pixelSize: Theme.fontSize + 1
-                            font.bold: true
-                            color: Theme.fg
-                            text: root.title
-                        }
-                        Label {
-                            width: parent.width
-                            elide: Text.ElideRight
-                            font.pixelSize: Theme.fontSize - 1
-                            color: Theme.muted
-                            text: root.artist
-                        }
+                // Title / artist / album with a small slide on track change.
+                ColumnLayout {
+                    id: textLayer
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 1
+                    transform: Translate {
+                        id: textShift
                     }
-                    NumberAnimation {
-                        id: slideAnim
-                        target: textLayer
-                        property: "anchors.verticalCenterOffset"
-                        duration: Theme.anim.small
-                        easing.type: Easing.OutCubic
+
+                    Label {
+                        id: titleLabel
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        font.pixelSize: Theme.typeSubtitle
+                        font.weight: Font.DemiBold
+                        color: Theme.fg
+                        text: root.title
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        font.pixelSize: Theme.typeLabel
+                        color: Theme.muted
+                        text: root.artist
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        visible: root.album !== ""
+                        elide: Text.ElideRight
+                        font.pixelSize: Theme.typeCaption
+                        color: Theme.fgDim
+                        text: root.album
                     }
                 }
 
-                // App icon (DefaultBar parity: real theme icon via
-                // DesktopEntry/identity lookup, music-note glyph fallback)
+                // App icon (DefaultBar parity: real theme icon via DesktopEntry/identity
+                // lookup, music-note glyph fallback), top-aligned with the art.
                 Item {
-                    width: 22
-                    height: 64
+                    Layout.preferredWidth: 22
+                    Layout.preferredHeight: coverBox.height
 
                     IconImage {
                         id: appIconImg
-                        anchors.centerIn: parent
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4
                         width: 20
                         height: 20
                         source: root.appIconSource
@@ -346,7 +418,7 @@ Item {
                         visible: !appIconImg.visible
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        text: Icons.music  // music-note icon
+                        text: Icons.music
                         color: Theme.fgDim
                         font.pixelSize: Theme.fs(1.5)
                     }
@@ -360,8 +432,136 @@ Item {
                 }
             }
 
+            // ---- position: elapsed and total bracket the scrub bar they describe ----
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spaceXs
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: root.fmt(root.scrubbing ? root.scrubPos : (root.player?.position ?? 0))
+                        color: Theme.fgDim
+                        font.pixelSize: Theme.typeCaption
+                        font.preferShaping: false
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                    }
+                    Label {
+                        Layout.alignment: Qt.AlignVCenter
+                        text: root.fmt(root.player?.length ?? 0)
+                        color: Theme.fgDim
+                        font.pixelSize: Theme.typeCaption
+                        font.preferShaping: false
+                    }
+                }
+
+                Rectangle {
+                    id: progBg
+                    Layout.fillWidth: true
+                    Layout.minimumHeight: 5
+                    Layout.preferredHeight: 5
+                    height: 5
+                    radius: 3
+                    color: Theme.track
+
+                    property real frac: root.scrubbing ? (root.scrubPos / Math.max(1, root.player?.length ?? 1)) : (root.player?.length ?? 0) > 0 ? (root.player?.position ?? 0) / root.player.length : 0
+                    property real fill: Math.max(0, Math.min(1, frac))
+
+                    Rectangle {
+                        id: progFill
+                        width: progBg.width * progBg.fill
+                        height: 5
+                        radius: 3
+                        color: Theme.accent
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: root.player?.canSeek ?? false
+                        cursorShape: Qt.PointingHandCursor
+                        onPressed: mouse => {
+                            root.scrubbing = true;
+                            root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
+                        }
+                        onPositionChanged: mouse => {
+                            if (root.scrubbing)
+                                root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
+                        }
+                        onReleased: mouse => {
+                            if (root.scrubbing) {
+                                const len = root.player?.length ?? 0;
+                                root.scrubPos = Math.max(0, Math.min(mouse.x / width * len, len));
+                                // Absolute write: seek(offset) is relative per the
+                                // MprisPlayer docs, so it can't land a drag.
+                                if (root.player && (root.player.canSeek ?? false))
+                                    root.player.position = root.scrubPos;
+                                root.scrubbing = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- transport: centered, the play button reads as the primary action ----
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spaceMd
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                }
+                AppButton {
+                    tooltipText: "Previous track"
+                    enabled: root.player?.canGoPrevious ?? false
+                    icon: Icons.arrowLeft
+                    pixelSize: Theme.fontSizeLarge
+                    Layout.preferredWidth: 32
+                    Layout.minimumWidth: 24
+                    implicitHeight: 32
+                    onClicked: root.player?.previous()
+                }
+                AppButton {
+                    enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
+                    icon: root.playing ? Icons.pause : Icons.play
+                    tooltipText: root.playing ? "Pause" : "Play"
+                    pixelSize: Theme.fontSizeLarge + 1
+                    cornerRadius: Theme.radius
+                    Layout.preferredWidth: 42
+                    Layout.minimumWidth: 34
+                    implicitHeight: 38
+                    idleBg: Theme.surfaceActive
+                    idleFg: Theme.accent
+                    hoverBg: Theme.surfaceOverlay
+                    onClicked: {
+                        if (root.playing)
+                            root.player?.pause();
+                        else
+                            root.player?.play();
+                    }
+                }
+                AppButton {
+                    enabled: root.player?.canGoNext ?? false
+                    tooltipText: "Next track"
+                    icon: Icons.arrowRight
+                    pixelSize: Theme.fontSizeLarge
+                    Layout.preferredWidth: 32
+                    Layout.minimumWidth: 24
+                    implicitHeight: 32
+                    onClicked: root.player?.next()
+                }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                }
+            }
+
             // LRCLIB lyrics — always-visible 3-line window (previous dim / current accent / next).
-            // Synced lines click-to-seek; fixed 64px keeps implicitHeight exact (170 + 8 + 64).
+            // Synced lines click-to-seek; fixed 64px keeps implicitHeight exact.
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.hasLyrics ? 64 : 0
@@ -404,127 +604,6 @@ Item {
                                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                 onClicked: root.player.position = parent.lineTime
                             }
-                        }
-                    }
-                }
-            }
-
-
-            // Position/length + controls: a RowLayout with compressible buttons and spacers, since
-            // the 5-piece row cannot fit the narrow panel at natural widths.
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 3
-
-                Label {
-                    Layout.alignment: Qt.AlignVCenter
-                    text: root.fmt(root.scrubbing ? root.scrubPos : (root.player?.position ?? 0))
-                    color: Theme.fgDim
-                    font.pixelSize: Theme.fontSize - 2
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                }
-
-                // prev
-                AppButton {
-                    tooltipText: "Previous track"
-                    enabled: root.player?.canGoPrevious ?? false
-                    icon: Icons.arrowLeft
-                    pixelSize: Theme.fontSizeLarge
-                    Layout.preferredWidth: 30
-                    Layout.minimumWidth: 22
-                    onClicked: root.player?.previous()
-                }
-                // play/pause
-                AppButton {
-                    enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
-                    icon: root.playing ? Icons.pause : Icons.play
-                    tooltipText: root.playing ? "Pause" : "Play"
-                    pixelSize: Theme.fontSizeLarge
-                    cornerRadius: Theme.radius
-                    Layout.preferredWidth: 30
-                    Layout.minimumWidth: 22
-                    implicitHeight: 30
-                    idleBg: Theme.surfaceActive
-                    idleFg: Theme.accent
-                    onClicked: {
-                        if (root.playing)
-                            root.player?.pause();
-                        else
-                            root.player?.play();
-                    }
-                }
-                // next
-                AppButton {
-                    enabled: root.player?.canGoNext ?? false
-                    tooltipText: "Next track"
-                    icon: Icons.arrowRight
-                    pixelSize: Theme.fontSizeLarge
-                    Layout.preferredWidth: 30
-                    Layout.minimumWidth: 22
-                    onClicked: root.player?.next()
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                }
-
-                Label {
-                    Layout.alignment: Qt.AlignVCenter
-                    text: root.fmt(root.player?.length ?? 0)
-                    color: Theme.fgDim
-                    font.pixelSize: Theme.fontSize - 2
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-
-            // Drag-scrubbable position slider
-            Rectangle {
-                id: progBg
-                Layout.fillWidth: true
-                Layout.minimumHeight: 6
-                Layout.preferredHeight: 6
-                height: 6
-                radius: 3
-                color: Theme.track
-
-                property real frac: root.scrubbing ? (root.scrubPos / Math.max(1, root.player?.length ?? 1)) : (root.player?.length ?? 0) > 0 ? (root.player?.position ?? 0) / root.player.length : 0
-                property real fill: Math.max(0, Math.min(1, frac))
-
-                Rectangle {
-                    id: progFill
-                    width: progBg.width * progBg.fill
-                    height: 6
-                    radius: 3
-                    color: Theme.accent
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: root.player?.canSeek ?? false
-                    cursorShape: Qt.PointingHandCursor
-                    onPressed: mouse => {
-                        root.scrubbing = true;
-                        root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
-                    }
-                    onPositionChanged: mouse => {
-                        if (root.scrubbing)
-                            root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
-                    }
-                    onReleased: mouse => {
-                        if (root.scrubbing) {
-                            const len = root.player?.length ?? 0;
-                            root.scrubPos = Math.max(0, Math.min(mouse.x / width * len, len));
-                            // Absolute write: seek(offset) is relative per the
-                            // MprisPlayer docs, so it can't land a drag.
-                            if (root.player && (root.player.canSeek ?? false))
-                                root.player.position = root.scrubPos;
-                            root.scrubbing = false;
                         }
                     }
                 }

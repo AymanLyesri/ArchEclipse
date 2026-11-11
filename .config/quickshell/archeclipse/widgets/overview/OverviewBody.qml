@@ -184,6 +184,8 @@ Item {
                     required property int modelData
                     readonly property int wid: modelData + 1
                     readonly property bool isFocused: wsCard.wid === body.focusedId
+                    readonly property var wins: body.allWins.filter(w => w.ws === wsCard.wid)
+                    readonly property int winCount: wsCard.wins.length
                     property bool dropHot: false
 
                     Layout.preferredWidth: body.cardW
@@ -222,15 +224,56 @@ Item {
                         }
                     }
 
-                    // Giant dim workspace number, quiet enough to sit under the windows.
+                    // Empty workspaces keep a quiet watermark; occupied ones leave the preview
+                    // uncluttered and identify themselves in the header instead.
                     Text {
                         anchors.centerIn: parent
+                        visible: wsCard.winCount === 0
                         text: wsCard.wid
                         color: Theme.muted
-                        opacity: wsCard.isFocused ? 0.22 : 0.14
+                        opacity: wsCard.isFocused ? 0.2 : 0.12
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fs(3.33)
+                        font.pixelSize: Theme.fs(2.5)
                         font.bold: true
+                    }
+
+                    // Header band: workspace identity on the left, occupancy on the right. It
+                    // reads before the window thumbnails and never competes with them.
+                    Item {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: Theme.spaceXs + 2
+                        height: 18
+                        z: 50
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(18, wsNum.implicitWidth + 10)
+                            height: 18
+                            radius: Theme.radius
+                            color: wsCard.isFocused ? Theme.accent : Qt.alpha(Theme.bg, 0.55)
+                            Text {
+                                id: wsNum
+                                anchors.centerIn: parent
+                                text: wsCard.wid
+                                color: wsCard.isFocused ? Theme.accentFg : Theme.fgDim
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.typeCaption
+                                font.weight: Font.DemiBold
+                            }
+                        }
+
+                        Text {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: wsCard.winCount > 0
+                            text: wsCard.winCount
+                            color: Theme.muted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.typeCaption
+                        }
                     }
 
                     // Click empty space = focus workspace. Declared BEFORE the tiles so they paint
@@ -248,7 +291,7 @@ Item {
                     // Live window tiles, absolutely positioned at scaled
                     // real geometry.
                     Repeater {
-                        model: body.allWins.filter(w => w.ws === wsCard.wid)
+                        model: wsCard.wins
                         delegate: Item {
                             id: winWrap
                             required property var modelData

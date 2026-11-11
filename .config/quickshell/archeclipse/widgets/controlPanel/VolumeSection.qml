@@ -180,6 +180,8 @@ Item {
                     from: 0
                     to: 1.5
                     stepSize: 0.01
+                    // 100% is the natural anchor; above it is boost territory.
+                    defaultValue: 1.0
                     Component.onCompleted: masterSlider.value = root.defaultSink?.audio?.volume ?? 0
                     onMoved: if (root.defaultSink?.audio) {
                         BarState.noteVolumeTarget(root.monitorName);
@@ -368,6 +370,7 @@ Item {
                             from: 0
                             to: 1.5
                             stepSize: 0.01
+                            defaultValue: 1.0
                             Component.onCompleted: playSlider.value = modelData.audio?.volume ?? 0
                             onMoved: if (modelData.audio)
                                 modelData.audio.volume = playSlider.value
@@ -507,6 +510,7 @@ Item {
                             from: 0
                             to: 1.5
                             stepSize: 0.01
+                            defaultValue: 1.0
                             Component.onCompleted: recSlider.value = modelData.audio?.volume ?? 0
                             onMoved: if (modelData.audio)
                                 modelData.audio.volume = recSlider.value
@@ -620,6 +624,7 @@ Item {
                             from: 0
                             to: 1.5
                             stepSize: 0.01
+                            defaultValue: 1.0
                             Component.onCompleted: outSlider.value = modelData.audio?.volume ?? 0
                             onMoved: if (modelData.audio) {
                                 if (root.defaultSink && (modelData === root.defaultSink || modelData.name === root.defaultSink.name))
@@ -715,6 +720,7 @@ Item {
                             from: 0
                             to: 1.5
                             stepSize: 0.01
+                            defaultValue: 1.0
                             Component.onCompleted: inSlider.value = modelData.audio?.volume ?? 0
                             onMoved: if (modelData.audio)
                                 modelData.audio.volume = inSlider.value

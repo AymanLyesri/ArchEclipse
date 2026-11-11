@@ -350,13 +350,23 @@ Item {
         anchors.fill: parent
         spacing: Theme.spacing
 
-        Label {
-            text: "Custom Scripts"
-            font.pixelSize: Theme.typeTitle
-            font.bold: true
-            font.letterSpacing: 0.2
-            color: Theme.fg
+        // Header: title and the size of the list, so the page states what it holds before
+        // you scroll it.
+        ColumnLayout {
             Layout.fillWidth: true
+            spacing: 1
+            Label {
+                text: "Custom Scripts"
+                font.pixelSize: Theme.typeTitle
+                font.weight: Font.DemiBold
+                font.letterSpacing: 0.2
+                color: Theme.fg
+            }
+            Label {
+                text: root.scriptDefs.length + (root.scriptDefs.length === 1 ? " script" : " scripts") + " · click a row to run"
+                font.pixelSize: Theme.typeCaption
+                color: Theme.muted
+            }
         }
 
         SmoothFlickable {

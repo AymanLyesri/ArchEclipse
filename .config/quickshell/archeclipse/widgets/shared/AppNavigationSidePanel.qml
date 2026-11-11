@@ -15,6 +15,9 @@ Item {
     property var navModel: []
     property int navCurrentIndex: 0
     signal navSelected(int index)
+    // Hosts that only need the panel chrome (width, grip, body slot) hide the rail and put
+    // their own controls in the body.
+    property bool railVisible: true
 
     // Section mode: the panel owns the Flickable, the section cards, selection,
     // centred scrolling and the distance fade. `sections` holds one body Component
@@ -292,6 +295,7 @@ Item {
                 Rectangle {
                     id: navBar
 
+                    visible: root.railVisible
                     width: parent.width
                     property var model: root.navModel
                     property int currentIndex: root.sectionMode ? navController.activeIndex : root.navCurrentIndex
@@ -456,7 +460,7 @@ Item {
                     id: body
 
                     width: parent.width
-                    height: Math.max(0, colPanel.height - navBar.height - colPanel.spacing)
+                    height: Math.max(0, colPanel.height - (navBar.visible ? navBar.height + colPanel.spacing : 0))
                     clip: true
                 }
             }
@@ -576,22 +580,25 @@ Item {
     readonly property color gripTone: gripArea.containsMouse || gripArea.pressed ? Theme.accent : Theme.hairline
     readonly property real gripIconRatio: 0.05   // fraction of height occupied by the icon gap
 
+    // Grip sits in the panel's own right gutter, clear of the rail and of host content.
+    readonly property int gripInset: 4
+
     Rectangle {
-        x: root.panelWidth - 1
+        x: root.panelWidth - root.gripInset
         y: 0
         width: 1
         height: root.height * (1 - gripIconRatio) / 2
         color: root.gripTone
     }
     Rectangle {
-        x: root.panelWidth - 1
+        x: root.panelWidth - root.gripInset
         y: root.height * (1 + gripIconRatio) / 2
         width: 1
         height: root.height * (1 - gripIconRatio) / 2
         color: root.gripTone
     }
     Item {
-        x: root.panelWidth - 1
+        x: root.panelWidth - root.gripInset
         width: 1
         height: root.height * gripIconRatio
         anchors.verticalCenter: parent.verticalCenter
@@ -609,7 +616,7 @@ Item {
     MouseArea {
         id: gripArea
 
-        x: root.panelWidth - 4
+        x: root.panelWidth - root.gripInset - 3
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: 6

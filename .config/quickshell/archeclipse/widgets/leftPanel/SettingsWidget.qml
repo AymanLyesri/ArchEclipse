@@ -314,6 +314,8 @@ Item {
                                 to: 1
                                 value: Settings.uiOpacity
                                 stepSize: 0.01
+                                // Shipped opacity, so a stray drag can find its way back.
+                                defaultValue: 0.618
                                 // Fill: the value label fixes the right edge; a
                                 // fixed 150 starved the row label.
                                 Layout.fillWidth: true
@@ -371,6 +373,8 @@ Item {
                                 from: 0.2
                                 to: 2.0
                                 stepSize: 0.05
+                                // 1.0 is the neutral multiplier.
+                                defaultValue: 1.0
                                 value: Settings.animScale
                                 Layout.fillWidth: true
                                 onValueChanged: {
@@ -768,6 +772,7 @@ Item {
                             text: "Decoration: Rounding"
                             tip: "Window corner radius in px."
                             settingKey: "decoration.rounding"
+                            defaultValue: 12
                             from: 0
                             to: 50
                             value: Settings.hyprGet("decoration.rounding")
@@ -782,6 +787,7 @@ Item {
                             text: "Decoration: Blur Size"
                             tip: "Hyprland blur radius."
                             settingKey: "decoration.blur.size"
+                            defaultValue: 4
                             from: 0
                             to: 10
                             value: Settings.hyprGet("decoration.blur.size")
@@ -790,6 +796,7 @@ Item {
                             text: "Decoration: Blur Passes"
                             tip: "Hyprland blur quality passes."
                             settingKey: "decoration.blur.passes"
+                            defaultValue: 4
                             from: 0
                             to: 10
                             value: Settings.hyprGet("decoration.blur.passes")
@@ -810,6 +817,7 @@ Item {
                             text: "Decoration: Shadow Range"
                             tip: "Shadow spread distance in px."
                             settingKey: "decoration.shadow.range"
+                            defaultValue: 15
                             from: 0
                             to: 20
                             value: Settings.hyprGet("decoration.shadow.range")
@@ -818,6 +826,7 @@ Item {
                             text: "Shadow Render Power"
                             tip: "Shadow softness and strength."
                             settingKey: "decoration.shadow.render_power"
+                            defaultValue: 3
                             from: 1
                             to: 4
                             value: Settings.hyprGet("decoration.shadow.render_power")
@@ -826,6 +835,7 @@ Item {
                             text: "General: Border Size"
                             tip: "Window border thickness in px."
                             settingKey: "general.border_size"
+                            defaultValue: 0
                             from: 0
                             to: 10
                             value: Settings.hyprGet("general.border_size")
@@ -834,6 +844,7 @@ Item {
                             text: "General: Gaps In"
                             tip: "Gap between windows in px."
                             settingKey: "general.gaps_in"
+                            defaultValue: 4
                             from: 0
                             to: 20
                             value: Settings.hyprGet("general.gaps_in")
@@ -842,6 +853,7 @@ Item {
                             text: "General: Gaps Out"
                             tip: "Gap between windows and screen edge."
                             settingKey: "general.gaps_out"
+                            defaultValue: 12
                             from: 0
                             to: 40
                             value: Settings.hyprGet("general.gaps_out")
@@ -850,6 +862,7 @@ Item {
                             text: "Decoration: Active Opacity"
                             tip: "Opacity of the focused window."
                             settingKey: "decoration.active_opacity"
+                            defaultValue: 0.85
                             stepSize: 0.01
                             decimals: 2
                             from: 0
@@ -860,6 +873,7 @@ Item {
                             text: "Decoration: Inactive Opacity"
                             tip: "Opacity of unfocused windows."
                             settingKey: "decoration.inactive_opacity"
+                            defaultValue: 0.85
                             stepSize: 0.01
                             decimals: 2
                             from: 0

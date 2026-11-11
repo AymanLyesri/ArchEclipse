@@ -72,7 +72,7 @@ Item {
         width: parent.width
         // Content-driven: body is top-anchored inside the fill-item
         // shift, so this never feeds back into itself.
-        height: body.height + Theme.spaceLg + 4
+        height: body.height + Theme.pad * 2
         Behavior on height {
             Anim {
                 type: Anim.FastSpatial
