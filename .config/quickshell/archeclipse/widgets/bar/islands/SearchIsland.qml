@@ -21,6 +21,14 @@ Column {
     property int bodyFullHeight: 448
     Component.onCompleted: expand = 1
 
+    // Keyboard nav (input's Up/Down) scrolls the results list with the selection.
+    Connections {
+        target: root
+        function onNavigateRequested(direction) {
+            resultsPanel.ensureVisible(direction);
+        }
+    }
+
     // Search input pill (was SearchBar — merged here, its only consumer).
     // Typing, Enter (activate hook), Up/Down (navigate hook), Esc (close).
     Rectangle {
@@ -114,6 +122,7 @@ Column {
         contentHeight: root.bodyFullHeight
 
         LauncherPanel {
+            id: resultsPanel
             anchors.top: parent.top
             width: parent.width
             height: root.bodyFullHeight

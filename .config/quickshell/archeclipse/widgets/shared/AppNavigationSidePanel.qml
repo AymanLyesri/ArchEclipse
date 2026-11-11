@@ -299,14 +299,12 @@ Item {
                     property int hoveredIndex: -1
 
                     readonly property int inset: Theme.pad
-                    readonly property int entryHeight: Math.max(28, Theme.fontSize + 16)
+                    readonly property int entryHeight: Math.max(32, Theme.fontSize + 20)
                     readonly property int entrySpacing: 2
                     readonly property int rowWidth: Math.max(0, width - inset * 2)
 
                     color: Theme.surface
                     radius: Theme.radius
-                    border.color: Theme.border
-                    border.width: 1
                     clip: true
                     implicitHeight: entries.implicitHeight + inset * 2
 
@@ -336,7 +334,7 @@ Item {
                         y: navBar.inset + Math.max(0, Math.min(navBar.currentIndex, navBar.model.length - 1)) * (navBar.entryHeight + navBar.entrySpacing)
                         width: navBar.rowWidth
                         height: navBar.entryHeight
-                        radius: Math.max(4, Theme.radius - 4)
+                        radius: Theme.radius
                         color: Theme.surfaceActive
                         Behavior on y {
                             Anim {
@@ -355,9 +353,9 @@ Item {
                         Rectangle {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 2
-                            height: Math.min(parent.height - 10, 16)
-                            radius: 1
+                            width: 3
+                            height: Math.min(parent.height - 10, 18)
+                            radius: 2
                             color: Theme.accent
                         }
                     }
@@ -383,10 +381,17 @@ Item {
 
                                 width: entries.width
                                 height: navBar.entryHeight
+                                scale: hover.hovered && cell.cellEnabled ? 1.015 : 1.0
+                                transformOrigin: Item.TopLeft
                                 opacity: (cell.cellEnabled ? 1 : 0.45) * (navBar.nav ? navBar.nav.falloffFor(index, navBar.hoveredIndex) : 1)
                                 Behavior on opacity {
                                     Anim {
                                         type: Anim.DefaultEffects
+                                    }
+                                }
+                                Behavior on scale {
+                                    Anim {
+                                        type: Anim.FastSpatial
                                     }
                                 }
 
@@ -403,9 +408,9 @@ Item {
                                     id: label
 
                                     anchors.left: parent.left
-                                    anchors.leftMargin: 10
+                                    anchors.leftMargin: 12
                                     anchors.right: parent.right
-                                    anchors.rightMargin: 6
+                                    anchors.rightMargin: 8
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: navBar.labelAt(cell.index)
                                     elide: Text.ElideRight
@@ -497,8 +502,8 @@ Item {
                         implicitHeight: cardBody.implicitHeight + Theme.pad * 2 + 8
                         radius: Theme.radius
                         color: Theme.surface
-                        border.color: Theme.border
-                        border.width: 1
+                        border.color: Theme.rgba(Theme.fg, 0.08)
+                        border.width: 0.5
 
                         opacity: navController.opacityFor(sectionCard.categoryIndex)
                         Behavior on opacity {
@@ -522,6 +527,16 @@ Item {
                             anchors.fill: parent
                             anchors.margins: Theme.pad
                             spacing: Theme.spacing
+
+                            Rectangle {
+                                width: parent.width
+                                height: 2
+                                radius: 1
+                                color: navController.activeIndex === sectionCard.categoryIndex ? Theme.accent : "transparent"
+                                Behavior on color {
+                                    CAnim {}
+                                }
+                            }
 
                             Label {
                                 width: parent.width
@@ -554,22 +569,33 @@ Item {
         }
     }
 
-    // Resize line: one full-height Rectangle, so the line cannot run short on either side of
-    // the grip, and the grip is centred on it by construction rather than by font metrics.
+    // Resize grip: two line segments top/bottom of the icon so the line
+    // does not pass through the glyph; accent on hover/press.
     readonly property color gripTone: gripArea.containsMouse || gripArea.pressed ? Theme.accent : Theme.border
+    readonly property real gripIconRatio: 0.05   // fraction of height occupied by the icon gap
 
     Rectangle {
         x: root.panelWidth - 1
         y: 0
         width: 1
-        height: root.height
+        height: root.height * (1 - gripIconRatio) / 2
         color: root.gripTone
+    }
+    Rectangle {
+        x: root.panelWidth - 1
+        y: root.height * (1 + gripIconRatio) / 2
+        width: 1
+        height: root.height * (1 - gripIconRatio) / 2
+        color: root.gripTone
+    }
+    Item {
+        x: root.panelWidth - 1
+        width: 1
+        height: root.height * gripIconRatio
+        anchors.verticalCenter: parent.verticalCenter
 
-        // Centred on paintedWidth/Height, not painted box centre: the glyph's ink is not
-        // symmetric inside its advance, and this line is only 1 px wide.
         Text {
-            x: Math.round((parent.width - paintedWidth) / 2)
-            y: Math.round((parent.height - paintedHeight) / 2)
+            anchors.centerIn: parent
             text: Icons.dragVertical
             textFormat: Text.PlainText
             font.family: Theme.fontFamily * 1.5
@@ -584,7 +610,7 @@ Item {
         x: root.panelWidth - 4
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: 4
+        width: 6
         hoverEnabled: true
         cursorShape: Qt.SizeHorCursor
 

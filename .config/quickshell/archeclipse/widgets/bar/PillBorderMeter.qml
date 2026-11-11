@@ -23,6 +23,10 @@ Item {
     property real gap: 2
     property real edgeGap: 1.5
     property real tail: 4
+    // Strokes sit under the pill chrome; they are intentionally quieter than the bar
+    // content. Track (empty groove) is kept lower so only filled bands feel prominent.
+    readonly property real trackOpacity: 0.35
+    readonly property real bandOpacity: 0.6
 
     // Three bands need 2.5 widths of inset room before the corner radius; past that the inner
     // bands cross the corner and vanish, so the drawn width is capped, never the band count.
@@ -135,6 +139,7 @@ Item {
                     PillPath.strokeEnd(ctx, end, root.topBar, W, H, f, cr, d, root.tail, c => {
                         c.lineWidth = root.drawStrokeWidth;
                         c.strokeStyle = canvas.trackColor;
+                        c.globalAlpha = root.trackOpacity;
                         c.stroke();
                     }, 1);
                     if (fracs[k] <= 0)
@@ -142,6 +147,7 @@ Item {
                     PillPath.strokeEnd(ctx, end, root.topBar, W, H, f, cr, d, root.tail, c => {
                         c.lineWidth = root.drawStrokeWidth;
                         c.strokeStyle = colors[k];
+                        c.globalAlpha = root.bandOpacity;
                         c.stroke();
                     }, fracs[k]);
                 }

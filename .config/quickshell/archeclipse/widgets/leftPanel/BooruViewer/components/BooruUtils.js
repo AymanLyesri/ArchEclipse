@@ -136,23 +136,6 @@ function clonify(img, currentApiObj) {
     }
 }
 
-function buildPageButtons(widgetWidth, page, currentIcon) {
-    var buttons = []
-    var totalPagesToShow = Math.floor(widgetWidth / 100) + 2
-    var current = page
-    if (current > 3) {
-        buttons.push({ label: "1", page: 1, active: false })
-        buttons.push({ label: "...", page: -1, active: false })
-    }
-    var startPage = Math.max(1, current - Math.floor(totalPagesToShow / 2))
-    var endPage = startPage + totalPagesToShow - 1
-    if (endPage - startPage + 1 < totalPagesToShow) endPage = startPage + totalPagesToShow - 1
-    for (var p = startPage; p <= endPage; p++) {
-        buttons.push({ label: p === current ? currentIcon : String(p), page: p, active: p === current })
-    }
-    return buttons
-}
-
 function pagedSlice(list, limit, page) {
     if (!(limit > 0)) return list
     var startIndex = (Math.max(1, page) - 1) * limit

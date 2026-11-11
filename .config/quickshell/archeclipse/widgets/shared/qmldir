@@ -29,3 +29,4 @@ SettingRow 1.0 SettingRow.qml
 Card 1.0 Card.qml
 PillBackground 1.0 PillBackground.qml
 SystemResourcesContent 1.0 SystemResourcesContent.qml
+AppPill 1.0 AppPill.qml

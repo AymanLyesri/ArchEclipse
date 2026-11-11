@@ -25,6 +25,12 @@ Rectangle {
         // (the view overwrites currentIndex itself). See Launcher.setResults for the order.
         currentIndex: resultsList.model, Launcher.selectedIndex
         spacing: 2
+        // Keyboard nav: bring the selection into view (mouse hover must not scroll).
+        function ensureVisible(dir) {
+            if (currentIndex < 0)
+                return;
+            positionViewAtIndex(currentIndex, dir > 0 ? ListView.End : ListView.Beginning);
+        }
         // Sliding selection pill (Caelestia AppList pattern): geometry tracks the current item
         // with expressive easing instead of repainting each delegate's background.
         highlightFollowsCurrentItem: false

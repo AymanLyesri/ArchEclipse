@@ -5,39 +5,46 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Filter controls: limit/columns/tags/cache. Lives in the shared navigation panel,
-// rendered as titled cards so the panel reads with the Settings/KeyBinds rhythm.
+// Filter controls: limit, columns, tags, cache. No card chrome — each section is a
+// small caps header over flat rows; the parent spacing alone separates the sections.
 Column {
     id: settingsCol
     property var viewer
 
     width: parent.width
-    spacing: Theme.spacing
+    // Gap BETWEEN sections only — rows inside a section use Theme.spacing.
+    spacing: Theme.pad
 
-    Card {
+    Column {
+        id: displaySection
         width: parent.width
-        height: limitBody.implicitHeight + Theme.pad * 2
+        spacing: Theme.spacing
 
-        Column {
-            id: limitBody
+        Label {
+            width: parent.width
+            text: "Display".toUpperCase()
+            font.pixelSize: Theme.fontSizeSmall
+            font.bold: true
+            color: Theme.accent
+        }
 
+        // Rows take explicit width from the section column (children deriving it would loop back).
+        Row {
             width: parent.width
             spacing: Theme.spacing
 
             Label {
-                width: parent.width
-                topPadding: Theme.pad / 2
+                width: 44
+                anchors.verticalCenter: parent.verticalCenter
                 text: "Limit"
-                font.pixelSize: Theme.fontSize + 2
-                font.bold: true
-                color: Theme.accent
-                elide: Text.ElideRight
-                maximumLineCount: 1
+                font.pixelSize: Theme.fontSizeSmall
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
             }
 
             AppSpinBox {
                 id: limitSpin
-                width: parent.width
+                width: parent.width - 44 - Theme.spacing
                 from: 0
                 to: 100
                 stepSize: 10
@@ -56,32 +63,23 @@ Column {
                 }
             }
         }
-    }
 
-    Card {
-        width: parent.width
-        height: columnsBody.implicitHeight + Theme.pad * 2
-
-        Column {
-            id: columnsBody
-
+        Row {
             width: parent.width
             spacing: Theme.spacing
 
             Label {
-                width: parent.width
-                topPadding: Theme.pad / 2
+                width: 44
+                anchors.verticalCenter: parent.verticalCenter
                 text: "Columns"
-                font.pixelSize: Theme.fontSize + 2
-                font.bold: true
-                color: Theme.accent
-                elide: Text.ElideRight
-                maximumLineCount: 1
+                font.pixelSize: Theme.fontSizeSmall
+                font.family: Theme.fontFamily
+                color: Theme.fgDim
             }
 
             AppSpinBox {
                 id: columnsSpin
-                width: parent.width
+                width: parent.width - 44 - Theme.spacing
                 from: 1
                 to: 5
                 stepSize: 1
@@ -100,140 +98,129 @@ Column {
         }
     }
 
-    Card {
+    Column {
+        id: tagsSection
         width: parent.width
-        height: tagsBody.implicitHeight + Theme.pad * 2
+        spacing: Theme.spacing
 
-        Column {
-            id: tagsBody
-
+        Label {
             width: parent.width
+            text: "Tags".toUpperCase()
+            font.pixelSize: Theme.fontSizeSmall
+            font.bold: true
+            color: Theme.accent
+        }
+
+        // Tags flow — removable pills; rating tags stay active, others are removable.
+        Flow {
             spacing: Theme.spacing
-
-            Label {
-                width: parent.width
-                topPadding: Theme.pad / 2
-                text: "Tags"
-                font.pixelSize: Theme.fontSize + 2
-                font.bold: true
-                color: Theme.accent
-                elide: Text.ElideRight
-                maximumLineCount: 1
-            }
-
-            // Tags flow
-            Flow {
-                spacing: Theme.spacing
-                width: parent.width
-                Repeater {
-                    model: viewer.currentTags
-                    delegate: AppButton {
-                        readonly property bool isRating: modelData.match(/[-]rating:e|rating:e/) !== null
-                        height: 22
-                        cornerRadius: 4
-                        pixelSize: Theme.fontSize - 2
-                        idleBg: isRating ? Theme.surfaceActive : Theme.bg
-                        idleFg: isRating ? Theme.accent : Theme.fg
-                        hoverFg: isRating ? Theme.accent : Theme.fg
-                        outlined: true
-                        outlineColor: isRating ? Theme.accent : Theme.border
-                        text: modelData
-                        tooltipText: isRating ? "Toggle explicit filter" : "Remove tag"
-                        onClicked: {
-                            // Hoist: assigning currentTags destroys this delegate mid-click, after
-                            // which `viewer` lookups throw and the refetch below never runs.
-                            const v = viewer;
-                            if (isRating) {
-                                // Toggle -rating:e <-> rating:e, move to front, refetch
-                                const newRating = modelData.startsWith("-") ? "rating:e" : "-rating:e";
-                                let newTags = v.currentTags.filter(t => !t.match(/[-]rating:e|rating:e/));
-                                newTags.unshift(newRating);
-                                v.currentTags = newTags;
-                                Settings.booru.tags = newTags;
-                                Settings.updateSetting("booru.tags", newTags);
-                            } else {
-                                // Remove tag, refetch
-                                const newTags = v.currentTags.filter(t => t !== modelData);
-                                console.info("[Booru] chip remove:", modelData, "->", JSON.stringify(newTags));
-                                v.currentTags = newTags;
-                                Settings.booru.tags = newTags;
-                                Settings.updateSetting("booru.tags", newTags);
-                            }
-                            // Refetch except in Bookmarks/Pins tabs
-                            if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins") {
-                                v.fetchImages();
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Add tag entry + search
-            AppTextField {
-                id: tagEntry
-                placeholderText: "Search tags..."
-                font.pixelSize: Theme.fontSize - 2
-                width: parent.width
-                cornerRadius: 4
-                onTextChanged: {
-                    // Debounced tag fetch
-                    if (text.length > 0) {
-                        viewer.fetchTags(text);
-                    }
-                }
-                Keys.onReturnPressed: {
-                    if (text.trim()) {
-                        const newTags = [...new Set([...viewer.currentTags, ...text.trim().split(" ")])];
-                        viewer.currentTags = newTags;
-                        Settings.booru.tags = newTags;
-                        Settings.updateSetting("booru.tags", newTags);
-                        tagEntry.text = "";
-                        // Adding tags always refetches
-                        if (viewer.selectedTab !== "Bookmarks" && viewer.selectedTab !== "Pins") {
-                            viewer.fetchImages();
-                        }
-                    }
-                }
-            }
-
-            AppButton {
-                width: parent.width
-                text: viewer.cacheSize
-                tooltipText: "Clear cache"
-                onClicked: viewer.cleanCache()
-            }
-
-            // Fetched tag suggestions
-            Flow {
-                spacing: Theme.spacing
-                width: parent.width
-                visible: viewer.fetchedTags.length > 0
-                Repeater {
-                    model: viewer.fetchedTags
-                    delegate: AppButton {
-                        text: modelData
-                        tooltipText: "Add this tag to the search"
-                        height: 20
-                        pixelSize: Theme.fontSize - 3
-                        onClicked: {
-                            // Hoist (same delegate-destruction hazard as
-                            // the tag chips above).
-                            const v = viewer;
-                            if (v.currentTags.includes(modelData)) {
-                                return;
-                            }
-                            const newTags = [...v.currentTags, modelData];
+            width: parent.width
+            Repeater {
+                model: viewer.currentTags
+                delegate: AppPill {
+                    // Match standard ratings plus the empty-string sentinel.
+                    readonly property bool isRating: modelData.match(/[-+]rating:e|rating:e/) !== null || modelData === ""
+                    // Keep the stored sign visible (-/+/none) so the filter state reads at a glance.
+                    readonly property string display: modelData === "" ? "rating:e" : modelData
+                    text: display
+                    // Empty-sentinel renders with strikethrough; nothing else does.
+                    strike: modelData === ""
+                    tooltipText: modelData === "" ? "Click to activate filter"
+                              : isRating        ? "Click to cycle"
+                                                 : "Remove tag"
+                    // Rating-e is never removed from the search: click only cycles its state.
+                    enabled: true
+                    onClicked: {
+                        const v = viewer;
+                        if (!isRating) {
+                            // Non-rating: remove entirely.
+                            const newTags = v.currentTags.filter(t => t !== modelData);
+                            console.info("[Booru] chip remove:", modelData, "->", JSON.stringify(newTags));
                             v.currentTags = newTags;
                             Settings.booru.tags = newTags;
                             Settings.updateSetting("booru.tags", newTags);
-                            // Fetched-tag click refetches (except local tabs)
-                            if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins") {
-                                v.fetchImages();
-                            }
+                        } else {
+                            // Three-state cycle: -rating:e -> +rating:e -> off (struck) -> -rating:e
+                            const next = modelData === "-rating:e" ? "+rating:e"
+                                       : modelData === "+rating:e" ? ""
+                                                                  : "-rating:e";
+                            let newTags = v.currentTags.filter(t => t !== "" && !t.match(/[-+]rating:e|rating:e/));
+                            newTags.unshift(next);
+                            v.currentTags = newTags;
+                            Settings.booru.tags = newTags;
+                            Settings.updateSetting("booru.tags", newTags);
                         }
+                        if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins")
+                            v.fetchImages();
+                    }
+                    onRemoved: onClicked();
+                }
+            }
+        }
+
+        // Add tag entry + search
+        AppTextField {
+            id: tagEntry
+            placeholderText: "Search tags..."
+            font.pixelSize: Theme.fontSize - 2
+            width: parent.width
+            cornerRadius: 4
+            onTextChanged: {
+                // Debounced tag fetch
+                if (text.length > 0) {
+                    viewer.fetchTags(text);
+                }
+            }
+            Keys.onReturnPressed: {
+                if (text.trim()) {
+                    const raw = text.trim().split(" ").map(t => t.trim()).filter(Boolean);
+                    const newTags = [...new Set([...viewer.currentTags, ...raw])];
+                    viewer.currentTags = newTags;
+                    Settings.booru.tags = newTags;
+                    Settings.updateSetting("booru.tags", newTags);
+                    tagEntry.text = "";
+                    // Adding tags always refetches
+                    if (viewer.selectedTab !== "Bookmarks" && viewer.selectedTab !== "Pins") {
+                        viewer.fetchImages();
                     }
                 }
             }
+        }
+
+        AppButton {
+            width: parent.width
+            text: viewer.cacheSize
+            tooltipText: "Clear cache"
+            onClicked: viewer.cleanCache()
+        }
+
+        // Fetched tag suggestions
+        Flow {
+            spacing: Theme.spacing
+            width: parent.width
+            visible: viewer.fetchedTags.length > 0
+            Repeater {
+                model: viewer.fetchedTags
+                delegate: AppPill {
+                    text: modelData
+                    tooltipText: "Add this tag to the search"
+                    active: viewer.currentTags.indexOf(modelData) >= 0
+                    onClicked: {
+                        const trimmed = String(modelData).trim();
+                        if (!trimmed)
+                            return;
+                        const v = viewer;
+                        if (v.currentTags.indexOf(trimmed) >= 0)
+                            return;
+                        const newTags = [...v.currentTags, trimmed];
+                        v.currentTags = newTags;
+                        Settings.booru.tags = newTags;
+                        Settings.updateSetting("booru.tags", newTags);
+                        if (v.selectedTab !== "Bookmarks" && v.selectedTab !== "Pins")
+                            v.fetchImages();
+                    }
+                }
+            }
+        }
     }
-}
 }

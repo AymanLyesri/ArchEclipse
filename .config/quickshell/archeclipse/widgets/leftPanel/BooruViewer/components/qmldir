@@ -3,5 +3,6 @@ module qs.widgets.leftPanel.BooruViewer.components
 BooruGrid 1.0 BooruGrid.qml
 BooruImage 1.0 BooruImage.qml
 BooruNavigation 1.0 BooruNavigation.qml
+BooruPageGrid 1.0 BooruPageGrid.qml
 BooruSettingsPanel 1.0 BooruSettingsPanel.qml
 BooruDialog 1.0 BooruDialog.qml

@@ -70,6 +70,7 @@ urls_images_sfw = [
     "https://cdn.donmai.us/original/e6/59/__ciel_kamitsubaki_studio_drawn_by_shirone_coxo_ii__e659fcfcb737cccce99c1f7ebdc34f2e.jpg",
     "https://cdn.donmai.us/original/26/00/__lachesis_misty_original_drawn_by_swd3e2__2600cb6244c96cb8b021586e4fb11125.jpg",
     "https://cdn.donmai.us/original/8b/43/__original_drawn_by_void_0__8b433da3ef498514c37f51c75617566c.jpg",
+    "https://cdn.donmai.us/original/4a/34/__manjuu_and_new_jersey_azur_lane_drawn_by_yyy_zelda10010__4a348fe5838fb7ae320695edc03f49f8.png",
 ]
 
 urls_images_nsfw = [
@@ -160,6 +161,15 @@ urls_images_nsfw = [
     "https://cdn.donmai.us/original/5a/be/__napoli_azur_lane_drawn_by_shiran1024__5abe045d8800883566ec060b2f319395.jpg",
     "https://cdn.donmai.us/original/e8/a4/__hsin_wuthering_waves_drawn_by_hemeruss__e8a489b002cc38bdb28d386e09333569.jpg",
     "https://cdn.donmai.us/original/b1/06/__original_drawn_by_h_an_516635864__b1066c6158a9a66346ff63a67e5c971f.png",
+    "https://cdn.donmai.us/original/dc/40/__taihou_new_jersey_bismarck_anchorage_bismarck_zwei_and_1_more_azur_lane_drawn_by_manzai_sugar__dc40358e3f1e4e449732661a2c08a130.jpg",
+    "https://cdn.donmai.us/original/7d/7b/__toki_blue_archive_drawn_by_aoi_sakura_seak5545__7d7b59e06a4041fdff9cdeb45ad55586.jpg",
+    "https://cdn.donmai.us/original/38/4f/__cinderella_goddess_of_victory_nikke_and_1_more_drawn_by_nike_nike1060__384f69052994b5c32acb9ecb08111691.jpg",
+    "https://cdn.donmai.us/original/00/0f/__albion_azur_lane_drawn_by_uaxa2334__000fdfe75113f2144a50b3705161f5d2.jpg",
+    "https://cdn.donmai.us/original/71/c0/__original_drawn_by_uaxa2334__71c050ef07269a85b3516a91fd424d37.jpg",
+    "https://cdn.donmai.us/original/1e/1b/__nilou_genshin_impact_drawn_by_uaxa2334__1e1b6fb8ed69c5c0e3c8df2be7116c12.jpg",
+    "https://cdn.donmai.us/original/0c/ab/__admiral_nakhimov_azur_lane_drawn_by_yijiufantexi__0cabe973af2325f7f920fdd2b4b386b1.jpg",
+    "https://cdn.donmai.us/original/63/f6/__manjuu_and_august_von_parseval_azur_lane_drawn_by_top_tank__63f6eafb9c519468740f47ee1e918ef8.jpg",
+    "https://cdn.donmai.us/original/8f/88/__argus_azur_lane_drawn_by_nekojira__8f88553459be9040610292935a6f2e27.png",
 ]
 
 urls_animated_sfw = [

@@ -33,7 +33,7 @@ Item {
             return 260;
         const w = Math.max(1, dialogRoot.width || 220);
         const h = w * dlg.height / dlg.width;
-        return Math.min(Math.max(h, 200), 560);
+        return Math.min(Math.max(h, 200), 640);
     }
     implicitHeight: dialogRoot.cardH
     onImplicitHeightChanged: {

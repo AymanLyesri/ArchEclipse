@@ -569,11 +569,13 @@ Item {
     function ensureRatingTagFirst() {
         // Find existing rating tag, remove it, re-add at front (or default -rating:e)
         let tags = root.currentTags.slice();
-        const ratingTag = tags.find(t => {
+        const found = tags.find(t => {
             return t.match(/[-]rating:e|rating:e/);
         });
+        // Plain "rating:e" is not a cycle state: normalize it to the default filter.
+        const ratingTag = found === "rating:e" ? "-rating:e" : found;
         tags = tags.filter(t => {
-            return !t.match(/[-]rating:e|rating:e/);
+            return t !== "" && !t.match(/[-+]rating:e|rating:e/);
         });
         tags.unshift(ratingTag ?? "-rating:e");
         root.currentTags = tags;
@@ -1236,11 +1238,7 @@ Item {
         });
     }
 
-    // Page buttons: "1 ..." past page 3, then a ~(width/100+2) window; the current page
-    // shows a refresh glyph, the rest their number.
-    function buildPageButtons() {
-        return BooruUtils.buildPageButtons(root.widgetWidth, root.page, Icons.refresh);
-    }
+    // Page buttons: BooruPageGrid in the left nav panel owns the windowing.
 
     // Initial load, branched to bookmarks/pins/API from the restored tab. Deferred until
     // Settings.ready — booting on defaults fetched with the wrong limit and persisted them.
@@ -1393,16 +1391,30 @@ Item {
         navCurrentIndex: Math.max(0, root.tabValues.indexOf(root.selectedTab))
         onNavSelected: index => root.activateTab(root.tabValues[index])
 
+        // One scrolling body: Page / Display / Tags are sections of one column, so
+        // panelBody.spacing is the single gap between all of them.
         SmoothFlickable {
             anchors.fill: parent
             contentWidth: width
-            contentHeight: settingsPanel.implicitHeight
+            contentHeight: panelBody.implicitHeight
             clip: true
 
-            Booru.BooruSettingsPanel {
-                id: settingsPanel
-                viewer: root
+            Column {
+                id: panelBody
                 width: parent.width
+                spacing: Theme.pad * 2
+
+                Booru.BooruPageGrid {
+                    id: pageGrid
+                    viewer: root
+                    width: parent.width
+                }
+
+                Booru.BooruSettingsPanel {
+                    id: settingsPanel
+                    viewer: root
+                    width: parent.width
+                }
             }
         }
     }
@@ -1429,17 +1441,10 @@ Item {
             onPageBecameVisible: pageNo => root.handlePageVisible(pageNo)
         }
 
-        // Page buttons live in BooruNavigation. Bookmark toggling lives in BooruActions.
-
-        // Bottom bar: page navigation only
-        Column {
-            Layout.fillWidth: true
-            width: parent.width
-            spacing: Theme.spacing
-
-            Booru.BooruNavigation {
-                viewer: root
-            }
+        // Page buttons live in the left nav panel as a 2D grid (BooruPageGrid).
+        // This bar is only the loading/error pill now. Bookmark toggling lives in BooruActions.
+        Booru.BooruNavigation {
+            viewer: root
         }
     }
 
@@ -1454,7 +1459,11 @@ Item {
         anchor.rect.height: 1
         // Defaults (edges Top|Left, gravity Bottom|Right) already put the top-left corner at
         // the rect, expanding down-right. 232px was too narrow for the 2-col action grids.
-        implicitWidth: 288
+        // Width now tracks the post's aspect: portrait/square posts keep the 344 base, while
+        // landscape posts get a wider card (they were capped horizontally by the fixed width —
+        // only tall posts grew before). Capped at 620 so panel(400)+card stays on screen.
+        readonly property real dlgAspect: (root.dialogImage && root.dialogImage.width > 0 && root.dialogImage.height > 0) ? (root.dialogImage.width / root.dialogImage.height) : 1
+        implicitWidth: Math.round(Math.max(344, Math.min(620, 344 * Math.max(1, detailPopup.dlgAspect))))
         implicitHeight: Math.max(48, Math.round(root.height))
         // Gated on the host being shown — dialogImage outlives island close and left an orphan
         // popup. Hidden while detached and for pinned hosts (the card is embedded).

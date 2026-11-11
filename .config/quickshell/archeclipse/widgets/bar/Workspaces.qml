@@ -15,13 +15,13 @@ Item {
     property int count: 10
     property real barHeight: 2
     property real iconSize: 11
-    property real btnSpacing: 2
+    property real btnSpacing: 0
     // Horizontal inset of the strip Row so the end buttons don't flush against
     // the pill's straight edges.
     property real edgeMargin: 0
     property real hitHeight: 6
     // Gap between a slot's icon holder and its bar (Column spacing).
-    property real iconSpacing: 1
+    property real iconSpacing: 2
     // --- wave reveal tuning ---
     // Each ring out adds `waveStep` from a floor fitting icon + bar; `maxRings` caps the ramp.
     property real headroom: 0
@@ -96,6 +96,14 @@ Item {
     // button is invisible rather than short, and fades with its own collapse.
     function revealProgress(reveal, target) {
         return Math.max(0, Math.min(1, (reveal - root.hitHeight) / Math.max(1, target - root.hitHeight)));
+    }
+
+    // --- button visibility ramp ---
+    // Buttons idle at 50%; on reveal the focused one is 100% and each ring out
+    // loses half the headroom, hitting the 50% floor at maxRings.
+    readonly property real idleOpacity: 0.3
+    function revealOpacity(ring) {
+        return 1.0 - (1.0 - root.idleOpacity) / root.maxRings * ring;
     }
 
     // --- new-client blink: 3 blinks on unfocused workspaces ---
@@ -404,7 +412,7 @@ Item {
                             anchors.centerIn: parent
                             text: slot.iconText
                             color: slot.alerting ? Theme.accent : slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
-                            opacity: slot.revealT * (slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : ((slot.focused || slot.occupied) ? 1.0 : 0.35))
+                            opacity: slot.revealT * (slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : root.showIcons ? root.revealOpacity(slot.ring) : root.idleOpacity)
                             font.family: Theme.fontFamily
                             font.pixelSize: root.iconSize
                         }
@@ -417,7 +425,7 @@ Item {
                         height: root.barHeight
                         radius: root.barHeight / 2
                         color: slot.alerting ? Theme.accent : slot.focused ? Theme.accent : slot.occupied ? Theme.fg : Theme.muted
-                        opacity: slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : (slot.focused || slot.occupied) ? 1.0 : 0.35
+                        opacity: slot.alerting ? (root.blinkPhase ? 1.0 : 0.15) : root.showIcons ? root.revealOpacity(slot.ring) : root.idleOpacity
 
                         Behavior on color {
                             ColorAnimation {
@@ -569,7 +577,7 @@ Item {
                             anchors.centerIn: parent
                             text: root.specialIconText
                             color: Theme.accent
-                            opacity: specialSlot.revealT * (root.specialOpen ? 1.0 : root.specialOccupied ? 0.9 : 0.55)
+                            opacity: specialSlot.revealT * (root.showIcons ? root.revealOpacity(specialSlot.ring) : root.idleOpacity)
                             font.family: Theme.fontFamily
                             font.pixelSize: root.iconSize
                         }
@@ -583,7 +591,7 @@ Item {
                         height: root.barHeight
                         radius: (root.barHeight + 1) / 2
                         color: Theme.accent
-                        opacity: root.specialOpen ? 1.0 : root.specialOccupied ? 0.8 : 0.45
+                        opacity: root.showIcons ? root.revealOpacity(specialSlot.ring) : root.idleOpacity
                         border.color: Theme.accent
                         border.width: root.specialOpen ? 1 : 0
 

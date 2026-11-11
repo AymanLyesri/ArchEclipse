@@ -18,8 +18,8 @@ Singleton {
     property string dateFormat: "%H:%M"
     readonly property var dateFormats: ["%H:%M", "%I:%M %p"]
     property real uiOpacity: 0.618
-    property int uiRadius: 12
-    property int uiPad: 8
+    property int uiRadius: 10
+    property int uiPad: 6
     property int uiSpacing: 6
     property int uiFontSize: 12
 
@@ -1061,9 +1061,9 @@ Singleton {
 
                 root.dateFormat = s.dateFormat ?? "%H:%M";
                 root.uiOpacity = s.ui?.opacity?.value ?? 0.618;
-                root.uiRadius = s.ui?.radius?.value ?? 12;
-                root.uiPad = s.ui?.pad?.value ?? 8;
-                root.uiSpacing = s.ui?.spacing?.value ?? 8;
+                root.uiRadius = s.ui?.radius?.value ?? 10;
+                root.uiPad = s.ui?.pad?.value ?? 6;
+                root.uiSpacing = s.ui?.spacing?.value ?? 6;
                 root.uiFontSize = s.ui?.fontSize?.value ?? 12;
 
                 const keybinds = s.keybinds ?? {};

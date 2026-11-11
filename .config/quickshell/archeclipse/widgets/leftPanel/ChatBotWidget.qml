@@ -1135,8 +1135,7 @@ Item {
                     color: Theme.accent
                 }
 
-                // Context toggles: a wrapping Flow (booru-tag pattern) so the four
-                // pills wrap instead of stacking one per line.
+                // Context toggles: a wrapping Flow so the four pills wrap.
                 Flow {
                     width: parent.width
                     spacing: Theme.spacing
@@ -1149,19 +1148,11 @@ Item {
                             { value: "file", label: "File", tooltip: "Auto-include the file open in the focused editor" }
                         ]
 
-                        delegate: AppButton {
+                        delegate: AppPill {
                             required property var modelData
-                            toggle: true
-                            checked: Settings.chatBotContext[modelData.value] ?? true
-                            height: 24
-                            pixelSize: Theme.fontSize - 2
                             text: modelData.label
                             tooltipText: modelData.tooltip
-                            idleBg: checked ? Theme.surfaceActive : Theme.bg
-                            idleFg: checked ? Theme.accent : Theme.fg
-                            hoverFg: checked ? Theme.accent : Theme.fg
-                            outlined: true
-                            outlineColor: Theme.border
+                            active: Settings.chatBotContext[modelData.value] ?? true
                             onClicked: {
                                 const v = modelData.value;
                                 const next = !(Settings.chatBotContext[v] ?? true);

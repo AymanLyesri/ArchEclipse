@@ -17,6 +17,9 @@ QtObject {
     // load/rename, never written from anywhere else.
     property var history: []
 
+    // Newest-first history cap; oldest entries beyond this are dropped.
+    property int maxHistory: 500
+
     // FIFO of pending captures; _busy guards the single capture pipeline.
     property int _pending: 0
     property bool _busy: false
@@ -42,9 +45,11 @@ QtObject {
         // Heal only from a confirmed load: writing here unconditionally clobbers
         // valid data (text() is async); adopt anyway so `cb` binds warm at boot.
         root._loadHistory((list, changed) => {
-            root.history = list;
+            if (list.length > root.maxHistory)
+                changed = true;
+            root.history = list.slice(0, root.maxHistory);
             if (changed)
-                root._writeHistory(list);
+                root._writeHistory(root.history);
         });
         Quickshell.execDetached(["mkdir", "-p", root.imageDir]);
         root._killProc.running = true;
@@ -113,7 +118,8 @@ QtObject {
         }
         // FileView delivers text() via onLoaded, never synchronously — a sync read
         // returned "" and wiped 49 valid entries on boot (2026-10-13).
-        root._loadHistory((list) => {
+        root._loadHistory((previous) => {
+            const list = previous.slice(0, root.maxHistory - 1);
             list.unshift({
                 id: root._capTs,
                 timestamp: root._capTs,

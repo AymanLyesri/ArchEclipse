@@ -13,6 +13,8 @@ QtObject {
     id: root
 
     readonly property int maxItems: 10
+    // `cb` results are browsed, not ranked — show the whole history, not the 10-row cap.
+    readonly property int clipboardMaxItems: 500
     readonly property string historyPath: `${Quickshell.env("HOME")}/.cache/quickshell/launcher/app-history.json`
     readonly property string notesPath: `${Quickshell.env("HOME")}/.cache/quickshell/launcher/notes.json`
     readonly property string emojisPath: `${Quickshell.env("HOME")}/.config/quickshell/archeclipse/assets/emojis/emojis.json`
@@ -766,7 +768,7 @@ QtObject {
                 const stroke = content.replace(/\s+/g, " ").slice(0, 128) + (content.length > 128 ? "…" : "");
                 const type = entry.type || (entry.mimeType || "text");
                 out.push(mkResult(stroke, Icons.clipboard, `${type} · click to copy`, () => copyToClipboard(content)));
-                if (out.length >= maxItems)
+                if (out.length >= clipboardMaxItems)
                     break;
             }
         }
