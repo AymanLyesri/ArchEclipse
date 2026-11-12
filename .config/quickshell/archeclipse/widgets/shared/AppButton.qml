@@ -27,7 +27,11 @@ Item {
     property int cornerRadius: Theme.radius
     // Icon/label gap, exposed so dense rails and roomy headers can both breathe.
     property int contentSpacing: Theme.spaceXs + 2
-    property int hPadding: 10
+    // Size tokens are the only size control: an icon or short-label cell must not pin a width
+    // or height at its call site, or one padded box drifts from the rest of the shell.
+    property int hPadding: Theme.pad * 2
+    property int vPadding: Theme.pad * 2
+    property int minHeight: 22
     property bool toggle: false
     property bool checked: false
     property bool autoToggle: false
@@ -76,7 +80,7 @@ Item {
         console.warn("MISSING TOOLTIPTEXT AppButton:", this, "icon:", JSON.stringify(icon), "text:", JSON.stringify(text))
 
     implicitWidth: contentRow.implicitWidth + root.hPadding * 2
-    implicitHeight: Math.max(28, Theme.fontSize + 18)
+    implicitHeight: Math.max(root.minHeight, root.pixelSize + root.vPadding * 2)
 
     // Keyboard activation: Return/Enter/Space click the cell, one focus
     // ring style for every button instance in the shell.

@@ -42,7 +42,6 @@ Row {
             text: ModelEntry.labelAt(root.model, index)
             height: root.chipHeight
             pixelSize: root.pixelSize
-            hPadding: 10
             enabled: ModelEntry.enabledAt(root.model, index)
             // String models carry no tooltip; the label is still the only explanation there.
             tooltipText: ModelEntry.tooltipAt(root.model, index) || ("Toggle " + text)

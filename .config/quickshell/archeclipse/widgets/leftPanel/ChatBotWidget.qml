@@ -1234,21 +1234,18 @@ Item {
                         text: "1. Visit openrouter and Sign-up for FREE  " + Icons.externalLink
                         tooltipText: "Open openrouter.ai in the browser"
                         width: parent.width
-                        implicitHeight: 28
                         onClicked: Quickshell.execDetached(["xdg-open", "https://openrouter.ai/"])
                     }
                     AppButton {
                         text: "2. Generate a FREE API key  " + Icons.externalLink
                         tooltipText: "Open the OpenRouter API key page"
                         width: parent.width
-                        implicitHeight: 28
                         onClicked: Quickshell.execDetached(["xdg-open", "https://openrouter.ai/settings/keys"])
                     }
                     AppButton {
                         text: "3. Copy & Paste it in the settings"
                         tooltipText: "Open the OpenRouter key in settings"
                         width: parent.width
-                        implicitHeight: 28
                         onClicked: root.goToSettings("openrouter.key")
                     }
                 }
@@ -1629,7 +1626,6 @@ Item {
                             toggle: true
                             checked: index === root.slashIndex
                             width: slashList.width
-                            implicitHeight: 30
                             text: "/" + modelData.name + "  —  " + modelData.description
                             tooltipText: "Run command /" + modelData.name
                             onClicked: {
@@ -1645,7 +1641,6 @@ Item {
                             toggle: true
                             checked: (index + cmdCount) === root.slashIndex
                             width: slashList.width
-                            implicitHeight: 30
                             text: (index + 1) + ". " + modelData.name + (modelData.id === root.activeSessionId ? "  (active)" : "")
                             tooltipText: (root.sessionFirsts[modelData.id] || "") + "\n" + modelData.id
                             onClicked: {
@@ -1719,8 +1714,6 @@ Item {
                 // Stop kills the process (SIGTERM -> backend saves the partial reply).
                 AppButton {
                     visible: root.progressStatus === "loading"
-                    implicitWidth: 36
-                    implicitHeight: 40
                     text: Icons.stop
                     tooltipText: "Stop generation"
                     onClicked: root.stopGeneration()

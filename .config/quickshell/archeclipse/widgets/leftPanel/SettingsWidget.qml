@@ -491,16 +491,12 @@ Item {
                                     }
                                     AppButton {
                                         text: parent.parent.reveal ? "hide" : "show"
-                                        Layout.preferredWidth: 44
-                                        Layout.preferredHeight: 24
                                         visible: uaField.text !== ""
                                         tooltipText: "Show or hide the value"
                                         onClicked: parent.parent.reveal = !parent.parent.reveal
                                     }
                                     AppButton {
                                         text: "copy"
-                                        Layout.preferredWidth: 44
-                                        Layout.preferredHeight: 24
                                         visible: uaField.text !== ""
                                         tooltipText: "Copy the value to the clipboard"
                                         onClicked: root.copyText(uaField.text)
@@ -627,16 +623,12 @@ Item {
                                     }
                                     AppButton {
                                         text: parent.parent.reveal ? "hide" : "show"
-                                        Layout.preferredWidth: 44
-                                        Layout.preferredHeight: 24
                                         visible: keyField.text !== ""
                                         tooltipText: "Show or hide the key"
                                         onClicked: parent.parent.reveal = !parent.parent.reveal
                                     }
                                     AppButton {
                                         text: "copy"
-                                        Layout.preferredWidth: 44
-                                        Layout.preferredHeight: 24
                                         tooltipText: "Copy the key to the clipboard"
                                         onClicked: root.copyText(keyField.text)
                                     }

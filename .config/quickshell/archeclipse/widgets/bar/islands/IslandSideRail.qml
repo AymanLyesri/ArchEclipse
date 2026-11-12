@@ -2,7 +2,7 @@ import QtQuick
 import qs.theme
 import qs.widgets.shared
 
-// Shared 48px rail with 40px icon cells for the left island tabs (toggle highlight, Donations
+// Shared rail of full-bleed icon cells for the left island tabs (toggle highlight, Donations
 // nudge, tooltips); `dragEnabled` is reserved — RightIsland keeps its custom reorder rail.
 Rectangle {
     id: root
@@ -25,16 +25,17 @@ Rectangle {
 
         Repeater {
             model: root.model
-            // Same 40px cell structure as the inline rails this
-            // replaces: fixed-height full-width cell, icon centered.
+            // Cell thickness is AppButton's own token value (vPadding/minHeight), not a literal;
+            // the rail owns the full-bleed width so proportional glyphs cannot make cells ragged.
             delegate: Item {
                 required property var modelData
                 // NOTE: `index` must be declared: with required properties
                 // present, Qt6 withholds undeclared delegate context props.
                 required property int index
                 width: railColumn.width
-                height: 40
+                height: cell.implicitHeight
                 AppButton {
+                    id: cell
                     anchors.fill: parent
                     icon: modelData.icon !== undefined ? modelData.icon : ""
                     cornerRadius: Theme.radius

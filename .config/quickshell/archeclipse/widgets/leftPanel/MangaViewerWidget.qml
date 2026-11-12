@@ -330,7 +330,6 @@ Item {
                 delegate: AppButton {
                     required property var modelData
                     width: parent.width
-                    height: Math.max(28, Theme.fontSize + 16)
                     toggle: true
                     checked: modelData.id === root.provider
                     text: modelData.label

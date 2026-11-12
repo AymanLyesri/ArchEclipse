@@ -113,7 +113,6 @@ Rectangle {
                     model: modelData.actions
                     delegate: AppButton {
                         text: modelData.label
-                        height: 26
                         pixelSize: Theme.typeLabel
                         cornerRadius: Theme.radius
                         idleBg: Theme.surfaceRaised

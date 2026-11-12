@@ -230,8 +230,6 @@ Item {
                             }
                         ]
                         delegate: AppButton {
-                            width: 34
-                            height: 34
                             cornerRadius: Theme.radius
                             idleBg: Theme.surfaceRaised
                             hoverBg: Theme.surfaceOverlay
@@ -453,9 +451,7 @@ Item {
 
                             AppButton {
                                 x: (parent.width - width) / 2
-                                width: 120
                                 tooltipText: "Download and install updates"
-                                height: 32
                                 cornerRadius: 6
                                 idleBg: Theme.accent
                                 hoverBg: Theme.surfaceActive
@@ -486,9 +482,7 @@ Item {
 
                             AppButton {
                                 x: (parent.width - width) / 2
-                                width: 130
                                 tooltipText: "Check for new versions"
-                                height: 28
                                 cornerRadius: 6
                                 icon: Icons.sync
                                 text: "Check Update"

@@ -15,8 +15,8 @@ Item {
     property int widgetWidth: parent.width
     property string className: ""
 
-    implicitWidth: 400
-    implicitHeight: Math.round(body.implicitHeight + Theme.pad * 2)
+    implicitWidth: 480
+    implicitHeight: Math.round(body.implicitHeight + Theme.pad * 2 + Theme.spaceSm * 2)
 
     // Selection is shared with the bar pill (PlayerFocus): a pin wins, then whatever plays,
     // then the player that last played, so pausing does not swap the card for an idle one.
@@ -56,8 +56,7 @@ Item {
         if (root.player === null)
             return;
         Lyrics.positionSec = root.player?.position ?? 0;
-        Lyrics.fetchFor(root.artist, root.title, root.album,
-            Math.round(root.player?.length ?? 0));
+        Lyrics.fetchFor(root.artist, root.title, root.album, Math.round(root.player?.length ?? 0));
     }
 
     // True once LRCLIB returns usable lyric content; the shelf shows a hint otherwise.
@@ -101,11 +100,7 @@ Item {
         if (dur > 0)
             idx = Math.floor((Lyrics.positionSec / dur) * arr.length);
         idx = Math.max(0, Math.min(idx, arr.length - 1));
-        return [
-            idx > 0 ? arr[idx - 1] : "",
-            arr[idx],
-            idx + 1 < arr.length ? arr[idx + 1] : ""
-        ];
+        return [idx > 0 ? arr[idx - 1] : "", arr[idx], idx + 1 < arr.length ? arr[idx + 1] : ""];
     }
 
     // Icon via the MPRIS DesktopEntry with identity fallbacks, then Quickshell.iconPath() into
@@ -207,7 +202,9 @@ Item {
     }
 
     // ----- collapsible shelf -----
-    property bool detailsOpen: false
+    // Derived, not toggled: lyrics reveal the shelf once LRCLIB has them ("loading" stops it
+    // folding shut between tracks), and the Equalizer tab keeps it open on its own.
+    property bool detailsOpen: root.detailsTab === 1 || root.hasLyrics || Lyrics.status === "loading"
     property int detailsTab: 0
     readonly property int lyricLineHeight: Theme.fontSize + 9
     readonly property int lyricsHeight: root.lyricLineHeight * 3
@@ -266,8 +263,12 @@ Item {
         ColumnLayout {
             id: body
             anchors.fill: parent
-            anchors.margins: Theme.pad
-            spacing: Theme.spaceSm
+            anchors.leftMargin: Theme.pad
+            anchors.rightMargin: Theme.pad
+            // Taller card: the vertical rhythm reads as separate rows, not one block.
+            anchors.topMargin: Theme.pad + Theme.spaceSm
+            anchors.bottomMargin: Theme.pad + Theme.spaceSm
+            spacing: Theme.spaceXxl
 
             // ---- player switcher: every player, playing one first ----
             Flickable {
@@ -443,7 +444,7 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: Theme.spaceSm
+                    spacing: Theme.spaceMd
 
                     // Title / artist top-left, source app top-right.
                     RowLayout {
@@ -527,9 +528,6 @@ Item {
                             enabled: root.player?.canGoPrevious ?? false
                             icon: Icons.arrowLeft
                             pixelSize: Theme.fontSizeLarge
-                            Layout.preferredWidth: 32
-                            Layout.minimumWidth: 24
-                            implicitHeight: 32
                             onClicked: root.player?.previous()
                         }
                         AppButton {
@@ -538,9 +536,9 @@ Item {
                             tooltipText: root.playing ? "Pause" : "Play"
                             pixelSize: Theme.fontSizeLarge + 1
                             cornerRadius: Theme.radius
-                            Layout.preferredWidth: 42
-                            Layout.minimumWidth: 34
-                            implicitHeight: 38
+                            // Primary action: the wide padding, not a pinned box, is what makes it read bigger.
+                            hPadding: 12
+                            vPadding: 10
                             idleBg: Theme.surfaceActive
                             idleFg: Theme.accent
                             hoverBg: Theme.surfaceOverlay
@@ -556,9 +554,6 @@ Item {
                             tooltipText: "Next track"
                             icon: Icons.arrowRight
                             pixelSize: Theme.fontSizeLarge
-                            Layout.preferredWidth: 32
-                            Layout.minimumWidth: 24
-                            implicitHeight: 32
                             onClicked: root.player?.next()
                         }
                         Item {
@@ -641,50 +636,30 @@ Item {
                 }
             }
 
-            // ---- shelf: collapsed by default; tabs pick Lyrics or Equalizer ----
+            // ---- shelf: open by default when the track has lyrics; tabs pick Lyrics or Equalizer ----
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spaceXs
+                spacing: Theme.spaceLg
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.spaceSm
-
-                    AppSegmentedControl {
-                        id: tabBar
-                        model: [
-                            {
-                                label: "Lyrics",
-                                icon: Icons.lyrics
-                            },
-                            {
-                                label: "Equalizer",
-                                icon: Icons.equalizer
-                            }
-                        ]
-                        currentIndex: root.detailsTab
-                        pixelSize: Theme.typeCaption
-                        cellHPadding: Theme.spaceSm + 2
-                        cellVPadding: Theme.spaceXs
-                        onActivated: (index) => {
-                            root.detailsTab = index;
-                            root.detailsOpen = true;
+                // Tabs centred over the shelf; the lyrics reveal themselves, no toggle.
+                AppSegmentedControl {
+                    id: tabBar
+                    Layout.alignment: Qt.AlignHCenter
+                    model: [
+                        {
+                            label: "Lyrics",
+                            icon: Icons.lyrics
+                        },
+                        {
+                            label: "Equalizer",
+                            icon: Icons.equalizer
                         }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                    }
-
-                    AppButton {
-                        icon: root.detailsOpen ? Icons.chevronDown : Icons.chevronUp
-                        tooltipText: root.detailsOpen ? "Hide lyrics and equalizer" : "Show lyrics and equalizer"
-                        pixelSize: Theme.typeCaption
-                        hPadding: Theme.spaceSm
-                        implicitHeight: Math.max(24, Theme.fontSize + 10)
-                        onClicked: root.detailsOpen = !root.detailsOpen
-                    }
+                    ]
+                    currentIndex: root.detailsTab
+                    pixelSize: Theme.typeCaption
+                    cellHPadding: Theme.spaceSm + 2
+                    cellVPadding: Theme.spaceXs
+                    onActivated: index => root.detailsTab = index
                 }
 
                 Item {

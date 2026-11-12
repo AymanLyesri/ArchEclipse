@@ -224,7 +224,7 @@ Item {
             // so the content plane sits above it without any dividing line.
             Rectangle {
                 id: sidebar
-                width: 52
+                width: 48
                 height: parent.height
                 color: Theme.surfaceSunken
                 // Square on the screen-edge side so the rail runs flush

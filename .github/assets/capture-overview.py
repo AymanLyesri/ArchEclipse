@@ -8,11 +8,14 @@ capture-readme.py uses, right-panel layout shuffle, left-panel tab walk, and
 wallpaper-switcher demonstrates.
 
 State mutated during the run (wallpaper mappings, rightPanel.widgets,
-waifuWidget.current, booru.pins, booru.tags, the fastfetch pin cache, the temp
-chatbot session) is restored afterwards.
+waifuWidget.current, booru.pins/tags, booru.api, booru.selectedTab, the fastfetch
+pin cache, the temp chatbot session) is restored afterwards.
 Owns nothing but what it spawned: spawned windows are closed by the exact
 pid observed at mapping — never kill by class or workspace (a user SCP or
 terminal must survive a capture run).
+
+`--test` runs the same beats with the recorder untouched — no take, no mp4 — for
+iterating on the choreography; `--setup-only` stops after the setup phase.
 
 Requires the scripted-capture IPC helpers in services/Ipc.qml
 (launcherActivate, launcherRow, chatSession, mediaPill, playerToggle).
@@ -87,9 +90,9 @@ LAYOUT_SWITCH_DWELL = 1.5
 RESTORE_RECHECK = 4.0
 # MediaPill's own left-click pulses the player island for 2.5s (Bar.qml's
 # `mediaPill`); the intro beat spends that window opening it and pressing play.
-MEDIA_PILL_HOLD = 2.5
+MEDIA_PILL_HOLD = 1
 # MPRIS Play is a D-Bus round trip; the island must show the pause glyph.
-PLAYER_PLAY_TIMEOUT = 5.0
+PLAYER_PLAY_TIMEOUT = 1
 # Final mp4 pass goes through compress-video.py (never-bigger in-place).
 COMPRESS_AFTER_TAKE = True
 # The GIF is the README-sharable artifact (repo mp4 links don't render);
@@ -97,6 +100,25 @@ COMPRESS_AFTER_TAKE = True
 GIF_AFTER_TAKE = False
 
 SHELL_API_BOORU = "gelbooru"
+# The pin's api block is the API the post came from, never settings.booru.api:
+# FastfetchPins derives the source path and the render name from pin.api.value,
+# so a danbooru-labelled gelbooru id renders nothing. Mirrors BooruViewer.booruApis.
+BOORU_API = {
+    "name": "Gelbooru",
+    "value": SHELL_API_BOORU,
+    "url": "https://gelbooru.com/",
+    "idSearchUrl": "https://gelbooru.com/index.php?page=post&s=view&id=",
+}
+# The grid browsed on camera is Danbooru: Gelbooru returns nothing for rating:g,
+# and boot() restores the user's last tab (Pins/Bookmarks/Gelbooru), so the
+# provider has to be forced or the take shows whatever they left behind.
+# Mirrors BooruViewer.booruApis[0].
+VIEWER_API = {
+    "name": "Danbooru",
+    "value": "danbooru",
+    "url": "https://danbooru.donmai.us/",
+    "idSearchUrl": "https://danbooru.donmai.us/posts/",
+}
 
 WAIFU_POST_ID = 15198801
 BOORU_TAG = "rating:g"
@@ -109,7 +131,7 @@ WALLPAPERS = {
     "cartethyia": "~/.config/wallpapers/defaults/images_sfw/__cartethyia_wuthering_waves_drawn_by_void_0__2e35f55f3eb0407853fe119418e4a57e.jpg",
     "chiori": "~/.config/wallpapers/defaults/images_sfw/__chiori_genshin_impact_drawn_by_void_0__8b6aee8b720517f41c675fb49a0f02c1.jpg",
     "yoru": "~/.config/wallpapers/defaults/images_sfw/__yoru_mitaka_asa_pochita_war_devil_and_bucky_chainsaw_man_drawn_by_eaechas__40574201912be4a9dec5589b3374350c.jpg",
-    "columbina": "~/.config/wallpapers/defaults/images_sfw/__columbina_genshin_impact_drawn_by_void_0__86cc14bd3da8a9578bff20e148c1e74a.jpg",
+    "columbina": "/home/ayman/.config/wallpapers/defaults/images_sfw/__lachesis_misty_original_drawn_by_swd3e2__2600cb6244c96cb8b021586e4fb11125.jpg",
     "angel": "/home/ayman/.config/wallpapers/defaults/images_sfw/__original_drawn_by_void_0__8b433da3ef498514c37f51c75617566c.jpg",
 }
 # Overview hero floats, measured from the live ws10 placement (1920x1080,
@@ -341,7 +363,7 @@ def pin_fastfetch_image():
     Wait for the demo render, drop the rest, and refuse to record with a
     foreign image present rather than record the wrong logo.
     """
-    demo = {"id": WAIFU_POST_ID, "api": {"value": SHELL_API_BOORU}}
+    demo = {"id": WAIFU_POST_ID, "api": dict(BOORU_API)}
     FASTFETCH_CACHE.mkdir(parents=True, exist_ok=True)
     wait_pin_renders([demo], strict=True)
     expected = pin_render_name(demo)
@@ -384,6 +406,9 @@ class Snapshot:
         self.waifu = self.settings.get("waifuWidget", {}).get("current")
         self.pins = self.settings.get("booru", {}).get("pins")
         self.tags = self.settings.get("booru", {}).get("tags")
+        # The take forces the Danbooru grid; the user's provider/tab go back.
+        self.api = self.settings.get("booru", {}).get("api")
+        self.selected_tab = self.settings.get("booru", {}).get("selectedTab")
         self.category = self.settings.get("wallpaperSwitcher", {}).get("category")
         # showWidget/chatSession persist the left island's selected tab
         # override (leftPanel.monitors.<mon>.widget) — restore it wholesale.
@@ -395,21 +420,34 @@ class Snapshot:
         )
 
 
+def has_credentials(settings, api):
+    """Both halves, whichever shape Settings stored the apiKeys leaves in."""
+    keys = settings.get("apiKeys", {}).get(api) or {}
+    return bool(api_credential(keys, "user") and api_credential(keys, "key"))
+
+
 def dry_check(snap):
     for name in ("chiori", "yoru", "columbina", "angel"):
         resolve_wallpaper(WALLPAPERS[name])
     if not SCREENRECORD_SCRIPT.is_file():
         raise RuntimeError("Recording script not found: " + str(SCREENRECORD_SCRIPT))
     data = snap.settings
-    if data.get("booru", {}).get("selectedTab") != "Gelbooru":
-        raise RuntimeError("booru.selectedTab is not Gelbooru")
     pinned = any(
         int(p.get("id", 0)) == WAIFU_POST_ID
         for p in data.get("booru", {}).get("pins") or []
     )
+    # booru.py hard-rejects danbooru/gelbooru without both credentials, and the
+    # take needs gelbooru for the pinned post plus danbooru for the grid.
+    if not pinned and not has_credentials(data, SHELL_API_BOORU):
+        raise RuntimeError(
+            f"No {SHELL_API_BOORU} credentials to fetch post {WAIFU_POST_ID}"
+        )
+    if not has_credentials(data, VIEWER_API["value"]):
+        raise RuntimeError(f"No {VIEWER_API['value']} credentials for the viewer grid")
     print(
         f"Dry check OK: monitor={snap.monitor}, ws={snap.workspace}"
         + f", post {WAIFU_POST_ID} {'pinned' if pinned else 'via booru.py'}"
+        + f", viewer {VIEWER_API['name']} {BOORU_TAG}"
         + ", wallpaper files exist, screenrecord.sh present",
         flush=True,
     )
@@ -463,12 +501,6 @@ def fetch_waifu_post(snap):
             and (pin.get("api") or {}).get("value") == SHELL_API_BOORU
         ):
             return dict(pin)
-    booru = snap.settings.get("booru", {})
-    api = dict(booru.get("api") or {})
-    api.setdefault("name", "Gelbooru")
-    api.setdefault("value", SHELL_API_BOORU)
-    api.setdefault("url", "https://gelbooru.com/")
-    api.setdefault("idSearchUrl", "https://gelbooru.com/index.php?page=post&s=view&id=")
     cmd = [
         "python3",
         str(QS_CONFIG / "scripts/booru.py"),
@@ -487,7 +519,7 @@ def fetch_waifu_post(snap):
         raise RuntimeError("booru.py could not fetch post " + str(WAIFU_POST_ID))
     # Nested, exactly like a pin the viewer stores: FastfetchPins keys renders
     # off pin.api.value, and flattening it also clobbers the post's CDN url.
-    post[0]["api"] = api
+    post[0]["api"] = dict(BOORU_API)
     return post[0]
 
 
@@ -566,7 +598,7 @@ def wait_booru_fetch(snap, timeout=45):
             return
         if status == "error":
             last_err = ipc_call("widgetState", "lastFetchError", snap.monitor)
-            # Gelbooru returns NO_RESULTS for rating:g (kept tag) — empty grid.
+            # A tight query can legitimately return nothing; that is not a failed take.
             if "No results found" in last_err:
                 print("WARNING: booru fetch empty: " + last_err, flush=True)
                 return
@@ -576,13 +608,16 @@ def wait_booru_fetch(snap, timeout=45):
 
 
 def prime_booru_viewer(snap):
-    """Load the Booru tab, then push the demo tags onto the booted widget.
+    """Load the Booru tab, then force the demo provider + tags onto it.
 
     boot() calls ensureRatingTagFirst(), which prepends -rating:e unless
     the list already carries a rating:e entry — a first load during the
     take rewrites the demo tags on camera. Booting the lazy Loader here spends
     that one-shot normalization, and the grid is re-fetched so it shows the
     demo query instead of the fetch boot() started with.
+
+    The provider is pushed too: boot() restores the user's last tab, and the
+    grid follows Settings.booru.api — the take must not inherit either.
     """
     set_left_panel(snap, True)
     ipc_call("showWidget", "BooruViewer", snap.monitor)
@@ -597,8 +632,10 @@ def prime_booru_viewer(snap):
         set_left_panel(snap, False)
         raise RuntimeError("BooruViewer never loaded: " + live)
     time.sleep(BOOT_SETTLE)
+    settings_set("booru.api", dict(VIEWER_API))
+    settings_set("booru.selectedTab", VIEWER_API["name"])
     settings_set("booru.tags", [BOORU_TAG])
-    print("Booru tags: " + BOORU_TAG, flush=True)
+    print(f"Booru viewer: {VIEWER_API['value']} {BOORU_TAG}", flush=True)
     result = ipc_call("widgetState", "fetchApi", snap.monitor)
     if not result.startswith("fetchImages called"):
         set_left_panel(snap, False)
@@ -613,7 +650,7 @@ def prime_booru_viewer(snap):
             set_left_panel(snap, False)
             raise RuntimeError(f"Booru tags are {live!r}, expected {BOORU_TAG!r}")
     set_left_panel(snap, False)
-    print("Booru viewer primed, tags applied", flush=True)
+    print(f"Booru viewer primed: {VIEWER_API['name']} {BOORU_TAG}", flush=True)
 
 
 def _foot_clients():
@@ -767,7 +804,9 @@ def process_media_pill(snap):
 
     Mirrors MediaPill's left-click (the BarState "player" pulse) because a
     capture has no pointer to click the pill with, and presses play on the
-    same playing-else-first player the island's MediaWidget renders.
+    player the island actually renders (PlayerFocus.current) — pressing the
+    raw-first MPRIS player starts one nobody is looking at, so the card and
+    the pill keep their play glyph through the take.
     """
     status = ipc_call("playerDiag")
     if status == "no players":
@@ -876,10 +915,16 @@ def restore_settings(snap):
         settings_set("rightPanel.widgets", snap.right_widgets)
     if snap.waifu is not None:
         settings_set("waifuWidget.current", snap.waifu)
+    if snap.api is not None:
+        # Ahead of tags/tab: their writes refetch, and that fetch must use the
+        # restored provider rather than the demo Danbooru one.
+        settings_set("booru.api", snap.api)
     if snap.pins is not None:
         settings_set("booru.pins", snap.pins)
     if snap.tags is not None:
         settings_set("booru.tags", snap.tags)
+    if snap.selected_tab is not None:
+        settings_set("booru.selectedTab", snap.selected_tab)
     if snap.left_monitors is not None:
         settings_set("leftPanelByMonitor", snap.left_monitors)
 
@@ -903,6 +948,15 @@ def settings_drifted(snap, current):
         and (current.get("booru", {}).get("tags") or []) != snap.tags
     ):
         return True
+    if snap.api is not None and (
+        (current.get("booru", {}).get("api") or {}).get("value")
+    ) != (snap.api or {}).get("value"):
+        return True
+    if (
+        snap.selected_tab is not None
+        and current.get("booru", {}).get("selectedTab") != snap.selected_tab
+    ):
+        return True
     if (
         snap.left_monitors is not None
         and current.get("leftPanel", {}).get("monitors") != snap.left_monitors
@@ -924,7 +978,7 @@ def restore_state(snap, keep):
     if keep:
         print(
             "MUTATED (kept): wallpaper rows, wallpaper category, right-panel order, waifu, "
-            "booru pins/tags, fastfetch image, temp chatbot session, left-panel tab",
+            "booru pins/tags/provider/tab, fastfetch image, temp chatbot session, left-panel tab",
             flush=True,
         )
         return
@@ -981,12 +1035,13 @@ def restore_state(snap, keep):
     restore_fastfetch_pins(snap)
     print(
         "State restored: workspace, wallpapers, wallpaper category, right-panel order, waifu, "
-        "booru pins/tags, fastfetch image, temp session removed",
+        "booru pins/tags/provider/tab, fastfetch image, temp session removed",
         flush=True,
     )
 
 
 def capture_run(args):
+    started = time.monotonic()
     snap = Snapshot()
     if args.dry_run:
         dry_check(snap)
@@ -1005,8 +1060,10 @@ def capture_run(args):
             return  # falls through to the restore below
         ensure_workspace(CAPTURE_WS)
         time.sleep(WORKSPACE_SETTLE)
-        start_recording(snap)
-        time.sleep(RECORD_SETTLE)
+        # --test runs every beat but never touches the recorder: no take, no mp4.
+        if not args.test:
+            start_recording(snap)
+            time.sleep(RECORD_SETTLE)
         try:
             process_media_pill(snap)
             launcher_place_floats(snap, spawned.add)
@@ -1026,7 +1083,8 @@ def capture_run(args):
             # Recorder first: finalize the video even if teardown hiccups —
             # but never let a stuck recorder skip the window teardown.
             try:
-                stop_recording(snap)
+                if not args.test:  # no take was started
+                    stop_recording(snap)
             except RuntimeError as e:
                 print("WARNING: record stop: " + str(e), flush=True)
             finally:
@@ -1044,6 +1102,13 @@ def capture_run(args):
             )
             if _in_flight[0] is None:
                 raise
+    if args.test:
+        # Nothing was recorded; collecting would copy an old take over OUTPUT.
+        print(
+            f"TEST: every step ran in {time.monotonic() - started:.1f}s, nothing recorded",
+            flush=True,
+        )
+        return
     collect_recording(snap.recordings, OUTPUT)
     if COMPRESS_AFTER_TAKE and not args.raw:
         # The take is secured: a compression failure must not fail it.
@@ -1091,6 +1156,11 @@ def parse_cli(argv):
         "--setup-only",
         action="store_true",
         help="run setup phase then restore; no recording",
+    )
+    ap.add_argument(
+        "--test",
+        action="store_true",
+        help="run every step without recording; no mp4 is produced",
     )
     ap.add_argument(
         "--keep", action="store_true", help="restore nothing; keep demo state"

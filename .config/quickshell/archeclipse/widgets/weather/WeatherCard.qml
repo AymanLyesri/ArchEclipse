@@ -202,7 +202,6 @@ Item {
                             Component.onCompleted: text = Weather._cityOverride
                         }
                         AppButton {
-                            width: 32
                             height: 30
                             icon: Icons.check
                             pixelSize: Theme.typeLabel
@@ -214,7 +213,6 @@ Item {
                             onClicked: root.applyCity()
                         }
                         AppButton {
-                            width: 32
                             height: 30
                             icon: Icons.location
                             pixelSize: Theme.typeLabel

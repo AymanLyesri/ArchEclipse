@@ -393,8 +393,6 @@ Item {
 
                         AppButton {
                             icon: Icons.close
-                            width: 26
-                            height: 26
                             pixelSize: Theme.fontSizeSmall
                             cornerRadius: 6
                             outlined: true
@@ -471,8 +469,6 @@ Item {
                             }
                             AppButton {
                                 icon: dialogRoot.showAllTags ? Icons.angleDoubleUp : Icons.angleDoubleDown
-                                width: 24
-                                height: 22
                                 pixelSize: Theme.fontSizeCaption
                                 cornerRadius: Theme.radius
                                 outlined: true
@@ -559,7 +555,6 @@ Item {
                         spacing: Theme.spacing
                         AppButton {
                             Layout.fillWidth: true
-                            height: 30
                             icon: dialogRoot.dlgBookmarked ? Icons.bookmark : Icons.bookmarkOutline
                             text: dialogRoot.dlgBookmarked ? "Saved" : "Save"
                             toggle: true
@@ -574,7 +569,6 @@ Item {
                         }
                         AppButton {
                             Layout.fillWidth: true
-                            height: 30
                             icon: Icons.pin
                             text: dialogRoot.dlgPinned ? "Pinned" : "Pin"
                             toggle: true
@@ -595,7 +589,6 @@ Item {
                     // hosts — it already is the waifu, so the row would only re-set the same post.
                     AppButton {
                         width: parent.width
-                        height: 30
                         visible: !(viewer && viewer.dialogPinned)
                         icon: Icons.heart
                         text: dialogRoot.dlgIsWaifu ? "Waifu ✓" : "Waifu"
@@ -613,7 +606,6 @@ Item {
                     // Wallpaper switcher; needs the auto-downloaded file, zips excluded.
                     AppButton {
                         width: parent.width
-                        height: 30
                         icon: Icons.image
                         text: "Wallpaper"
                         outlined: true
@@ -630,7 +622,6 @@ Item {
                         spacing: Theme.spacing
                         AppButton {
                             Layout.fillWidth: true
-                            height: 28
                             icon: Icons.externalLink
                             text: "Open"
                             outlined: true
@@ -643,7 +634,6 @@ Item {
                         }
                         AppButton {
                             Layout.fillWidth: true
-                            height: 28
                             icon: Icons.copy
                             text: "Copy ID"
                             outlined: true

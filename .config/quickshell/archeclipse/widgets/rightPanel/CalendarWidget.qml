@@ -316,8 +316,6 @@ Item {
                 elide: Text.ElideRight
             }
             AppButton {
-                width: 64
-                height: 26
                 cornerRadius: Theme.radius
                 idleBg: Theme.surfaceRaised
                 hoverBg: Theme.surfaceOverlay

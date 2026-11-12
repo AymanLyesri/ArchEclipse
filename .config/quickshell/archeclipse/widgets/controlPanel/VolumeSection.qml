@@ -330,8 +330,6 @@ Item {
                             AppButton {
                                 id: playMute
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.volumeMuted : Icons.volumeHigh
@@ -345,8 +343,6 @@ Item {
                             AppButton {
                                 id: playKill
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: Icons.close
@@ -470,8 +466,6 @@ Item {
                             AppButton {
                                 id: recMute
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.micOff : Icons.micOn
@@ -485,8 +479,6 @@ Item {
                             AppButton {
                                 id: recKill
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: Icons.close
@@ -571,8 +563,6 @@ Item {
                             AppButton {
                                 id: outStar
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: Icons.star
@@ -602,8 +592,6 @@ Item {
                             AppButton {
                                 id: outMute
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.volumeMuted : Icons.volumeHigh
@@ -670,8 +658,6 @@ Item {
                             AppButton {
                                 id: inStar
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: Icons.star
@@ -701,8 +687,6 @@ Item {
                             AppButton {
                                 id: inMute
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 30
-                                height: 26
                                 cornerRadius: 6
                                 idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.micOff : Icons.micOn

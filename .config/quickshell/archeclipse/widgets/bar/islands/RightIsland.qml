@@ -117,7 +117,7 @@ Item {
             // Stays custom (not IslandSideRail): live reorder + the isDragging hold need it.
             Rectangle {
                 id: sidebar
-                width: 52
+                width: 48
                 height: parent.height
                 color: Theme.surfaceSunken
                 // Square on the screen-edge side so the rail runs flush
@@ -138,8 +138,10 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.margins: Theme.pad
-                    readonly property int cellHeight: 40
-                    // 40 + live spacing: a hardcoded 48 aimed drops 2px off per slot, and
+                    // Thickness is AppButton's own token value; probe one hidden cell so the drag
+                    // pitch cannot drift from what a delegate actually renders.
+                    readonly property int cellHeight: cellMetrics.implicitHeight
+                    // Cell + live spacing: a hardcoded pitch drops 2px off per slot, and
                     // Theme.spacing is user-adjustable.
                     readonly property int pitch: cellHeight + Theme.spacing
                     readonly property int count: Settings.rightPanelWidgets.length
@@ -167,6 +169,16 @@ Item {
                         if (from < to)
                             return i > from && i <= to ? i - 1 : i;
                         return i >= to && i < from ? i + 1 : i;
+                    }
+
+                    // Zero-size probe: gives the pitch one source of truth (AppButton's own tokens)
+                    // instead of a literal that silently diverges from the delegate.
+                    AppButton {
+                        id: cellMetrics
+
+                        visible: false
+                        showTooltip: false
+                        pixelSize: Theme.fontSize + 2
                     }
 
                     Repeater {
@@ -204,6 +216,8 @@ Item {
                                 id: cellBtn
                                 anchors.fill: parent
                                 icon: (cellBtn.hovered || selectorItem.dragging) ? Icons.move : modelData.icon
+                                // Same glyph scale as IslandSideRail: mirrored rails must share height.
+                                pixelSize: Theme.fontSize + 2
                                 toggle: true
                                 checked: modelData.enabled
                                 outlined: BarState.tourHighlightMonitor === (root.monitorName || Registry.monitorName) && BarState.tourHighlightTab === modelData.name
@@ -292,8 +306,7 @@ Item {
                         model: {
                             // Filter to only enabled widgets, preserving order
                             const capture = Registry.get("capture-session");
-                            const widgets = capture && capture.active && capture.monitor === root.monitorName && capture.rightWidgets
-                                ? capture.rightWidgets : Settings.rightPanelWidgets;
+                            const widgets = capture && capture.active && capture.monitor === root.monitorName && capture.rightWidgets ? capture.rightWidgets : Settings.rightPanelWidgets;
                             const monitorName = root.monitorName || Registry.monitorName;
                             const tourWidget = BarState.tourHighlightMonitor === monitorName ? BarState.tourRightWidget : "";
                             if (tourWidget !== "") {

@@ -239,8 +239,6 @@ Item {
                         onToggled: root.setWifi(checked)
                     }
                     AppButton {
-                        width: 70
-                        height: 28
                         cornerRadius: Theme.radius
                         idleBg: Theme.surface
                         text: "Rescan"
@@ -343,8 +341,6 @@ Item {
                         onToggled: root.setBtPower(checked)
                     }
                     AppButton {
-                        width: 70
-                        height: 28
                         cornerRadius: Theme.radius
                         idleBg: Theme.surface
                         text: "Refresh"

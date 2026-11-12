@@ -121,21 +121,14 @@ Item {
             }
         }
 
-        // Player probe for MPRIS QA: returns active title|artist|isPlaying
-        // using the same playable-player rule as PlayerWidget.
+        // Player probe for MPRIS QA: reports the player the pill/island render, so
+        // "playing" always describes the card on camera, not whichever lists first.
         function playerDiag(): string {
             try {
-                let first = null;
-                for (const p of Mpris.players.values) {
-                    if ((p.trackTitle ?? "").trim() !== ""
-                        || p.playbackState === MprisPlaybackState.Playing) {
-                        if (p.playbackState === MprisPlaybackState.Playing)
-                            return (p.trackTitle || "?") + " | " + (p.trackArtist || "?") + " | playing";
-                        if (!first) first = p;
-                    }
-                }
-                if (first) return (first.trackTitle || "?") + " | " + (first.trackArtist || "?") + " | stopped";
-                return "no players";
+                const p = PlayerFocus.current;
+                if (!p)
+                    return "no players";
+                return (p.trackTitle || "?") + " | " + (p.trackArtist || "?") + " | " + (p.isPlaying === true ? "playing" : "stopped");
             } catch (e) {
                 return "EX: " + e;
             }
@@ -152,22 +145,17 @@ Item {
             }
         }
 
-        // Scripted capture helper: presses the player island's play/pause on the
-        // playing-else-first player MediaWidget renders (not the pill's own rule).
+        // Scripted capture helper: presses the player island's play/pause on the player it
+        // renders (PlayerFocus.current) — the raw MPRIS order is a different player.
         function playerToggle(): string {
             try {
-                let target = null;
-                const vals = Mpris.players.values;
-                for (const p of vals) {
-                    if (p.isPlaying) {
-                        target = p;
-                        break;
-                    }
-                }
-                if (!target && vals.length > 0)
-                    target = vals[0];
-                if (!target) return "no player";
-                target.togglePlaying();
+                const target = PlayerFocus.current;
+                if (!target)
+                    return "no player";
+                if (target.isPlaying === true)
+                    target.pause();
+                else
+                    target.play();
                 return "toggled " + (target.identity || "?") + " | " + (target.trackTitle || "?");
             } catch (e) {
                 return "EX: " + e;

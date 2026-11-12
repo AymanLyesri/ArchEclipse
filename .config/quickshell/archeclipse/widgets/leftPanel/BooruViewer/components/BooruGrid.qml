@@ -464,7 +464,6 @@ SmoothFlickable {
                     AppButton {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: pageBlock.error !== ""
-                        height: 22
                         pixelSize: Theme.fontSizeSmall
                         text: "Retry"
                         tooltipText: "Retry page " + pageBlock.pageNo

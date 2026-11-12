@@ -144,7 +144,6 @@ Item {
                     icon: Icons.trashOutline
                     pixelSize: Theme.typeLabel
                     cornerRadius: Theme.radius
-                    hPadding: 8
                     tooltipText: "Clear all"
                     visible: root.notifications.length > 0
                     onClicked: Notifications.clearHistory()

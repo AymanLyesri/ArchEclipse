@@ -1094,8 +1094,6 @@ Item {
                             text: "−"
                             tooltipText: "Fewer masonry rows"
                             enabled: Settings.wallpaperMasonryRows > 1
-                            Layout.preferredWidth: 26
-                            height: 26
                             onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows - 1)
                         }
                         Text {
@@ -1110,8 +1108,6 @@ Item {
                             text: "+"
                             tooltipText: "More masonry rows"
                             enabled: Settings.wallpaperMasonryRows < 4
-                            Layout.preferredWidth: 26
-                            height: 26
                             onClicked: root.setMasonryRows(Settings.wallpaperMasonryRows + 1)
                         }
                     }
@@ -1450,7 +1446,6 @@ Item {
                                 readonly property bool needsKey: modelData.value === "111"
                                 enabled: !needsKey || root.whApiKey !== ""
                                 text: modelData.label
-                                height: 24
                                 pixelSize: Theme.fontSize - 2
                                 idleBg: on ? Theme.surfaceActive : Theme.bg
                                 idleFg: on ? Theme.accent : Theme.fg
@@ -1492,14 +1487,12 @@ Item {
                             text: "‹"
                             tooltipText: "Previous Wallhaven page"
                             enabled: root.wh.page > 1 && !root.whLoading
-                            Layout.preferredHeight: 26
                             onClicked: root.setWh("page", Math.max(1, root.wh.page - 1), true)
                         }
                         AppButton {
                             text: "›"
                             tooltipText: "Next Wallhaven page"
                             enabled: root.wh.page < root.whMeta.last_page && !root.whLoading
-                            Layout.preferredHeight: 26
                             onClicked: root.setWh("page", root.wh.page + 1, true)
                         }
                     }

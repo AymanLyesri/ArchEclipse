@@ -52,8 +52,6 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.pad
-        width: 34
-        height: 34
         cornerRadius: Theme.radius
         idleBg: Theme.rgba(Theme.bg, 0.65)
         hoverBg: Theme.surfaceActive

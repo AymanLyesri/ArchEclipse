@@ -641,7 +641,6 @@ Scope {
                         }
                         AppButton {
                             icon: Icons.close
-                            implicitWidth: 34
                             cornerRadius: Theme.chipRadius
                             tooltipText: "Close · <b>SUPER+F1</b>"
                             onClicked: root.close()

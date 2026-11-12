@@ -480,7 +480,6 @@ Item {
                                 AppButton {
                                     id: installBtn
                                     visible: modelData.app !== undefined && !root.appInstalled(modelData)
-                                    Layout.preferredWidth: 32
                                     Layout.alignment: Qt.AlignVCenter
                                     text: Icons.download // download glyph (raw U+F019, kept as escape)
                                     tooltipText: "Install " + (modelData.package || modelData.app)
