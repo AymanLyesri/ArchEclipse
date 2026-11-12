@@ -98,7 +98,7 @@ Item {
             icon: Icons.btop,
             description: "Open system monitor",
             app: "btop",
-            command: "foot btop"
+            command: "foot zsh -ic btop"
         },
         {
             name: "Quickspeed",

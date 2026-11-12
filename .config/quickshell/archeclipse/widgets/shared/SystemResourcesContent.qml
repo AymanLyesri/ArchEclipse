@@ -5,10 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Shared system-resources content used by both SystemMonitorIsland and the right panel's
-// SystemResourcesWidget. One hero number per subsystem, a meter, then a stat grid: the layout
-// answers "how loaded is it" before "what are the details". Wide pools CPU/RAM side by side;
-// GPUs always take a full row because they carry the most fields.
+// Shared by SystemMonitorIsland and the right panel: hero number, meter, then stat grid, so
+// "how loaded" lands before details. CPU/RAM share a row; GPUs always take a full one.
 Column {
     id: root
     spacing: Theme.spaceMd

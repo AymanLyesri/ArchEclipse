@@ -1,6 +1,5 @@
-// Shared progress indicator: status idle|loading|error|success over pill/bar/badge/inline/
-// spinner variants (value < 0 = indeterminate). Collapses to 0 height when inactive.
-// Surfaces are fills, never outlined boxes: state is carried by colour and the fill edge.
+// Shared progress indicator: idle|loading|error|success across pill/bar/badge/inline/spinner
+// (value < 0 = indeterminate). Fills, never outlines; state rides colour and the fill edge.
 
 import QtQuick
 import QtQuick.Controls

@@ -98,9 +98,8 @@ Item {
         return Math.max(0, Math.min(1, (reveal - root.hitHeight) / Math.max(1, target - root.hitHeight)));
     }
 
-    // --- button visibility ramp ---
-    // Buttons idle at 50%; on reveal the focused one is 100% and each ring out
-    // loses half the headroom, hitting the 50% floor at maxRings.
+    // Buttons idle at 50%; on reveal the focused one is 100% and each ring out loses half
+    // the headroom, hitting the 50% floor at maxRings.
     readonly property real idleOpacity: 0.3
     function revealOpacity(ring) {
         return 1.0 - (1.0 - root.idleOpacity) / root.maxRings * ring;

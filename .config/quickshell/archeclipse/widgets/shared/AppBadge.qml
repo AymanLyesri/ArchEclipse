@@ -1,9 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Shared overlay badge: content-sized width so short texts keep the compact look and long ones
-// (wallhaven dimensions) expand instead of clipping. A dark scrim keeps it legible over any
-// thumbnail, which is why it is not derived from the palette.
+// Content-sized width so long texts (wallhaven dimensions) expand instead of clipping.
+// A fixed dark scrim keeps it legible over any thumbnail, so it ignores the palette.
 Rectangle {
     id: root
 

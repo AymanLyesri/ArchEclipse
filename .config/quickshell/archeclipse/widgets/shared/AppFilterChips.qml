@@ -1,6 +1,5 @@
-// Shared multi-toggle filter chips where any subset stays on (wallhaven Categories): model is
-// [string] or [{value,label,tooltip,enabled}], checkedValues caller-driven, allowEmpty guard.
-// Chips are fills on the depth ladder — an unselected chip is a raised well, not an outline.
+// Multi-toggle chips where any subset stays on: model is [string] or [{value,label,tooltip,
+// enabled}], checkedValues caller-driven. Fills on the depth ladder, never an outline.
 import QtQuick
 import qs.theme
 import "ModelEntry.js" as ModelEntry

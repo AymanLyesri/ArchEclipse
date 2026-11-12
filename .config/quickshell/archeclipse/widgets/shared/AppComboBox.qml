@@ -65,6 +65,27 @@ ComboBox {
         }
     }
 
+    // The dropdown is a separate surface, so entering it drops the host's own hover and its
+    // hide timer would close the panel mid-pick. Nearest ancestor tracking popupCount holds it.
+    function _popupHost() {
+        let p = root.parent;
+        while (p) {
+            if (p.popupCount !== undefined)
+                return p;
+            p = p.parent;
+        }
+        return null;
+    }
+
+    Connections {
+        target: root.popup
+        function onVisibleChanged() {
+            const host = root._popupHost();
+            if (host)
+                host.popupCount = Math.max(0, host.popupCount + (root.popup.visible ? 1 : -1));
+        }
+    }
+
     delegate: ItemDelegate {
         required property var modelData
         required property int index

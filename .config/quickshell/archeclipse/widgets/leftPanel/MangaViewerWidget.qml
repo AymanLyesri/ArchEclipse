@@ -295,11 +295,8 @@ Item {
         }
     }
 
-    // ===== UI (ColumnLayout: children size via Layout.*, no fragile
-    // parent.height - N math; the content rect takes leftover space) =====
-    // Navigation panel: entries on top, provider switch + Popular below. Chapters and Pages
-    // unlock once a manga and a chapter exist. The panel is a whole section, not just a
-    // segmented control — provider and Popular live here permanently.
+    // ColumnLayout sizes via Layout.*, never parent.height - N math. Nav panel: provider entries
+    // on top, provider switch + Popular below; chapters/pages unlock once both exist.
     AppNavigationSidePanel {
         id: navPanel
         anchors.top: parent.top
@@ -314,9 +311,8 @@ Item {
         navCurrentIndex: Math.max(0, ["Manga", "Chapters", "Pages"].indexOf(root.currentTab))
         onNavSelected: index => root.currentTab = ["Manga", "Chapters", "Pages"][index]
 
-        // Providers render like the shared navigation itself: one entry per
-        // provider, highlighted on the active one. A second list under the
-        // tabs, same family, so the panel's styling stays one piece.
+        // Providers render like the navigation itself, one entry each and highlighted when
+        // active: a second list under the tabs, same family, so the panel stays one piece.
         Column {
             width: parent.width
             spacing: Theme.spacing

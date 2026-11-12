@@ -570,7 +570,7 @@ Item {
         // Find existing rating tag, remove it, re-add at front (or default -rating:e)
         let tags = root.currentTags.slice();
         const found = tags.find(t => {
-            return t.match(/[-]rating:e|rating:e/);
+            return t === "" || t.match(/[-]rating:e|rating:e/);
         });
         // Plain "rating:e" is not a cycle state: normalize it to the default filter.
         const ratingTag = found === "rating:e" ? "-rating:e" : found;
@@ -925,7 +925,9 @@ Item {
         const apiObj = root.booruApis.find(a => {
             return a.value === apiValue;
         }) || root.booruApis[0];
-        let cmd = ["python", root.booruScript, "--api", apiValue, "--tags", root.currentTags.join(","), "--limit", String(root.limit), "--page", String(pageNo)];
+        // The empty sentinel is the off state; it never belongs in the API query.
+        const queryTags = root.currentTags.filter(t => t !== "").join(",");
+        let cmd = ["python", root.booruScript, "--api", apiValue, "--tags", queryTags, "--limit", String(root.limit), "--page", String(pageNo)];
         // Credentials: Settings.apiKey unwraps either shape and falls back to the shipped
         // public defaults.
         const apiUser = Settings.apiKey(apiValue, "user");
@@ -1366,9 +1368,8 @@ Item {
         onTriggered: root.boot()
     }
 
-    // Shared navigation panel: entries on top, the actual filter controls below.
-    // Content entries are inert while loading. The panel is a whole section, not just
-    // a segmented control — the grid always shows; filters live here permanently.
+    // Shared nav panel: entries on top, filter controls below; entries are inert while loading.
+    // A whole section, not a segmented control - the grid always shows, filters live here.
     AppNavigationSidePanel {
         id: navPanel
         anchors.top: parent.top
@@ -1457,11 +1458,8 @@ Item {
         anchor.rect.y: 0
         anchor.rect.width: 1
         anchor.rect.height: 1
-        // Defaults (edges Top|Left, gravity Bottom|Right) already put the top-left corner at
-        // the rect, expanding down-right. 232px was too narrow for the 2-col action grids.
-        // Width now tracks the post's aspect: portrait/square posts keep the 344 base, while
-        // landscape posts get a wider card (they were capped horizontally by the fixed width —
-        // only tall posts grew before). Capped at 620 so panel(400)+card stays on screen.
+        // Width tracks the post aspect: portrait/square keep the 344 base, landscape widen, capped
+        // at 620 so panel(400)+card stays on screen (232px was too narrow for the 2-col grids).
         readonly property real dlgAspect: (root.dialogImage && root.dialogImage.width > 0 && root.dialogImage.height > 0) ? (root.dialogImage.width / root.dialogImage.height) : 1
         implicitWidth: Math.round(Math.max(344, Math.min(620, 344 * Math.max(1, detailPopup.dlgAspect))))
         implicitHeight: Math.max(48, Math.round(root.height))

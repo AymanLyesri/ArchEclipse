@@ -20,28 +20,9 @@ Rectangle {
     readonly property real extraGap: Theme.spacing / 2
     readonly property string expandedArtist: (root.firstPlayable?.trackArtist ?? "").trim()
 
-    // ---- media player state (playing-else-first) ----
-    // Pass 1: active playing player. Pass 2: first with a title, so the pill hides when idle.
-    readonly property var firstPlayable: {
-        Mpris.players.values;   // reactive dep
-        const vals = Mpris.players.values;
-        for (const p of vals) {
-            // touch reactive props so title / play-state changes re-fire
-            const _t = p.trackTitle;
-            const _s = p.playbackState;
-            const _p = p.isPlaying;
-            if (_p === true || _s === MprisPlaybackState.Playing)
-                return p;
-        }
-        for (const p of vals) {
-            const _t = p.trackTitle;
-            const _s = p.playbackState;
-            const _p = p.isPlaying;
-            if ((_t ?? "").trim() !== "")
-                return p;
-        }
-        return null;
-    }
+    // Same player the media card shows: PlayerFocus keeps the last played one in front when
+    // everything pauses, instead of jumping to whichever idle player the model lists first.
+    readonly property var firstPlayable: PlayerFocus.current
     readonly property bool hasPlayable: root.firstPlayable !== null
     readonly property bool isPlaying: {
         const p = root.firstPlayable;

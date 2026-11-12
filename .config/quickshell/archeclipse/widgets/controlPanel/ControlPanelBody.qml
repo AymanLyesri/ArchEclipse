@@ -5,9 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Quick-settings body. Layout reads top-down on one rhythm: live sections (volume beside
-// connectivity), then a single labelled strip of quick actions, then the two system sliders side
-// by side. No dividers: groups are separated by space, and every block sits on the same plate.
+// Quick-settings body: live sections, then one labelled strip of quick actions, then sliders.
+// No dividers - groups separate by space and every block sits on the same plate.
 Item {
     id: body
 

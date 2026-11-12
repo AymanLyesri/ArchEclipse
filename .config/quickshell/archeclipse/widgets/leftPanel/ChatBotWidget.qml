@@ -1084,12 +1084,8 @@ Item {
     // --- UI ---
     // No hover auto-focus on the input: stealing focus on hover clears mouse selection above.
 
-    // ColumnLayout (not Column): children size via Layout.* props, so width/height bindings
-    // are derived, not hardcoded.
-    // Navigation panel: provider entries on top, context-chip toggles below. The panel is a
-    // whole section, not just a segmented control — chips live here permanently.
-    // providerNavModel is the rendered snapshot: onSelected reads this same array, so an
-    // index can never resolve against a provider list that changed since the tap.
+    // ColumnLayout (not Column): children size via Layout.*, so width/height are derived.
+    // providerNavModel snapshots the provider list so an index can't resolve against a stale list.
     readonly property var providerNavModel: root.visibleProviders().map(p => ({ title: p.name, value: p.value }))
     AppNavigationSidePanel {
         id: navPanel

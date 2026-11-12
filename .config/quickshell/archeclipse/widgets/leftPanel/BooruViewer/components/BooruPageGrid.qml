@@ -2,9 +2,8 @@ import QtQuick
 import qs.theme
 import qs.widgets.shared
 
-// N×M page-grid segmented control: a block of contiguous page cells that slides
-// with the current page. Layout-neutral — the host sizes it; implicitHeight
-// carries the real content height.
+// N×M page-grid block that slides with the current page. Layout-neutral: the host sizes it
+// and implicitHeight carries the real content height.
 Item {
     id: ctrl
 

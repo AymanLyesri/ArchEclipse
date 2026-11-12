@@ -170,12 +170,19 @@ Item {
             }
         }
     }
+    // Open combo dropdowns inside this island (AppComboBox reports them): their popup is a
+    // separate surface, so the island holds open while one is up instead of reading it as a leave.
+    property int popupCount: 0
+    onPopupCountChanged: if (root.popupCount === 0)
+        root.requestAutoHide()
     function requestAutoHide() {
         if (BarState.tourHoldFor(root.monitorName))
             return;
         if (Settings.panelLockFor("left", root.monitorName))
             return;
         if (islandHover.hovered)
+            return;
+        if (root.popupCount > 0)
             return;
         if (root.activeWidget && root.activeWidget.popupHovered)
             return;
@@ -190,7 +197,7 @@ Item {
         id: leaveTimer
         interval: Settings.revealOutPressure
         onTriggered: {
-            if (!BarState.tourHoldFor(root.monitorName) && !Settings.panelLockFor("left", root.monitorName) && !islandHover.hovered && !(root.activeWidget && root.activeWidget.popupHovered))
+            if (!BarState.tourHoldFor(root.monitorName) && !Settings.panelLockFor("left", root.monitorName) && !islandHover.hovered && root.popupCount === 0 && !(root.activeWidget && root.activeWidget.popupHovered))
                 BarState.deactivate("left", root.monitorName);
         }
     }
@@ -294,9 +301,8 @@ Item {
                 width: parent.width - sidebar.width
                 height: parent.height
 
-                // Each tab activates on first select and stays alive, so switches preserve
-                // scroll/page state; only the selected one instantiates. Order matches the rail.
-                // Tab swap cross-fade: short and front-loaded so a rail click feels instant.
+                // Cached loaders: a tab instantiates on first select, so switches preserve scroll/page state.
+                // Tab swap cross-fade is short and front-loaded so a rail click feels instant.
                 OpacityAnimator on opacity {
                     id: switchAnim
                     from: 0

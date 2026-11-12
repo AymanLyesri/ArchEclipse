@@ -113,9 +113,8 @@ Item {
             // on the RIGHT (mirrors the left island's rail).
             layoutDirection: Qt.RightToLeft
 
-            // ----- Sidebar with widget toggles (drag-reorderable) -----
+            // Sidebar with drag-reorderable widget toggles; recessed like the left island's rail.
             // Stays custom (not IslandSideRail): live reorder + the isDragging hold need it.
-            // Recessed rail, matching the left island's selector column.
             Rectangle {
                 id: sidebar
                 width: 52

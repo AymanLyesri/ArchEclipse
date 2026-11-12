@@ -1,12 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Minimalist togglable pill/chip.
-//
-// Three render states:
-//   active=true   — accent-washed fill, accent bold text
-//   strike=true   — dim text with strikethrough decoration (previously removed)
-//   neither       — raised fill, dim text (idle/removable) — fill instead of a hairline
+// Togglable pill/chip. States: active = accent-washed fill + bold text; strike = dim text
+// with strikethrough; neither = raised fill, dim text (idle/removable, never a hairline).
 Item {
     id: root
 
@@ -44,9 +40,7 @@ Item {
 
             Text {
                 id: label
-                // Rich-text strikethrough: any non-empty `text` gets a
-                // `<s>` wrapper when `strike` is true so the decoration
-                // only applies here and nowhere else.
+                // Strikethrough is a rich-text `<s>` wrapper, so it only applies here and nowhere else.
                 font.family: Theme.fontFamily
                 font.pixelSize: root.pixelSize
                 font.bold: root.active

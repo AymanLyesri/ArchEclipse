@@ -2,13 +2,14 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-// Shared themed slider (sibling of AppButton): extends Slider so from/to/stepSize/value and
-// the onMoved contract pass through; only the look is themed. The rail is a recessed track and
-// the fill is the accent — the handle is the only raised element, so the row reads as a groove.
+// Shared themed slider: extends Slider so from/to/stepSize/value and onMoved pass through.
+// Recessed track + accent fill; the handle is the only raised element, so it reads as a groove.
 Slider {
     id: root
 
-    implicitHeight: 24
+    // Vertical mode (equalizer bands): track runs bottom-up, fill from the bottom.
+    implicitWidth: root.orientation === Qt.Vertical ? 24 : 200
+    implicitHeight: root.orientation === Qt.Vertical ? 200 : 24
 
     // Optional reset point. Null/undefined (the default) changes nothing: no tick, no snapping.
     property var defaultValue: null
@@ -19,10 +20,8 @@ Slider {
     readonly property real defaultFraction: root.hasDefault && root.to !== root.from ? Math.max(0, Math.min(1, (root.defaultValue - root.from) / (root.to - root.from))) : 0
     readonly property bool atDefault: root.hasDefault && Math.abs(root.value - root.defaultValue) < 1e-9
 
-    // Snap only while the user drags: programmatic/bound values are never pulled toward the
-    // marker. A Connections object (not onValueChanged) so a consumer's own onValueChanged
-    // handler cannot shadow it. Assigning here happens before Slider emits moved(), so onMoved
-    // consumers always see the snapped value.
+    // Snap only while dragging, never bound values. A Connections (not onValueChanged) so a
+    // consumer handler cannot shadow it; assignment lands before moved(), so onMoved sees it.
     Connections {
         target: root
         function onValueChanged() {
@@ -34,18 +33,20 @@ Slider {
     }
 
     background: Rectangle {
-        implicitWidth: 200
-        implicitHeight: 4
-        x: root.leftPadding
-        y: root.topPadding + root.availableHeight / 2 - height / 2
-        width: root.availableWidth
-        height: 4
+        implicitWidth: root.orientation === Qt.Vertical ? 4 : 200
+        implicitHeight: root.orientation === Qt.Vertical ? 200 : 4
+        x: root.orientation === Qt.Vertical ? root.leftPadding + root.availableWidth / 2 - width / 2 : root.leftPadding
+        y: root.orientation === Qt.Vertical ? root.topPadding : root.topPadding + root.availableHeight / 2 - height / 2
+        width: root.orientation === Qt.Vertical ? 4 : root.availableWidth
+        height: root.orientation === Qt.Vertical ? root.availableHeight : 4
         radius: 2
         color: Theme.track
 
+        // visualPosition is 0 at the top for vertical sliders, so the fill grows bottom-up.
         Rectangle {
-            width: parent.width * root.visualPosition
-            height: parent.height
+            width: root.orientation === Qt.Vertical ? parent.width : parent.width * root.visualPosition
+            height: root.orientation === Qt.Vertical ? parent.height * (1 - root.visualPosition) : parent.height
+            y: root.orientation === Qt.Vertical ? parent.height - height : 0
             radius: 2
             color: Theme.accent
             opacity: root.enabled ? 1 : Theme.opacity.disabled
@@ -59,12 +60,12 @@ Slider {
         // exactly at the default, muted otherwise, so it stays legible at either end.
         Rectangle {
             visible: root.hasDefault
-            width: 2
-            height: 10
+            width: root.orientation === Qt.Vertical ? 10 : 2
+            height: root.orientation === Qt.Vertical ? 2 : 10
             radius: 1
             // Clamped inside the track so an edge default (0 or max) is still fully visible.
-            x: Math.max(0, Math.min(parent.width - width, parent.width * root.defaultFraction - width / 2))
-            y: (parent.height - height) / 2
+            x: root.orientation === Qt.Vertical ? (parent.width - width) / 2 : Math.max(0, Math.min(parent.width - width, parent.width * root.defaultFraction - width / 2))
+            y: root.orientation === Qt.Vertical ? Math.max(0, Math.min(parent.height - height, parent.height * (1 - root.defaultFraction) - height / 2)) : (parent.height - height) / 2
             color: root.atDefault ? Theme.accent : Theme.fgDim
             opacity: root.enabled ? (root.atDefault ? 0.9 : 0.55) : Theme.opacity.disabled
 
@@ -77,8 +78,8 @@ Slider {
     handle: Rectangle {
         implicitWidth: root.pressed || root.hovered ? 15 : 13
         implicitHeight: implicitWidth
-        x: root.leftPadding + root.visualPosition * (root.availableWidth - width)
-        y: root.topPadding + root.availableHeight / 2 - height / 2
+        x: root.orientation === Qt.Vertical ? root.leftPadding + root.availableWidth / 2 - width / 2 : root.leftPadding + root.visualPosition * (root.availableWidth - width)
+        y: root.orientation === Qt.Vertical ? root.topPadding + root.visualPosition * (root.availableHeight - height) : root.topPadding + root.availableHeight / 2 - height / 2
         radius: width / 2
         // Filled with ink, not accent: an accent ball on an accent fill loses its edge on
         // exactly the checked half of the travel.

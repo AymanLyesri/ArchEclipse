@@ -1,9 +1,8 @@
 import QtQuick
 import qs.theme
 
-// Shared depth plate for the whole shell: a stacked translucent fill plus a top-lit gradient
-// instead of a 1px outline. `level` walks the theme's depth ladder (0 flat, 1 resting card,
-// 2 raised row, 3 floating overlay) so every container in the shell reads as one material.
+// Depth plate: stacked translucent fill + top-lit gradient instead of a 1px outline.
+// `level` walks the ladder (0 flat, 1 card, 2 row, 3 overlay) so containers read as one material.
 Rectangle {
     id: root
 

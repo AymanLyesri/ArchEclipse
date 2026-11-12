@@ -8,51 +8,21 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Media Widget (port of MediaWidget.tsx + Player.tsx): the active (playing-else-first) player
-// with cover art, spinning indicator, drag-scrubbable position and can_* gated controls.
+// Media Widget: spinning vinyl left, track/source/transport/seek right, collapsible
+// Lyrics + Equalizer shelf underneath. Height follows the content so the shelf can open.
 Item {
     id: root
     property int widgetWidth: parent.width
     property string className: ""
 
-    // Natural size (single source of truth): consumers without a sized parent (PlayerIsland)
-    // derive from these instead of hardcoding width/height.
-    // Extra row when more than one player is available (the switcher above the art).
-    readonly property real switcherHeight: root.orderedPlayers.length > 1 ? 30 : 0
     implicitWidth: 400
-    implicitHeight: 172 + root.switcherHeight + (root.player !== null && root.hasLyrics ? 72 : 0)
+    implicitHeight: Math.round(body.implicitHeight + Theme.pad * 2)
 
-    // All players, PLAYING first: the switcher shows this order. Mpris.players is an
-    // UntypedObjectModel, so iterate via .values.
-    readonly property var playersList: Mpris.players.values ?? (Array.from ? Array.from(Mpris.players.values() ?? []) : [])
-    readonly property var orderedPlayers: {
-        Mpris.players.values;
-        const playing = [];
-        const rest = [];
-        for (const p of root.playersList) {
-            if (!p)
-                continue;
-            const title = String(p.trackTitle ?? "").trim();
-            const identity = String(p.identity ?? "").trim();
-            if (title === "" && identity === "")
-                continue;
-            if (p.isPlaying === true)
-                playing.push(p);
-            else
-                rest.push(p);
-        }
-        return playing.concat(rest);
-    }
-    // -1 follows the list head (always the playing player). A chip pins one explicitly.
-    property int selectedIndex: -1
-    readonly property var player: {
-        const list = root.orderedPlayers;
-        if (list.length === 0)
-            return null;
-        if (root.selectedIndex >= 0 && root.selectedIndex < list.length)
-            return list[root.selectedIndex];
-        return list[0];
-    }
+    // Selection is shared with the bar pill (PlayerFocus): a pin wins, then whatever plays,
+    // then the player that last played, so pausing does not swap the card for an idle one.
+    readonly property var playersList: PlayerFocus.players
+    readonly property var orderedPlayers: PlayerFocus.players
+    readonly property var player: PlayerFocus.current
 
     readonly property bool playing: root.player?.isPlaying ?? false
 
@@ -72,9 +42,16 @@ Item {
     property string artUrl: root.player?.trackArtUrl ?? ""
     property string album: root.player?.trackAlbum ?? ""
 
-    // LRCLIB lyrics — always visible, Spotify-style 3-line window
-    // (previous dim / current accent / next plain).
+    // Circular disc scaled off the card width so the panel and the narrow right column agree.
+    readonly property int discSize: Math.round(Math.max(84, Math.min(112, root.width * 0.28)))
+    // Five bands at -12..+12 dB, neutral 0 marked at the centre by AppSlider itself.
+    property real eqBass: 0
+    property real eqLowMid: 0
+    property real eqMid: 0
+    property real eqHighMid: 0
+    property real eqTreble: 0
 
+    // LRCLIB lyrics — a 3-line window (previous dim / current accent / next plain).
     function fetchLyrics() {
         if (root.player === null)
             return;
@@ -83,8 +60,7 @@ Item {
             Math.round(root.player?.length ?? 0));
     }
 
-    // True once LRCLIB returns usable lyric content; the section
-    // collapses to zero height otherwise so it never takes space.
+    // True once LRCLIB returns usable lyric content; the shelf shows a hint otherwise.
     readonly property bool hasLyrics: Lyrics.status === "ready-synced" || Lyrics.status === "ready-plain"
 
     // 3-line window over the synced lines, clamped into range.
@@ -200,14 +176,13 @@ Item {
         }
     }
 
-    // Track identity change → refetch lyrics (fetchLyrics self-guards
-    // on lyricsOpen/player, so these are cheap when closed).
+    // Track identity change → refetch lyrics (fetchLyrics self-guards).
     onTitleChanged: root.fetchLyrics()
     onArtistChanged: root.fetchLyrics()
     onAlbumChanged: root.fetchLyrics()
 
     // Quickshell only pushes position on nonlinear jumps, so poll while a player exists
-    // (docs-sanctioned positionChanged()) to keep the time label, ring and lyrics in sync.
+    // (docs-sanctioned positionChanged()) to keep the time label, bar and lyrics in sync.
     Timer {
         interval: 500
         running: root.player !== null
@@ -231,6 +206,47 @@ Item {
         return m + ":" + (ss < 10 ? "0" : "") + ss;
     }
 
+    // ----- collapsible shelf -----
+    property bool detailsOpen: false
+    property int detailsTab: 0
+    readonly property int lyricLineHeight: Theme.fontSize + 9
+    readonly property int lyricsHeight: root.lyricLineHeight * 3
+    readonly property int equalizerHeight: Math.round(Theme.fontSize * 10)
+    property real detailsHeight: root.detailsOpen ? (root.detailsTab === 0 ? root.lyricsHeight : root.equalizerHeight) : 0
+    readonly property var eqBands: [
+        {
+            key: "eqBass",
+            label: "Bass"
+        },
+        {
+            key: "eqLowMid",
+            label: "Low-Mid"
+        },
+        {
+            key: "eqMid",
+            label: "Mid"
+        },
+        {
+            key: "eqHighMid",
+            label: "High-Mid"
+        },
+        {
+            key: "eqTreble",
+            label: "Treble"
+        }
+    ]
+    function gainLabel(v) {
+        const n = Math.round((Number(v) || 0) * 2) / 2;
+        if (n === 0)
+            return "0";
+        return (n > 0 ? "+" : "") + n;
+    }
+    Behavior on detailsHeight {
+        Anim {
+            type: Anim.FastSpatial
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: Theme.radius
@@ -240,7 +256,6 @@ Item {
         color: Theme.surfaceRaised
         visible: root.player !== null
 
-        // Blurred background cover ("img" blurred layer)
         AppImage {
             anchors.fill: parent
             source: root._lastCover || ""
@@ -248,8 +263,8 @@ Item {
             visible: root._lastCover !== ""
         }
 
-        // One vertical reading: who is playing, how far along, what you can do, what is sung.
         ColumnLayout {
+            id: body
             anchors.fill: parent
             anchors.margins: Theme.pad
             spacing: Theme.spaceSm
@@ -257,16 +272,16 @@ Item {
             // ---- player switcher: every player, playing one first ----
             Flickable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.switcherHeight > 0 ? 24 : 0
-                visible: root.switcherHeight > 0
+                Layout.preferredHeight: 22
+                visible: root.orderedPlayers.length > 1
                 clip: true
                 contentWidth: chipRow.width
-                contentHeight: 24
+                contentHeight: 22
                 flickableDirection: Flickable.HorizontalFlick
 
                 Row {
                     id: chipRow
-                    height: 24
+                    height: 22
                     spacing: Theme.spaceXs
 
                     Repeater {
@@ -278,7 +293,7 @@ Item {
                             readonly property bool rowPlaying: modelData.isPlaying === true
 
                             width: chipText.implicitWidth + (rowPlaying ? 14 : 0) + Theme.spaceSm * 2
-                            height: 22
+                            height: 20
                             radius: Theme.radius
                             color: current ? Theme.surfaceOverlay : (chipHover.hovered ? Theme.surfaceHover : "transparent")
                             Behavior on color {
@@ -317,292 +332,466 @@ Item {
                                 hoverEnabled: false
                                 preventStealing: false
                                 propagateComposedEvents: true
-                                onClicked: root.selectedIndex = index
+                                onClicked: PlayerFocus.togglePin(modelData)
                             }
                         }
                     }
                 }
             }
 
-            // ---- identity: art, track, source app ----
+            // ---- identity: vinyl disc left, track / source / transport right ----
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.spaceMd
 
-                // Cover art is the anchor of the card: large enough to recognize at a glance.
-                Rectangle {
-                    id: coverBox
-                    Layout.preferredWidth: 84
-                    Layout.preferredHeight: 84
-                    radius: Theme.radius
-                    clip: true
-                    color: Theme.bg
+                // Circular disc: cover clipped to a circle and rotated as one plate, so the
+                // square art never shows a corner; grooves and spindle read as vinyl.
+                Item {
+                    Layout.preferredWidth: root.discSize
+                    Layout.preferredHeight: root.discSize
+                    Layout.alignment: Qt.AlignVCenter
 
-                    AppImage {
-                        id: coverImg
+                    // ClippingRectangle, not Rectangle.clip: the latter clips a square and
+                    // only rounds the fill, which left the spinning cover with sharp corners.
+                    ClippingRectangle {
+                        id: plate
                         anchors.fill: parent
-                        source: root._lastCover || ""
-                    }
+                        radius: width / 2
+                        color: Theme.surfaceSunken
 
-                    // Playback state is a dot on the art, not a second progress ring: the bar
-                    // below already carries position.
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.margins: 6
-                        width: 8
-                        height: 8
-                        radius: 4
-                        color: root.playing ? Theme.accent : Theme.fgDim
-                        Behavior on color {
-                            CAnim {}
+                        Item {
+                            id: spin
+                            // Oversized past √2 so the rotating square always covers the circle.
+                            width: Math.ceil(plate.width * 1.45)
+                            height: width
+                            anchors.centerIn: parent
+                            visible: root._lastCover !== ""
+
+                            AppImage {
+                                anchors.fill: parent
+                                radius: 0
+                                source: root._lastCover || ""
+                            }
+
+                            // Tint: the art reads as a disc surface, not a thumbnail.
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Theme.rgba(Theme.bg, 0.34)
+                            }
+
+                            // Disc speed ~18 s per turn; a timer (not an animator) so pausing
+                            // holds the exact angle instead of snapping back to 0 on resume.
+                            Timer {
+                                interval: 33
+                                repeat: true
+                                running: root.player !== null && root.playing && Theme.anim.scale > 0
+                                onTriggered: spin.rotation = (spin.rotation + 0.7) % 360
+                            }
+                        }
+
+                        Label {
+                            anchors.centerIn: parent
+                            visible: root._lastCover === ""
+                            text: Icons.music
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.fs(2.2)
+                        }
+
+                        Repeater {
+                            model: [0.94, 0.82, 0.7, 0.58]
+                            delegate: Rectangle {
+                                required property real modelData
+                                anchors.centerIn: parent
+                                width: parent.width * modelData
+                                height: width
+                                radius: width / 2
+                                color: "transparent"
+                                border.width: 1
+                                border.color: Theme.rgba(Theme.bg, 0.4)
+                                visible: root._lastCover !== ""
+                            }
+                        }
+
+                        // Centre label + spindle.
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: Math.round(plate.width * 0.3)
+                            height: width
+                            radius: width / 2
+                            color: Theme.rgba(Theme.bg, 0.55)
+                            visible: root._lastCover !== ""
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: Math.round(parent.width * 0.22)
+                                height: width
+                                radius: width / 2
+                                color: Theme.rgba(Theme.fg, 0.35)
+                            }
                         }
                     }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Theme.rgba(Theme.fg, 0.1)
+                    }
                 }
 
-                // Title / artist / album with a small slide on track change.
                 ColumnLayout {
-                    id: textLayer
                     Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 1
-                    transform: Translate {
-                        id: textShift
+                    Layout.fillHeight: true
+                    spacing: Theme.spaceSm
+
+                    // Title / artist top-left, source app top-right.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceSm
+
+                        ColumnLayout {
+                            id: textLayer
+                            Layout.fillWidth: true
+                            spacing: 0
+                            transform: Translate {
+                                id: textShift
+                            }
+
+                            Label {
+                                id: titleLabel
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                                font.pixelSize: Theme.typeSubtitle
+                                font.weight: Font.DemiBold
+                                color: Theme.fg
+                                text: root.title
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                                font.pixelSize: Theme.typeLabel
+                                color: Theme.muted
+                                text: root.artist
+                            }
+                        }
+
+                        Item {
+                            Layout.preferredWidth: 20
+                            Layout.preferredHeight: 20
+                            Layout.alignment: Qt.AlignTop
+
+                            IconImage {
+                                id: appIconImg
+                                anchors.fill: parent
+                                source: root.appIconSource
+                                visible: status === Image.Ready && root.appIconSource !== ""
+                                asynchronous: true
+                            }
+                            Label {
+                                anchors.centerIn: parent
+                                visible: !appIconImg.visible
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                text: Icons.music
+                                color: Theme.fgDim
+                                font.pixelSize: Theme.fs(1.2)
+                            }
+                            AppTooltip {
+                                visible: iconTip.hovered && root.player !== null
+                                text: root.player?.identity ?? ""
+                            }
+                            HoverHandler {
+                                id: iconTip
+                            }
+                        }
                     }
 
-                    Label {
-                        id: titleLabel
+                    Item {
                         Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        font.pixelSize: Theme.typeSubtitle
-                        font.weight: Font.DemiBold
-                        color: Theme.fg
-                        text: root.title
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: 0
                     }
-                    Label {
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        font.pixelSize: Theme.typeLabel
-                        color: Theme.muted
-                        text: root.artist
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        visible: root.album !== ""
-                        elide: Text.ElideRight
-                        font.pixelSize: Theme.typeCaption
-                        color: Theme.fgDim
-                        text: root.album
-                    }
-                }
 
-                // App icon (DefaultBar parity: real theme icon via DesktopEntry/identity
-                // lookup, music-note glyph fallback), top-aligned with the art.
-                Item {
-                    Layout.preferredWidth: 22
-                    Layout.preferredHeight: coverBox.height
+                    // ---- transport: centred, the play button reads as the primary action ----
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceMd
 
-                    IconImage {
-                        id: appIconImg
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 4
-                        width: 20
-                        height: 20
-                        source: root.appIconSource
-                        visible: status === Image.Ready && root.appIconSource !== ""
-                        asynchronous: true
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                        }
+                        AppButton {
+                            tooltipText: "Previous track"
+                            enabled: root.player?.canGoPrevious ?? false
+                            icon: Icons.arrowLeft
+                            pixelSize: Theme.fontSizeLarge
+                            Layout.preferredWidth: 32
+                            Layout.minimumWidth: 24
+                            implicitHeight: 32
+                            onClicked: root.player?.previous()
+                        }
+                        AppButton {
+                            enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
+                            icon: root.playing ? Icons.pause : Icons.play
+                            tooltipText: root.playing ? "Pause" : "Play"
+                            pixelSize: Theme.fontSizeLarge + 1
+                            cornerRadius: Theme.radius
+                            Layout.preferredWidth: 42
+                            Layout.minimumWidth: 34
+                            implicitHeight: 38
+                            idleBg: Theme.surfaceActive
+                            idleFg: Theme.accent
+                            hoverBg: Theme.surfaceOverlay
+                            onClicked: {
+                                if (root.playing)
+                                    root.player?.pause();
+                                else
+                                    root.player?.play();
+                            }
+                        }
+                        AppButton {
+                            enabled: root.player?.canGoNext ?? false
+                            tooltipText: "Next track"
+                            icon: Icons.arrowRight
+                            pixelSize: Theme.fontSizeLarge
+                            Layout.preferredWidth: 32
+                            Layout.minimumWidth: 24
+                            implicitHeight: 32
+                            onClicked: root.player?.next()
+                        }
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                        }
                     }
-                    Label {
-                        anchors.centerIn: parent
-                        visible: !appIconImg.visible
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        text: Icons.music
-                        color: Theme.fgDim
-                        font.pixelSize: Theme.fs(1.5)
-                    }
-                    AppTooltip {
-                        visible: iconTip.hovered
-                        text: root.player?.identity ?? ""
-                    }
-                    HoverHandler {
-                        id: iconTip
+
+                    // ---- position: elapsed and total bracket the scrub bar beneath the controls ----
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceSm
+
+                        Label {
+                            Layout.alignment: Qt.AlignVCenter
+                            text: root.fmt(root.scrubbing ? root.scrubPos : (root.player?.position ?? 0))
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.typeCaption
+                            font.preferShaping: false
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredHeight: Math.max(12, Theme.fontSize)
+
+                            Rectangle {
+                                id: progBg
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width
+                                height: 4
+                                radius: 2
+                                color: Theme.track
+
+                                property real frac: root.scrubbing ? (root.scrubPos / Math.max(1, root.player?.length ?? 1)) : (root.player?.length ?? 0) > 0 ? (root.player?.position ?? 0) / root.player.length : 0
+                                property real fill: Math.max(0, Math.min(1, frac))
+
+                                Rectangle {
+                                    width: progBg.width * progBg.fill
+                                    height: parent.height
+                                    radius: 2
+                                    color: Theme.accent
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: root.player?.canSeek ?? false
+                                cursorShape: Qt.PointingHandCursor
+                                onPressed: mouse => {
+                                    root.scrubbing = true;
+                                    root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
+                                }
+                                onPositionChanged: mouse => {
+                                    if (root.scrubbing)
+                                        root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
+                                }
+                                onReleased: mouse => {
+                                    if (root.scrubbing) {
+                                        const len = root.player?.length ?? 0;
+                                        root.scrubPos = Math.max(0, Math.min(mouse.x / width * len, len));
+                                        // Absolute write: seek(offset) is relative per the
+                                        // MprisPlayer docs, so it can't land a drag.
+                                        if (root.player && (root.player.canSeek ?? false))
+                                            root.player.position = root.scrubPos;
+                                        root.scrubbing = false;
+                                    }
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.alignment: Qt.AlignVCenter
+                            text: root.fmt(root.player?.length ?? 0)
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.typeCaption
+                            font.preferShaping: false
+                        }
                     }
                 }
             }
 
-            // ---- position: elapsed and total bracket the scrub bar they describe ----
+            // ---- shelf: collapsed by default; tabs pick Lyrics or Equalizer ----
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.spaceXs
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Label {
-                        Layout.alignment: Qt.AlignVCenter
-                        text: root.fmt(root.scrubbing ? root.scrubPos : (root.player?.position ?? 0))
-                        color: Theme.fgDim
-                        font.pixelSize: Theme.typeCaption
-                        font.preferShaping: false
+                    spacing: Theme.spaceSm
+
+                    AppSegmentedControl {
+                        id: tabBar
+                        model: [
+                            {
+                                label: "Lyrics",
+                                icon: Icons.lyrics
+                            },
+                            {
+                                label: "Equalizer",
+                                icon: Icons.equalizer
+                            }
+                        ]
+                        currentIndex: root.detailsTab
+                        pixelSize: Theme.typeCaption
+                        cellHPadding: Theme.spaceSm + 2
+                        cellVPadding: Theme.spaceXs
+                        onActivated: (index) => {
+                            root.detailsTab = index;
+                            root.detailsOpen = true;
+                        }
                     }
+
                     Item {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                     }
-                    Label {
-                        Layout.alignment: Qt.AlignVCenter
-                        text: root.fmt(root.player?.length ?? 0)
-                        color: Theme.fgDim
-                        font.pixelSize: Theme.typeCaption
-                        font.preferShaping: false
+
+                    AppButton {
+                        icon: root.detailsOpen ? Icons.chevronDown : Icons.chevronUp
+                        tooltipText: root.detailsOpen ? "Hide lyrics and equalizer" : "Show lyrics and equalizer"
+                        pixelSize: Theme.typeCaption
+                        hPadding: Theme.spaceSm
+                        implicitHeight: Math.max(24, Theme.fontSize + 10)
+                        onClicked: root.detailsOpen = !root.detailsOpen
                     }
                 }
 
-                Rectangle {
-                    id: progBg
+                Item {
+                    id: detailsViewport
                     Layout.fillWidth: true
-                    Layout.minimumHeight: 5
-                    Layout.preferredHeight: 5
-                    height: 5
-                    radius: 3
-                    color: Theme.track
+                    Layout.preferredHeight: root.detailsHeight
+                    clip: true
 
-                    property real frac: root.scrubbing ? (root.scrubPos / Math.max(1, root.player?.length ?? 1)) : (root.player?.length ?? 0) > 0 ? (root.player?.position ?? 0) / root.player.length : 0
-                    property real fill: Math.max(0, Math.min(1, frac))
+                    // Synced lines click-to-seek; the plain fallback follows position proportionally.
+                    Item {
+                        id: lyricsBody
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: root.detailsHeight
+                        visible: root.detailsTab === 0 && root.detailsHeight > 0
 
-                    Rectangle {
-                        id: progFill
-                        width: progBg.width * progBg.fill
-                        height: 5
-                        radius: 3
-                        color: Theme.accent
+                        Column {
+                            anchors.fill: parent
+                            spacing: 0
+                            visible: root.hasLyrics
+
+                            Repeater {
+                                model: 3
+                                delegate: Item {
+                                    width: parent.width
+                                    height: root.lyricLineHeight
+
+                                    property int lineOffset: index - 1
+                                    property string lineText: Lyrics.status === "ready-synced" ? root.lyricLineAt(lineOffset) : root.plainWindow()[index]
+                                    property real lineTime: Lyrics.status === "ready-synced" ? root.lyricTimeAt(lineOffset) : -1
+
+                                    Label {
+                                        anchors.fill: parent
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                        text: parent.lineText
+                                        color: index === 1 ? Theme.accent : (index === 0 ? Theme.fgDim : Theme.fg)
+                                        font.bold: index === 1
+                                        font.pixelSize: index === 1 ? Theme.fontSize + 1 : Theme.fontSize - 1
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        acceptedButtons: Qt.LeftButton
+                                        preventStealing: false
+                                        propagateComposedEvents: true
+                                        enabled: parent.lineTime >= 0 && (root.player?.canSeek ?? false)
+                                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                        onClicked: root.player.position = parent.lineTime
+                                    }
+                                }
+                            }
+                        }
+
+                        Label {
+                            anchors.centerIn: parent
+                            visible: !root.hasLyrics
+                            text: Lyrics.status === "loading" ? "Fetching lyrics…" : "No lyrics for this track"
+                            color: Theme.fgDim
+                            font.pixelSize: Theme.typeLabel
+                        }
                     }
 
-                    MouseArea {
+                    // Five vertical bands, neutral 0 at the centre of each travel.
+                    RowLayout {
+                        id: equalizerBody
                         anchors.fill: parent
-                        enabled: root.player?.canSeek ?? false
-                        cursorShape: Qt.PointingHandCursor
-                        onPressed: mouse => {
-                            root.scrubbing = true;
-                            root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
-                        }
-                        onPositionChanged: mouse => {
-                            if (root.scrubbing)
-                                root.scrubPos = mouse.x / width * (root.player?.length ?? 0);
-                        }
-                        onReleased: mouse => {
-                            if (root.scrubbing) {
-                                const len = root.player?.length ?? 0;
-                                root.scrubPos = Math.max(0, Math.min(mouse.x / width * len, len));
-                                // Absolute write: seek(offset) is relative per the
-                                // MprisPlayer docs, so it can't land a drag.
-                                if (root.player && (root.player.canSeek ?? false))
-                                    root.player.position = root.scrubPos;
-                                root.scrubbing = false;
-                            }
-                        }
-                    }
-                }
-            }
+                        visible: root.detailsTab === 1 && root.detailsHeight > 0
+                        spacing: Theme.spaceSm
 
-            // ---- transport: centered, the play button reads as the primary action ----
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Theme.spaceMd
+                        Repeater {
+                            model: root.eqBands
+                            delegate: ColumnLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                spacing: Theme.spaceXs
 
-                Item {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                }
-                AppButton {
-                    tooltipText: "Previous track"
-                    enabled: root.player?.canGoPrevious ?? false
-                    icon: Icons.arrowLeft
-                    pixelSize: Theme.fontSizeLarge
-                    Layout.preferredWidth: 32
-                    Layout.minimumWidth: 24
-                    implicitHeight: 32
-                    onClicked: root.player?.previous()
-                }
-                AppButton {
-                    enabled: root.player?.canPause ?? (root.player?.canPlay ?? false)
-                    icon: root.playing ? Icons.pause : Icons.play
-                    tooltipText: root.playing ? "Pause" : "Play"
-                    pixelSize: Theme.fontSizeLarge + 1
-                    cornerRadius: Theme.radius
-                    Layout.preferredWidth: 42
-                    Layout.minimumWidth: 34
-                    implicitHeight: 38
-                    idleBg: Theme.surfaceActive
-                    idleFg: Theme.accent
-                    hoverBg: Theme.surfaceOverlay
-                    onClicked: {
-                        if (root.playing)
-                            root.player?.pause();
-                        else
-                            root.player?.play();
-                    }
-                }
-                AppButton {
-                    enabled: root.player?.canGoNext ?? false
-                    tooltipText: "Next track"
-                    icon: Icons.arrowRight
-                    pixelSize: Theme.fontSizeLarge
-                    Layout.preferredWidth: 32
-                    Layout.minimumWidth: 24
-                    implicitHeight: 32
-                    onClicked: root.player?.next()
-                }
-                Item {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                }
-            }
-
-            // LRCLIB lyrics — always-visible 3-line window (previous dim / current accent / next).
-            // Synced lines click-to-seek; fixed 64px keeps implicitHeight exact.
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.hasLyrics ? 64 : 0
-                Layout.minimumHeight: 0
-                visible: root.hasLyrics
-                clip: true
-
-                Column {
-                    anchors.fill: parent
-                    spacing: 0
-
-                    Repeater {
-                        model: 3
-                        delegate: Item {
-                            width: parent.width
-                            height: 24
-
-                            property int lineOffset: index - 1
-                            property string lineText: Lyrics.status === "ready-synced"
-                                ? root.lyricLineAt(lineOffset) : root.plainWindow()[index]
-                            property real lineTime: Lyrics.status === "ready-synced"
-                                ? root.lyricTimeAt(lineOffset) : -1
-
-                            Label {
-                                anchors.fill: parent
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                                text: parent.lineText
-                                color: index === 1 ? Theme.accent : (index === 0 ? Theme.fgDim : Theme.fg)
-                                font.bold: index === 1
-                                font.pixelSize: index === 1 ? Theme.fontSize + 1 : Theme.fontSize - 1
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                acceptedButtons: Qt.LeftButton
-                                preventStealing: false
-                                propagateComposedEvents: true
-                                enabled: parent.lineTime >= 0 && (root.player?.canSeek ?? false)
-                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                onClicked: root.player.position = parent.lineTime
+                                Label {
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: root.gainLabel(root[modelData.key])
+                                    color: Math.abs(root[modelData.key]) < 0.05 ? Theme.fgDim : Theme.accent
+                                    font.pixelSize: Theme.typeCaption
+                                    font.preferShaping: false
+                                }
+                                AppSlider {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    Layout.fillHeight: true
+                                    Layout.preferredWidth: 24
+                                    orientation: Qt.Vertical
+                                    from: -12
+                                    to: 12
+                                    stepSize: 1
+                                    defaultValue: 0
+                                    value: root[modelData.key]
+                                    onMoved: root[modelData.key] = value
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    text: modelData.label
+                                    color: Theme.muted
+                                    font.pixelSize: Theme.typeCaption
+                                }
                             }
                         }
                     }

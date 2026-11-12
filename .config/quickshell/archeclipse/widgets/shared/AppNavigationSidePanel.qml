@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 
-// Shared left navigation panel: tab-mode controls below the rail, or a full section
-// layout (rail + scrolling section cards) that the panel builds from a sections model.
-// Width is draggable on the right edge and persists via Settings.leftNavPanelWidth.
+// Shared left nav: tab-mode controls below the rail, or section mode (rail + scrolling cards
+// built from `sections`). Width drags on the right edge and persists.
 Item {
     id: root
 
@@ -19,10 +18,8 @@ Item {
     // their own controls in the body.
     property bool railVisible: true
 
-    // Section mode: the panel owns the Flickable, the section cards, selection,
-    // centred scrolling and the distance fade. `sections` holds one body Component
-    // per navModel entry (aligned by index); a body may declare `property string
-    // category` and the panel fills it with the entry title (Key Binds).
+    // Section mode: the panel owns the Flickable, cards, selection, centred scroll and fade.
+    // `sections` aligns one body per navModel entry; a body may declare `property string category`.
     property bool sectionMode: false
     property var sections: []
     readonly property QtObject nav: navController

@@ -128,6 +128,8 @@ QtObject {
     readonly property string volumeHigh: "\uF028"
     readonly property string micOn: "\uF130"
     readonly property string micOff: "\uF131"
+    readonly property string equalizer: "\uF1DE"
+    readonly property string lyrics: "\uF075"
 
     // --- display and battery ---
     readonly property string brightnessLow: "\u{F00DE}"

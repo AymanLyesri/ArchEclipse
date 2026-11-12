@@ -416,9 +416,8 @@ Item {
             }
         }
 
-        // Categories are user-defined strings (bind.lua comments), so
-        // long names elide with a full-name tooltip. One body component
-        // serves every section; the panel fills its category per section.
+        // Categories are user-defined strings, so long names elide with a full-name tooltip.
+        // One body component serves every section; the panel fills its category per section.
         AppNavigationSidePanel {
             id: navPanel
 

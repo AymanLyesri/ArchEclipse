@@ -259,10 +259,8 @@ PanelWindow {
                 id: pillHover
             }
 
-            // Width follows the stack content: content swaps immediately while the width glides,
-            // the island wipe masks the grow and `clip` cuts spill at the animating edge.
-            // DefaultBar states keep a little breathing room between the strokes and the row,
-            // but not the full meter box: content sits closer without ever landing under a stroke.
+            // Width follows the stack content while the island wipe masks the grow and `clip` cuts spill.
+            // DefaultBar keeps breathing room between strokes and row, but never lands under a stroke.
             readonly property real meterSlack: stack.showsDefault ? 2 * (pillMeter.corner + 2) : 0
             property real targetWidth: Math.max(stack.width + stack.effPad * 2 + pill.meterSlack, 100)
             // One path/fill for body + both screen-edge flares: separate shapes either hairline

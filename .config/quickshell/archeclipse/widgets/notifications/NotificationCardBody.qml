@@ -5,10 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Shared notification card body for the popup toast and the history card: display state arrives
-// as plain props so both hosts feed it identically, and side effects bubble out as signals.
-// Layout contract: optional media hero on top, then a badge + text block, then actions. Controls
-// replace the timestamp in the header on hover, so a card never changes height while hovered.
+// Shared card body: plain props in, signals out, so toast and history feed it identically.
+// Media hero, then badge + text, then actions; hover swaps controls in for the timestamp.
 Column {
     id: root
     spacing: Theme.spaceSm

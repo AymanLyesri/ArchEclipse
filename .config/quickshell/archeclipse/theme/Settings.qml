@@ -517,9 +517,8 @@ Singleton {
         };
     }
 
-    // Hyprland settings (plain values internally; persist() writes the
-    // {name,value,min,max,type} leaf shape the settings panel renders).
-    // These mirror config/general.lua + decoration.lua, the values that actually render.
+    // Plain values internally; persist() writes the {name,value,min,max,type} leaf shape.
+    // Mirrors config/general.lua + decoration.lua, the values that actually render.
     property var hyprland: ({
             general: {
                 border_size: 0,
@@ -1168,8 +1167,9 @@ Singleton {
                 // Rating tag leads, defaulting to -rating:e, done here (not viewer
                 // boot) so the file's tags are normalized the moment they are adopted.
                 let _tags = (s.booru?.tags ?? ["-rating:e"]).slice();
-                const _rt = _tags.find(t => t.match(/[-]rating:e|rating:e/));
-                _tags = _tags.filter(t => !t.match(/[-]rating:e|rating:e/));
+                // The empty sentinel is the "filter off" state, so it counts as the rating slot.
+                const _rt = _tags.find(t => t === "" || t.match(/[-]rating:e|rating:e/));
+                _tags = _tags.filter(t => t !== "" && !t.match(/[-]rating:e|rating:e/));
                 _tags.unshift(_rt ?? "-rating:e");
                 root.booru = {
                     api: s.booru?.api ?? {

@@ -5,9 +5,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Unified weather card for WeatherWidget (compact) and WeatherIsland. Layout: one condition
-// panel that reads as a poster (city, temperature, sky) with a stat band inside it, then the
-// forecast as two flat bands instead of a field of little boxes.
+// Unified card for WeatherWidget (compact) and WeatherIsland: a poster condition panel with a
+// stat band inside, then the forecast as two flat bands instead of little boxes.
 Item {
     id: root
     property bool showForecast: true

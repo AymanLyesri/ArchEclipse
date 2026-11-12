@@ -1,6 +1,5 @@
-// THE shared button for the whole shell: centered glyph + optional label in a rounded cell.
-// A Controls Button's padding pushes content off-center, so this is Rectangle + Row + MouseArea.
-// Depth, not outlines: idle cells are flat, hover lifts a translucent wash, press settles.
+// THE shared button: centered glyph + optional label. Controls Button's padding pushes content
+// off-center, hence Rectangle + Row + MouseArea. Depth, not outlines: flat, wash, settle.
 
 import QtQuick
 import QtQuick.Controls
