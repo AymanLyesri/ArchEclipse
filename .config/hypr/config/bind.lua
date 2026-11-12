@@ -60,7 +60,7 @@ hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 --- open floating terminal
 hl.bind(mainMod .. " + CTRL + RETURN", hl.dsp.exec_cmd("[float] " .. terminal))
 --- open btop in workspace 5
-hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("[workspace 5] " .. terminal .. " btop"))
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("[workspace 5] " .. terminal .. " zsh -ic btop"))
 
 -- Status Bar and Panels
 --- restart status bar
