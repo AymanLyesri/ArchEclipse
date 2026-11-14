@@ -139,6 +139,17 @@ def update_repo(repo_dir: Path, branch: str) -> None:
         )
 
         print("Overwriting home configuration...")
+        # Back up first: this is the destructive path, and without the repo's
+        # own backup a failed copy leaves home half-written with no way back.
+        try:
+            backup_mod = importlib.import_module("components.backup")
+        except ModuleNotFoundError:
+            backup_mod = None
+        if backup_mod is None:
+            print("Backup component missing; refusing blind overwrite of $HOME.")
+            raise SystemExit(1)
+        backup_mod.backup_dotfiles(temp_dir)
+        print("Backup done; deploying fresh configuration...")
         run_cmd(["rm", "-rf", str(repo_dir / ".git")], check=False)
         run_cmd(["cp", "-a", "--remove-destination", f"{temp_dir}/.", str(Path.home())])
         print("Configuration successfully updated from fresh clone.")
@@ -146,27 +157,29 @@ def update_repo(repo_dir: Path, branch: str) -> None:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def cleanup_package_manager(presentation: Any) -> None:
-    presentation.print_section_header("PACKAGE MANAGER CLEANUP")
+def cleanup_package_manager(presentation: Any) -> bool:
+    # Returns True when it is safe to touch packages. Never kills the package
+    # manager and never removes its lock: SIGKILL mid-transaction corrupts the
+    # db, and deleting the lock hides exactly that case. A running manager
+    # means the package step is skipped, not forced through.
+    presentation.print_section_header("PACKAGE MANAGER CHECK")
 
     procs = ["pacman", "yay", "paru"]
-    cleaned = 0
+    running = [
+        proc
+        for proc in procs
+        if run_cmd(["pgrep", "-x", proc], check=False).returncode == 0
+    ]
+    if running:
+        presentation.print_warning(
+            "Package manager still running ("
+            + ", ".join(running)
+            + "); skipping package updates. Re-run after it finishes."
+        )
+        return False
 
-    for proc in procs:
-        if run_cmd(["pgrep", "-x", proc], check=False).returncode == 0:
-            print(f"Killing {proc}...")
-            run_cmd(["sudo", "killall", "-9", proc], check=False)
-            cleaned += 1
-
-    if cleaned == 0:
-        presentation.print_warning("No running package manager processes found")
-    else:
-        presentation.print_success(f"Killed {cleaned} process(es)")
-
-    pacman_lock = Path("/var/lib/pacman/db.lck")
-    if pacman_lock.exists():
-        run_cmd(["sudo", "rm", "-f", str(pacman_lock)])
-        presentation.print_success("Pacman lock file removed")
+    presentation.print_warning("No running package manager processes found")
+    return True
 
 
 def detect_aur_helper() -> str:
@@ -271,10 +284,16 @@ def main() -> None:
     )
 
     if plan["packages"]:
-        cleanup_package_manager(presentation)
+        packages_blocked = not cleanup_package_manager(presentation)
+    else:
+        packages_blocked = False
 
     presentation.print_section_header("PACKAGE UPDATES")
-    if plan["packages"] and aur_helper:
+    if packages_blocked:
+        presentation.print_step("*", package_description)
+        presentation.print_warning("Package updates skipped (manager running).")
+        print("")
+    elif plan["packages"] and aur_helper:
         presentation.execute_planned_step(
             "*",
             package_description,

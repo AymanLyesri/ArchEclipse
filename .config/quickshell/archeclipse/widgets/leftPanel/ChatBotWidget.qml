@@ -70,9 +70,10 @@ Item {
 
     // Context envelope for main.py stdin (active file is detected
     // backend-side at send time; the QML preview never sends content).
-    function buildContextJson() {
+    function buildContextJson(message) {
         return JSON.stringify({
-            flags: Settings.chatBotContext
+            flags: Settings.chatBotContext,
+            message: message
         });
     }
 
@@ -264,7 +265,9 @@ Item {
 
     // Delete a session
     function deleteSession(sessionId) {
-        if (sessionId === "" || sessionId.indexOf("..") !== -1 || sessionId.indexOf("/") !== -1)
+        // Strict allowlist: this id is appended to rm -rf, so anything but a
+        // plain name refuses instead of deleting.
+        if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(sessionId || ""))
             return;
         if (root.sessions.length <= 1) {
             Notifications.notify({
@@ -334,12 +337,13 @@ Item {
         p._requestId = root._requestSerial;
         // Key via environment (never argv — visible in ps). Context JSON via stdin, written on
         // started (no close-stdin in Quickshell; main.py drains on a quiet-gap timeout).
-        p.command = ["python3", "-u", root.pythonScript, root.currentApiModel, text, root.activeSessionId];
+        // The user message rides in the stdin envelope too: argv is ps-visible.
+        p.command = ["python3", "-u", root.pythonScript, root.currentApiModel, root.activeSessionId];
         p.environment = ({
             "OPENROUTER_API_KEY": key
         });
         p.stdinEnabled = true;
-        p.started.connect(() => p.write(root.buildContextJson()));
+        p.started.connect(() => p.write(root.buildContextJson(text)));
         root.activeProc = p;
         p.running = true;
     }

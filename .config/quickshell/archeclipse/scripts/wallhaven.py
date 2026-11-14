@@ -24,14 +24,23 @@ Download (save + apply flow: the panel downloads the full-res file into
 """
 
 import json
+import os
 import sys
 from pathlib import Path
+from typing import NoReturn
+from urllib.parse import urlparse
 
 import requests
 
 API_BASE = "https://wallhaven.cc/api/v1"
 SORTINGS = {"date_added", "relevance", "random", "views", "favorites", "toplist"}
 TIMEOUT = 25
+# Downloads are confined here: --dest basename comes from API data, so an
+# absolute or ../ path must never escape the wallpaper dir. Symlinked dests
+# are refused for the same reason.
+WALLPAPER_DIR = Path.home() / ".config" / "wallpapers" / "wallhaven"
+ALLOWED_DL_HOSTS = {"w.wallhaven.cc", "wallhaven.cc"}
+MAX_DL_BYTES = 100 * 1024 * 1024
 
 
 class ErrorResponse:
@@ -47,7 +56,7 @@ def emit_error(error: "ErrorResponse") -> None:
     print(json.dumps(error.to_dict()), file=sys.stderr)
 
 
-def fail(code: str, message: str, status: int = 1) -> "NoReturn":  # noqa: F821
+def fail(code: str, message: str, status: int = 1) -> NoReturn:
     emit_error(ErrorResponse(code, message))
     sys.exit(status)
 
@@ -162,17 +171,43 @@ def do_download(args) -> None:
         full_url = resolve_full(args.download, args.api_key).get("path", "")
     if not full_url:
         fail("API_ERROR", f"Could not resolve a download URL for '{args.download}'.")
+    # --full-url is caller-supplied: only wallhaven hosts, https only.
+    host = urlparse(full_url).hostname or ""
+    if urlparse(full_url).scheme != "https" or host not in ALLOWED_DL_HOSTS:
+        fail("INVALID_URL", f"Refusing to download from '{host or full_url}'.")
+    # Stream with a cap: resp.content would load the whole file into RAM.
     try:
-        resp = requests.get(full_url, timeout=60)
+        resp = requests.get(full_url, timeout=60, stream=True)
     except Exception as exc:
         fail("NETWORK_ERROR", f"Wallpaper download failed: {exc}")
-    if resp.status_code != 200 or not resp.content:
+    if resp.status_code != 200:
         fail("API_ERROR", f"Wallpaper download failed with HTTP {resp.status_code}.")
+    chunks = []
+    total = 0
+    try:
+        for chunk in resp.iter_content(chunk_size=65536):
+            if not chunk:
+                continue
+            total += len(chunk)
+            if total > MAX_DL_BYTES:
+                fail("TOO_LARGE", f"Wallpaper exceeds {MAX_DL_BYTES // (1024 * 1024)} MB.")
+            chunks.append(chunk)
+    except Exception as exc:
+        fail("NETWORK_ERROR", f"Wallpaper download failed: {exc}")
+    if not total:
+        fail("API_ERROR", "Wallpaper download returned an empty body.")
 
     dest = Path(args.dest)
     try:
+        resolved = dest.resolve()
+        if resolved != WALLPAPER_DIR and WALLPAPER_DIR not in resolved.parents:
+            fail("INVALID_DEST", f"Refusing to write outside {WALLPAPER_DIR}.")
+        if dest.is_symlink():
+            fail("INVALID_DEST", "Refusing to write through a symlink.")
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(resp.content)
+        dest.write_bytes(b"".join(chunks))
+    except SystemExit:
+        raise
     except Exception as exc:
         fail("WRITE_FAILED", f"Could not write {dest}: {exc}")
     print(json.dumps({"path": str(dest), "id": args.download}))
@@ -194,7 +229,7 @@ def main() -> None:
     p.add_argument("--ratios", default="", help="Aspect ratios, comma-separated (16x9).")
     p.add_argument("--seed", default="", help="Random-sort seed for stable paging.")
     p.add_argument("--page", type=int, default=1)
-    p.add_argument("--api-key", default="")
+    p.add_argument("--api-key", default=os.environ.get("WALLHAVEN_API_KEY", ""))
     p.add_argument("--download", default="", help="Wallpaper id to download.")
     p.add_argument("--dest", default="", help="Destination file path for --download.")
     p.add_argument("--full-url", default="", help="Skip detail lookup; download this URL.")

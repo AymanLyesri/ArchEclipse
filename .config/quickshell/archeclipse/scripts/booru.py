@@ -716,6 +716,13 @@ def main():
     if user_agent:
         BOORU_USER_AGENT = user_agent
 
+    # Credentials fall back to the environment: argv is world-readable in ps
+    # while environ is owner-only, and the QML callers pass them that way.
+    if api_user is None:
+        api_user = os.environ.get("BOORU_API_USER") or None
+    if api_key is None:
+        api_key = os.environ.get("BOORU_API_KEY") or None
+
     if action:
         payload: Dict[str, Any] = {}
         if payload_json:

@@ -8,6 +8,7 @@ The model argument is retained for CLI compatibility, but sessions are shared
 by all models.
 """
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -16,6 +17,9 @@ if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 CACHE_DIR = Path.home() / ".cache" / "quickshell" / "chatbot"
+
+# Session ids become directory names next to rm -rf: only plain names pass.
+_SID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 
 
 def _sessions_root() -> Path:
@@ -49,7 +53,7 @@ def _migrate_model_sessions() -> None:
 
 
 def _check_sid(session_id: str) -> None:
-    if not session_id or "/" in session_id or session_id in (".", ".."):
+    if not isinstance(session_id, str) or not _SID.match(session_id):
         raise ValueError(f"Bad session id: {session_id!r}")
 
 

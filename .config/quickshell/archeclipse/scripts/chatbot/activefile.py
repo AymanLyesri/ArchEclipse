@@ -133,7 +133,13 @@ def detect_active_file(env=None, home=None) -> dict:
         if not path:
             return {}
         try:
-            with open(path, "rb") as f:
+            # O_NOFOLLOW: a symlinked basename would otherwise exfiltrate any
+            # readable file into the LLM prompt.
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        except OSError:
+            return {}
+        try:
+            with os.fdopen(fd, "rb") as f:
                 head = f.read(_HEAD_CHARS)
         except (OSError, ValueError):
             return {}

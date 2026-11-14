@@ -428,8 +428,10 @@ Item {
         // Random paging repeats without the seed the API returned.
         if (w.sorting === "random" && root.whMeta.seed !== "")
             cmd.push("--seed", root.whMeta.seed);
-        if (root.whApiKey !== "")
-            cmd.push("--api-key", root.whApiKey);
+        // Key via environment (never argv - visible in ps).
+        whSearchProc.environment = {
+            "WALLHAVEN_API_KEY": root.whApiKey
+        };
         whSearchProc._seq = root._whSeq;
         whSearchProc.command = cmd;
         root._whErr = "";
@@ -499,8 +501,9 @@ Item {
         const cmd = ["python3", root.wallhavenScript, "--download", item.id, "--dest", dest];
         if (item.full !== "")
             cmd.push("--full-url", item.full);
-        if (root.whApiKey !== "")
-            cmd.push("--api-key", root.whApiKey);
+        whDownloadProc.environment = {
+            "WALLHAVEN_API_KEY": root.whApiKey
+        };
         whDownloadProc.command = cmd;
         whDownloadProc.running = true;
     }

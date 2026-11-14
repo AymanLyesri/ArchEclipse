@@ -104,14 +104,14 @@ Item {
         const serial = root.streamSerial(s);
         if (!dev || !serial)
             return;
-        Quickshell.execDetached(["bash", "-c", "pactl move-sink-input " + serial + " " + root.shellQuote(dev.name)]);
+        Quickshell.execDetached(["bash", "-c", "pactl move-sink-input " + root.shellQuote(serial) + " " + root.shellQuote(dev.name)]);
     }
     function moveRecording(s, i) {
         const dev = root.inputDevices[i];
         const serial = root.streamSerial(s);
         if (!dev || !serial)
             return;
-        Quickshell.execDetached(["bash", "-c", "pactl move-source-output " + serial + " " + root.shellQuote(dev.name)]);
+        Quickshell.execDetached(["bash", "-c", "pactl move-source-output " + root.shellQuote(serial) + " " + root.shellQuote(dev.name)]);
     }
     function terminateStream(s) {
         if (s)

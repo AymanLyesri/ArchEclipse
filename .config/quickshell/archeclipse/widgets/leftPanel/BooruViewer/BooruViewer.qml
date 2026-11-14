@@ -58,8 +58,6 @@ Item {
     property var currentTags: Settings.booru.tags ? Settings.booru.tags : ["-rating:e"]
     property int limit: Settings.booru.limit ? Settings.booru.limit : 100
     property int columns: Settings.booru.columns ? Settings.booru.columns : 3
-    // Diagnostic: last fetch command with secrets redacted (IPC-readable)
-    property string lastFetchCmd: ""
     property string lastFetchError: ""
     // Image-dialog state. The detail is a root-level overlay, so opening it resizes nothing
     // and no frozen grid widths or revealer flags exist.
@@ -932,11 +930,12 @@ Item {
         // public defaults.
         const apiUser = Settings.apiKey(apiValue, "user");
         const apiPass = Settings.apiKey(apiValue, "key");
-        if (apiUser !== "" && apiPass !== "")
-            cmd.push("--api-user", apiUser, "--api-key", apiPass);
-        root.lastFetchCmd = JSON.stringify(cmd.map((a, i) => {
-            return (a === "--api-key" || a === "--api-user") ? a : (cmd[i - 1] === "--api-key" || cmd[i - 1] === "--api-user" ? "***" : a);
-        }));
+        // Credentials via environment (never argv - visible in ps); the script
+        // falls back to BOORU_API_USER/BOORU_API_KEY when the flags are absent.
+        const apiEnv = (apiUser !== "" && apiPass !== "") ? {
+            "BOORU_API_USER": apiUser,
+            "BOORU_API_KEY": apiPass
+        } : null;
         root.lastFetchError = "";
         // Only a replace drives the nav pill; an edge shows its own block state.
         if (side === "replace") {
@@ -953,6 +952,8 @@ Item {
         // inline `stderr:` is rejected by the QML parser — assign here.
         proc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
         proc.stderr = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
+        if (apiEnv)
+            proc.environment = apiEnv;
         proc.running = true;
         // Read streams on process exit, NOT on stdout.onStreamFinished: stderr may not have
         // flushed yet, which hid the script's real error envelope.
@@ -1211,12 +1212,17 @@ Item {
         const apiUser = Settings.apiKey(apiValue, "user");
         const apiPass = Settings.apiKey(apiValue, "key");
         let cmd = ["python", root.booruScript, "--api", apiValue, "--tag", tag];
-        if (apiUser !== "" && apiPass !== "")
-            cmd.push("--api-user", apiUser, "--api-key", apiPass);
+        // Credentials via environment (never argv - visible in ps).
+        const tagEnv = (apiUser !== "" && apiPass !== "") ? {
+            "BOORU_API_USER": apiUser,
+            "BOORU_API_KEY": apiPass
+        } : null;
 
         const proc = Qt.createQmlObject('import Quickshell.Io; Process { command: ' + JSON.stringify(cmd) + ' }', root);
         proc.stdout = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
         proc.stderr = Qt.createQmlObject('import Quickshell.Io; StdioCollector {}', root);
+        if (tagEnv)
+            proc.environment = tagEnv;
         proc.running = true;
         proc.stdout.onStreamFinished.connect(function () {
             const text = proc.stdout.text;

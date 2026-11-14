@@ -20,8 +20,14 @@ def backup_dotfiles(conf_dir: Path) -> None:
         print(f"Warning: cloned repo not found ({conf_dir}); nothing to back up.")
         return
 
-    date_stamp = datetime.datetime.now().strftime("%Y%m%d")
+    # Timestamped, with a numeric suffix if the directory already has content,
+    # so two runs in the same second never wipe each other's backup.
+    date_stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_dir = Path.home() / f"dotfiles_backup_{date_stamp}"
+    suffix = 0
+    while backup_dir.exists() and any(backup_dir.iterdir()):
+        suffix += 1
+        backup_dir = Path.home() / f"dotfiles_backup_{date_stamp}_{suffix}"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
     home_dir = Path.home()

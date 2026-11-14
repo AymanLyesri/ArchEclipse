@@ -115,7 +115,14 @@ PROTECTED_PACKAGES = {
 }
 
 
+ALLOWED_AUR_HELPERS = ("yay", "paru")
+
+
 def install_packages(aur_helper: str = "yay") -> None:
+    # Only known helpers: the value becomes argv[0] of a sudo-adjacent
+    # install, so an arbitrary string here is remote-execution-shaped.
+    if aur_helper not in ALLOWED_AUR_HELPERS:
+        raise ValueError(f"Refusing unknown AUR helper: {aur_helper!r}")
     run_shell("figlet 'PACKAGES' -f slant | lolcat", check=False)
 
     run_cmd([aur_helper, "-Syu", "--needed", *PACKAGES])
@@ -179,6 +186,9 @@ def uninstall_packages(*, remove_zsh: bool = False) -> None:
 
 def main() -> None:
     aur_helper = sys.argv[1] if len(sys.argv) > 1 else "yay"
+    if aur_helper not in ALLOWED_AUR_HELPERS:
+        print(f"Unknown AUR helper: {aur_helper!r} (expected yay or paru)")
+        raise SystemExit(2)
     install_packages(aur_helper)
 
 

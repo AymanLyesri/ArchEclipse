@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Backend entry point. Argv: <provider/model> <message> <session_id>.
+"""Backend entry point. Argv: <provider/model> <session_id>.
 Key: OPENROUTER_API_KEY env (stripped, never argv). Context: JSON
-{flags, attachments} drained from stdin (select-based: QML Process has no
-close-stdin, so a blocking read() would hang forever).
+{flags, attachments, message} drained from stdin (select-based: QML Process
+has no close-stdin, so a blocking read() would hang forever). A legacy
+<message> argv (position 3) is still honored when stdin carries none, so
+older callers keep working.
 Exits: 0 ok, 1 generic, 2 auth, 3 rate-limit, 4 context-too-long."""
 import json
 import os
+import re
 import select
 import signal
 import sys
@@ -72,13 +75,16 @@ def _check_segment(seg: str, what: str) -> None:
         raise ValueError(f"Bad path component ({what}): {seg!r}")
 
 
+_SID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+
+
 def safe_history_path(model: str, session_id: str) -> Path:
     """History path with traversal guard. Raises ValueError, never exits."""
     if not model or model.startswith("/"):
         raise ValueError(f"Bad model path: {model!r}")
     for seg in model.split("/"):
         _check_segment(seg, "model")
-    if not session_id or "/" in session_id:
+    if not isinstance(session_id, str) or not _SID.match(session_id):
         raise ValueError(f"Bad session id: {session_id!r}")
     _check_segment(session_id, "session")
     return CACHE_DIR / "sessions" / session_id / "history.json"
@@ -99,9 +105,9 @@ def main() -> None:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
-    if len(sys.argv) < 4:
-        _fail("Usage: main.py <provider/model> <message> <session_id>", 1)
-    model, user_message, session_id = sys.argv[1], sys.argv[2], sys.argv[3]
+    if len(sys.argv) < 3:
+        _fail("Usage: main.py <provider/model> <session_id> [legacy <message>]", 1)
+    model, session_id = sys.argv[1], sys.argv[2]
     try:
         provider = resolve_provider(model)
     except ValueError as e:
@@ -115,6 +121,11 @@ def main() -> None:
     if not isinstance(ctx, dict):
         ctx = {}
     flags, attachments = ctx.get("flags", {}), ctx.get("attachments", [])
+    # Message arrives in the stdin envelope (argv is ps-visible); position 3
+    # is only the legacy slot for older callers.
+    user_message = ctx.get("message") or (sys.argv[3] if len(sys.argv) > 3 else "")
+    if not isinstance(user_message, str) or not user_message.strip():
+        _fail("ERROR: missing user message", 1)
 
     try:
         path = safe_history_path(model, session_id)

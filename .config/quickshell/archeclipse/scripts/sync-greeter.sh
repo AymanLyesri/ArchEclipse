@@ -3,9 +3,11 @@
 set -u
 
 SRC="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/archeclipse-greeter"
-DST="${GREETER_DST:-/etc/xdg/quickshell/archeclipse-greeter}"
+# Fixed destination and sudo: env overrides would redirect a root rsync
+# --delete anywhere, so caller environment is never honored here.
+DST="/etc/xdg/quickshell/archeclipse-greeter"
 SESSION_DIR="/usr/share/wayland-sessions"
-SUDO="${SYNC_GREETER_SUDO-sudo -n}"
+SUDO="sudo -n"
 
 # Freshness gate: bar.lua runs this every launch, but a full mirror is only
 # needed after greeter edits; -L is required — theme/services/widgets are symlinks plain find skips.

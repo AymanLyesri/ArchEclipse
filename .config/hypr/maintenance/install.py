@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import importlib
 import os
 import shutil
@@ -37,6 +38,33 @@ def error_exit(message: str) -> None:
 
 def sync_configuration_files(conf_dir: Path) -> None:
     home_dir = Path.home()
+    git_dir = conf_dir / ".git"
+
+    # Refuse to overwrite local edits: force-checkout destroys them with no
+    # undo, so list what would be lost and stop instead. Untracked files are
+    # excluded: checkout --force leaves them alone, and $HOME is full of them.
+    dirty = run_cmd(
+        [
+            "git", "--git-dir", str(git_dir),
+            "--work-tree", str(home_dir),
+            "status", "--porcelain", "--untracked-files=no",
+        ],
+        cwd=home_dir,
+        capture_output=True,
+        check=False,
+    )
+    modified = sorted(
+        line[3:] for line in (dirty.stdout or "").splitlines()
+        if len(line) > 3 and line[:2].strip()
+    )
+    if modified:
+        print("Refusing to overwrite your local changes to:")
+        for entry in modified:
+            print(f"  {entry}")
+        error_exit(
+            "Back up or commit these files first (run the backup step), "
+            "then re-run with the config step enabled."
+        )
 
     run_cmd(["git", "config", "core.worktree", str(home_dir)], cwd=conf_dir)
     run_cmd(["git", "config", "status.showUntrackedFiles", "no"], cwd=conf_dir)
@@ -117,8 +145,12 @@ def main() -> None:
     print("Sudo access granted.\n")
 
     if conf_dir.exists():
-        print(f"Repository already exists at {conf_dir}; overwriting")
-        shutil.rmtree(conf_dir)
+        # Never delete the old checkout: rename it so a failed clone or a
+        # wrong branch still leaves the previous tree recoverable.
+        stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        salvage = conf_dir.with_name(f"ArchEclipse.bak.{stamp}")
+        print(f"Repository already exists at {conf_dir}; moving it to {salvage}")
+        shutil.move(str(conf_dir), str(salvage))
 
     branch = parse_branch(sys.argv)
 
@@ -163,7 +195,7 @@ def main() -> None:
         "INSTALLATION PLAN",
         [
             presentation.PlannedStep(
-                "backup", "Backing up old dotfiles from .config", default_choice="n"
+                "backup", "Backing up old dotfiles from .config", default_choice="y"
             ),
             presentation.PlannedStep(
                 "config", "Applying ArchEclipse Configuration", default_choice="y"

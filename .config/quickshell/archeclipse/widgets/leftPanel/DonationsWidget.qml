@@ -79,8 +79,16 @@ Item {
         root.statusText = text;
     }
 
-    function authHeaders(token) {
-        return ["-H", "apikey: " + root.supabaseKey, "-H", "Authorization: Bearer " + token];
+    // Secrets travel via environment, never in argv or bash -c text: both are
+    // world-readable through ps. $QS_SB_KEY / $QS_SB_TOKEN expand inside the
+    // double-quoted header args of the curl commands below.
+    function sbEnv(token) {
+        const e = {
+            "QS_SB_KEY": root.supabaseKey
+        };
+        if (token)
+            e["QS_SB_TOKEN"] = token;
+        return e;
     }
 
     // Tokens expire after ~1h and this widget owns no refresh flow — on auth errors say so
@@ -135,7 +143,8 @@ Item {
             return;
         }
         const p = whoAmIComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' '" + root.supabaseUrl + "/auth/v1/user'"];
+        p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + root.supabaseUrl + "/auth/v1/user'"];
+        p.environment = root.sbEnv(root.session.access_token);
         p.running = true;
     }
 
@@ -165,7 +174,8 @@ Item {
             return;
         root.setStatus("loading", "Checking supporter status…");
         const p = supporterComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' '" + root.supabaseUrl + "/rest/v1/supporters?select=id&id=eq." + encodeURIComponent(root.uid) + "'"];
+        p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + root.supabaseUrl + "/rest/v1/supporters?select=id&id=eq." + encodeURIComponent(root.uid) + "'"];
+        p.environment = root.sbEnv(root.session.access_token);
         p.running = true;
     }
 
@@ -229,7 +239,8 @@ Item {
             return;
         root.linkCodeState = "loading";
         const p = codeGetComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' '" + root.supabaseUrl + "/rest/v1/kofi_link_codes?select=code,expires_at&user_id=eq." + encodeURIComponent(root.uid) + "&used=eq.false&order=created_at.desc&limit=1'"];
+        p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + root.supabaseUrl + "/rest/v1/kofi_link_codes?select=code,expires_at&user_id=eq." + encodeURIComponent(root.uid) + "&used=eq.false&order=created_at.desc&limit=1'"];
+        p.environment = root.sbEnv(root.session.access_token);
         p.running = true;
     }
 
@@ -262,7 +273,8 @@ Item {
         const p = codePutComp.createObject(root);
         p.attempt = attempt;
         p.code = code;
-        p.command = ["bash", "-c", "curl -sS -X POST -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' -H 'Content-Type: application/json' -H 'Prefer: return=representation' -d " + JSON.stringify(JSON.stringify({ code: code, user_id: root.uid, expires_at: exp })) + " " + JSON.stringify(root.supabaseUrl + "/rest/v1/kofi_link_codes")];
+        p.command = ["bash", "-c", "curl -sS -X POST -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" -H 'Content-Type: application/json' -H 'Prefer: return=representation' -d " + JSON.stringify(JSON.stringify({ code: code, user_id: root.uid, expires_at: exp })) + " " + JSON.stringify(root.supabaseUrl + "/rest/v1/kofi_link_codes")];
+        p.environment = root.sbEnv(root.session.access_token);
         p.running = true;
     }
 
@@ -300,7 +312,8 @@ Item {
         root.pendingState = "";
         root.setStatus("loading", "Creating crypto checkout…");
         const p = createPayComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -X POST -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' -H 'Content-Type: application/json' -d " + JSON.stringify(JSON.stringify({ amount: root.selectedAmount })) + " " + JSON.stringify(root.fnCreatePayment)];
+        p.command = ["bash", "-c", "curl -sS -X POST -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" -H 'Content-Type: application/json' -d " + JSON.stringify(JSON.stringify({ amount: root.selectedAmount })) + " " + JSON.stringify(root.fnCreatePayment)];
+        p.environment = root.sbEnv(root.session.access_token);
         p.running = true;
     }
 
@@ -337,7 +350,8 @@ Item {
         }
         if (root.pendingPaymentId) {
             const p = payStatusComp.createObject(root);
-            p.command = ["bash", "-c", "curl -sS -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' '" + root.supabaseUrl + "/rest/v1/supporter_payments?select=status&id=eq." + encodeURIComponent(root.pendingPaymentId) + "'"];
+            p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + root.supabaseUrl + "/rest/v1/supporter_payments?select=status&id=eq." + encodeURIComponent(root.pendingPaymentId) + "'"];
+            p.environment = root.sbEnv(root.session.access_token);
             p.running = true;
         } else {
             root.refreshSupporter();
@@ -384,7 +398,8 @@ Item {
         root.claimChecked = false;
         root.claimRows = [];
         const p = claimGetComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' '" + root.supabaseUrl + "/rest/v1/supporter_payments?select=id,amount,currency,created_at&provider=eq.kofi&status=eq.finished&user_id=is.null'"];
+        p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + root.supabaseUrl + "/rest/v1/supporter_payments?select=id,amount,currency,created_at&provider=eq.kofi&status=eq.finished&user_id=is.null'"];
+        p.environment = root.sbEnv(root.session.access_token);
         p.running = true;
     }
 
@@ -407,7 +422,8 @@ Item {
 
     function claimRow(id) {
         const p = claimPutComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -X PATCH -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + root.session.access_token + "' -H 'Content-Type: application/json' -H 'Prefer: return=representation' -d " + JSON.stringify(JSON.stringify({ user_id: root.uid })) + " " + JSON.stringify(root.supabaseUrl + "/rest/v1/supporter_payments?user_id=is.null&id=eq." + encodeURIComponent(id))];
+        p.command = ["bash", "-c", "curl -sS -X PATCH -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" -H 'Content-Type: application/json' -H 'Prefer: return=representation' -d " + JSON.stringify(JSON.stringify({ user_id: root.uid })) + " " + JSON.stringify(root.supabaseUrl + "/rest/v1/supporter_payments?user_id=is.null&id=eq." + encodeURIComponent(id))];
+        p.environment = root.sbEnv(root.session.access_token);
         p.running = true;
     }
 

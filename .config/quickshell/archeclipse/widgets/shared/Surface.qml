@@ -1,7 +1,7 @@
 import QtQuick
 import qs.theme
 
-// Depth plate: stacked translucent fill + top-lit gradient instead of a 1px outline.
+// Depth plate: flat fill, no gradient overlay.
 // `level` walks the ladder (0 flat, 1 card, 2 row, 3 overlay) so containers read as one material.
 Rectangle {
     id: root
@@ -9,8 +9,8 @@ Rectangle {
     property int level: 1
     // Optional wash layered instead of the ladder fill (selection, accent focus).
     property color tint: "transparent"
-    // The light-from-above gradient is what sells the depth; turn off on flat bands.
-    property bool lit: true
+    // Flat fill only, no gradient overlay.
+    property bool lit: false // kept for compat, unused
     // Soft accent glow along the top edge, for the one surface that owns focus.
     property bool glow: false
 
@@ -32,29 +32,9 @@ Rectangle {
         CAnim {}
     }
 
-    // Top-lit gradient: light catches the upper edge, the base falls into shadow. Clipped by
-    // the same radius, so it never draws an outline the corners would betray.
-    Rectangle {
-        anchors.fill: parent
-        radius: parent.radius
-        visible: root.lit && root.level > 0
-        gradient: Gradient {
-            GradientStop {
-                position: 0
-                color: Qt.rgba(1, 1, 1, 0.05)
-            }
-            GradientStop {
-                position: 0.42
-                color: Qt.rgba(1, 1, 1, 0)
-            }
-            GradientStop {
-                position: 1
-                color: Qt.rgba(0, 0, 0, 0.05)
-            }
-        }
-    }
+    // Gradient overlay removed: flat fill only.
 
-    // Accent bloom under the top edge — one focused surface, never a decorative border.
+    // Accent bloom under the top edge - one focused surface, never a decorative border.
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right

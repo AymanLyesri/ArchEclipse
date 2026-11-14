@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -23,21 +24,20 @@ def add_arch_locale() -> int:
     except FileNotFoundError:
         contents = ""
 
-    if "en_US.UTF-8 UTF-8" in contents:
-        check = run_cmd(["locale", "-a"], capture_output=True, check=False)
-        if "en_US.utf8" in (check.stdout or ""):
-            print("Locale en_US.UTF-8 is already installed and enabled.")
-            return 0
+    # Match only an uncommented line: the commented "#en_US..." also contains
+    # the substring, and appending when it is already enabled duplicates it.
+    enabled = re.search(r"(?m)^\s*en_US\.UTF-8 UTF-8", contents) is not None
+    check = run_cmd(["locale", "-a"], capture_output=True, check=False)
+    if enabled and "en_US.utf8" in (check.stdout or ""):
+        print("Locale en_US.UTF-8 is already installed and enabled.")
+        return 0
 
-    print("Enabling locale in /etc/locale.gen...")
-    run_cmd(
-        ["sudo", "sed", "-i", "s/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/", locale_gen],
-        check=False,
-    )
-    run_cmd(
-        ["sudo", "bash", "-c", "echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen"],
-        check=False,
-    )
+    if not enabled:
+        print("Enabling locale in /etc/locale.gen...")
+        run_cmd(
+            ["sudo", "sed", "-i", "s/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/", locale_gen],
+            check=False,
+        )
 
     print("Generating locale (this may take a moment)...")
     run_cmd(["sudo", "locale-gen"])

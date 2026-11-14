@@ -42,6 +42,18 @@ Item {
         });
     }
 
+    // Secrets travel via environment, never in argv or bash -c text: both are
+    // world-readable through ps. $QS_SB_KEY / $QS_SB_TOKEN expand inside the
+    // double-quoted header args of the curl commands below.
+    function sbEnv(token) {
+        const e = {
+            "QS_SB_KEY": root.supabaseKey
+        };
+        if (token)
+            e["QS_SB_TOKEN"] = token;
+        return e;
+    }
+
     // --- State ---
     property var profile: null
     property string progressStatus: "idle"
@@ -267,9 +279,10 @@ Item {
         root.progressStatus = "loading";
         root.progressText = "Refreshing session...";
         const p = refreshTokenComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -X POST -H 'apikey: " + supabaseKey + "' -H 'Content-Type: application/json' -d " + JSON.stringify(JSON.stringify({
-                refresh_token: rt
-            })) + " " + JSON.stringify(supabaseUrl + "/auth/v1/token?grant_type=refresh_token")];
+        p.command = ["bash", "-c", "curl -sS -X POST -H \"apikey: $QS_SB_KEY\" -H 'Content-Type: application/json' -d \"{\\\"refresh_token\\\":\\\"$QS_SB_RT\\\"}\" '" + supabaseUrl + "/auth/v1/token?grant_type=refresh_token'"];
+        p.environment = Object.assign(root.sbEnv(""), {
+            "QS_SB_RT": rt
+        });
         p.running = true;
     }
 
@@ -307,7 +320,7 @@ Item {
         };
         // Persist so the next shell start / poll sees the fresh token.
         const sp = refreshSaveComp.createObject(root);
-        sp.command = ["bash", "-c", "mkdir -p " + JSON.stringify(root.authSessionPath.split("/").slice(0, -1).join("/")) + " && cat > " + JSON.stringify(root.authSessionPath) + " <<'EOF'\n" + JSON.stringify(root._cachedSession, null, 2) + "\nEOF"];
+        sp.command = ["bash", "-c", "mkdir -p " + Settings.shQuote(root.authSessionPath.split("/").slice(0, -1).join("/")) + " && cat > " + Settings.shQuote(root.authSessionPath) + " <<'EOF'\n" + JSON.stringify(root._cachedSession, null, 2) + "\nEOF\nchmod 600 " + Settings.shQuote(root.authSessionPath)];
         sp.running = true;
         const reason = root._retryAfterRefresh;
         root._retryAfterRefresh = "";
@@ -368,7 +381,8 @@ Item {
         // Step 1: resolve the uid
         // from /auth/v1/user first — the profile table needs id=eq.<uid>.
         const p = fetchUserComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' '" + supabaseUrl + "/auth/v1/user'"];
+        p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + supabaseUrl + "/auth/v1/user'"];
+        p.environment = root.sbEnv(session.access_token);
         p.running = true;
     }
 
@@ -407,7 +421,8 @@ Item {
         const p = fetchProfileComp.createObject(root);
         // NOTE: user_profiles has no is_supporter column — entitlement is the
         // presence of a `supporters` row (see checkSupporter below).
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' '" + supabaseUrl + "/rest/v1/user_profiles?select=id,username,avatar&id=eq." + encodeURIComponent(uid) + "'"];
+        p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + supabaseUrl + "/rest/v1/user_profiles?select=id,username,avatar&id=eq." + encodeURIComponent(uid) + "'"];
+        p.environment = root.sbEnv(session.access_token);
         p.running = true;
     }
 
@@ -429,7 +444,8 @@ Item {
         if (!session?.access_token || !uid)
             return;
         const p = supporterCheckComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' '" + supabaseUrl + "/rest/v1/supporters?select=id,created_at&id=eq." + encodeURIComponent(uid) + "'"];
+        p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + supabaseUrl + "/rest/v1/supporters?select=id,created_at&id=eq." + encodeURIComponent(uid) + "'"];
+        p.environment = root.sbEnv(session.access_token);
         p.running = true;
     }
     function onSupporterChecked(text) {
@@ -481,13 +497,14 @@ Item {
         // opens the email link (server must be listening for /callback).
         startAuthServer();
         const p = magicLinkComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -X POST -H 'Content-Type: application/json' -H 'apikey: " + supabaseKey + "' -d '" + JSON.stringify({
+        p.command = ["bash", "-c", "curl -sS -X POST -H 'Content-Type: application/json' -H \"apikey: $QS_SB_KEY\" -d " + Settings.shQuote(JSON.stringify({
                 email: email.trim(),
                 options: {
                     shouldCreateUser: true,
                     emailRedirectTo: "http://127.0.0.1:53100/callback"
                 }
-            }) + "' '" + supabaseUrl + "/auth/v1/otp'"];
+            })) + " '" + supabaseUrl + "/auth/v1/otp'"];
+        p.environment = root.sbEnv("");
         p.running = true;
     }
 
@@ -553,7 +570,7 @@ Item {
             type: params.type || "magiclink"
         };
         const p = manualSaveComp.createObject(root);
-        p.command = ["bash", "-c", "mkdir -p " + JSON.stringify(root.authSessionPath.split("/").slice(0, -1).join("/")) + " && cat > " + JSON.stringify(root.authSessionPath) + " <<'EOF'\n" + JSON.stringify(session, null, 2) + "\nEOF"];
+        p.command = ["bash", "-c", "mkdir -p " + Settings.shQuote(root.authSessionPath.split("/").slice(0, -1).join("/")) + " && cat > " + Settings.shQuote(root.authSessionPath) + " <<'EOF'\n" + JSON.stringify(session, null, 2) + "\nEOF\nchmod 600 " + Settings.shQuote(root.authSessionPath)];
         p.running = true;
     }
 
@@ -572,9 +589,10 @@ Item {
         const uid = lookupUserId();
         const username = identityCard.username.trim() || homeDir.split("/").pop();
         const p = updateProfileComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -X PATCH -H 'Content-Type: application/json' -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' -H 'Prefer: return=representation' -d '" + JSON.stringify({
+        p.command = ["bash", "-c", "curl -sS -X PATCH -H 'Content-Type: application/json' -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" -H 'Prefer: return=representation' -d " + Settings.shQuote(JSON.stringify({
                 username
-            }) + "' '" + supabaseUrl + "/rest/v1/user_profiles?id=eq." + encodeURIComponent(uid) + "'"];
+            })) + " '" + supabaseUrl + "/rest/v1/user_profiles?id=eq." + encodeURIComponent(uid) + "'"];
+        p.environment = root.sbEnv(session.access_token);
         p.running = true;
     }
 
@@ -662,11 +680,16 @@ Item {
                 updated_at: new Date().toISOString()
             });
             const p = syncUploadComp.createObject(root);
-            p.command = ["bash", "-c", "cat > /tmp/qs-settings-upload.json <<'QSSETTINGSEOF'\n" + payload + "\nQSSETTINGSEOF\ncurl -sS -X POST -H 'Content-Type: application/json' -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' -H 'Prefer: resolution=merge-duplicates,return=representation' --data-binary @/tmp/qs-settings-upload.json '" + supabaseUrl + "/rest/v1/user_settings?on_conflict=id'"];
+            // Unique per-run temp name (no fixed /tmp path to pre-create), 600
+            // so other users cannot read the settings payload, removed after.
+            const upFile = "/tmp/qs-settings-upload-" + Date.now() + ".json";
+            p.command = ["bash", "-c", "cat > " + Settings.shQuote(upFile) + " <<'QSSETTINGSEOF'\n" + payload + "\nQSSETTINGSEOF\nchmod 600 " + Settings.shQuote(upFile) + "\ncurl -sS -X POST -H 'Content-Type: application/json' -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" -H 'Prefer: resolution=merge-duplicates,return=representation' --data-binary @" + Settings.shQuote(upFile) + " '" + supabaseUrl + "/rest/v1/user_settings?on_conflict=id'; rm -f " + Settings.shQuote(upFile)];
+            p.environment = root.sbEnv(session.access_token);
             p.running = true;
         } else {
             const p = syncDownloadComp.createObject(root);
-            p.command = ["bash", "-c", "curl -sS -H 'apikey: " + supabaseKey + "' -H 'Authorization: Bearer " + session.access_token + "' '" + supabaseUrl + "/rest/v1/user_settings?select=id,settings,updated_at&id=eq." + encodeURIComponent(uid) + "'"];
+            p.command = ["bash", "-c", "curl -sS -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" '" + supabaseUrl + "/rest/v1/user_settings?select=id,settings,updated_at&id=eq." + encodeURIComponent(uid) + "'"];
+            p.environment = root.sbEnv(session.access_token);
             p.running = true;
         }
     }
@@ -684,6 +707,8 @@ Item {
     property string _avatarUploadPath: ""
     property string _avatarContentType: ""
     property string _avatarExt: ""
+
+    property string _avatarConvertTmp: ""
 
     function chooseAvatar() {
         const p = zenityComp.createObject(root);
@@ -732,14 +757,17 @@ Item {
             root._avatarUploadPath = clean;
             root.avatarUpload();
         } else {
+            // Single-quoted paths: a picked filename like $(touch /tmp/x).png
+            // must never reach the shell unquoted. Unique tmp, no fixed name.
+            root._avatarConvertTmp = "/tmp/" + uid + "-" + Date.now() + "-avatar.jpg";
             const p = avatarConvertComp.createObject(root);
-            p.command = ["bash", "-c", "magick " + JSON.stringify(clean) + " " + JSON.stringify("/tmp/" + uid + "-avatar.jpg") + " || convert " + JSON.stringify(clean) + " " + JSON.stringify("/tmp/" + uid + "-avatar.jpg")];
+            p.command = ["bash", "-c", "magick " + Settings.shQuote(clean) + " " + Settings.shQuote(root._avatarConvertTmp) + " || convert " + Settings.shQuote(clean) + " " + Settings.shQuote(root._avatarConvertTmp)];
             p.running = true;
         }
     }
 
     function onAvatarConverted(ok) {
-        const tmp = "/tmp/" + root._avatarUid + "-avatar.jpg";
+        const tmp = root._avatarConvertTmp;
         if (ok) {
             root._avatarUploadPath = tmp;
             root._avatarContentType = "image/jpeg";
@@ -756,7 +784,8 @@ Item {
 
     function avatarUpload() {
         const p = avatarUploadComp.createObject(root);
-        p.command = ["curl", "-sS", "-X", "PUT", "-H", "Content-Type: " + root._avatarContentType, "-H", "apikey: " + root.supabaseKey, "-H", "Authorization: Bearer " + (root._cachedSession?.access_token ?? ""), "-H", "x-upsert: true", "--data-binary", "@" + root._avatarUploadPath, root.supabaseUrl + "/storage/v1/object/avatars/" + root._avatarUid + "." + root._avatarExt];
+        p.command = ["bash", "-c", "curl -sS -X PUT -H \"Content-Type: " + root._avatarContentType + "\" -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" -H 'x-upsert: true' --data-binary @" + Settings.shQuote(root._avatarUploadPath) + " '" + root.supabaseUrl + "/storage/v1/object/avatars/" + root._avatarUid + "." + root._avatarExt + "'"];
+        p.environment = root.sbEnv(root._cachedSession?.access_token ?? "");
         p.running = true;
     }
 
@@ -773,9 +802,10 @@ Item {
         const url = root.supabaseUrl + "/storage/v1/object/public/avatars/" + root._avatarUid + "." + root._avatarExt;
         root._avatarUrl = url;
         const p = avatarPatchComp.createObject(root);
-        p.command = ["bash", "-c", "curl -sS -X PATCH -H 'Content-Type: application/json' -H 'apikey: " + root.supabaseKey + "' -H 'Authorization: Bearer " + (root._cachedSession?.access_token ?? "") + "' -H 'Prefer: return=representation' -d " + JSON.stringify(JSON.stringify({
+        p.command = ["bash", "-c", "curl -sS -X PATCH -H 'Content-Type: application/json' -H \"apikey: $QS_SB_KEY\" -H \"Authorization: Bearer $QS_SB_TOKEN\" -H 'Prefer: return=representation' -d " + Settings.shQuote(JSON.stringify({
                 avatar: url
-            })) + " " + JSON.stringify(root.supabaseUrl + "/rest/v1/user_profiles?id=eq." + encodeURIComponent(root._avatarUid))];
+            })) + " '" + root.supabaseUrl + "/rest/v1/user_profiles?id=eq." + encodeURIComponent(root._avatarUid) + "'"];
+        p.environment = root.sbEnv(root._cachedSession?.access_token ?? "");
         p.running = true;
     }
     property string _avatarUrl: ""
@@ -1236,7 +1266,7 @@ Item {
     }
     function writeSyncMeta(direction, remoteUpdatedAt) {
         const p = metaWriteComp.createObject(root);
-        p.command = ["bash", "-c", "cat > " + JSON.stringify(root.settingsMetaPath) + " <<'EOF'\n" + JSON.stringify({
+        p.command = ["bash", "-c", "cat > " + Settings.shQuote(root.settingsMetaPath) + " <<'EOF'\n" + JSON.stringify({
                 lastSyncAt: new Date().toISOString(),
                 lastDirection: direction,
                 lastRemoteUpdatedAt: remoteUpdatedAt || null
@@ -1338,7 +1368,7 @@ Item {
                     const r = JSON.parse(root._syncOut);
                     if (r?.[0]?.settings) {
                         const p = writeSettingsComp.createObject(root);
-                        p.command = ["bash", "-c", "cat > " + root.settingsPath + " <<'EOF'\n" + JSON.stringify(r[0].settings, null, 2) + "\nEOF"];
+                        p.command = ["bash", "-c", "cat > " + Settings.shQuote(root.settingsPath) + " <<'EOF'\n" + JSON.stringify(r[0].settings, null, 2) + "\nEOF"];
                         p.running = true;
                         root.writeSyncMeta("download", r[0].updated_at);
                         root.progressStatus = "success";

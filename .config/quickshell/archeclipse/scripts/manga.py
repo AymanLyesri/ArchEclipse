@@ -16,6 +16,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sys
 from abc import ABC, abstractmethod
@@ -49,6 +50,29 @@ def load_user_agents() -> Dict[str, str]:
 
 
 USER_AGENTS = load_user_agents()
+
+# Cache filenames embed the manga id, which comes from CLI args or API data:
+# a value like "../../x" would escape the cache dir. Only plain ids allowed.
+SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+SAFE_EXT = re.compile(r"^\.[a-z0-9]{2,5}$")
+
+
+def check_id(value: str) -> str:
+    if not isinstance(value, str) or not SAFE_ID.match(value):
+        raise ValueError(f"Refusing unsafe manga id: {value!r}")
+    return value
+
+
+def safe_ext(url: str) -> str:
+    ext = os.path.splitext(url.split("?")[0])[1].lower()
+    return ext if SAFE_EXT.match(ext) else ".jpg"
+
+
+def safe_float(value: str | int | float | None) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
 
 # ===== MODELS =====
 
@@ -208,9 +232,8 @@ class MangaDexProvider(MangaProvider):
     def _download_cover_image(self, manga_id: str, cover_url: str) -> str | None:
         """Download cover image to local directory."""
         try:
-            ext = os.path.splitext(cover_url)[1]
-            if not ext:
-                ext = ".jpg"
+            check_id(manga_id)
+            ext = safe_ext(cover_url)
 
             filename = f"{manga_id}{ext}"
             filepath = self.covers_dir / filename
@@ -223,11 +246,15 @@ class MangaDexProvider(MangaProvider):
 
             return str(filepath)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"Failed to download cover for {manga_id}: {e}")
+            print(f"Failed to download cover for {manga_id}: {e}", file=sys.stderr)
             return None
 
     def _get_cover_filepath(self, manga_id: str) -> str | None:
         """Check if cover exists locally and return its path."""
+        try:
+            check_id(manga_id)
+        except ValueError:
+            return None
         extensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"]
 
         for ext in extensions:
@@ -243,10 +270,16 @@ class MangaDexProvider(MangaProvider):
             return None
         if "relationships" in data:
             for rel in data["relationships"]:
-                if rel["type"] == "cover_art":
-                    cover_filename = rel["attributes"]["fileName"]
-                    return self._get_cover_url(data["id"], cover_filename)
-        return self._get_cover_url(data["id"])
+                if not isinstance(rel, dict):
+                    continue
+                if rel.get("type") == "cover_art":
+                    attrs = rel.get("attributes") or {}
+                    cover_filename = attrs.get("fileName")
+                    if cover_filename and data.get("id"):
+                        return self._get_cover_url(data["id"], cover_filename)
+        if data.get("id"):
+            return self._get_cover_url(data["id"])
+        return None
 
     def _parse(
         self,
@@ -264,10 +297,11 @@ class MangaDexProvider(MangaProvider):
         tags = [t["attributes"]["name"].get("en", "") for t in attr.get("tags", [])]
 
         cover_url = self._extract_cover_art(data, include_cover)
-        local_cover_path = self._get_cover_filepath(data["id"])
+        manga_pk = data.get("id") or ""
+        local_cover_path = self._get_cover_filepath(manga_pk) if manga_pk else None
 
-        if not local_cover_path and cover_url and download_cover:
-            local_cover_path = self._download_cover_image(data["id"], cover_url)
+        if not local_cover_path and cover_url and download_cover and manga_pk:
+            local_cover_path = self._download_cover_image(manga_pk, cover_url)
 
         cover_height = None
         cover_width = None
@@ -276,7 +310,7 @@ class MangaDexProvider(MangaProvider):
                 with Image.open(local_cover_path) as img:
                     cover_width, cover_height = img.size
             except Exception as e:  # pylint: disable=broad-exception-caught
-                print(f"Failed to get cover dimensions for {data['id']}: {e}")
+                print(f"Failed to get cover dimensions for {data.get('id')}: {e}", file=sys.stderr)
 
         return Manga(
             provider=self.name,
@@ -393,7 +427,7 @@ class MangaDexProvider(MangaProvider):
                 height=height,
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"Failed to download page: {e}")
+            print(f"Failed to download page: {e}", file=sys.stderr)
             return None
 
     def get_page(self, page_url: str) -> Page:
@@ -438,9 +472,9 @@ class MangaDexProvider(MangaProvider):
             for old_file in cover_files[keep_recent:]:
                 old_file.unlink()
 
-            return len(cover_files) - keep_recent
+            return max(0, len(cover_files) - keep_recent)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"Error cleaning up covers: {e}")
+            print(f"Error cleaning up covers: {e}", file=sys.stderr)
             return 0
 
 
@@ -593,9 +627,26 @@ class MangalibProvider(MangaProvider):
         local_cover = None
         cover_width = None
         cover_height = None
+        status_label = self._extract_status(data)
 
         if cover_url:
-            ext = os.path.splitext(cover_url.split("?")[0])[1] or ".jpg"
+            try:
+                check_id(manga_id)
+            except ValueError:
+                return Manga(
+                    provider=self.name,
+                    id=manga_id,
+                    title=title,
+                    description=description,
+                    tags=tags,
+                    year=data.get("year"),
+                    status=status_label,
+                    cover_url=cover_url,
+                    cover_path=None,
+                    cover_width=None,
+                    cover_height=None,
+                )
+            ext = safe_ext(cover_url)
             filepath = self.covers_dir / f"{manga_id}{ext}"
             local_cover = self._download_image(cover_url, filepath)
             if local_cover:
@@ -604,8 +655,6 @@ class MangalibProvider(MangaProvider):
                         cover_width, cover_height = img.size
                 except Exception:  # pylint: disable=broad-exception-caught
                     pass
-
-        status_label = self._extract_status(data)
 
         return Manga(
             provider=self.name,
@@ -693,8 +742,8 @@ class MangalibProvider(MangaProvider):
             )
             chapters.sort(
                 key=lambda c: (
-                    float(c.volume or 0),
-                    float(c.chapter or 0),
+                    safe_float(c.volume),
+                    safe_float(c.chapter),
                 )
             )
         return chapters
@@ -704,7 +753,12 @@ class MangalibProvider(MangaProvider):
 
         parts = chapter_id.split("/")
 
-        manga_id = parts[0]
+        if len(parts) != 3:
+            raise ValueError(f"Refusing malformed chapter id: {chapter_id!r}")
+        try:
+            manga_id = check_id(parts[0])
+        except ValueError:
+            raise ValueError(f"Refusing unsafe manga id in: {chapter_id!r}")
         volume = parts[1].removeprefix("v")
         chapter_num = parts[2].removeprefix("c")
 
