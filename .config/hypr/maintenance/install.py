@@ -36,34 +36,61 @@ def error_exit(message: str) -> None:
     print(f"ERROR {message}")
     raise SystemExit(1)
 
-def sync_configuration_files(conf_dir: Path) -> None:
-    home_dir = Path.home()
-    git_dir = conf_dir / ".git"
+def local_edits(home_dir: Path, git_dir: Path) -> list[str]:
+    """Tracked paths that exist in $HOME and differ from HEAD.
 
-    # Refuse to overwrite local edits: force-checkout destroys them with no
-    # undo, so list what would be lost and stop instead. Untracked files are
-    # excluded: checkout --force leaves them alone, and $HOME is full of them.
+    Missing target files are deliberately excluded: they are files the
+    checkout will create, not local edits. Treating deletions as
+    modifications blocked every fresh install, where the whole tracked tree
+    shows as deleted against a $HOME that does not contain it yet.
+    """
     dirty = run_cmd(
         [
             "git", "--git-dir", str(git_dir),
             "--work-tree", str(home_dir),
-            "status", "--porcelain", "--untracked-files=no",
+            "status", "--porcelain=v1", "-z", "--untracked-files=no",
         ],
         cwd=home_dir,
         capture_output=True,
         check=False,
     )
-    modified = sorted(
-        line[3:] for line in (dirty.stdout or "").splitlines()
-        if len(line) > 3 and line[:2].strip()
-    )
+    edits: list[str] = []
+    fields = (dirty.stdout or "").split("\0")
+    index = 0
+    while index < len(fields):
+        entry = fields[index]
+        index += 1
+        if len(entry) < 4:
+            continue
+        code, path = entry[:2], entry[3:]
+        if "R" in code or "C" in code:
+            index += 1  # rename/copy carries the original path next
+        if not code.strip():
+            continue
+        target = home_dir / path
+        if target.exists() or target.is_symlink():
+            edits.append(path)
+    return sorted(edits)
+
+
+def sync_configuration_files(conf_dir: Path) -> None:
+    home_dir = Path.home()
+    git_dir = conf_dir / ".git"
+
+    # Refuse to overwrite local edits: force-checkout destroys them with no
+    # undo, so list what would be lost and stop instead. Untracked and
+    # missing files are excluded: checkout creates or leaves them alone, so
+    # neither can lose user content.
+    modified = local_edits(home_dir, git_dir)
     if modified:
         print("Refusing to overwrite your local changes to:")
         for entry in modified:
             print(f"  {entry}")
         error_exit(
-            "Back up or commit these files first (run the backup step), "
-            "then re-run with the config step enabled."
+            "These files exist in HOME and differ from the repository. The "
+            "backup step copies them to ~/dotfiles_backup_*; then move them "
+            "aside or commit your changes and re-run. Missing or untracked "
+            "files never block deployment."
         )
 
     run_cmd(["git", "config", "core.worktree", str(home_dir)], cwd=conf_dir)
