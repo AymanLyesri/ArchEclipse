@@ -9,9 +9,15 @@ import qs.widgets.shared
 
 // Launcher + window title left, center pill (bandwidth | control | clock), battery/brightness/
 // volume/tray right; the gear turns the center pill into ControlCard.
-Column {
+Item {
     id: root
-    spacing: Theme.spacing / 2
+    // The workspace strip docks to the pill's outer edge: below the row on a top bar,
+    // above it on a bottom bar, so its wave climbs off the screen edge instead of through
+    // the pill. Placement lives here (not a Column) because the order flips with the bar.
+    readonly property bool topBar: Settings.barOrientation
+    readonly property real barSpacing: Theme.spacing / 2
+    implicitWidth: topRow.implicitWidth
+    implicitHeight: topRow.height + root.barSpacing + workspaces.implicitHeight
     property string monitorName: ""
     // Bar.qml's pill border meter fades with this exact chrome curve (control open/retract).
     readonly property real chromeOpacity: topRow.chromeOpacity
@@ -78,6 +84,8 @@ Column {
 
     Item {
         id: topRow
+        // Row on the bar's outer edge: strip below it on a top bar, above it on a bottom.
+        y: root.topBar ? 0 : workspaces.implicitHeight + root.barSpacing
         // Left zone minimums count the launcher only: counting the title let a long one widen
         // the bar (783 -> 930), and the monitor added 86px nothing occupied. Widths stay implicit.
         readonly property real leftMinWidth: launcherButton.implicitWidth + Theme.spacing
@@ -371,8 +379,10 @@ Column {
     Workspaces {
         id: workspaces
         monitorName: root.monitorName
-        // Pushed below the panel while quick settings is open (topRow takes
+        topBar: root.topBar
+        // Pushed to the far side of the row while quick settings is open (topRow takes
         // the panel's height), so the strip never sits behind its surface.
+        y: root.topBar ? topRow.height + root.barSpacing : 0
         width: topRow.implicitWidth
     }
 }

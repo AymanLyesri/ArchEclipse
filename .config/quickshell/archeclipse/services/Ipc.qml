@@ -272,8 +272,8 @@ Item {
         }
 
         function showWidget(name: string, monitor: string): string {
-            const valid = ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"];
-            if (valid.indexOf(name) === -1) return "unknown widget: " + name;
+            const valid = ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations", "Plugins"];
+            if (valid.indexOf(name) === -1 && !Settings.isLeftPanelWidgetName(name)) return "unknown widget: " + name;
             Settings.setLeftPanelWidgetFor(monitor, name);
             BarState.activate("left", 0, monitor);
             return "left island showing " + name;

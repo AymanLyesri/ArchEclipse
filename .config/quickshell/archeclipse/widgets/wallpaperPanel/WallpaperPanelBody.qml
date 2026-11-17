@@ -1203,151 +1203,6 @@ Item {
             // adding one here stacks a second (this body used to add 12).
             spacing: Theme.spacing
 
-            // per-workspace current wallpaper strip — tiles scroll so 11+ workspaces glide
-            // instead of overflowing; greeter + separator stay fixed outside the flickable.
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: Theme.spacing
-                // Greeter (login) wallpaper indicator — first tile, lock in center.
-                Rectangle {
-                    id: greeterTile
-                    width: 100
-                    height: 66
-                    radius: Theme.radius
-                    color: Theme.onMediaBg
-                    border.width: root.targetType === "greeter" ? 2 : 0
-                    border.color: Theme.accent
-
-                    AppImage {
-                        id: greeterImg
-                        anchors.fill: parent
-                        anchors.margins: 2
-                        cache: false
-                        source: root.greeterSource
-                        sourceWidth: greeterTile.width
-                    }
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: 28
-                        height: 28
-                        radius: width / 2
-                        color: Theme.muted
-                        opacity: Theme.opacity.soft
-                        Text {
-                            anchors.centerIn: parent
-                            text: Icons.lock
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSizeLarge
-                            color: Theme.onMediaInk
-                        }
-                    }
-                    MouseArea {
-                        id: greeterMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        acceptedButtons: Qt.LeftButton
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.targetType = "greeter"
-                    }
-                    AppTooltip {
-                        visible: greeterMa.containsMouse
-                        delay: 400
-                        text: "Greeter wallpaper.\nClick to target greeter."
-                    }
-                }
-                // Separator between the greeter tile and the workspace tiles.
-                Rectangle {
-                    Layout.preferredWidth: 2
-                    Layout.preferredHeight: 48
-                    Layout.alignment: Qt.AlignVCenter
-                    color: Theme.border
-                }
-                // Workspace tiles only — the scrollable part.
-                SmoothFlickable {
-                    id: wsStripScroll
-                    // Content-sized when narrow (group stays centered), capped at the leftover
-                    // island width when wide (greeter 100 + separator 2 + 2x spacing 10).
-                    Layout.preferredWidth: Math.max(0, Math.min(wsStripRow.width, mainCol.width - 122))
-                    Layout.preferredHeight: 66
-                    flickableDirection: Flickable.HorizontalFlick
-                    contentWidth: wsStripRow.width
-                    contentHeight: height
-                    ScrollBar.horizontal: ScrollBar {
-                        policy: ScrollBar.AsNeeded
-                    }
-
-                    Row {
-                        id: wsStripRow
-                        height: wsStripScroll.height
-                        spacing: Theme.spacing
-                        // Content-driven width, never bound to the viewport (polish-loop pitfall);
-                        // left-origin so tiles hug the separator instead of centering.
-                        Repeater {
-                            model: root.currentWallpapers
-                            delegate: Rectangle {
-                                id: wsTile
-                                required property string modelData
-                                required property int index
-                                readonly property bool isFocused: Hyprland.focusedWorkspace?.id === index + 1
-                                // Original for images, first-frame thumb for videos: a live AppVideo here
-                                // decoded every workspace video forever (~10% CPU and ~1GB RSS each).
-                                readonly property string wsSource: wsTile.modelData === "" ? "" : (root.isVideoFile(wsTile.modelData) ? root.thumbFor(wsTile.modelData) : wsTile.modelData)
-
-                                width: 100
-                                height: 66
-                                radius: Theme.radius
-                                color: modelData === "" ? "black" : "transparent"
-                                // Focus is a lift, not an outline: the active workspace stays
-                                // full strength while the rest recede.
-                                opacity: isFocused ? 1 : 0.8
-                                Behavior on opacity {
-                                    Anim {}
-                                }
-
-                                AppImage {
-                                    visible: wsTile.modelData !== ""
-                                    anchors.fill: parent
-                                    anchors.margins: 2
-                                    // Native preview: original file decoded near tile size (async +
-                                    // cached in AppImage). Videos use the first-frame thumb, no decoder.
-                                    source: wsTile.wsSource === "" ? "" : "file://" + wsTile.wsSource
-                                    sourceWidth: wsTile.width
-                                    badges: [(wsTile.index + 1).toString()]
-                                }
-                                Text {
-                                    // Video icon until the background thumb run delivers a frame (or
-                                    // permanently when no thumb exists).
-                                    visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && wsTile.wsSource === ""
-                                    anchors.centerIn: parent
-                                    text: Icons.video
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fs(1.67)
-                                    color: Theme.fgDim
-                                }
-                                Text {
-                                    visible: wsTile.modelData === ""
-                                    anchors.centerIn: parent
-                                    text: "No Wallpaper"
-                                    color: Theme.muted
-                                    font.family: Theme.fontFamily
-                                }
-                                // Focus marker: the same 2px accent edge the nav rail uses.
-                                Rectangle {
-                                    visible: wsTile.isFocused
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.bottom: parent.bottom
-                                    anchors.margins: 4
-                                    height: 2
-                                    radius: 1
-                                    color: Theme.accent
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             // wallhaven provider: dynamic filter form. Each control writes one wallpaperWallhaven
             // field via setWh (debounced search); the form renders the provider's declared params.
             Rectangle {
@@ -1864,6 +1719,151 @@ Item {
                     font.family: Theme.fontFamily
                     x: 12
                     y: (whScroll.height - height) / 2
+                }
+            }
+
+            // per-workspace current wallpaper strip — tiles scroll so 11+ workspaces glide
+            // instead of overflowing; greeter + separator stay fixed outside the flickable.
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                spacing: Theme.spacing
+                // Greeter (login) wallpaper indicator — first tile, lock in center.
+                Rectangle {
+                    id: greeterTile
+                    width: 100
+                    height: 66
+                    radius: Theme.radius
+                    color: Theme.onMediaBg
+                    border.width: root.targetType === "greeter" ? 2 : 0
+                    border.color: Theme.accent
+
+                    AppImage {
+                        id: greeterImg
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        cache: false
+                        source: root.greeterSource
+                        sourceWidth: greeterTile.width
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 28
+                        height: 28
+                        radius: width / 2
+                        color: Theme.muted
+                        opacity: Theme.opacity.soft
+                        Text {
+                            anchors.centerIn: parent
+                            text: Icons.lock
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSizeLarge
+                            color: Theme.onMediaInk
+                        }
+                    }
+                    MouseArea {
+                        id: greeterMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.targetType = "greeter"
+                    }
+                    AppTooltip {
+                        visible: greeterMa.containsMouse
+                        delay: 400
+                        text: "Greeter wallpaper.\nClick to target greeter."
+                    }
+                }
+                // Separator between the greeter tile and the workspace tiles.
+                Rectangle {
+                    Layout.preferredWidth: 2
+                    Layout.preferredHeight: 48
+                    Layout.alignment: Qt.AlignVCenter
+                    color: Theme.border
+                }
+                // Workspace tiles only — the scrollable part.
+                SmoothFlickable {
+                    id: wsStripScroll
+                    // Content-sized when narrow (group stays centered), capped at the leftover
+                    // island width when wide (greeter 100 + separator 2 + 2x spacing 10).
+                    Layout.preferredWidth: Math.max(0, Math.min(wsStripRow.width, mainCol.width - 122))
+                    Layout.preferredHeight: 66
+                    flickableDirection: Flickable.HorizontalFlick
+                    contentWidth: wsStripRow.width
+                    contentHeight: height
+                    ScrollBar.horizontal: ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
+
+                    Row {
+                        id: wsStripRow
+                        height: wsStripScroll.height
+                        spacing: Theme.spacing
+                        // Content-driven width, never bound to the viewport (polish-loop pitfall);
+                        // left-origin so tiles hug the separator instead of centering.
+                        Repeater {
+                            model: root.currentWallpapers
+                            delegate: Rectangle {
+                                id: wsTile
+                                required property string modelData
+                                required property int index
+                                readonly property bool isFocused: Hyprland.focusedWorkspace?.id === index + 1
+                                // Original for images, first-frame thumb for videos: a live AppVideo here
+                                // decoded every workspace video forever (~10% CPU and ~1GB RSS each).
+                                readonly property string wsSource: wsTile.modelData === "" ? "" : (root.isVideoFile(wsTile.modelData) ? root.thumbFor(wsTile.modelData) : wsTile.modelData)
+
+                                width: 100
+                                height: 66
+                                radius: Theme.radius
+                                color: modelData === "" ? "black" : "transparent"
+                                // Focus is a lift, not an outline: the active workspace stays
+                                // full strength while the rest recede.
+                                opacity: isFocused ? 1 : 0.8
+                                Behavior on opacity {
+                                    Anim {}
+                                }
+
+                                AppImage {
+                                    visible: wsTile.modelData !== ""
+                                    anchors.fill: parent
+                                    anchors.margins: 2
+                                    // Native preview: original file decoded near tile size (async +
+                                    // cached in AppImage). Videos use the first-frame thumb, no decoder.
+                                    source: wsTile.wsSource === "" ? "" : "file://" + wsTile.wsSource
+                                    sourceWidth: wsTile.width
+                                    badges: [(wsTile.index + 1).toString()]
+                                }
+                                Text {
+                                    // Video icon until the background thumb run delivers a frame (or
+                                    // permanently when no thumb exists).
+                                    visible: wsTile.modelData !== "" && root.isVideoFile(wsTile.modelData) && wsTile.wsSource === ""
+                                    anchors.centerIn: parent
+                                    text: Icons.video
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fs(1.67)
+                                    color: Theme.fgDim
+                                }
+                                Text {
+                                    visible: wsTile.modelData === ""
+                                    anchors.centerIn: parent
+                                    text: "No Wallpaper"
+                                    color: Theme.muted
+                                    font.family: Theme.fontFamily
+                                }
+                                // Focus marker: the same 2px accent edge the nav rail uses.
+                                Rectangle {
+                                    visible: wsTile.isFocused
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.margins: 4
+                                    height: 2
+                                    radius: 1
+                                    color: Theme.accent
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

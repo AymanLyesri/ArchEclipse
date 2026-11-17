@@ -33,18 +33,15 @@ Item {
     property real waveHang: 0
 
     width: 420
-    height: popList.contentHeight
+    // Full-height host that never sizes to the cards: docking off our own height computed the
+    // first frame at height 0, which drew the toast straight across the bar.
+    height: parent ? parent.height : 0
+    y: 0
 
-    // Centered under the main pill, clamped 8px inside the screen. x tracks the pill rigidly;
-    // y for a bottom bar reads our own height (no loop, nothing reads y back).
-    x: {
-        if (!parent)
-            return 0;
-        const centered = pillX + (pillW - width) / 2;
-        return Math.max(8, Math.min(parent.width - width - 8, centered));
-    }
-    y: {
-        if (topBar) {
+    // Edge the cards dock to — past the pill on a top bar, before it on a bottom one. Media and
+    // OSD arrivals are already pushed, so they only need their own edge plus the gap.
+    readonly property real dockY: {
+        if (root.topBar) {
             if (root.osdVisible)
                 return root.osdY + root.osdH + 8;
             if (root.mediaVisible)
@@ -52,10 +49,20 @@ Item {
             return pillY + pillH + 8 + root.waveHang;
         }
         if (root.osdVisible)
-            return root.osdY - height - 8;
+            return root.osdY - 8;
         if (root.mediaVisible)
-            return root.mediaY - height - 8;
-        return pillY - height - 8;
+            return root.mediaY - 8;
+        return pillY - 8 - root.waveHang;
+    }
+    // Click-through mask region: the cards, never the full-height host behind them.
+    readonly property Item hitbox: popList
+
+    // Centered under the main pill, clamped 8px inside the screen. x tracks the pill rigidly.
+    x: {
+        if (!parent)
+            return 0;
+        const centered = pillX + (pillW - width) / 2;
+        return Math.max(8, Math.min(parent.width - width - 8, centered));
     }
 
     // Grace keeps the pill mapped while the last card slides out.
@@ -79,9 +86,14 @@ Item {
     // positioning. Each card keeps its own surface.
     ListView {
         id: popList
-        anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
+        // Anchored to the docking edge, so the stack grows away from the bar; topMargin is the
+        // same dockY the old y used, bottomMargin mirrors it against the host's height.
+        anchors.top: root.topBar ? parent.top : undefined
+        anchors.topMargin: root.topBar ? root.dockY : 0
+        anchors.bottom: root.topBar ? undefined : parent.bottom
+        anchors.bottomMargin: root.topBar ? 0 : (parent ? parent.height - root.dockY : 0)
         height: contentHeight
             spacing: Theme.spacing
             interactive: false
@@ -93,7 +105,7 @@ Item {
                 ParallelAnimation {
                     Anim {
                         property: "y"
-                        from: -12
+                        from: root.topBar ? -12 : 12
                         type: Anim.Emphasized
                     }
                     Anim {
@@ -119,7 +131,7 @@ Item {
                     ParallelAnimation {
                         Anim {
                             property: "y"
-                            from: -12
+                            from: root.topBar ? -12 : 12
                             type: Anim.Emphasized
                         }
                         Anim {
@@ -146,7 +158,7 @@ Item {
                 ParallelAnimation {
                     Anim {
                         property: "y"
-                        to: -12
+                        to: root.topBar ? -12 : 12
                         type: Anim.FastEffects
                     }
                     Anim {
@@ -171,9 +183,9 @@ Item {
                 property bool isHovered: false
 
                 width: ListView.view ? ListView.view.width : 400
-                // Scale origin at the top so the Emphasized drop-in reads
-                // as falling from the bar.
-                transformOrigin: Item.Top
+                // Scale origin on the bar side so the Emphasized drop-in reads as coming out
+                // of the pill: from the top on a top bar, from the bottom on a bottom one.
+                transformOrigin: root.topBar ? Item.Top : Item.Bottom
                 // Content-driven: body is top-anchored inside the fill-item
                 // shift, so this never feeds back into itself.
                 height: body.height + Theme.pad * 2

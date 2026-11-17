@@ -121,6 +121,48 @@ Item {
             icon: "M8B",
             description: "Mistral AI's Ministral 8B model, optimized for efficiency and performance",
             imageGenerationSupport: false
+        },
+        {
+            name: "OpenCode Big Pickle",
+            value: "opencode/big-pickle",
+            icon: "OC",
+            description: "OpenCode Zen reasoning model for deliberate analysis",
+            imageGenerationSupport: false
+        },
+        {
+            name: "OpenCode GLM 5.3",
+            value: "opencode/glm-5.3",
+            icon: "GLM",
+            description: "Zhipu GLM 5.3 served by OpenCode Zen",
+            imageGenerationSupport: false
+        },
+        {
+            name: "OpenCode DeepSeek V4.1 Flash",
+            value: "opencode/deepseek-v4.1-flash",
+            icon: "DS",
+            description: "Fast DeepSeek V4.1 Flash served by OpenCode Zen",
+            imageGenerationSupport: false
+        },
+        {
+            name: "OpenCode Claude Sonnet 4.5",
+            value: "opencode/claude-sonnet-4-5",
+            icon: "CS",
+            description: "Anthropic Claude Sonnet 4.5 served by OpenCode Zen",
+            imageGenerationSupport: false
+        },
+        {
+            name: "OpenCode GPT-5",
+            value: "opencode/gpt-5",
+            icon: "G5",
+            description: "OpenAI GPT-5 served by OpenCode Zen",
+            imageGenerationSupport: false
+        },
+        {
+            name: "OpenCode Kimi K3",
+            value: "opencode/kimi-k3",
+            icon: "K3",
+            description: "Moonshot Kimi K3 served by OpenCode Zen",
+            imageGenerationSupport: false
         }
     ]
 
@@ -174,8 +216,14 @@ Item {
     }
 
     // --- Helpers ---
+    // Provider id for a settings model value: both endpoints are OpenAI-compatible, only
+    // the URL and the env var carrying the key differ.
+    function providerIdFor(value) {
+        return String(value || "").startsWith("opencode/") ? "opencode" : "openrouter";
+    }
+
     function apiKey() {
-        return Settings.apiKey("openrouter", "key");
+        return Settings.apiKey(root.providerIdFor(root.currentApiModel), "key");
     }
 
     // --- Session Management ---
@@ -321,12 +369,14 @@ Item {
             }
         ]);
         const key = root.apiKey();
+        const provider = root.providerIdFor(root.currentApiModel);
         if (!key) {
+            const msg = (provider === "opencode" ? "OpenCode" : "OpenRouter") + " API key is not configured. Please set it in settings.";
             Notifications.notify({
                 summary: "ChatBot Error",
-                body: "OpenRouter API key is not configured. Please set it in settings."
+                body: msg
             });
-            root.lastError = "OpenRouter API key is not configured. Please set it in settings.";
+            root.lastError = msg;
             root.progressStatus = "error";
             return;
         }
@@ -339,9 +389,11 @@ Item {
         // started (no close-stdin in Quickshell; main.py drains on a quiet-gap timeout).
         // The user message rides in the stdin envelope too: argv is ps-visible.
         p.command = ["python3", "-u", root.pythonScript, root.currentApiModel, root.activeSessionId];
-        p.environment = ({
-            "OPENROUTER_API_KEY": key
-        });
+        // Key via environment (never argv — visible in ps); the env var name follows the
+        // provider (OPENROUTER_API_KEY / OPENCODE_API_KEY).
+        const keyEnv = {};
+        keyEnv[provider === "opencode" ? "OPENCODE_API_KEY" : "OPENROUTER_API_KEY"] = key;
+        p.environment = keyEnv;
         p.stdinEnabled = true;
         p.started.connect(() => p.write(root.buildContextJson(text)));
         root.activeProc = p;

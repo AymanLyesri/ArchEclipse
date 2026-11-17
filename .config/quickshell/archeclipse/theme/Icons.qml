@@ -242,6 +242,7 @@ QtObject {
     readonly property string ethereum: "\u{ED58}"
     readonly property string manga: "\u{EAA4}"
     readonly property string chatbot: "\u{EE0D}"
+    readonly property string puzzle: "\uF12E"
 
     // --- launcher results and tools ---
     readonly property string translate: "\u{F10CC}"

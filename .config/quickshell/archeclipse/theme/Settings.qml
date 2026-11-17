@@ -56,9 +56,28 @@ Singleton {
     // Lockscreen grace period in seconds (Esc dismisses the lock without a
     // password within this window after locking), persisted, default 10.
     property int lockGraceSeconds: 10
+    // Last known paid-supporter state, cached from the verified profile fetch so the Settings
+    // gates are right on a cold reload (UserProfileState is in-memory and starts empty).
+    property bool supporterActive: false
+    property string supporterSince: ""
+    // Session-scoped dismiss, never persisted: "No thanks" on any gate lasts until the next
+    // reload, which is what makes the prompt return without blocking a setting for good.
+    property bool supporterGateWaived: false
     // Selected left-panel tab (persisted)
     property string leftPanelWidget: "UserProfile"
-    readonly property var leftPanelWidgetNames: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"]
+    readonly property var leftPanelWidgetNames: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations", "Plugins"]
+    // User-installed left-panel plugins (persisted): [{id, name, source, entry, enabled}].
+    property var userPlugins: []
+    // Plugin tabs are addressable as "Plugin:<id>" - valid only while that plugin exists.
+    function isLeftPanelWidgetName(name) {
+        const n = String(name || "");
+        if (root.leftPanelWidgetNames.includes(n))
+            return true;
+        if (!n.startsWith("Plugin:"))
+            return false;
+        const id = n.slice(7);
+        return (root.userPlugins || []).some(p => p.id === id);
+    }
     // Wallpaper switcher category (persisted)
     property string wallpaperCategory: "defaults/sfw"
     // Wallpaper provider: "local" (default/* + custom folders) or "wallhaven"; the
@@ -156,6 +175,9 @@ Singleton {
     }
     property bool autoWorkspaceSwitching: true
     property bool gameModeEnabled: false
+    // Hide the shell while a game is fullscreen (or any window is fullscreen on the
+    // gaming workspace). The Hyprland Lua gate reads this leaf before killing the bar.
+    property bool gameModeAutoHideBar: true
     // Blue light filter (hyprsunset). Temperature in Kelvin: lower = warmer.
     property bool blueLightEnabled: false
     property int blueLightTemperature: 4000
@@ -222,6 +244,15 @@ Singleton {
     function defaultApiKeys() {
         return {
             openrouter: {
+                user: {
+                    value: ""
+                },
+                key: {
+                    value: ""
+                }
+            },
+            // OpenCode Zen: key only (chatbot provider, OpenAI-compatible endpoint).
+            opencode: {
                 user: {
                     value: ""
                 },
@@ -586,7 +617,7 @@ Singleton {
 
     function setLeftPanelWidgetFor(monitorName, widget) {
         const selected = String(widget || "");
-        if (!root.leftPanelWidgetNames.includes(selected))
+        if (!root.isLeftPanelWidgetName(selected))
             return;
         const name = String(monitorName || "");
         if (name === "") {
@@ -675,7 +706,7 @@ Singleton {
             if (side === "left" && entry.widget !== undefined) {
                 const rawWidget = entry.widget && typeof entry.widget === "object" ? (entry.widget.name ?? entry.widget.value) : entry.widget;
                 const widget = String(rawWidget ?? "");
-                if (root.leftPanelWidgetNames.includes(widget))
+                if (root.isLeftPanelWidgetName(widget))
                     clean.widget = widget;
             }
             if (Object.keys(clean).length > 0)
@@ -723,8 +754,11 @@ Singleton {
             "rightPanel.widgets": "rightPanelWidgets",
             "notifications.dnd": "notifDnd",
             "lockscreen.graceSeconds": "lockGraceSeconds",
+            "supporter.active": "supporterActive",
+            "supporter.since": "supporterSince",
             "autoWorkspaceSwitching": "autoWorkspaceSwitching",
             "gameMode.enabled": "gameModeEnabled",
+            "gameMode.autoHideBar": "gameModeAutoHideBar",
             "blueLight.enabled": "blueLightEnabled",
             "blueLight.temperature": "blueLightTemperature",
             "blueLight.auto": "blueLightAuto",
@@ -733,6 +767,7 @@ Singleton {
             "dynamicThemeColors": "dynamicThemeColors",
             "dynamicThemeVariants": "dynamicThemeVariants",
             "chatBot.api": "chatBotApi",
+            "plugins.list": "userPlugins",
             "waifuWidget.current": "waifu"
         };
         if (aliases[path] !== undefined) {
@@ -826,6 +861,10 @@ Singleton {
                     }
                 },
                 dateFormat: root.dateFormat,
+                supporter: {
+                    active: root.supporterActive,
+                    since: root.supporterSince
+                },
                 ui: {
                     opacity: {
                         value: root.uiOpacity
@@ -916,6 +955,9 @@ Singleton {
                 gameMode: {
                     enabled: {
                         value: root.gameModeEnabled
+                    },
+                    autoHideBar: {
+                        value: root.gameModeAutoHideBar
                     }
                 },
                 blueLight: {
@@ -953,6 +995,9 @@ Singleton {
                     api: root.chatBotApi,
                     context: root.chatBotContext,
                     notify: root.chatBotNotify
+                },
+                "plugins": {
+                    list: root.userPlugins
                 },
                 "booru": {
                     api: root.booru.api,
@@ -1053,6 +1098,11 @@ Singleton {
                 const s = JSON.parse(text);
                 root._lastText = text;
                 root._adopted = true;
+                // User plugins are adopted FIRST: the selected-tab restore below validates
+                // "Plugin:<id>" names against this list.
+                if (Array.isArray(s.plugins?.list)) {
+                    root.userPlugins = s.plugins.list.filter(p => p && typeof p.id === "string" && typeof p.entry === "string");
+                }
                 root.barSmartHide = s.bar?.smartHide?.value ?? false;
                 root.barFullWidth = s.bar?.fullWidth?.value ?? false;
                 root.revealInPressure = s.bar?.revealInPressure?.value ?? s.bar?.revealPressure?.value ?? 250;
@@ -1060,6 +1110,8 @@ Singleton {
                 root.barOrientation = s.bar?.orientation?.value ?? true;
 
                 root.dateFormat = s.dateFormat ?? "%H:%M";
+                root.supporterActive = s.supporter?.active === true;
+                root.supporterSince = typeof s.supporter?.since === "string" ? s.supporter.since : "";
                 root.uiOpacity = s.ui?.opacity?.value ?? 0.618;
                 root.uiRadius = s.ui?.radius?.value ?? 10;
                 root.uiPad = s.ui?.pad?.value ?? 6;
@@ -1102,7 +1154,8 @@ Singleton {
                 // The file may store {name, icon}; only {name} is persisted and restored —
                 // left icons live in LeftIsland (legacy files used "leftPanel.widget").
                 const _lpw = s["leftPanel.widget"] ?? s.leftPanel?.widget;
-                root.leftPanelWidget = (typeof _lpw === "string" ? _lpw : _lpw?.name) ?? "UserProfile";
+                const _lpwName = (typeof _lpw === "string" ? _lpw : _lpw?.name) ?? "UserProfile";
+                root.leftPanelWidget = root.isLeftPanelWidgetName(_lpwName) ? _lpwName : "UserProfile";
                 const _wc = s.wallpaperSwitcher?.category;
                 root.wallpaperCategory = ((typeof _wc === "object" && _wc !== null ? _wc.value : _wc) ?? "defaults/sfw");
                 // Merge the saved wallhaven filter over fresh defaults so new params never
@@ -1152,6 +1205,8 @@ Singleton {
                 root.autoWorkspaceSwitching = s.autoWorkspaceSwitching?.value ?? true;
                 const _gm = s.gameMode?.enabled;
                 root.gameModeEnabled = (typeof _gm === "object" && _gm !== null) ? (_gm.value ?? false) : (_gm ?? false);
+                const _gmh = s.gameMode?.autoHideBar;
+                root.gameModeAutoHideBar = (typeof _gmh === "object" && _gmh !== null) ? (_gmh.value ?? true) : (_gmh ?? true);
                 const _bl = s.blueLight?.enabled;
                 root.blueLightEnabled = (typeof _bl === "object" && _bl !== null) ? (_bl.value ?? false) : (_bl ?? false);
                 const _blt = s.blueLight?.temperature;
@@ -1606,6 +1661,9 @@ Singleton {
             root.schedulePersist();
         }
         function onGameModeEnabledChanged() {
+            root.schedulePersist();
+        }
+        function onGameModeAutoHideBarChanged() {
             root.schedulePersist();
         }
         function onBlueLightEnabledChanged() {

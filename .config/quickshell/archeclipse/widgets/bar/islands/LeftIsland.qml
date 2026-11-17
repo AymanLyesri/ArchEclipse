@@ -32,7 +32,31 @@ Item {
     property real expand: 0
     // Tab-name order for the rail index mapping; names keep the QS "Widget" suffix for IPC
     // showWidget/widgetState compat.
-    readonly property var tabOrder: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations"]
+    // Base tabs in rail order; plugin tabs append after them so built-in indices never shift.
+    readonly property var baseTabOrder: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations", "Plugins"]
+    // Enabled user plugins - each one is a real rail tab named "Plugin:<id>".
+    readonly property var pluginTabs: (PluginManager.plugins || []).filter(p => p.enabled !== false)
+    readonly property var tabOrder: root.baseTabOrder.concat(root.pluginTabs.map(p => "Plugin:" + p.id))
+    // Rail entries: the fixed set plus one cell per enabled plugin (puzzle icon, plugin name).
+    readonly property var railModel: [
+        { name: "UserProfile", icon: Icons.user },
+        { name: "BooruViewer", icon: Icons.image },
+        { name: "ChatBot", icon: Icons.chatbot },
+        { name: "MangaViewer", icon: Icons.manga },
+        { name: "SettingsWidget", icon: Icons.settings },
+        { name: "CustomScripts", icon: Icons.terminal },
+        { name: "KeyBinds", icon: Icons.keyboard },
+        { name: "Donations", icon: Icons.coffee },
+        { name: "Plugins", icon: Icons.puzzle }
+    ].concat(root.pluginTabs.map(p => ({ name: "Plugin:" + p.id, label: p.name || p.id, icon: Icons.puzzle })))
+    // A disabled/deleted plugin tab must not strand the panel on a missing index - but only
+    // once the directory scan has reconciled the list (before that, the seed may be partial).
+    onTabOrderChanged: {
+        if (!PluginManager.scanned)
+            return;
+        if (root.tabOrder.indexOf(root.selectedWidget) === -1)
+            root.selectedWidget = "UserProfile";
+    }
     function tabIndex(name) {
         return Math.max(0, root.tabOrder.indexOf(name));
     }
@@ -118,9 +142,23 @@ Item {
             return keybindsLoader.item;
         case 7:
             return donationsLoader.item;
-        default:
-            return null;
+        case 8:
+            return pluginsLoader.item;
+        default: {
+            // itemAt()/item are not reactive; the tick (bumped on load/item change) is the
+            // dependency that makes this binding re-read the plugin body.
+            const tick = root.pluginLoadTick;
+            return tick >= 0 ? root.pluginTabItem(widgetStack.currentIndex) : null;
         }
+        }
+    }
+    // Bumped whenever a plugin tab body loads or unloads (drives activeWidget above).
+    property int pluginLoadTick: 0
+    // Loaded plugin tab body for a stack index past the fixed tabs (null when unprimed).
+    function pluginTabItem(stackIndex) {
+        const i = stackIndex - root.baseTabOrder.length;
+        const l = i < 0 ? null : pluginTabRepeater.itemAt(i);
+        return l ? l.item : null;
     }
 
     // Direct access to the booru viewer instance (null until primed).
@@ -243,42 +281,9 @@ Item {
                     anchors.right: parent.right
                     anchors.margins: Theme.pad
                     highlightedName: BarState.tourHighlightMonitor === root.monitorName ? BarState.tourHighlightTab : ""
-                    // Tab order + icons: UserProfile, BooruViewer, ChatBot, MangaViewer,
-                    // Settings, CustomScripts, KeyBinds, Donations ("Widget" suffix for IPC).
-                    model: [
-                        {
-                            name: "UserProfile",
-                            icon: Icons.user
-                        },
-                        {
-                            name: "BooruViewer",
-                            icon: Icons.image
-                        },
-                        {
-                            name: "ChatBot",
-                            icon: Icons.chatbot
-                        },
-                        {
-                            name: "MangaViewer",
-                            icon: Icons.manga
-                        },
-                        {
-                            name: "SettingsWidget",
-                            icon: Icons.settings
-                        },
-                        {
-                            name: "CustomScripts",
-                            icon: Icons.terminal
-                        },
-                        {
-                            name: "KeyBinds",
-                            icon: Icons.keyboard
-                        },
-                        {
-                            name: "Donations",
-                            icon: Icons.coffee
-                        }
-                    ]
+                    // Tab order + icons: the fixed tabs plus one cell per enabled plugin
+                    // (root.railModel keeps rail order identical to root.tabOrder).
+                    model: root.railModel
                     currentIndex: root.tabIndex(root.selectedWidget)
                     onSelected: index => {
                         root.selectedWidget = root.tabOrder[index];
@@ -316,28 +321,7 @@ Item {
                     // Content inset owned by the panel (right-panel parity) — tab bodies stay
                     // flush and never add their own outer margin.
                     anchors.margins: Theme.pad
-                    currentIndex: {
-                        switch (root.selectedWidget) {
-                        case "UserProfile":
-                            return 0;
-                        case "BooruViewer":
-                            return 1;
-                        case "ChatBot":
-                            return 2;
-                        case "MangaViewer":
-                            return 3;
-                        case "SettingsWidget":
-                            return 4;
-                        case "CustomScripts":
-                            return 5;
-                        case "KeyBinds":
-                            return 6;
-                        case "Donations":
-                            return 7;
-                        default:
-                            return 0;
-                        }
-                    }
+                    currentIndex: root.tabIndex(root.selectedWidget)
                     Loader {
                         id: userProfileLoader
                         active: root.tabPrimed("UserProfile")
@@ -414,6 +398,27 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                     }
+                    Loader {
+                        id: pluginsLoader
+                        active: root.tabPrimed("Plugins")
+                        sourceComponent: pluginsComp
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                    }
+                    // One live tab per enabled plugin, primed on first select like the rest.
+                    Repeater {
+                        id: pluginTabRepeater
+                        model: root.pluginTabs
+                        delegate: Loader {
+                            required property var modelData
+                            active: root.tabPrimed("Plugin:" + modelData.id)
+                            source: PluginManager.entryUrl(modelData.entry)
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            onItemChanged: root.pluginLoadTick++
+                            onLoaded: root.pluginLoadTick++
+                        }
+                    }
                 }
                 Component {
                     id: userProfileComp
@@ -456,6 +461,12 @@ Item {
                 Component {
                     id: donationsComp
                     DonationsWidget {
+                        monitorName: root.monitorName
+                    }
+                }
+                Component {
+                    id: pluginsComp
+                    PluginsWidget {
                         monitorName: root.monitorName
                     }
                 }

@@ -24,3 +24,4 @@ singleton PpdState 1.0 PpdState.qml
 singleton WallpaperService 1.0 WallpaperService.qml
 singleton ClipboardService 1.0 ClipboardService.qml
 singleton AutoCompiling 1.0 AutoCompiling.qml
+singleton PluginManager 1.0 PluginManager.qml

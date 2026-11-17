@@ -213,6 +213,11 @@ Item {
     // Keep the profile widget consistent without a restart: it restores from
     // UserProfileState when recreated.
     function mirrorToProfileCache(supported) {
+        // Settings gates read this persisted leaf, not the profile cache: keep both in step.
+        if (Settings.supporterActive !== supported) {
+            Settings.supporterActive = supported;
+            Settings.schedulePersist();
+        }
         const p = UserProfileState.profile;
         if (p && p.is_supporter !== supported) {
             UserProfileState.profile = {

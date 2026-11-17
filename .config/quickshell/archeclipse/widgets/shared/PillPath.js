@@ -31,25 +31,20 @@ function bodyPath(ctx, W, H, f, cr, topBar) {
     ctx.closePath();
 }
 
-// Inset end stroke; frac trims it from the top, so a fill grows top to bottom on screen.
-// The mirror flips the bottom bar, so only the top bar needs the reversed trace.
+// Inset end stroke; frac trims the run from its start, so a fill grows away from the screen
+// edge. One trace serves both orientations — the mirror below flips it for a bottom bar —
+// and reversing the trace there as well double-flipped the fill direction.
 function strokeEnd(ctx, end, topBar, W, H, f, cr, d, tail, paint, frac) {
     const sx = 2 * Math.sqrt(Math.max(0, f * d));
     const sr = f + d;
     const r = Math.max(0.5, cr - d);
     const shoulderEnd = Math.atan2(d - f, sx);
-    // Forward trace is tail -> corner -> side -> shoulder (bottom-up before the
-    // mirror); the top bar reverses it so the fill starts at the top.
-    const segments = topBar ? [
+    // Flare shoulder -> side -> corner -> tail.
+    const segments = [
         { arc: true, cx: 0, cy: f, r: sr, a0: shoulderEnd, a1: 0, x0: sx, y0: d, x1: sr, y1: f },
         { arc: false, x0: f + d, y0: f, x1: f + d, y1: H - cr },
         { arc: true, cx: f + cr, cy: H - cr, r: r, a0: Math.PI, a1: Math.PI / 2, x0: f + d, y0: H - cr, x1: f + cr, y1: H - d },
         { arc: false, x0: f + cr, y0: H - d, x1: f + cr + Math.max(0, tail), y1: H - d }
-    ] : [
-        { arc: false, x0: f + cr + Math.max(0, tail), y0: H - d, x1: f + cr, y1: H - d },
-        { arc: true, cx: f + cr, cy: H - cr, r: r, a0: Math.PI / 2, a1: Math.PI, x0: f + cr, y0: H - d, x1: f + d, y1: H - cr },
-        { arc: false, x0: f + d, y0: H - cr, x1: f + d, y1: f },
-        { arc: true, cx: 0, cy: f, r: sr, a0: 0, a1: shoulderEnd, x0: sr, y0: f, x1: sx, y1: d }
     ];
     let remaining = Math.max(0, Math.min(1, frac)) * endLength(H, f, cr, d, tail);
     ctx.save();

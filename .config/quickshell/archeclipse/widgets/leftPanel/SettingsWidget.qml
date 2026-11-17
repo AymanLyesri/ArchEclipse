@@ -240,14 +240,18 @@ Item {
                                 }
                             }
                         }
-                        SettingRow {
-                            text: "Dynamic Theme Variants"
-                            tip: "Switch light/dark variant from wallpaper."
-                            AppToggle {
-                                checked: Settings.dynamicThemeVariants
-                                onToggled: {
-                                    Settings.dynamicThemeVariants = checked;
-                                    root.setThemeFlagInConf("autovariant", checked);
+                        SupporterGate {
+                            monitorName: root.monitorName
+                            perk: "Wallpaper-driven theme variants"
+                            SettingRow {
+                                text: "Dynamic Theme Variants"
+                                tip: "Switch light/dark variant from wallpaper."
+                                AppToggle {
+                                    checked: Settings.dynamicThemeVariants
+                                    onToggled: {
+                                        Settings.dynamicThemeVariants = checked;
+                                        root.setThemeFlagInConf("autovariant", checked);
+                                    }
                                 }
                             }
                         }
@@ -526,6 +530,10 @@ Item {
                                     label: "OpenRouter API Key"
                                 },
                                 {
+                                    path: "opencode.key",
+                                    label: "OpenCode API Key"
+                                },
+                                {
                                     path: "danbooru.user",
                                     label: "Danbooru User"
                                 },
@@ -662,6 +670,17 @@ Item {
                             AppToggle {
                                 checked: Settings.gameModeEnabled
                                 onToggled: Settings.applyGameMode(checked)
+                            }
+                        }
+
+                        // Hyprland hides the whole shell while a game (or anything on the
+                        // gaming workspace) is fullscreen; this gates that, kept on by default.
+                        SettingRow {
+                            text: "Hide bar when fullscreen"
+                            tip: "Hide the shell while a game window is fullscreen, or any window on workspace 10."
+                            AppToggle {
+                                checked: Settings.gameModeAutoHideBar
+                                onToggled: Settings.updateSetting("gameMode.autoHideBar", checked)
                             }
                         }
 
@@ -1628,6 +1647,8 @@ Item {
             return "Your OpenRouter account name.";
         case "openrouter.key":
             return "Key for chatbot AI models.";
+        case "opencode.key":
+            return "Key for OpenCode Zen chatbot models.";
         case "danbooru.user":
             return "Your Danbooru login name.";
         case "danbooru.key":

@@ -122,6 +122,16 @@ Item {
         UserProfileState.cachedUid = root._cachedUid;
         UserProfileState.cachedEmail = root._cachedEmail;
         UserProfileState.supporterSince = root.supporterSince;
+        // Cache the gate's answer for cold reloads, but only when the profile actually knows:
+        // a transient null profile (boot restore, failed fetch) must not revoke a paid unlock.
+        if (root.profile && typeof root.profile.is_supporter === "boolean") {
+            const sup = root.profile.is_supporter === true;
+            if (sup !== Settings.supporterActive || root.supporterSince !== Settings.supporterSince) {
+                Settings.supporterActive = sup;
+                Settings.supporterSince = root.supporterSince;
+                Settings.schedulePersist();
+            }
+        }
         UserProfileState.lastSessionText = root._lastSessionText;
         UserProfileState.lastSyncAt = root.lastSyncAt;
         UserProfileState.lastSyncResult = root.lastSyncResult;
@@ -604,6 +614,9 @@ Item {
         root._cachedUid = "";
         root._cachedEmail = "";
         root.supporterSince = "";
+        Settings.supporterActive = false;
+        Settings.supporterSince = "";
+        Settings.schedulePersist();
         root._lastSessionText = "";
         root.progressStatus = "idle";
         root.progressText = "Signed out";

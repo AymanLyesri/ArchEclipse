@@ -37,6 +37,9 @@
 !.config/quickshell/
 !.config/quickshell/archeclipse/
 !.config/quickshell/archeclipse-greeter/
+# User plugins stay out of the dotfiles history: each one is its own repo
+# (waifu-companion lives at plugins/waifu-companion)
+.config/quickshell/archeclipse/plugins/
 # qt6ct config for color scheme and font settings
 !.config/qt6ct/
 # coloreclipse renders the color scheme per user from the wallpaper; never

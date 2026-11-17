@@ -1,6 +1,7 @@
-"""OpenRouter model list with 24h file cache. Public endpoint, no key needed.
+"""Model lists for every chatbot provider (24h file cache). Public endpoints, no key.
 
-CLI: models.py [cache_path]  -> JSON array of model ids on stdout.
+CLI: models.py [cache_path]  -> JSON array of settings values on stdout
+("openrouter" ids as-is, "opencode/<id>" prefixed so the QML filter matches tabs).
 On any failure prints the best fallback: stale cache, else [].
 """
 import json
@@ -13,7 +14,8 @@ if __name__ == "__main__" and __package__ is None:
 
 import requests
 
-MODELS_URL = "https://openrouter.ai/api/v1/models"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/models"
+OPENCODE_URL = "https://opencode.ai/zen/v1/models"
 DEFAULT_CACHE = Path.home() / ".cache" / "quickshell" / "chatbot" / "models.json"
 
 
@@ -42,15 +44,24 @@ def load_cached_models(cache_path: Path, ttl_hours: int = 24) -> tuple:
         return ([], False)
 
 
+def fetch_one(url: str, prefix: str = "") -> list:
+    """Ids from one /models endpoint, optionally prefixed for the settings value."""
+    try:
+        resp = _get(url, timeout=15)
+        if resp.status_code != 200:
+            return []
+        return [prefix + i for i in extract_ids(resp.json())]
+    except Exception:
+        return []
+
+
 def fetch_models(cache_path: Path = DEFAULT_CACHE, ttl_hours: int = 24) -> list:
     ids, fresh = load_cached_models(cache_path, ttl_hours)
     if fresh:
         return ids
     try:
-        resp = _get(MODELS_URL, timeout=15)
-        if resp.status_code != 200:
-            return ids
-        ids = extract_ids(resp.json())
+        # Both lists always: a dead provider must not hide the other's tabs.
+        ids = fetch_one(OPENROUTER_URL) + fetch_one(OPENCODE_URL, "opencode/")
         if not ids:
             return ids
         Path(cache_path).parent.mkdir(parents=True, exist_ok=True)

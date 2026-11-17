@@ -11,6 +11,9 @@ Item {
     // Each Bar creates its own strip. Keep workspace focus, special-workspace
     // state, and client alerts tied to the monitor that owns this instance.
     property string monitorName: ""
+    // Pills sit on the bar's outer edge: top bar = strip hangs down, bottom bar =
+    // mirrored (strip above the row, wave climbs). Every anchor below follows this.
+    property bool topBar: true
 
     property int count: 10
     property real barHeight: 2
@@ -35,6 +38,34 @@ Item {
     // backgrounds must paint only below it or they double-blend darker.
     property real pillOuterPad: 4
     readonly property real pillFlush: root.hitHeight + root.pillOuterPad
+
+    // Hang-tab fill: flush against the pill, rounded at the far end. A top bar's tab
+    // grows downward, a bottom bar's upward — the round corners always point away.
+    function paintHangTab(ctx, w, h, fill) {
+        if (w <= 0 || h <= 0)
+            return;
+        const r = Math.min(Theme.radius, w / 2, h / 2);
+        ctx.reset();
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        if (root.topBar) {
+            ctx.moveTo(0, 0);
+            ctx.lineTo(w, 0);
+            ctx.lineTo(w, h - r);
+            ctx.arc(w - r, h - r, r, 0, Math.PI / 2, false);
+            ctx.lineTo(r, h);
+            ctx.arc(r, h - r, r, Math.PI / 2, Math.PI, false);
+        } else {
+            ctx.moveTo(0, h);
+            ctx.lineTo(w, h);
+            ctx.lineTo(w, r);
+            ctx.arc(w - r, r, r, 0, -Math.PI / 2, true);
+            ctx.lineTo(r, 0);
+            ctx.arc(r, r, r, -Math.PI / 2, -Math.PI, true);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
 
     // --- derived wave geometry ---
     // Normal slots map 1-5 → 0-4, the narrow special takes 5, 6-10 follow as 6-10.
@@ -347,23 +378,26 @@ Item {
             width: strip.normalW
             height: strip.height
 
-            // TOP-anchored and clipped: the animating height carries the button
-            // down; bottom-anchoring made every button ride the same edge.
+            // Anchored to the pill's outer edge and clipped: the animating height carries
+            // the button away from the bar; one fixed anchor made every button ride an edge.
             Item {
                 id: revealBox
                 width: slot.width
                 height: slot.reveal
-                anchors.top: parent.top
+                anchors.top: root.topBar ? parent.top : undefined
+                anchors.bottom: root.topBar ? undefined : parent.bottom
                 clip: true
 
-                // Single fill below the pill (never over a painted translucent
-                // region — that double-blends): flush top, rounded bottom.
+                // Single fill past the flush line (never over a painted translucent
+                // region — that double-blends): flush at the pill, rounded at the far end.
                 Canvas {
-                    // AT the flush line, not revealBox y=0: topMargin shifts the
-                    // fill below the pill so it never double-blends.
-                    anchors.top: parent.top
-                    anchors.topMargin: root.pillFlush
+                    // AT the flush line, not revealBox y=0: the margin keeps the fill off
+                    // the pill so it never double-blends.
                     anchors.left: parent.left
+                    anchors.top: root.topBar ? parent.top : undefined
+                    anchors.topMargin: root.topBar ? root.pillFlush : 0
+                    anchors.bottom: root.topBar ? undefined : parent.bottom
+                    anchors.bottomMargin: root.topBar ? 0 : root.pillFlush
                     width: slot.width
                     height: Math.max(0, slot.reveal - root.pillFlush)
                     property color fill: Theme.surface
@@ -376,34 +410,27 @@ Item {
                     }
                     onPaint: {
                         const ctx = getContext("2d");
-                        if (!ctx)
-                            return;
-                        const w = width;
-                        const h = height;
-                        const r = Math.min(Theme.radius, w / 2, h / 2);
-                        if (w <= 0 || h <= 0)
-                            return;
-                        ctx.reset();
-                        ctx.fillStyle = fill;
-                        ctx.beginPath();
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(w, 0);
-                        ctx.lineTo(w, h - r);
-                        ctx.arc(w - r, h - r, r, 0, Math.PI / 2, false);
-                        ctx.lineTo(r, h);
-                        ctx.arc(r, h - r, r, Math.PI / 2, Math.PI, false);
-                        ctx.closePath();
-                        ctx.fill();
+                        if (ctx)
+                            root.paintHangTab(ctx, width, height, fill);
                     }
                 }
 
-                Column {
-                    anchors.bottom: parent.bottom
-                    spacing: root.iconSpacing
+                // Icon + line travel together off the pill's edge: the line leads at the far
+                // end and the icon trails it. A bottom bar mirrors the pair, so the line sits
+                // on the pill side and the icon drops below it.
+                Item {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: root.topBar ? parent.bottom : undefined
+                    anchors.top: root.topBar ? undefined : parent.top
+                    height: slotIcon.height + root.iconSpacing + slotBar.height
 
                     // The reveal box clips the icon while the wave runs; an alerting
                     // button shows it even collapsed (the blink drives opacity).
                     Item {
+                        id: slotIcon
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: root.topBar ? 0 : slotBar.height + root.iconSpacing
                         width: slot.width
                         height: (root.showIcons || slot.alerting) ? root.iconSize : 0
 
@@ -418,8 +445,9 @@ Item {
                     }
 
                     Rectangle {
-                        id: bar
+                        id: slotBar
                         anchors.horizontalCenter: parent.horizontalCenter
+                        y: root.topBar ? slotIcon.height + root.iconSpacing : 0
                         width: slot.width
                         height: root.barHeight
                         radius: root.barHeight / 2
@@ -449,7 +477,8 @@ Item {
             MouseArea {
                 // Clicks/hover only over the revealed extent — the slot is the full
                 // wave height and would swallow empty space; anchor clears on leave only.
-                anchors.top: parent.top
+                anchors.top: root.topBar ? parent.top : undefined
+                anchors.bottom: root.topBar ? undefined : parent.bottom
                 anchors.left: parent.left
                 width: slot.width
                 height: slot.reveal
@@ -463,15 +492,18 @@ Item {
 
     Row {
         id: strip
-        // Full wave extent from the strip's top: the root is only 6px tall, so
-        // this row deliberately hangs below the pill.
-        anchors.top: parent.top
+        // Full wave extent from the pill-side edge: the root is only 6px tall, so this
+        // row deliberately hangs past it — below the pill on a top bar, above it on a bottom
+        // bar. It also paints over the row's zone so the climbing wave is never buried.
+        anchors.top: root.topBar ? parent.top : undefined
+        anchors.bottom: root.topBar ? undefined : parent.bottom
         anchors.left: parent.left
         anchors.leftMargin: root.edgeMargin
         anchors.right: parent.right
         anchors.rightMargin: root.edgeMargin
         height: root.expandedHeight
         spacing: root.btnSpacing
+        z: root.topBar ? 0 : 1
 
         HoverHandler {
             id: stripHover
@@ -522,15 +554,18 @@ Item {
                 id: specialRevealBox
                 width: specialSlot.width
                 height: specialSlot.reveal
-                anchors.top: parent.top
+                anchors.top: root.topBar ? parent.top : undefined
+                anchors.bottom: root.topBar ? undefined : parent.bottom
                 clip: true
 
                 // Same single-fill hang tab as the normal slots.
                 Canvas {
                     // Same flush offset as the normal-slot tab.
-                    anchors.top: parent.top
-                    anchors.topMargin: root.pillFlush
                     anchors.left: parent.left
+                    anchors.top: root.topBar ? parent.top : undefined
+                    anchors.topMargin: root.topBar ? root.pillFlush : 0
+                    anchors.bottom: root.topBar ? undefined : parent.bottom
+                    anchors.bottomMargin: root.topBar ? 0 : root.pillFlush
                     width: specialSlot.width
                     height: Math.max(0, specialSlot.reveal - root.pillFlush)
                     property color fill: Theme.surface
@@ -543,32 +578,23 @@ Item {
                     }
                     onPaint: {
                         const ctx = getContext("2d");
-                        if (!ctx)
-                            return;
-                        const w = width;
-                        const h = height;
-                        const r = Math.min(Theme.radius, w / 2, h / 2);
-                        if (w <= 0 || h <= 0)
-                            return;
-                        ctx.reset();
-                        ctx.fillStyle = fill;
-                        ctx.beginPath();
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(w, 0);
-                        ctx.lineTo(w, h - r);
-                        ctx.arc(w - r, h - r, r, 0, Math.PI / 2, false);
-                        ctx.lineTo(r, h);
-                        ctx.arc(r, h - r, r, Math.PI / 2, Math.PI, false);
-                        ctx.closePath();
-                        ctx.fill();
+                        if (ctx)
+                            root.paintHangTab(ctx, width, height, fill);
                     }
                 }
 
-                Column {
-                    anchors.bottom: parent.bottom
-                    spacing: root.iconSpacing
+                // Same mirrored pair as the normal slots: line on the pill side, icon beyond.
+                Item {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: root.topBar ? parent.bottom : undefined
+                    anchors.top: root.topBar ? undefined : parent.top
+                    height: specialIcon.height + root.iconSpacing + specialBar.height
 
                     Item {
+                        id: specialIcon
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: root.topBar ? 0 : specialBar.height + root.iconSpacing
                         width: specialSlot.width
                         height: (root.showIcons || root.specialOpen) ? root.iconSize + 2 : 0
 
@@ -583,7 +609,9 @@ Item {
                     }
 
                     Rectangle {
+                        id: specialBar
                         anchors.horizontalCenter: parent.horizontalCenter
+                        y: root.topBar ? specialIcon.height + root.iconSpacing : 0
                         width: specialSlot.width
                         // Slightly taller bar + accent border so it pops
                         // against the grey normal slots.
@@ -611,7 +639,8 @@ Item {
 
             MouseArea {
                 // Same rule as the normal slots: only the revealed extent.
-                anchors.top: parent.top
+                anchors.top: root.topBar ? parent.top : undefined
+                anchors.bottom: root.topBar ? undefined : parent.bottom
                 anchors.left: parent.left
                 width: specialSlot.width
                 height: specialSlot.reveal

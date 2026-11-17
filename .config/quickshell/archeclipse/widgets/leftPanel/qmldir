@@ -6,6 +6,7 @@ CommitGrid 1.0 CommitGrid.qml
 CustomScriptsWidget 1.0 CustomScriptsWidget.qml
 DonationCard 1.0 DonationCard.qml
 DonationsWidget 1.0 DonationsWidget.qml
+PluginsWidget 1.0 PluginsWidget.qml
 GeneralTab 1.0 GeneralTab.qml
 HyprSliderRow 1.0 HyprSliderRow.qml
 HyprToggleRow 1.0 HyprToggleRow.qml

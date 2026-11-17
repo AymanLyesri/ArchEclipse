@@ -99,7 +99,7 @@ PanelWindow {
             item: osdPill.visible ? osdPill : null
         }
         Region {
-            item: notifPill.visible ? notifPill : null
+            item: notifPill.visible ? notifPill.hitbox : null
         }
         Region {
             item: leftHot
@@ -289,11 +289,13 @@ PanelWindow {
                     return (page && page["chromeOpacity"] !== undefined) ? page.chromeOpacity : 1;
                 }
             }
-            // Content clip: extends by the wave hang while the strip is expanded so hanging
-            // buttons are not clipped away, and stays tight for width glides otherwise.
+            // Content clip: extends past the pill on the side the wave hangs (down on a top
+            // bar, up on a bottom one) so hanging buttons are not clipped away, and stays
+            // tight for width glides otherwise.
             Item {
                 id: pillClip
-                anchors.top: parent.top
+                anchors.top: Settings.barOrientation ? parent.top : undefined
+                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: pill.height + root.waveHang
@@ -1092,7 +1094,7 @@ PanelWindow {
             x: Math.max(8, Math.min(parent.width - width - 8, pill.x + (pill.width - width) / 2))
             // Below the main pill like toasts; toasts stack underneath this
             // pill when both show (see the props pushed into notifPill).
-            y: Settings.barOrientation ? pill.y + pill.height + 8 + root.waveHangPush : pill.y - height - 8
+            y: Settings.barOrientation ? pill.y + pill.height + 8 + root.waveHangPush : pill.y - height - 8 - root.waveHangPush
             visible: mediaPill.shown && root.barVisible
             property bool shown: false
             property bool flag: BarState.isOpenFor("player", root.monitorName)
@@ -1151,7 +1153,7 @@ PanelWindow {
             x: Math.max(8, Math.min(parent.width - width - 8, pill.x + (pill.width - width) / 2))
             // Below the main pill like toasts; below the media pill when
             // both show (see the props pushed into notifPill).
-            y: Settings.barOrientation ? (mediaPill.visible ? mediaPill.y + mediaPill.height + 8 : pill.y + pill.height + 8) + root.waveHangPush : (mediaPill.visible ? mediaPill.y - height - 8 : pill.y - height - 8)
+            y: Settings.barOrientation ? (mediaPill.visible ? mediaPill.y + mediaPill.height + 8 : pill.y + pill.height + 8) + root.waveHangPush : (mediaPill.visible ? mediaPill.y - height - 8 : pill.y - height - 8) - root.waveHangPush
             visible: osdPill.shown && root.barVisible
             property bool shown: false
             // Membership, not resolved state: the resolved state holds one island at a time, so

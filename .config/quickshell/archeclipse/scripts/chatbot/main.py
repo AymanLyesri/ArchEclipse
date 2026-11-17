@@ -16,14 +16,16 @@ import time
 import uuid
 from pathlib import Path
 
+from typing import NoReturn
+
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import requests
 
 from chatbot.context import build_system_block, collect_info
-from chatbot.providers.openrouter import API_URL, decode_sse_raw, parse_sse_line, save_history_atomic
-from chatbot.providers.registry import resolve_provider
+from chatbot.providers.openrouter import decode_sse_raw, parse_sse_line, save_history_atomic
+from chatbot.providers.registry import api_model, provider_spec, resolve_provider
 from chatbot.truncate import truncate_history
 
 CACHE_DIR = Path.home() / ".cache" / "quickshell" / "chatbot"
@@ -95,7 +97,7 @@ def _msg(role: str, content: str, rt: int = 0) -> dict:
             "timestamp": int(time.time() * 1000), "responseTime": rt}
 
 
-def _fail(msg: str, code: int) -> "int":
+def _fail(msg: str, code: int) -> "NoReturn":
     print(msg, file=sys.stderr)
     sys.exit(code)
 
@@ -112,10 +114,12 @@ def main() -> None:
         provider = resolve_provider(model)
     except ValueError as e:
         _fail(f"ERROR: {e}", 1)
-    assert provider == "openrouter"
-    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    spec = provider_spec(provider)
+    # The settings value keeps the provider prefix; the endpoint wants the bare id.
+    api_id = api_model(provider, model)
+    api_key = os.environ.get(spec["key_env"], "").strip()
     if not api_key:
-        _fail("ERROR: HTTP 401: Missing OPENROUTER_API_KEY", 2)
+        _fail(f"ERROR: HTTP 401: Missing {spec['key_env']}", 2)
 
     ctx = read_stdin_json()
     if not isinstance(ctx, dict):
@@ -166,13 +170,13 @@ def main() -> None:
         pass
 
     def _post(payload):
-        return requests.post(API_URL, headers={"Authorization": f"Bearer {api_key}",
+        return requests.post(spec["api_url"], headers={"Authorization": f"Bearer {api_key}",
                              "Content-Type": "application/json"},
                              json=payload, timeout=60, stream=True)
 
     def _send(api_messages):
         try:
-            return _post({"model": model, "messages": api_messages, "stream": True})
+            return _post({"model": api_id, "messages": api_messages, "stream": True})
         except requests.exceptions.Timeout:
             _fail("ERROR: Request timed out after 60 seconds", 1)
         except requests.exceptions.ConnectionError:

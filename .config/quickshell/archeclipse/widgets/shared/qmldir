@@ -26,6 +26,7 @@ AppNavigationSidePanel 1.0 AppNavigationSidePanel.qml
 AppTooltip 1.0 AppTooltip.qml
 SettingLabel 1.0 SettingLabel.qml
 SettingRow 1.0 SettingRow.qml
+SupporterGate 1.0 SupporterGate.qml
 Card 1.0 Card.qml
 Surface 1.0 Surface.qml
 PillBackground 1.0 PillBackground.qml
