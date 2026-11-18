@@ -112,6 +112,11 @@ PanelWindow {
         Region {
             item: recHotZone
         }
+        // Island dismiss catcher (click-outside): its bands are the window minus the
+        // pill; nulled while inactive so the surface stays click-through.
+        Region {
+            item: islandDismiss.clickOutsideActive ? islandDismiss.catchArea : null
+        }
     }
 
     readonly property int barHeight: 28
@@ -294,11 +299,14 @@ PanelWindow {
             // tight for width glides otherwise.
             Item {
                 id: pillClip
-                anchors.top: Settings.barOrientation ? parent.top : undefined
-                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: pill.height + root.waveHang
+                // No vertical anchors: a live orientation flip leaves the ternary
+                // top/bottom pair both attached (undefined never detaches an anchor
+                // line), which kills this height binding — frozen at the flip-time
+                // size, a collapsed flip later cuts the opened panel to 35px.
+                y: Settings.barOrientation ? 0 : pill.height - height
                 clip: true
 
                 // ---- state stack (one beat) ----
@@ -311,11 +319,9 @@ PanelWindow {
                     property int effPad: stack.showsDefault ? 4 : Theme.islandPad
                     // Docked to the bar edge, never centered (centering drifts while the height
                     // glides); the edge margin is effPad so the surround matches the sizing exactly.
-                    anchors.top: Settings.barOrientation ? parent.top : undefined
-                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                    // Plain y, no vertical anchors — same live-flip kill as pillClip's comment.
                     anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.topMargin: stack.effPad
-                    anchors.bottomMargin: stack.effPad
+                    y: Settings.barOrientation ? stack.effPad : parent.height - height - stack.effPad
 
                     // Size from implicit* only — never .height/.width/childrenRect.
                     // Those depend on stack's assigned size and create binding loops.
@@ -1239,6 +1245,19 @@ PanelWindow {
             enabled: Settings.rightPanelHotZone
             panelLock: Settings.panelLockFor("right", root.monitorName)
         }
+    }
+
+    // ---- shared island dismiss engine ----
+    // One per window, above all chrome: hover-out closes the wallpaper island,
+    // clicks outside the pill close the launcher island (bands skip the pill).
+    IslandDismiss {
+        id: islandDismiss
+        anchors.fill: parent
+        monitorName: root.monitorName
+        surface: pill
+        surfaceHovered: pillHover.hovered
+        hoverClose: ["wallpaper"]
+        clickOutside: ["search"]
     }
 
     // The toast pill maps on toasts alone so notifications survive a

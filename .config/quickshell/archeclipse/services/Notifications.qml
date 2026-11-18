@@ -11,6 +11,9 @@ Singleton {
 
     readonly property int timeoutDelay: 4000
     readonly property int criticalDelay: 8000
+    // Phase-1 length: the delegate exit (FastEffects) plus slack, so the row
+    // drops only after the card is invisible. Keep above 150.
+    readonly property int closeDelay: 260
     readonly property int maxHistory: 50
     property var history: []            // [{id, time, notif}] newest-first
     readonly property bool dnd: Settings.notifDnd
@@ -39,6 +42,11 @@ Singleton {
         property double progress: -1    // 0..1 live progress bar; -1 = none
         property bool popup: false
         property Timer timer: null
+        // Two-phase close: `closing` tells the delegate to animate out; the row
+        // (and for discards the wrapper) leaves at closeFinished, not before.
+        property bool closing: false
+        property bool closeDiscard: false
+        property Timer closeTimer: null
     }
     component ToastTimer: Timer {
         required property int toastId
@@ -50,6 +58,15 @@ Singleton {
             self.destroy();
         }
     }
+    component CloseTimer: Timer {
+        required property int toastId
+        repeat: false
+        onTriggered: {
+            const self = this;
+            root.closeFinished(toastId);
+            self.destroy();
+        }
+    }
     Component {
         id: toastComp
         Toast {}
@@ -57,6 +74,10 @@ Singleton {
     Component {
         id: toastTimerComp
         ToastTimer {}
+    }
+    Component {
+        id: closeTimerComp
+        CloseTimer {}
     }
 
     property var toasts: []             // newest-first Toast wrappers (reassigned on every mutation)
@@ -88,6 +109,14 @@ Singleton {
     // Identity check against toasts — never dereference a swiped-away wrapper.
     function closeProgress(w) {
         if (!root.toasts.includes(w)) return;
+        if (w.closing) {
+            w.closeDiscard = true;
+            return;
+        }
+        if (w.popup) {
+            root.scheduleClose(w.notificationId, true);
+            return;
+        }
         root.toasts = root.toasts.filter(t => t !== w);
         root.destroyToast(w);
     }
@@ -246,14 +275,54 @@ Singleton {
         return (n && n.urgency === NotificationUrgency.Critical) ? root.criticalDelay : root.timeoutDelay;
     }
 
-    // Hide a toast (timeout, hover-leave). Idempotent; history untouched.
+    // Hide a toast (timeout, hover-leave). Phase 1 only: the popup row stays
+    // while the card animates; closeFinished unpops it. Idempotent.
     function hideToast(id) {
         const w = root.findToast(id);
-        if (!w) return;
-        if (w.timer) {
-            try { w.timer.stop(); } catch (e) {}
+        if (!w)
+            return;
+        root.stopToastTimer(w);
+        if (!w.popup)
+            return;
+        root.scheduleClose(id, false);
+    }
+
+    // Phase 1: flip `closing` (the delegate animates), arm the finish timer.
+    // Re-arming only redirects the pending finish, never double-schedules.
+    function scheduleClose(id, discard) {
+        const w = root.findToast(id);
+        if (!w || !w.popup)
+            return;
+        if (w.closing) {
+            w.closeDiscard = w.closeDiscard || discard;
+            return;
         }
-        if (!w.popup) return;
+        w.closeDiscard = discard;
+        w.closing = true;
+        w.closeTimer = closeTimerComp.createObject(root, { toastId: id, interval: root.closeDelay });
+        w.closeTimer.start();
+        root.touchToasts();
+    }
+
+    // Phase 2: the card has faded — drop the row (unpop on hides, full
+    // removal + daemon dismissal on discards). A lost wrapper is a no-op.
+    function closeFinished(id) {
+        const w = root.findToast(id);
+        if (!w)
+            return;
+        w.closeTimer = null;
+        const discard = w.closeDiscard;
+        w.closing = false;
+        w.closeDiscard = false;
+        if (discard) {
+            const live = w.live;
+            root.toasts = root.toasts.filter(t => t !== w);
+            if (live) {
+                try { live.dismiss(); } catch (e) {}
+            }
+            root.destroyToast(w);
+            return;
+        }
         w.popup = false;
         root.touchToasts();
     }
@@ -271,18 +340,28 @@ Singleton {
         root.hideToast(id);
     }
 
-    // Dismiss everywhere (swipe, right-click, button): animated exit via the
-    // ListView remove transition, daemon retraction prunes history.
+    // Dismiss everywhere (swipe, right-click, button): phase 1 animates the
+    // popup row; closeFinished does the removal + daemon retraction.
     function discardToast(id) {
         const w = root.findToast(id);
         if (!w) return;
         root.stopToastTimer(w);
-        const live = w.live;
-        root.toasts = root.toasts.filter(t => t.notificationId !== id);
-        if (live) {
-            try { live.dismiss(); } catch (e) {}
+        if (w.closing) {
+            // Mid-exit: redirect the pending finish to a full dismissal.
+            w.closeDiscard = true;
+            return;
         }
-        root.destroyToast(w);
+        if (!w.popup) {
+            // Never shown (or already hidden): no popup row to animate.
+            const live = w.live;
+            root.toasts = root.toasts.filter(t => t !== w);
+            if (live) {
+                try { live.dismiss(); } catch (e) {}
+            }
+            root.destroyToast(w);
+            return;
+        }
+        root.scheduleClose(id, true);
     }
 
     function stopToastTimer(w) {

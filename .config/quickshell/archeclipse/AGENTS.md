@@ -77,7 +77,11 @@ reopen), `PlayerIsland`, `WeatherIsland`, `SystemMonitorIsland`, `OsdIsland`,
 center pill: `openT` grows the pill box itself). Shared helpers:
 `IslandExpandClip` (clip+fade+scale unfold), `IslandHoverPin` (root **is** the
 `HoverHandler`; 1 s open grace, hover pins the state), `IslandEscClose`,
-`IslandWindowActions`, `IslandSideRail` (left only). Islands register in
+`IslandWindowActions`, `IslandSideRail` (left only). `IslandDismiss` (one per
+Bar window, in Bar.qml) owns island dismissal policy: per-state `hoverClose`
+(leave the surface, it deactivates after `leaveDelay`) and `clickOutside`
+(bands = window minus the pill consume outside clicks while that state is
+resolved — rofi-style modal). Islands register in
 `Registry` (`left-island-<mon>`, `right-island-<mon>`, `media-panel-<mon>`,
 `lock-screen`).
 

@@ -86,14 +86,14 @@ Item {
         id: topRow
         // Row on the bar's outer edge: strip below it on a top bar, above it on a bottom.
         y: root.topBar ? 0 : workspaces.implicitHeight + root.barSpacing
-        // Left zone minimums count the launcher only: counting the title let a long one widen
-        // the bar (783 -> 930), and the monitor added 86px nothing occupied. Widths stay implicit.
-        readonly property real leftMinWidth: launcherButton.implicitWidth + Theme.spacing
+        // Left zone minimums count the fixed buttons only: counting the title let a
+        // long one widen the bar (783 -> 930). Widths stay implicit.
+        readonly property real leftMinWidth: launcherButton.implicitWidth + wallpaperButton.implicitWidth + Theme.spacing * 2
         readonly property real rightMinWidth: utilities.implicitWidth
         readonly property real sideWidth: Math.max(leftMinWidth, rightMinWidth)
         // Title cap shared by Layout.maximumWidth and the elide width (minus pill chrome):
         // upstream-only, or the title width feeds the Row it is measured from (0-width fixpoint).
-        readonly property real titleCap: Math.max(80, Math.min(240, sideWidth - launcherButton.implicitWidth - Theme.spacing * 2))
+        readonly property real titleCap: Math.max(80, Math.min(240, sideWidth - launcherButton.implicitWidth - wallpaperButton.implicitWidth - Theme.spacing * 3))
         // Quick settings up: the bar IS the panel (zones out, row at panel height, width
         // collapsed). Follow `open`, not `shown` — `shown` outlives the retract.
         readonly property bool panelUp: controlCard.open
@@ -154,8 +154,10 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: collapsedWidth + (openWidth - collapsedWidth) * controlCard.openT
             height: collapsedHeight + (openHeight - collapsedHeight) * controlCard.openT
-            // Wall edge pinned, growth away from the screen edge.
-            y: Settings.barOrientation ? collapsedY : collapsedY + collapsedHeight - height
+            // Wall edge pinned, growth away from the screen edge. Bottom keeps the
+            // panel's bottom on the row's own growing bottom edge (wall-flush); a
+            // fixed top-anchored offset flew the open panel up past the pill's clip.
+            y: Settings.barOrientation ? collapsedY : topRow.height - height + edgePad
 
             PillBackground {
                 topBar: Settings.barOrientation
@@ -267,8 +269,11 @@ Item {
                 width: centerPill.width
                 height: centerPill.height
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: Settings.barOrientation ? parent.top : undefined
-                anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                // Height binds to the pill box and y defaults to 0, so vertical
+                // anchors were a no-op — and a live orientation flip left the
+                // ternary pair both attached, freezing this height at the
+                // closed size. Plain fill, no anchor machinery.
+                y: 0
                 clip: true
                 // An opaque card would hide the chrome fading in underneath for the whole
                 // retract, so the content fades with the box; opening keeps it opaque.
@@ -279,9 +284,11 @@ Item {
                     monitorName: root.monitorName
                     open: centerPill.controlOpen
                     bandHovered: bandHover.hovered
+                    // No vertical anchors: a live orientation flip leaves the ternary
+                    // top/bottom pair both attached, making this height anchor-driven
+                    // (the card collapses to the clip's closed height). Plain y instead.
                     anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: Settings.barOrientation ? parent.top : undefined
-                    anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
+                    y: Settings.barOrientation ? 0 : panelClip.height - height
                 }
             }
         }
@@ -326,6 +333,26 @@ Item {
                             Launcher.pendingQuery = "";
                             BarState.activate("search", 0, root.monitorName);
                         }
+                    }
+                }
+
+                // wallpaper switcher beside the launcher — the SUPER+W island
+                // as a bar cell; wallpaper outranks control, so no yield needed.
+                AppButton {
+                    id: wallpaperButton
+                    implicitWidth: 32
+                    width: implicitWidth
+                    height: Theme.barContentHeight
+                    icon: Icons.image
+                    pixelSize: Theme.fontSize + 1
+                    toggle: true
+                    checked: BarState.stateFor(root.monitorName) === "wallpaper"
+                    tooltipText: "Wallpapers · <b>SUPER+W</b>"
+                    onClicked: {
+                        if (BarState.stateFor(root.monitorName) === "wallpaper")
+                            BarState.deactivate("wallpaper", root.monitorName);
+                        else
+                            BarState.activate("wallpaper", 0, root.monitorName);
                     }
                 }
                 WindowTitle {

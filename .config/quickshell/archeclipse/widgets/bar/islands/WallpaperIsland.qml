@@ -4,7 +4,7 @@ import qs.widgets.bar.islands
 import qs.widgets.wallpaperPanel
 
 // Wallpaper island: the full switcher body inline in the bar pill, same unfold pattern as
-// SearchIsland. Persistent (no leave auto-close): Esc, SUPER+W or the control button closes it.
+// SearchIsland. Closes via the shared IslandDismiss engine (hover-out), Esc or SUPER+W.
 Column {
     id: root
     // The bar sizes the pill from THIS item's width (Bar.qml stack.activeWidth) — a value on the

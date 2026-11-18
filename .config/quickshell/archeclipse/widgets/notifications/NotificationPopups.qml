@@ -101,6 +101,8 @@ Item {
                 values: root.localToasts
             }
 
+            // Entrances: the newcomer drops out of the bar edge. The fade leg needs
+            // its explicit `to` — inside a ViewTransition a leg without one never runs.
             populate: Transition {
                 ParallelAnimation {
                     Anim {
@@ -111,6 +113,7 @@ Item {
                     Anim {
                         property: "opacity"
                         from: 0
+                        to: 1
                         type: Anim.DefaultEffects
                     }
                     Anim {
@@ -122,55 +125,33 @@ Item {
                 }
             }
             add: Transition {
-                SequentialAnimation {
-                    // Stagger: older rows (higher index) trail the newcomer.
-                    // Clamped: a retargeted transition can report index -1.
-                    PauseAnimation {
-                        duration: Math.max(0, ViewTransition.index * 60)
-                    }
-                    ParallelAnimation {
-                        Anim {
-                            property: "y"
-                            from: root.topBar ? -12 : 12
-                            type: Anim.Emphasized
-                        }
-                        Anim {
-                            property: "opacity"
-                            from: 0
-                            type: Anim.DefaultEffects
-                        }
-                        Anim {
-                            property: "scale"
-                            from: 0.96
-                            to: 1
-                            type: Anim.Emphasized
-                        }
-                    }
-                }
-            }
-            displaced: Transition {
-                Anim {
-                    properties: "x,y"
-                    type: Anim.DefaultSpatial
-                }
-            }
-            remove: Transition {
                 ParallelAnimation {
                     Anim {
                         property: "y"
-                        to: root.topBar ? -12 : 12
-                        type: Anim.FastEffects
+                        from: root.topBar ? -12 : 12
+                        type: Anim.Emphasized
                     }
                     Anim {
                         property: "opacity"
-                        to: 0
-                        type: Anim.FastEffects
+                        from: 0
+                        to: 1
+                        type: Anim.DefaultEffects
                     }
                     Anim {
                         property: "scale"
-                        to: 0.96
-                        type: Anim.FastEffects
+                        from: 0.96
+                        to: 1
+                        type: Anim.Emphasized
                     }
+                }
+            }
+            // Stack yield: survivors pushed down by a newcomer or pulled up by an
+            // exit glide as one body. Exits are delegate-driven (see exitAnim),
+            // because the model drops the row before any remove transition can run.
+            displaced: Transition {
+                Anim {
+                    property: "y"
+                    type: Anim.DefaultSpatial
                 }
             }
 
@@ -181,6 +162,13 @@ Item {
                 readonly property int toastId: toast ? toast.notificationId : -1
                 readonly property bool critical: toast ? toast.critical : false
                 property bool isHovered: false
+                // Phase-1 close: the service flips `closing`, the card plays its own
+                // exit, and closeFinished drops the row once the card is invisible.
+                readonly property bool closing: toast ? toast.closing : false
+                onClosingChanged: {
+                    if (closing)
+                        exitAnim.restart();
+                }
 
                 width: ListView.view ? ListView.view.width : 400
                 // Scale origin on the bar side so the Emphasized drop-in reads as coming out
@@ -257,6 +245,32 @@ Item {
                     duration: 280
                     easing.type: Easing.OutCubic
                 }
+                // Exit drift: transform-only, toward the bar — the ListView owns y.
+                transform: Translate {
+                    id: exitDrift
+                    y: 0
+                }
+                ParallelAnimation {
+                    id: exitAnim
+                    Anim {
+                        target: card
+                        property: "opacity"
+                        to: 0
+                        type: Anim.FastEffects
+                    }
+                    Anim {
+                        target: exitDrift
+                        property: "y"
+                        to: root.topBar ? -16 : 16
+                        type: Anim.FastEffects
+                    }
+                    Anim {
+                        target: card
+                        property: "scale"
+                        to: 0.96
+                        type: Anim.FastEffects
+                    }
+                }
                 ParallelAnimation {
                     id: swipeOut
                     property int dir: -1
@@ -272,6 +286,14 @@ Item {
                         property: "opacity"
                         to: 0
                         duration: Theme.anim.defaultEffects
+                    }
+                    // The plate leaves with the content, so discard's row drop is invisible.
+                    NumberAnimation {
+                        target: card
+                        property: "opacity"
+                        to: 0
+                        duration: 220
+                        easing.type: Easing.InCubic
                     }
                     onFinished: {
                         if (card.toastId >= 0)
