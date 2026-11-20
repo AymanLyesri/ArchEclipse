@@ -86,14 +86,19 @@ Item {
         id: topRow
         // Row on the bar's outer edge: strip below it on a top bar, above it on a bottom.
         y: root.topBar ? 0 : workspaces.implicitHeight + root.barSpacing
-        // Left zone minimums count the fixed buttons only: counting the title let a
-        // long one widen the bar (783 -> 930). Widths stay implicit.
-        readonly property real leftMinWidth: launcherButton.implicitWidth + wallpaperButton.implicitWidth + Theme.spacing * 2
+        // Left zone minimums follow the focused title, clamped to `titleMax`: a long one
+        // widens the bar up to the cap, a short one hands the width straight back. The
+        // source is the title's NATURAL width — measuring the assigned width closes a
+        // slot -> cap -> width -> slot loop.
+        readonly property real titleMax: 160
+        // The pill's visible shoulder reaches `radius - spacing` into this zone, so the
+        // title stops a full spacing short of the edge — floor 0, never a collision.
+        readonly property real pillShoulder: Math.max(0, Theme.radius - Theme.spacing)
+        readonly property real titleGuard: Math.max(Theme.spacing, pillShoulder)
+        readonly property real titleCap: Math.max(0, Math.min(titleMax, windowTitleButton.naturalWidth))
+        readonly property real leftMinWidth: launcherButton.implicitWidth + wallpaperButton.implicitWidth + titleCap + titleGuard + Theme.spacing * 2
         readonly property real rightMinWidth: utilities.implicitWidth
         readonly property real sideWidth: Math.max(leftMinWidth, rightMinWidth)
-        // Title cap shared by Layout.maximumWidth and the elide width (minus pill chrome):
-        // upstream-only, or the title width feeds the Row it is measured from (0-width fixpoint).
-        readonly property real titleCap: Math.max(80, Math.min(240, sideWidth - launcherButton.implicitWidth - wallpaperButton.implicitWidth - Theme.spacing * 3))
         // Quick settings up: the bar IS the panel (zones out, row at panel height, width
         // collapsed). Follow `open`, not `shown` — `shown` outlives the retract.
         readonly property bool panelUp: controlCard.open
@@ -358,10 +363,11 @@ Item {
                 WindowTitle {
                     id: windowTitleButton
                     monitorName: root.monitorName
-                    // Natural size capped by an explicit width (never a layout cap, so it cannot
-                    // loop into sideWidth); textMaxWidth carries that bound minus pill chrome.
+                    // Natural size capped by the reserved slot (never a layout cap, so it
+                    // cannot loop into sideWidth); textMaxWidth carries that bound minus
+                    // this pill's own chrome, so the text never elides while it fits.
                     width: Math.min(implicitWidth, topRow.titleCap)
-                    textMaxWidth: Math.max(0, topRow.titleCap - 36)
+                    textMaxWidth: Math.max(0, topRow.titleCap - windowTitleButton.chromeWidth)
                 }
             }
         }

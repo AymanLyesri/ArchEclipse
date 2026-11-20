@@ -46,9 +46,15 @@ Rectangle {
         return cls !== "" ? cls : "Desktop";
     }
     readonly property string winIcon: root.winClass !== "" ? WorkspaceIcons.forClientClass(root.winClass) : Icons.windowIcon
-    // Elide bound from the bar (layout cap minus pill chrome). Upstream-only on purpose —
-    // deriving it from the Row width collapses to a 0-width fixed point.
+    // Elide bound from the bar (layout slot minus this pill's own chrome). Upstream-only on
+    // purpose — deriving it from the Row width collapses to a 0-width fixed point.
     property real textMaxWidth: 190
+    // Chrome this pill spends before any text: side padding + icon + its gap. Read from the
+    // icon's own metrics, so a wide class glyph cannot steal text width.
+    readonly property real chromeWidth: 16 + iconText.implicitWidth + Theme.spacing
+    // Width the title wants with nothing elided. The bar reserves its slot from this, so it
+    // must stay upstream of `width`/`textMaxWidth` or the slot and the pill close a loop.
+    readonly property real naturalWidth: root.chromeWidth + titleText.implicitWidth
 
     Row {
         id: content
@@ -59,6 +65,7 @@ Rectangle {
         width: Math.max(0, Math.min(implicitWidth, parent.width - 16))
 
         Text {
+            id: iconText
             anchors.verticalCenter: parent.verticalCenter
             text: root.winIcon
             color: Theme.muted

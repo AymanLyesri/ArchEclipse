@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
 import qs.theme
+import qs.widgets.shared
 
 // Unified launcher entry: icon/glyph slot + name/description/arg lines from a
 // Launcher.mkResult() row. Icons resolve via Quickshell.iconPath(); missing fall back to a letter.
@@ -47,7 +48,7 @@ Item {
     // glyph / letter fallback so the slot is never blank.
     readonly property bool _showImage: _iconSrc !== "" && appIcon.status !== Image.Error
     readonly property string _name: entry && entry.name != null ? String(entry.name) : ""
-    // Emoji rows carry the glyph as the name too — showing it twice (slot
+    // Emoji rows carry the glyph as the name too - showing it twice (slot
     // + name line) is pure duplication, so the name line hides then.
     readonly property bool _showName: root._name !== "" && root._name !== root._glyph
     readonly property string _description: entry && entry.description != null ? String(entry.description) : ""
@@ -65,7 +66,10 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: Theme.pad
+        anchors.leftMargin: Theme.pad
+        // rightReserve wired at last: the row stops before the inline action
+        // buttons instead of letting the text elide underneath them.
+        anchors.rightMargin: Theme.pad + root.rightReserve
         spacing: Theme.spaceMd
 
         // ---------- icon slot ----------
@@ -75,7 +79,18 @@ Item {
             Layout.preferredHeight: root._slot
             Layout.alignment: Qt.AlignVCenter
 
-            // Desktop / theme icon via the image://icon/ provider — the old delegates rendered
+            // Rounded tile behind the icon: one silhouette for image, glyph and
+            // letter rows; the wash goes accent-tinted on selection.
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.radius
+                color: root.selected ? Theme.rgba(Theme.accent, 0.16) : Theme.rgba(Theme.fg, 0.045)
+                Behavior on color {
+                    CAnim {}
+                }
+            }
+
+            // Desktop / theme icon via the image://icon/ provider - the old delegates rendered
             // every icon as Text, which cannot display an image URL.
             IconImage {
                 id: appIcon
@@ -125,11 +140,11 @@ Item {
                 visible: root._showName
                 elide: Text.ElideRight
                 text: root._name
-                color: root.selected ? Theme.fg : Theme.fg
+                color: Theme.fg
                 font.family: Theme.fontFamily
                 font.pixelSize: root.compact ? Theme.typeBody : Theme.typeSubtitle
                 font.bold: root.selected || root.compact
-                opacity: root.selected ? 1 : 0.92
+                opacity: root.selected ? 1 : Theme.opacity.soft
             }
             Text {
                 Layout.fillWidth: true

@@ -13,6 +13,10 @@ Rectangle {
     property real size: 5
     property bool enabledHotZone: true
     property bool panelLock: false
+    // While a click-outside island (the launcher) is open, the edge strip must not claim the
+    // press: the dismiss catcher sits under the chrome, so a click here has to fall through to
+    // it and close the island. Hover keeps working - the reveal is not the dismissal.
+    property bool clickThrough: false
 
     anchors.left: side === "left" ? parent.left : undefined
     anchors.right: side === "right" ? parent.right : undefined
@@ -43,6 +47,7 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: root.enabledHotZone
+        acceptedButtons: root.clickThrough ? Qt.NoButton : Qt.LeftButton
         onEntered: {
             // Per-side lock gate (was: either panel's lock blocked both sides)
             if (root.panelLock || !root.enabledHotZone)

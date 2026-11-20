@@ -47,6 +47,7 @@ Item {
     property color outlineColor: Theme.hairline
     property bool borderedWhenActive: false
     property bool dragging: false
+    property bool bold: false
     // Reorder drag (right selector rail). Null target = plain click cell.
     property bool draggable: false
     property Item dragTarget: null
@@ -153,6 +154,7 @@ Item {
                 text: root.icon
                 font.pixelSize: root.pixelSize
                 font.family: root.fontFamily
+                font.bold: root.bold
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 color: root.fgColor
@@ -167,6 +169,7 @@ Item {
                 text: root.text
                 font.pixelSize: root.pixelSize
                 font.family: root.labelFontFamily !== "" ? root.labelFontFamily : Theme.fontFamily
+                font.bold: root.bold
                 width: root.labelMaxWidth >= 0 ? root.labelMaxWidth : implicitWidth
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter

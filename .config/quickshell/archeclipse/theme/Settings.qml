@@ -60,9 +60,10 @@ Singleton {
     // gates are right on a cold reload (UserProfileState is in-memory and starts empty).
     property bool supporterActive: false
     property string supporterSince: ""
-    // Session-scoped dismiss, never persisted: "No thanks" on any gate lasts until the next
-    // reload, which is what makes the prompt return without blocking a setting for good.
-    property bool supporterGateWaived: false
+    // Session-scoped dismissals, never persisted: { perk: true } per gate, cleared on reload.
+    // "Donate" and "No thanks" clear only the gate they were pressed on, so a waiver never
+    // leaks from one gated setting to the next - the friction is the incentive.
+    property var supporterGateWaived: ({})
     // Selected left-panel tab (persisted)
     property string leftPanelWidget: "UserProfile"
     readonly property var leftPanelWidgetNames: ["UserProfile", "BooruViewer", "ChatBot", "MangaViewer", "SettingsWidget", "CustomScripts", "KeyBinds", "Donations", "Plugins"]

@@ -18,9 +18,10 @@ Item {
     // arms at open: an island the cursor never reaches stays (Esc, toggle and
     // click-outside all still work) — only a real leave closes it.
     property var hoverClose: []
-    // States whose island closes on a click outside the surface. While one is
-    // resolved the catcher consumes clicks across the window — chrome included,
-    // rofi-style modal — while the surface itself keeps every click.
+    // States whose island closes on a click outside the surface: the catcher takes every
+    // click in the window the chrome does not claim, so a widget (side pill, floater) keeps
+    // its own clicks and the island survives them. The host must declare this engine
+    // BEFORE the chrome, or the catcher sits on top and swallows those clicks.
     property var clickOutside: []
     property int leaveDelay: 400
 
@@ -64,13 +65,13 @@ Item {
             BarState.deactivate(root.state, root.monitorName);
     }
 
-    // Catcher: four MouseArea bands = the window minus the surface. Above the
-    // chrome (z 5), below nothing that matters — the pill area is not covered,
-    // so island clicks never reach a band.
+    // Catcher: four MouseArea bands = the window minus the surface. It sits in the window's
+    // lower stacking order (see the declaration-order note above), so chrome that accepts
+    // input wins the click; the bands only see what the chrome leaves. The pill area is cut
+    // out of them, so island clicks never reach a band.
     Item {
         id: catcher
         anchors.fill: parent
-        z: 5
         visible: root.clickOutsideActive
         property real sx: root.surface ? root.surface.x : 0
         property real sy: root.surface ? root.surface.y : 0

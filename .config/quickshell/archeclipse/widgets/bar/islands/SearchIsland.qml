@@ -1,10 +1,11 @@
 import QtQuick
 import qs.theme
 import qs.services
+import qs.widgets.shared
 import qs.widgets.bar.islands
 import qs.widgets.launcher
 
-// Search island: input + launcher results inline in the bar pill — the pill grows (width via
+// Search island: input + launcher results inline in the bar pill - the pill grows (width via
 // the pill transition, height snapped) while the results body unfolds.
 Column {
     id: root
@@ -29,19 +30,33 @@ Column {
         }
     }
 
-    // Search input pill (was SearchBar — merged here, its only consumer).
-    // Typing, Enter (activate hook), Up/Down (navigate hook), Esc (close).
+    // Search input well: same translucent recess as the results panel, so input and
+    // body read as one sunken field over the pill plate.
     Rectangle {
         id: searchInput
         width: parent.width
-        height: 30
+        height: 36
         radius: Theme.radius
-        color: Theme.surface
+        color: Theme.rgba(Theme.bg, 0.35)
+
+        // Magnifier glyph: fgDim at rest, accent once a query is live.
+        Text {
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            text: Icons.search
+            color: input.text !== "" ? Theme.accent : Theme.fgDim
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSizeLarge
+            Behavior on color {
+                CAnim {}
+            }
+        }
 
         TextInput {
             id: input
             anchors.fill: parent
-            anchors.leftMargin: 12
+            anchors.leftMargin: 34
             anchors.rightMargin: 12
             verticalAlignment: TextInput.AlignVCenter
             color: Theme.fg
@@ -72,7 +87,7 @@ Column {
                 Launcher.selectNext(-1);
             }
 
-            // focus grab must wait one event-loop turn — the loader creates this
+            // focus grab must wait one event-loop turn - the loader creates this
             // page before the layer surface gets keyboard interactivity
             Timer {
                 interval: 50
@@ -81,15 +96,15 @@ Column {
             }
         }
 
-        // keep focus while the search island is open (clicks elsewhere shouldn't
-        // strand the caret)
+        // Keep the caret alive while the search island is open: a widget click elsewhere in the
+        // bar no longer closes the launcher, so focus has to be restored instead. The query is
+        // never cleared here: every island pulse (a media/screenshot pill reacting to that same
+        // click) fires this signal too, and clearing wiped a live query.
         Connections {
             target: BarState
             function onPanelStatesByMonitorChanged() {
-                if (BarState.isOpenFor("search", root.monitorName)) {
-                    input.text = "";
+                if (BarState.isOpenFor("search", root.monitorName))
                     input.forceActiveFocus();
-                }
             }
         }
 
@@ -104,13 +119,14 @@ Column {
             }
         }
 
-        // blinking caret placeholder hint when empty
+        // Placeholder rides beside the caret while the box is empty -
+        // every launcher shows it focused-empty, so the !focus gate is gone.
         Text {
-            visible: input.text === "" && !input.focus
+            visible: input.text === ""
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
-            anchors.leftMargin: 12
-            text: "Search…"
+            anchors.leftMargin: 34
+            text: "Search\u2026"
             color: Theme.muted
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize

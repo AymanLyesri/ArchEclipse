@@ -4,17 +4,17 @@ import qs.services
 import qs.widgets.shared
 
 // Results panel for the search island (the input lives in SearchIsland): an empty query shows
-// recent apps, and helper tips live under bare ">" (Launcher.paletteHelp) — no side panes.
+// recent apps, and helper tips live under bare ">" (Launcher.paletteHelp) - no side panes.
 Rectangle {
     id: root
 
     implicitWidth: 500
     implicitHeight: 448
     property string monitorName: ""
-    // Recessed results well: the pill around it is the surface, so the list sinks into it
-    // instead of stacking a second identical plate.
+    // Translucent recess via Theme.rgba, never an opaque depth token: the pill is the
+    // plate, and the wallpaper must read through the launcher instead of stopping at it.
     radius: Theme.radius
-    color: Theme.surfaceSunken
+    color: Theme.rgba(Theme.bg, 0.35)
 
     SmoothListView {
         id: resultsList
@@ -29,7 +29,7 @@ Rectangle {
         // `resultsList.model` in the expression re-evaluates this binding on every results swap
         // (the view overwrites currentIndex itself). See Launcher.setResults for the order.
         currentIndex: resultsList.model, Launcher.selectedIndex
-        spacing: 2
+        spacing: 3
         // Keyboard nav: bring the selection into view (mouse hover must not scroll).
         function ensureVisible(dir) {
             if (currentIndex < 0)
@@ -40,11 +40,14 @@ Rectangle {
         // with expressive easing instead of repainting each delegate's background.
         highlightFollowsCurrentItem: false
         highlight: Rectangle {
+            // Inset accent wash - an opaque depth token here would read as a
+            // sticker pasted over the translucent well.
+            x: 4
             y: resultsList.currentItem ? resultsList.currentItem.y : 0
-            width: resultsList.width
+            width: resultsList.width - 8
             height: resultsList.currentItem ? resultsList.currentItem.height : 0
             radius: Theme.radius
-            color: Theme.surfaceOverlay
+            color: Theme.rgba(Theme.accent, 0.18)
             Behavior on y {
                 Anim {}
             }
@@ -58,11 +61,11 @@ Rectangle {
             required property var modelData
             required property int index
             width: resultsList.width
-            height: modelData.isHeader === true ? 30 : ((modelData.actions !== undefined && modelData.actions.length > 0) ? 56 : 52)
+            height: modelData.isHeader === true ? 28 : ((modelData.actions !== undefined && modelData.actions.length > 0) ? 58 : 54)
             radius: Theme.radius
             color: "transparent"
 
-            // Header row. NOTE: strict `=== true` — a bare isHeader is undefined for normal rows,
+            // Header row. NOTE: strict `=== true` - a bare isHeader is undefined for normal rows,
             // and undefined->bool keeps the default (true), painting the header over every icon.
             Row {
                 visible: modelData.isHeader === true
@@ -89,7 +92,7 @@ Rectangle {
                 }
             }
 
-            // Normal result row — unified AppEntry (real app icons
+            // Normal result row - unified AppEntry (real app icons
             // via IconImage, glyphs via Text, letter fallback).
             AppEntry {
                 visible: modelData.isHeader !== true
@@ -115,8 +118,8 @@ Rectangle {
                         text: modelData.label
                         pixelSize: Theme.typeLabel
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surfaceRaised
-                        hoverBg: Theme.surfaceOverlay
+                        idleBg: Theme.surfaceHover
+                        hoverBg: Theme.rgba(Theme.fg, 0.13)
                         tooltipText: modelData.tooltip || modelData.label
                         onClicked: modelData.onClick()
                     }
@@ -149,86 +152,132 @@ Rectangle {
         }
     }
 
-    // Footer band: keyboard model + result count. It sits below the list so the list owns the
-    // whole panel body and the hints never push results around.
-    Rectangle {
+    // Footer: hairline rule + key-hint chips + result count, instead of a filled
+    // band - chrome floats on the translucent well rather than capping it.
+    Item {
         id: footer
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 30
-        color: Qt.alpha(Theme.bg, 0.35)
-        radius: Theme.radius
+        height: 34
+
+        Rectangle {
+            id: footerRule
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 1
+            color: Theme.hairline
+        }
 
         Row {
-            anchors.fill: parent
-            anchors.leftMargin: Theme.pad + 4
-            anchors.rightMargin: Theme.pad + 4
+            anchors.top: footerRule.bottom
+            anchors.topMargin: 6
+            anchors.left: parent.left
+            anchors.leftMargin: Theme.pad
             spacing: Theme.spaceSm
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "\u2191\u2193"
-                color: Theme.fgDim
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeCaption
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "navigate"
-                color: Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeCaption
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "\u21B5"
-                color: Theme.fgDim
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeCaption
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "open"
-                color: Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeCaption
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "esc"
-                color: Theme.fgDim
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeCaption
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "close"
-                color: Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeCaption
-            }
-
-            Item {
-                width: Math.max(0, parent.width - 260)
-                height: 1
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: {
-                    let n = 0;
-                    const res = Launcher.results || [];
-                    for (let i = 0; i < res.length; i++) {
-                        if (res[i] && res[i].isHeader !== true)
-                            n++;
+            Rectangle {
+                height: 22
+                radius: Theme.radius
+                color: Theme.rgba(Theme.fg, 0.05)
+                width: navRow.implicitWidth + 16
+                Row {
+                    id: navRow
+                    anchors.centerIn: parent
+                    spacing: 5
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "\u2191\u2193"
+                        color: Theme.fgDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                        font.bold: true
                     }
-                    return n + (n === 1 ? " result" : " results");
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "navigate"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                    }
                 }
-                color: Theme.muted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeCaption
             }
+
+            Rectangle {
+                height: 22
+                radius: Theme.radius
+                color: Theme.rgba(Theme.fg, 0.05)
+                width: openRow.implicitWidth + 16
+                Row {
+                    id: openRow
+                    anchors.centerIn: parent
+                    spacing: 5
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "\u21B5"
+                        color: Theme.fgDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                        font.bold: true
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "open"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                    }
+                }
+            }
+
+            Rectangle {
+                height: 22
+                radius: Theme.radius
+                color: Theme.rgba(Theme.fg, 0.05)
+                width: escRow.implicitWidth + 16
+                Row {
+                    id: escRow
+                    anchors.centerIn: parent
+                    spacing: 5
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "esc"
+                        color: Theme.fgDim
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                        font.bold: true
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "close"
+                        color: Theme.muted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.typeCaption
+                    }
+                }
+            }
+        }
+
+        Text {
+            anchors.top: footerRule.bottom
+            anchors.topMargin: 6
+            height: 22
+            verticalAlignment: Text.AlignVCenter
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.pad
+            text: {
+                let n = 0;
+                const res = Launcher.results || [];
+                for (let i = 0; i < res.length; i++) {
+                    if (res[i] && res[i].isHeader !== true)
+                        n++;
+                }
+                return n + (n === 1 ? " result" : " results");
+            }
+            color: Theme.muted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.typeCaption
         }
     }
 
@@ -245,7 +294,7 @@ Rectangle {
         }
     }
     // Search-open tracker: the default push is correct only when the island OPENS. Other
-    // panelStatesByMonitor mutations must not widen it — the 2s isRecording lag clobbered presets.
+    // panelStatesByMonitor mutations must not widen it - the 2s isRecording lag clobbered presets.
     property bool _searchOpen: false
     Component.onCompleted: {
         root._searchOpen = BarState.isOpenFor("search", root.monitorName);

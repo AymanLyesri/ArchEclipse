@@ -7,7 +7,7 @@ import qs.theme
 import qs.widgets.shared
 import qs.services
 
-// Settings Widget — shell settings panel. Sections run Bar → Screenshots plus
+// Settings Widget — shell settings panel. Sections run Bar → Debugging plus
 // the Apply/Reset footer; order must match `categories` below.
 Item {
     id: root
@@ -29,7 +29,8 @@ Item {
         { key: "lockscreen", title: "Lockscreen" },
         { key: "recording", title: "Recording" },
         { key: "screenshots", title: "Screenshots" },
-        { key: "keybinds", title: "Keybinds" }
+        { key: "keybinds", title: "Keybinds" },
+        { key: "debugging", title: "Debugging" }
     ]
 
     // Island motion-style choices live at root.
@@ -128,321 +129,357 @@ Item {
                                 Layout.preferredWidth: 160
                             }
                         }
+
+                        // Hyprland stops the shell while a game window is fullscreen
+                        // (game classes, or anything fullscreen on workspace 10);
+                        // this switch turns that behaviour off, default on.
+                        SettingRow {
+                            text: "Hide bar when a game is fullscreen"
+                            tip: "Hide the shell while a game window is fullscreen, or any window on workspace 10."
+                            AppToggle {
+                                checked: Settings.gameModeAutoHideBar
+                                onToggled: Settings.updateSetting("gameMode.autoHideBar", checked)
+                            }
+                        }
         }
     }
 
     Component {
         id: sec1
 
-        Column {
-            width: parent.width
-            spacing: Theme.spacing
+        // Supporter perk gate: the whole category is a donation unlock.
+        // "No thanks" clears every gate until the next shell reload.
+        SupporterGate {
+            perk: "panel layout"
+            monitorName: root.monitorName
 
-                        SettingRow {
-                            text: "Left Panel Width"
-                            tip: "Width of the left side panel on this monitor in px."
-                            AppSpinBox {
-                                from: 200
-                                to: 1500
-                                value: Settings.panelWidthFor("left", root.monitorName)
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.panelWidthFor("left", root.monitorName))
-                                        return;
-                                    Settings.setPanelWidthFor("left", root.monitorName, value);
+            Column {
+                width: parent.width
+                spacing: Theme.spacing
+
+                            SettingRow {
+                                text: "Left Panel Width"
+                                tip: "Width of the left side panel on this monitor in px."
+                                AppSpinBox {
+                                    from: 200
+                                    to: 1500
+                                    value: Settings.panelWidthFor("left", root.monitorName)
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.panelWidthFor("left", root.monitorName))
+                                            return;
+                                        Settings.setPanelWidthFor("left", root.monitorName, value);
+                                    }
                                 }
                             }
-                        }
-                        SettingRow {
-                            text: "Right Panel Width"
-                            tip: "Width of the right side panel on this monitor in px."
-                            AppSpinBox {
-                                from: 200
-                                to: 1500
-                                value: Settings.panelWidthFor("right", root.monitorName)
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.panelWidthFor("right", root.monitorName))
-                                        return;
-                                    Settings.setPanelWidthFor("right", root.monitorName, value);
+                            SettingRow {
+                                text: "Right Panel Width"
+                                tip: "Width of the right side panel on this monitor in px."
+                                AppSpinBox {
+                                    from: 200
+                                    to: 1500
+                                    value: Settings.panelWidthFor("right", root.monitorName)
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.panelWidthFor("right", root.monitorName))
+                                            return;
+                                        Settings.setPanelWidthFor("right", root.monitorName, value);
+                                    }
                                 }
                             }
-                        }
-                        SettingRow {
-                            text: "Left Panel Hot Zone"
-                            tip: "Hover the left edge to open the left panel."
-                            AppToggle {
-                                checked: Settings.leftPanelHotZone
-                                onToggled: Settings.leftPanelHotZone = checked
-                            }
-                        }
-                        SettingRow {
-                            text: "Right Panel Hot Zone"
-                            tip: "Hover the right edge to open the right panel."
-                            AppToggle {
-                                checked: Settings.rightPanelHotZone
-                                onToggled: Settings.rightPanelHotZone = checked
-                            }
-                        }
-                        SettingRow {
-                            text: "Left Hot Zone Size"
-                            tip: "Hover strip width on the left edge in px."
-                            AppSpinBox {
-                                from: 1
-                                to: 50
-                                value: Settings.leftPanelHotZoneSize
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.leftPanelHotZoneSize)
-                                        return;
-                                    Settings.leftPanelHotZoneSize = value;
+                            SettingRow {
+                                text: "Left Panel Hot Zone"
+                                tip: "Hover the left edge to open the left panel."
+                                AppToggle {
+                                    checked: Settings.leftPanelHotZone
+                                    onToggled: Settings.leftPanelHotZone = checked
                                 }
                             }
-                        }
-                        SettingRow {
-                            text: "Right Hot Zone Size"
-                            tip: "Hover strip width on the right edge in px."
-                            AppSpinBox {
-                                from: 1
-                                to: 50
-                                value: Settings.rightPanelHotZoneSize
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.rightPanelHotZoneSize)
-                                        return;
-                                    Settings.rightPanelHotZoneSize = value;
+                            SettingRow {
+                                text: "Right Panel Hot Zone"
+                                tip: "Hover the right edge to open the right panel."
+                                AppToggle {
+                                    checked: Settings.rightPanelHotZone
+                                    onToggled: Settings.rightPanelHotZone = checked
                                 }
                             }
-                        }
-                        AppButton {
-                            text: "Preview Hot Zones"
-                            tooltipText: "Flash the edge hover areas on screen."
-                            onClicked: root.previewHotZones()
-                        }
+                            SettingRow {
+                                text: "Left Hot Zone Size"
+                                tip: "Hover strip width on the left edge in px."
+                                AppSpinBox {
+                                    from: 1
+                                    to: 50
+                                    value: Settings.leftPanelHotZoneSize
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.leftPanelHotZoneSize)
+                                            return;
+                                        Settings.leftPanelHotZoneSize = value;
+                                    }
+                                }
+                            }
+                            SettingRow {
+                                text: "Right Hot Zone Size"
+                                tip: "Hover strip width on the right edge in px."
+                                AppSpinBox {
+                                    from: 1
+                                    to: 50
+                                    value: Settings.rightPanelHotZoneSize
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.rightPanelHotZoneSize)
+                                            return;
+                                        Settings.rightPanelHotZoneSize = value;
+                                    }
+                                }
+                            }
+                            AppButton {
+                                text: "Preview Hot Zones"
+                                tooltipText: "Flash the edge hover areas on screen."
+                                onClicked: root.previewHotZones()
+                            }
+            }
         }
     }
 
     Component {
         id: sec2
 
-        Column {
-            width: parent.width
-            spacing: Theme.spacing
+        // Supporter perk gate: the whole category is a donation unlock.
+        // "No thanks" clears every gate until the next shell reload.
+        SupporterGate {
+            perk: "theme colors"
+            monitorName: root.monitorName
 
-                        SettingRow {
-                            text: "Dynamic Theme Colors"
-                            tip: "Recolor the theme from the wallpaper."
-                            AppToggle {
-                                checked: Settings.dynamicThemeColors
-                                onToggled: {
-                                    Settings.dynamicThemeColors = checked;
-                                    root.setThemeFlagInConf("autocolor", checked);
-                                }
-                            }
-                        }
-                        SupporterGate {
-                            monitorName: root.monitorName
-                            perk: "Wallpaper-driven theme variants"
+            Column {
+                width: parent.width
+                spacing: Theme.spacing
+
                             SettingRow {
-                                text: "Dynamic Theme Variants"
-                                tip: "Switch light/dark variant from wallpaper."
+                                text: "Dynamic Theme Colors"
+                                tip: "Recolor the theme from the wallpaper."
                                 AppToggle {
-                                    checked: Settings.dynamicThemeVariants
+                                    checked: Settings.dynamicThemeColors
                                     onToggled: {
-                                        Settings.dynamicThemeVariants = checked;
-                                        root.setThemeFlagInConf("autovariant", checked);
+                                        Settings.dynamicThemeColors = checked;
+                                        root.setThemeFlagInConf("autocolor", checked);
                                     }
                                 }
                             }
-                        }
-                        SettingRow {
-                            text: "Radius"
-                            tip: "Corner radius for pills, cards and panels."
-                            AppSpinBox {
-                                from: 0
-                                to: 24
-                                value: Settings.uiRadius
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.uiRadius)
-                                        return;
-                                    Settings.uiRadius = value;
+                                SettingRow {
+                                    text: "Dynamic Theme Variants"
+                                    tip: "Switch light/dark variant from wallpaper."
+                                    AppToggle {
+                                        checked: Settings.dynamicThemeVariants
+                                        onToggled: {
+                                            Settings.dynamicThemeVariants = checked;
+                                            root.setThemeFlagInConf("autovariant", checked);
+                                        }
+                                    }
+                                }
+                            SettingRow {
+                                text: "Radius"
+                                tip: "Corner radius for pills, cards and panels."
+                                AppSpinBox {
+                                    from: 0
+                                    to: 24
+                                    value: Settings.uiRadius
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.uiRadius)
+                                            return;
+                                        Settings.uiRadius = value;
+                                    }
                                 }
                             }
-                        }
-                        SettingRow {
-                            text: "Pad (Inset)"
-                            tip: "Content inset inside cards, panels and islands."
-                            AppSpinBox {
-                                from: 0
-                                to: 16
-                                value: Settings.uiPad
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.uiPad)
-                                        return;
-                                    Settings.uiPad = value;
+                            SettingRow {
+                                text: "Pad (Inset)"
+                                tip: "Content inset inside cards, panels and islands."
+                                AppSpinBox {
+                                    from: 0
+                                    to: 16
+                                    value: Settings.uiPad
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.uiPad)
+                                            return;
+                                        Settings.uiPad = value;
+                                    }
                                 }
                             }
-                        }
-                        SettingRow {
-                            text: "Spacing"
-                            tip: "Gap between bar elements and stacked sections."
-                            AppSpinBox {
-                                from: 2
-                                to: 16
-                                value: Settings.uiSpacing
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.uiSpacing)
-                                        return;
-                                    Settings.uiSpacing = value;
+                            SettingRow {
+                                text: "Spacing"
+                                tip: "Gap between bar elements and stacked sections."
+                                AppSpinBox {
+                                    from: 2
+                                    to: 16
+                                    value: Settings.uiSpacing
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.uiSpacing)
+                                            return;
+                                        Settings.uiSpacing = value;
+                                    }
                                 }
                             }
-                        }
+            }
         }
     }
 
     Component {
         id: sec3
 
-        Column {
-            width: parent.width
-            spacing: Theme.spacing
+        // Supporter perk gate: the whole category is a donation unlock.
+        // "No thanks" clears every gate until the next shell reload.
+        SupporterGate {
+            perk: "interface sizing"
+            monitorName: root.monitorName
 
-                        SettingRow {
-                            text: "Opacity"
-                            tip: "Shell opacity; 1 is fully opaque."
-                            AppSlider {
-                                from: 0
-                                to: 1
-                                value: Settings.uiOpacity
-                                stepSize: 0.01
-                                // Shipped opacity, so a stray drag can find its way back.
-                                defaultValue: 0.618
-                                // Fill: the value label fixes the right edge; a
-                                // fixed 150 starved the row label.
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    if (value === Settings.uiOpacity)
-                                        return;
-                                    Settings.uiOpacity = value;
+            Column {
+                width: parent.width
+                spacing: Theme.spacing
+
+                            SettingRow {
+                                text: "Opacity"
+                                tip: "Shell opacity; 1 is fully opaque."
+                                AppSlider {
+                                    from: 0
+                                    to: 1
+                                    value: Settings.uiOpacity
+                                    stepSize: 0.01
+                                    // Shipped opacity, so a stray drag can find its way back.
+                                    defaultValue: 0.618
+                                    // Fill: the value label fixes the right edge; a
+                                    // fixed 150 starved the row label.
+                                    Layout.fillWidth: true
+                                    onValueChanged: {
+                                        if (value === Settings.uiOpacity)
+                                            return;
+                                        Settings.uiOpacity = value;
+                                    }
+                                }
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: Settings.uiOpacity.toFixed(2)
+                                    color: Theme.fgDim
+                                    Layout.preferredWidth: 34
+                                    horizontalAlignment: Text.AlignRight
                                 }
                             }
-                            Label {
-                                font.pixelSize: Theme.fontSize
-                                text: Settings.uiOpacity.toFixed(2)
-                                color: Theme.fgDim
-                                Layout.preferredWidth: 34
-                                horizontalAlignment: Text.AlignRight
-                            }
-                        }
-                        SettingRow {
-                            text: "Font Size"
-                            tip: "Base font size for shell text."
-                            AppSpinBox {
-                                from: 10
-                                to: 30
-                                value: Settings.uiFontSize
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.uiFontSize)
-                                        return;
-                                    Settings.uiFontSize = value;
+                            SettingRow {
+                                text: "Font Size"
+                                tip: "Base font size for shell text."
+                                AppSpinBox {
+                                    from: 10
+                                    to: 30
+                                    value: Settings.uiFontSize
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.uiFontSize)
+                                            return;
+                                        Settings.uiFontSize = value;
+                                    }
                                 }
                             }
-                        }
+            }
         }
     }
 
     Component {
         id: sec4
 
-        Column {
-            width: parent.width
-            spacing: Theme.spacing
+        // Supporter perk gate: the whole category is a donation unlock.
+        // "No thanks" clears every gate until the next shell reload.
+        SupporterGate {
+            perk: "animation tuning"
+            monitorName: root.monitorName
 
-                        SettingRow {
-                            text: "Enabled"
-                            tip: "Turn all shell animations on or off."
-                            AppToggle {
-                                checked: Settings.animationsEnabled
-                                onToggled: Settings.animationsEnabled = checked
+            Column {
+                width: parent.width
+                spacing: Theme.spacing
+
+                            SettingRow {
+                                text: "Enabled"
+                                tip: "Turn all shell animations on or off."
+                                AppToggle {
+                                    checked: Settings.animationsEnabled
+                                    onToggled: Settings.animationsEnabled = checked
+                                }
                             }
-                        }
-                        SettingRow {
-                            text: "Speed"
-                            tip: "Duration multiplier; lower is faster."
-                            AppSlider {
-                                from: 0.2
-                                to: 2.0
-                                stepSize: 0.05
-                                // 1.0 is the neutral multiplier.
-                                defaultValue: 1.0
-                                value: Settings.animScale
-                                Layout.fillWidth: true
-                                onValueChanged: {
-                                    const v = Math.round(value * 100) / 100;
-                                    if (Math.abs(v - Settings.animScale) < 0.001)
-                                        return;
-                                    Settings.animScale = v;
+                            SettingRow {
+                                text: "Speed"
+                                tip: "Duration multiplier; lower is faster."
+                                AppSlider {
+                                    from: 0.2
+                                    to: 2.0
+                                    stepSize: 0.05
+                                    // 1.0 is the neutral multiplier.
+                                    defaultValue: 1.0
+                                    value: Settings.animScale
+                                    Layout.fillWidth: true
+                                    onValueChanged: {
+                                        const v = Math.round(value * 100) / 100;
+                                        if (Math.abs(v - Settings.animScale) < 0.001)
+                                            return;
+                                        Settings.animScale = v;
+                                    }
+                                }
+                                Label {
+                                    font.pixelSize: Theme.fontSize
+                                    text: Settings.animScale.toFixed(2) + "×"
+                                    color: Theme.fgDim
+                                    Layout.preferredWidth: 44
+                                    horizontalAlignment: Text.AlignRight
                                 }
                             }
                             Label {
-                                font.pixelSize: Theme.fontSize
-                                text: Settings.animScale.toFixed(2) + "×"
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: "Lower is faster (duration multiplier)."
                                 color: Theme.fgDim
-                                Layout.preferredWidth: 44
-                                horizontalAlignment: Text.AlignRight
+                                font.pixelSize: Theme.fontSize - 1
                             }
-                        }
-                        Label {
-                            width: parent.width
-                            wrapMode: Text.WordWrap
-                            text: "Lower is faster (duration multiplier)."
-                            color: Theme.fgDim
-                            font.pixelSize: Theme.fontSize - 1
-                        }
-                        SettingRow {
-                            text: "Island Style"
-                            tip: "Motion style used by bar islands."
-                            AppComboBox {
-                                model: root.islandAnimStyleLabels
-                                currentIndex: Math.max(0, root.islandAnimStyleValues.indexOf(Settings.islandAnimStyle))
-                                onActivated: Settings.islandAnimStyle = root.islandAnimStyleValues[index]
-                                Layout.preferredWidth: 160
-                            }
-                        }
-                        SettingRow {
-                            text: "Reveal-In Pressure"
-                            tip: "Hover dwell before a bar pill or island reveals."
-                            AppSpinBox {
-                                from: 0
-                                to: 5000
-                                value: Settings.revealInPressure
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.revealInPressure)
-                                        return;
-                                    Settings.revealInPressure = value;
+                            SettingRow {
+                                text: "Island Style"
+                                tip: "Motion style used by bar islands."
+                                AppComboBox {
+                                    model: root.islandAnimStyleLabels
+                                    currentIndex: Math.max(0, root.islandAnimStyleValues.indexOf(Settings.islandAnimStyle))
+                                    onActivated: Settings.islandAnimStyle = root.islandAnimStyleValues[index]
+                                    Layout.preferredWidth: 160
                                 }
                             }
-                        }
-                        SettingRow {
-                            text: "Reveal-Out Pressure"
-                            tip: "Delay before a hovered island closes."
-                            AppSpinBox {
-                                from: 0
-                                to: 5000
-                                value: Settings.revealOutPressure
-                                Layout.preferredWidth: 160
-                                onValueChanged: {
-                                    if (value === Settings.revealOutPressure)
-                                        return;
-                                    Settings.revealOutPressure = value;
+                            SettingRow {
+                                text: "Reveal-In Pressure"
+                                tip: "Hover dwell before a bar pill or island reveals."
+                                AppSpinBox {
+                                    from: 0
+                                    to: 5000
+                                    value: Settings.revealInPressure
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.revealInPressure)
+                                            return;
+                                        Settings.revealInPressure = value;
+                                    }
                                 }
                             }
-                        }
+                            SettingRow {
+                                text: "Reveal-Out Pressure"
+                                tip: "Delay before a hovered island closes."
+                                AppSpinBox {
+                                    from: 0
+                                    to: 5000
+                                    value: Settings.revealOutPressure
+                                    Layout.preferredWidth: 160
+                                    onValueChanged: {
+                                        if (value === Settings.revealOutPressure)
+                                            return;
+                                        Settings.revealOutPressure = value;
+                                    }
+                                }
+                            }
+            }
         }
     }
 
@@ -670,17 +707,6 @@ Item {
                             AppToggle {
                                 checked: Settings.gameModeEnabled
                                 onToggled: Settings.applyGameMode(checked)
-                            }
-                        }
-
-                        // Hyprland hides the whole shell while a game (or anything on the
-                        // gaming workspace) is fullscreen; this gates that, kept on by default.
-                        SettingRow {
-                            text: "Hide bar when fullscreen"
-                            tip: "Hide the shell while a game window is fullscreen, or any window on workspace 10."
-                            AppToggle {
-                                checked: Settings.gameModeAutoHideBar
-                                onToggled: Settings.updateSetting("gameMode.autoHideBar", checked)
                             }
                         }
 
@@ -1330,6 +1356,40 @@ Item {
                         }
         }
     }
+
+    Component {
+        id: sec12
+
+        Column {
+            width: parent.width
+            spacing: Theme.spacing
+
+                        // Debug-only: flips the persisted supporter leaf so the gated
+                        // categories can be previewed locked and unlocked. Interaction needs an
+                        // existing supporter grant (live flag or grant timestamp), so this can
+                        // never be used to unlock the gated categories from nothing.
+                        SettingRow {
+                            text: "Supporter status"
+                            tip: "Debug: toggle the supporter flag to preview the gated categories. Needs an existing supporter grant."
+                            AppToggle {
+                                id: supporterDebugToggle
+                                objectName: "supporterDebugToggle"
+                                checked: Settings.supporterActive
+                                enabled: Settings.supporterActive || Settings.supporterSince !== ""
+                                onToggled: Settings.updateSetting("supporter.active", checked)
+                            }
+                        }
+
+                        // The profile tab and the donation flow also write this flag; keep the
+                        // switch following them instead of freezing on the first click.
+                        Connections {
+                            target: Settings
+                            function onSupporterActiveChanged() {
+                                supporterDebugToggle.checked = Settings.supporterActive;
+                            }
+                        }
+        }
+    }
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
@@ -1355,7 +1415,7 @@ Item {
             Layout.fillHeight: true
             sectionMode: true
             navModel: root.categories
-            sections: [sec0, sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11]
+            sections: [sec0, sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11, sec12]
         }
     }
 

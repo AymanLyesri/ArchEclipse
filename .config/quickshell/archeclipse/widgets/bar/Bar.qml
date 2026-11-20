@@ -197,6 +197,21 @@ PanelWindow {
     }
 
 
+    // ---- shared island dismiss engine ----
+    // Declared BEFORE stripRoot on purpose: at equal z the later sibling owns pointer input, so
+    // the catcher sits UNDER the bar chrome: a click on a side pill (media, recording,
+    // screenshot) or on a floater acts on that widget and leaves the launcher open. Clicks on
+    // empty bar area never reach a widget, so click-outside-to-close keeps working.
+    IslandDismiss {
+        id: islandDismiss
+        anchors.fill: parent
+        monitorName: root.monitorName
+        surface: pill
+        surfaceHovered: pillHover.hovered
+        hoverClose: ["wallpaper"]
+        clickOutside: ["search"]
+    }
+
     Item {
         id: stripRoot
         anchors.fill: parent
@@ -1236,6 +1251,7 @@ PanelWindow {
             size: Settings.leftPanelHotZoneSize
             enabled: Settings.leftPanelHotZone
             panelLock: Settings.panelLockFor("left", root.monitorName)
+            clickThrough: islandDismiss.clickOutsideActive
         }
         HotZone {
             id: rightHot
@@ -1244,20 +1260,8 @@ PanelWindow {
             size: Settings.rightPanelHotZoneSize
             enabled: Settings.rightPanelHotZone
             panelLock: Settings.panelLockFor("right", root.monitorName)
+            clickThrough: islandDismiss.clickOutsideActive
         }
-    }
-
-    // ---- shared island dismiss engine ----
-    // One per window, above all chrome: hover-out closes the wallpaper island,
-    // clicks outside the pill close the launcher island (bands skip the pill).
-    IslandDismiss {
-        id: islandDismiss
-        anchors.fill: parent
-        monitorName: root.monitorName
-        surface: pill
-        surfaceHovered: pillHover.hovered
-        hoverClose: ["wallpaper"]
-        clickOutside: ["search"]
     }
 
     // The toast pill maps on toasts alone so notifications survive a
