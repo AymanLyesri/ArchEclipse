@@ -731,6 +731,8 @@ PanelWindow {
         Item {
             id: leftSidePill
             x: pill.x - width - Theme.sidePillMargin
+            // On the content row's line: the row starts at the stack's own 4px inset, which is
+            // sidePillMargin / 2, the same offset the center component now uses.
             y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
             // Grows (Behavior-free — the pill's own height Behavior drives it per frame) when
             // a side pill unfolds, so the click-mask Region tracks the expanded pill

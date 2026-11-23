@@ -10,8 +10,8 @@ Rectangle {
 
     property string monitorName: ""
 
-    height: Theme.barContentHeight
-    implicitWidth: content.implicitWidth + 16
+    height: Theme.barCellHeight
+    implicitWidth: content.implicitWidth + Theme.barCellPad * 2
     // Width is assigned by the parent layout (capped at the use site); implicitWidth carries
     // the natural size so no width binding fights the layout.
     radius: Theme.radius
@@ -51,7 +51,7 @@ Rectangle {
     property real textMaxWidth: 190
     // Chrome this pill spends before any text: side padding + icon + its gap. Read from the
     // icon's own metrics, so a wide class glyph cannot steal text width.
-    readonly property real chromeWidth: 16 + iconText.implicitWidth + Theme.spacing
+    readonly property real chromeWidth: Theme.barCellPad * 2 + iconText.implicitWidth + Theme.spacing
     // Width the title wants with nothing elided. The bar reserves its slot from this, so it
     // must stay upstream of `width`/`textMaxWidth` or the slot and the pill close a loop.
     readonly property real naturalWidth: root.chromeWidth + titleText.implicitWidth
@@ -59,10 +59,10 @@ Rectangle {
     Row {
         id: content
         anchors.left: parent.left
-        anchors.leftMargin: 8
+        anchors.leftMargin: Theme.barCellPad
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.spacing
-        width: Math.max(0, Math.min(implicitWidth, parent.width - 16))
+        width: Math.max(0, Math.min(implicitWidth, parent.width - Theme.barCellPad * 2))
 
         Text {
             id: iconText

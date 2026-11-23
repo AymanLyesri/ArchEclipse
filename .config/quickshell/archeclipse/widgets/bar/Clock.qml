@@ -9,8 +9,8 @@ import qs.widgets.shared
 Rectangle {
     id: root
 
-    width: row.implicitWidth
-    height: Theme.barContentHeight
+    width: row.implicitWidth + Theme.barCellPad * 2
+    height: Theme.barCellHeight
     radius: Theme.radius
     // Hover fill — "transparent" when embedded on an already-filled surface (the DefaultBar
     // center pill), so the revealed date never paints a mismatched block.

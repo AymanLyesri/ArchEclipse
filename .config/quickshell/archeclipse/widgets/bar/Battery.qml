@@ -9,8 +9,8 @@ import qs.theme
 // (`powerprofilesctl list` + set). Tooltip shows "Battery: % \nProfile: X".
 Rectangle {
     id: root
-    width: visible ? content.width + 8 : 0
-    height: Theme.barContentHeight
+    width: visible ? content.width + Theme.barCellPad * 2 : 0
+    height: Theme.barCellHeight
     radius: Theme.radius
     color: hover.hovered || batteryPop.visible ? Theme.surfaceHover : "transparent"
 

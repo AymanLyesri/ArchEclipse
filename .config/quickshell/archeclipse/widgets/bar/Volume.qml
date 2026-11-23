@@ -14,8 +14,8 @@ Rectangle {
     property bool pulse: false          // true when shown as a bar-state pulse
     readonly property int fixedWidth: 220
 
-    width: pulse ? fixedWidth : content.width
-    height: Theme.barContentHeight
+    width: pulse ? fixedWidth : content.width + Theme.barCellPad * 2
+    height: Theme.barCellHeight
     radius: Theme.radius
     color: pulse ? Theme.surfaceRaised : "transparent"
 

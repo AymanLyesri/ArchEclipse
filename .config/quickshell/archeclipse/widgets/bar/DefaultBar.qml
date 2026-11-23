@@ -107,7 +107,7 @@ Item {
         readonly property real closedWidth: 2 * sideWidth + centerPill.collapsedWidth + Theme.spacing * 2
         implicitWidth: closedWidth + (centerPill.openWidth - closedWidth) * controlCard.openT
         width: implicitWidth
-        height: Theme.barContentHeight + (Math.max(controlCard.cardHang, Theme.barContentHeight) - Theme.barContentHeight) * controlCard.openT
+        height: Theme.barCellHeight + (Math.max(controlCard.cardHang, Theme.barCellHeight) - Theme.barCellHeight) * controlCard.openT
 
         // Chrome cross-fades out on open and back in from the first frame of the retract;
         // `chromeVisible` only gates hit-testing and stays live through the fade-out.
@@ -138,19 +138,21 @@ Item {
             onTriggered: topRow.chromeVisible = false
         }
 
-        // Center rectangle: bandwidth | control | clock, no top margin so the body reaches the
-        // wall as one PillBackground fill; quick settings grows this same bump into the panel.
+        // Center component: bandwidth | control | clock on its own rounded surface. It is a
+        // normal-corner rectangle, not a concave-flared bump welded to the screen edge: the
+        // flares had to reach the wall, so the whole thing was pinned to the bar's outer edge
+        // and snapped between two anchors on open/close. As a plain component it fills the
+        // content row, which puts its edges on the same line as every other cell.
         Item {
             id: centerPill
             // Gap between the content row and the pill's wall = the stack's per-state outer
             // inset (the states that render this bar all keep the default 4).
             readonly property real edgePad: root.barStack ? root.barStack.effPad : 0
             readonly property bool controlOpen: BarState.stateFor(root.monitorName) === "control"
-            // Resting bump: content row plus 20px chrome, bottom on the
-            // content line and the wall side reaching the pill's inner edge.
-            readonly property real collapsedWidth: centerRow.implicitWidth + 20
+            // Content row plus one corner arc per side: the outermost cells then sit inside
+            // the curve, so a cell's hover wash can never paint over the rounded corner.
+            readonly property real collapsedWidth: centerRow.implicitWidth + Theme.radius * 2
             readonly property real collapsedHeight: Theme.barContentHeight + edgePad
-            readonly property real collapsedY: (Theme.barContentHeight - collapsedHeight) / 2 + (Settings.barOrientation ? -1 : 1) * edgePad / 2
             // Full panel footprint, driven only by `openT`: height tracks cardHang while open,
             // so the volume section's own growth still pushes the pill and strip down live.
             readonly property real openWidth: controlCard.cardWidth
@@ -159,29 +161,29 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: collapsedWidth + (openWidth - collapsedWidth) * controlCard.openT
             height: collapsedHeight + (openHeight - collapsedHeight) * controlCard.openT
-            // Wall edge pinned, growth away from the screen edge. Bottom keeps the
-            // panel's bottom on the row's own growing bottom edge (wall-flush); a
-            // fixed top-anchored offset flew the open panel up past the pill's clip.
-            y: Settings.barOrientation ? collapsedY : topRow.height - height + edgePad
+            // No vertical positioning: the row is the component's height at every point of
+            // the unfold (both animate off barCellHeight -> cardHang), so 0 keeps it flush
+            // with the row and nothing has to snap when the panel opens or retracts.
+            y: 0
 
-            PillBackground {
-                topBar: Settings.barOrientation
-                bodyWidth: centerPill.width
-                bodyHeight: centerPill.height
-                // The bump is the center pill's own surface, so it stays fully opaque through
-                // the unfold — no hand-off fade, no double-blend shortcut.
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.radius
+                // Its own opaque plate: the pill behind is Theme.surface at uiOpacity, so
+                // painting the same translucent colour again double-blends into a darker
+                // patch. The raised plate puts the component on the bar's one plate language.
+                color: Theme.surfaceRaised
                 visible: topRow.chromeVisible || controlCard.shown
-                anchors.horizontalCenter: parent.horizontalCenter
             }
 
             Row {
                 id: centerRow
                 anchors.horizontalCenter: parent.horizontalCenter
-                // Pinned to the wall with the band's height: a centred row would drag the
-                // bandwidth/clock text down the middle of the panel while it cross-fades.
-                height: Theme.barContentHeight
+                // The row fills the component exactly, so y 0 is the row line: a centred row
+                // would drag the bandwidth/clock text down the middle of the panel mid-fade.
+                height: Theme.barCellHeight
                 y: (centerPill.collapsedHeight - height) / 2
-                spacing: Theme.spacing / 2
+                spacing: Theme.spacing
                 // Swapped out for the card (cross-fade, see topRow).
                 visible: topRow.chromeVisible
                 opacity: topRow.chromeOpacity
@@ -233,9 +235,9 @@ Item {
                 AppButton {
                     id: centerButton
                     anchors.verticalCenter: parent.verticalCenter
-                    implicitWidth: 32
+                    implicitWidth: Theme.barIconCell
                     width: implicitWidth
-                    height: Theme.barContentHeight
+                    height: Theme.barCellHeight
                     icon: Icons.arch
                     pixelSize: Theme.fontSize + 1
                     // The row is hidden while the panel is open, so this highlight only shows
@@ -323,9 +325,9 @@ Item {
                 // LauncherButton.qml, now the shared AppButton cell)
                 AppButton {
                     id: launcherButton
-                    implicitWidth: 32
+                    implicitWidth: Theme.barIconCell
                     width: implicitWidth
-                    height: Theme.barContentHeight
+                    height: Theme.barCellHeight
                     icon: Icons.search
                     pixelSize: Theme.fontSize + 3
                     idleFg: Theme.accent
@@ -345,9 +347,9 @@ Item {
                 // as a bar cell; wallpaper outranks control, so no yield needed.
                 AppButton {
                     id: wallpaperButton
-                    implicitWidth: 32
+                    implicitWidth: Theme.barIconCell
                     width: implicitWidth
-                    height: Theme.barContentHeight
+                    height: Theme.barCellHeight
                     icon: Icons.image
                     pixelSize: Theme.fontSize + 1
                     toggle: true

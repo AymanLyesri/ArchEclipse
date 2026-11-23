@@ -18,8 +18,8 @@ Rectangle {
     // local check read a non-existent property and threw, so the icon showed anyway.
     readonly property bool hasBacklight: Brightness.hasBacklightFor(root.monitorName)
 
-    width: pulse ? fixedWidth : content.width
-    height: Theme.barContentHeight
+    width: pulse ? fixedWidth : content.width + Theme.barCellPad * 2
+    height: Theme.barCellHeight
     radius: Theme.radius
     color: pulse ? Theme.surfaceRaised : "transparent"
     visible: root.hasBacklight

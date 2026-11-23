@@ -3,8 +3,8 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Compact bar button with icon + temp on a weather-code-colored background; hover/click pulses
-// the weather island. While the launcher is open the pill unfolds stats rows vertically.
+// Compact bar button with icon + temp on the shared bar surface; hover/click pulses the
+// weather island. While the launcher is open the pill unfolds stats rows vertically.
 Rectangle {
     id: root
     property string monitorName: ""
@@ -21,7 +21,6 @@ Rectangle {
     // Row layouts but can stretch via anchors when there is empty space.
     implicitWidth: content.implicitWidth + Theme.islandPad * 2
     radius: Theme.radius
-    // color set by weatherBg binding below
 
     // Reactive weather data
     readonly property var wx: Weather.data
@@ -29,9 +28,11 @@ Rectangle {
     readonly property var cu: wx ? (wx.current_units ?? {}) : ({})
     readonly property bool hasData: wx !== null
 
-    // Dynamic background color based on weather code
-    readonly property string weatherBg: hasData ? Weather.background(cur.weather_code) : "transparent"
-    color: hover.hovered ? (hasData ? root.weatherBg : Theme.surfaceHover) : (hasData ? root.weatherBg : "transparent")
+    // The weather code used to paint the whole plate, which put a saturated blue block on a
+    // greige bar. It now colours the icon glyph only: lifted toward fg so it reads on the
+    // dark surface (the raw code colours sit at ~2:1 contrast).
+    readonly property string weatherInk: hasData ? Theme.mix(Weather.background(cur.weather_code), Theme.fg, 0.45) : Theme.muted
+    color: hover.hovered ? Theme.surfaceOverlay : (hasData ? Theme.surfaceRaised : "transparent")
 
     Behavior on color { ColorAnimation { duration: Theme.anim.defaultEffects } }
 
@@ -49,7 +50,7 @@ Rectangle {
             visible: root.hasData
             anchors.verticalCenter: parent.verticalCenter
             text: Weather.icon(root.cur.weather_code)
-            color: Theme.onPlateInk
+            color: root.weatherInk
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize + 1
         }
@@ -74,7 +75,7 @@ Rectangle {
                     return Math.min(implicitWidth, 120);
                 return Math.min(implicitWidth, avail);
             }
-            color: Theme.onPlateInk
+            color: Theme.fg
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSize
         }
@@ -101,7 +102,7 @@ Rectangle {
             const hum = Math.round(root.cur.relative_humidity_2m ?? 0);
             return `feels ${feels}${unit} · ${wind}${windUnit} · ${hum}%`;
         }
-        color: Theme.onPlateInk
+        color: Theme.fgDim
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fontSize - 2
     }
@@ -124,7 +125,7 @@ Rectangle {
             const u = root.cu.temperature_2m || "°";
             return `↑${Math.round(d.temperature_2m_max[0])}${u} ↓${Math.round(d.temperature_2m_min[0])}${u}`;
         }
-        color: Theme.onPlateInk
+        color: Theme.fgDim
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fontSize - 2
     }

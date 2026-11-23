@@ -12,7 +12,7 @@ import qs.widgets.shared
 // hides and restores the list, persisted to ~/.cache/quickshell/settings/tray-order.json.
 Row {
     id: root
-    spacing: 2
+    spacing: Theme.spacing
     property string monitorName: ""
 
     // Maximum number of visible icons in the bar strip
@@ -324,8 +324,8 @@ Row {
         Item {
             id: entry
             required property var modelData
-            width: 20
-            height: Theme.barContentHeight
+            width: Theme.barIconCell
+            height: Theme.barCellHeight
 
             Component.onDestruction: {
                 if (root.dragItem === entry.modelData)
@@ -413,8 +413,8 @@ Row {
     Item {
         id: overflow
         visible: SystemTray.items.values.length > root.maxVisible
-        width: 20
-        height: Theme.barContentHeight
+        width: Theme.barIconCell
+        height: Theme.barCellHeight
 
         onVisibleChanged: {
             if (!visible && overflowPopup.opened)

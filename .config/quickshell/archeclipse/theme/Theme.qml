@@ -335,9 +335,18 @@ QtObject {
     // Single source for bar content height — every bar widget binds this instead of
     // hardcoding its own, so all bar content stays the same height.
     readonly property int barContentHeight: 18
-    // Height of the chained status pills (weather/media/recording): deliberately taller
-    // than barContentHeight so the three read as one family, centered in the bar band.
-    readonly property int sidePillHeight: 24
+    // The bar grid: ONE cell metric for every element on the bar line: bare cells, the
+    // fused center body and the chained status pills. Three heights (18/22/24) and four
+    // paddings (0/4/8/16) used to sit side by side and read as jitter; these tokens are
+    // the only numbers a bar widget may size itself with.
+    readonly property int barCellHeight: 22
+    readonly property int barCellPad: 4              // per side: 8px total, text cell
+    // Icon-only cells share one square box (a 14px glyph plus the cell pad) so every glyph
+    // sits on the same rhythm as the text cells.
+    readonly property int barIconCell: 22
+    // Height of the chained status pills (weather/media/recording): the SAME as a cell:
+    // they are cells that happen to carry their own surface, not a taller family.
+    readonly property int sidePillHeight: barCellHeight
     // Gap between the main pill and the chained side pills; also the matching
     // leftPush/rightPush offset, so the x-chain and its mirror cannot drift apart.
     readonly property int sidePillMargin: 8
