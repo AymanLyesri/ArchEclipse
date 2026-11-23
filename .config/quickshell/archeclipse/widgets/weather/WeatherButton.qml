@@ -28,11 +28,14 @@ Rectangle {
     readonly property var cu: wx ? (wx.current_units ?? {}) : ({})
     readonly property bool hasData: wx !== null
 
-    // The weather code used to paint the whole plate, which put a saturated blue block on a
-    // greige bar. It now colours the icon glyph only: lifted toward fg so it reads on the
-    // dark surface (the raw code colours sit at ~2:1 contrast).
+    // The weather code paints the plate, but whispered: 80% into the standard raised surface,
+    // so the pill carries its weather without the saturated block that read as a sticker among
+    // greige cells. Raise the mix toward the code colour for more weather, lower it for less.
+    readonly property string weatherPlate: hasData ? Theme.mix(Weather.background(cur.weather_code), Theme.surfaceRaised, 0.8) : Theme.surfaceRaised
+    // Stronger version of the same colour for the icon glyph (the raw code colours sit at
+    // ~2:1 contrast on a dark surface, so it is lifted toward fg).
     readonly property string weatherInk: hasData ? Theme.mix(Weather.background(cur.weather_code), Theme.fg, 0.45) : Theme.muted
-    color: hover.hovered ? Theme.surfaceOverlay : (hasData ? Theme.surfaceRaised : "transparent")
+    color: root.hasData ? (hover.hovered ? Theme.mix(root.weatherPlate, Theme.fg, 0.1) : root.weatherPlate) : (hover.hovered ? Theme.surfaceHover : "transparent")
 
     Behavior on color { ColorAnimation { duration: Theme.anim.defaultEffects } }
 
