@@ -82,3 +82,52 @@ function endLength(H, f, cr, d, tail) {
     const corner = Math.max(0.5, cr - d) * Math.PI / 2;
     return shoulder + side + corner + Math.max(0, tail);
 }
+
+// Inset end stroke for a FLOATING pill: the same trim/paint contract as strokeEnd, but the
+// body has no screen-edge flare - it wraps the pill's own rounded corner at BOTH ends of the
+// end stroke (top corner, side, bottom corner, tail). Canvas coords are the body's own:
+// x=0 is the pill's left edge, y=0 its top edge.
+function strokeRoundEnd(ctx, end, topBar, W, H, cr, d, tail, paint, frac) {
+    const r = Math.max(0.5, cr - d);
+    const cy0 = d + r;
+    const cy1 = Math.max(cy0, H - d - r);
+    const t = Math.max(0, tail);
+    const segments = [
+        { arc: true, cx: d + r, cy: cy0, r: r, a0: -Math.PI / 2, a1: -Math.PI, x0: d + r, y0: d },
+        { arc: false, x0: d, y0: cy0, x1: d, y1: cy1 },
+        { arc: true, cx: d + r, cy: cy1, r: r, a0: Math.PI, a1: Math.PI / 2, x0: d, y0: cy1, x1: d + r, y1: H - d },
+        { arc: false, x0: d + r, y0: H - d, x1: d + r + t, y1: H - d }
+    ];
+    let remaining = Math.max(0, Math.min(1, frac)) * roundEndLength(H, cr, d, tail);
+    ctx.save();
+    ctx.translate(end === "right" ? W : 0, topBar ? 0 : H);
+    ctx.scale(end === "right" ? -1 : 1, topBar ? 1 : -1);
+    ctx.beginPath();
+    if (remaining > 0) {
+        ctx.moveTo(segments[0].x0, segments[0].y0);
+        for (const s of segments) {
+            if (remaining <= 0)
+                break;
+            const len = s.arc ? Math.abs(s.a1 - s.a0) * s.r : Math.hypot(s.x1 - s.x0, s.y1 - s.y0);
+            if (len <= 0)
+                continue;
+            const take = Math.min(remaining, len);
+            if (s.arc) {
+                const dir = s.a1 >= s.a0 ? 1 : -1;
+                ctx.arc(s.cx, s.cy, s.r, s.a0, s.a0 + dir * take / s.r, s.a1 < s.a0);
+            } else {
+                const k = take / len;
+                ctx.lineTo(s.x0 + (s.x1 - s.x0) * k, s.y0 + (s.y1 - s.y0) * k);
+            }
+            remaining -= take;
+        }
+    }
+    paint(ctx);
+    ctx.restore();
+}
+
+function roundEndLength(H, cr, d, tail) {
+    const r = Math.max(0.5, cr - d);
+    const side = Math.max(0, H - 2 * d - 2 * r);
+    return r * Math.PI / 2 + side + r * Math.PI / 2 + Math.max(0, tail);
+}

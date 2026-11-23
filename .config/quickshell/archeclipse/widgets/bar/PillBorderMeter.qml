@@ -122,7 +122,9 @@ Item {
             const H = canvas.height;
             const f = root.flare;
             const cr = root.corner;
-            if (f <= 0 || cr <= 0 || W <= 0 || H <= 0)
+            // flare 0 = a floating pill (no screen-edge flare): the same strokes wrap the
+            // pill's own rounded ends instead of a wall shoulder.
+            if (cr <= 0 || W <= 0 || H <= 0)
                 return;
             ctx.reset();
             ctx.clearRect(0, 0, W, H);
@@ -130,26 +132,28 @@ Item {
             ctx.lineJoin = "round";
             const fracs = [root.cpuFrac, root.ramFrac, root.gpuFrac];
             const colors = [canvas.cpuColor, canvas.ramColor, canvas.gpuColor];
+            const drawEnd = (end, d, frac, color, alpha) => {
+                const stroke = c => {
+                    c.lineWidth = root.drawStrokeWidth;
+                    c.strokeStyle = color;
+                    c.globalAlpha = alpha;
+                    c.stroke();
+                };
+                if (f > 0)
+                    PillPath.strokeEnd(ctx, end, root.topBar, W, H, f, cr, d, root.tail, stroke, frac);
+                else
+                    PillPath.strokeRoundEnd(ctx, end, root.topBar, W, H, cr, d, root.tail, stroke, frac);
+            };
             for (let k = 0; k < 3; k++) {
                 const d = root.edgeGap + k * (root.drawStrokeWidth + root.gap) + root.drawStrokeWidth / 2;
                 if (cr - d <= 0)
                     continue;
                 for (let e = 0; e < 2; e++) {
                     const end = e === 0 ? "left" : "right";
-                    PillPath.strokeEnd(ctx, end, root.topBar, W, H, f, cr, d, root.tail, c => {
-                        c.lineWidth = root.drawStrokeWidth;
-                        c.strokeStyle = canvas.trackColor;
-                        c.globalAlpha = root.trackOpacity;
-                        c.stroke();
-                    }, 1);
+                    drawEnd(end, d, 1, canvas.trackColor, root.trackOpacity);
                     if (fracs[k] <= 0)
                         continue;
-                    PillPath.strokeEnd(ctx, end, root.topBar, W, H, f, cr, d, root.tail, c => {
-                        c.lineWidth = root.drawStrokeWidth;
-                        c.strokeStyle = colors[k];
-                        c.globalAlpha = root.bandOpacity;
-                        c.stroke();
-                    }, fracs[k]);
+                    drawEnd(end, d, fracs[k], colors[k], root.bandOpacity);
                 }
             }
         }

@@ -50,7 +50,9 @@ PanelWindow {
     // Exclusive grab while search is open: bound to search membership, not resolved state —
     // the ~100ms resolve lag stole focus back from a freshly launched app.
     WlrLayershell.keyboardFocus: BarState.isOpenFor("search", root.monitorName) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
-    WlrLayershell.exclusiveZone: root.barHeight
+    // Reserve the band plus the floating margin, so the pill's own bottom edge still ends
+    // above tiled windows instead of overlapping them.
+    WlrLayershell.exclusiveZone: root.barHeight + root.barMargin * 2
     // Toast breakthrough: while toasts are up the window jumps to the Overlay layer (above
     // fullscreen), dropping back to Top when they clear; notifPill resolves below.
     WlrLayershell.layer: notifPill.hasContent ? WlrLayer.Overlay : WlrLayer.Top
@@ -120,6 +122,8 @@ PanelWindow {
     }
 
     readonly property int barHeight: 28
+    // Floating margin: the pill sits this far from the screen edge instead of welding to it.
+    readonly property int barMargin: Theme.barMargin
     // Never snap the surface to content: it stays full monitor height — snapping reallocates
     // the layer buffer mid-glide and flashes the pill. Motion lives in the content; mask gates input.
     implicitHeight: root.screenHeight
@@ -196,7 +200,6 @@ PanelWindow {
         Registry.register("capture-bar-" + root.monitorName, root);
     }
 
-
     // ---- shared island dismiss engine ----
     // Declared BEFORE stripRoot on purpose: at equal z the later sibling owns pointer input, so
     // the catcher sits UNDER the bar chrome: a click on a side pill (media, recording,
@@ -242,10 +245,14 @@ PanelWindow {
             }
             property real pillX: {
                 var rightStart = rightPush > 0 ? parent.width - 8 - rightPush : parent.width;
-                return leftPush + Math.max(0, (rightStart - leftPush - pill.width) / 2);
+                var cx = leftPush + Math.max(0, (rightStart - leftPush - pill.width) / 2);
+                // Floating: keep the margin even while an island pushes the pill sideways.
+                return Math.max(root.barMargin, Math.min(cx, parent.width - pill.width - root.barMargin));
             }
             x: pillX
-            y: Settings.barOrientation ? 0 : parent.height - height
+            // Floating: the pill never touches the wall, so it keeps barMargin at both ends of
+            // the bar band instead of being pinned to the screen edge.
+            y: Settings.barOrientation ? root.barMargin : parent.height - height - root.barMargin
             // Grows with content: 32 for normal states, tall when the
             // search island (input + launcher) is shown.
             height: pill.targetHeight
@@ -277,8 +284,6 @@ PanelWindow {
             // convergence, never snap the edge to the target.
             onWidthChanged: stack.syncRigid()
             onTargetWidthChanged: stack.syncRigid()
-            // (Radii/color moved into PillBackground below: body + both
-            // screen-edge flares must be ONE fill, never separate shapes.)
 
             // Hover lives on the pill itself (stable container); hot-zone strips at the bar
             // ends must not trigger expand.
@@ -290,14 +295,14 @@ PanelWindow {
             // DefaultBar keeps breathing room between strokes and row, but never lands under a stroke.
             readonly property real meterSlack: stack.showsDefault ? 2 * (pillMeter.corner + 2) : 0
             property real targetWidth: Math.max(stack.width + stack.effPad * 2 + pill.meterSlack, 100)
-            // One path/fill for body + both screen-edge flares: separate shapes either hairline
-            // (abutted) or double-blend (overlapped, on a translucent surface).
-            PillBackground {
+            // Floating pill: ONE normal-corner rectangle. The concave screen-edge flares were
+            // the shape that welded the body to the wall, so it had to stay pinned there and
+            // snapped between the wall and its content; a plain rect has neither.
+            Rectangle {
                 id: pillBg
-                bodyWidth: pill.width
-                bodyHeight: pill.height
-                topBar: Settings.barOrientation
-                x: -flare
+                anchors.fill: parent
+                radius: Theme.radius
+                color: Theme.surface
             }
             // CPU/RAM/GPU strokes inside each body end; DefaultBar publishes the chrome curve
             // so they fade with the bar as quick settings takes the pill over.
@@ -306,7 +311,9 @@ PanelWindow {
                 x: -pillMeter.flare
                 bodyWidth: pill.width
                 bodyHeight: pill.height
-                flare: Theme.radius
+                // Floating: no screen-edge flare to trace, so the strokes wrap the pill's own
+                // rounded ends instead (see PillPath.strokeRoundEnd).
+                flare: 0
                 corner: Theme.radius
                 topBar: Settings.barOrientation
                 monitorName: root.monitorName
@@ -732,8 +739,9 @@ PanelWindow {
             id: leftSidePill
             x: pill.x - width - Theme.sidePillMargin
             // On the content row's line: the row starts at the stack's own 4px inset, which is
-            // sidePillMargin / 2, the same offset the center component now uses.
-            y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
+            // sidePillMargin / 2, the same offset the center component now uses — plus the
+            // floating margin the main pill moved down (or up, on a bottom bar) by.
+            y: Settings.barOrientation ? root.barMargin + Theme.sidePillMargin / 2 : parent.height - height - root.barMargin - Theme.sidePillMargin / 2
             // Grows (Behavior-free — the pill's own height Behavior drives it per frame) when
             // a side pill unfolds, so the click-mask Region tracks the expanded pill
             height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + weatherButton.height)
@@ -844,7 +852,7 @@ PanelWindow {
             id: rightSidePill
             // Rigid chain right of the main pill (no Behavior).
             x: pill.x + pill.width + Theme.sidePillMargin
-            y: Settings.barOrientation ? Theme.sidePillMargin / 2 : parent.height - height - Theme.sidePillMargin / 2
+            y: Settings.barOrientation ? root.barMargin + Theme.sidePillMargin / 2 : parent.height - height - root.barMargin - Theme.sidePillMargin / 2
             // grows per-frame (Behavior-free — media's own height Behavior
             // drives it) so the click-mask Region tracks the expanded pill
             height: Math.max(root.barHeight, mediaPiece.height, recordingPiece.height, screenshotPiece.height)
@@ -931,9 +939,7 @@ PanelWindow {
                     width: recWipeClip.width
                     // Grows with the launcher-expanded island (band pinned, growth away from
                     // the edge), Behavior-free: rides the island's own height stem per frame
-                    height: Math.max(root.barHeight,
-                        (root.barHeight - Theme.sidePillHeight) / 2
-                            + (recLoader.item ? recLoader.item.height : Theme.sidePillHeight))
+                    height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + (recLoader.item ? recLoader.item.height : Theme.sidePillHeight))
                     visible: recordingPiece.shown
                     readonly property real targetWidth: recLoader.item ? recLoader.item.width : 190
                     // Recording on this monitor, or the idle circle from the empty-right hover;
@@ -942,8 +948,7 @@ PanelWindow {
                     property bool shown: false
                     // Revealed on the empty-right hover, on an actual recording/start, or while
                     // the launcher island is open (expansion moment, weather-pill recipe)
-                    property bool flag: recHover.hovered || recFlag
-                        || BarState.isOpenFor("search", root.monitorName)
+                    property bool flag: recHover.hovered || recFlag || BarState.isOpenFor("search", root.monitorName)
                     onFlagChanged: {
                         if (recordingPiece.flag) {
                             recCloseConfirm.stop();
@@ -1025,16 +1030,13 @@ PanelWindow {
                     width: shotWipeClip.width
                     // grows with the launcher-expanded island (see the
                     // recording piece above for the same recipe)
-                    height: Math.max(root.barHeight,
-                        (root.barHeight - Theme.sidePillHeight) / 2
-                            + (shotLoader.item ? shotLoader.item.height : Theme.sidePillHeight))
+                    height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + (shotLoader.item ? shotLoader.item.height : Theme.sidePillHeight))
                     visible: screenshotPiece.shown
                     readonly property real targetWidth: shotLoader.item ? shotLoader.item.width : 190
                     property bool shown: false
                     // reveal on the empty-right-zone hover, or while the
                     // launcher island is open (expansion moment)
-                    property bool flag: recHover.hovered
-                        || BarState.isOpenFor("search", root.monitorName)
+                    property bool flag: recHover.hovered || BarState.isOpenFor("search", root.monitorName)
                     onFlagChanged: {
                         if (screenshotPiece.flag) {
                             shotCloseConfirm.stop();

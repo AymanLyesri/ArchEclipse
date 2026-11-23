@@ -35,7 +35,6 @@ QtObject {
     // True when at least one extended slot was really parsed from a palette.
     property bool _hasExtended: false
 
-
     // --- derived helpers ---
     readonly property real phi: 1.618
     readonly property real phiMin: phi - 1          // 0.618
@@ -156,21 +155,36 @@ QtObject {
     }
     function _slotHex(i) {
         switch (i) {
-        case 1: return color1;
-        case 2: return color2;
-        case 3: return color3;
-        case 4: return color4;
-        case 5: return color5;
-        case 6: return color6;
-        case 7: return color7;
-        case 8: return color8;
-        case 9: return color9;
-        case 10: return color10;
-        case 11: return color11;
-        case 12: return color12;
-        case 13: return color13;
-        case 14: return color14;
-        case 15: return color15;
+        case 1:
+            return color1;
+        case 2:
+            return color2;
+        case 3:
+            return color3;
+        case 4:
+            return color4;
+        case 5:
+            return color5;
+        case 6:
+            return color6;
+        case 7:
+            return color7;
+        case 8:
+            return color8;
+        case 9:
+            return color9;
+        case 10:
+            return color10;
+        case 11:
+            return color11;
+        case 12:
+            return color12;
+        case 13:
+            return color13;
+        case 14:
+            return color14;
+        case 15:
+            return color15;
         }
         return "";
     }
@@ -350,6 +364,10 @@ QtObject {
     // Gap between the main pill and the chained side pills; also the matching
     // leftPush/rightPush offset, so the x-chain and its mirror cannot drift apart.
     readonly property int sidePillMargin: 8
+    // Screen-edge margin of the floating bar pill: the main pill is a normal rounded
+    // rectangle inside the monitor, never welded to the wall, so this is its gap to every
+    // screen edge it can reach (and the chained side pills ride on the same offset).
+    readonly property int barMargin: 4
     // The ONE inset between a bar pill's edge and its island content: wrappers add no
     // outer margin and bodies pad no root layout (they once stacked to 8–17px).
     readonly property int islandPad: 8
@@ -369,7 +387,6 @@ QtObject {
     readonly property int typeSubtitle: Math.round(fontSize * 1.17)
     readonly property int typeTitle: Math.round(fontSize * 1.5)
     readonly property int typeDisplay: Math.round(fontSize * 2.0)
-
 
     // Three nameable emphasis levels for opacity literals.
     readonly property QtObject opacity: QtObject {
