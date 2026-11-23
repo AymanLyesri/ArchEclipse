@@ -358,9 +358,10 @@ QtObject {
     // Icon-only cells share one square box (a 14px glyph plus the cell pad) so every glyph
     // sits on the same rhythm as the text cells.
     readonly property int barIconCell: 22
-    // Height of the chained status pills (weather/media/recording): the SAME as a cell:
-    // they are cells that happen to carry their own surface, not a taller family.
-    readonly property int sidePillHeight: barCellHeight
+    // Height of the chained status pills (weather/media/recording/network/screenshot). They
+    // carry their own surface, so they are deliberately a touch taller than a bare bar cell
+    // (22): a chip on the line, not another cell.
+    readonly property int sidePillHeight: 28
     // Gap between the main pill and the chained side pills; also the matching
     // leftPush/rightPush offset, so the x-chain and its mirror cannot drift apart.
     readonly property int sidePillMargin: 8

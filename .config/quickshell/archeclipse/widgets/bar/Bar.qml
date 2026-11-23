@@ -124,6 +124,9 @@ PanelWindow {
     readonly property int barHeight: 28
     // Floating margin: the pill sits this far from the screen edge instead of welding to it.
     readonly property int barMargin: Theme.barMargin
+    // Vertical band the chained side pills fill: the bar height, or the side pill itself when
+    // it is taller than the band (its own margins then go negative and it would spill).
+    readonly property int sidePillBand: Math.max(root.barHeight, Theme.sidePillHeight)
     // Never snap the surface to content: it stays full monitor height — snapping reallocates
     // the layer buffer mid-glide and flashes the pill. Motion lives in the content; mask gates input.
     implicitHeight: root.screenHeight
@@ -744,7 +747,7 @@ PanelWindow {
             y: Settings.barOrientation ? root.barMargin + Theme.sidePillMargin / 2 : parent.height - height - root.barMargin - Theme.sidePillMargin / 2
             // Grows (Behavior-free — the pill's own height Behavior drives it per frame) when
             // a side pill unfolds, so the click-mask Region tracks the expanded pill
-            height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + weatherButton.height)
+            height: Math.max(root.sidePillBand, (root.sidePillBand - Theme.sidePillHeight) / 2 + weatherButton.height)
             width: leftSideContents.implicitWidth
             visible: root.barVisible
             Row {
@@ -761,8 +764,8 @@ PanelWindow {
                     // grows off the band while the launcher island is open
                     anchors.top: Settings.barOrientation ? parent.top : undefined
                     anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                    anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
-                    anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                    anchors.topMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
+                    anchors.bottomMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
                     monitorName: root.monitorName
                     expanded: BarState.isOpenFor("search", root.monitorName)
                 }
@@ -774,7 +777,7 @@ PanelWindow {
                     anchors.top: Settings.barOrientation ? parent.top : undefined
                     anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                     width: netClip.width
-                    height: root.barHeight
+                    height: root.sidePillBand
                     visible: networkPiece.shown
                     readonly property real targetWidth: netLoader.item ? netLoader.item.implicitWidth : 140
                     property bool shown: false
@@ -855,7 +858,7 @@ PanelWindow {
             y: Settings.barOrientation ? root.barMargin + Theme.sidePillMargin / 2 : parent.height - height - root.barMargin - Theme.sidePillMargin / 2
             // grows per-frame (Behavior-free — media's own height Behavior
             // drives it) so the click-mask Region tracks the expanded pill
-            height: Math.max(root.barHeight, mediaPiece.height, recordingPiece.height, screenshotPiece.height)
+            height: Math.max(root.sidePillBand, mediaPiece.height, recordingPiece.height, screenshotPiece.height)
             width: rightSideContents.implicitWidth
             // Read the contents' OWN inputs, never a child's `visible`: Qt propagates false
             // into descendants, so such a binding latches off (media stayed invisible for good).
@@ -877,7 +880,7 @@ PanelWindow {
                     anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                     width: mediaWipe.width
                     // covers the band and media's vertical growth
-                    height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + sideMedia.height)
+                    height: Math.max(root.sidePillBand, (root.sidePillBand - Theme.sidePillHeight) / 2 + sideMedia.height)
                     readonly property bool hasPlayable: sideMedia.hasPlayable
                     property bool shown: false
                     property bool flag: sideMedia.hasPlayable
@@ -921,8 +924,8 @@ PanelWindow {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: Settings.barOrientation ? parent.top : undefined
                                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                                anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
-                                anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                                anchors.topMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
+                                anchors.bottomMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
                                 monitorName: root.monitorName
                                 expanded: BarState.isOpenFor("search", root.monitorName)
                             }
@@ -939,7 +942,7 @@ PanelWindow {
                     width: recWipeClip.width
                     // Grows with the launcher-expanded island (band pinned, growth away from
                     // the edge), Behavior-free: rides the island's own height stem per frame
-                    height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + (recLoader.item ? recLoader.item.height : Theme.sidePillHeight))
+                    height: Math.max(root.sidePillBand, (root.sidePillBand - Theme.sidePillHeight) / 2 + (recLoader.item ? recLoader.item.height : Theme.sidePillHeight))
                     visible: recordingPiece.shown
                     readonly property real targetWidth: recLoader.item ? recLoader.item.width : 190
                     // Recording on this monitor, or the idle circle from the empty-right hover;
@@ -1006,8 +1009,8 @@ PanelWindow {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: Settings.barOrientation ? parent.top : undefined
                                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                                anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
-                                anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                                anchors.topMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
+                                anchors.bottomMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
                                 active: recordingPiece.shown
                                 sourceComponent: recordingPage
                                 onLoaded: {
@@ -1030,7 +1033,7 @@ PanelWindow {
                     width: shotWipeClip.width
                     // grows with the launcher-expanded island (see the
                     // recording piece above for the same recipe)
-                    height: Math.max(root.barHeight, (root.barHeight - Theme.sidePillHeight) / 2 + (shotLoader.item ? shotLoader.item.height : Theme.sidePillHeight))
+                    height: Math.max(root.sidePillBand, (root.sidePillBand - Theme.sidePillHeight) / 2 + (shotLoader.item ? shotLoader.item.height : Theme.sidePillHeight))
                     visible: screenshotPiece.shown
                     readonly property real targetWidth: shotLoader.item ? shotLoader.item.width : 190
                     property bool shown: false
@@ -1090,8 +1093,8 @@ PanelWindow {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: Settings.barOrientation ? parent.top : undefined
                                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
-                                anchors.topMargin: (root.barHeight - Theme.sidePillHeight) / 2
-                                anchors.bottomMargin: (root.barHeight - Theme.sidePillHeight) / 2
+                                anchors.topMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
+                                anchors.bottomMargin: (root.sidePillBand - Theme.sidePillHeight) / 2
                                 active: screenshotPiece.shown
                                 sourceComponent: screenshotPage
                                 onLoaded: {
