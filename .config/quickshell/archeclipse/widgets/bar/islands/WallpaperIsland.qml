@@ -15,6 +15,12 @@ Column {
     property string monitorName: ""
     property var screen: null
 
+    // Dropdown host: AppComboBox walks up to the nearest ancestor declaring `popupCount`
+    // and reports open popups here. Bar.qml forwards the count + the monitor to the shared
+    // IslandDismiss engine, so hovering a popup (its own surface, off the pill) is not a
+    // leave and the island stays while a collection pick is open.
+    property int popupCount: 0
+
     // Expand driver: 0 -> 1 on creation unfolds the body.
     property real expand: 0
     Component.onCompleted: {

@@ -210,6 +210,13 @@ PanelWindow {
         surfaceHovered: pillHover.hovered
         hoverClose: ["wallpaper"]
         clickOutside: ["search"]
+        // An open drop-down inside the wallpaper island (COLLECTION, provider) is its own
+        // surface: hovering it takes the pointer off the pill, so hold the island while one
+        // is up instead of reading that as a leave.
+        popupCount: {
+            var it = wallpaperCacheLoader.item;
+            return (it && it.popupCount !== undefined) ? it.popupCount : 0;
+        }
     }
 
     Item {

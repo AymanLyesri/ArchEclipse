@@ -23,6 +23,10 @@ Item {
     // its own clicks and the island survives them. The host must declare this engine
     // BEFORE the chrome, or the catcher sits on top and swallows those clicks.
     property var clickOutside: []
+    // Open dropdowns inside the island report here (AppComboBox walks up to the nearest
+    // ancestor carrying `popupCount`). A popup is its own surface: hovering it pulls the
+    // pointer off the pill, so its hover-exit must not count as a leave.
+    property int popupCount: 0
     property int leaveDelay: 400
 
     readonly property string state: BarState.stateFor(root.monitorName)
@@ -37,12 +41,23 @@ Item {
             leaveTimer.restart();
     }
 
+    // A dropdown opening holds the island (the pointer is on the popup, off the surface);
+    // the popup closing with the pointer still off the surface is a real leave, so re-arm.
+    onPopupCountChanged: {
+        if (root.popupCount > 0)
+            leaveTimer.stop();
+        else if (!root.surfaceHovered && root.hoverCloseActive)
+            leaveTimer.restart();
+    }
+
     // Bare Timer under an Item is fine; keep the id for the handler above.
     Timer {
         id: leaveTimer
         interval: root.leaveDelay
         onTriggered: {
             if (BarState.tourHoldFor(root.monitorName))
+                return;
+            if (root.popupCount > 0)
                 return;
             if (root.hoverCloseActive)
                 BarState.deactivate(root.state, root.monitorName);
