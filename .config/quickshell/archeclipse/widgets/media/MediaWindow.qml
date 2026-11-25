@@ -44,7 +44,7 @@ PanelWindow {
         anchors.top: parent.top
         anchors.margins: Theme.pad
         // Floating panel: top of the depth ladder so it reads as a layer over the desktop.
-        color: Theme.surfaceFloat
+        color: Theme.surface
         radius: Theme.radius
 
         MediaWidget {

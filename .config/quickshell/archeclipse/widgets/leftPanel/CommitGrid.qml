@@ -223,7 +223,7 @@ Item {
                 width: root.cellSize
                 height: root.cellSize
                 radius: Math.max(1, Math.round(root.cellSize / 5))
-                color: root.counts[index] > 0 ? Theme.accent : Theme.mix(Theme.bg, Theme.fg, 0.12)
+                color: root.counts[index] > 0 ? Theme.accent : Theme.surfaceRaised
                 opacity: root.cellOpacity(root.counts[index])
             }
         }

@@ -86,11 +86,10 @@ MouseArea {
         width: 340
         height: cardCol.implicitHeight + 40
         Behavior on height {
-            Anim {
-            }
+            Anim {}
         }
         radius: Theme.radius
-        color: Theme.surfaceFloat
+        color: Theme.surface
         // Unfold with the expand driver (origin Top: grows downward).
         scale: 0.96 + 0.04 * root.expand
         opacity: Math.max(0, Math.min(1, root.expand * 1.2))
@@ -133,11 +132,11 @@ MouseArea {
                 // no user session to log out of yet.
                 onAction: index => {
                     if (index === 1)
-                        Quickshell.execDetached(["shutdown", "now"])
+                        Quickshell.execDetached(["shutdown", "now"]);
                     else if (index === 2)
-                        Quickshell.execDetached(["systemctl", "suspend"])
+                        Quickshell.execDetached(["systemctl", "suspend"]);
                     else if (index === 3)
-                        Quickshell.execDetached(["reboot"])
+                        Quickshell.execDetached(["reboot"]);
                 }
             }
             AppComboBox {

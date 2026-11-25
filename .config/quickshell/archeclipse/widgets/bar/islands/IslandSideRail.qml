@@ -45,11 +45,8 @@ Rectangle {
                     outlined: modelData.name === root.highlightedName
                     outlineColor: Theme.accent
                     // Selected cells sit on the raised plane, not on an accent outline.
-                    activeBg: Theme.surfaceOverlay
                     // Donations special red color to nudge users toward
                     // the support widget (preserved from LeftIsland).
-                    idleBg: modelData.name === "Donations" ? "#f96854" : "transparent"
-                    idleFg: modelData.name === "Donations" ? "#052d49" : Theme.fg
                     borderColor: modelData.name === "Donations" ? "#f96854" : Theme.accent
                     tooltipText: modelData.name === "Donations" ? "Click to open Donations\n<b>＼(o￣∇￣)／</b> — Support the project" : "Click to open " + (modelData.label !== undefined ? modelData.label : modelData.name)
                     onClicked: root.selected(index)

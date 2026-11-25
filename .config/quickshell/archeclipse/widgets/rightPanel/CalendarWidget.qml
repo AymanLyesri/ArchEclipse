@@ -130,8 +130,6 @@ Item {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
                 cornerRadius: Theme.radius
-                idleBg: Theme.surfaceRaised
-                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 text: "«"
                 pixelSize: Theme.fontSize
@@ -142,8 +140,6 @@ Item {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
                 cornerRadius: Theme.radius
-                idleBg: Theme.surfaceRaised
-                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 icon: Icons.chevronLeft
                 pixelSize: Theme.fontSize
@@ -184,8 +180,6 @@ Item {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
                 cornerRadius: Theme.radius
-                idleBg: Theme.surfaceRaised
-                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 icon: Icons.chevronRight
                 pixelSize: Theme.fontSize
@@ -196,8 +190,6 @@ Item {
                 Layout.preferredWidth: root.navButtonSize
                 Layout.preferredHeight: root.navButtonSize
                 cornerRadius: Theme.radius
-                idleBg: Theme.surfaceRaised
-                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 text: "»"
                 pixelSize: Theme.fontSize
@@ -317,8 +309,6 @@ Item {
             }
             AppButton {
                 cornerRadius: Theme.radius
-                idleBg: Theme.surfaceRaised
-                hoverBg: Theme.surfaceOverlay
                 hoverFg: Theme.accent
                 text: "Today"
                 pixelSize: Theme.typeLabel

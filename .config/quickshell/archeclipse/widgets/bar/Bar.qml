@@ -10,7 +10,6 @@ import qs.widgets.bar.islands
 import qs.widgets.launcher
 import qs.widgets.notifications
 import qs.widgets.shared
-import qs.widgets.weather
 
 // Port of widgets/bar/Bar.tsx — the floating ArchEclipse bar pill.
 PanelWindow {
@@ -628,7 +627,7 @@ PanelWindow {
                     // Outer (screen-side) flare shares the sidebar rail
                     // background so it reads as the rail's extension.
                     leftFlare: true
-                    leftFlareColor: Theme.bg
+                    leftFlareColor: Theme.surfaceRaised
                     x: 0
                     y: Settings.barOrientation ? 0 : leftClip.height - leftPanelPill.height
                 }
@@ -712,7 +711,7 @@ PanelWindow {
                     // Outer (screen-side) flare shares the sidebar rail
                     // background so it reads as the rail's extension.
                     rightFlare: true
-                    rightFlareColor: Theme.bg
+                    rightFlareColor: Theme.surfaceRaised
                     x: 0
                     y: Settings.barOrientation ? 0 : rightClip.height - rightPanelPill.height
                 }
@@ -747,7 +746,7 @@ PanelWindow {
             y: Settings.barOrientation ? root.barMargin + Theme.sidePillMargin / 2 : parent.height - height - root.barMargin - Theme.sidePillMargin / 2
             // Grows (Behavior-free — the pill's own height Behavior drives it per frame) when
             // a side pill unfolds, so the click-mask Region tracks the expanded pill
-            height: Math.max(root.sidePillBand, (root.sidePillBand - Theme.sidePillHeight) / 2 + weatherButton.height)
+            height: Math.max(root.sidePillBand, (root.sidePillBand - Theme.sidePillHeight) / 2 + weatherPill.height)
             width: leftSideContents.implicitWidth
             visible: root.barVisible
             Row {
@@ -758,8 +757,8 @@ PanelWindow {
                 anchors.top: Settings.barOrientation ? parent.top : undefined
                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom
                 spacing: Theme.spacing
-                WeatherButton {
-                    id: weatherButton
+                WeatherSidePill {
+                    id: weatherPill
                     // Band-centered while compact (the inset centers the pill's compact block);
                     // grows off the band while the launcher island is open
                     anchors.top: Settings.barOrientation ? parent.top : undefined
@@ -917,7 +916,7 @@ PanelWindow {
                             height: mediaPiece.height
                             anchors.left: parent.left
                             anchors.top: parent.top
-                            MediaPill {
+                            MediaSidePill {
                                 id: sideMedia
                                 // band-centered when compact, grows off the
                                 // band edge while the launcher island is open
@@ -1004,7 +1003,7 @@ PanelWindow {
                             anchors.top: parent.top
                             Loader {
                                 id: recLoader
-                                // MediaPill pin: edge-pinned so the grown
+                                // MediaSidePill pin: edge-pinned so the grown
                                 // island extends away from the screen edge
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: Settings.barOrientation ? parent.top : undefined
@@ -1089,7 +1088,7 @@ PanelWindow {
                             anchors.top: parent.top
                             Loader {
                                 id: shotLoader
-                                // MediaPill pin (see the recording loader)
+                                // MediaSidePill pin (see the recording loader)
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: Settings.barOrientation ? parent.top : undefined
                                 anchors.bottom: Settings.barOrientation ? undefined : parent.bottom

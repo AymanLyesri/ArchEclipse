@@ -240,7 +240,6 @@ Item {
                     }
                     AppButton {
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surface
                         text: "Rescan"
                         pixelSize: Theme.fontSize - 2
                         tooltipText: "Rescan Wi-Fi networks"
@@ -342,7 +341,6 @@ Item {
                     }
                     AppButton {
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surface
                         text: "Refresh"
                         pixelSize: Theme.fontSize - 2
                         tooltipText: "Refresh Bluetooth devices"

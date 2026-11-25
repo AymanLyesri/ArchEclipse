@@ -19,7 +19,7 @@ ToolTip {
     // Tooltips must stay readable over any wallpaper surface, so the fill is opaque-derived
     // (a mixed hex) rather than a translucent palette wash.
     background: Rectangle {
-        color: Theme.surfaceFloat
+        color: Theme.surface
         radius: root.cornerRadius
         border.width: 0
     }

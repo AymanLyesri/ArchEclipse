@@ -17,9 +17,9 @@ Canvas {
     // Recolor one outer flare to match adjacent content (the island sidebar rail), overpainted
     // after the body fill. Off by default — overpainting the same translucent colour double-blends.
     property bool leftFlare: false
-    property color leftFlareColor: Theme.bg
+    property color leftFlareColor: Theme.surfaceRaised
     property bool rightFlare: false
-    property color rightFlareColor: Theme.bg
+    property color rightFlareColor: Theme.surfaceRaised
 
     width: bodyWidth + flare * 2
     height: bodyHeight

@@ -364,7 +364,7 @@ Singleton {
             return;
 
         // Track metadata is global, so place its brief reveal on the currently
-        // focused monitor. Hover and click reveals are targeted by MediaPill.
+        // focused monitor. Hover and click reveals are targeted by MediaSidePill.
         root.activate("player", 2500, Registry.monitorName);
     }
 

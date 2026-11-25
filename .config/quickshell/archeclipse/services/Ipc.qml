@@ -134,7 +134,7 @@ Item {
             }
         }
 
-        // Scripted capture helper: MediaPill's left-click path, so a take can
+        // Scripted capture helper: MediaSidePill's left-click path, so a take can
         // open the player island without a pointer to click the pill with.
         function mediaPill(monitor: string): string {
             try {

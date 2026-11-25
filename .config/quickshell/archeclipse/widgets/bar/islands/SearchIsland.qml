@@ -37,7 +37,7 @@ Column {
         width: parent.width
         height: 36
         radius: Theme.radius
-        color: Theme.rgba(Theme.bg, 0.35)
+        color: Theme.rgba(Theme.surfaceRaised, 0.35)
 
         // Magnifier glyph: fgDim at rest, accent once a query is live.
         Text {

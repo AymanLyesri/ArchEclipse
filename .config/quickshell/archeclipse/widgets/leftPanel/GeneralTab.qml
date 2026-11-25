@@ -231,8 +231,6 @@ Item {
                         ]
                         delegate: AppButton {
                             cornerRadius: Theme.radius
-                            idleBg: Theme.surfaceRaised
-                            hoverBg: Theme.surfaceOverlay
                             icon: modelData.icon
                             pixelSize: Theme.typeSubtitle
                             tooltipText: modelData.tip
@@ -453,10 +451,7 @@ Item {
                                 x: (parent.width - width) / 2
                                 tooltipText: "Download and install updates"
                                 cornerRadius: 6
-                                idleBg: Theme.accent
-                                hoverBg: Theme.surfaceActive
                                 pressedBg: Theme.surfaceActive
-                                idleFg: Theme.bg
                                 hoverFg: Theme.bg
                                 icon: root.isUpdating ? Icons.spinner : Icons.download
                                 text: root.isUpdating ? "Updating..." : "Update"

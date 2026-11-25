@@ -334,8 +334,6 @@ Item {
                     checked: modelData.id === root.provider
                     text: modelData.label
                     tooltipText: "Switch to " + modelData.label
-                    idleBg: checked ? Theme.surfaceActive : Theme.bg
-                    idleFg: checked ? Theme.accent : Theme.fg
                     hoverFg: checked ? Theme.accent : Theme.fg
                     outlined: true
                     outlineColor: Theme.border
@@ -539,7 +537,7 @@ Item {
                         delegate: Rectangle {
                             width: chapCol.width
                             implicitHeight: 36
-                            color: Theme.bg
+                            color: Theme.surfaceRaised
                             radius: Theme.radius
 
                             AppButton {
@@ -563,7 +561,7 @@ Item {
                         Rectangle {
                             Layout.fillWidth: true
                             height: 28
-                            color: Theme.bg
+                            color: Theme.surfaceRaised
                             radius: Theme.radius
 
                             Label {

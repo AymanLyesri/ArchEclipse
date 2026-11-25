@@ -39,16 +39,47 @@ Item {
     readonly property var tabOrder: root.baseTabOrder.concat(root.pluginTabs.map(p => "Plugin:" + p.id))
     // Rail entries: the fixed set plus one cell per enabled plugin (puzzle icon, plugin name).
     readonly property var railModel: [
-        { name: "UserProfile", icon: Icons.user },
-        { name: "BooruViewer", icon: Icons.image },
-        { name: "ChatBot", icon: Icons.chatbot },
-        { name: "MangaViewer", icon: Icons.manga },
-        { name: "SettingsWidget", icon: Icons.settings },
-        { name: "CustomScripts", icon: Icons.terminal },
-        { name: "KeyBinds", icon: Icons.keyboard },
-        { name: "Donations", icon: Icons.coffee },
-        { name: "Plugins", icon: Icons.puzzle }
-    ].concat(root.pluginTabs.map(p => ({ name: "Plugin:" + p.id, label: p.name || p.id, icon: Icons.puzzle })))
+        {
+            name: "UserProfile",
+            icon: Icons.user
+        },
+        {
+            name: "BooruViewer",
+            icon: Icons.image
+        },
+        {
+            name: "ChatBot",
+            icon: Icons.chatbot
+        },
+        {
+            name: "MangaViewer",
+            icon: Icons.manga
+        },
+        {
+            name: "SettingsWidget",
+            icon: Icons.settings
+        },
+        {
+            name: "CustomScripts",
+            icon: Icons.terminal
+        },
+        {
+            name: "KeyBinds",
+            icon: Icons.keyboard
+        },
+        {
+            name: "Donations",
+            icon: Icons.coffee
+        },
+        {
+            name: "Plugins",
+            icon: Icons.puzzle
+        }
+    ].concat(root.pluginTabs.map(p => ({
+                name: "Plugin:" + p.id,
+                label: p.name || p.id,
+                icon: Icons.puzzle
+            })))
     // A disabled/deleted plugin tab must not strand the panel on a missing index - but only
     // once the directory scan has reconciled the list (before that, the seed may be partial).
     onTabOrderChanged: {
@@ -144,12 +175,13 @@ Item {
             return donationsLoader.item;
         case 8:
             return pluginsLoader.item;
-        default: {
-            // itemAt()/item are not reactive; the tick (bumped on load/item change) is the
-            // dependency that makes this binding re-read the plugin body.
-            const tick = root.pluginLoadTick;
-            return tick >= 0 ? root.pluginTabItem(widgetStack.currentIndex) : null;
-        }
+        default:
+            {
+                // itemAt()/item are not reactive; the tick (bumped on load/item change) is the
+                // dependency that makes this binding re-read the plugin body.
+                const tick = root.pluginLoadTick;
+                return tick >= 0 ? root.pluginTabItem(widgetStack.currentIndex) : null;
+            }
         }
     }
     // Bumped whenever a plugin tab body loads or unloads (drives activeWidget above).
@@ -264,7 +296,7 @@ Item {
                 id: sidebar
                 width: 48
                 height: parent.height
-                color: Theme.surfaceSunken
+                color: Theme.surface
                 // Square on the screen-edge side so the rail runs flush
                 // into the panel's edge (mirrors bar orientation).
                 topLeftRadius: Settings.barOrientation ? 0 : Theme.radius

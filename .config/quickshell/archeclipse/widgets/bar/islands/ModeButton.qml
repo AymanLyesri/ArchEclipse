@@ -16,7 +16,6 @@ AppButton {
     icon: glyph
 
     pixelSize: Theme.fontSizeSmall
-    hoverBg: "transparent"
     showTooltip: false
     quiet: true
 }

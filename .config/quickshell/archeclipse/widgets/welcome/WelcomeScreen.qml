@@ -20,8 +20,7 @@ Scope {
     property int page: 0
     readonly property int pageCount: 9
     property var targetScreen: null
-    readonly property string monitorName: root.targetScreen
-        ? (Hyprland.monitorFor(root.targetScreen)?.name ?? root.targetScreen.name ?? "") : ""
+    readonly property string monitorName: root.targetScreen ? (Hyprland.monitorFor(root.targetScreen)?.name ?? root.targetScreen.name ?? "") : ""
     property bool _autoChecked: false
 
     // ---- persistence ----
@@ -110,8 +109,7 @@ Scope {
         }
         const searchOwner = BarState.searchMonitor || "";
         const searchWasOpen = searchOwner !== "" && BarState.isOpenFor("search", searchOwner);
-        root._savedSearchMonitor = searchWasOpen && searchOwner !== monitor
-            ? searchOwner : "";
+        root._savedSearchMonitor = searchWasOpen && searchOwner !== monitor ? searchOwner : "";
         root._savedSearchQuery = searchWasOpen ? Launcher.lastQuery : "";
         root._savedLeftWidget = "";
         root._savedLeftWidgetHadOverride = false;
@@ -221,39 +219,38 @@ Scope {
         }
     ]
     readonly property var _rightWidgetDescriptions: ({
-        Waifu: {
-            title: "Waifu media",
-            description: "Shows the image or video selected in Booru Viewer. Use the overlay actions to bookmark, open the media, pin supported images, copy the post ID, or upload your own image."
-        },
-        Media: {
-            title: "Media player",
-            description: "Control the active player: play or pause, skip tracks, seek, and follow synced lyrics when the player provides them."
-        },
-        NotificationHistory: {
-            title: "Notification history",
-            description: "Review recent notifications and filter by app or text. Click an entry to copy it, right-click to dismiss it, or clear the full history."
-        },
-        Calendar: {
-            title: "Calendar",
-            description: "Browse months and years, select a date, or jump back to today. The current day stays marked while you browse."
-        },
-        SystemResources: {
-            title: "System resources",
-            description: "Watch live CPU and memory usage, plus detected GPU load, memory, and temperature."
-        }
-    })
+            Waifu: {
+                title: "Waifu media",
+                description: "Shows the image or video selected in Booru Viewer. Use the overlay actions to bookmark, open the media, pin supported images, copy the post ID, or upload your own image."
+            },
+            Media: {
+                title: "Media player",
+                description: "Control the active player: play or pause, skip tracks, seek, and follow synced lyrics when the player provides them."
+            },
+            NotificationHistory: {
+                title: "Notification history",
+                description: "Review recent notifications and filter by app or text. Click an entry to copy it, right-click to dismiss it, or clear the full history."
+            },
+            Calendar: {
+                title: "Calendar",
+                description: "Browse months and years, select a date, or jump back to today. The current day stays marked while you browse."
+            },
+            SystemResources: {
+                title: "System resources",
+                description: "Watch live CPU and memory usage, plus detected GPU load, memory, and temperature."
+            }
+        })
     readonly property var _rightWidgetTour: (Settings.rightPanelWidgets || []).map(widget => {
         const details = root._rightWidgetDescriptions[widget.name];
         return details ? ({
-            name: widget.name,
-            title: details.title,
-            description: details.description
-        }) : null;
+                name: widget.name,
+                title: details.title,
+                description: details.description
+            }) : null;
     }).filter(widget => widget !== null)
     property int leftWidgetIndex: 0
     property int rightWidgetIndex: 0
-    readonly property bool leftWidgetTourIsOpen: BarState.isOpenFor("left", root.monitorName)
-        && Settings.leftPanelWidgetFor(root.monitorName) === root._leftWidgetTour[root.leftWidgetIndex].tab
+    readonly property bool leftWidgetTourIsOpen: BarState.isOpenFor("left", root.monitorName) && Settings.leftPanelWidgetFor(root.monitorName) === root._leftWidgetTour[root.leftWidgetIndex].tab
     readonly property bool rightWidgetTourIsOpen: BarState.isOpenFor("right", root.monitorName)
     property var _savedTourStates: []
     property string _savedLeftWidget: ""
@@ -597,7 +594,7 @@ Scope {
                 id: card
                 anchors.fill: parent
                 radius: Theme.radius
-                color: Theme.surfaceFloat
+                color: Theme.surface
                 clip: true
 
                 property real t: 0

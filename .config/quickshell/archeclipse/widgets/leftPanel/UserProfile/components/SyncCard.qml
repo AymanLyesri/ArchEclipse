@@ -10,7 +10,7 @@ Rectangle {
     width: parent.width
     implicitHeight: syncCol.implicitHeight + 20
     visible: !!store.profile
-    color: Theme.bg
+    color: Theme.surfaceRaised
     radius: Theme.radius
 
     Column {

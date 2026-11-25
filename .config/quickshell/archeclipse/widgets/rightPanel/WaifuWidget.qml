@@ -53,8 +53,6 @@ Item {
         anchors.bottom: parent.bottom
         anchors.margins: Theme.pad
         cornerRadius: Theme.radius
-        idleBg: Theme.rgba(Theme.bg, 0.65)
-        hoverBg: Theme.surfaceActive
         text: Icons.upload
         tooltipText: "Upload custom image"
         visible: root.hasWaifu

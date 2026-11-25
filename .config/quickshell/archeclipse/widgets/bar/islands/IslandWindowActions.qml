@@ -25,7 +25,6 @@ Column {
         icon: Icons.plus
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
-        hoverBg: Theme.surfaceHover
         hoverFg: Theme.accent
         tooltipText: "Expand island"
         onClicked: {
@@ -39,7 +38,6 @@ Column {
         icon: Icons.minus
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
-        hoverBg: Theme.surfaceHover
         hoverFg: Theme.accent
         tooltipText: "Shrink island"
         onClicked: {
@@ -55,7 +53,6 @@ Column {
         cornerRadius: Theme.radius
         toggle: true
         checked: root.locked
-        hoverBg: Theme.surfaceHover
         tooltipText: root.locked ? "Unlock island" : "Lock island"
         onClicked: {
             Settings.setPanelLockFor(root.side, root.monitorName, !root.locked);
@@ -67,7 +64,6 @@ Column {
         icon: Icons.close
         pixelSize: Theme.fontSizeLarge
         cornerRadius: Theme.radius
-        hoverBg: Theme.surfaceHover
         hoverFg: Theme.danger
         tooltipText: "Close island"
         onClicked: {

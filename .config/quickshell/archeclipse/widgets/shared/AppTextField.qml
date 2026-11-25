@@ -21,7 +21,7 @@ TextField {
     implicitHeight: Math.max(30, Theme.fontSize + 18)
 
     background: Rectangle {
-        color: root.activeFocus ? Theme.surfaceOverlay : root.fillColor
+        color: Theme.surface
         radius: root.cornerRadius
         border.width: root.activeFocus ? 1 : 0
         border.color: Theme.accent

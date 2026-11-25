@@ -1,8 +1,8 @@
 # AGENTS.md — ArchEclipse Quickshell
 
 > **IMPORTANT — HARD LIMIT: no comment block exceeds 2 lines.** One block per
-> major section, stating the constraint, trap or measurement (the *why*) — never
-> the *what* of the next line. No commented-out code, no changelog notes, no
+> major section, stating the constraint, trap or measurement (the _why_) — never
+> the _what_ of the next line. No commented-out code, no changelog notes, no
 > restating this file. If it needs more than 2 lines, it belongs here instead.
 
 Quickshell/QtQuick shell for ArchEclipse on Hyprland: pure QML + Python/Rust
@@ -13,17 +13,17 @@ commands below.
 
 ## Layout
 
-| Path | Contents |
-|---|---|
-| `shell.qml` | `ShellRoot`: one `Bar` + one `MediaWindow` per screen (`Variants`), plus `WelcomeScreen`, `SelectionOverlay` per screen, single-scope `LockScreen`, and the two plain `IpcHandler` hosts (`Ipc`, `CaptureIpc`). Also mkdirs every `FileView` cache dir and primes `FastfetchPins`, `PpdState`, `WallpaperService`, `ClipboardService`. |
-| `services/` | Stateful singletons (`services/qmldir`); UI files stay dumb. |
-| `theme/` | `Theme` (colour, density, type, radius, motion tokens) and `Settings` (persisted config). |
-| `widgets/bar/` | Pill, bar cells, and `islands/` (in-bar pages + side pills). |
-| `widgets/leftPanel/` | Left island tabs (`SettingsWidget`, `KeyBindsWidget`, `ChatBotWidget`, `DonationsWidget`, `BooruViewer/`, …), `AppNavigationSidePanel` hosts, row helpers (`HyprSliderRow`, `HyprToggleRow`, `DonationCard`). |
-| `widgets/rightPanel/` | Right island widgets: `Calendar`, `NotificationHistory`, `SystemResources`, `Waifu`, `Media` (in `widgets/media`). |
-| `widgets/shared/` | Primitives: `Surface` (depth plate), `Card`, `App*` controls, `SettingRow`/`SettingLabel`, scroll/motion wrappers, `ModelEntry.js` (model-entry accessors). |
-| `widgets/{launcher,lock,media,notifications,overview,controlPanel,wallpaperPanel,weather,welcome,selection,greeter}/` | Each is its own QML module (`qmldir`). `greeter/` ships to `/etc/xdg/quickshell/archeclipse-greeter` via `scripts/sync-greeter.sh`. |
-| `scripts/` | Python helpers (`booru.py`, `manga.py`, `wallhaven.py`, `chatbot/`), `sysmonitor.rs` (rustc-gated into `~/.cache/quickshell/binaries/`), greeter helpers. Hyprland-side scripts (`screenrecord.sh`, `screenshot.sh`) live outside this repo in `~/.config/hypr/scripts/`. |
+| Path                                                                                                                  | Contents                                                                                                                                                                                                                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shell.qml`                                                                                                           | `ShellRoot`: one `Bar` + one `MediaWindow` per screen (`Variants`), plus `WelcomeScreen`, `SelectionOverlay` per screen, single-scope `LockScreen`, and the two plain `IpcHandler` hosts (`Ipc`, `CaptureIpc`). Also mkdirs every `FileView` cache dir and primes `FastfetchPins`, `PpdState`, `WallpaperService`, `ClipboardService`. |
+| `services/`                                                                                                           | Stateful singletons (`services/qmldir`); UI files stay dumb.                                                                                                                                                                                                                                                                           |
+| `theme/`                                                                                                              | `Theme` (colour, density, type, radius, motion tokens) and `Settings` (persisted config).                                                                                                                                                                                                                                              |
+| `widgets/bar/`                                                                                                        | Pill, bar cells, and `islands/` (in-bar pages + side pills).                                                                                                                                                                                                                                                                           |
+| `widgets/leftPanel/`                                                                                                  | Left island tabs (`SettingsWidget`, `KeyBindsWidget`, `ChatBotWidget`, `DonationsWidget`, `BooruViewer/`, …), `AppNavigationSidePanel` hosts, row helpers (`HyprSliderRow`, `HyprToggleRow`, `DonationCard`).                                                                                                                          |
+| `widgets/rightPanel/`                                                                                                 | Right island widgets: `Calendar`, `NotificationHistory`, `SystemResources`, `Waifu`, `Media` (in `widgets/media`).                                                                                                                                                                                                                     |
+| `widgets/shared/`                                                                                                     | Primitives: `Surface` (depth plate), `Card`, `App*` controls, `SettingRow`/`SettingLabel`, scroll/motion wrappers, `ModelEntry.js` (model-entry accessors).                                                                                                                                                                            |
+| `widgets/{launcher,lock,media,notifications,overview,controlPanel,wallpaperPanel,weather,welcome,selection,greeter}/` | Each is its own QML module (`qmldir`). `greeter/` ships to `/etc/xdg/quickshell/archeclipse-greeter` via `scripts/sync-greeter.sh`.                                                                                                                                                                                                    |
+| `scripts/`                                                                                                            | Python helpers (`booru.py`, `manga.py`, `wallhaven.py`, `chatbot/`), `sysmonitor.rs` (rustc-gated into `~/.cache/quickshell/binaries/`), greeter helpers. Hyprland-side scripts (`screenrecord.sh`, `screenshot.sh`) live outside this repo in `~/.config/hypr/scripts/`.                                                              |
 
 Modules are declared in `qmldir` files: a new QML file must be added there or
 `import qs.<module>` cannot see it. JS helpers are imported relatively
@@ -51,6 +51,7 @@ player are per-monitor and their buttons/IPC/hover handlers must pass the
 monitor.
 
 Rules that bite:
+
 - Closing a side pill does not change the main pill's resolved state —
   close-guards listen to `onPanelStatesByMonitorChanged` + `isOpenFor()`
   (see `BooruViewer`), never `onStateChanged`.
@@ -147,14 +148,15 @@ There is no ladder (`radiusSm/Lg/Xl` were removed) and no per-widget literal —
 small indicators may be narrower than the radius and clamp, which is fine.
 
 **Insets vs gaps — do not cross the streams.**
-- `Theme.pad` (`Settings.uiPad`) is the only *content inset*: card padding,
+
+- `Theme.pad` (`Settings.uiPad`) is the only _content inset_: card padding,
   panel margins, island bodies, `Card.contentMargins`.
 - `Theme.spaceXs/Sm/Md/Lg/Xl/Xxl` derive from `Settings.uiSpacing` and are for
-  *distances between siblings* — layout `spacing`, gaps, block rhythm.
+  _distances between siblings_ — layout `spacing`, gaps, block rhythm.
 - `Theme.islandPad` is the bar-pill edge inset and belongs to the bar only.
-Using the spacing ladder as a margin silently detaches that widget from the pad
-slider (and vice versa) — the drift is invisible until the user moves a slider,
-which is how `Card` regressed once already.
+  Using the spacing ladder as a margin silently detaches that widget from the pad
+  slider (and vice versa) — the drift is invisible until the user moves a slider,
+  which is how `Card` regressed once already.
 
 **Depth, not outlines.** `Surface.qml` is the shared plate: `level` 0 flat,
 1 resting card, 2 raised row, 3 overlay; plus `tint`, `lit` (top-lit gradient)
@@ -163,12 +165,12 @@ and `Theme.spaceSm` content spacing. Decorative 1px borders are banned — borde
 survive only as `focusRing` and meaningful state/hover rings.
 
 **Translucency trap.** `Theme.surface` is `rgba(bg, uiOpacity)` and therefore
-translucent; the depth ladder (`surfaceRaised/Overlay/Float`, `surfaceSunken`)
+translucent; the depth ladder (`surfaceRaised/Overlay/Float`, `surface`)
 mixes into the raw opaque `bg` and is **opaque by design**. Floating overlays —
 toasts, tooltips, OSD, popups, media window — must use `Theme.surface` (or an
 explicit `Theme.rgba`), never a depth token, or the panel reads as a sticker
 over the wallpaper. This is why notification cards are `Theme.surface` and not
-`surfaceFloat`.
+`surface`.
 
 **Type.** `typeCaption/Label/Body/Subtitle/Title/Display` are multiples of
 `fontSize` (`Settings.uiFontSize`); `fontSizeSmall/Caption/Badge/Large` remain
@@ -194,14 +196,14 @@ dense pages 24). `SmoothFlickable`/`SmoothListView` are wrappers. Never wrap a
 3. **`Column` lays out on `height`, not `implicitHeight`.** A delegate that only
    sets `implicitHeight` renders 0-high.
 4. **Delegate `MouseArea`s must stay wheel-transparent** (`preventStealing:
-   false`, `propagateComposedEvents: true`) or they eat scroll/drag.
+false`, `propagateComposedEvents: true`) or they eat scroll/drag.
 5. **Poll-derived state lags** (`ScreenRecorder`); use optimistic/in-flight
    guards for rapid toggles.
 6. **`IslandHoverPin` must not be wrapped in an `Item`** — the handler monitors
    its parent; wrapping deadens hover and the island closes after the grace.
 7. **Never derive a parent's `visible` from a child's `visible`** (Qt propagates
    false into descendants and the binding latches off). Bind containers to the
-   contents' *inputs*.
+   contents' _inputs_.
 8. **Never guard swaps behind `Connections onStateChanged` against a bound
    `displayed`** — the binding updates first, so the guard exits forever.
 9. **`on`+Capital property names parse as signal handlers** (`Theme.onAccent`
@@ -296,4 +298,4 @@ asked.
 - Read-only agent: `~/.config/opencode/agents/issue-scout.md`; plans/specs live
   outside the repo. Per bug: report (author, timestamp, message id, thread) →
   implicate `path:line` → hypotheses with evidence → plan (edits, lint + SUPER+B
-  + thread repro) → say what is missing instead of guessing.
+  - thread repro) → say what is missing instead of guessing.

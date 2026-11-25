@@ -12,7 +12,7 @@ Rectangle {
     width: parent.width
     implicitHeight: signCol.implicitHeight + 20
     visible: !store.profile
-    color: Theme.bg
+    color: Theme.surfaceRaised
     radius: Theme.radius
 
     Column {

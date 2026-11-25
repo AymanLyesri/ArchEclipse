@@ -12,7 +12,7 @@ Row {
     Rectangle {
         width: (parent.width - 10) / 2
         implicitHeight: favCol.implicitHeight + 20
-        color: Theme.bg
+        color: Theme.surfaceRaised
         radius: Theme.radius
 
         Column {
@@ -54,7 +54,7 @@ Row {
     Rectangle {
         width: (parent.width - 10) / 2
         implicitHeight: pinCol.implicitHeight + 20
-        color: Theme.bg
+        color: Theme.surfaceRaised
         radius: Theme.radius
 
         Column {

@@ -67,9 +67,7 @@ Item {
                     tooltipText: isActive ? ("Reload page " + pageNo) : ("Go to page " + pageNo)
                     outlined: isActive
                     outlineColor: Theme.accent
-                    idleFg: isActive ? Theme.accent : Theme.fg
                     hoverFg: isActive ? Theme.accent : Theme.fg
-                    idleBg: isActive ? Theme.rgba(Theme.accent, 0.14) : Theme.bg
 
                     onClicked: ctrl.viewer.gotoPage(pageNo)
                 }

@@ -74,7 +74,9 @@ local function stop()
 end
 
 local function launch()
-    local launch_command = "MANGOHUD=0 nohup qs -n -p " .. quote(qs_config)
+    local fontconfig = qs_config .. "/fonts.conf"
+    local launch_command = "FONTCONFIG_FILE=" .. quote(fontconfig)
+        .. " MANGOHUD=0 nohup qs -n -p " .. quote(qs_config)
         .. " > " .. quote(log_file) .. " 2>&1 &"
     run(launch_command)
 

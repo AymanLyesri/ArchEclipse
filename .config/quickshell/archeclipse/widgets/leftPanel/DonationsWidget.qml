@@ -634,9 +634,6 @@ Item {
                     pixelSize: Theme.fontSize
                     outlined: true
                     outlineColor: "#29ABE0"
-                    idleBg: Theme.surface
-                    hoverBg: "#29ABE0"
-                    idleFg: Theme.fg
                     hoverFg: "white"
                     tooltipText: root.signedIn ? "Open Ko-fi in your browser\nPut " + root.linkCode + " in the message" : "Open Ko-fi in your browser\nNo account needed — sign in later to claim the badge"
                     onClicked: {
@@ -672,9 +669,6 @@ Item {
                     pixelSize: Theme.fontSize
                     outlined: true
                     outlineColor: "#F7931A"
-                    idleBg: Theme.surface
-                    hoverBg: "#F7931A"
-                    idleFg: Theme.fg
                     hoverFg: "white"
                     enabled: !root.busy
                     tooltipText: "Create a crypto checkout"
@@ -732,9 +726,6 @@ Item {
                                 pixelSize: Theme.fontSize
                                 outlined: true
                                 outlineColor: brandColor
-                                idleBg: Theme.surface
-                                hoverBg: brandColor
-                                idleFg: Theme.fg
                                 hoverFg: "white"
                                 tooltipText: "Copy " + opt.name + " address\n" + addr
                                 onClicked: root.copyToClipboard(addr, opt.name)
@@ -756,8 +747,6 @@ Item {
                                 pixelSize: Theme.fontSize - 2
                                 outlined: true
                                 outlineColor: Theme.border
-                                idleBg: "transparent"
-                                hoverBg: Theme.surfaceActive
                                 tooltipText: "Show QR Code"
                                 onClicked: {
                                     if (qrData) root.showQRCode(qrData, opt.name)

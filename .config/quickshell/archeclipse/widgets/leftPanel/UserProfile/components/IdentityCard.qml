@@ -24,7 +24,7 @@ Column {
         width: Math.min(parent.width * 0.55, 180)
         height: width
         radius: width / 2
-        color: Theme.bg
+        color: Theme.surfaceRaised
         AppImage {
             id: avatarImg
             anchors.fill: parent
@@ -58,7 +58,7 @@ Column {
         id: card
         width: parent.width
         height: cardCol.implicitHeight + 20
-        color: Theme.bg
+        color: Theme.surfaceRaised
         radius: Theme.radius
 
         Column {

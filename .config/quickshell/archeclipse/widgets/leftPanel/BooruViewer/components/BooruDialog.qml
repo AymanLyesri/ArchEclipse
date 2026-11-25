@@ -121,7 +121,7 @@ Item {
             id: dialogMedia
             anchors.fill: parent
             radius: Theme.radius
-            color: Theme.surfaceFloat
+            color: Theme.surface
             clip: true
 
             // The AppImage still stays as the poster and the video covers it on the first frame
@@ -279,7 +279,7 @@ Item {
             // Cap at the card height; overflow scrolls.
             height: Math.min(sheetContent.height + 16, Math.max(120, dialogRoot.height - 16))
             radius: Theme.radius
-            color: Theme.surfaceFloat
+            color: Theme.bg
             opacity: dialogRoot.sheetRevealed ? 1 : 0
             Behavior on opacity {
                 NumberAnimation {
@@ -414,7 +414,7 @@ Item {
                         width: parent.width
                         implicitHeight: metaRow.implicitHeight + 12
                         radius: Theme.radius
-                        color: Theme.bg
+                        color: Theme.surfaceRaised
                         RowLayout {
                             id: metaRow
                             anchors.fill: parent
@@ -481,7 +481,7 @@ Item {
                             width: parent.width
                             implicitHeight: tagFlow.implicitHeight + 12
                             radius: Theme.radius
-                            color: Theme.bg
+                            color: Theme.surfaceRaised
                             // Waifu mode starts collapsed: hide the empty chip
                             // box until expanded (no-tags case still shows).
                             visible: dialogRoot.dlgVisibleTagCount > 0 || dialogRoot.dlgTags.length === 0

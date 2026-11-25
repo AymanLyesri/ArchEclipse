@@ -358,7 +358,7 @@ Item {
                         id: plate
                         anchors.fill: parent
                         radius: width / 2
-                        color: Theme.surfaceSunken
+                        color: Theme.surface
 
                         Item {
                             id: spin
@@ -377,7 +377,7 @@ Item {
                             // Tint: the art reads as a disc surface, not a thumbnail.
                             Rectangle {
                                 anchors.fill: parent
-                                color: Theme.rgba(Theme.bg, 0.34)
+                                color: Theme.rgba(Theme.surfaceRaised, 0.34)
                             }
 
                             // Disc speed ~18 s per turn; a timer (not an animator) so pausing
@@ -419,7 +419,7 @@ Item {
                             width: Math.round(plate.width * 0.3)
                             height: width
                             radius: width / 2
-                            color: Theme.rgba(Theme.bg, 0.55)
+                            color: Theme.rgba(Theme.surfaceRaised, 0.55)
                             visible: root._lastCover !== ""
 
                             Rectangle {
@@ -539,9 +539,6 @@ Item {
                             // Primary action: the wide padding, not a pinned box, is what makes it read bigger.
                             hPadding: 12
                             vPadding: 10
-                            idleBg: Theme.surfaceActive
-                            idleFg: Theme.accent
-                            hoverBg: Theme.surfaceOverlay
                             onClicked: {
                                 if (root.playing)
                                     root.player?.pause();

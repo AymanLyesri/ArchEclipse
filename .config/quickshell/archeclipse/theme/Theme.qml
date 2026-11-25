@@ -55,6 +55,20 @@ QtObject {
             return "transparent";
         return Qt.rgba(p[0] / 255, p[1] / 255, p[2] / 255, alpha).toString();
     }
+    // Fixed player brand inks keep the media plate tied to its app icon rather
+    // than the wallpaper; unknown players fall back to the theme accent.
+    function playerInk(name: string): string {
+        const key = ("" + name).toLowerCase();
+        if (key.includes("spotify"))
+            return "#1ed760";
+        if (key.includes("vlc"))
+            return "#ff8800";
+        if (key.includes("mpv"))
+            return "#8b5cf6";
+        if (key.includes("firefox"))
+            return "#ff7139";
+        return accent;
+    }
 
     // --- colour maths (palette-load-time only, same rule as mix/rgba) ---
     // Accepts "#rrggbb", "#fff" and Qt's "#aarrggbb"; the alpha half is ignored.
@@ -292,10 +306,11 @@ QtObject {
     readonly property string surfaceActive: mix(bg, accent, 0.16)
     // Depth ladder: sunken < base < raised < overlay < float. Separation comes from these
     // stacked fills (plus the top-lit gradient in Surface), never from 1px outlines.
-    readonly property string surfaceSunken: mix(bg, "#000000", 0.32)
-    readonly property string surfaceRaised: mix(bg, foreground, 0.05)
+    readonly property string surfaceRaised: rgba(bg, Settings.uiOpacity + 0.1)
     readonly property string surfaceOverlay: mix(bg, foreground, 0.09)
-    readonly property string surfaceFloat: mix(bg, foreground, 0.13)
+
+    // Hover plate keeps the same wallpaper translucency as the resting surface.
+    readonly property string surfaceHoverPlate: rgba(surfaceOverlay, Settings.uiOpacity)
     // A hairline is a deliberate rule (table row, rail edge), never a card outline.
     readonly property string hairline: rgba(foreground, 0.06)
     readonly property string border: rgba(foreground, 0.12)
@@ -358,9 +373,8 @@ QtObject {
     // Icon-only cells share one square box (a 14px glyph plus the cell pad) so every glyph
     // sits on the same rhythm as the text cells.
     readonly property int barIconCell: 22
-    // Height of the chained status pills (weather/media/recording/network/screenshot). They
-    // carry their own surface, so they are deliberately a touch taller than a bare bar cell
-    // (22): a chip on the line, not another cell.
+    // Height of the chained status pills; normal plates use Theme.surface, while
+    // only the media pill carries a low-opacity tint from its app icon.
     readonly property int sidePillHeight: 28
     // Gap between the main pill and the chained side pills; also the matching
     // leftPush/rightPush offset, so the x-chain and its mirror cannot drift apart.

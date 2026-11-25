@@ -19,7 +19,7 @@ Item {
     // start intent in flight: spinner state until gpu-screen-recorder is actually up
     readonly property bool starting: ScreenRecorder.starting && ScreenRecorder.targetMonitors.includes(monitorName)
 
-    // ---- launcher expansion stem (cf. WeatherButton) ----
+    // ---- launcher expansion stem (cf. WeatherSidePill) ----
     property bool expanded: false
     // bottom-oriented bars grow upward instead of off-screen
     readonly property bool growUp: !Settings.barOrientation

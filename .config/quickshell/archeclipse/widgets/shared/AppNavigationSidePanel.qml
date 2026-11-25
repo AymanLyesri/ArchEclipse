@@ -306,7 +306,7 @@ Item {
 
                     // Recessed rail: the nav sits below the content plane, so selection reads
                     // as a raised plate rather than an outlined row.
-                    color: Theme.surfaceSunken
+                    color: Theme.surface
                     radius: Theme.radius
                     clip: true
                     implicitHeight: entries.implicitHeight + inset * 2

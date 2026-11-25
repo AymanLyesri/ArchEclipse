@@ -6,7 +6,7 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Mini media pill (icon, play state, track title) for the best player, right-chained like the
+// Mini media side pill (icon, play state, track title) for the best player, right-chained like the
 // recording pill; hover/click pulses the player island, middle-click toggles playback.
 Rectangle {
     id: root
@@ -41,7 +41,7 @@ Rectangle {
 
     // Icon via the MPRIS DesktopEntry with identity fallbacks, then Quickshell.iconPath() into
     // an image:// URL (bare theme names never load); missing falls back to the music note.
-    readonly property string playerIconSource: {
+    readonly property string playerIconName: {
         const p = root.firstPlayable;
         if (!p)
             return "";
@@ -69,6 +69,10 @@ Rectangle {
                     raw = tail.toLowerCase();
             }
         }
+        return raw;
+    }
+    readonly property string playerIconSource: {
+        const raw = root.playerIconName;
         if (raw === "")
             return "";
         if (raw.startsWith("image://") || raw.startsWith("file://") || raw.startsWith("qrc:/") || raw.startsWith("/"))
@@ -79,6 +83,7 @@ Rectangle {
             return "";
         }
     }
+    readonly property string playerAccent: Theme.playerInk(root.playerIconName)
     readonly property string playerTooltip: {
         const p = root.firstPlayable;
         if (!p)
@@ -90,14 +95,14 @@ Rectangle {
         return (id !== "" ? id : "Player") + (track !== "" ? "\n" + track : "");
     }
 
-    height: root.expanded && root.expandedArtist !== ""
-        ? Theme.sidePillHeight + root.extraGap + artistLine.implicitHeight
-        : Theme.sidePillHeight
-    Behavior on height { Anim {} }
+    height: root.expanded && root.expandedArtist !== "" ? Theme.sidePillHeight + root.extraGap + artistLine.implicitHeight : Theme.sidePillHeight
+    Behavior on height {
+        Anim {}
+    }
     implicitWidth: root.hasPlayable ? contentRow.implicitWidth + Theme.islandPad * 2 : 0
     width: implicitWidth
     radius: Theme.radius
-    color: playerHover.hovered ? Theme.surfaceOverlay : Theme.surfaceRaised
+    color: Theme.mix(Theme.rgba(root.playerAccent, Settings.uiOpacity), Theme.surface, 0.75)
 
     Behavior on color {
         ColorAnimation {
@@ -109,8 +114,7 @@ Rectangle {
         id: contentRow
         anchors.horizontalCenter: parent.horizontalCenter
         // pinned inside the pill's compact band so the artist row hangs off it
-        y: growUp ? parent.height - Theme.sidePillHeight + (Theme.sidePillHeight - height) / 2
-                  : (Theme.sidePillHeight - height) / 2
+        y: growUp ? parent.height - Theme.sidePillHeight + (Theme.sidePillHeight - height) / 2 : (Theme.sidePillHeight - height) / 2
         spacing: Theme.spacing
 
         // app icon (fallback: music-note glyph for the empty state)
@@ -161,13 +165,16 @@ Rectangle {
         id: artistLine
         visible: root.expandedArtist !== ""
         opacity: root.expanded ? 1 : 0
-        Behavior on opacity { Anim { type: Anim.FastEffects } }
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
         x: Theme.islandPad
         width: Math.max(0, root.width - Theme.islandPad * 2)
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
-        y: growUp ? contentRow.y - height - root.extraGap
-                  : contentRow.y + contentRow.height + root.extraGap
+        y: growUp ? contentRow.y - height - root.extraGap : contentRow.y + contentRow.height + root.extraGap
         text: root.expandedArtist
         color: Theme.muted
         font.family: Theme.fontFamily

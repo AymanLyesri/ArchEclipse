@@ -172,7 +172,7 @@ Item {
                 // Its own opaque plate: the pill behind is Theme.surface at uiOpacity, so
                 // painting the same translucent colour again double-blends into a darker
                 // patch. The raised plate puts the component on the bar's one plate language.
-                color: Theme.surfaceRaised
+                color: Theme.surface
                 visible: topRow.chromeVisible || controlCard.shown
             }
 
@@ -330,7 +330,6 @@ Item {
                     height: Theme.barCellHeight
                     icon: Icons.search
                     pixelSize: Theme.fontSize + 3
-                    idleFg: Theme.accent
                     hoverFg: Theme.accent
                     tooltipText: "Search apps · <b>SUPER</b>"
                     onClicked: {

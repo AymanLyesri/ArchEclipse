@@ -27,7 +27,7 @@ Item {
         padding: Theme.pad
         closePolicy: Popup.CloseOnPressOutside
         background: Rectangle {
-            color: Theme.surfaceFloat
+            color: Theme.surface
             radius: Theme.radius
         }
 

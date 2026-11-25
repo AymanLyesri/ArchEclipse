@@ -14,7 +14,7 @@ Rectangle {
     // Translucent recess via Theme.rgba, never an opaque depth token: the pill is the
     // plate, and the wallpaper must read through the launcher instead of stopping at it.
     radius: Theme.radius
-    color: Theme.rgba(Theme.bg, 0.35)
+    color: Theme.rgba(Theme.surfaceRaised, 0.35)
 
     SmoothListView {
         id: resultsList
@@ -118,8 +118,6 @@ Rectangle {
                         text: modelData.label
                         pixelSize: Theme.typeLabel
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surfaceHover
-                        hoverBg: Theme.rgba(Theme.fg, 0.13)
                         tooltipText: modelData.tooltip || modelData.label
                         onClicked: modelData.onClick()
                     }

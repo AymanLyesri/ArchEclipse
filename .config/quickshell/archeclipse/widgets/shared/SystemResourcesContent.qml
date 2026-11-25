@@ -177,7 +177,6 @@ Column {
             Layout.fillWidth: true
             text: "System Resources"
             font.pixelSize: Theme.typeSubtitle
-            font.family: Theme.fontFamily
             font.weight: Font.DemiBold
             color: Theme.fg
             elide: Text.ElideRight

@@ -1420,8 +1420,6 @@ Item {
                                         anchors.top: parent.top
                                         anchors.right: parent.right
                        
-                                        idleBg: Theme.bg
-                                        idleFg: Theme.accent
                                         hoverFg: Theme.accent
                                         text: Icons.copy
                                         pixelSize: Theme.fontSizeBadge

@@ -37,9 +37,9 @@ Item {
     property bool autoToggle: false
     property bool outlined: false
     property color idleBg: "transparent"
-    property color hoverBg: Theme.surfaceHover
-    property color pressedBg: Theme.surfaceActive
-    property color activeBg: Theme.surfaceActive
+    property color hoverBg: Theme.surfaceRaised
+    property color pressedBg: Theme.surfaceRaised
+    property color activeBg: Theme.surfaceRaised
     property color idleFg: Theme.fg
     property color hoverFg: idleFg
     property color activeFg: Theme.accent

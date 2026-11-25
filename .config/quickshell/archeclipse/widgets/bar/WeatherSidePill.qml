@@ -3,7 +3,7 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Compact bar button with icon + temp on the shared bar surface; hover/click pulses the
+// Compact weather side pill (icon + temp) on the shared bar surface; hover/click pulses the
 // weather island. While the launcher is open the pill unfolds stats rows vertically.
 Rectangle {
     id: root
@@ -12,11 +12,12 @@ Rectangle {
     // bottom-oriented bars grow upward instead of off-screen
     readonly property bool growUp: !Settings.barOrientation
     readonly property real extraGap: Theme.spacing / 2
-    readonly property real extraH: (statLine.visible ? statLine.implicitHeight + extraGap : 0)
-        + (rangeLine.visible ? rangeLine.implicitHeight + extraGap : 0)
+    readonly property real extraH: (statLine.visible ? statLine.implicitHeight + extraGap : 0) + (rangeLine.visible ? rangeLine.implicitHeight + extraGap : 0)
 
     height: root.expanded ? Theme.sidePillHeight + root.extraH : Theme.sidePillHeight
-    Behavior on height { Anim {} }
+    Behavior on height {
+        Anim {}
+    }
     // implicitWidth (not width) so the button keeps its natural size in
     // Row layouts but can stretch via anchors when there is empty space.
     implicitWidth: content.implicitWidth + Theme.islandPad * 2
@@ -28,23 +29,20 @@ Rectangle {
     readonly property var cu: wx ? (wx.current_units ?? {}) : ({})
     readonly property bool hasData: wx !== null
 
-    // The weather code paints the plate, but whispered: 80% into the standard raised surface,
-    // so the pill carries its weather without the saturated block that read as a sticker among
-    // greige cells. Raise the mix toward the code colour for more weather, lower it for less.
-    readonly property string weatherPlate: hasData ? Theme.mix(Weather.background(cur.weather_code), Theme.surfaceRaised, 0.8) : Theme.surfaceRaised
-    // Stronger version of the same colour for the icon glyph (the raw code colours sit at
-    // ~2:1 contrast on a dark surface, so it is lifted toward fg).
-    readonly property string weatherInk: hasData ? Theme.mix(Weather.background(cur.weather_code), Theme.fg, 0.45) : Theme.muted
-    color: root.hasData ? (hover.hovered ? Theme.mix(root.weatherPlate, Theme.fg, 0.1) : root.weatherPlate) : (hover.hovered ? Theme.surfaceHover : "transparent")
+    readonly property string weatherInk: hasData ? Theme.mix(Weather.background(cur.weather_code), Theme.surface, 0.5) : Theme.muted
+    color: weatherInk
 
-    Behavior on color { ColorAnimation { duration: Theme.anim.defaultEffects } }
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.anim.defaultEffects
+        }
+    }
 
     Row {
         id: content
         anchors.horizontalCenter: parent.horizontalCenter
         // pinned inside the pill's compact band so extra rows hang off it
-        y: growUp ? parent.height - Theme.sidePillHeight + (Theme.sidePillHeight - height) / 2
-                  : (Theme.sidePillHeight - height) / 2
+        y: growUp ? parent.height - Theme.sidePillHeight + (Theme.sidePillHeight - height) / 2 : (Theme.sidePillHeight - height) / 2
         spacing: Theme.spacing
 
         // Weather icon
@@ -64,7 +62,8 @@ Rectangle {
             visible: root.hasData
             anchors.verticalCenter: parent.verticalCenter
             text: {
-                if (!root.hasData) return "";
+                if (!root.hasData)
+                    return "";
                 const t = Math.round(root.cur.temperature_2m ?? 0);
                 const unit = root.cu.temperature_2m || "°C";
                 const desc = Weather.description(root.cur.weather_code);
@@ -89,15 +88,19 @@ Rectangle {
         id: statLine
         visible: root.hasData
         opacity: root.expanded ? 1 : 0
-        Behavior on opacity { Anim { type: Anim.FastEffects } }
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
         x: Theme.islandPad
         width: Math.max(0, root.width - Theme.islandPad * 2)
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
-        y: growUp ? content.y - height - root.extraGap
-                  : content.y + content.height + root.extraGap
+        y: growUp ? content.y - height - root.extraGap : content.y + content.height + root.extraGap
         text: {
-            if (!root.hasData) return "";
+            if (!root.hasData)
+                return "";
             const feels = Math.round(root.cur.apparent_temperature ?? 0);
             const unit = root.cu.apparent_temperature || "°";
             const wind = Math.round(root.cur.wind_speed_10m ?? 0);
@@ -112,19 +115,22 @@ Rectangle {
 
     Text {
         id: rangeLine
-        visible: root.hasData && (root.wx.daily?.temperature_2m_max?.length ?? 0) > 0
-            && (root.wx.daily?.temperature_2m_min?.length ?? 0) > 0
+        visible: root.hasData && (root.wx.daily?.temperature_2m_max?.length ?? 0) > 0 && (root.wx.daily?.temperature_2m_min?.length ?? 0) > 0
         opacity: root.expanded ? 1 : 0
-        Behavior on opacity { Anim { type: Anim.FastEffects } }
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
         x: Theme.islandPad
         width: Math.max(0, root.width - Theme.islandPad * 2)
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
-        y: growUp ? statLine.y - height - root.extraGap
-                  : statLine.y + statLine.height + root.extraGap
+        y: growUp ? statLine.y - height - root.extraGap : statLine.y + statLine.height + root.extraGap
         text: {
             const d = root.wx ? root.wx.daily : null;
-            if (!d) return "";
+            if (!d)
+                return "";
             const u = root.cu.temperature_2m || "°";
             return `↑${Math.round(d.temperature_2m_max[0])}${u} ↓${Math.round(d.temperature_2m_min[0])}${u}`;
         }

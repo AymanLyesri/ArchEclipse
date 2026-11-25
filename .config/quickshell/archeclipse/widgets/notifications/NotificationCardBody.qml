@@ -34,8 +34,8 @@ Column {
     property bool bodyExpanded: false
 
     signal openRequested(string path)
-    signal copyRequested()
-    signal dismissRequested()
+    signal copyRequested
+    signal dismissRequested
     signal actionClicked(var action)
 
     readonly property bool hasVideo: root.videoFile !== ""
@@ -170,8 +170,7 @@ Column {
                         icon: Icons.eye
                         pixelSize: Theme.typeCaption
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surfaceHover
-                        hoverBg: Theme.surfaceActive
+
                         hPadding: 6
                         height: 22
                         tooltipText: root.openFile
@@ -182,8 +181,7 @@ Column {
                         icon: Icons.copy
                         pixelSize: Theme.typeCaption
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surfaceHover
-                        hoverBg: Theme.surfaceActive
+
                         hPadding: 6
                         height: 22
                         tooltipText: root.copyTip
@@ -193,8 +191,7 @@ Column {
                         icon: root.bodyExpanded ? Icons.chevronUp : Icons.chevronDown
                         pixelSize: Theme.typeCaption
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surfaceHover
-                        hoverBg: Theme.surfaceActive
+
                         hPadding: 6
                         height: 22
                         tooltipText: root.bodyExpanded ? "Collapse" : "Expand"
@@ -205,8 +202,7 @@ Column {
                         icon: Icons.close
                         pixelSize: Theme.typeCaption
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surfaceHover
-                        hoverBg: Theme.surfaceActive
+
                         hPadding: 6
                         height: 22
                         tooltipText: root.dismissTip
@@ -255,8 +251,7 @@ Column {
                         height: 26
                         pixelSize: Theme.typeCaption
                         cornerRadius: Theme.radius
-                        idleBg: Theme.surfaceHover
-                        hoverBg: Theme.surfaceActive
+
                         onClicked: root.actionClicked(modelData)
                     }
                 }

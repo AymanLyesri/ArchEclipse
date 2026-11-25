@@ -31,7 +31,6 @@ Item {
     property Item highlightCell: null
     property int _syncRetries: 0
 
-
     // Arrow-key navigation between segments.
     Keys.onLeftPressed: e => moveSelection(-1, e)
     Keys.onRightPressed: e => moveSelection(1, e)
@@ -61,7 +60,7 @@ Item {
         radius: root.cornerRadius + root.highlightMargin
         // The group is a recessed well; the moving plate is the only raised element, so the
         // selection reads by depth rather than by an outline around the whole control.
-        color: Theme.surfaceSunken
+        color: Theme.surface
         border.width: 0
         opacity: root.enabled ? 1 : Theme.opacity.disabled
 

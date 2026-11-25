@@ -43,7 +43,9 @@ ComboBox {
         rotation: root.popup.visible ? 180 : 0
 
         Behavior on rotation {
-            Anim { type: Anim.FastEffects }
+            Anim {
+                type: Anim.FastEffects
+            }
         }
     }
 
@@ -53,7 +55,7 @@ ComboBox {
         implicitHeight: contentItem.implicitHeight + 8
         padding: 4
         background: Rectangle {
-            color: Theme.surfaceFloat
+            color: Theme.bg
             radius: Theme.radius
         }
         contentItem: SmoothListView {

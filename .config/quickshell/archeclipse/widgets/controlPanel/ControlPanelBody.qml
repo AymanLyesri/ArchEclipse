@@ -5,7 +5,7 @@ import qs.theme
 import qs.services
 import qs.widgets.shared
 
-// Quick-settings body: live sections, then one labelled strip of quick actions, then sliders.
+// Quick-settings body: quick actions lead on top bar and trail on bottom bar; live sections stay between.
 // No dividers - groups separate by space and every block sits on the same plate.
 Item {
     id: body
@@ -15,7 +15,7 @@ Item {
     readonly property real monitorBrightness: Brightness.screenFor(body.effectiveMonitor)
 
     width: 700
-    height: mainCol.height
+    height: mainCol.implicitHeight
 
     // ---- dynamic brightness icon (3-level thresholds) ----
     readonly property string brightnessIcon: {
@@ -89,33 +89,18 @@ Item {
     readonly property int actionCount: KeyboardLayout.layout !== "" ? 5 : 4
     readonly property real actionWidth: (parent ? body.width - Theme.spaceSm * (body.actionCount - 1) : 0) / body.actionCount
 
-    Column {
+    Item {
         id: mainCol
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: Theme.spaceMd
-
-        // ===== Live sections: the two things you check, side by side =====
-        Row {
-            id: sectionRow
-            width: parent.width
-            spacing: Theme.spaceMd
-
-            VolumeSection {
-                id: volSection
-                width: Math.round((parent.width - parent.spacing) * 0.56)
-                monitorName: body.effectiveMonitor
-            }
-
-            ConnectivitySection {
-                width: parent.width - volSection.width - sectionRow.spacing
-            }
-        }
+        implicitHeight: quickActions.height + sectionRow.height + systemRow.height + Theme.spaceMd * 2
 
         // ===== Quick actions: one strip, labelled, icon + label per tile =====
         Column {
+            id: quickActions
             width: parent.width
+            y: Settings.barOrientation ? 0 : systemRow.y + systemRow.height + Theme.spaceMd
             spacing: Theme.spaceSm
 
             GroupLabel {
@@ -130,8 +115,6 @@ Item {
                     width: body.actionWidth
                     height: 46
                     cornerRadius: Theme.radius
-                    idleBg: Theme.surfaceRaised
-                    hoverBg: Theme.surfaceOverlay
                     icon: GlobalTheme.currentTheme ? Icons.sun : Icons.moon
                     text: "Theme"
                     pixelSize: Theme.typeLabel
@@ -143,8 +126,6 @@ Item {
                     width: body.actionWidth
                     height: 46
                     cornerRadius: Theme.radius
-                    idleBg: Theme.surfaceRaised
-                    hoverBg: Theme.surfaceOverlay
                     icon: Settings.notifDnd ? Icons.bellOff : Icons.bell
                     text: "DND"
                     pixelSize: Theme.typeLabel
@@ -160,8 +141,6 @@ Item {
                     width: body.actionWidth
                     height: 46
                     cornerRadius: Theme.radius
-                    idleBg: Theme.surfaceRaised
-                    hoverBg: Theme.surfaceOverlay
                     icon: Icons.game
                     text: "Game"
                     pixelSize: Theme.typeLabel
@@ -177,8 +156,6 @@ Item {
                     width: body.actionWidth
                     height: 46
                     cornerRadius: Theme.radius
-                    idleBg: Theme.surfaceRaised
-                    hoverBg: Theme.surfaceOverlay
                     icon: Icons.lightbulb
                     text: "Night"
                     pixelSize: Theme.typeLabel
@@ -194,8 +171,6 @@ Item {
                     width: body.actionWidth
                     height: 46
                     cornerRadius: Theme.radius
-                    idleBg: Theme.surfaceRaised
-                    hoverBg: Theme.surfaceOverlay
                     icon: Icons.keyboard
                     text: KeyboardLayout.layout
                     visible: KeyboardLayout.layout !== ""
@@ -207,9 +182,29 @@ Item {
             }
         }
 
+        // ===== Live sections: the two things you check, side by side =====
+        Row {
+            id: sectionRow
+            width: parent.width
+            y: Settings.barOrientation ? quickActions.height + Theme.spaceMd : 0
+            spacing: Theme.spaceMd
+
+            VolumeSection {
+                id: volSection
+                width: Math.round((parent.width - parent.spacing) * 0.56)
+                monitorName: body.effectiveMonitor
+            }
+
+            ConnectivitySection {
+                width: parent.width - volSection.width - sectionRow.spacing
+            }
+        }
+
         // ===== System: display and power are peers, one card each =====
         Row {
+            id: systemRow
             width: parent.width
+            y: sectionRow.y + sectionRow.height + Theme.spaceMd
             spacing: Theme.spaceMd
 
             Card {

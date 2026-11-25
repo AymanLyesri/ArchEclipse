@@ -331,7 +331,6 @@ Item {
                                 id: playMute
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.volumeMuted : Icons.volumeHigh
                                 pixelSize: Theme.fontSize
                                 toggle: true
@@ -344,7 +343,6 @@ Item {
                                 id: playKill
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: Icons.close
                                 pixelSize: Theme.fontSizeSmall
                                 tooltipText: "Terminate stream"
@@ -467,7 +465,6 @@ Item {
                                 id: recMute
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.micOff : Icons.micOn
                                 pixelSize: Theme.fontSize
                                 toggle: true
@@ -480,7 +477,6 @@ Item {
                                 id: recKill
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: Icons.close
                                 pixelSize: Theme.fontSizeSmall
                                 tooltipText: "Terminate stream"
@@ -564,7 +560,6 @@ Item {
                                 id: outStar
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: Icons.star
                                 pixelSize: Theme.fontSizeSmall
                                 toggle: true
@@ -593,7 +588,6 @@ Item {
                                 id: outMute
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.volumeMuted : Icons.volumeHigh
                                 pixelSize: Theme.fontSize
                                 toggle: true
@@ -659,7 +653,6 @@ Item {
                                 id: inStar
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: Icons.star
                                 pixelSize: Theme.fontSizeSmall
                                 toggle: true
@@ -688,7 +681,6 @@ Item {
                                 id: inMute
                                 anchors.verticalCenter: parent.verticalCenter
                                 cornerRadius: 6
-                                idleBg: Theme.surface
                                 icon: modelData.audio?.muted ? Icons.micOff : Icons.micOn
                                 pixelSize: Theme.fontSize
                                 toggle: true
@@ -731,7 +723,6 @@ Item {
                 width: parent.width
                 height: 28
                 cornerRadius: Theme.radius
-                idleBg: Theme.surface
                 icon: Icons.pavucontrol
                 text: "pavucontrol"
                 pixelSize: Theme.fontSize - 2

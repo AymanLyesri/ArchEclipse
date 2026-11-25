@@ -253,7 +253,7 @@ Item {
                             width: Math.max(18, wsNum.implicitWidth + 10)
                             height: 18
                             radius: Theme.radius
-                            color: wsCard.isFocused ? Theme.accent : Qt.alpha(Theme.bg, 0.55)
+                            color: wsCard.isFocused ? Theme.accent : Qt.alpha(Theme.surfaceRaised, 0.55)
                             Text {
                                 id: wsNum
                                 anchors.centerIn: parent

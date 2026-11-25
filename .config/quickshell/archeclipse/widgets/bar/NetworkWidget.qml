@@ -12,13 +12,12 @@ Rectangle {
     property string monitorName: ""
     property real widthRequest: 0
 
-    // Side-pill shell: same recipe as MediaPill/WeatherButton (one raised surface, radius,
-    // sidePillHeight) so it reads as a chained sibling instead of an accent-tinted odd one.
+    // Side-pill shell matches the main pill's translucent Theme.surface plate.
     height: Theme.sidePillHeight
     implicitWidth: contentRow.implicitWidth + Theme.islandPad * 2
     width: implicitWidth
     radius: Theme.radius
-    color: netHover.hovered ? Theme.surfaceOverlay : Theme.surfaceRaised
+    color: netHover.hovered ? Theme.surfaceHoverPlate : Theme.surface
 
     Behavior on color {
         ColorAnimation {

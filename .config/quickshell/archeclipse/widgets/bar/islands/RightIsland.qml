@@ -119,7 +119,7 @@ Item {
                 id: sidebar
                 width: 48
                 height: parent.height
-                color: Theme.surfaceSunken
+                color: Theme.surface
                 // Square on the screen-edge side so the rail runs flush
                 // into the panel's edge (mirrors bar orientation).
                 topLeftRadius: Settings.barOrientation ? 0 : Theme.radius

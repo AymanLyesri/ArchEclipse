@@ -206,9 +206,6 @@ Item {
                             icon: Icons.check
                             pixelSize: Theme.typeLabel
                             cornerRadius: Theme.radius
-                            idleBg: Theme.scrimSoft
-                            idleFg: Theme.accentFg
-                            hoverBg: Theme.scrimSoft
                             tooltipText: "Search city"
                             onClicked: root.applyCity()
                         }
@@ -217,9 +214,6 @@ Item {
                             icon: Icons.location
                             pixelSize: Theme.typeLabel
                             cornerRadius: Theme.radius
-                            idleBg: Theme.scrimSoft
-                            idleFg: Theme.accentFg
-                            hoverBg: Theme.scrimSoft
                             tooltipText: "Auto (IP)"
                             onClicked: root.clearCity()
                         }

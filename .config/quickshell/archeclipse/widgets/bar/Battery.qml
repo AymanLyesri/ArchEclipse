@@ -86,7 +86,7 @@ Rectangle {
         padding: 8
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: Rectangle {
-            color: Theme.surfaceFloat
+            color: Theme.surface
             radius: Theme.radius
         }
 

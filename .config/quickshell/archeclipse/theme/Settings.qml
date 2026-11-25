@@ -17,7 +17,7 @@ Singleton {
 
     property string dateFormat: "%H:%M"
     readonly property var dateFormats: ["%H:%M", "%I:%M %p"]
-    property real uiOpacity: 0.618
+    property real uiOpacity: 0.5
     property int uiRadius: 10
     property int uiPad: 6
     property int uiSpacing: 6
@@ -178,7 +178,7 @@ Singleton {
     property bool gameModeEnabled: false
     // Hide the shell while a game is fullscreen (or any window is fullscreen on the
     // gaming workspace). The Hyprland Lua gate reads this leaf before killing the bar.
-    property bool gameModeAutoHideBar: true
+    property bool gameModeAutoHideBar: false
     // Blue light filter (hyprsunset). Temperature in Kelvin: lower = warmer.
     property bool blueLightEnabled: false
     property int blueLightTemperature: 4000
